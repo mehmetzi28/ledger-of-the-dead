@@ -1,0 +1,1613 @@
+<title>Ledger of the Dead</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Cinzel+Decorative:wght@700&family=IM+Fell+English:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a necromancer's grimoire. Header with a turning ritual sigil, main column for gates/battle/raising, left-over rail for the System windows. Warm black ground, bone and brass for structure, necrotic green only for souls and the things you can act on, blood for harm. No blue, no purple. Single committed dark look. */
+:root{
+  --ground:#080706; --panel:#131110; --panel-2:#1b1816; --well:#0b0a09;
+  --line:#2e2822; --line-2:#4a4036;
+  --bone:#e8dec6; --mute:#9a8f81; --brass:#8c6f3d; --gold:#d3a64d;
+  --soul:#8fd46a; --soul-dim:#3f6b2b; --soul-ink:#0d1a09;
+  --blood:#b83a2a; --blood-text:#ee6f5c; --ember:#e08a3c; --ward:#ddd3b8; --ok:#8fd46a;
+  --font-display:'Cinzel Decorative','Cinzel',Georgia,serif;
+  --font-head:'Cinzel',Georgia,'Times New Roman',serif;
+  --font-lore:'IM Fell English',Georgia,'Times New Roman',serif;
+  --font-body:'IBM Plex Sans',system-ui,sans-serif;
+  --font-data:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --grain:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;color:var(--bone);font:15px/1.5 var(--font-body);
+  background:
+    radial-gradient(900px 420px at 50% 112%, rgba(63,107,43,.30), transparent 70%),
+    radial-gradient(700px 300px at 12% -6%, rgba(140,111,61,.10), transparent 70%),
+    var(--ground);
+  background-attachment:fixed;
+  padding-block:22px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,.75) 100%)}
+body::after{content:"";position:fixed;inset:0;z-index:3;pointer-events:none;background-image:var(--grain);opacity:.07;mix-blend-mode:overlay}
+#embers{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.wrap{position:relative;z-index:1;max-width:1120px;margin:0 auto}
+button{font:inherit}
+:focus-visible{outline:2px solid var(--soul);outline-offset:2px}
+.num{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+.dim{color:var(--mute)} .bad{color:var(--blood-text)} .ok{color:var(--ok)}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px 24px;padding-bottom:18px;margin-bottom:22px;border-bottom:1px solid var(--line);position:relative}
+.top::after{content:"";position:absolute;left:0;bottom:-1px;width:min(220px,40%);height:1px;background:linear-gradient(90deg,var(--soul),transparent);box-shadow:0 0 10px var(--soul)}
+.brand{display:flex;align-items:center;gap:14px;min-width:0}
+.sigil{flex:none;color:var(--soul);filter:drop-shadow(0 0 6px rgba(143,212,106,.55));animation:turn 80s linear infinite}
+@keyframes turn{to{transform:rotate(360deg)}}
+h1{margin:0;font:700 clamp(24px,4.6vw,42px)/1.05 var(--font-display);letter-spacing:.07em;text-transform:uppercase;text-wrap:balance;text-shadow:0 0 22px rgba(143,212,106,.28),0 2px 0 #000;animation:breathe 6s ease-in-out infinite}
+@keyframes breathe{50%{text-shadow:0 0 30px rgba(143,212,106,.5),0 2px 0 #000}}
+.tag{margin:4px 0 0;font:italic 400 15px/1.3 var(--font-lore);color:var(--mute)}
+.top-meta{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;font:600 12px/1 var(--font-head);letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
+.pips{display:inline-flex;gap:6px;vertical-align:middle;margin-left:8px}
+.pip{width:11px;height:11px;border:1px solid var(--soul-dim);transform:rotate(45deg)}
+.pip.on{background:var(--soul);border-color:var(--soul);box-shadow:0 0 8px var(--soul)}
+
+.layout{display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr);gap:22px;align-items:start}
+.rail,.main{display:flex;flex-direction:column;gap:22px;min-width:0}
+.main{grid-column:2;grid-row:1}.rail{grid-column:1;grid-row:1}
+@media (max-width:879px){.layout{grid-template-columns:minmax(0,1fr)}.main,.rail{grid-column:1;grid-row:auto}.main{order:-1}}
+
+/* panels */
+.win{position:relative;display:flex;flex-direction:column;gap:12px;min-width:0;padding:18px 16px 16px;
+  background:linear-gradient(180deg,rgba(232,222,198,.035),transparent 45%),var(--panel);
+  border:1px solid var(--line);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.7),inset 0 0 50px rgba(0,0,0,.5),0 10px 30px rgba(0,0,0,.45)}
+.win::before{content:"";position:absolute;inset:-1px;pointer-events:none;
+  background:
+   linear-gradient(var(--brass),var(--brass)) top left/16px 1px no-repeat,
+   linear-gradient(var(--brass),var(--brass)) top left/1px 16px no-repeat,
+   linear-gradient(var(--brass),var(--brass)) top right/16px 1px no-repeat,
+   linear-gradient(var(--brass),var(--brass)) top right/1px 16px no-repeat,
+   linear-gradient(var(--brass),var(--brass)) bottom left/16px 1px no-repeat,
+   linear-gradient(var(--brass),var(--brass)) bottom left/1px 16px no-repeat,
+   linear-gradient(var(--brass),var(--brass)) bottom right/16px 1px no-repeat,
+   linear-gradient(var(--brass),var(--brass)) bottom right/1px 16px no-repeat}
+.win-h{display:flex;align-items:center;gap:12px;margin:0;font:600 12px/1.3 var(--font-head);letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
+.win-h::after{content:"";flex:1;min-width:16px;height:1px;background:linear-gradient(90deg,var(--line-2),transparent)}
+.win-title{margin:0;font:700 22px/1.15 var(--font-head);letter-spacing:.04em;text-wrap:balance}
+.lede{margin:0;color:var(--mute);font:italic 400 16px/1.5 var(--font-lore);max-width:62ch}
+
+.id-row{display:flex;align-items:center;gap:12px}
+.who{font:700 20px/1 var(--font-head);letter-spacing:.06em}
+.badge{display:grid;place-items:center;width:46px;height:46px;flex:none;border:1px solid currentColor;font:700 24px/1 var(--font-head);background:rgba(0,0,0,.35);box-shadow:0 0 12px -2px currentColor,inset 0 0 10px -4px currentColor}
+.r0{color:#a39a8c}.r1{color:var(--soul)}.r2{color:var(--gold)}.r3{color:var(--ember)}.r4{color:#e5604b}.r5{color:#f2e2a8}
+
+.meter{display:flex;flex-direction:column;gap:4px}
+.m-top{display:flex;justify-content:space-between;gap:8px;font:500 11px/1 var(--font-data);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.m-top .num{color:var(--bone);letter-spacing:0}
+.bar{height:8px;background:var(--well);border:1px solid var(--line);box-shadow:inset 0 1px 3px #000}
+.fill{display:block;height:100%;transition:width .3s}
+.fill.hp{background:linear-gradient(180deg,#d9503e,#8c2418)}
+.fill.mp{background:linear-gradient(180deg,#a8e585,#4f8a35);box-shadow:0 0 8px rgba(143,212,106,.55)}
+.fill.xp{background:linear-gradient(180deg,#e6c06a,#9a7530)}
+
+.stats{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.stat{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.stat b{display:block;font:600 13px/1.2 var(--font-head);letter-spacing:.12em;text-transform:uppercase}
+.stat small{color:var(--mute);font-size:12px}
+.stat .val{font:600 20px/1 var(--font-data)}
+.plus{width:32px;height:32px;border:1px solid var(--soul);background:rgba(143,212,106,.06);color:var(--soul);font:600 18px/1 var(--font-data);cursor:pointer}
+.plus:hover{background:var(--soul);color:var(--soul-ink);box-shadow:0 0 12px var(--soul)}
+.plus-slot{width:32px}
+.chip{display:inline-block;padding:4px 9px;border:1px solid var(--gold);color:var(--gold);font:600 11px/1.2 var(--font-head);letter-spacing:.14em;text-transform:uppercase;box-shadow:0 0 10px -3px var(--gold)}
+.derived{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.derived div{border:1px solid var(--line);padding:8px;background:var(--well)}
+.derived span{display:block;font:600 10px/1 var(--font-head);letter-spacing:.16em;text-transform:uppercase;color:var(--mute);margin-bottom:6px}
+.derived b{font:600 18px/1 var(--font-data)}
+
+.q-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;font-size:14px}
+.box{width:14px;height:14px;border:1px solid var(--line-2);transform:rotate(45deg)}
+.box.on{background:var(--soul);border-color:var(--soul);box-shadow:0 0 8px var(--soul)}
+.q-note{font:italic 400 15px/1.4 var(--font-lore);color:var(--mute);margin:0}
+
+/* buttons */
+.btn{font:600 12px/1 var(--font-head);letter-spacing:.14em;text-transform:uppercase;color:var(--bone);background:linear-gradient(180deg,#221e1a,#171412);border:1px solid var(--line-2);padding:13px 15px;min-height:42px;cursor:pointer;text-align:center;box-shadow:inset 0 1px 0 rgba(232,222,198,.06)}
+.btn:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
+.btn.primary{color:#d9f5c3;background:linear-gradient(180deg,#27421b,#172710);border-color:var(--soul);box-shadow:0 0 14px -4px var(--soul),inset 0 1px 0 rgba(200,255,170,.15)}
+.btn.primary:hover:not(:disabled){color:#fff;border-color:#b6ef96;box-shadow:0 0 20px -2px var(--soul)}
+.btn.warn:hover:not(:disabled){border-color:var(--blood);color:var(--blood-text)}
+.btn.small{padding:9px 11px;min-height:34px;font-size:11px}
+.btn:disabled{opacity:.38;cursor:not-allowed;box-shadow:none}
+kbd{font:500 10px var(--font-data);border:1px solid currentColor;padding:1px 4px;margin-left:8px;opacity:.65}
+.btns{display:flex;flex-wrap:wrap;gap:10px}
+
+.note{padding:10px 12px;background:var(--well);border:1px solid var(--line);border-left:2px solid var(--soul);font-size:14px;display:flex;gap:10px;align-items:baseline}
+.note i{font:600 10px/1 var(--font-head);font-style:normal;letter-spacing:.18em;text-transform:uppercase;color:var(--soul);flex:none}
+.note.ok{border-left-color:var(--soul)} .note.ok i{color:var(--ok)}
+.note.bad{border-left-color:var(--blood)} .note.bad i{color:var(--blood-text)}
+.notes{display:flex;flex-direction:column;gap:8px}
+
+/* gates */
+.gates{display:flex;flex-direction:column;gap:10px}
+.gate{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px;border:1px solid var(--line);background:linear-gradient(90deg,rgba(0,0,0,.35),transparent),var(--panel-2)}
+.gate:not(.locked):hover{border-color:var(--brass)}
+.gate.locked{opacity:.45;filter:grayscale(.8)}
+.gate h3{margin:0 0 3px;font:700 19px/1.15 var(--font-head);letter-spacing:.05em}
+.gate p{margin:0;color:var(--mute);font:italic 400 15px/1.4 var(--font-lore)}
+.gate .meta{margin-top:7px;font:500 11px/1.4 var(--font-data);letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+@media (max-width:540px){.gate{grid-template-columns:auto minmax(0,1fr)}.gate .btn{grid-column:1/-1}}
+
+/* combat */
+.row{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.group-h{margin:4px 0 0;font:600 11px/1 var(--font-head);letter-spacing:.2em;text-transform:uppercase;color:var(--mute)}
+.unit{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0;text-align:left;color:inherit;background:var(--panel-2);border:1px solid var(--line);padding:10px;font:inherit;box-shadow:inset 0 0 24px rgba(0,0,0,.45)}
+button.unit{cursor:pointer}
+.unit.foe{border-color:rgba(184,58,42,.4)}
+button.unit.foe:hover{border-color:var(--blood)}
+.unit.foe.sel{border-color:var(--blood-text);box-shadow:inset 0 0 0 1px var(--blood-text),0 0 16px -3px var(--blood)}
+.unit.ally{border-color:rgba(63,107,43,.55)}
+.unit.dead{opacity:.32;filter:grayscale(1)}
+.unit.dead .u-name{text-decoration:line-through}
+.unit.elite .u-name{color:var(--gold)}
+.unit.hit{animation:flash .45s ease-out}
+@keyframes flash{from{background:#4a1d17}to{background:var(--panel-2)}}
+.u-top{display:flex;align-items:center;gap:6px;min-height:16px;flex-wrap:wrap}
+.rk{font:700 12px/1 var(--font-head);border:1px solid currentColor;padding:2px 5px}
+.u-tag{font:600 10px/1.2 var(--font-head);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.u-name{font:700 16px/1.2 var(--font-head);letter-spacing:.03em;overflow-wrap:anywhere}
+.u-sub{font-size:11px;color:var(--mute);overflow-wrap:anywhere}
+.u-hp{font-size:11px}
+.sh-t{color:var(--ward)}
+.fx{position:absolute;top:8px;right:8px;font:700 15px/1 var(--font-data);text-shadow:0 1px 3px #000;animation:rise .8s ease-out both}
+.fx.neg{color:var(--blood-text)} .fx.pos{color:var(--ok)}
+@keyframes rise{from{transform:translateY(8px);opacity:0}30%{opacity:1}to{transform:translateY(0);opacity:1}}
+
+.log{list-style:none;margin:0;padding:10px 12px;background:var(--well);border:1px solid var(--line);box-shadow:inset 0 0 20px #000;display:flex;flex-direction:column;gap:3px;font:400 12.5px/1.45 var(--font-data);min-height:96px}
+.log li{color:var(--mute)} .log li:first-child{color:var(--bone)}
+.log .bad{color:var(--blood-text)} .log .ok{color:var(--ok)}
+
+/* raising */
+.corpses,.army{display:flex;flex-direction:column;gap:10px}
+.corpse{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--soul-dim);background:linear-gradient(90deg,rgba(63,107,43,.14),transparent 70%),var(--panel-2);animation:pulse 3.2s ease-in-out infinite}
+@keyframes pulse{50%{border-color:var(--soul);box-shadow:0 0 16px -6px var(--soul)}}
+.corpse.done{animation:none;opacity:.8}
+.corpse.raised{border-color:var(--soul);box-shadow:0 0 18px -6px var(--soul);opacity:1}
+.corpse.failed{border-color:var(--line);background:var(--well);opacity:.55;filter:grayscale(1)}
+.corpse .u-name{font-size:17px}
+.minion{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border:1px solid rgba(63,107,43,.5);background:linear-gradient(90deg,rgba(63,107,43,.10),transparent 60%),var(--panel-2)}
+.minion .u-name{font-size:17px}
+.minion .bars{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.slots{display:inline-flex;gap:5px;vertical-align:middle;margin-left:8px}
+.slot{width:10px;height:10px;border:1px solid var(--soul-dim);transform:rotate(45deg)}
+.slot.on{background:var(--soul);border-color:var(--soul);box-shadow:0 0 6px var(--soul)}
+@media (max-width:520px){.corpse,.minion{grid-template-columns:minmax(0,1fr)}.minion .bars{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.fx,.unit.hit,.sigil,h1,.corpse{animation:none}.fill{transition:none}}
+
+/* unit icons */
+.u-head{display:flex;align-items:center;gap:10px;min-width:0}
+.u-id{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ico{flex:none;display:grid;place-items:center;width:56px;height:56px;border:1px solid currentColor;background:radial-gradient(circle at 50% 38%,rgba(255,240,210,.07),rgba(0,0,0,.7));box-shadow:inset 0 0 14px rgba(0,0,0,.85),0 0 10px -4px currentColor}
+.ico svg{width:48px;height:48px;fill:currentColor;overflow:visible}
+.ico svg .b{fill:currentColor}.ico svg .m{fill:currentColor;opacity:.62}.ico svg .dk{fill:#0a0807}.ico svg .bn{fill:#e9dfc6}.ico svg .gd{fill:#d3a64d}.ico svg .st{fill:none;stroke:#0a0807;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}.ico svg .stb{fill:none;stroke:currentColor;stroke-linecap:round}
+.ico .c{fill:var(--well)}
+.ico .cs{fill:none;stroke:var(--well);stroke-width:1.6;stroke-linecap:round}
+.ico .s{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.ico .gold{fill:var(--gold)}
+.ico .ember{fill:var(--ember)}
+.ico.elite{color:var(--gold)}
+.ico.boss{width:66px;height:66px;border-width:2px;box-shadow:inset 0 0 14px rgba(0,0,0,.85),0 0 16px -2px currentColor}
+.ico.boss svg{width:58px;height:58px}
+
+/* items, gear, bestiary */
+:root{--t0:#b4ab9d;--t1:#7fd35a;--t2:#5fa8f0;--t3:#b684ec;--t4:#f2902e;--t5:#f6e8b4}
+.t0{--tc:var(--t0)}.t1{--tc:var(--t1)}.t2{--tc:var(--t2)}.t3{--tc:var(--t3)}.t4{--tc:var(--t4)}.t5{--tc:var(--t5)}
+.tn{color:var(--tc)}
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.tab{font:600 12px/1 var(--font-head);letter-spacing:.16em;text-transform:uppercase;padding:12px 16px;min-height:42px;background:transparent;color:var(--mute);border:1px solid var(--line);cursor:pointer}
+.tab:hover{color:var(--bone);border-color:var(--line-2)}
+.tab[aria-selected="true"]{color:var(--gold);border-color:var(--gold);background:rgba(211,166,77,.08)}
+.items{display:flex;flex-direction:column;gap:10px}
+.item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-left:3px solid var(--tc);background:linear-gradient(90deg,rgba(255,240,210,.05),transparent 55%),var(--panel-2)}
+.item .ico{width:52px;height:52px;color:var(--tc)}
+.item .ico svg{width:44px;height:44px}
+.i-body{min-width:0;display:flex;flex-direction:column;gap:4px}
+.i-top{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline}
+.i-name{font:700 15px/1.2 var(--font-head);letter-spacing:.02em;color:var(--tc);overflow-wrap:anywhere}
+.i-tag{font:600 10px/1.2 var(--font-head);letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+.i-stats{display:flex;flex-wrap:wrap;gap:2px 12px;font:400 12px/1.4 var(--font-data);color:var(--bone)}
+.i-fx{font:italic 400 15px/1.3 var(--font-lore);color:var(--gold)}
+.i-acts{display:flex;flex-direction:column;gap:6px}
+.item.t5{border-color:var(--t5);box-shadow:0 0 22px -8px var(--t5),inset 0 0 24px rgba(246,232,180,.06)}
+.item.t5 .i-name{background:linear-gradient(90deg,#f6e8b4,#fff,#e0b84d,#f6e8b4);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shimmer 3.5s linear infinite}
+@keyframes shimmer{to{background-position:-200% 0}}
+.gempty{padding:12px;border:1px dashed var(--line-2);color:var(--mute);font:italic 400 15px/1.3 var(--font-lore)}
+.ico.t0,.ico.t1,.ico.t2,.ico.t3,.ico.t4,.ico.t5{color:var(--tc)}
+.bes-gate{display:flex;flex-direction:column;gap:8px}
+.bes-h{display:flex;gap:12px;align-items:center;margin-top:6px}
+.bes-h h3{margin:0;font:700 19px/1.15 var(--font-head);letter-spacing:.04em}
+.bes-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;text-align:left;color:inherit;padding:10px 12px;background:var(--panel-2);border:1px solid var(--line);cursor:pointer;font:inherit}
+.bes-row:hover{border-color:var(--line-2)}
+.bes-row[aria-expanded="true"]{border-color:var(--brass)}
+.bes-row .ico{width:52px;height:52px}
+.bes-row .ico svg{width:44px;height:44px}
+.bes-table{margin-top:-8px;padding:12px;border:1px solid var(--brass);border-top:0;background:var(--well);display:flex;flex-direction:column;gap:7px}
+.drop{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 10px;align-items:baseline;font-size:13px}
+.drop .tn{font:600 13px/1.2 var(--font-head);overflow-wrap:anywhere}
+.dbar{grid-column:1/-1;height:2px;background:var(--line)}
+.dbar i{display:block;height:100%;background:var(--tc)}
+.tiers-line{font:500 11px/1.5 var(--font-data);color:var(--mute);letter-spacing:.04em}
+.stat .val .gb{color:var(--soul);font-size:12px}
+@media (max-width:520px){.item{grid-template-columns:auto minmax(0,1fr)}.i-acts{grid-column:1/-1;flex-direction:row}}
+@media (prefers-reduced-motion:reduce){.item.t5 .i-name{animation:none}}
+.rail .item{grid-template-columns:auto minmax(0,1fr)}.rail .i-acts{grid-column:1/-1;flex-direction:row}
+.ico.unk{color:var(--line-2);box-shadow:none;border-style:dashed}
+.bes-row.locked{cursor:default;opacity:.7;background:var(--well)}
+.bes-row.locked:hover{border-color:var(--line)}
+
+/* Hell Tower */
+:root{--hell:#d2492f;--hell-d:#7a2417}
+.tab.hell[aria-selected="true"]{color:#ff8a6a;border-color:var(--hell);background:rgba(210,73,47,.12)}
+.tab.hell{color:#c9705c}
+.tw-hero{display:grid;gap:8px;padding:14px;border:1px solid var(--hell-d);background:linear-gradient(180deg,rgba(122,36,23,.28),rgba(0,0,0,.2))}
+.tw-hero b{font:700 12px/1 var(--font-data);letter-spacing:.14em;text-transform:uppercase;color:#ff8a6a}
+.tw-prog{height:8px;background:#1a0f0c;border:1px solid var(--hell-d)}
+.tw-prog i{display:block;height:100%;background:linear-gradient(90deg,var(--hell-d),#ff8a3c)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips .btn{min-width:0}
+.tw-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:start;padding:12px;border:1px solid var(--line);background:rgba(0,0,0,.25)}
+.tw-row.locked{opacity:.55}
+.tw-row.final{border-color:var(--hell);box-shadow:0 0 22px -8px var(--hell)}
+.tw-fl{font:700 11px/1 var(--font-data);letter-spacing:.12em;color:var(--hell-text,#ee6f5c);text-transform:uppercase}
+.tw-row h4{margin:2px 0 4px;font:700 17px/1.2 var(--font-head);letter-spacing:.05em}
+.tw-uq{display:grid;gap:8px;margin-top:8px}
+.tw-got{font:600 10px/1 var(--font-data);letter-spacing:.12em;text-transform:uppercase;color:var(--ok)}
+.item .i-floor{color:#ff8a6a}
+.ttl{font:italic 400 15px/1.2 var(--font-lore);color:var(--gold);margin:1px 0 2px}
+.tt-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);background:rgba(0,0,0,.25)}
+.tt-row.on{border-color:var(--gold);background:rgba(211,166,77,.07)}
+.tt-row.off{opacity:.5}
+.tt-row h4{margin:0 0 2px;font:700 16px/1.2 var(--font-head);letter-spacing:.05em}
+.tt-row.hellt h4{color:#ff8a6a}
+.codebox{width:100%;box-sizing:border-box;background:rgba(0,0,0,.4);color:var(--bone);border:1px solid var(--line-2);padding:10px;font:12px/1.4 var(--font-data);resize:vertical;word-break:break-all}
+.codebox:focus{outline:2px solid var(--gold);outline-offset:1px}
+.savebtn{letter-spacing:.14em}.savebtn.done{color:var(--ok);border-color:var(--ok)}
+.gear-row{grid-column:1/-1;display:grid;gap:8px;padding-top:10px;border-top:1px dashed var(--line-2)}
+.gear-h{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
+.gear-slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
+.gslot{display:flex;align-items:center;gap:8px;padding:6px;border:1px solid var(--line-2);background:rgba(0,0,0,.3);min-width:0;font:inherit;color:var(--bone)}
+.gslot.empty{justify-content:center;min-height:44px;border-style:dashed;color:var(--mute);cursor:pointer;font:600 11px/1 var(--font-head);letter-spacing:.14em;text-transform:uppercase}
+.gslot.empty:hover,.gslot.empty.on{color:var(--gold);border-color:var(--gold)}
+.gslot .ico{width:38px;height:38px}.gslot .ico svg{width:32px;height:32px}
+.gs-b{min-width:0;flex:1;display:grid}.gs-b b{font:700 13px/1.2 var(--font-head);color:var(--tc);overflow-wrap:anywhere}.gs-b small{color:var(--mute);font:500 10px/1.2 var(--font-data);letter-spacing:.1em;text-transform:uppercase}
+</style>
+
+<canvas id="embers" aria-hidden="true"></canvas>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="gSh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".26"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".5"/></linearGradient></defs></svg>
+<div class="wrap"><div id="app"></div></div>
+
+<script>
+'use strict';
+//==LOGIC==
+const SAVE_KEY = 'ledger-of-the-dead-v1';
+const RANKS = ['E','D','C','B','A','S'];
+// hp/atk: stat multiplier by rank. pen: raise-chance penalty. clear: bonus xp. unlock: player level needed. lv: enemy base level.
+const RK = [
+  {hp:1,   atk:1,   xp:1,   pen:0,  clear:40,   unlock:1,  lv:1},
+  {hp:1.7, atk:1.6, xp:1.4, pen:4,  clear:90,   unlock:4,  lv:4},
+  {hp:2.6, atk:2.4, xp:1.9, pen:8,  clear:190,  unlock:8,  lv:8},
+  {hp:3.8, atk:3.3, xp:2.6, pen:12, clear:380,  unlock:12, lv:12},
+  {hp:5.2, atk:4.4, xp:3.5, pen:16, clear:720,  unlock:17, lv:17},
+  {hp:7.5, atk:6,   xp:5,   pen:20, clear:1400, unlock:23, lv:23}
+];
+const ROLES = {
+  vanguard:{label:'Vanguard', text:'Draws enemy blows.'},
+  striker:{label:'Striker', text:'25% chance to crit for 1.8x.'},
+  mender:{label:'Mender', text:'Mends the most hurt ally instead of striking.'},
+  reaper:{label:'Reaper', text:'Cleaves a second foe for half damage.'}
+};
+const ELITE = ['Gravetouched','Ashen','Hollowed','Bone-sworn','Pale'];
+const NICKS = ['Vesk','Moth','Cairn','Ossa','Pike','Wren','Tallow','Brine','Hollis','Dusk','Marrow','Sable','Rook','Thimble','Ash','Gaunt','Lorn','Nettle','Bram','Cinder','Fenn','Grist','Harrow','Ivo','Juniper','Kest','Lull','Mire','Nox','Orrin','Pall','Quill','Rue','Sorrel','Thane','Umber','Vale','Wick','Yarrow','Zed'];
+const QUEST = {kills:8, raises:2, clears:1};
+const WATCHES = 3;
+// mobs: [name, role, hp factor, atk factor]
+const DUNGEONS = [
+  {name:'Rat Warren', blurb:'Flooded tunnels under the old tannery. Something gnaws in the dark.',
+    mobs:[['Tunnel Rat','striker',.85,1.1],['Grave Beetle','vanguard',1.4,.8],['Marrow Mite','mender',.8,.7]], boss:['The Rat King','reaper']},
+  {name:'Sunken Crypt', blurb:'A drowned family vault. The dead here still keep their posts.',
+    mobs:[['Skeleton Guard','vanguard',1.3,.9],['Crypt Ghoul','striker',.95,1.25],['Drowned Priest','mender',.8,.8]], boss:['The Crypt Warden','reaper']},
+  {name:'Ashen Barrow', blurb:'A burial mound that never stopped smoldering.',
+    mobs:[['Ash Husk','vanguard',1.35,.85],['Barrow Wight','striker',.9,1.3],['Pyre Witch','mender',.8,.8]], boss:['The Ember Knight','reaper']},
+  {name:'Hollow Cathedral', blurb:'The congregation left. The choir did not.',
+    mobs:[['Stone Gargoyle','vanguard',1.4,.9],['Nave Stalker','striker',.9,1.3],['Hollow Chorister','mender',.8,.8]], boss:['The Bishop of Teeth','reaper']},
+  {name:'Iron Orchard', blurb:'Rusted trees bear fruit that screams when it falls.',
+    mobs:[['Thorn Troll','vanguard',1.45,.9],['Rust Knight','striker',.95,1.3],['Sap Weaver','mender',.8,.8]], boss:['The Orchard Mother','reaper']},
+  {name:'Throne of Ash', blurb:'A king died here and refused to stay dead. His court agreed.',
+    mobs:[['Throne Guard','vanguard',1.4,.9],['Ash Revenant','striker',.95,1.3],['Whisper Choir','mender',.8,.8]], boss:['The Pale Sovereign','reaper']}
+];
+
+
+// ===== ROSTER EXTENSION =====
+// Three new enemies per gate. Each copies the hp/atk factors of the existing enemy with the same role in that gate,
+// so the role mix (2 vanguard, 2 striker, 2 mender) and the average stat budget stay exactly as before.
+const EXTRA=[
+ [['Tannery Brute','vanguard',1.4,.8],['Shiv Cutpurse','striker',.85,1.1],['Tallow Chandler','mender',.8,.7]],
+ [['Drowned Sentinel','vanguard',1.3,.9],['Coffin Crawler','striker',.95,1.25],['Tide Acolyte','mender',.8,.8]],
+ [['Barrow Thrall','vanguard',1.35,.85],['Ember Stalker','striker',.9,1.3],['Cinder Weaver','mender',.8,.8]],
+ [['Glass Sentinel','vanguard',1.4,.9],['Tooth Collector','striker',.9,1.3],['Vestment Wraith','mender',.8,.8]],
+ [['Iron Scarecrow','vanguard',1.45,.9],['Fruit Reaver','striker',.95,1.3],['Grove Shepherd','mender',.8,.8]],
+ [['Ember Herald','vanguard',1.4,.9],['Crownless Duelist','striker',.95,1.3],['Pallbearer','mender',.8,.8]]
+];
+EXTRA.forEach((l,i)=>DUNGEONS[i].mobs.push(...l));
+
+// ===== ARMED DEAD =====
+// One gear-bearing enemy per gate (and two in the Hell Tower). They fight with the stats of an ordinary enemy of the same role,
+// but once raised they keep three equipment slots (weapon, armor, relic) that you fill from your bag.
+const ARMED_G=[['Warren Bandit','striker',.85,1.1],['Crypt Legionnaire','vanguard',1.3,.9],['Barrow Champion','striker',.9,1.3],
+  ['Cathedral Templar','vanguard',1.4,.9],['Orchard Marshal','vanguard',1.45,.9],['Ash Praetorian','vanguard',1.4,.9]];
+ARMED_G.forEach((m,i)=>DUNGEONS[i].mobs.push(m));
+const ARMED_T=[['Hell Legionary','vanguard',1.4,.9],['Infernal Duelist','striker',.95,1.3]];
+const ARMED=new Set(ARMED_G.concat(ARMED_T).map(m=>m[0]));
+const isArmed=n=>ARMED.has(n);
+const GEAR_SLOTS=['weapon','armor','relic'];
+
+
+// ===== ITEMS =====
+const TIERS=['Common','Uncommon','Rare','Epic','Legendary','Unique'];
+const SLOTS={weapon:'Weapon',armor:'Armor',relic:'Relic'};
+const TM=[1,1.8,3,4.8,7.5,9.4];      // stat multiplier per item set (one set per gate)
+const SET_TIER=[0,1,2,3,4,4];        // tier of each gate's item set
+const KINDS=['wa','wb','aa','ab','ta','tb','tc'];
+const KSLOT={wa:'weapon',wb:'weapon',aa:'armor',ab:'armor',ta:'relic',tb:'relic',tc:'relic'};
+const NAMES=[
+ ['Gnawed Shiv','Femur Staff','Beetle-Shell Vest','Rat-Hide Wrap','Rat-Tooth Charm','Tallow Pendant','Mite-Husk Token'],
+ ["Guard's Rusted Blade",'Reliquary Rod','Crypt Mail Vest','Burial Shroud','Brine Amulet','Grave-Wax Seal','Coffin-Nail Ring'],
+ ['Wight-Bone Blade','Pyre-Witch Staff','Ashplate Cuirass','Cinder-Weave Robe','Ember Locket','Cinder Rosary','Barrow Torque'],
+ ['Gargoyle-Fang Sword',"Chorister's Bell Staff",'Gargoyle Plate','Vestments of the Choir','Stained-Glass Relic','Nave Reliquary',"Bishop's Tooth Pendant"],
+ ['Thornblade','Heartwood Scepter','Ironbark Hauberk','Raiment of Rust',"Mother's Seed Pendant",'Sapblood Rosary','Iron Fruit Talisman'],
+ ["Sovereign's Cinderblade",'Choir-Song Scepter','Throne-Guard Plate','Revenant Pall','Ashen Crown Shard','Whisper Locket','Court Signet']
+];
+function kindStats(k,m){ const r=Math.round,f=Math.floor; switch(k){
+  case 'wa':return {atk:r(3*m),crit:r(.8*m)};
+  case 'wb':return {atk:r(1.5*m),siph:r(2.2*m),intellect:f(m/2.2)};
+  case 'aa':return {hp:r(10*m),vigor:f(m/2)};
+  case 'ab':return {hp:r(5*m),ward:r(2.4*m),mana:r(3*m)};
+  case 'ta':return {mana:r(8*m),intellect:f(m/1.6)};
+  case 'tb':return {raise:r(1.6*m),will:f(m/1.8)};
+  default:return {mpow:r(2*m),regen:m>=3?1:0}; } }
+const ITEM={};
+NAMES.forEach((names,set)=>KINDS.forEach((k,i)=>{ const id=set+'-'+k; ITEM[id]={id,name:names[i],set,tier:SET_TIER[set],slot:KSLOT[k],kind:k,stats:kindStats(k,TM[set])}; }));
+// Uniques: one per boss, very powerful, each with a special effect.
+const UNIQ=[
+ {name:'Crown of Gnawed Bones',slot:'relic',glyph:'i_u0',stats:{slot:2,mpow:20,will:4,mana:40},flag:'bonebank'},
+ {name:"Warden's Key-Blade",slot:'weapon',glyph:'i_wa',stats:{atk:26,crit:12,might:5},flag:'echo'},
+ {name:"Ember Knight's Cinderplate",slot:'armor',glyph:'i_aa',stats:{hp:130,vigor:6,ward:14,might:3},flag:'undying'},
+ {name:"Bishop's Tithe-Staff",slot:'weapon',glyph:'i_wb',stats:{atk:14,siph:42,intellect:7,mana:50},flag:'lifedrain'},
+ {name:"Mother's Seedheart",slot:'relic',glyph:'i_u4',stats:{mana:90,regen:2,raise:14,will:5},flag:'soulharvest'},
+ {name:'Funeral Shroud of the Pale Sovereign',slot:'armor',glyph:'i_ab',stats:{hp:100,mpow:28,will:8,intellect:6,raise:10},flag:'cheapraise'}
+];
+UNIQ.forEach((u,i)=>{ ITEM['u'+i]=Object.assign({id:'u'+i,set:i,tier:5,uq:true,kind:'u'},u); });
+const FLAGS={
+ bonebank:'Bone Bank: your downed minions never shatter.',
+ echo:'Echo: Strike has a 25% chance to hit a second time.',
+ undying:'Undying: once per dungeon, a killing blow leaves you at 30% HP.',
+ lifedrain:'Lifedrain: Soul Siphon heals you for 80% of the damage it deals.',
+ soulharvest:'Soul Harvest: every kill restores 6 mana.',
+ cheapraise:'Cheap Dead: raising the dead costs half the mana.',
+ execute:'Execute: Strike deals 50% more damage to foes below 35% HP.',
+ thorns:'Thorns: foes that hit you take 20% of the damage back.',
+ censer:'Censer: every kill restores 10 mana and heals you for 5% of your max HP.',
+ swarmguard:'Swarmguard: your minions take 25% less damage.',
+ chorus:'Chorus: Soul Siphon also drains every other foe for 50%.',
+ bindsouls:'Bind Souls: raised minions return at full health and two levels higher.',
+ cleave:'Cleave: Strike also hits another foe for 60% of the damage.',
+ infernal:'Infernal: every fight begins with a ward worth 25% of your max HP.',
+ halo:'Halo: at the end of each turn you and your minions heal 4% of max HP.',
+ ruin:'Ruin: all damage dealt by you and your minions is increased by 25%.',
+ hellfire:'Hellfire: Strike also scorches every other foe for 40% of the damage.',
+ deathless:'Deathless: twice per run, a killing blow leaves you at 50% HP.'
+};
+const STATL={atk:['Strike',''],crit:['Crit chance','%'],siph:['Siphon',''],hp:['Max HP',''],mana:['Max mana',''],ward:['Ward',''],might:['Might',''],vigor:['Vigor',''],intellect:['Intellect',''],will:['Will',''],raise:['Raise chance','%'],mpow:['Minion power','%'],regen:['Mana per turn',''],slot:['Army slots','']};
+
+// ===== DROP TABLES =====
+// Share of each tier in a gate's drops [common, uncommon, rare, epic, legendary]. Each gate leans on its own tier and sometimes the next.
+const TIER_W=[[78,19,3,0,0],[8,68,22,2,0],[0,10,68,20,2],[0,0,10,68,22],[0,0,0,12,88],[0,0,0,0,100]];
+// Share of a boss's drops that is its unique (per drop). Ordinary enemies of the gate drop it at 1/20 of this.
+const UQ=[4,3.5,3,2.5,2,1.5];
+// Signature item of each ordinary enemy (4x as likely as its siblings).
+const SIG={'Tunnel Rat':'0-ta','Grave Beetle':'0-aa','Marrow Mite':'0-tc','Skeleton Guard':'1-wa','Crypt Ghoul':'1-ab','Drowned Priest':'1-wb','Ash Husk':'2-aa','Barrow Wight':'2-wa','Pyre Witch':'2-wb','Stone Gargoyle':'3-aa','Nave Stalker':'3-wa','Hollow Chorister':'3-wb','Thorn Troll':'4-aa','Rust Knight':'4-wa','Sap Weaver':'4-tb','Throne Guard':'5-aa','Ash Revenant':'5-wa','Whisper Choir':'5-tb'};
+Object.assign(SIG,{'Warren Bandit':'0-wa','Crypt Legionnaire':'1-aa','Barrow Champion':'2-wa','Cathedral Templar':'3-aa','Orchard Marshal':'4-aa','Ash Praetorian':'5-aa',
+ 'Tannery Brute':'0-ab','Shiv Cutpurse':'0-wa','Tallow Chandler':'0-tb',
+ 'Drowned Sentinel':'1-aa','Coffin Crawler':'1-tc','Tide Acolyte':'1-ta',
+ 'Barrow Thrall':'2-tc','Ember Stalker':'2-ta','Cinder Weaver':'2-ab',
+ 'Glass Sentinel':'3-ta','Tooth Collector':'3-tc','Vestment Wraith':'3-ab',
+ 'Iron Scarecrow':'4-ab','Fruit Reaver':'4-tc','Grove Shepherd':'4-wb',
+ 'Ember Herald':'5-tc','Crownless Duelist':'5-ta','Pallbearer':'5-ab'});
+const ROLE_BIAS={vanguard:{armor:1.8},striker:{weapon:1.8},mender:{relic:1.8},reaper:{weapon:1.3,armor:1.3}};
+const tcache={};
+function tableFor(di,role,boss,elite,sig){
+  const key=[di,role,boss?1:0,elite?1:0,sig||''].join('|'); if(tcache[key]) return tcache[key];
+  const nx=Math.min(5,di+1);
+  const tw=TIER_W[di].map((w,t)=>(boss||elite)?(w*2+TIER_W[nx][t])/3:w);   // bosses and elites lean one tier higher
+  const bias=ROLE_BIAS[role]||{};
+  const uqp=UQ[di]*(boss?1:.05)*(elite?2:1), scale=(100-uqp)/100, rows=[];
+  for(let t=0;t<5;t++){
+    if(!tw[t]) continue;
+    const el=Object.values(ITEM).filter(d=>!d.uq&&d.tier===t);
+    const raw=el.map(d=>(bias[d.slot]||1)*(d.set===di?3:1)*(d.id===sig?4:1)), sum=raw.reduce((a,b)=>a+b,0);
+    el.forEach((d,i)=>rows.push({id:d.id,p:tw[t]*scale*raw[i]/sum/100}));
+  }
+  rows.push({id:'u'+di,p:uqp/100});
+  return tcache[key]=rows;
+}
+const dropChances=(boss,elite)=>boss?[1,.6]:[elite?.65:.28];
+function pickRow(rows){ let x=Math.random(),acc=0; for(const r of rows){ acc+=r.p; if(x<acc) return r.id; } return rows[rows.length-1].id; }
+function rollDrops(e){
+  const out=[], rows=e.tw?towerTable(e.tw,e.role,e.boss,e.elite):tableFor(e.rankI,e.role,e.boss,e.elite,SIG[e.base]);
+  for(const c of dropChances(e.boss,e.elite)) if(Math.random()<c) out.push(pickRow(rows));
+  return out;
+}
+const BAG_MAX=30;
+const KNOW_AT=25;   // kills of one enemy type needed to study its drop table in the bestiary
+const G=k=>{ let n=0; if(S&&S.equip) for(const sl in S.equip){ const it=S.equip[sl]; if(it&&ITEM[it.id]) n+=ITEM[it.id].stats[k]||0; } return n; };
+const A=k=>S.player.stats[k]+G(k);
+const hasFlag=f=>!!(S&&S.equip)&&Object.values(S.equip).some(it=>it&&ITEM[it.id]&&ITEM[it.id].flag===f);
+
+// ===== HELL TOWER =====
+// A separate 100-floor climb. Each floor is one fight; every tenth floor is a warden. Enemies grow every single floor.
+const TW={unlock:10,hp0:4.5,hpG:.025,atk0:3.8,atkG:.021,repeat:.06};
+const TW_MOBS=[['Imp','striker',.95,1.3],['Hellhound','striker',.95,1.3],['Chain Devil','vanguard',1.4,.9],['Pit Warden','vanguard',1.4,.9],['Soul Tender','mender',.8,.8],['Brimstone Chanter','mender',.8,.8]];
+TW_MOBS.push(['Hell Legionary','vanguard',1.4,.9],['Infernal Duelist','striker',.95,1.3]);
+const TW_BOSS=['The Gate Hound','Cinder Matron','The Iron Inquisitor','Lord of Flies','The Bone Cantor','Duke of Chains','The Pale Executioner','Archdevil Vael','The Hollow Seraph','Abaddon, King of Hell'];
+// 12 uniques: one per warden, and the final warden drops three. They get stronger every ten floors and the last three are the strongest items in the game.
+const TW_UNIQ=[
+ {f:10,name:'Hound-Fang Dagger',slot:'weapon',glyph:'i_wa',stats:{atk:34,crit:15,might:6},flag:'execute'},
+ {f:20,name:"Matron's Ember Mantle",slot:'armor',glyph:'i_ab',stats:{hp:190,vigor:8,ward:22,mpow:5},flag:'thorns'},
+ {f:30,name:"Inquisitor's Censer",slot:'relic',glyph:'i_censer',stats:{mana:130,intellect:9,regen:2,will:5},flag:'censer'},
+ {f:40,name:'Chitin of the Fly-Lord',slot:'armor',glyph:'i_aa',stats:{hp:260,vigor:10,mpow:18,will:7},flag:'swarmguard'},
+ {f:50,name:"Cantor's Rib-Staff",slot:'weapon',glyph:'i_wb',stats:{atk:40,siph:70,intellect:12,mana:90},flag:'chorus'},
+ {f:60,name:"Chain-Duke's Collar",slot:'relic',glyph:'i_tb',stats:{mana:170,will:12,raise:18,slot:1,mpow:20},flag:'bindsouls'},
+ {f:70,name:"Executioner's Axe",slot:'weapon',glyph:'i_axe',stats:{atk:78,crit:22,might:12},flag:'cleave'},
+ {f:80,name:"Vael's Hellplate",slot:'armor',glyph:'i_aa',stats:{hp:400,vigor:14,ward:40,might:8},flag:'infernal'},
+ {f:90,name:"Seraph's Broken Halo",slot:'relic',glyph:'i_halo',stats:{mana:220,intellect:14,will:12,regen:3,raise:20},flag:'halo'},
+ {f:100,name:'Crown of Ruin',slot:'relic',glyph:'i_u0',stats:{mana:300,intellect:20,will:20,mpow:40,regen:5,slot:2,raise:25},flag:'ruin'},
+ {f:100,name:'Hellmaw, the Last Blade',slot:'weapon',glyph:'i_greatsword',stats:{atk:120,crit:30,might:20,siph:60},flag:'hellfire'},
+ {f:100,name:'Mantle of the Last Sovereign',slot:'armor',glyph:'i_ab',stats:{hp:650,vigor:24,ward:70,might:10,mpow:20},flag:'deathless'}
+];
+const TW_IDS={};
+TW_UNIQ.forEach((u,i)=>{ const id='w'+(i+1); ITEM[id]=Object.assign({id,set:6,tier:5,uq:true,kind:'u',tower:true,floor:u.f},u); (TW_IDS[u.f]=TW_IDS[u.f]||[]).push(id); });
+const twLvl=f=>6+Math.round(f*.5);                       // enemy level on floor f
+const twRank=f=>Math.min(5,2+Math.floor(f/25));          // rank letter shown for tower enemies (C..S)
+const recLv=f=>10+Math.round(f*.5);                      // level a decent player wants for floor f
+function towerStats(f,lvl,hf,af,boss,elite){
+  let hp=14*TW.hp0*Math.pow(1+TW.hpG,f-1)*hf*DIFF.hp*(1+.16*(lvl-1));
+  let atk=3.2*TW.atk0*Math.pow(1+TW.atkG,f-1)*af*DIFF.atk*(1+.12*(lvl-1));
+  if(boss){ hp*=2.2+5.8*(f/100); atk*=1.2+.8*(f/100); if(f===100){ hp*=1.6; atk*=1.35; } }   // the last warden is on a different scale
+  if(elite){ hp*=1.5; atk*=1.3; }
+  return {hp:Math.round(hp),atk:Math.max(1,Math.round(atk))};
+}
+function makeTowerEnemy(f,boss,adj){
+  const lvl=twLvl(f)+(boss?2:0)+(adj||0);
+  let name,role,hf=1,af=1;
+  if(boss){ name=TW_BOSS[f/10-1]; role='reaper'; } else { const t=pick(TW_MOBS); name=t[0]; role=t[1]; hf=t[2]; af=t[3]; }
+  const elite=!boss&&Math.random()<.1, s=towerStats(f,lvl,hf,af,boss,elite);
+  return {id:'e'+(++S.uid),name:(elite?pick(ELITE)+' ':'')+name,base:name,role,rankI:twRank(f),tw:f,lvl,hf,af,boss,elite,maxHp:s.hp,hp:s.hp,atk:s.atk,dead:false};
+}
+function spawnTowerOne(list,f,adj){   // same rule as the gates: one mender per room at most
+  let e; for(let i=0;i<40;i++){ e=makeTowerEnemy(f,false,adj); if(!(e.role==='mender'&&list.some(x=>x.role==='mender'))) break; }
+  if(e.role==='mender'&&list.some(x=>x.role==='mender')){ const t=pick(TW_MOBS.filter(m=>m[1]!=='mender')); const lvl=e.lvl, s=towerStats(f,lvl,t[2],t[3],false,false); e.name=e.base=t[0]; e.role=t[1]; e.hf=t[2]; e.af=t[3]; e.maxHp=e.hp=s.hp; e.atk=s.atk; e.elite=false; }
+  list.push(e);
+}
+const infernalWard=()=>{ S.player.shield=Math.max(S.player.shield,Math.round(pMax()*.25)); };
+function spawnFloor(){
+  const r=S.run, f=r.tw, boss=f%10===0, list=[];
+  if(boss){ list.push(makeTowerEnemy(f,true)); const adds=f===100?4:f>=50?3:2; for(let i=0;i<adds;i++) spawnTowerOne(list,f,-1); }
+  else { const n=f<30?3:f<70?3+(Math.random()<.5?1:0):4; for(let i=0;i<n;i++) spawnTowerOne(list,f,0); }
+  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; r.loot=[]; r.spoils=[]; r.lostLoot=[];
+  log(boss?'Floor '+f+'. The warden of this tier is waiting.':'Floor '+f+'.');
+  if(hasFlag('infernal')) infernalWard();
+}
+const towerStarts=()=>{ const a=[1]; for(let k=1;k*10<=Math.min(S.tower.best,90);k++) a.push(k*10+1); return a; };
+function towerBossLoot(f,r){
+  for(const id of TW_IDS[f]||[]){
+    const first=!S.tower.got[id];
+    if(first||Math.random()<TW.repeat){
+      S.tower.got[id]=true; const it=addItem(id); if(it) r.spoils.push(it.u);
+      r.events.push({m:(first?'First conquest of floor '+f+': ':'The warden drops another: ')+ITEM[id].name+'.',c:'ok'});
+    }
+  }
+}
+// tower loot: tier mix slides from rare-heavy (floor 1) to legendary (floor 100). Bosses and elites lean one step higher.
+function towerTable(f,role,boss,elite){
+  const key='T|'+[f,role,boss?1:0,elite?1:0].join('|'); if(tcache[key]) return tcache[key];
+  const g=Math.min(5,2+f*.03), lo=Math.floor(g), hi=Math.min(5,lo+1), a=g-lo;
+  const base=TIER_W[lo].map((w,t)=>w*(1-a)+TIER_W[hi][t]*a);
+  const nx=TIER_W[hi];
+  const tw=base.map((w,t)=>(boss||elite)?(w*2+nx[t])/3:w);
+  const bias=ROLE_BIAS[role]||{}, rows=[];
+  for(let t=0;t<5;t++){
+    if(!tw[t]) continue;
+    const el=Object.values(ITEM).filter(d=>!d.uq&&d.tier===t);
+    const raw=el.map(d=>(bias[d.slot]||1)*(d.set===lo?3:1)), sum=raw.reduce((x,y)=>x+y,0);
+    el.forEach((d,i)=>rows.push({id:d.id,p:tw[t]*raw[i]/sum/100}));
+  }
+  return tcache[key]=rows;
+}
+const dmgMul=()=>hasFlag('ruin')?1.25:1;
+const enrage=e=>(e.tw&&e.boss)?1+Math.max(0,S.run.turn-8)*(e.tw===100?.12:.07):1;   // tower wardens hit harder every turn after turn 8
+
+// ===== DIFFICULTY (tune here) =====
+const DIFF={hp:2.2,atk:2.0,gate:[0.85,1.5,2.2,1.9,1.7,2.3],xpBase:70,xpExp:1.85,heal:.15,mana:.25,mheal:.2,deathXp:.15};
+// Level at which a decent player wins most runs at each gate (measured with a test bot). Used for the Recommended and danger labels.
+const SAFE=[1,6,10,15,22,28];
+let S = null;
+const rnd = (a,b)=>a+Math.random()*(b-a);
+const pick = a=>a[Math.floor(Math.random()*a.length)];
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const need = l=>Math.round(DIFF.xpBase*Math.pow(l,DIFF.xpExp));
+const mneed = l=>Math.round(36*Math.pow(l,1.6));
+
+// ----- player-derived stats
+const pMax = ()=>Math.round((24+A('vigor')*6+S.player.lvl*4+G('hp'))*(S.player.debuff?.8:1));
+const pMana = ()=>20+A('intellect')*5+A('will')*3+G('mana');
+const pAtk = ()=>Math.round(3+A('might')*1.5+S.player.lvl+G('atk'));
+const pSiph = ()=>Math.round(6+A('intellect')*2+S.player.lvl+G('siph'));
+const pWard = ()=>Math.round(10+A('intellect')*2+S.player.lvl*1.5+G('ward'));
+const slots = ()=>Math.min(10,1+Math.floor(A('will')/3)+Math.floor(S.player.lvl/5)+G('slot'));
+const pRankI = ()=>{const l=S.player.lvl;return l<4?0:l<8?1:l<12?2:l<17?3:l<23?4:5};
+
+function mobStats(rankI,lvl,hf,af,boss,elite){
+  const R=RK[rankI];
+  let hp=14*R.hp*hf*DIFF.hp*DIFF.gate[rankI]*(1+.16*(lvl-1));
+  let atk=3.2*R.atk*af*DIFF.atk*DIFF.gate[rankI]*(1+.12*(lvl-1));
+  if(boss){hp*=3.2;atk*=1.4}
+  if(elite){hp*=1.5;atk*=1.3}
+  return {hp:Math.round(hp), atk:Math.max(1,Math.round(atk))};
+}
+// What an item is worth to a minion: weapons and offence become attack, armour and vitality become health.
+function gearBonus(m){
+  const o={atk:0,hp:0,mpow:0}; if(!m.eq) return o;
+  for(const sl of GEAR_SLOTS){ const it=m.eq[sl]; if(!it||!ITEM[it.id]) continue; const t=ITEM[it.id].stats;
+    o.atk+=(t.atk||0)+2*(t.might||0)+.5*(t.crit||0)+.4*(t.siph||0)+.5*(t.intellect||0);
+    o.hp+=(t.hp||0)+8*(t.vigor||0)+2.5*(t.ward||0)+.25*(t.mana||0)+4*(t.will||0);
+    o.mpow+=(t.mpow||0); }
+  o.atk=Math.round(o.atk); o.hp=Math.round(o.hp); return o;
+}
+function syncMinion(m){
+  const s=m.tw?towerStats(m.tw,m.lvl,m.hf,m.af,m.boss,m.elite):mobStats(m.rankI,m.lvl,m.hf,m.af,m.boss,m.elite);
+  const gg=gearBonus(m);
+  const b=(1+.02*A('will'))*(1+(G('mpow')+gg.mpow)/100);
+  const nh=Math.round(s.hp*b+gg.hp), na=Math.round(s.atk*b+gg.atk);
+  if(m.maxHp!=null && nh>m.maxHp) m.hp+=nh-m.maxHp;
+  m.maxHp=nh; m.atk=na; m.hp=Math.min(m.hp,m.maxHp);
+}
+const syncArmy = ()=>S.army.forEach(syncMinion);
+
+function notify(m,c){ S.notices.unshift({m,c:c||'info'}); S.notices.length=Math.min(S.notices.length,6); }
+
+// ----- game lifecycle
+function newGame(){
+  S={v:1,day:1,watches:WATCHES,uid:0,mode:'town',run:null,notices:[],runs:0,kills:{},tower:{best:0,got:{}},inv:[],equip:{weapon:null,armor:null,relic:null},
+     player:{id:'p',name:'You',lvl:1,xp:0,pts:3,hp:0,mana:0,shield:0,debuff:false,stats:{might:4,vigor:4,intellect:4,will:4}},
+     army:[],quest:{kills:0,raises:0,clears:0,claimed:false}};
+  S.player.hp=pMax(); S.player.mana=pMana();
+  notify('The Ledger is open. Spend your 3 points, then enter the Rat Warren. Raise what you kill.');
+}
+function save(){ try{ S.savedAt=Date.now(); localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
+// ----- save slots and save codes
+const SLOTS_N=3, CODE_TAG='LOTD1:';
+const slotKey=i=>SAVE_KEY+'-slot'+i;
+function validSave(g){ return !!(g&&g.v===1&&g.player&&g.army&&g.quest&&typeof g.player.lvl==='number'); }
+function slotRead(i){ try{ const r=localStorage.getItem(slotKey(i)); if(!r) return null; const g=JSON.parse(r); return validSave(g.data)?g:null; }catch(e){ return null; } }
+function slotWrite(i){ if(S.mode!=='town') return false; try{ S.savedAt=Date.now(); localStorage.setItem(slotKey(i),JSON.stringify({t:Date.now(),data:S})); return true; }catch(e){ return false; } }
+function slotDelete(i){ try{ localStorage.removeItem(slotKey(i)); }catch(e){} }
+function adoptSave(g){   // validate, then hand the data to loadGame so every compatibility fixup runs
+  if(!validSave(g)) return false;
+  let backup=null; try{ backup=localStorage.getItem(SAVE_KEY); }catch(e){}
+  try{ localStorage.setItem(SAVE_KEY,JSON.stringify(g)); }catch(e){ return false; }
+  loadGame();
+  if(!S||!S.player){ return false; }
+  return true;
+}
+function slotLoad(i){ const g=slotRead(i); return g?adoptSave(g.data):false; }
+function exportCode(){ try{ return CODE_TAG+btoa(unescape(encodeURIComponent(JSON.stringify(S)))); }catch(e){ return ''; } }
+function importCode(txt){
+  try{ txt=(txt||'').trim(); if(txt.indexOf(CODE_TAG)!==0) return false;
+    const g=JSON.parse(decodeURIComponent(escape(atob(txt.slice(CODE_TAG.length))))); return adoptSave(g);
+  }catch(e){ return false; }
+}
+function storageOk(){ try{ localStorage.setItem('lotd-test','1'); localStorage.removeItem('lotd-test'); return true; }catch(e){ return false; } }
+function loadGame(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(raw){ const g=JSON.parse(raw); if(g&&g.v===1&&g.player&&g.army&&g.quest){ S=g; S.mode='town'; S.run=null; S.kills=S.kills||{}; S.tower=S.tower||{best:0,got:{}}; S.tower.got=S.tower.got||{}; S.inv=(S.inv||[]).filter(it=>ITEM[it.id]); S.equip=S.equip||{}; for(const sl of ['weapon','armor','relic']){ if(!S.equip[sl]||!ITEM[S.equip[sl].id]) S.equip[sl]=null; } syncArmy(); return; } }
+  }catch(e){}
+  newGame();
+}
+
+// ===== TITLES =====
+// Earned once, kept forever, worn under your name. Purely cosmetic.
+const GATE_TITLES=['Ratcatcher','Tidekeeper','Ashwalker','Choirbreaker','Orchard Reaper','Heir of the Ash Throne'];
+const TW_TITLES=['Houndbreaker','Ember-Quencher','Heretic Unburnt','Swarmbane','Silencer of Hymns','The Unchained','Axe-Unbowed','Archdevil-Slayer','Halo-Breaker','King of Hell'];
+const TITLES=[];
+DUNGEONS.forEach((D,i)=>TITLES.push({id:'g'+i,grp:'Gates',name:GATE_TITLES[i],req:'Clear the '+D.name+' ('+RANKS[i]+'-rank gate).',ok:()=>!!S.ti.clr[i]}));
+TW_TITLES.forEach((n,i)=>{ const f=(i+1)*10; TITLES.push({id:'t'+f,grp:'Hell Tower',name:n,req:'Defeat '+TW_BOSS[i]+' on floor '+f+'.',ok:()=>S.tower.best>=f}); });
+[
+ ['d_raise1','First Whisper','Raise your first minion.',()=>S.ti.raised>=1],
+ ['d_raise50','Gravecaller','Raise 50 minions.',()=>S.ti.raised>=50],
+ ['d_raise200','Voice of the Legion','Raise 200 minions.',()=>S.ti.raised>=200],
+ ['d_army','Warlord of the Dead','Fill every slot in your army.',()=>S.army.length>0&&S.army.length>=slots()],
+ ['d_kill100','Reaper\'s Apprentice','Defeat 100 enemies.',()=>totalKills()>=100],
+ ['d_kill1000','Harvester','Defeat 1,000 enemies.',()=>totalKills()>=1000],
+ ['d_kill5000','Plague of Graves','Defeat 5,000 enemies.',()=>totalKills()>=5000],
+ ['d_lv10','Initiate of the Ledger','Reach level 10.',()=>S.player.lvl>=10],
+ ['d_lv25','Gravewalker Adept','Reach level 25.',()=>S.player.lvl>=25],
+ ['d_lv50','Lord of Graves','Reach level 50.',()=>S.player.lvl>=50],
+ ['d_uq','Touched by Legend','Hold a unique item.',()=>S.ti.hasUq],
+ ['d_tuq','Relic-Lord of Hell','Claim all 12 Hell Tower uniques.',()=>TW_UNIQ.every((u,i)=>S.tower.got['w'+(i+1)])],
+ ['d_study','Student of the Dead','Study an enemy (25 kills) and learn its drops.',()=>Object.keys(S.kills).some(k=>S.kills[k]>=KNOW_AT)],
+ ['d_all','Keeper of the Ledger','Study every enemy in the gates and the Tower.',()=>allNames().every(n=>(S.kills[n]||0)>=KNOW_AT)],
+ ['d_death','Rises Again','Be dragged out of a dungeon after falling.',()=>S.ti.deaths>=1],
+ ['d_death10','Stubborn Corpse','Fall 10 times.',()=>S.ti.deaths>=10],
+ ['d_quest7','Dutiful Scribe','Claim the daily quest reward 7 times.',()=>S.ti.claims>=7],
+ ['d_armed1','Quartermaster','Raise a gear-bearing enemy.',()=>S.ti.armed>=1],
+ ['d_armed3','Arms Master','Fully equip a gear-bearer with weapon, armor and relic.',()=>S.ti.fullGear],
+ ['d_tower1','Tower-Touched','Enter the Hell Tower and clear a floor.',()=>S.tower.best>=1],
+ ['d_tower50','Halfway Damned','Reach floor 50 of the Hell Tower.',()=>S.tower.best>=50],
+].forEach(a=>TITLES.push({id:a[0],grp:'Deeds',name:a[1],req:a[2],ok:a[3]}));
+const TITLE=Object.fromEntries(TITLES.map(t=>[t.id,t]));
+const totalKills=()=>Object.values(S.kills).reduce((a,b)=>a+b,0);
+const allNames=()=>{ const a=[]; DUNGEONS.forEach(D=>{ D.mobs.forEach(m=>a.push(m[0])); a.push(D.boss[0]); }); TW_MOBS.forEach(m=>a.push(m[0])); TW_BOSS.forEach(n=>a.push(n)); return a; };
+function checkTitles(){
+  if(!S) return;
+  const T=S.ti=S.ti||{}; T.got=T.got||{}; T.clr=T.clr||{}; T.raised=T.raised||0; T.deaths=T.deaths||0; T.claims=T.claims||0;
+  if(S.army.some(m=>m.armed&&m.eq&&GEAR_SLOTS.every(sl=>m.eq[sl]))) T.fullGear=true;
+  if(!T.hasUq&&(S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&ITEM[it.id].uq))) T.hasUq=true;
+  for(const t of TITLES){
+    if(T.got[t.id]) continue;
+    let ok=false; try{ ok=t.ok(); }catch(e){}
+    if(ok){ T.got[t.id]=S.day; T.sel=t.id; notify('Title earned: '+t.name+'. '+t.req,'ok'); }
+  }
+  if(T.sel&&!T.got[T.sel]) T.sel=null;
+}
+const titleName=()=>{ const t=S.ti&&S.ti.sel&&TITLE[S.ti.sel]; return t?t.name:''; };
+
+function addXp(n){
+  const P=S.player; P.xp+=n; let ups=0;
+  while(P.xp>=need(P.lvl)){ P.xp-=need(P.lvl); P.lvl++; P.pts+=3; ups++; }
+  if(ups){ P.hp=pMax(); P.mana=pMana(); syncArmy(); notify('Level '+P.lvl+'. 3 stat points to spend.','ok'); }
+  return ups;
+}
+function minionXp(m,n){
+  m.xp+=n; let up=0;
+  while(m.lvl<S.player.lvl+2 && m.xp>=mneed(m.lvl)){ m.xp-=mneed(m.lvl); m.lvl++; up++; }
+  if(m.lvl>=S.player.lvl+2) m.xp=Math.min(m.xp,mneed(m.lvl)-1);
+  if(up) syncMinion(m);
+  return up;
+}
+function alloc(k){
+  const P=S.player; if(P.pts<=0||S.mode==='battle') return;
+  P.stats[k]++; P.pts--;
+  if(k==='vigor') P.hp+=6;
+  if(k==='intellect') P.mana+=5;
+  if(k==='will'){ P.mana+=3; syncArmy(); }
+}
+const questDone = ()=>S.quest.kills>=QUEST.kills&&S.quest.raises>=QUEST.raises&&S.quest.clears>=QUEST.clears;
+function claimQuest(){
+  if(S.quest.claimed||!questDone()) return;
+  const xp=Math.round(need(S.player.lvl)*.3);
+  S.quest.claimed=true; S.player.pts+=2; addXp(xp); S.ti=S.ti||{}; S.ti.claims=(S.ti.claims||0)+1;
+  notify('Daily quest complete: +2 stat points and +'+xp+' XP.','ok');
+}
+function endDay(){
+  const P=S.player; P.debuff=false;
+  if(!S.quest.claimed){
+    if(questDone()) claimQuest();
+    else{
+      const loss=Math.round(need(P.lvl)*.25);
+      P.xp=Math.max(0,P.xp-loss); P.debuff=true;
+      notify('Day '+S.day+' closed with the daily quest unfinished. Penalty: -'+loss+' XP, and max HP is cut by 20% today.','bad');
+    }
+  }
+  S.day++; S.watches=WATCHES; S.quest={kills:0,raises:0,clears:0,claimed:false};
+  P.hp=pMax(); P.mana=pMana(); P.shield=0;
+  S.army.forEach(m=>m.hp=m.maxHp);
+  notify('Day '+S.day+' begins. You have '+WATCHES+' watches.');
+}
+function restDay(){ if(S.mode!=='town') return; S.watches=0; endDay(); }
+
+// ----- dungeon runs
+function log(m,c){ const r=S.run; r.log.unshift({m,c:c||''}); r.log.length=Math.min(r.log.length,10); }
+function makeEnemy(di,lvl,boss){
+  const D=DUNGEONS[di]; let name,role,hf=1,af=1;
+  if(boss){ name=D.boss[0]; role=D.boss[1]; }
+  else{ const t=pick(D.mobs); name=t[0]; role=t[1]; hf=t[2]; af=t[3]; }
+  const elite=!boss&&Math.random()<.1;
+  const s=mobStats(di,lvl,hf,af,boss,elite);
+  return {id:'e'+(++S.uid),name:(elite?pick(ELITE)+' ':'')+name,base:name,role,rankI:di,lvl,hf,af,boss,elite,maxHp:s.hp,hp:s.hp,atk:s.atk,dead:false};
+}
+// Rule: a room never holds more than one mender. Re-roll until the new enemy fits.
+function spawnOne(list,di,lvl){
+  let e; for(let i=0;i<40;i++){ e=makeEnemy(di,lvl,false); if(!(e.role==='mender'&&list.some(x=>x.role==='mender'))) break; }
+  if(e.role==='mender'&&list.some(x=>x.role==='mender')){ const t=DUNGEONS[di].mobs.filter(m=>m[1]!=='mender'); const pk=pick(t); e=makeEnemy(di,lvl,false); e.name=e.base=pk[0]; e.role=pk[1]; e.hf=pk[2]; e.af=pk[3]; const st=mobStats(di,lvl,pk[2],pk[3],false,false); e.maxHp=e.hp=st.hp; e.atk=st.atk; e.elite=false; }
+  list.push(e);
+}
+function spawnRoom(){
+  if(S.run.tw) return spawnFloor();
+  const r=S.run, di=r.di, room=r.room, boss=room===r.rooms-1;
+  const lvl=RK[di].lv+Math.floor(room/2)+(boss?2:0);
+  const list=[];
+  if(boss){ list.push(makeEnemy(di,lvl,true)); const adds=di===0?2:3; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); }
+  else{ const n=room===0?2:room===1?3:3+Math.round(Math.random()); for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
+  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; r.loot=[]; r.spoils=[]; r.lostLoot=[];
+  log(boss?'The air thickens. Something large waits ahead.':'Room '+(room+1)+' of '+r.rooms+'.');
+  if(hasFlag('infernal')) infernalWard();
+}
+function startTower(f){
+  f=+f; if(S.mode!=='town'||S.watches<=0||S.player.lvl<TW.unlock||!towerStarts().includes(f)) return;
+  S.watches--; S.runs++;
+  S.run={tw:f,di:5,room:0,rooms:1,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[]};
+  S.mode='battle';
+  log('You step into the Hell Tower.');
+  spawnFloor();
+}
+function startRun(di){
+  if(S.mode!=='town'||S.watches<=0||S.player.lvl<RK[di].unlock) return;
+  S.watches--; S.runs++;
+  S.run={di,room:0,rooms:4,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[]};
+  S.mode='battle';
+  log('You step through the '+DUNGEONS[di].name+' gate.');
+  spawnRoom();
+}
+const nameOf = u=>u.id==='p'?'You':(u.nick||u.name);
+const allies = ()=>[S.player].concat(S.army);
+const liveFoes = ()=>S.run.enemies.filter(e=>e.hp>0);
+function mark(id,d,h){ const f=S.run.fx[id]||(S.run.fx[id]={d:0,h:0}); f.d+=d; f.h+=h; }
+function hit(b){ return Math.max(1,Math.round(b*rnd(.85,1.15))); }
+function hurtFoe(e,d){ d=Math.min(d,e.hp); e.hp-=d; mark(e.id,d,0); }
+function hurtAlly(a,d){
+  if(a.id!=='p'&&hasFlag('swarmguard')) d=Math.max(1,Math.round(d*.75));
+  if(a.id==='p'){ const s=Math.min(S.player.shield,d); S.player.shield-=s; d-=s; }
+  d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a.id,d,0);
+}
+function healAlly(a,h){
+  const max=a.id==='p'?pMax():a.maxHp; h=Math.min(h,max-a.hp); if(h<=0) return 0;
+  a.hp+=h; mark(a.id,0,h); return h;
+}
+function killXp(e){ return Math.round((4+e.lvl*2.5)*RK[e.rankI].xp*(e.boss?2.5:1)*(e.elite?1.5:1)*(e.tw?1+e.tw/12:1)); }
+function checkDeaths(){
+  const r=S.run;
+  for(const e of r.enemies){
+    if(e.hp<=0&&!e.dead){
+      e.dead=true; r.kills++; S.quest.kills++; { const n=S.kills[e.base]=(S.kills[e.base]||0)+1; if(n===KNOW_AT) notify('Bestiary: you have studied '+e.base+'. Its drop table is now known.','ok'); } r.pending+=killXp(e); r.loot.push(...rollDrops(e)); if(hasFlag('soulharvest')) S.player.mana=Math.min(pMana(),S.player.mana+6); if(hasFlag('censer')){ S.player.mana=Math.min(pMana(),S.player.mana+10); healAlly(S.player,Math.round(pMax()*.05)); }
+      r.corpses.push({id:'c'+e.id,armed:isArmed(e.base),name:e.name,base:e.base,role:e.role,rankI:e.rankI,lvl:e.lvl,hf:e.hf,af:e.af,tw:e.tw,boss:e.boss,elite:e.elite,tried:false,result:null,minion:null});
+      log(e.name+' falls.');
+    }
+  }
+}
+function currentTarget(){
+  const r=S.run; let t=r.enemies.find(e=>e.id===r.target&&e.hp>0);
+  if(!t){ t=liveFoes()[0]; r.target=t?t.id:null; }
+  return t||null;
+}
+function setTarget(id){ const e=S.run&&S.run.enemies.find(x=>x.id===id); if(e&&e.hp>0) S.run.target=id; }
+
+function act(kind){
+  if(S.mode!=='battle') return;
+  const r=S.run, P=S.player; r.fx={};
+  const t=currentTarget(); if(!t) return;
+  if(kind==='strike'){
+    let d=hit(pAtk()*dmgMul()), crit=Math.random()<.1+G('crit')/100; if(crit) d=Math.round(d*1.8); if(hasFlag('execute')&&t.hp<t.maxHp*.35) d=Math.round(d*1.5);
+    hurtFoe(t,d); P.mana=Math.min(pMana(),P.mana+3);
+    log('You strike '+t.name+' for '+d+(crit?' (crit)':'')+'. +3 mana.');
+    if(hasFlag('echo')&&t.hp>0&&Math.random()<.25){ const d2=hit(pAtk()*dmgMul()); hurtFoe(t,d2); log('Echo: the blade strikes again for '+d2+'.','ok'); }
+    if(hasFlag('hellfire')){ for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.4)); }
+    else if(hasFlag('cleave')){ const o=liveFoes().filter(x=>x!==t); if(o.length) hurtFoe(pick(o),Math.round(d*.6)); }
+  }else if(kind==='siphon'){
+    if(P.mana<8) return;
+    P.mana-=8; const d=hit(pSiph()*dmgMul()); hurtFoe(t,d);
+    if(hasFlag('chorus')) for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.5));
+    const h=healAlly(P,Math.round(d*(hasFlag('lifedrain')?.8:.35)));
+    log('Soul Siphon drains '+t.name+' for '+d+(h?', you recover '+h:'')+'.');
+  }else if(kind==='ward'){
+    if(P.mana<6) return;
+    P.mana-=6; const w=pWard(); P.shield=Math.min(Math.round(pMax()*.6),P.shield+w);
+    mark('p',0,0); log('Bone Ward raised. You hold '+P.shield+' ward.');
+  }else return;
+  checkDeaths();
+  if(!liveFoes().length){ roomWon(); return; }
+  // minions act
+  for(const m of S.army){
+    if(m.hp<=0) continue;
+    if(!liveFoes().length) break;
+    if(m.role==='mender'){
+      const hurt=allies().filter(a=>a.hp>0&&a.hp<(a.id==='p'?pMax():a.maxHp)*.85).sort((a,b)=>a.hp/(a.id==='p'?pMax():a.maxHp)-b.hp/(b.id==='p'?pMax():b.maxHp))[0];
+      if(hurt){ const h=healAlly(hurt,Math.round(m.atk*.9*rnd(.9,1.1))); log(m.nick+' mends '+nameOf(hurt)+' for '+h+'.','ok'); continue; }
+    }
+    let tg=currentTarget(); if(!tg) break;
+    let d=hit(m.atk*dmgMul()); const crit=m.role==='striker'&&Math.random()<.25; if(crit) d=Math.round(d*1.8);
+    hurtFoe(tg,d); let extra='';
+    if(m.role==='reaper'){ const o=liveFoes().filter(x=>x!==tg); if(o.length){ const o2=pick(o); const d2=Math.round(d*.5); hurtFoe(o2,d2); extra=' and cleaves '+o2.name+' for '+d2; } }
+    log(m.nick+' hits '+tg.name+' for '+d+(crit?' (crit)':'')+extra+'.');
+    checkDeaths();
+  }
+  if(!liveFoes().length){ roomWon(); return; }
+  // foes act
+  for(const e of liveFoes()){
+    if(e.hp<=0) continue; const alive=allies().filter(a=>a.hp>0); if(!alive.length) break;
+    if(e.role==='mender'){
+      const hurt=liveFoes().filter(x=>x.hp<x.maxHp*.7).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
+      if(hurt){ const h=Math.min(Math.round(e.atk*.9),hurt.maxHp-hurt.hp); hurt.hp+=h; log(e.name+' mends '+hurt.name+'.'); continue; }
+    }
+    const weights=alive.map(a=>a.role==='vanguard'?5:2); let roll=Math.random()*weights.reduce((x,y)=>x+y,0), tg=alive[0];
+    for(let i=0;i<alive.length;i++){ roll-=weights[i]; if(roll<=0){ tg=alive[i]; break; } }
+    let d=hit(e.atk*enrage(e)); const crit=e.role==='striker'&&Math.random()<.25; if(crit) d=Math.round(d*1.8);
+    hurtAlly(tg,d);
+    log(e.name+' hits '+nameOf(tg)+' for '+d+(crit?' (crit)':'')+'.','bad');
+    if(tg.id==='p'&&hasFlag('thorns')&&e.hp>0) hurtFoe(e,Math.max(1,Math.round(d*.2)));
+    if(tg.hp<=0&&tg.id!=='p') log(tg.nick+' is down.','bad');
+    if(P.hp<=0){ const lim=hasFlag('deathless')?2:hasFlag('undying')?1:0; if((r.revives||0)<lim){ r.revives=(r.revives||0)+1; P.hp=Math.round(pMax()*(hasFlag('deathless')?.5:.3)); log('Your armor refuses to break. You rise at '+P.hp+' HP.','ok'); } else { defeat(); return; } }
+  }
+  checkDeaths(); if(!liveFoes().length){ roomWon(); return; }
+  r.turn++; P.mana=Math.min(pMana(),P.mana+1+G('regen'));
+  if(hasFlag('halo')) allies().forEach(a=>{ if(a.hp>0) healAlly(a,Math.round((a.id==='p'?pMax():a.maxHp)*.04)); });
+  if(r.turn===9&&liveFoes().some(e=>e.tw&&e.boss)) log('Wrath: the warden is enraged and hits harder every turn.','bad');
+}
+function roomWon(){
+  const r=S.run, P=S.player; r.events=[];
+  let xp=r.pending; r.pending=0;
+  const last=r.room===r.rooms-1;
+  const share=Math.round(xp*.5), shatter=hasFlag('bonebank')?0:Math.max(5,25-A('will')*1.5);
+  for(const m of S.army.slice()){
+    if(m.hp>0){ if(minionXp(m,share)) r.events.push({m:m.nick+' reaches level '+m.lvl+'.',c:'ok'}); }
+    else if(Math.random()*100<shatter){ returnGear(m); S.army=S.army.filter(x=>x!==m); r.events.push({m:m.nick+' the '+m.name+' shattered and is gone.',c:'bad'}); }
+    else{ m.hp=Math.ceil(m.maxHp*.4); r.events.push({m:m.nick+' was downed but binds back together.',c:''}); }
+  }
+  if(r.tw){
+    const f=r.tw; S.tower.best=Math.max(S.tower.best,f);
+    if(f%10===0){ xp+=120*f; S.quest.clears++; towerBossLoot(f,r); }
+    if(f>=100) r.cleared=true;
+  } else if(last){ xp+=RK[r.di].clear; r.cleared=true; S.quest.clears++; S.ti=S.ti||{}; S.ti.clr=S.ti.clr||{}; S.ti.clr[r.di]=1; }
+  for(const id of r.loot){ const it=addItem(id); if(it) r.spoils.push(it.u); else r.lostLoot.push(ITEM[id].name); } r.loot=[];
+  r.gained+=xp; r.lastXp=xp;
+  r.ups+=addXp(xp);
+  S.mode='raise';
+}
+function defeat(){
+  const r=S.run; S.ti=S.ti||{}; S.ti.deaths=(S.ti.deaths||0)+1; r.pending=0; S.mode='defeat'; S.player.xp=Math.max(0,S.player.xp-Math.round(need(S.player.lvl)*DIFF.deathXp));
+  S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); });
+  notify('You were dragged out of '+(r.tw?'the Hell Tower on floor '+r.tw:'the '+DUNGEONS[r.di].name)+'. That room\'s spoils are lost, and you lose '+Math.round(DIFF.deathXp*100)+'% of a level in XP.','bad');
+}
+function descend(){
+  if(S.mode!=='raise'||S.run.cleared) return;
+  const r=S.run, P=S.player;
+  P.hp=Math.min(pMax(),P.hp+Math.round(pMax()*DIFF.heal)); P.mana=Math.min(pMana(),P.mana+Math.round(pMana()*DIFF.mana)); P.shield=0;
+  S.army.forEach(m=>m.hp=Math.min(m.maxHp,m.hp+Math.round(m.maxHp*DIFF.mheal)));
+  if(r.tw) r.tw++; r.room++; S.mode='battle'; spawnRoom();
+}
+function returnTown(){
+  const P=S.player;
+  P.hp=pMax(); P.mana=pMana(); P.shield=0; S.army.forEach(m=>m.hp=m.maxHp);
+  S.run=null; S.mode='town';
+  if(S.watches<=0) endDay();
+  save();
+}
+function flee(){ if(S.mode!=='battle') return; notify('You fled the gate and left the room\'s spoils behind.','bad'); returnTown(); }
+
+
+// ----- items: bag and equipment
+function addItem(id){ if(S.inv.length>=BAG_MAX&&!ITEM[id].uq) return null; const it={u:++S.uid,id}; S.inv.push(it); return it; }
+function vitals(fn){ const a=pMax(), b=pMana(); fn(); const P=S.player, a2=pMax(), b2=pMana(); P.hp=Math.min(a2,P.hp+Math.max(0,a2-a)); P.mana=Math.min(b2,P.mana+Math.max(0,b2-b)); syncArmy(); }
+function equip(u){
+  if(S.mode==='battle') return;
+  const i=S.inv.findIndex(x=>x.u===u); if(i<0) return;
+  vitals(()=>{ const it=S.inv[i], sl=ITEM[it.id].slot, old=S.equip[sl]; S.inv.splice(i,1); if(old) S.inv.push(old); S.equip[sl]=it; });
+}
+function unequip(sl){ if(S.mode==='battle'||!S.equip[sl]) return; vitals(()=>{ S.inv.push(S.equip[sl]); S.equip[sl]=null; }); }
+function discard(u){ S.inv=S.inv.filter(x=>x.u!==u); }
+
+// ----- raising
+function raiseChance(c){
+  let ch=35+A('will')*2.2+G('raise')+(S.player.lvl-c.lvl)*3-RK[c.rankI].pen;
+  if(c.elite) ch-=10; if(c.boss) ch-=15;
+  return clamp(Math.round(ch),5,90);
+}
+const raiseCost = c=>Math.ceil((8+c.rankI*3+(c.boss?4:0))*(hasFlag('cheapraise')?.5:1));
+function freeNick(){ const used=S.army.map(m=>m.nick); const f=NICKS.filter(n=>!used.includes(n)); return f.length?pick(f):pick(NICKS)+' II'; }
+function tryRaise(id){
+  if(S.mode!=='raise') return;
+  const r=S.run, P=S.player, c=r.corpses.find(x=>x.id===id); if(!c||c.tried) return;
+  r.events=[];
+  if(S.army.length>=slots()){ r.events.push({m:'Your army is full. Release someone first.',c:'bad'}); return; }
+  const cost=raiseCost(c);
+  if(P.mana<cost){ r.events.push({m:'Not enough mana. You need '+cost+'.',c:'bad'}); return; }
+  P.mana-=cost; c.tried=true;
+  if(Math.random()*100<raiseChance(c)){
+    const m={uid:++S.uid,armed:!!c.armed,eq:c.armed?{weapon:null,armor:null,relic:null}:null,nick:freeNick(),name:c.name,kind:c.base,role:c.role,rankI:c.rankI,lvl:c.lvl,xp:0,boss:c.boss,elite:c.elite,hf:c.hf,af:c.af,tw:c.tw,hp:1,maxHp:null,atk:0};
+    syncMinion(m); if(hasFlag('bindsouls')){ m.lvl=Math.min(S.player.lvl+2,m.lvl+2); syncMinion(m); } m.hp=m.maxHp; S.army.push(m); S.quest.raises++; r.raised++; S.ti=S.ti||{}; S.ti.raised=(S.ti.raised||0)+1; if(m.armed) S.ti.armed=(S.ti.armed||0)+1;
+    c.result='raised'; c.minion=m.nick;
+  }else c.result='failed';
+}
+function returnGear(m){ if(!m.eq) return; for(const sl of GEAR_SLOTS){ if(m.eq[sl]){ S.inv.push(m.eq[sl]); m.eq[sl]=null; } } }
+function release(uid){ const m=S.army.find(x=>x.uid===uid); if(m) returnGear(m); S.army=S.army.filter(m=>m.uid!==uid); }
+function giveGear(uid,u){
+  if(S.mode==='battle') return;
+  const m=S.army.find(x=>x.uid===uid), i=S.inv.findIndex(x=>x.u===u); if(!m||!m.armed||i<0) return;
+  const it=S.inv[i], sl=ITEM[it.id].slot; m.eq=m.eq||{weapon:null,armor:null,relic:null};
+  S.inv.splice(i,1); if(m.eq[sl]) S.inv.push(m.eq[sl]); m.eq[sl]=it; syncMinion(m); m.hp=Math.min(m.hp,m.maxHp);
+}
+function takeGear(uid,sl){
+  if(S.mode==='battle') return;
+  const m=S.army.find(x=>x.uid===uid); if(!m||!m.eq||!m.eq[sl]) return;
+  const it=m.eq[sl]; if(S.inv.length>=BAG_MAX&&!ITEM[it.id].uq){ notify('Your bag is full. Make room first.','bad'); return; }
+  S.inv.push(it); m.eq[sl]=null; syncMinion(m); m.hp=Math.min(m.hp,m.maxHp);
+}
+//==UI==
+
+// ----- icons (32x32 silhouettes; .c = cutout, .cs = cut line, .s = stroke)
+const GH='M16 2c-6 0-10 5-10 11v17l3-3 3 3 4-3 4 3 3-3 3 3V13c0-6-4-11-10-11z';
+const SK='<path d="M16 3C9 3 5 8 5 14c0 4 2 6 4 8v4h14v-4c2-2 4-4 4-8 0-6-4-11-11-11z"/><circle class="c" cx="11.5" cy="14" r="3"/><circle class="c" cx="20.5" cy="14" r="3"/><path class="c" d="M16 18l-2 4h4z"/><path class="cs" d="M13 23v3M16 23v3M19 23v3"/>';
+const RAT='<ellipse cx="14" cy="19" rx="9" ry="6"/><path d="M21 14l9 5-9 6z"/><circle cx="20" cy="13.5" r="3.2"/><path class="s" d="M5 19c-4-1-5-5-2-8"/><circle class="c" cx="25" cy="19" r="1.1"/><rect x="9" y="23" width="2.6" height="5"/><rect x="17" y="23" width="2.6" height="5"/>';
+const HOOD='<path d="M16 2C9 2 6 9 6 16c0 5-2 9-4 14h28c-2-5-4-9-4-14 0-7-3-14-10-14z"/><path class="c" d="M16 9c-4 0-6 3-6 7s2 7 6 7 6-3 6-7-2-7-6-7z"/><circle cx="13.5" cy="15.5" r="1.2"/><circle cx="18.5" cy="15.5" r="1.2"/>';
+const HELMB='<path d="M6 28V14C6 8 10 4 16 4s10 4 10 10v14h-5v-8H11v8z"/><rect class="c" x="9" y="13" width="14" height="3"/>';
+const TREE='<circle cx="10" cy="11" r="6"/><circle cx="22" cy="11" r="6"/><circle cx="16" cy="7" r="6"/><circle cx="16" cy="14" r="6"/><rect x="14" y="16" width="4" height="14"/><path d="M14 27l-5 3h5zM18 27l5 3h-5z"/>';
+const CROWN='<path class="gold" d="M5 3l3 3 3-4 3 4 3-3-1.5 7h-9z"/>';
+const GLYPH={
+ 'Tunnel Rat':RAT,
+ 'Grave Beetle':'<ellipse cx="16" cy="19" rx="8.5" ry="10"/><circle cx="16" cy="7" r="3.6"/><path class="cs" d="M16 11v17"/><path class="s" d="M8 14L3 11M7.5 19H2M9 24l-5 4M24 14l5-3M24.5 19H30M23 24l5 4M14 4L11 1M18 4l3-3"/>',
+ 'Marrow Mite':'<circle cx="16" cy="19" r="5.5"/><circle cx="16" cy="11" r="3.5"/><circle class="c" cx="14.7" cy="10.5" r=".9"/><circle class="c" cx="17.3" cy="10.5" r=".9"/><path class="s" d="M11 16L3 10M10.5 19H2M11 22l-8 4M13 24l-5 6M21 16l8-6M21.5 19H30M21 22l8 4M19 24l5 6"/>',
+ 'The Rat King':'<g transform="translate(0 4) scale(.92)">'+RAT+'</g><g transform="translate(11 0)">'+CROWN+'</g>',
+ 'Skeleton Guard':SK+'<path class="cs" d="M5.5 9.5h21M16 9.5v5"/>',
+ 'Crypt Ghoul':'<path d="M16 3c-6 0-9 5-9 11 0 4 1 7 3 9l1 6h10l1-6c2-2 3-5 3-9 0-6-3-11-9-11z"/><path class="c" d="M9.5 12l5 2-4.5 2zM22.5 12l-5 2 4.5 2z"/><path class="c" d="M10 21h12l-2 5-2-3-2 3-2-3-2 3z"/>',
+ 'Drowned Priest':HOOD+'<path class="cs" d="M16 25v5M13.5 27h5"/>',
+ 'The Crypt Warden':HELMB+'<circle class="gold" cx="16" cy="20.5" r="2.6"/><rect class="gold" x="15.2" y="22" width="1.6" height="6"/><rect class="gold" x="16.8" y="25" width="2.5" height="1.4"/>',
+ 'Ash Husk':'<circle cx="16" cy="20" r="9"/><path d="M16 1c-3 4 2 6-1 10 4-1 6-4 5-8 3 3 3 7 0 10h-8c-3-3-2-8 4-12z"/><circle class="c" cx="12.5" cy="20" r="2"/><circle class="c" cx="19.5" cy="20" r="2"/><path class="cs" d="M16 24v4M23 15l-3 4"/>',
+ 'Barrow Wight':'<path d="'+GH+'"/><ellipse class="c" cx="12" cy="13" rx="2" ry="2.8"/><ellipse class="c" cx="20" cy="13" rx="2" ry="2.8"/><ellipse class="c" cx="16" cy="20" rx="2" ry="2.5"/>',
+ 'Pyre Witch':'<path d="M16 2L9 18h14z"/><rect x="3" y="18" width="26" height="3" rx="1"/><path class="cs" d="M11.5 13h9"/><path class="ember" transform="translate(2 0)" d="M7 30c-1-4 3-5 3-9 3 2 4 5 3 9 2-1 4-3 4-7 3 2 5 5 4 7z"/>',
+ 'The Ember Knight':HELMB+'<path class="ember" d="M13 5c-3-3 1-4 0-5 5 1 6 5 4 8z"/>',
+ 'Stone Gargoyle':'<path d="M12 10h8l3 6-2 8h-10l-2-8z"/><path d="M12 10L8 3l5 5zM20 10l4-7-5 5z"/><path d="M10 14L1 10l3 8-2 6 8-3zM22 14l9-4-3 8 2 6-8-3z"/><path class="c" d="M12 15l3 1.5-3 1zM20 15l-3 1.5 3 1z"/><path class="cs" d="M14 22v2M18 22v2"/>',
+ 'Nave Stalker':'<path d="M3 2c7 7 8 18 4 28-3-9-6-19-4-28z"/><path transform="translate(10 -1)" d="M3 2c7 7 8 18 4 28-3-9-6-19-4-28z"/><path transform="translate(20 1)" d="M3 2c6 7 7 17 3 27-3-9-5-18-3-27z"/>',
+ 'Hollow Chorister':'<circle cx="14" cy="16" r="10"/><ellipse class="c" cx="14" cy="21" rx="4" ry="5"/><path class="cs" d="M8 12l4 1.5M20 12l-4 1.5"/><path class="s" d="M26 9c3 3 3 9 0 12M28 7c4 4 4 14 0 18"/>',
+ 'The Bishop of Teeth':'<path d="M16 2L6 22h20z"/><rect x="5" y="22" width="22" height="5"/><path class="cs" style="stroke-width:2.2" d="M16 8v10M11.5 12.5h9"/><path class="c" d="M5 22l2.2 4 2.2-4 2.2 4 2.2-4 2.2 4 2.2-4 2.2 4 2.2-4 2.2 4 2.2-4z"/>',
+ 'Thorn Troll':'<path d="M5 8l5-5h12l5 5v10c0 6-5 10-11 10S5 24 5 18z"/><rect class="c" x="9" y="14" width="5" height="3"/><rect class="c" x="18" y="14" width="5" height="3"/><rect class="c" x="10" y="21" width="12" height="3"/><path d="M10 22l-2 7 5-4zM22 22l2 7-5-4z"/>',
+ 'Rust Knight':HELMB+'<path d="M16 4c0-3 5-4 8-2-2 1-3 3-3 6z"/>',
+ 'Sap Weaver':TREE+'<path class="cs" d="M16 2v13M7 8l18 8M25 8L7 16"/>',
+ 'The Orchard Mother':TREE+'<path class="c" d="M11 9l4 2-4 2zM21 9l-4 2 4 2z"/><ellipse class="c" cx="16" cy="16.5" rx="2.5" ry="2"/>',
+ 'Throne Guard':'<path d="M16 2l11 4v9c0 8-5 13-11 15C10 28 5 23 5 15V6z"/><path class="cs" style="stroke-width:2.4" d="M16 7v17M10 13h12"/>',
+ 'Ash Revenant':'<path d="M7 9L2 2l8 4zM25 9l5-7-8 4z"/>'+SK,
+ 'Whisper Choir':'<g style="stroke:var(--well);stroke-width:1.4"><path transform="translate(-1 8) scale(.6)" d="'+GH+'"/><path transform="translate(13 8) scale(.6)" d="'+GH+'"/><path transform="translate(5 1) scale(.7)" d="'+GH+'"/></g><ellipse class="c" cx="6.2" cy="15.8" rx="1" ry="1.4"/><ellipse class="c" cx="11" cy="15.8" rx="1" ry="1.4"/><ellipse class="c" cx="20.2" cy="15.8" rx="1" ry="1.4"/><ellipse class="c" cx="25" cy="15.8" rx="1" ry="1.4"/><ellipse class="c" cx="13.4" cy="10.1" rx="1.2" ry="1.7"/><ellipse class="c" cx="19" cy="10.1" rx="1.2" ry="1.7"/>',
+ 'The Pale Sovereign':'<g transform="translate(4 8) scale(.75)">'+SK+'</g><g transform="translate(5 0)">'+CROWN+'</g>',
+ 'Necromancer':'<g transform="translate(-2 2) scale(.92)">'+HOOD+'</g><path class="s" d="M29 9v21"/><circle cx="29" cy="6" r="3"/><circle class="c" cx="28" cy="5.5" r=".8"/><circle class="c" cx="30" cy="5.5" r=".8"/>',
+ '_':SK
+};
+// ===== ICONS v2 : 64x64 shaded illustrations =====
+const E=(x,y,r,c)=>{ r=r||1.8; c=c||'#ffd27a'; return '<circle cx="'+x+'" cy="'+y+'" r="'+(r*2.4)+'" fill="'+c+'" opacity=".22"/><circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+c+'"/>'; };
+const P=(d,c)=>'<path class="'+(c||'b')+'" d="'+d+'"/><path d="'+d+'" fill="url(#gSh)"/>';
+const D=d=>'<path class="dk" d="'+d+'"/>';
+const L=(d,w)=>'<path class="st" d="'+d+'"'+(w?' style="stroke-width:'+w+'"':'')+'/>';
+const T=(d,w,c)=>'<path class="stb" d="'+d+'" style="stroke-width:'+(w||2)+(c?';stroke:'+c:'')+'"/>';
+const GR=(t,s)=>'<g transform="'+t+'">'+s+'</g>';
+const HELLC='#ff5a3c', SOULC='#9be870', FIREC='#ffb347';
+const FLM=(x,y,s,c)=>GR('translate('+x+' '+y+') scale('+(s||1)+')','<path d="M0-14C-5-7 4-5 0 2C-6 0-9-6-4-11C-4-8-2-8 0-14ZM1 6C-7 5-8-3-3-8C-1-3 7-1 5 5C4 6 2 6 1 6Z" fill="'+(c||'#e08a3c')+'"/><path d="M0-5C-3-1 3 0 0 5C-4 3-4-2 0-5Z" fill="#ffd27a"/>');
+const SKULL=(x,y,s,c,eye)=>GR('translate('+x+' '+y+') scale('+(s||1)+')',
+  P('M0-17C-10-17-16-10-16-1C-16 5-13 8-10 10V17H10V10C13 8 16 5 16-1C16-10 10-17 0-17Z',c||'bn')
+  +'<ellipse class="dk" cx="-6.2" cy="-1" rx="4.6" ry="5.2"/><ellipse class="dk" cx="6.2" cy="-1" rx="4.6" ry="5.2"/><path class="dk" d="M0 5L-2.8 10.5H2.8Z"/>'
+  +'<path class="st" d="M-6.5 13.5v3.5M-2.2 13.5v3.5M2.2 13.5v3.5M6.5 13.5v3.5" style="stroke-width:1.3"/>'+(eye?E(-6.2,-1,1.7,eye)+E(6.2,-1,1.7,eye):''));
+const HELM=(x,y,s,c,slit)=>GR('translate('+x+' '+y+') scale('+(s||1)+')',
+  P('M-17 20V-4C-17-14-9-21 0-21S17-14 17-4V20H8V9H-8V20Z',c||'b')+D('M-12-3H12V3H-12Z')+L('M0-21V-3M0 3V9',1.4)+(slit?E(-6,0,1.5,slit)+E(6,0,1.5,slit):''));
+const HORNP=(x,y,s,c)=>GR('translate('+x+' '+y+') scale('+(s||1)+')',P('M-8 0C-14-2-19-8-18-17C-14-11-9-8-5-6Z','bn')+P('M8 0C14-2 19-8 18-17C14-11 9-8 5-6Z','bn'));
+const HOODP=(x,y,s,c)=>GR('translate('+x+' '+y+') scale('+(s||1)+')',P('M0-24C-13-24-19-13-19-2C-19 10-25 20-29 30H29C25 20 19 10 19-2C19-13 13-24 0-24Z',c||'b')+'<path class="dk" d="M0-14C-8-14-12-8-12-1C-12 7-7 12 0 12S12 7 12-1C12-8 8-14 0-14Z"/>');
+const CROWNP=(x,y,s)=>GR('translate('+x+' '+y+') scale('+(s||1)+')',P('M-14 8L-17-8L-8-1L0-12L8-1L17-8L14 8Z','gd')+'<circle cx="0" cy="-12" r="2" fill="#ffe9a8"/><circle cx="-17" cy="-8" r="1.7" fill="#ffe9a8"/><circle cx="17" cy="-8" r="1.7" fill="#ffe9a8"/>');
+const WINGS=(c)=>P('M26 30C14 14 4 12 1 14C3 24 10 34 22 38Z',c||'m')+P('M38 30C50 14 60 12 63 14C61 24 54 34 42 38Z',c||'m')+L('M22 30C14 24 8 20 4 17M22 33C15 29 10 26 6 24M42 30C50 24 56 20 60 17M42 33C49 29 54 26 58 24',1);
+const IC={};
+// ---- E : Rat Warren
+IC['Tunnel Rat']=T('M12 42C4 44 1 52 8 57',2.6,'currentColor')+P('M10 40C10 29 20 25 31 26C39 26 45 30 48 34L59 37L48 42C45 47 36 50 26 50C16 50 10 46 10 40Z')
+ +P('M36 27a5.5 5.5 0 1 1 .1 0Z','m')+D('M36 27a2.8 2.8 0 1 1 .1 0Z')+P('M20 48v8h6v-8Z','m')+P('M34 48v8h6v-8Z','m')
+ +L('M17 34C21 31 26 31 29 34M15 40C19 38 24 38 27 40')+E(47,35,1.7,'#ff8a5c')+'<circle cx="59" cy="37" r="1.8" class="dk"/>'
+ +'<path fill="#e9dfc6" d="M49 42l1.8 4 1.8-4z"/>'+L('M52 36L63 32M52 39L63 41',1);
+IC['Grave Beetle']=T('M20 18L9 10M19 28L6 28M20 38L8 48M44 18L55 10M45 28L58 28M44 38L56 48',2.4,'currentColor')
+ +P('M32 14C46 14 52 26 52 38C52 50 44 58 32 58C20 58 12 50 12 38C12 26 18 14 32 14Z')+L('M32 18V57',1.6)
+ +P('M32 8C38 8 41 13 40 18H24C23 13 26 8 32 8Z','m')+P('M24 10C20 8 18 6 16 2C21 3 24 5 26 8Z','bn')+P('M40 10C44 8 46 6 48 2C43 3 40 5 38 8Z','bn')
+ +E(28,13,1.4,'#8fd46a')+E(36,13,1.4,'#8fd46a')+L('M16 30C20 28 24 28 28 30M36 30C40 28 44 28 48 30M15 42C20 40 25 40 29 42M35 42C40 40 45 40 49 42',1.2)
+ +'<path d="M20 26C22 22 26 20 29 20" stroke="#fff" stroke-opacity=".3" stroke-width="2" fill="none" stroke-linecap="round"/>';
+IC['Marrow Mite']=T('M24 34L8 26L4 36M24 38L6 42L8 54M24 42L12 56M40 34L56 26L60 36M40 38L58 42L56 54M40 42L52 56M26 30L16 16M38 30L48 16',2,'currentColor')
+ +P('M32 24C42 24 48 31 48 39C48 49 41 56 32 56C23 56 16 49 16 39C16 31 22 24 32 24Z')+P('M32 14C38 14 41 18 41 23C41 26 37 28 32 28C27 28 23 26 23 23C23 18 26 14 32 14Z','m')
+ +E(28,21,1.5,'#ff8a5c')+E(36,21,1.5,'#ff8a5c')+L('M24 40C28 37 36 37 40 40M22 46C28 43 36 43 42 46',1.2)+'<circle cx="32" cy="50" r="3.6" fill="#e9dfc6" opacity=".75"/>';
+IC['The Rat King']=GR('translate(0 6)',T('M8 40C2 44 4 54 12 56M56 40C62 44 60 54 52 56M32 54C30 60 36 62 40 58',2.4,'currentColor')
+ +P('M32 14C46 14 54 24 54 34C54 46 44 54 32 54C20 54 10 46 10 34C10 24 18 14 32 14Z')
+ +P('M16 20a8 8 0 1 1 .1 0Z','m')+P('M48 20a8 8 0 1 1 .1 0Z','m')+D('M16 20a4.2 4.2 0 1 1 .1 0ZM48 20a4.2 4.2 0 1 1 .1 0Z')
+ +P('M32 34C40 36 44 42 40 48C37 52 27 52 24 48C20 42 24 36 32 34Z','m')+'<circle cx="32" cy="38" r="2.6" class="dk"/>'
+ +E(22,30,2,'#ff6a3c')+E(42,30,2,'#ff6a3c')+'<path fill="#e9dfc6" d="M28 47l2 5 2-5zM33 47l2 5 2-5z"/>'+L('M14 38L2 34M14 42L2 44M50 38L62 34M50 42L62 44',1))
+ +CROWNP(32,10,.95);
+IC['Tannery Brute']=P('M6 62V46C6 38 14 34 24 33H40C50 34 58 38 58 46V62Z')+P('M32 6C42 6 48 14 48 24C48 32 42 38 32 38C22 38 16 32 16 24C16 14 22 6 32 6Z','m')
+ +P('M14 62L20 38L28 40L26 62ZM50 62L44 38L36 40L38 62Z','dk')+L('M20 42L30 62M44 42L34 62',1.2)+D('M20 20H44V24H20Z')+E(25,22,1.4,'#ffd27a')+E(39,22,1.4,'#ffd27a')
+ +'<path fill="#e9dfc6" d="M24 32l-3 9 6-4zM40 32l3 9-6-4z"/>'+L('M26 31C30 33 34 33 38 31',1.4)+L('M20 12L30 14M44 12L34 14',1.2);
+IC['Shiv Cutpurse']=HOODP(28,32,1,'b')+E(23,31,1.4,'#ffd27a')+E(33,31,1.4,'#ffd27a')+P('M6 62C6 50 14 44 28 44C42 44 48 50 48 62Z','m')
+ +P('M50 6L56 28L52 33L46 30Z','bn')+L('M51 10L53 28',1)+P('M44 30H58V34H44Z','gd')+'<rect x="49" y="34" width="4" height="12" class="dk"/>'
+ +L('M12 54L18 62M38 54L34 62',1.2);
+IC['Tallow Chandler']=GR('translate(0 4)',FLM(32,12,1.1,'#e08a3c')+P('M22 20H42V50C42 54 38 58 32 58C26 58 22 54 22 50Z','bn')
+ +P('M22 20C22 26 26 28 28 24C30 30 34 30 36 24C38 28 42 26 42 20Z','b')+'<path d="M30 20V24M34 20V26" stroke="#e9dfc6" stroke-width="2.4" stroke-linecap="round"/>'
+ +E(28,40,1.5,'#ffd27a')+E(36,40,1.5,'#ffd27a')+L('M28 48C30 50 34 50 36 48',1.4)+P('M12 52H52V58H12Z','m'));
+
+// ---- D : Sunken Crypt
+IC['Skeleton Guard']=P('M32 4L38 12H26Z','bn')+L('M32 4V56',0)+P('M45 24H62V40C62 50 54 56 53.5 58C53 56 45 50 45 40Z','m')+L('M53.5 24V56M45 32H62',1.2)
+ +SKULL(26,32,1,'bn',FIREC)+P('M10 20C10 12 18 8 26 8S42 12 42 20V26H10Z','b')+L('M26 8V26',1.4)
+ +P('M12 50C12 44 18 42 26 42S40 44 40 50V62H12Z','b')+L('M18 50L34 62M34 50L18 62',1.2);
+IC['Crypt Ghoul']=P('M10 62C10 50 14 44 22 42H42C50 44 54 50 54 62Z','m')+P('M32 6C44 6 50 16 50 26C50 32 48 36 46 40L44 46H20L18 40C16 36 14 32 14 26C14 16 20 6 32 6Z','bn')
+ +D('M16 22L28 28L18 32ZM48 22L36 28L46 32Z')+E(23,28,1.5,'#ff8a5c')+E(41,28,1.5,'#ff8a5c')+D('M20 38C26 36 38 36 44 38L42 48H22Z')
+ +'<path fill="#e9dfc6" d="M23 38l2 5 2-5zM29 38l2 6 2-6zM35 38l2 5 2-5zM41 38l-1 4-2-4z"/>'+L('M24 10C26 14 24 18 22 20M40 10C38 14 40 18 42 20',1.2)
+ +'<path d="M4 54L8 40L12 54ZM60 54L56 40L52 54Z" class="bn"/>';
+IC['Drowned Priest']=HOODP(32,34,1,'b')+E(27,33,1.4,SOULC)+E(37,33,1.4,SOULC)+P('M6 62C6 52 14 46 32 46C50 46 58 52 58 62Z','m')
+ +T('M32 46V60M27 52H37',2.4,'#d3a64d')+'<path d="M16 8C16 14 12 14 12 18M50 6C50 11 47 12 47 16M42 52C42 56 40 56 40 59" stroke="#7fc1bd" stroke-width="2" fill="none" stroke-linecap="round" opacity=".7"/>'
+ +'<path d="M8 62C14 58 20 62 26 58S38 62 44 58 54 62 60 58V64H8Z" fill="#6ea8a4" opacity=".55"/>';
+IC['The Crypt Warden']=P('M8 62V40C8 30 16 24 32 24S56 30 56 40V62Z','m')+HELM(32,28,1.05,'b','#ffd27a')+P('M8 40H20V54H8ZM44 40H56V54H44Z','m')
+ +'<circle cx="32" cy="52" r="5" fill="#d3a64d"/><circle cx="32" cy="52" r="2" class="dk"/><rect x="31" y="56" width="2.4" height="8" fill="#d3a64d"/><rect x="33" y="60" width="4" height="2.2" fill="#d3a64d"/>'
+ +'<path d="M20 4L32 10L44 4L40 16H24Z" class="gd"/>'+CROWNP(32,6,.5);
+IC['Drowned Sentinel']=P('M6 62V42C6 32 16 26 32 26S58 32 58 42V62Z','m')+HELM(32,30,1,'b',SOULC)
+ +'<path d="M14 18C10 26 16 28 14 36M50 18C54 26 48 28 50 36M24 14C21 22 26 24 23 30" stroke="#5f9a58" stroke-width="3" fill="none" stroke-linecap="round"/>'
+ +'<path d="M4 56C12 52 18 58 26 54S40 58 48 54 58 58 62 54V64H4Z" fill="#6ea8a4" opacity=".55"/>';
+IC['Coffin Crawler']=T('M18 24L6 14L2 22M16 32L2 34M16 42L4 54M46 24L58 14L62 22M48 32L62 34M48 42L60 54',2.6,'currentColor')
+ +P('M24 6H40L52 22L44 58H20L12 22Z','m')+P('M27 10H37L46 23L40 54H24L18 23Z')+L('M32 14V46M25 24H39',1.6)
+ +E(28,30,1.5,'#ff8a5c')+E(36,30,1.5,'#ff8a5c')+'<path fill="#e9dfc6" d="M27 38l2 4 2-4zM33 38l2 4 2-4z"/>';
+IC['Tide Acolyte']=HOODP(28,34,1,'b')+E(23,33,1.4,SOULC)+E(33,33,1.4,SOULC)+P('M4 62C4 52 12 46 28 46C44 46 50 52 50 62Z','m')
+ +T('M52 62V12',2.6,'#d3a64d')+P('M44 14V4C44 4 48 8 52 8S60 4 60 4V14C60 18 56 20 52 20S44 18 44 14Z','gd')+'<path d="M52 4V20" stroke="#0a0807" stroke-width="1.2"/>'
+ +'<path d="M6 8C6 12 3 12 3 16M18 5C18 9 15 9 15 13" stroke="#7fc1bd" stroke-width="2" fill="none" stroke-linecap="round" opacity=".7"/>';
+
+// ---- C : Ashen Barrow
+IC['Ash Husk']=P('M32 8C46 8 54 18 54 32C54 48 44 58 32 58C20 58 10 48 10 32C10 18 18 8 32 8Z')+L('M32 8L28 22L36 30L30 42L34 58M16 20L26 26M48 18L40 26M14 40L24 38M50 42L42 40',1.6)
+ +'<path d="M28 22L36 30L30 42M26 26L16 20M40 26L48 18" stroke="#ff8a3c" stroke-width="1.3" fill="none" stroke-linecap="round"/>'
+ +D('M18 28H28V36H18ZM36 28H46V36H36Z')+E(23,32,1.8,'#ff7a2c')+E(41,32,1.8,'#ff7a2c')+FLM(32,6,.5,'#e08a3c');
+IC['Barrow Wight']=P('M32 4C18 4 12 14 12 26V60L19 54L26 60L32 54L38 60L45 54L52 60V26C52 14 46 4 32 4Z')+'<path d="M12 26V60L19 54L26 60L32 54L38 60L45 54L52 60V26" fill="none" stroke="#fff" stroke-opacity=".15" stroke-width="1.4"/>'
+ +D('M18 20C22 16 28 18 29 26C28 32 22 34 19 30ZM46 20C42 16 36 18 35 26C36 32 42 34 45 30Z')+E(23.5,25,1.7,'#9be870')+E(40.5,25,1.7,'#9be870')+D('M26 40C28 46 36 46 38 40C38 50 26 50 26 40Z')
+ +L('M18 8C24 6 40 6 46 8',1);
+IC['Pyre Witch']=P('M32 4L44 34H20Z')+P('M6 34H58V40H6Z','m')+'<path d="M20 34L32 4L44 34Z" fill="none"/>'+T('M25 30H39',2.4,'#d3a64d')
+ +P('M18 40H46V46C46 52 40 56 32 56C24 56 18 52 18 46Z','bn')+E(26,47,1.4,'#ff8a3c')+E(38,47,1.4,'#ff8a3c')+L('M26 52C30 54 34 54 38 52',1.4)
+ +P('M12 62C12 58 20 56 32 56S52 58 52 62Z','m')+FLM(10,50,.9)+FLM(54,50,.9)+L('M18 58C22 54 28 56 32 54',0);
+IC['The Ember Knight']=P('M8 62V40C8 30 16 24 32 24S56 30 56 40V62Z','m')+HELM(32,30,1.05,'b','#ff7a2c')
+ +'<path d="M32 8C26 14 38 14 32 22C42 20 44 12 36 4C38 8 34 8 32 8Z" fill="#e08a3c"/>'+FLM(32,6,1.2)+P('M4 40H18L16 50H6ZM46 40H60L58 50H48Z','m');
+IC['Barrow Thrall']=P('M6 62V46C6 38 14 34 24 33H40C50 34 58 38 58 46V62Z','m')+P('M32 6C42 6 48 14 48 24C48 32 42 38 32 38C22 38 16 32 16 24C16 14 22 6 32 6Z','bn')
+ +D('M20 20H29V27H20ZM35 20H44V27H35Z')+E(24.5,23.5,1.3,'#ffd27a')+E(39.5,23.5,1.3,'#8fd46a')+L('M24 32C28 34 36 34 40 32',1.4)+L('M28 33V36M32 33V36M36 33V36',1)
+ +L('M16 46L24 56M48 46L40 58M30 44L34 60',1.2)+'<path d="M20 8C24 4 40 4 44 8L40 12H24Z" class="b"/>';
+IC['Ember Stalker']=P('M4 10L18 18H46L60 10L56 34C54 50 44 60 32 60C20 60 10 50 8 34Z')+P('M14 40C20 50 44 50 50 40C48 54 40 60 32 60C24 60 16 54 14 40Z','m')
+ +D('M12 26L26 32L14 36ZM52 26L38 32L50 36Z')+E(21,31,2,'#ff7a2c')+E(43,31,2,'#ff7a2c')+D('M28 40L32 46L36 40Z')+L('M32 46V52M26 48C28 52 36 52 38 48',1.2)
+ +'<path fill="#e9dfc6" d="M24 50l2 6 2-6zM36 50l2 6 2-6z"/>'+L('M20 14L22 22M44 14L42 22',1.2);
+IC['Cinder Weaver']=T('M32 2V62M2 32H62M8 8L56 56M56 8L8 56',2.2,'currentColor')+'<g fill="none" stroke="currentColor" stroke-width="1.4" opacity=".7"><circle cx="32" cy="32" r="12"/><circle cx="32" cy="32" r="21"/><circle cx="32" cy="32" r="29" opacity=".6"/></g>'
+ +P('M32 20C40 20 44 26 44 32C44 40 38 46 32 46C26 46 20 40 20 32C20 26 24 20 32 20Z')+D('M26 28H30V32H26ZM34 28H38V32H34Z')+E(28,30,1.6,'#ff7a2c')+E(36,30,1.6,'#ff7a2c')+'<circle cx="32" cy="38" r="3" fill="#e08a3c" opacity=".9"/>';
+// ---- B : Hollow Cathedral
+IC['Stone Gargoyle']=WINGS('m')+P('M22 18L32 12L42 18L46 34L40 52H24L18 34Z')+P('M22 18L14 4L28 14ZM42 18L50 4L36 14Z','m')
+ +D('M23 27L30 30L24 34ZM41 27L34 30L40 34Z')+E(27,30,1.5,'#ffb347')+E(37,30,1.5,'#ffb347')+D('M26 40L32 44L38 40V46L32 48L26 46Z')+'<path fill="#e9dfc6" d="M27 44l1.5 4 1.5-4zM34 44l1.5 4 1.5-4z"/>'+L('M26 20L28 26M38 20L36 26',1);
+IC['Nave Stalker']=P('M26 4C34 4 38 10 36 18L40 40L36 62H28L24 40L28 18C26 12 24 8 26 4Z')+D('M26 11H34V16H26Z')+E(28.5,13.5,1.2,'#ff8a5c')+E(32.5,13.5,1.2,'#ff8a5c')
+ +T('M26 26L10 38L4 58M40 26L56 38L60 58',3,'currentColor')+'<path fill="#e9dfc6" d="M2 58l2-6 3 6zM6 59l3-6 2 6zM62 58l-2-6-3 6zM58 59l-3-6-2 6z"/>'+L('M28 30L36 32M28 40L36 42',1.2);
+IC['Hollow Chorister']=P('M32 6C44 6 50 16 50 26C50 36 44 42 38 44V50H26V44C20 42 14 36 14 26C14 16 20 6 32 6Z','bn')+D('M19 21H29V27H19ZM35 21H45V27H35Z')+E(24,24,1.3,'#9be870')+E(40,24,1.3,'#9be870')
+ +'<ellipse class="dk" cx="32" cy="36" rx="6" ry="7"/>'+P('M12 62C12 54 20 50 32 50S52 54 52 62Z','b')+T('M54 14C60 20 60 32 54 38M58 8C66 18 66 36 58 46',1.8,'currentColor')+T('M10 14C4 20 4 32 10 38M6 8C-2 18-2 36 6 46',1.8,'currentColor');
+IC['The Bishop of Teeth']=P('M32 2L48 30H16Z','gd')+P('M16 30H48V38H16Z','b')+'<path d="M32 8V24M26 14H38" stroke="#0a0807" stroke-width="2.6" stroke-linecap="round"/>'
+ +P('M10 38H54V46L50 52H14L10 46Z','b')+D('M14 40H50V48H14Z')+'<path fill="#e9dfc6" d="M15 40l3 8 3-8 3 8 3-8 3 8 3-8 3 8 3-8 3 8 3-8 3 8 2-8z"/>'+E(24,28,1.3,'#ff6a3c')+E(40,28,1.3,'#ff6a3c')
+ +P('M14 54H50V62H14Z','m')+'<path fill="#e9dfc6" d="M16 54l3 6 3-6 3 6 3-6 3 6 3-6 3 6 3-6 3 6 3-6 3 6z"/>';
+IC['Glass Sentinel']=P('M32 2L52 14V34L32 60L12 34V14Z','m')+'<path d="M32 2L52 14L32 22Z" fill="#fff" opacity=".28"/><path d="M12 14L32 22L12 34Z" fill="#fff" opacity=".12"/><path d="M52 34L32 22V60Z" fill="#000" opacity=".25"/>'
+ +L('M32 2V60M12 14L52 34M52 14L12 34',1.2)+'<path d="M32 22L24 28H40Z" fill="currentColor"/>'+E(26,29,1.5,'#9be0e0')+E(38,29,1.5,'#9be0e0');
+IC['Tooth Collector']=P('M6 6H58V28C58 44 46 52 32 52C18 52 6 44 6 28Z','m')+D('M10 10H54V28C54 40 44 46 32 46C20 46 10 40 10 28Z')
+ +'<path fill="#e9dfc6" d="M12 10h8l-2 14zM22 10h9l-3 20zM33 10h9l-3 20zM44 10h8l-3 14z"/><path fill="#e9dfc6" d="M16 44l2-12 3 14zM26 46l2-12 4 12zM36 46l1-12 5 12zM46 42l1-10 3 10z"/>'
+ +E(18,28,1.6,'#ff8a5c')+E(46,28,1.6,'#ff8a5c')+P('M20 54H44V62H20Z','b');
+IC['Vestment Wraith']=P('M32 4C22 4 16 12 16 22V28C12 34 8 46 6 62H58C56 46 52 34 48 28V22C48 12 42 4 32 4Z')+D('M22 16C22 12 28 12 32 12C36 12 42 12 42 16V30C42 36 38 40 32 40C26 40 22 36 22 30Z')
+ +E(28,24,1.5,'#9be870')+E(36,24,1.5,'#9be870')+P('M24 28H40L44 62H20Z','gd')+'<path d="M32 28V62" stroke="#0a0807" stroke-width="1.4"/>'+T('M26 40H38M25 48H39',1.6,'#0a0807');
+
+// ---- A : Iron Orchard
+IC['Thorn Troll']=P('M4 62V44C4 36 12 32 22 32H42C52 32 60 36 60 44V62Z','m')+P('M32 6C44 6 50 14 50 24C50 34 44 40 32 40C20 40 14 34 14 24C14 14 20 6 32 6Z')+'<path d="M14 18L6 10L20 14ZM50 18L58 10L44 14ZM24 8L22 0L30 7ZM40 8L42 0L34 7Z" fill="#6a8a46"/>'
+ +D('M18 22H29V27H18ZM35 22H46V27H35Z')+E(23.5,24.5,1.4,'#ffd27a')+E(40.5,24.5,1.4,'#ffd27a')+'<path fill="#e9dfc6" d="M22 36l2-8 3 8zM42 36l-2-8-3 8z"/>'+'<path d="M8 44L2 38L12 40ZM56 44L62 38L52 40ZM20 36L16 30L24 34ZM44 36L48 30L40 34Z" fill="#6a8a46"/>';
+IC['Rust Knight']=P('M8 62V40C8 30 16 24 32 24S56 30 56 40V62Z','m')+HELM(32,28,1.05,'b','#ff8a3c')+'<path d="M14 14L22 20M46 12L40 20M18 36L26 40M44 38L50 34" stroke="#b8571f" stroke-width="3" stroke-linecap="round" opacity=".8"/>'
+ +'<path d="M32 8C32 2 42 0 50 4C46 6 44 10 44 14Z" fill="#c24a2a"/>';
+IC['Sap Weaver']=T('M16 40L4 30L8 20M20 44L6 52M48 40L60 30L56 20M44 44L58 52M24 36L12 22M40 36L52 22',2.4,'currentColor')
+ +P('M32 6C44 6 52 14 52 24C52 30 48 34 44 36L42 50H22L20 36C16 34 12 30 12 24C12 14 20 6 32 6Z','m')+'<circle cx="22" cy="18" r="6" fill="#7aa046"/><circle cx="42" cy="18" r="6" fill="#7aa046"/><circle cx="32" cy="12" r="6" fill="#8ab656"/>'
+ +D('M20 28H29V34H20ZM35 28H44V34H35Z')+E(24.5,31,1.3,'#ffb347')+E(39.5,31,1.3,'#ffb347')+P('M26 50H38V60H26Z','b')+'<path d="M32 50V62" stroke="#e8a63c" stroke-width="2.6"/>';
+IC['The Orchard Mother']=P('M26 62L28 40H36L38 62Z','m')+P('M32 4C46 4 58 12 58 26C58 38 48 42 40 42H24C16 42 6 38 6 26C6 12 18 4 32 4Z','m')
+ +'<circle cx="16" cy="16" r="9" fill="#6a8a46"/><circle cx="48" cy="16" r="9" fill="#6a8a46"/><circle cx="32" cy="10" r="9" fill="#7aa046"/><circle cx="32" cy="22" r="9" fill="#5f7c3e"/>'
+ +'<circle cx="14" cy="28" r="3.4" fill="#c24a2a"/><circle cx="50" cy="26" r="3.4" fill="#c24a2a"/><circle cx="22" cy="6" r="3" fill="#e8a63c"/>'
+ +P('M24 22C24 18 28 16 32 16S40 18 40 22V36C40 40 36 42 32 42S24 40 24 36Z','b')+D('M26 24H31V28H26ZM33 24H38V28H33Z')+E(28.5,26,1.3,'#ffb347')+E(35.5,26,1.3,'#ffb347')+'<ellipse class="dk" cx="32" cy="35" rx="3" ry="3.6"/>';
+IC['Iron Scarecrow']=P('M30 6H34V62H30Z','m')+P('M4 22H60V28H4Z','m')+P('M32 6C40 6 44 12 44 18C44 24 40 28 32 28C24 28 20 24 20 18C20 12 24 6 32 6Z')
+ +'<path d="M14 6H50L44 12H20Z" class="b"/><path d="M12 8H52" stroke="#0a0807" stroke-width="2"/>'+D('M24 14H30V19H24ZM34 14H40V19H34Z')+E(27,16.5,1.2,'#ff8a3c')+E(37,16.5,1.2,'#ff8a3c')
+ +L('M26 23L28 25L30 23L32 25L34 23L36 25L38 23',1.2)+'<path d="M4 28L0 40L8 34ZM60 28L64 40L56 34Z" fill="#b8a874"/>'+P('M22 34H42L46 56H18Z','b')+L('M26 36L22 54M38 36L42 54',1);
+IC['Fruit Reaver']=T('M10 60L44 8',3,'#8a6a3e')+P('M44 6C28 2 10 12 6 30C16 20 32 16 46 20C48 14 46 10 44 6Z','bn')+L('M40 10C28 10 18 16 12 26',1.2)
+ +'<circle cx="44" cy="46" r="10" fill="#c2402a"/><circle cx="44" cy="46" r="10" fill="url(#gSh)"/><path d="M44 36C44 32 48 30 50 30" stroke="#6a8a46" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M38 42C40 40 42 40 44 40" stroke="#fff" stroke-opacity=".5" stroke-width="2" fill="none" stroke-linecap="round"/>'
+ +E(41,48,1.2,'#ffd27a')+E(48,48,1.2,'#ffd27a')+L('M40 53C43 55 47 55 50 53',1.2);
+IC['Grove Shepherd']=P('M32 12C24 12 20 18 20 26C20 36 26 42 32 42S44 36 44 26C44 18 40 12 32 12Z','bn')+'<path d="M16 14C14 6 22 2 28 6C22 6 20 10 22 16Z" fill="#6a8a46"/><path d="M48 14C50 6 42 2 36 6C42 6 44 10 42 16Z" fill="#6a8a46"/>'
+ +P('M10 62C10 50 18 44 32 44S54 50 54 62Z','m')+E(27,26,1.3,'#ffd27a')+E(37,26,1.3,'#ffd27a')+L('M28 34C30 36 34 36 36 34',1.4)+T('M54 62V18C54 8 44 6 44 14',2.8,'#8a6a3e')+'<path d="M48 16L44 20L48 24" stroke="#6a8a46" stroke-width="2" fill="none"/>';
+// ---- S : Throne of Ash
+IC['Throne Guard']=P('M6 62V42C6 32 16 26 32 26S58 32 58 42V62Z','m')+HELM(32,30,1.05,'b','#ffb347')+'<path d="M32 4L38 14H26Z" fill="#d3a64d"/>'+P('M4 40H16V54H4ZM48 40H60V54H48Z','m')+T('M32 40V62',0)+'<path d="M24 40H40L36 62H28Z" fill="#d3a64d" opacity=".85"/>';
+IC['Ash Revenant']=P('M32 4C18 4 12 14 12 28C12 40 20 46 24 52V62H40V52C44 46 52 40 52 28C52 14 46 4 32 4Z','m')+SKULL(32,28,.95,'bn','#ff7a2c')
+ +'<path d="M12 28C10 20 14 12 18 8M52 28C54 20 50 12 46 8" stroke="#ff8a3c" stroke-width="2" fill="none" stroke-linecap="round"/>'+FLM(32,4,.7)+L('M20 54L26 62M44 54L38 62',1.2);
+IC['Whisper Choir']=SKULL(14,34,.55,'bn',SOULC)+SKULL(50,34,.55,'bn',SOULC)+SKULL(32,28,.85,'bn',SOULC)+P('M8 62C8 52 16 48 32 48S56 52 56 62Z','b')
+ +T('M6 14C2 20 2 28 6 32M58 14C62 20 62 28 58 32M26 8C28 4 36 4 38 8',1.8,'currentColor');
+IC['The Pale Sovereign']=P('M6 62V42C6 32 16 28 32 28S58 32 58 42V62Z','m')+SKULL(32,32,1.05,'bn','#ff6a3c')+CROWNP(32,10,1.15)+P('M14 46L6 40M50 46L58 40','b')+'<path d="M20 46L32 56L44 46L32 62Z" fill="#d3a64d" opacity=".9"/>'+T('M10 62V44M54 62V44',2,'#d3a64d');
+IC['Ember Herald']=P('M8 4H12V62H8Z','m')+P('M12 6H56L46 16L56 26H12Z')+FLM(34,16,.75)+'<path d="M12 6H56L46 16L56 26H12Z" fill="none" stroke="#0a0807" stroke-width="1.2"/>'+P('M20 36H46L52 46H14Z','gd')+P('M14 46H52V52H14Z','m')+E(26,56,0,'#fff')+P('M40 52H46V62H40Z','m');
+IC['Crownless Duelist']=T('M8 56L46 8M56 56L18 8',3,'#c8c2b4')+P('M2 52L14 62L10 64L0 56Z','gd')+P('M62 52L50 62L54 64L64 56Z','gd')+P('M10 6L18 4L20 12L12 14Z','gd')+P('M54 6L46 4L44 12L52 14Z','gd')
+ +P('M22 26C22 20 26 16 32 16S42 20 42 26C42 34 38 38 32 38S22 34 22 26Z','bn')+'<path d="M20 14H44L40 20H24Z" class="dk"/>'+E(28,26,1.3,'#ffd27a')+E(36,26,1.3,'#ffd27a')+L('M28 32H36',1.4)+'<path d="M24 12L26 6L29 11L32 4L35 11L38 6L40 12" fill="none" stroke="#6a5a30" stroke-width="1.4" stroke-dasharray="2 2"/>';
+IC['Pallbearer']=P('M14 4H50L60 28L50 62H14L4 28Z','m')+P('M20 10H44L52 28L44 56H20L12 28Z')+L('M32 14V52M22 26H42',1.6)+SKULL(32,28,.5,'bn',FIREC)
+ +P('M0 40H10V62H0ZM54 40H64V62H54Z','b');
+
+// ---- Hell Tower
+IC['Imp']=P('M32 14C44 14 52 22 52 34C52 46 44 56 32 56C20 56 12 46 12 34C12 22 20 14 32 14Z','b')+P('M16 20L6 6L26 14ZM48 20L58 6L38 14Z','m')+D('M18 28L29 33L19 36ZM46 28L35 33L45 36Z')+E(24,32,1.7,HELLC)+E(40,32,1.7,HELLC)
+ +D('M20 42C26 50 38 50 44 42C42 54 22 54 20 42Z')+'<path fill="#e9dfc6" d="M25 44l2 4 2-4zM35 44l2 4 2-4z"/>'+T('M32 56C32 62 42 62 44 56',2.2,'currentColor')+'<path d="M44 56L48 60L42 61Z" fill="#c9402c"/>';
+IC['Hellhound']=P('M3 36L12 18L22 22L28 10L34 20L52 22L61 38L52 50H18Z')+P('M38 24L61 38L50 46L34 38Z','m')+D('M44 30L52 33L44 35Z')+E(41,30,1.8,HELLC)+'<circle cx="59" cy="38" r="2" class="dk"/>'
+ +'<path fill="#e9dfc6" d="M46 42l2 5 2-5zM53 41l2 4 1-5z"/>'+P('M12 18L8 4L22 14Z','m')+'<path d="M12 36C20 42 26 42 32 40" stroke="#ff7a3c" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M10 28C16 30 20 30 24 28" stroke="#ff7a3c" stroke-width="2" fill="none" stroke-linecap="round"/>'+FLM(24,12,.55,'#e0502c');
+IC['Chain Devil']=T('M2 18L10 26L4 34L12 42M62 18L54 26L60 34L52 42',2.8,'#a9a090')+HORNP(32,22,1.2)+P('M6 62V42C6 34 16 30 32 30S58 34 58 42V62Z')+P('M32 6C42 6 46 14 46 22C46 30 40 34 32 34C24 34 18 30 18 22C18 14 22 6 32 6Z','m')
+ +D('M22 18L30 22L22 24ZM42 18L34 22L42 24Z')+E(26.5,21,1.4,HELLC)+E(37.5,21,1.4,HELLC)+L('M26 28C30 30 34 30 38 28',1.4)+T('M14 44L30 60M50 44L34 60',2.6,'#a9a090')+T('M24 44L40 62',2.6,'#a9a090');
+IC['Pit Warden']=P('M32 2L58 10V32C58 48 46 58 32 62C18 58 6 48 6 32V10Z')+P('M32 2L58 10V32C58 48 46 58 32 62Z','m')+'<path d="M32 2V62M6 22H58" stroke="#0a0807" stroke-width="2.2" fill="none"/>'
+ +FLM(32,34,1.2,'#e0502c')+HORNP(32,10,.65)+L('M12 14L26 18M52 14L38 18',1.4);
+IC['Soul Tender']=P('M26 4H38V10H26Z','gd')+T('M26 10C20 4 44 4 38 10',2,'#a9a090')+P('M18 12H46L50 22V48C50 56 42 60 32 60C22 60 14 56 14 48V22Z','m')+'<path d="M18 12H46L50 22H14Z" fill="#a98a4a" opacity=".6"/>'
+ +'<path d="M32 22C24 30 38 32 32 42C24 40 22 32 32 22Z" fill="#8fd46a"/><path d="M32 30C29 34 35 35 32 40C28 38 29 34 32 30Z" fill="#d8ffb8"/>'+E(24,48,1,SOULC)+E(40,48,1,SOULC)+L('M14 30H50M14 40H50',1);
+IC['Brimstone Chanter']=HOODP(32,34,1,'b')+HORNP(32,14,1)+E(27,33,1.5,HELLC)+E(37,33,1.5,HELLC)+P('M6 62C6 52 14 46 32 46C50 46 58 52 58 62Z','m')+'<path d="M16 8C16 14 20 14 18 20M48 8C48 14 44 14 46 20" stroke="#e0a82c" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".8"/>'+T('M26 54H38',2,'#e0a82c');
+IC['The Gate Hound']=P('M2 62V46L10 38H54L62 46V62Z','m')+P('M4 30C4 20 10 14 18 14C26 14 30 20 30 28C30 36 24 40 16 40C8 40 4 36 4 30Z')+P('M34 30C34 20 40 14 46 14C54 14 60 20 60 28C60 36 56 40 48 40C40 40 34 36 34 30Z')
+ +P('M20 22C20 12 26 6 32 6C38 6 44 12 44 22C44 32 38 38 32 38C26 38 20 32 20 22Z','m')+D('M8 24L16 26L9 29ZM56 24L48 26L55 29ZM25 15L31 18L25 20ZM39 15L33 18L39 20Z')
+ +E(12,27,1.3,HELLC)+E(52,27,1.3,HELLC)+E(28.5,17.5,1.3,HELLC)+E(35.5,17.5,1.3,HELLC)+'<path fill="#e9dfc6" d="M26 32l1.5 4 1.5-4zM30 33l1.5 4 1.5-4zM35 32l1.5 4 1.5-4z"/>'+T('M10 56H54',2.4,'#a9a090');
+IC['Cinder Matron']=FLM(14,16,1.3)+FLM(50,16,1.3)+FLM(32,8,1.6)+P('M4 62C4 48 14 42 32 42S60 48 60 62Z','m')+P('M32 14C42 14 46 22 46 30C46 40 40 46 32 46C24 46 18 40 18 30C18 22 22 14 32 14Z','bn')
+ +D('M23 28H30V33H23ZM34 28H41V33H34Z')+E(26.5,30.5,1.4,'#ff7a2c')+E(37.5,30.5,1.4,'#ff7a2c')+L('M28 39C30 41 34 41 36 39',1.4)+'<path d="M18 28C14 38 16 48 22 52M46 28C50 38 48 48 42 52" stroke="#e08a3c" stroke-width="3" fill="none" stroke-linecap="round"/>';
+IC['The Iron Inquisitor']=P('M10 2H54V32C54 46 44 56 32 62C20 56 10 46 10 32Z')+P('M32 2H54V32C54 46 44 56 32 62Z','m')+D('M14 24H50V32H14Z')+E(24,28,1.3,'#ffb347')+E(40,28,1.3,'#ffb347')+L('M32 2V24M32 32V62M10 16H54',1.6)
+ +P('M22 4L26 0L32 6L38 0L42 4V10H22Z','gd')+T('M26 42H38M28 48H36',2,'#0a0807');
+IC['Lord of Flies']=WINGS('m')+P('M32 26C42 26 46 34 46 42C46 52 40 60 32 60C24 60 18 52 18 42C18 34 22 26 32 26Z')+L('M20 42H44M21 48H43M23 54H41',1.4)+P('M32 6C40 6 44 12 44 18C44 24 40 28 32 28C24 28 20 24 20 18C20 12 24 6 32 6Z','m')
+ +'<circle cx="25" cy="16" r="5.4" fill="#c9402c"/><circle cx="39" cy="16" r="5.4" fill="#c9402c"/><circle cx="23.5" cy="14.5" r="1.6" fill="#ffd0b0"/><circle cx="37.5" cy="14.5" r="1.6" fill="#ffd0b0"/>'+T('M28 6L24 0M36 6L40 0',1.8,'currentColor');
+IC['The Bone Cantor']=P('M32 2C44 2 52 10 52 22C52 30 48 36 44 38V46H20V38C16 34 12 30 12 22C12 10 20 2 32 2Z','bn')+D('M16 14H28V26H16ZM36 14H48V26H36Z')+E(22,20,1.6,SOULC)+E(42,20,1.6,SOULC)+D('M32 28L28 36H36Z')
+ +P('M8 46H56V62H8Z','m')+'<path d="M14 46V62M22 46V62M30 46V62M38 46V62M46 46V62M54 46V62" stroke="#0a0807" stroke-width="2"/>'+T('M10 6C4 14 4 26 10 34M54 6C60 14 60 26 54 34',2,'currentColor');
+IC['Duke of Chains']=T('M2 8L12 16L4 26L14 34L6 44L16 52M62 8L52 16L60 26L50 34L58 44L48 52',3,'#a9a090')+HORNP(32,20,1.25)+P('M8 62V42C8 34 18 30 32 30S56 34 56 42V62Z')+P('M32 4C42 4 46 12 46 20C46 30 40 34 32 34C24 34 18 30 18 20C18 12 22 4 32 4Z','m')
+ +D('M22 16L30 20L22 22ZM42 16L34 20L42 22Z')+E(26.5,19,1.4,HELLC)+E(37.5,19,1.4,HELLC)+P('M20 44H44L38 62H26Z','gd')+T('M32 44V60',1.6,'#0a0807')+'<circle cx="32" cy="38" r="3" class="gd"/>';
+IC['The Pale Executioner']=P('M6 62V40C6 32 14 28 32 28S58 32 58 40V62Z','m')+P('M32 4C42 4 48 12 48 22V34H16V22C16 12 22 4 32 4Z')+D('M20 18H44V26H20Z')+E(27,22,1.3,HELLC)+E(37,22,1.3,HELLC)+L('M32 4V18M32 26V34',1.4)
+ +P('M46 6L62 20L58 28L44 18Z','bn')+T('M50 24L36 56',3,'#8a6a3e')+L('M24 40L18 62M40 40L46 62',1.2);
+IC['Archdevil Vael']=HORNP(32,18,1.5)+P('M8 62C8 48 18 40 32 40S56 48 56 62Z','m')+P('M32 8C44 8 50 16 50 26C50 36 42 44 32 44C22 44 14 36 14 26C14 16 20 8 32 8Z')
+ +D('M20 20L30 26L20 29ZM44 20L34 26L44 29Z')+E(25,24.5,1.8,HELLC)+E(39,24.5,1.8,HELLC)+L('M24 34C30 38 34 38 40 34',1.6)+'<path d="M26 34l1.6 4 1.6-4zM35 34l1.6 4 1.6-4z" fill="#e9dfc6"/>'+P('M26 0L32 8L38 0L36 10H28Z','gd')+T('M18 46L24 62M46 46L40 62',2,'#d3a64d');
+IC['The Hollow Seraph']=WINGS('bn')+P('M24 12H40V40L36 60H28L24 40Z','b')+'<ellipse cx="32" cy="8" rx="11" ry="3.6" fill="none" stroke="#ffe9a8" stroke-width="2.4"/><ellipse cx="32" cy="8" rx="11" ry="3.6" fill="none" stroke="#ffe9a8" stroke-width="5" opacity=".2"/>'
+ +D('M28 20H36V44H28Z')+E(32,26,1.6,'#ffe9a8')+L('M24 40H40',1.2);
+IC['Abaddon, King of Hell']=HORNP(32,22,1.75)+FLM(10,50,1.2,'#e0502c')+FLM(54,50,1.2,'#e0502c')+SKULL(32,34,1.1,'bn',HELLC)+CROWNP(32,12,1.25)+P('M8 62C8 54 16 50 32 50S56 54 56 62Z','b')+T('M26 46L30 50M38 46L34 50',2,'#d3a64d');
+
+// ---- Player and misc
+IC['Necromancer']=HOODP(28,32,1,'b')+E(23,31,1.4,SOULC)+E(33,31,1.4,SOULC)+P('M6 62C6 52 14 44 28 44C42 44 50 52 50 62Z','m')+T('M52 62V14',2.6,'#8a6a3e')+P('M46 6C46 2 58 2 58 6C58 10 55 14 52 14C49 14 46 10 46 6Z','bn')+D('M48 6H51V9H48ZM53 6H56V9H53Z')+FLM(52,2,.4,SOULC);
+IC['_']=SKULL(32,30,1.2,'b');
+IC['?']='<path d="M20 22C20 12 28 8 32 8C40 8 46 12 46 22C46 30 36 32 34 40" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/><circle cx="34" cy="53" r="3.4"/>';
+
+// ---- armed dead
+IC['Warren Bandit']=P('M6 62V46C6 38 14 34 24 33H40C50 34 58 38 58 46V62Z','m')+P('M32 8C42 8 48 16 48 26C48 34 42 40 32 40C22 40 16 34 16 26C16 16 22 8 32 8Z')+P('M14 16C14 8 22 4 32 4S50 8 50 16L46 20H18Z','b')+'<path d="M16 22H48V30H16Z" class="dk"/>'+E(25,26,1.4,'#ffd27a')+E(39,26,1.4,'#ffd27a')
+ +L('M12 14C20 10 44 10 52 14',1.2)+T('M54 20L36 58',3,'#c8c2b4')+P('M50 14L58 22L54 26L46 18Z','gd')+P('M18 46H30V56H18Z','gd');
+IC['Crypt Legionnaire']=P('M6 62V42C6 32 16 26 32 26S58 32 58 42V62Z','m')+HELM(30,30,1,'b',SOULC)+'<path d="M26 8H34L38 18H22Z" fill="#c9402c"/><path d="M26 8C26 2 38 2 38 8" fill="#c9402c"/>'
+ +P('M40 38H62V52C62 60 56 64 51 64C46 64 40 60 40 52Z','gd')+L('M51 38V62M40 50H62',1.2)+'<circle cx="51" cy="50" r="3" class="dk"/>';
+IC['Barrow Champion']=P('M6 62V42C6 32 16 26 32 26S58 32 58 42V62Z','m')+HELM(32,30,1.02,'b','#ff7a2c')+P('M16 20C10 20 6 14 8 6C12 10 16 12 20 14Z','bn')+P('M48 20C54 20 58 14 56 6C52 10 48 12 44 14Z','bn')
+ +T('M56 62L40 20',3,'#8a6a3e')+P('M30 10C34 6 46 8 50 16C44 14 38 16 36 22Z','bn')+'<path d="M36 22L50 16" stroke="#0a0807" stroke-opacity=".4" stroke-width="1.4"/>';
+IC['Cathedral Templar']=P('M6 62V42C6 32 16 26 32 26S58 32 58 42V62Z','m')+HELM(32,30,1.05,'b','#ffe9a8')+'<path d="M32 6V22M26 12H38" stroke="#d3a64d" stroke-width="3.4" stroke-linecap="round"/>'
+ +P('M44 4L50 8L48 40L44 42L40 40L38 8Z','bn')+P('M34 40H54V45H34Z','gd')+P('M2 40H16V54C16 58 12 62 9 62C6 62 2 58 2 54Z','gd')+L('M9 40V62M2 50H16',1.2);
+IC['Orchard Marshal']=P('M6 62V42C6 32 16 26 32 26S58 32 58 42V62Z','m')+HELM(32,30,1.05,'b','#ffb347')+'<path d="M18 14C10 10 6 4 6 0C12 2 18 6 24 10ZM46 14C54 10 58 4 58 0C52 2 46 6 40 10Z" fill="#7aa046"/><path d="M26 6C26 0 38 0 38 6V12H26Z" fill="#c2402a"/>'
+ +T('M56 62V6',2.6,'#8a6a3e')+P('M56 6C62 8 64 14 62 22C58 20 56 16 56 12Z','bn')+P('M56 6C50 8 48 14 50 22C54 20 56 16 56 12Z','bn');
+IC['Ash Praetorian']=P('M6 62V42C6 32 16 26 32 26S58 32 58 42V62Z','m')+HELM(32,30,1.05,'b','#ff8a3c')+P('M10 8C14-2 50-2 54 8L48 14H16Z','gd')+'<path d="M32 -2V14" stroke="#c9402c" stroke-width="5"/>'+'<path d="M14 6C22 0 42 0 50 6" stroke="#c9402c" stroke-width="3" fill="none"/>'
+ +T('M58 62V16',2.4,'#c8c2b4')+P('M58 6L62 16H54Z','gd')+P('M2 40H18V54C18 58 14 62 10 62C6 62 2 58 2 54Z','gd')+'<circle cx="10" cy="48" r="3" fill="#c9402c"/>';
+IC['Hell Legionary']=HORNP(32,22,1.4)+P('M6 62V42C6 32 16 26 32 26S58 32 58 42V62Z','m')+HELM(32,30,1.05,'b',HELLC)+P('M36 38H62V52C62 60 54 64 49 64C44 64 36 60 36 52Z')+FLM(49,50,.8,'#e0502c')+L('M36 46H62',1.2);
+IC['Infernal Duelist']=P('M12 62V46C12 38 20 34 30 34C40 34 46 38 46 46V62Z','m')+P('M30 8C40 8 46 16 46 26C46 34 40 40 30 40C20 40 14 34 14 26C14 16 20 8 30 8Z')+'<path d="M16 22C22 18 38 18 44 22L42 30H18Z" class="dk"/>'+E(24,25,1.5,HELLC)+E(36,25,1.5,HELLC)
+ +P('M20 8L12 0L26 6ZM40 8L48 0L34 6Z','m')+T('M58 4L36 56',2,'#c8c2b4')+P('M50 40H62V44H50Z','gd')+T('M44 48L54 46',2.4,'#d3a64d')+L('M24 34C28 36 34 36 38 34',1.2);
+
+// ---- items
+const GEM=(x,y,r,c)=>'<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+(c||'#ff5a3c')+'"/><circle cx="'+(x-r*.3)+'" cy="'+(y-r*.3)+'" r="'+(r*.35)+'" fill="#fff" opacity=".55"/>';
+IC.i_wa=GR('rotate(-35 32 32)',P('M32 2L38 14V40H26V14Z','bn')+'<path d="M32 2V40" stroke="#0a0807" stroke-opacity=".35" stroke-width="1.4"/>'+P('M18 40H46V46H18Z','gd')+P('M29 46H35V58H29Z','m')+'<circle cx="32" cy="61" r="3.2" fill="#d3a64d"/>');
+IC.i_wb=T('M32 22V62',3.4,'#8a6a3e')+SKULL(32,14,.62,'bn','#8fd46a')+P('M20 24H44L40 30H24Z','b')+L('M32 30V62',0)+'<path d="M26 34L38 38M26 44L38 48" stroke="#5a4426" stroke-width="2.4"/>'+T('M20 4C14 8 14 18 20 22M44 4C50 8 50 18 44 22',1.8,'currentColor');
+IC.i_aa=P('M20 6L32 10L44 6L58 14L52 28L46 26V58H18V26L12 28L6 14Z')+P('M32 10V58H18V26L12 28L6 14L20 6Z','m')+L('M32 10V58M18 28H46M20 42H44',1.4)+'<circle cx="32" cy="30" r="4" class="gd"/>'+P('M6 14L14 22L8 28L2 18Z','b')+P('M58 14L50 22L56 28L62 18Z','b');
+IC.i_ab=P('M32 4C24 4 20 10 18 16L4 24L10 34L16 30L12 60H52L48 30L54 34L60 24L46 16C44 10 40 4 32 4Z')+'<path d="M32 4C27 12 27 20 32 30C37 20 37 12 32 4Z" class="dk"/>'+P('M32 30L24 60H40Z','m')+L('M20 36L16 58M44 36L48 58',1.2)+'<circle cx="32" cy="32" r="3" class="gd"/>';
+IC.i_ta=T('M14 4C14 28 22 36 32 36C42 36 50 28 50 4',2.6,'#a9a090')+P('M32 34L42 44L32 60L22 44Z','gd')+GEM(32,45,4.2,'#8fd46a')+'<path d="M32 34L42 44L32 60L22 44Z" fill="none" stroke="#0a0807" stroke-width="1.2"/>';
+IC.i_tb=P('M32 18C44 18 54 26 54 38C54 50 44 58 32 58C20 58 10 50 10 38C10 26 20 18 32 18ZM32 26C26 26 20 31 20 38C20 45 26 50 32 50C38 50 44 45 44 38C44 31 38 26 32 26Z','gd')+P('M24 6H40L44 16H20Z','gd')+GEM(32,11,3.6,'#ff5a3c')+'<path d="M16 34C18 28 24 24 30 24" stroke="#fff" stroke-opacity=".4" stroke-width="2.4" fill="none" stroke-linecap="round"/>';
+IC.i_tc=P('M32 4L40 22L60 24L44 38L50 58L32 47L14 58L20 38L4 24L24 22Z','gd')+'<path d="M32 4L40 22L60 24L44 38L50 58L32 47L14 58L20 38L4 24L24 22Z" fill="none" stroke="#0a0807" stroke-width="1.2"/>'+GEM(32,32,6,'#c9402c');
+IC.i_u0=P('M8 52L4 16L20 30L32 8L44 30L60 16L56 52Z','gd')+'<path d="M8 52H56V58H8Z" fill="#a98a4a"/>'+GEM(32,40,4.6,'#c9402c')+GEM(16,42,3,'#8fd46a')+GEM(48,42,3,'#8fd46a')+'<circle cx="32" cy="8" r="3" fill="#ffe9a8"/><circle cx="4" cy="16" r="2.6" fill="#ffe9a8"/><circle cx="60" cy="16" r="2.6" fill="#ffe9a8"/>';
+IC.i_u4=P('M32 58C8 42 2 26 10 14C18 4 30 8 32 18C34 8 46 4 54 14C62 26 56 42 32 58Z')+'<path d="M32 18C28 28 36 36 32 50" stroke="#0a0807" stroke-width="2" fill="none" stroke-linecap="round"/>'+'<path d="M14 18C18 14 24 14 26 18" stroke="#fff" stroke-opacity=".4" stroke-width="2.4" fill="none" stroke-linecap="round"/>'+E(32,34,1.8,'#ffd27a');
+IC.i_censer=T('M32 2V12M20 14C20 8 44 8 44 14',2.2,'#a9a090')+P('M10 16H54C54 36 46 48 32 50C18 48 10 36 10 16Z','gd')+'<path d="M18 22H46M20 30H44M24 38H40" stroke="#0a0807" stroke-width="2.4" stroke-linecap="round"/>'+P('M24 50H40V56H24Z','m')+'<path d="M32 60C28 62 30 64 32 64C34 64 36 62 32 60Z" fill="#e08a3c"/><path d="M24 6C20 2 26 -2 24 -6" stroke="#aaa" stroke-width="2" fill="none" opacity=".5"/>';
+IC.i_axe=GR('rotate(30 32 32)',P('M29 4H35V62H29Z','m')+P('M35 8C52 6 62 16 62 28C62 40 52 46 35 44Z','bn')+'<path d="M38 12C48 12 56 18 56 28C56 36 48 40 38 40" fill="none" stroke="#0a0807" stroke-opacity=".4" stroke-width="2"/>'+P('M26 52H38V58H26Z','b'));
+IC.i_halo=WINGS('bn')+'<ellipse cx="32" cy="14" rx="20" ry="7" fill="none" stroke="#ffe9a8" stroke-width="4.4"/><ellipse cx="32" cy="14" rx="20" ry="7" fill="none" stroke="#ffe9a8" stroke-width="9" opacity=".18"/>'+'<path d="M14 18L10 30L18 28ZM50 18L54 30L46 28Z" fill="#ffe9a8" opacity=".5"/>';
+IC.i_greatsword=GR('rotate(-20 32 32)',P('M32 0L40 14V46H24V14Z','bn')+'<path d="M32 2V46" stroke="#0a0807" stroke-opacity=".4" stroke-width="2"/>'+P('M12 46H52V54H12Z','gd')+P('M28 54H36V64H28Z','m')+GEM(32,50,3.6,'#ff5a3c')+'<path d="M26 20L38 24M26 30L38 34" stroke="#ff5a3c" stroke-width="1.4" opacity=".7"/>');
+
+function ico(key,rankI,o){ o=o||{}; return '<span class="ico r'+rankI+(o.boss?' boss':'')+(o.elite?' elite':'')+'" aria-hidden="true"><svg viewBox="0 0 64 64">'+(IC[key]||IC._)+'</svg></span>'; }
+const app=document.getElementById('app');
+const ui={confirm:null};
+const pct=(v,m)=>Math.max(0,Math.min(100,m?v/m*100:0));
+const meter=(label,v,m,cls)=>'<div class="meter"><div class="m-top"><span>'+label+'</span><span class="num">'+Math.max(0,Math.round(v))+' / '+m+'</span></div><div class="bar"><i class="fill '+cls+'" style="width:'+pct(v,m)+'%"></i></div></div>';
+
+
+// ----- icons for the extended roster
+const BUST='<circle cx="16" cy="9" r="5.5"/><path d="M4 30V19c0-5 5-7 12-7s12 2 12 7v11z"/>';
+Object.assign(GLYPH,{
+ 'Tannery Brute':BUST+'<path class="cs" d="M11 17v13M21 17v13M11 24h10"/>',
+ 'Shiv Cutpurse':'<g transform="translate(-3 2) scale(.88)">'+HOOD+'</g><path d="M27 5l2.4 14-2.4 3-2.4-3z"/><rect x="24" y="22" width="6" height="2"/><rect x="26" y="24" width="2" height="5"/>',
+ 'Tallow Chandler':'<path class="ember" d="M16 1c-3 4 2 5 0 9 4-2 4-6 0-9z"/><rect x="11" y="12" width="10" height="18" rx="1"/><path class="cs" d="M14 16v5M18.5 18v6"/>',
+ 'Drowned Sentinel':HELMB+'<path class="s" d="M2 30c3-3 6 3 9 0s6 3 9 0 6 3 10 0"/>',
+ 'Coffin Crawler':'<path d="M12 2h8l5 8-3 20H10L7 10z"/><path class="cs" d="M16 8v12M12 12h8"/><path class="s" d="M6 12l-4-3M6 17H1M26 12l4-3M26 17h5"/>',
+ 'Tide Acolyte':'<path class="s" d="M16 30V8M8 8v6c0 3 3 4 8 4s8-1 8-4V8"/><path d="M8 2l-2.5 7h5zM16 1l-2.5 7h5zM24 2l-2.5 7h5z"/>',
+ 'Barrow Thrall':BUST+'<path class="cs" d="M9 16c2 5 12 5 14 0"/>',
+ 'Ember Stalker':'<path d="M4 3l7 5h10l7-5-1 13c0 7-5 12-11 12S5 23 5 16z"/><path class="c" d="M9 14l5 2-5 1zM23 14l-5 2 5 1z"/><path class="cs" d="M12 23l1.5 3 1.5-3 1.5 3 1.5-3 1.5 3 1.5-3"/>',
+ 'Cinder Weaver':'<path class="s" d="M16 2v28M2 16h28M6 6l20 20M26 6L6 26"/><circle class="s" cx="16" cy="16" r="5"/><circle class="s" cx="16" cy="16" r="10"/><path class="ember" d="M16 10c-3 4 1 4 0 8 4-2 4-5 0-8z"/>',
+ 'Glass Sentinel':'<path d="M16 2l12 8v12l-12 8L4 22V10z"/><path class="cs" d="M16 2v28M4 10l24 12M28 10L4 22"/>',
+ 'Tooth Collector':'<path d="M8 4h16c1 8-1 14-4 24l-4-8-4 8C9 18 7 12 8 4z"/><path class="cs" d="M16 6v11M12 8l1 6M20 8l-1 6"/>',
+ 'Vestment Wraith':'<ellipse class="s" cx="16" cy="3" rx="6" ry="1.8"/><g transform="translate(3 4) scale(.82)">'+HOOD+'</g>',
+ 'Iron Scarecrow':'<rect x="14" y="8" width="4" height="22"/><rect x="3" y="13" width="26" height="3"/><circle cx="16" cy="10" r="4.2"/><path d="M9 7h14l-4-5h-6z"/><circle class="c" cx="14.7" cy="10" r=".9"/><circle class="c" cx="17.7" cy="10" r=".9"/>',
+ 'Fruit Reaver':'<path class="s" style="stroke-width:2.4" d="M9 30L24 6"/><path d="M24 4C14 2 5 8 3 17c6-6 13-9 21-9z"/>',
+ 'Grove Shepherd':'<path class="s" style="stroke-width:2.4" d="M18 30V10c0-5-8-6-8-1"/><path d="M20 12c5-1 8 1 9 5-5 1-8-1-9-5zM18 20c-5-1-8 1-9 5 5 1 8-1 9-5z"/>',
+ 'Ember Herald':'<rect x="6" y="2" width="2.5" height="28"/><path d="M8.5 4h18l-5 6 5 6h-18z"/><circle class="c" cx="16" cy="10" r="2.6"/>',
+ 'Crownless Duelist':'<path class="s" style="stroke-width:3" d="M5 5l22 22M27 5L5 27"/><path class="s" d="M3 11l8-8M21 29l8-8M29 11l-8-8M11 29l-8-8"/>',
+ 'Pallbearer':'<path d="M10 3h12l-2 5c5 3 6 8 5 13l-3 9H10l-3-9c-1-5 0-10 5-13z"/><path class="cs" d="M9 14h14M10 22h12"/>'
+});
+
+Object.assign(GLYPH,{'?':'<path class="s" style="stroke-width:3" d="M10 11c0-4 3-6 6-6s6 2 6 6c0 5-6 5-6 10"/><circle cx="16" cy="27" r="2"/>'});
+
+
+const WING='<path d="M13 12C8 5 3 5 1 8c2 5 5 9 9 11zM19 12c5-7 10-7 12-4-2 5-5 9-9 11z"/>';
+const HORNS='<path d="M9 9C5 8 3 4 4 1c3 2 6 3 8 6zM23 9c4-1 6-5 5-8-3 2-6 3-8 6z"/>';
+const FLAME='<path class="ember" d="M16 1c-4 5 2 6-1 11 5-1 7-5 5-9 4 3 4 8 0 11h-8c-4-3-2-9 4-13z"/>';
+Object.assign(GLYPH,{
+ 'Imp':'<circle cx="16" cy="17" r="9"/><path d="M9 11L5 3l8 5zM23 11l4-8-8 5z"/><path class="c" d="M10.5 15l4 2-4 1zM21.5 15l-4 2 4 1z"/><path class="c" d="M11 22c3 3 7 3 10 0-3 1-7 1-10 0z"/><path class="s" d="M16 26c0 4 5 4 6 1"/>',
+ 'Hellhound':'<path d="M3 20l4-9 7-2 4-6 3 6 6 3 2 8-5 3H9z"/><path class="c" d="M18 14l4 1.5-4 1z"/><path class="c" d="M24 20h3v2h-3z"/><path class="s" d="M5 26c3 3 8 4 12 3"/>',
+ 'Chain Devil':'<circle cx="16" cy="10" r="6"/>'+HORNS+'<path d="M5 31V21c0-4 5-6 11-6s11 2 11 6v10z"/><path class="cs" d="M9 21l6 8M23 21l-6 8"/><circle class="c" cx="14" cy="10" r="1.2"/><circle class="c" cx="18" cy="10" r="1.2"/>',
+ 'Pit Warden':'<path d="M16 2L4 6v10c0 8 5 13 12 15 7-2 12-7 12-15V6z"/><path class="cs" d="M16 6v21M8 12h16"/>'+'<path class="ember" d="M16 12c-2 3 1 4 0 7 3-1 4-4 2-6z"/>',
+ 'Soul Tender':'<rect x="14" y="2" width="4" height="4"/><path d="M11 6h10l2 5v14c0 3-3 5-7 5s-7-2-7-5V11z"/><path class="ember" d="M16 12c-3 3 0 5-1 9 4-1 5-5 2-9z"/><path class="s" d="M14 3c0-3 4-3 4 0"/>',
+ 'Brimstone Chanter':'<path d="M16 2C9 2 6 9 6 16c0 5-2 9-4 14h28c-2-5-4-9-4-14 0-7-3-14-10-14z"/>'+'<path class="c" d="M16 9c-4 0-6 3-6 7s2 7 6 7 6-3 6-7-2-7-6-7z"/><path d="M9 6L5 1l7 3zM23 6l4-5-7 3z"/><circle cx="13.5" cy="15.5" r="1.2"/><circle cx="18.5" cy="15.5" r="1.2"/>',
+ 'The Gate Hound':'<path d="M4 27l1-8 5-4h12l5 4 1 8z"/><circle cx="8" cy="11" r="4.5"/><circle cx="16" cy="8" r="4.5"/><circle cx="24" cy="11" r="4.5"/><path class="c" d="M6 10h4M14 7h4M22 10h4"/><path class="cs" d="M11 22l2 3 3-3 3 3 2-3"/>',
+ 'Cinder Matron':'<circle cx="16" cy="14" r="6"/><path d="M4 31c0-8 5-11 12-11s12 3 12 11z"/><path class="ember" d="M10 10C6 6 7 2 9 0c0 4 4 3 5 6 1-4 5-4 6-6 3 3 1 8-3 10z" transform="translate(0 1)"/><path class="c" d="M13.5 14h1.5v1.5h-1.5zM17 14h1.5v1.5H17z"/>',
+ 'The Iron Inquisitor':'<path d="M6 4h20v12c0 7-4 12-10 14C10 28 6 23 6 16z"/><rect class="c" x="9" y="12" width="14" height="3"/><path class="cs" d="M16 4v8M16 15v13"/><path d="M12 3l1-3 3 2 3-2 1 3z"/>',
+ 'Lord of Flies':'<ellipse cx="16" cy="20" rx="6" ry="9"/><circle cx="16" cy="9" r="5"/><path d="M10 15L1 7l2 10zM22 15l9-8-2 10z"/><path class="c" d="M12.5 8h2.4v2.4h-2.4zM17.1 8h2.4v2.4h-2.4z"/><path class="cs" d="M11 19h10M11 23h10"/>',
+ 'The Bone Cantor':'<path d="M16 2c-6 0-10 4-10 10v6h20v-6c0-6-4-10-10-10z"/><path class="c" d="M11 11h3v3h-3zM18 11h3v3h-3z"/><path d="M8 20h16v10H8z"/><path class="cs" d="M11 20v10M16 20v10M21 20v10"/><path class="c" d="M12 16h8v2h-8z"/>',
+ 'Duke of Chains':'<circle cx="16" cy="9" r="5.5"/>'+HORNS+'<path d="M5 31V19c0-5 5-7 11-7s11 2 11 7v12z"/><path class="s" d="M3 14l5 5-5 5M29 14l-5 5 5 5"/><path class="c" d="M12 20l4 4 4-4"/>',
+ 'The Pale Executioner':'<path d="M16 2c-5 0-8 4-8 9v6h16v-6c0-5-3-9-8-9z"/><path class="c" d="M11 10h10v2.5H11z"/><path d="M6 17h20l2 14H4z"/><path d="M26 3l5 10-4 2-3-8z"/><path class="cs" d="M16 17v14"/>',
+ 'Archdevil Vael':'<circle cx="16" cy="14" r="7"/>'+HORNS+'<path d="M8 6C4 2 6-1 9 0c-1 3 1 4 3 5zM24 6c4-4 2-7-1-6 1 3-1 4-3 5z"/><path d="M4 31c0-8 5-10 12-10s12 2 12 10z"/><path class="c" d="M11 12l4 2-4 1zM21 12l-4 2 4 1z"/><path class="cs" d="M12 19c2 2 6 2 8 0"/>',
+ 'The Hollow Seraph':WING+'<path d="M16 8c-4 0-6 4-6 9v13h12V17c0-5-2-9-6-9z"/><ellipse class="s" cx="16" cy="4" rx="5.5" ry="1.8"/><path class="c" d="M13 15h1.8v6H13zM17.2 15H19v6h-1.8z"/>',
+ 'Abaddon, King of Hell':'<path d="M16 6c-6 0-9 4-9 9 0 4 2 6 4 8v4h10v-4c2-2 4-4 4-9 0-5-3-8-9-8z"/><path d="M7 11C3 10 1 6 2 2c3 2 5 4 7 7zM25 11c4-1 6-5 5-9-3 2-5 4-7 7z"/><path class="gold" d="M8 5l2.5 3 2.5-5 3 5 3-5 2.5 5 2.5-3-1.5 6H9.5z"/><circle class="c" cx="12.5" cy="16" r="2.4"/><circle class="c" cx="19.5" cy="16" r="2.4"/><path class="c" d="M16 20l-1.6 3h3.2z"/>',
+ i_censer:'<path class="s" d="M16 1v7M10 8h12"/><path d="M7 14h18c0 8-3 12-9 12s-9-4-9-12z"/><path class="cs" d="M9 18h14M12 22h8"/><path class="ember" d="M16 27c-2 2-1 4 0 4 2-1 2-3 0-4z"/>',
+ i_axe:'<rect x="14.5" y="2" width="3" height="28"/><path d="M17.5 3c8 0 12 4 12 9s-4 7-12 7z"/><path class="cs" d="M21 8c3 1 4 3 4 5"/>',
+ i_halo:'<ellipse class="s" style="stroke-width:3" cx="16" cy="9" rx="10" ry="4"/><path d="M3 14l5 9-1 7 9-6 9 6-1-7 5-9-9 4-4-4-4 4z" opacity=".95"/>',
+ i_greatsword:'<path d="M16 0l4 22-4 3-4-3z"/><rect x="7" y="21" width="18" height="3.5" rx="1"/><rect x="14.5" y="24" width="3" height="6"/><path class="cs" d="M16 4v16"/>'
+});
+
+// ----- item icons + cards
+Object.assign(GLYPH,{
+ i_wa:'<path d="M16 1l3.5 15-3.5 3-3.5-3z"/><rect x="9" y="17" width="14" height="3" rx="1"/><rect x="14.5" y="20" width="3" height="8"/><circle cx="16" cy="29.5" r="2"/>',
+ i_wb:'<rect x="15" y="9" width="2" height="21"/><circle cx="16" cy="6" r="5"/><circle class="c" cx="14" cy="5.5" r="1.3"/><circle class="c" cx="18" cy="5.5" r="1.3"/>',
+ i_aa:'<path d="M10 3l6 3 6-3 7 5-3 6-3-1v16H9V13l-3 1-3-6z"/><path class="cs" d="M16 6v21"/>',
+ i_ab:'<path d="M16 2c-4 0-7 3-8 7l-5 6 5 2-3 13h22l-3-13 5-2-5-6c-1-4-4-7-8-7z"/><path class="cs" d="M16 9v19"/>',
+ i_ta:'<path class="s" style="stroke-width:2" d="M8 2c0 10 3 14 8 14s8-4 8-14"/><circle cx="16" cy="22" r="6.5"/><circle class="c" cx="16" cy="22" r="2.5"/>',
+ i_tb:'<circle class="s" cx="16" cy="20" r="8" style="stroke-width:3.2"/><path d="M16 2l5 7h-10z"/>',
+ i_tc:'<circle cx="16" cy="16" r="12"/><circle class="c" cx="16" cy="16" r="8"/><path d="M16 9l2 5 5 .5-4 3.5 1.2 5-4.2-2.7-4.2 2.7 1.2-5-4-3.5 5-.5z"/>',
+ i_u0:'<g transform="translate(-5 6) scale(2)"><path d="M5 3l3 3 3-4 3 4 3-3-1.5 7h-9z"/></g><rect x="6" y="23" width="20" height="4"/>',
+ i_u4:'<path d="M16 29C5 21 3 13 7 8c3-4 8-3 9 1 1-4 6-5 9-1 4 5 2 13-9 21z"/><path class="cs" d="M16 9c-1 5 1 9 0 14"/>'
+});
+function iico(d){ return '<span class="ico t'+d.tier+'" aria-hidden="true"><svg viewBox="0 0 64 64">'+(IC[d.glyph||('i_'+d.kind)]||IC._)+'</svg></span>'; }
+function statsHTML(d){ return Object.keys(d.stats).filter(k=>d.stats[k]).map(k=>'<span>+'+d.stats[k]+STATL[k][1]+' '+STATL[k][0]+'</span>').join(''); }
+function itemCard(it,acts){
+  const d=ITEM[it.id];
+  return '<div class="item t'+d.tier+'">'+iico(d)+'<div class="i-body"><div class="i-top"><span class="i-name">'+d.name+'</span><span class="i-tag">'+TIERS[d.tier]+' &middot; '+SLOTS[d.slot]+(d.tower?' &middot; <span class="i-floor">Hell Tower '+d.floor+'</span>':'')+'</span></div>'
+   +'<div class="i-stats">'+statsHTML(d)+'</div>'+(d.flag?'<div class="i-fx">'+FLAGS[d.flag]+'</div>':'')+'</div><div class="i-acts">'+(acts||'')+'</div></div>';
+}
+const pc=p=>{ p*=100; return (p>=10?p.toFixed(0):p>=1?p.toFixed(1):p.toFixed(2))+'%'; };
+function equipHTML(){
+  const locked=S.mode==='battle';
+  const rows=['weapon','armor','relic'].map(sl=>{ const it=S.equip[sl];
+    return it?itemCard(it,locked?'':'<button class="btn small" data-a="unequip" data-k="'+sl+'">Unequip</button>'):'<div class="gempty">No '+SLOTS[sl].toLowerCase()+' equipped.</div>'; }).join('');
+  return '<section class="win" aria-labelledby="h-gear"><h2 class="win-h" id="h-gear">Equipment</h2><div class="items">'+rows+'</div>'+(locked?'<p class="q-note">Gear is locked while you fight.</p>':'')+'</section>';
+}
+function bagHTML(){
+  const list=S.inv.slice().sort((a,b)=>ITEM[b.id].tier-ITEM[a.id].tier||ITEM[b.id].set-ITEM[a.id].set||ITEM[a.id].name.localeCompare(ITEM[b.id].name));
+  const rows=list.map(it=>{ const d=ITEM[it.id], cur=S.equip[d.slot], conf=ui.confirm==='d'+it.u;
+    return itemCard(it,'<button class="btn small primary" data-a="equip" data-k="'+it.u+'">'+(cur?'Swap':'Equip')+'</button><button class="btn small warn" data-a="discard" data-k="'+it.u+'">'+(conf?'Confirm':'Discard')+'</button>'); }).join('');
+  return '<section class="win" aria-labelledby="h-bag"><h2 class="win-h" id="h-bag">Bag '+S.inv.length+'/'+BAG_MAX+'</h2>'
+   +'<p class="lede">Loot from rooms you clear lands here. Uniques ignore the bag limit. When the bag is full, other finds are left behind.</p>'
+   +(rows?'<div class="items">'+rows+'</div>':'<p class="lede">Empty. Kill things and clear rooms to fill it.</p>')+'</section>';
+}
+function bestiaryHTML(){
+  const all=[]; DUNGEONS.forEach(D=>{ D.mobs.forEach(m=>all.push(m[0])); all.push(D.boss[0]); });
+  const kn=n=>(S.kills&&S.kills[n])||0;
+  const met=all.filter(n=>kn(n)>0).length, studied=all.filter(n=>kn(n)>=KNOW_AT).length;
+  let h='<section class="win" aria-labelledby="h-bes"><h2 class="win-h" id="h-bes">Bestiary &amp; drop tables</h2>'
+   +'<p class="lede">Entries stay hidden until you kill the creature. Defeat one '+KNOW_AT+' times to study it and reveal its drop table. Ordinary enemies drop something 28% of the time, elites 65% with a lean toward better tiers, and bosses roll twice. Percentages are the share of drops.</p>'
+   +'<div class="tiers-line">Met '+met+'/'+all.length+' &middot; Studied '+studied+'/'+all.length+'</div>';
+  DUNGEONS.forEach((D,di)=>{
+    const list=D.mobs.map(m=>({name:m[0],role:m[1],boss:false})).concat([{name:D.boss[0],role:D.boss[1],boss:true}]);
+    const anyStudied=list.some(e=>kn(e.name)>=KNOW_AT);
+    h+='<div class="bes-gate"><div class="bes-h"><div class="badge r'+di+'">'+RANKS[di]+'</div><div><h3>'+D.name+'</h3><div class="tiers-line">'+(anyStudied?TIER_W[di].map((w,t)=>w?TIERS[t]+' '+w+'%':'').filter(Boolean).join(' &middot; '):'Tier mix unknown. Study an enemy here to learn it.')+'</div></div></div>';
+    list.forEach(e=>{
+      const k=kn(e.name), isStudied=k>=KNOW_AT, open=ui.bes===e.name;
+      if(k<=0){
+        h+='<div class="bes-row locked"><span class="ico unk" aria-hidden="true"><svg viewBox="0 0 64 64">'+IC['?']+'</svg></span><div><div class="u-name">???</div><div class="u-sub">Unknown. Defeat it to add it to the ledger.</div></div><span class="u-tag">Locked</span></div>';
+        return;
+      }
+      const rolls=e.boss?'2 rolls (100% and 60%)':'28% per kill';
+      h+='<button class="bes-row" data-a="bes" data-k="'+e.name+'" aria-expanded="'+open+'">'+ico(e.name,di,{boss:e.boss})+'<div><div class="u-name">'+e.name+'</div><div class="u-sub">'+ROLES[e.role].label+(isArmed(e.name)?' &middot; Gear-bearer':'')+' &middot; '+(isStudied?rolls:'Kills '+k+'/'+KNOW_AT+' &middot; drops unknown')+'</div></div><span class="u-tag">'+(open?'Hide':(isStudied?'Drops':'Study'))+'</span></button>';
+      if(!open) return;
+      if(isStudied){
+        const rows=tableFor(di,e.role,e.boss,false,SIG[e.name]).filter(r=>r.p>0).sort((a,b)=>ITEM[b.id].tier-ITEM[a.id].tier||b.p-a.p);
+        h+='<div class="bes-table">'+rows.map(r=>{ const d=ITEM[r.id]; return '<div class="drop t'+d.tier+'"><span class="tn">'+d.name+'</span><span class="u-tag">'+TIERS[d.tier]+' '+SLOTS[d.slot]+'</span><span class="num">'+pc(r.p)+'</span><div class="dbar"><i style="width:'+Math.max(1.5,r.p*100)+'%"></i></div></div>'; }).join('')+'</div>';
+      } else {
+        h+='<div class="bes-table"><div class="u-sub">Its drops are still a mystery. Defeat '+e.name+' '+(KNOW_AT-k)+' more time'+(KNOW_AT-k===1?'':'s')+' to study it.</div>'
+         +'<div class="bar"><i class="fill xp" style="width:'+pct(k,KNOW_AT)+'%"></i></div>'
+         +['','',''].map(()=>'<div class="drop"><span class="dim">???</span><span class="u-tag">???</span><span class="num dim">??%</span></div>').join('')+'</div>';
+      }
+    });
+    h+='</div>';
+  });
+  // Hell Tower
+  const twList=TW_MOBS.map(m=>({name:m[0],role:m[1],boss:false})).concat(TW_BOSS.map(n=>({name:n,role:'vanguard',boss:true})));
+  h+='<div class="bes-gate"><div class="bes-h"><div class="badge" style="color:#ff8a6a">T</div><div><h3>The Hell Tower</h3><div class="tiers-line">Drops improve with every floor. Studied entries show the tier mix at several heights.</div></div></div>';
+  twList.forEach(e=>{
+    const k=kn(e.name), isStudied=k>=KNOW_AT, open=ui.bes===e.name;
+    if(k<=0){ h+='<div class="bes-row locked"><span class="ico unk" aria-hidden="true"><svg viewBox="0 0 64 64">'+IC['?']+'</svg></span><div><div class="u-name">???</div><div class="u-sub">Unknown. Defeat it to add it to the ledger.</div></div><span class="u-tag">Unseen</span></div>'; return; }
+    h+='<button class="bes-row" data-a="bes" data-k="'+e.name+'" aria-expanded="'+open+'">'+ico(e.name,5,{boss:e.boss})+'<div><div class="u-name">'+e.name+'</div><div class="u-sub">'+(e.boss?'Warden':ROLES[e.role].label+(isArmed(e.name)?' &middot; Gear-bearer':''))+' &middot; '+(isStudied?'Studied':'Kills '+k+'/'+KNOW_AT)+'</div></div><span class="u-tag">'+(open?'Hide':'Open')+'</span></button>';
+    if(!open) return;
+    if(isStudied){
+      h+='<div class="bes-table">'+[1,25,50,75,100].map(f=>{ const rows=towerTable(f,e.role,e.boss,false), tot=[0,0,0,0,0]; rows.forEach(r=>{ tot[ITEM[r.id].tier]+=r.p; });
+        return '<div class="u-sub num">Floor '+f+': '+tot.map((v,t)=>v>=.005?TIERS[t]+' '+Math.round(v*100)+'%':'').filter(Boolean).join(' &middot; ')+'</div>'; }).join('')
+        +(e.boss?'<div class="u-sub">Its unique: guaranteed the first time, '+Math.round(TW.repeat*100)+'% after.</div>':'<div class="u-sub">Elites of this kind lean toward better tiers.</div>')+'</div>';
+    } else {
+      h+='<div class="bes-table"><div class="u-sub">Its drops are still a mystery. Defeat it '+(KNOW_AT-k)+' more time'+(KNOW_AT-k===1?'':'s')+' to study it.</div><div class="bar"><i class="fill xp" style="width:'+pct(k,KNOW_AT)+'%"></i></div></div>';
+    }
+  });
+  h+='</div>';
+  return h+'</section>';
+}
+
+function statusHTML(){
+  const P=S.player, st=P.stats, ri=pRankI();
+  const rows=[['might','Might','Strike damage'],['vigor','Vigor','Max HP'],['intellect','Intellect','Mana, Siphon, Ward'],['will','Will','Army slots, raise odds, minion bond']];
+  const canAlloc=P.pts>0&&S.mode!=='battle';
+  return '<section class="win" aria-labelledby="h-status"><h2 class="win-h" id="h-status">Status</h2>'
+   +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(titleName()?'<div class="ttl">'+titleName()+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+(P.debuff?' &middot; <span class="bad">Wounded dawn</span>':'')+'</div></div></div>'
+   +meter('HP',P.hp,pMax(),'hp')+meter('Mana',P.mana,pMana(),'mp')+meter('XP',P.xp,need(P.lvl),'xp')
+   +(P.pts>0?'<div><span class="chip">'+P.pts+' unspent point'+(P.pts>1?'s':'')+'</span></div>':'')
+   +'<div class="stats">'+rows.map(r=>'<div class="stat"><div><b>'+r[1]+'</b><small>'+r[2]+'</small></div><span class="val">'+st[r[0]]+(G(r[0])?'<small class="gb"> +'+G(r[0])+'</small>':'')+'</span>'
+      +(canAlloc?'<button class="plus" data-a="alloc" data-k="'+r[0]+'" aria-label="Add a point to '+r[1]+'">+</button>':'<span class="plus-slot"></span>')+'</div>').join('')+'</div>'
+   +'<div class="derived"><div><span>Strike</span><b>'+pAtk()+'</b></div><div><span>Siphon</span><b>'+pSiph()+'</b></div><div><span>Slots</span><b>'+slots()+'</b></div></div>'
+   +'</section>';
+}
+function questHTML(){
+  const q=S.quest, rows=[['Defeat foes',q.kills,QUEST.kills],['Raise the dead',q.raises,QUEST.raises],['Clear a dungeon',q.clears,QUEST.clears]];
+  const done=questDone();
+  return '<section class="win" aria-labelledby="h-quest"><h2 class="win-h" id="h-quest">Daily quest &middot; Day '+S.day+'</h2>'
+   +rows.map(r=>'<div class="q-row"><span class="box'+(r[1]>=r[2]?' on':'')+'"></span><span>'+r[0]+'</span><span class="num">'+Math.min(r[1],r[2])+'/'+r[2]+'</span></div>').join('')
+   +(q.claimed?'<p class="q-note ok">Reward claimed for today.</p>':done?'<button class="btn primary" data-a="claim">Claim reward</button>':'<p class="q-note">Reward: +2 stat points and bonus XP.<br><span class="bad">Penalty if unfinished at dawn: lose XP and max HP -20% for a day.</span></p>')
+   +'<p class="q-note">Each dungeon you enter uses a watch. When the third is spent, the day closes.</p></section>';
+}
+function notesHTML(){
+  if(!S.notices.length) return '';
+  return '<div class="notes">'+S.notices.map(n=>'<div class="note '+n.c+'"><i>System</i><span>'+n.m+'</span></div>').join('')+'<div><button class="btn small" data-a="dismiss">Clear notices</button></div></div>';
+}
+function gateHTML(i){
+  const D=DUNGEONS[i], R=RK[i], P=S.player, locked=P.lvl<R.unlock, diff=P.lvl-SAFE[i];
+  const danger=locked?'Locked':diff<-2?'Deadly':diff<0?'Hard':diff<=3?'Fair':'Easy';
+  return '<div class="gate'+(locked?' locked':'')+'"><div class="badge r'+i+'">'+RANKS[i]+'</div><div><h3>'+D.name+'</h3><p>'+D.blurb+'</p>'
+   +'<div class="meta">Recommended Lv '+SAFE[i]+'&ndash;'+(SAFE[i]+3)+' &middot; '+danger+' &middot; Boss: '+D.boss[0]+'</div></div>'
+   +'<button class="btn '+(locked?'':'primary')+'" data-a="enter" data-k="'+i+'"'+(locked?' disabled':'')+'>'+(locked?'Reach Lv '+R.unlock:'Enter')+'</button></div>';
+}
+function titlesHTML(){
+  const T=S.ti||{got:{}}, n=Object.keys(T.got).length;
+  let h='<section class="win" aria-labelledby="h-tt"><h2 class="win-h" id="h-tt">Titles &middot; '+n+'/'+TITLES.length+'</h2>'
+   +'<p class="lede">Titles are earned once and kept. Wear one beneath your name. They are an honour, not a bonus.</p>';
+  ['Gates','Hell Tower','Deeds'].forEach(g=>{
+    h+='<p class="group-h">'+g+'</p><div class="items">'+TITLES.filter(t=>t.grp===g).map(t=>{
+      const got=T.got[t.id], on=T.sel===t.id;
+      return '<div class="tt-row'+(on?' on':'')+(got?'':' off')+(g==='Hell Tower'?' hellt':'')+'"><div><h4>'+t.name+'</h4><div class="u-sub">'+t.req+(got?' &middot; earned day '+got:'')+'</div></div>'
+        +(got?'<button class="btn small'+(on?'':' primary')+'" data-a="wear" data-k="'+t.id+'">'+(on?'Remove':'Wear')+'</button>':'<span class="u-tag">Locked</span>')+'</div>'; }).join('')+'</div>';
+  });
+  return h+'</section>';
+}
+function towerHTML(){
+  const P=S.player, T=S.tower, st=towerStarts(), locked=P.lvl<TW.unlock, noWatch=S.watches<=0;
+  const bosses=TW_BOSS.map((n,i)=>({f:(i+1)*10,name:n}));
+  let h='<section class="win" aria-labelledby="h-tw"><h2 class="win-h" id="h-tw">The Hell Tower</h2>'
+   +'<h3 class="win-title">One hundred floors. Every floor is harder than the last.</h3>'
+   +'<p class="lede">A separate climb from the gates. Each floor is a single fight; between floors you raise the dead and climb on. A warden waits on every tenth floor and carries a unique relic. The first time you break a warden its unique is guaranteed. After that it drops '+Math.round(TW.repeat*100)+'% of the time. Wardens grow wrathful if the fight drags on. A climb uses one watch, and floors you have cleared become checkpoints.</p>'
+   +'<div class="tw-hero"><b>Highest floor '+T.best+' / 100</b><div class="tw-prog"><i style="width:'+T.best+'%"></i></div>'
+   +'<div class="u-sub">Uniques claimed '+Object.keys(T.got).length+' / '+TW_UNIQ.length+'</div></div>'
+   +'<p class="group-h">Begin the climb from</p>';
+  if(locked) h+='<p class="lede bad">The Tower answers only necromancers of level '+TW.unlock+' or more.</p>';
+  else{
+    h+='<div class="chips">'+st.map(f=>'<button class="btn'+(f===st[st.length-1]?' primary':'')+'" data-a="tower" data-k="'+f+'"'+(noWatch?' disabled':'')+'>Floor '+f+'</button>').join('')+'</div>'
+     +'<p class="q-note">Recommended level for floor '+st[st.length-1]+': '+recLv(st[st.length-1])+'. '+(noWatch?'No watches left today. Rest until dawn.':'Uses one watch.')+'</p>';
+  }
+  h+='<p class="group-h">The wardens</p><div class="items">';
+  bosses.forEach(b=>{
+    const seen=T.best>=b.f-10, ids=TW_IDS[b.f]||[], fin=b.f===100;
+    h+='<div class="tw-row'+(seen?'':' locked')+(fin?' final':'')+'">'+(seen?ico(b.name,5,{boss:true}):'<span class="ico unk" aria-hidden="true"><svg viewBox="0 0 64 64">'+IC['?']+'</svg></span>')
+     +'<div><div class="tw-fl">Floor '+b.f+(T.best>=b.f?' &middot; defeated':'')+'</div><h4>'+(seen?b.name:'???')+'</h4>'
+     +(seen?'<div class="u-sub">Recommended level '+recLv(b.f)+'. '+(fin?'The final warden. It drops three uniques and is the hardest thing in the game.':'Drops a unique.')+'</div>'
+        +'<div class="tw-uq">'+ids.map(id=>{ const d=ITEM[id], got=T.got[id];
+            return itemCard({id:id},got?'<span class="tw-got">Owned</span>':''); }).join('')+'</div>'
+       :'<div class="u-sub">Reach floor '+(b.f-9)+' to learn what waits here.</div>')+'</div></div>';
+  });
+  return h+'</div></section>';
+}
+function saveTabHTML(){
+  const ok=storageOk(), when=t=>t?new Date(t).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'never';
+  let h='<section class="win" aria-labelledby="h-sv"><h2 class="win-h" id="h-sv">Save &amp; load</h2>'
+   +'<p class="lede">The game saves itself every time you are in town. Slots are for keeping a safe copy before something risky, like a Tower warden. A save code lets you carry your progress to another browser or device.</p>';
+  if(!ok) h+='<div class="note bad"><i>Storage</i><span>This browser is not letting the page store anything, so autosave and slots will not persist. Use a save code below to keep your progress.</span></div>';
+  if(ui.msg) h+='<div class="note '+(ui.msg.c||'')+'"><i>Save</i><span>'+ui.msg.m+'</span></div>';
+  h+='<div class="u-sub">Autosave: '+(ok?'on &middot; last saved '+when(S.savedAt):'off')+'</div><p class="group-h">Slots</p><div class="items">';
+  for(let i=1;i<=SLOTS_N;i++){
+    const g=slotRead(i), d=g&&g.data;
+    const info=d?'Level '+d.player.lvl+' &middot; Day '+d.day+' &middot; Tower '+((d.tower&&d.tower.best)||0)+'/100 &middot; '+Object.keys((d.ti&&d.ti.got)||{}).length+' titles &middot; saved '+when(g.t):'Empty';
+    h+='<div class="tt-row'+(d?' on':'')+'"><div><h4>Slot '+i+'</h4><div class="u-sub">'+info+'</div></div><div class="btns" style="margin:0">'
+     +'<button class="btn small primary" data-a="slotsave" data-k="'+i+'">'+(d?(ui.confirm==='ss'+i?'Confirm overwrite':'Save over'):'Save here')+'</button>'
+     +(d?'<button class="btn small" data-a="slotload" data-k="'+i+'">'+(ui.confirm==='sl'+i?'Confirm load':'Load')+'</button><button class="btn small warn" data-a="slotdel" data-k="'+i+'">'+(ui.confirm==='sd'+i?'Confirm':'Delete')+'</button>':'')
+     +'</div></div>';
+  }
+  h+='</div><p class="group-h">Save code</p><p class="q-note">Copy this text somewhere safe. Pasting it back restores this exact character.</p>'
+   +(ui.exp?'<textarea id="exp" class="codebox" readonly rows="4">'+ui.exp+'</textarea><div class="btns"><button class="btn small primary" data-a="copycode">Copy code</button></div>'
+     :'<div class="btns"><button class="btn small primary" data-a="mkcode">Create save code</button></div>')
+   +'<p class="group-h">Restore from a code</p><textarea id="imp" class="codebox" rows="3" placeholder="Paste a save code here">'+(ui.imp||'')+'</textarea>'
+   +'<div class="btns"><button class="btn small" data-a="loadcode">'+(ui.confirm==='lc'?'Confirm: replaces your current game':'Load code')+'</button></div></section>';
+  return h;
+}
+function townHTML(){
+  let h=notesHTML();
+  h+='<div class="tabs" role="tablist">'+[['gates','Gates'],['gear','Gear &middot; '+S.inv.length],['tower','Hell Tower'],['titles','Titles &middot; '+Object.keys((S.ti&&S.ti.got)||{}).length],['bes','Bestiary']].map(t=>'<button class="tab'+(t[0]==='tower'?' hell':'')+'" role="tab" data-a="tab" data-k="'+t[0]+'" aria-selected="'+((ui.tab||'gates')===t[0])+'">'+t[1]+'</button>').join('')+'</div>';
+  if(ui.tab==='gear') return h+bagHTML()+armyHTML();
+  if(ui.tab==='bes') return h+bestiaryHTML();
+  if(ui.tab==='tower') return h+towerHTML()+armyHTML();
+  if(ui.tab==='titles') return h+titlesHTML();
+  if(ui.tab==='save') return h+saveTabHTML();
+  h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'
+   +'<p class="lede">Every kill can be raised. Minions keep their level and grow with every room they survive, up to two levels above you. Higher gates drop stronger dead.</p>'
+   +'<div class="gates">'+DUNGEONS.map((d,i)=>gateHTML(i)).join('')+'</div>'
+   +'<div class="btns"><button class="btn small" data-a="rest">Rest until dawn</button>'
+   +'<button class="btn small warn" data-a="newgame">'+(ui.confirm==='new'?'Press again to erase everything':'New game')+'</button></div></section>';
+  return h+armyHTML();
+}
+function nick(u){ return u.id==='p'?'You':u.nick||u.name; }
+function unitCard(u,side){
+  const r=S.run, isP=u.id==='p', max=isP?pMax():u.maxHp, f=r.fx[u.id]||{d:0,h:0}, dead=u.hp<=0;
+  const sel=side==='foe'&&r.target===u.id&&!dead;
+  const tag=isP?'Necromancer':ROLES[u.role].label+(isArmed(u.base||u.name)?' &middot; Armed':'')+(u.boss?' &middot; Boss':'')+(u.elite?' &middot; Elite':'');
+  const rk=isP?'':'<span class="rk r'+u.rankI+'">'+RANKS[u.rankI]+'</span>';
+  const fx=f.d?'<span class="fx neg">-'+f.d+'</span>':f.h?'<span class="fx pos">+'+f.h+'</span>':'';
+  const sub=side==='foe'?'Lv '+u.lvl+' &middot; ATK '+u.atk:isP?'Lv '+u.lvl+' &middot; ATK '+pAtk():u.name+' &middot; Lv '+u.lvl+' &middot; ATK '+u.atk;
+  const inner=fx+'<div class="u-head">'+(isP?ico('Necromancer',pRankI(),{}):ico(u.base||u.kind||u.name,u.rankI,u))+'<div class="u-id"><div class="u-top">'+rk+'<span class="u-tag">'+tag+'</span></div>'
+   +'<div class="u-name">'+(side==='foe'?u.name:nick(u))+'</div><div class="u-sub num">'+sub+'</div></div></div>'
+   +'<div class="bar"><i class="fill hp" style="width:'+pct(u.hp,max)+'%"></i></div>'
+   +'<div class="num u-hp">'+Math.max(0,u.hp)+'/'+max+(isP&&u.shield?' <span class="sh-t">+'+u.shield+' ward</span>':'')+'</div>'
+   +(isP?'<div class="bar"><i class="fill mp" style="width:'+pct(u.mana,pMana())+'%"></i></div><div class="num u-hp">Mana '+u.mana+'/'+pMana()+'</div>':'');
+  const cls='unit '+side+(dead?' dead':'')+(sel?' sel':'')+(u.elite?' elite':'')+(f.d?' hit':'');
+  return side==='foe'&&!dead?'<button class="'+cls+'" data-a="target" data-k="'+u.id+'" aria-pressed="'+sel+'">'+inner+'</button>':'<div class="'+cls+'">'+inner+'</div>';
+}
+function logHTML(){ return '<ol class="log" aria-live="polite">'+S.run.log.map(l=>'<li class="'+l.c+'">'+l.m+'</li>').join('')+'</ol>'; }
+function battleHTML(){
+  currentTarget();
+  const r=S.run, D=DUNGEONS[r.di], P=S.player, boss=r.room===r.rooms-1;
+  return '<section class="win" aria-labelledby="h-battle"><h2 class="win-h" id="h-battle">'+(r.tw?'Hell Tower &middot; Floor '+r.tw+(r.tw%10===0?' &middot; Warden':'')+' &middot; Turn '+r.turn:D.name+' &middot; Room '+(r.room+1)+'/'+r.rooms+(boss?' &middot; Boss':'')+' &middot; Turn '+r.turn)+'</h2>'
+   +'<p class="group-h">Foes &middot; choose a target, your army follows it</p><div class="row">'+r.enemies.map(e=>unitCard(e,'foe')).join('')+'</div>'
+   +'<p class="group-h">Your side</p><div class="row">'+allies().map(a=>unitCard(a,'ally')).join('')+'</div>'
+   +'<div class="btns"><button class="btn primary" data-a="act" data-k="strike">Strike +3 mana<kbd>1</kbd></button>'
+   +'<button class="btn" data-a="act" data-k="siphon"'+(P.mana<8?' disabled':'')+'>Soul Siphon 8<kbd>2</kbd></button>'
+   +'<button class="btn" data-a="act" data-k="ward"'+(P.mana<6?' disabled':'')+'>Bone Ward 6<kbd>3</kbd></button>'
+   +'<button class="btn warn" data-a="flee">Flee</button></div>'
+   +logHTML()+'</section>';
+}
+function slotsHTML(){ const n=slots(); let s='<span class="slots" aria-label="'+S.army.length+' of '+n+' slots used">'; for(let i=0;i<n;i++) s+='<i class="slot'+(i<S.army.length?' on':'')+'"></i>'; return s+'</span>'; }
+function minionCard(m,canRelease){
+  const nx=mneed(m.lvl), capped=m.lvl>=S.player.lvl+2;
+  const conf=ui.confirm===m.uid;
+  return '<div class="minion"><div><div class="u-head">'+ico(m.kind||m.name,m.rankI,m)+'<div class="u-id"><div class="u-top"><span class="rk r'+m.rankI+'">'+RANKS[m.rankI]+'</span><span class="u-tag">'+ROLES[m.role].label+(m.armed?' &middot; Armed':'')+(m.boss?' &middot; Boss':'')+(m.elite?' &middot; Elite':'')+'</span></div>'
+   +'<div class="u-name" style="'+(m.elite?'color:var(--gold)':'')+'">'+m.nick+' <span class="dim" style="font-size:15px">the '+m.name+'</span></div>'
+   +'<div class="u-sub">'+ROLES[m.role].text+'</div></div></div>'
+   +'<div class="bars"><div class="meter"><div class="m-top"><span>HP</span><span class="num">'+m.hp+'/'+m.maxHp+'</span></div><div class="bar"><i class="fill hp" style="width:'+pct(m.hp,m.maxHp)+'%"></i></div></div>'
+   +'<div class="meter"><div class="m-top"><span>Lv '+m.lvl+' &middot; ATK '+m.atk+'</span><span class="num">'+(capped?'cap':m.xp+'/'+nx)+'</span></div><div class="bar"><i class="fill xp" style="width:'+(capped?100:pct(m.xp,nx))+'%"></i></div></div></div></div>'
+   +(canRelease?'<button class="btn small warn" data-a="release" data-k="'+m.uid+'">'+(conf?'Confirm release':'Release')+'</button>':'<span></span>')
+   +(m.armed?gearRowHTML(m,canRelease):'')+'</div>';
+}
+function gearRowHTML(m,can){
+  const g=gearBonus(m), pk=ui.pick&&ui.pick.uid===m.uid?ui.pick.slot:null;
+  let h='<div class="gear-row"><div class="gear-h"><span class="u-tag">Gear-bearer</span><span class="u-sub">'+((g.atk||g.hp||g.mpow)?'Gear gives +'+g.atk+' ATK, +'+g.hp+' HP'+(g.mpow?', +'+g.mpow+'% power':''):'Equip it from your bag. Gear returns to the bag if it is released or shattered.')+'</span></div><div class="gear-slots">';
+  GEAR_SLOTS.forEach(sl=>{
+    const it=m.eq&&m.eq[sl], d=it&&ITEM[it.id];
+    h+=d?'<div class="gslot t'+d.tier+'">'+iico(d)+'<div class="gs-b"><b>'+d.name+'</b><small>'+SLOTS[sl]+'</small></div>'+(can?'<button class="btn small" data-a="take" data-k="'+m.uid+'|'+sl+'">Remove</button>':'')+'</div>'
+      :'<button class="gslot empty'+(pk===sl?' on':'')+'" data-a="pick" data-k="'+m.uid+'|'+sl+'"'+(can?'':' disabled')+'>+ '+SLOTS[sl]+'</button>';
+  });
+  h+='</div>';
+  if(pk){
+    const list=S.inv.filter(it=>ITEM[it.id].slot===pk).sort((a,b)=>ITEM[b.id].tier-ITEM[a.id].tier);
+    h+='<div class="items">'+(list.length?list.map(it=>itemCard(it,'<button class="btn small primary" data-a="give" data-k="'+m.uid+'|'+it.u+'">Give</button>')).join(''):'<p class="u-sub">No '+SLOTS[pk].toLowerCase()+' in your bag.</p>')+'</div>';
+  }
+  return h+'</div>';
+}
+function armyHTML(){
+  const canRel=S.mode==='town'||S.mode==='raise';
+  return '<section class="win" aria-labelledby="h-army"><h2 class="win-h" id="h-army">Army '+S.army.length+'/'+slots()+slotsHTML()+'</h2>'
+   +(S.army.length?'<div class="army">'+S.army.map(m=>minionCard(m,canRel)).join('')+'</div>':'<p class="lede">No one answers you yet. Win a room, then raise what fell.</p>')+'</section>';
+}
+function raiseHTML(){
+  const r=S.run, P=S.player, D=DUNGEONS[r.di];
+  const full=S.army.length>=slots();
+  const corpses=r.corpses.map(c=>{
+    const ch=raiseChance(c), cost=raiseCost(c);
+    let right;
+    if(c.tried) right=c.result==='raised'?'<span class="ok num">Raised as '+c.minion+'</span>':'<span class="bad num">Crumbled</span>';
+    else right='<button class="btn primary small" data-a="raise" data-k="'+c.id+'"'+(P.mana<cost||full?' disabled':'')+'>Raise &middot; '+ch+'% &middot; '+cost+' mana</button>';
+    return '<div class="corpse'+(c.tried?' done '+c.result:'')+'"><div><div class="u-head">'+ico(c.base,c.rankI,c)+'<div class="u-id"><div class="u-top"><span class="rk r'+c.rankI+'">'+RANKS[c.rankI]+'</span><span class="u-tag">'+ROLES[c.role].label+(c.armed?' &middot; Armed':'')+(c.boss?' &middot; Boss':'')+(c.elite?' &middot; Elite':'')+'</span></div>'
+     +'<div class="u-name" style="'+(c.elite?'color:var(--gold)':'')+'">'+c.name+'</div><div class="u-sub num">Lv '+c.lvl+'</div></div></div></div>'+right+'</div>';
+  }).join('');
+  const done=r.cleared;
+  return '<section class="win" aria-labelledby="h-raise"><h2 class="win-h" id="h-raise">'+(r.tw?'Hell Tower &middot; Floor '+r.tw+(done?' &middot; Conquered':' cleared'):D.name+' &middot; '+(done?'Cleared':'Room '+(r.room+1)+' quiet'))+'</h2>'
+   +'<h3 class="win-title">'+(r.tw?(done?'Abaddon is dead. The Tower is yours.':'The floor is still.'):(done?'The gate falls silent.':'The room is still.'))+'</h3>'
+   +'<p class="lede">+'+r.lastXp+' XP'+(r.ups?' &middot; level up':'')+'. Mana '+P.mana+'/'+pMana()+'. Bodies cool quickly, so decide now. Whatever you do not raise is gone.</p>'
+   +(r.events.length?'<div class="notes">'+r.events.map(e=>'<div class="note '+e.c+'"><i>Log</i><span>'+e.m+'</span></div>').join('')+'</div>':'')
+   +(full&&r.corpses.some(c=>!c.tried)?'<div class="note bad"><i>Full</i><span>Your army is full. Release someone below to make room.</span></div>':'')
+   +spoilsHTML()+'<p class="group-h">The fallen</p><div class="corpses">'+(corpses||'<p class="lede">Nothing left to raise.</p>')+'</div>'
+   +'<div class="btns">'+(done?'<button class="btn primary" data-a="town">Return to the gate</button>':'<button class="btn primary" data-a="descend">'+(r.tw?'Ascend to floor '+(r.tw+1)+' (heal ':'Descend (heal ')+Math.round(DIFF.heal*100)+'%, mana +'+Math.round(DIFF.mana*100)+'%)</button><button class="btn" data-a="town">'+(r.tw?'Descend with spoils':'Leave with spoils')+'</button>')+'</div></section>'
+   +armyHTML();
+}
+function spoilsHTML(){
+  const r=S.run, sp=(r.spoils||[]).map(u=>S.inv.find(x=>x.u===u)).filter(Boolean);
+  let h='';
+  if(sp.some(it=>ITEM[it.id].uq)) h+='<div class="note ok"><i>Unique</i><span>Something very few ever hold. Equip it and read what it does.</span></div>';
+  if((r.lostLoot||[]).length) h+='<div class="note bad"><i>Bag full</i><span>Left behind: '+r.lostLoot.join(', ')+'.</span></div>';
+  if(sp.length) h+='<p class="group-h">Spoils from this room</p><div class="items">'+sp.map(it=>itemCard(it,'<button class="btn small primary" data-a="equip" data-k="'+it.u+'">'+(S.equip[ITEM[it.id].slot]?'Swap in':'Equip')+'</button>')).join('')+'</div>';
+  return h;
+}
+function defeatHTML(){
+  const r=S.run;
+  return '<section class="win" aria-labelledby="h-def"><h2 class="win-h" id="h-def">Fallen</h2><h3 class="win-title">'+(r.tw?'You fell on floor '+r.tw+' of the Hell Tower.':'You went down in room '+(r.room+1)+'.')+'</h3>'
+   +'<p class="lede">Loot from rooms already cleared is kept. This room\'s spoils are lost and you lose some XP. Your army carried you out and bound itself back together.</p>'
+   +'<div class="btns"><button class="btn primary" data-a="town">Return to the gate</button></div>'+logHTML()+'</section>';
+}
+function render(){
+  checkTitles();
+  const f=document.activeElement; let key=null;
+  if(f&&f.dataset&&f.dataset.a) key='[data-a="'+f.dataset.a+'"]'+(f.dataset.k?'[data-k="'+f.dataset.k+'"]':'');
+  let pips=''; for(let i=0;i<WATCHES;i++) pips+='<i class="pip'+(i<S.watches?' on':'')+'"></i>';
+  const main=S.mode==='battle'?battleHTML():S.mode==='raise'?raiseHTML():S.mode==='defeat'?defeatHTML():townHTML();
+  app.innerHTML='<header class="top"><div class="brand"><svg class="sigil" viewBox="0 0 64 64" width="54" height="54" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="32" cy="32" r="30"/><circle cx="32" cy="32" r="24" stroke-dasharray="1.5 3.5"/><rect x="16" y="16" width="32" height="32"/><rect x="16" y="16" width="32" height="32" transform="rotate(45 32 32)"/><circle cx="32" cy="32" r="6"/><circle cx="32" cy="32" r="2" fill="currentColor"/></g></svg><div><h1>Ledger of the Dead</h1><p class="tag">Every name in this book answers to you.</p></div></div><div class="top-meta"><span>Day '+S.day+'</span><span>Watches<span class="pips" aria-label="'+S.watches+' of '+WATCHES+' watches left">'+pips+'</span></span><button class="btn small savebtn'+((ui.tab==='save'&&S.mode==='town')?' done':'')+'" data-a="quicksave"'+(S.mode==='town'?'':' disabled title="You can save when you are back in town"')+'>Save</button></div></header>'
+   +'<div class="layout"><div class="main">'+main+'</div><aside class="rail">'+statusHTML()+equipHTML()+questHTML()+'</aside></div>';
+  if(key){ const n=app.querySelector(key); if(n) n.focus({preventScroll:true}); }
+  if(S.mode==='town') save();
+}
+const ACTIONS={
+  equip:k=>equip(+k), unequip:k=>unequip(k), tab:k=>{ ui.tab=k; }, bes:k=>{ ui.bes=ui.bes===k?null:k; },
+  discard:k=>{ if(ui.confirm==='d'+k){ discard(+k); ui.confirm=null; } else ui.confirm='d'+k; },
+  alloc:k=>alloc(k), claim:()=>claimQuest(), dismiss:()=>{S.notices=[]},
+  enter:k=>startRun(+k),
+  pick:k=>{ const a=k.split('|'); ui.pick=(ui.pick&&ui.pick.uid===+a[0]&&ui.pick.slot===a[1])?null:{uid:+a[0],slot:a[1]}; },
+  give:k=>{ const a=k.split('|'); giveGear(+a[0],+a[1]); ui.pick=null; },
+  take:k=>{ const a=k.split('|'); takeGear(+a[0],a[1]); }, quicksave:()=>{ if(S.mode!=='town') return; ui.tab='save'; ui.msg=null; },
+  slotsave:k=>{ if(slotRead(+k)&&ui.confirm!=='ss'+k){ ui.confirm='ss'+k; return; } ui.confirm=null; ui.msg=slotWrite(+k)?{m:'Saved to slot '+k+'.',c:'ok'}:{m:'Could not write to slot '+k+'. Use a save code instead.',c:'bad'}; },
+  slotload:k=>{ if(ui.confirm!=='sl'+k){ ui.confirm='sl'+k; return; } ui.confirm=null; ui.msg=slotLoad(+k)?{m:'Loaded slot '+k+'.',c:'ok'}:{m:'That slot could not be read.',c:'bad'}; ui.exp=''; },
+  slotdel:k=>{ if(ui.confirm!=='sd'+k){ ui.confirm='sd'+k; return; } ui.confirm=null; slotDelete(+k); ui.msg={m:'Slot '+k+' deleted.',c:''}; },
+  mkcode:()=>{ ui.exp=exportCode(); ui.msg=ui.exp?null:{m:'Could not create a code.',c:'bad'}; },
+  copycode:()=>{ const t=document.getElementById('exp'); if(!t) return; t.select(); try{ navigator.clipboard.writeText(t.value).then(()=>{ ui.msg={m:'Code copied.',c:'ok'}; render(); },()=>{}); }catch(e){} },
+  loadcode:()=>{ if(ui.confirm!=='lc'){ ui.confirm='lc'; return; } ui.confirm=null; if(importCode(ui.imp)){ ui.imp=''; ui.exp=''; ui.msg={m:'Save code loaded.',c:'ok'}; } else ui.msg={m:'That code is not a valid save.',c:'bad'}; }, wear:k=>{ S.ti.sel=(S.ti.sel===k?null:k); }, tower:k=>startTower(+k), act:k=>act(k), target:k=>setTarget(k), flee:()=>flee(),
+  raise:k=>tryRaise(k), descend:()=>descend(), town:()=>returnTown(), rest:()=>restDay(),
+  release:k=>{ if(ui.confirm===+k){ release(+k); ui.confirm=null; } else ui.confirm=+k; },
+  newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); } else ui.confirm='new'; }
+};
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-a]'); if(!b||b.disabled) return;
+  const a=b.dataset.a;
+  if(ui.confirm!==null && !['release','newgame','discard','slotsave','slotload','slotdel','loadcode'].includes(a)) ui.confirm=null;
+  ACTIONS[a]&&ACTIONS[a](b.dataset.k); render();
+});
+document.addEventListener('input',e=>{ if(e.target&&e.target.id==='imp') ui.imp=e.target.value; });
+document.addEventListener('keydown',e=>{
+  if(S.mode!=='battle'||e.ctrlKey||e.metaKey||e.altKey) return;
+  const k={'1':'strike','2':'siphon','3':'ward'}[e.key];
+  if(k){ e.preventDefault(); act(k); render(); }
+});
+
+// drifting souls and embers
+(function(){
+  const cv=document.getElementById('embers'); if(!cv||!cv.getContext) return;
+  const cx=cv.getContext('2d'); let W=0,H=0,P=[];
+  const still=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function size(){ const d=Math.min(2,window.devicePixelRatio||1); W=window.innerWidth; H=window.innerHeight; cv.width=W*d; cv.height=H*d; cx.setTransform(d,0,0,d,0,0); }
+  function mk(init){ return {x:Math.random()*W,y:init?Math.random()*H:H+12,r:rnd(.7,2.2),vy:rnd(.12,.5),dx:rnd(-.12,.12),ph:Math.random()*6.28,soul:Math.random()<.65}; }
+  function draw(t){
+    cx.clearRect(0,0,W,H);
+    for(const p of P){
+      const a=.25+.35*Math.sin(t/900+p.ph), c=p.soul?'143,212,106':'224,138,60';
+      cx.fillStyle='rgba('+c+','+(a*.18)+')'; cx.beginPath(); cx.arc(p.x,p.y,p.r*4,0,6.283); cx.fill();
+      cx.fillStyle='rgba('+c+','+a+')'; cx.beginPath(); cx.arc(p.x,p.y,p.r,0,6.283); cx.fill();
+    }
+  }
+  function step(t){
+    for(let i=0;i<P.length;i++){ const p=P[i]; p.y-=p.vy; p.x+=p.dx+Math.sin(t/2000+p.ph)*.15; if(p.y<-12) P[i]=mk(false); }
+    draw(t); requestAnimationFrame(step);
+  }
+  size(); const n=W<600?22:44; for(let i=0;i<n;i++) P.push(mk(true));
+  window.addEventListener('resize',()=>{ size(); });
+  if(still) draw(0); else requestAnimationFrame(step);
+})();
+
+loadGame(); render();
+</script>
