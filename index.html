@@ -7,7 +7,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Cinzel+Decorative:wght@700&family=IM+Fell+English:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500;600;700&family=Cinzel+Decorative:wght@700&family=IM+Fell+English:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=Comfortaa:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: a necromancer's grimoire. Header with a turning ritual sigil, main column for gates/battle/raising, left-over rail for the System windows. Warm black ground, bone and brass for structure, necrotic green only for souls and the things you can act on, blood for harm. No blue, no purple. Single committed dark look. */
 :root{
@@ -16,10 +16,10 @@
   --bone:#e8dec6; --mute:#9a8f81; --brass:#8c6f3d; --gold:#d3a64d;
   --soul:#8fd46a; --soul-dim:#3f6b2b; --soul-ink:#0d1a09;
   --blood:#b83a2a; --blood-text:#ee6f5c; --ember:#e08a3c; --ward:#ddd3b8; --ok:#8fd46a;
-  --font-display:'Cinzel Decorative','Cinzel',Georgia,serif;
-  --font-head:'Cinzel',Georgia,'Times New Roman',serif;
+  --font-display:'Cinzel Decorative','EB Garamond',Georgia,serif;
+  --font-head:'EB Garamond',Georgia,'Times New Roman',serif;
   --font-lore:'IM Fell English',Georgia,'Times New Roman',serif;
-  --font-body:'IBM Plex Sans',system-ui,sans-serif;
+  --font-body:'Comfortaa',system-ui,sans-serif;
   --font-data:'IBM Plex Mono',ui-monospace,Menlo,monospace;
   --grain:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   color-scheme:dark;
@@ -374,6 +374,89 @@ button.unit.foe:hover{border-color:var(--blood)}
 .gslot.empty:hover,.gslot.empty.on{color:var(--gold);border-color:var(--gold)}
 .gslot .ico{width:38px;height:38px}.gslot .ico svg{width:32px;height:32px}
 .gs-b{min-width:0;flex:1;display:grid}.gs-b b{font:700 13px/1.2 var(--font-head);color:var(--tc);overflow-wrap:anywhere}.gs-b small{color:var(--mute);font:500 10px/1.2 var(--font-data);letter-spacing:.1em;text-transform:uppercase}
+
+/* ===== Hand-kept ledger pass =====
+   A quieter look: sentence case instead of spaced-out capitals, no neon glows, fewer boxes, softer corners,
+   one plain font for small print. Everything above still defines layout; this block only restyles. */
+:root{--r:6px}
+#app *{text-transform:none!important;letter-spacing:normal!important}
+#app h1{text-transform:uppercase!important;letter-spacing:.03em!important}        /* the logo keeps its carved look */
+
+/* header */
+.top::after{display:none}
+.sigil{filter:none;opacity:.85}
+h1{animation:none;text-shadow:0 2px 0 #000}
+.top-meta{font:500 14px/1 var(--font-body);color:var(--mute);gap:8px 20px}
+.top-meta .gold-n{color:var(--gold)}
+.pip,.pip.on{box-shadow:none;border-radius:2px}
+
+/* panels: one soft frame, no ornaments, no inner vignettes */
+.win{border-radius:10px;background:var(--panel);box-shadow:0 6px 20px rgba(0,0,0,.35);gap:14px;padding:20px 18px 18px}
+.win::before{display:none}
+.win-h{font:500 13px/1.3 var(--font-body);color:var(--mute);gap:8px}
+.win-h::after{display:none}
+.win-title{font:600 25px/1.15 var(--font-head)}
+.group-h{font:600 15px/1.2 var(--font-head);color:var(--bone);margin-top:10px}
+.lede{font-size:16px}
+
+/* buttons: flat, rounded, readable */
+.btn{border-radius:var(--r);font:600 14px/1.1 var(--font-body);padding:11px 16px;min-height:40px;background:#211d1a;border-color:#3a322b;box-shadow:none}
+.btn.small{font-size:13px;padding:8px 12px;min-height:34px}
+.btn:hover:not(:disabled){background:#2a2521;border-color:#5a4c3f;color:var(--bone)}
+.btn.primary{background:#3a5c2c;border-color:#4c7539;color:#f1f6ea;box-shadow:none}
+.btn.primary:hover:not(:disabled){background:#446b34;border-color:#5b8a45;color:#fff;box-shadow:none}
+.btn.warn:hover:not(:disabled){background:#2c1a17;border-color:var(--blood);color:var(--blood-text)}
+.btn.potion{border-color:#5a3029}
+kbd{border:0;background:rgba(0,0,0,.35);border-radius:3px;padding:1px 5px;opacity:.7}
+.linkbtn{background:none;border:0;padding:2px 0;color:var(--mute);font:500 13px/1.2 var(--font-body);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.linkbtn:hover{color:var(--bone)}
+
+/* tabs: a plain row of words with an underline, not a row of boxes */
+.tabs{gap:2px 20px;border-bottom:1px solid var(--line);padding-bottom:0}
+.tab{border:0;border-bottom:2px solid transparent;background:none!important;padding:8px 1px 9px;min-height:0;font:600 16px/1.1 var(--font-head);color:var(--mute);margin-bottom:-1px}
+.tab:hover{color:var(--bone);border-color:transparent}
+.tab[aria-selected="true"]{color:var(--bone);border-bottom-color:var(--gold)}
+.tab.hell{border:0;border-bottom:2px solid transparent;animation:none;box-shadow:none;overflow:visible;text-shadow:0 0 10px rgba(226,90,50,.5)}
+.tab.hell[aria-selected="true"]{color:#ff9a78;border-bottom-color:var(--hell)}
+.tab.hell::before{height:40%;opacity:.6;border-radius:4px}
+
+/* status rail */
+.badge{box-shadow:none;border-radius:8px;background:rgba(0,0,0,.25)}
+.stat b{font:600 16px/1.2 var(--font-head)}
+.stat small{font-size:13px}
+.plus{border-radius:var(--r)}.plus:hover{box-shadow:none}
+.chip{box-shadow:none;border-radius:999px;font:600 12px/1.2 var(--font-body);padding:4px 10px}
+.derived div{border-radius:var(--r);border-color:transparent;background:rgba(0,0,0,.25)}
+.derived span{font:500 12px/1 var(--font-body)}
+.m-top{font:500 12px/1 var(--font-body)}
+.bar{border-radius:999px;border:0;box-shadow:none;background:rgba(0,0,0,.45);overflow:hidden}
+.fill{border-radius:999px}.fill.mp{box-shadow:none}
+
+/* messages and tips: a line of ink, not a boxed alert */
+.note{border:0;border-left:2px solid var(--line-2);background:transparent;padding:4px 0 4px 12px;font-size:15px}
+.note.ok{border-left-color:var(--soul-dim)}.note.bad{border-left-color:#6b2a20}
+.note > i{display:none}
+.tip{border:0;border-radius:10px;background:rgba(63,107,43,.13);padding:14px 16px}
+.tip-b i{display:none}
+.tip-b b{font:600 17px/1.3 var(--font-head)}
+
+/* rows and cards */
+.gate,.item,.tt-row,.minion,.corpse,.unit,.bes-row,.gslot,.tw-row{border-radius:8px}
+.gate{background:var(--panel-2);border-color:transparent}
+.gate h3{font:600 21px/1.15 var(--font-head)}
+.gate .meta{font:400 13px/1.45 var(--font-body);color:var(--mute);margin-top:6px}
+.gate .meta b{font-weight:600;color:var(--bone)}
+.danger-easy{color:var(--mute)}.danger-fair{color:var(--ok)}.danger-hard{color:var(--ember)}.danger-deadly{color:var(--blood-text)}
+.u-tag,.i-tag{font:500 12px/1.2 var(--font-body)}
+.u-name{font-weight:600}
+.trait{border-radius:999px;font:500 11.5px/1.2 var(--font-body);padding:2px 8px}
+.charge{font:600 12px/1.2 var(--font-body)}
+.tt-row{background:var(--panel-2);border-color:transparent}
+.tt-row.on{background:rgba(211,166,77,.07);border-color:rgba(211,166,77,.35)}
+.unit{box-shadow:none}
+.log{border-radius:8px;box-shadow:none;font:400 13.5px/1.5 var(--font-body)}
+.danger-zone{border-radius:8px}
+.codebox{border-radius:var(--r)}
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
@@ -1063,7 +1146,7 @@ function act(kind){
     if(!liveFoes().length) break;
     if(m.role==='mender'){
       const hurt=allies().filter(a=>a.hp>0&&a.hp<(a.id==='p'?pMax():a.maxHp)*.85).sort((a,b)=>a.hp/(a.id==='p'?pMax():a.maxHp)-b.hp/(b.id==='p'?pMax():b.maxHp))[0];
-      if(hurt){ const h=healAlly(hurt,Math.round(m.atk*.9*rnd(.9,1.1))); log(m.nick+' mends '+nameOf(hurt)+' for '+h+'.','ok'); continue; }
+      if(hurt){ const h=healAlly(hurt,Math.round(m.atk*.9*rnd(.9,1.1))); log(m.nick+' mends '+(hurt.id==='p'?'you':nameOf(hurt))+' for '+h+'.','ok'); continue; }
     }
     let tg=currentTarget(); if(!tg) break;
     let d=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)); const crit=m.role==='striker'&&Math.random()<.25; if(crit) d=Math.round(d*1.8);
@@ -1089,7 +1172,7 @@ function act(kind){
     for(let i=0;i<alive.length;i++){ roll-=weights[i]; if(roll<=0){ tg=alive[i]; break; } }
     let d=hit(e.atk*enrage(e)); const crit=e.role==='striker'&&Math.random()<.25; if(crit) d=Math.round(d*1.8);
     hurtAlly(tg,d);
-    log(e.name+' hits '+nameOf(tg)+' for '+d+(crit?' (crit)':'')+'.','bad');
+    log(e.name+' hits '+(tg.id==='p'?'you':nameOf(tg))+' for '+d+(crit?' (crit)':'')+'.','bad');
     if(tg.id==='p'&&hasFlag('thorns')&&e.hp>0) hurtFoe(e,Math.max(1,Math.round(d*.2*(1-foeArmor()))));
     if(tg.hp<=0&&tg.id!=='p') log(tg.nick+' is down.','bad');
     if(P.hp<=0&&playerFalls()) return;
@@ -1910,13 +1993,14 @@ function questHTML(){
 }
 function notesHTML(){
   if(!S.notices.length) return '';
-  return '<div class="notes">'+S.notices.map(n=>'<div class="note '+n.c+'"><i>System</i><span>'+n.m+'</span></div>').join('')+'<div><button class="btn small" data-a="dismiss">Clear notices</button></div></div>';
+  return '<div class="notes">'+S.notices.map(n=>'<div class="note '+n.c+'"><span>'+n.m+'</span></div>').join('')+'<div><button class="linkbtn" data-a="dismiss">Dismiss</button></div></div>';
 }
 function gateHTML(i){
   const D=DUNGEONS[i], R=RK[i], P=S.player, locked=P.lvl<R.unlock, diff=P.lvl-SAFE[i];
   const danger=locked?'Locked':diff<-2?'Deadly':diff<0?'Hard':diff<=3?'Fair':'Easy';
   return '<div class="gate'+(locked?' locked':'')+'"><div class="badge r'+i+'">'+RANKS[i]+'</div><div><h3>'+D.name+'</h3><p>'+D.blurb+'</p>'
-   +'<div class="meta">Recommended Lv '+SAFE[i]+'&ndash;'+(SAFE[i]+3)+' &middot; '+danger+(DIFF.armor[i]?' &middot; Foe armor '+Math.round(DIFF.armor[i]*100)+'%':'')+' &middot; Boss: '+D.boss[0]+'</div></div>'
+   +'<div class="meta">'+(locked?'Opens at level '+R.unlock:'<span class="danger-'+danger.toLowerCase()+'">'+danger+' for you</span>')+' &middot; best at level '+SAFE[i]+'&ndash;'+(SAFE[i]+3)
+   +'<br>'+(DIFF.armor[i]?'Foes wear '+Math.round(DIFF.armor[i]*100)+'% armor. ':'')+'Boss: <b>'+D.boss[0]+'</b></div></div>'
    +'<button class="btn '+(locked?'':'primary')+'" data-a="enter" data-k="'+i+'"'+(locked?' disabled':'')+'>'+(locked?'Reach Lv '+R.unlock:'Enter')+'</button></div>';
 }
 function titlesHTML(){
@@ -2044,7 +2128,7 @@ function ngpHTML(){
 }
 function tipHTML(){
   const t=currentTip(); if(!t) return '';
-  return '<div class="tip" role="note"><div class="tip-b"><i>Tip</i><b>'+t.t+'</b><p>'+t.m+'</p></div><div class="btns" style="margin:0"><button class="btn small primary" data-a="tip" data-k="'+t.id+'">Got it</button><button class="btn small" data-a="tipsoff">Hide all tips</button></div></div>';
+  return '<div class="tip" role="note"><div class="tip-b"><i>Tip</i><b>'+t.t+'</b><p>'+t.m+'</p></div><div class="btns" style="margin:0;align-items:center"><button class="btn small primary" data-a="tip" data-k="'+t.id+'">Got it</button><button class="linkbtn" data-a="tipsoff">Stop showing tips</button></div></div>';
 }
 function helpHTML(){
   const sec=(t,ps)=>'<p class="group-h">'+t+'</p>'+ps.map(p=>'<p class="help-p">'+p+'</p>').join('');
@@ -2107,7 +2191,7 @@ function townHTML(){
   if(ui.tab==='settings') return h+saveTabHTML();
   if(ui.tab==='help') return h+helpHTML();
   h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'
-   +'<p class="lede">Every kill can be raised. Minions keep their level and grow with every room they survive, up to two levels above you. Higher gates drop stronger dead.</p>'
+   +'<p class="lede">Everything you kill can be raised. The deeper the gate, the stronger the dead.</p>'
    +'<div class="gates">'+DUNGEONS.map((d,i)=>gateHTML(i)).join('')+'</div>'
    +'<div class="btns"><button class="btn small" data-a="rest">Rest until dawn</button></div></section>';
   return h+armyHTML();
