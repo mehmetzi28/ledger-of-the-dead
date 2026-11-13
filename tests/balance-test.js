@@ -5,16 +5,18 @@
 //   LOTD_BALANCE.run({diff:{hp:2.4}})           // try a DIFF change without editing the game
 //   LOTD_BALANCE.run({push:true})               // bots enter the hardest unlocked gate (below Recommended)
 //   LOTD_BALANCE.run({modes:['skills']})        // only the bot that learns skills (faster)
-//   modes: 'noSkills', 'skills', 'market' (skills + sells loot, buys gear and potions, drinks potions in battle)
+//   modes: 'noSkills', 'skills', 'market' (skills + sells loot, buys gear, potions and salts, empowers minions at the
+//          Bone Altar, drinks potions, and answers telegraphed boss moves with Grave Chill or Bone Ward)
 // With the local server running (node tools/serve.js) you can load this file instead of pasting it:
 //   await new Promise(r=>{ const s=document.createElement('script'); s.src='/tests/balance-test.js'; s.onload=r; document.head.appendChild(s); })
 // Targets used for tuning (fair bot with skills): ~80% clears per gate at its Recommended level; the no-skill bot should do clearly worse.
 // Difficulty comes from foe armor (DIFF.armor / TW.armor): fights last more turns instead of numbers growing.
-// Since the market, the ~80% target is for the 'market' bot (skills + shopping). Current numbers, from
-// LOTD_BALANCE.run({bots:40, days:100, seed:9100, early:3, modes:[...]})   (run one mode per call; each takes ~15 s):
-//   market:    clears 75-86% per gate, deaths 18%, level 28.6 on day 100, tower ~39, 4-7 turns per room
-//   skills:    clears 64-84% per gate, deaths 19%, level 23.8 on day 100, tower ~33
-//   no skills: clears 57-83% per gate, deaths 26%, level 20.5 on day 100, tower ~28, 5-10 turns per room
+// The ~80% target is for the 'market' bot (skills + shopping + altar). The early option is no longer needed: SAFE for A and S
+// now matches where they are balanced. Current numbers, averaged over seeds 7700 and 9100 (results swing ~±7 points per seed set):
+// LOTD_BALANCE.run({bots:40, days:100, seed:7700, modes:['market']})   (run one mode per call; each takes ~15 s)
+//   market:    clears 78-84% per gate, deaths ~19%, level ~31 on day 100, S first cleared ~day 64 by 36/40 bots, tower ~41
+//   skills:    clears 57-77% per gate, deaths ~26%, level ~26 on day 100 (seed 7700, before the last C tweak)
+//   no skills: clears 41-75% per gate, deaths ~35%, level ~24 on day 100 (seed 7700, before the last C tweak)
 // The bots play the real game functions from a new game: they allocate stats, equip gear, raise the dead,
 // pick the highest gate they are "Fair" for (level >= SAFE), and climb the Hell Tower once at the end.
 // Both modes use the same random seeds, so the only difference between them is whether the bot learns skills.
@@ -45,7 +47,10 @@
       sellAllTrophies(); for(const it of S.inv.slice()) if(!ITEM[it.id].uq) sellItem(it.u);
       shopStock().forEach((s,i)=>{ if(s.sold) return; const d=ITEM[s.id], cur=S.equip[d.slot];
         if((!cur||itemScore(d)>itemScore(ITEM[cur.id]))&&S.gold-buyPrice(d)>=POTIONS.hp.price()*2&&buyStock(i)){ const it=S.inv[S.inv.length-1]; equip(it.u); for(const x of S.inv.slice()) if(!ITEM[x.id].uq) sellItem(x.u); } });
-      while(buyPotion('hp')); while(buyPotion('mp'));
+      while(buyPotion('hp')); while(buyPotion('mp')); while(buySalt());
+      // Bone Altar: strongest minions first, keeping enough gold to refill potions next time
+      const reserve=(POTIONS.hp.price()+POTIONS.mp.price())*BELT_MAX;
+      for(const m of S.army.slice().sort((a,b)=>cval(b)-cval(a))){ while(S.gold-empowerCost(m)>=reserve&&empower(m.uid)); }
     }
     if(S.inv.length>20){ S.inv.sort((a,b)=>itemScore(ITEM[b.id])-itemScore(ITEM[a.id])); S.inv=S.inv.filter((it,i)=>i<12||ITEM[it.id].uq); }
   }
@@ -59,6 +64,11 @@
   }
   function decide(B){
     const P=S.player, t=chooseTarget(), max=pMax(), res=Math.min(15,Math.round(pMana()*.2)), foes=liveFoes();
+    const charging=foes.find(e=>e.charging);   // a boss is winding up a telegraphed move: freeze it, or ward against the hit
+    if(charging){
+      if(B.skills&&canUse('chill')&&P.mana>=SKILL.chill.cost){ setTarget(charging.id); return 'sk:chill'; }
+      if((charging.abil==='decree'||charging.abil==='cinder')&&P.mana>=6&&P.shield<max*.3) return 'ward';
+    }
     if(B.market&&P.hp<max*.3&&S.belt.hp) return 'pot:hp';
     if(B.market&&P.mana<10&&P.hp<max*.6&&S.belt.mp) return 'pot:mp';
     if(P.hp<max*.35&&P.mana>=8) return 'siphon';
@@ -85,7 +95,7 @@
         if(!w||cval(w)>=cval(c)-3||raiseChance(c)<40) continue;
         release(w.uid);
       }
-      tryRaise(c.id);
+      tryRaise(c.id, typeof S.salts==='number'&&S.salts>0&&(c.boss||c.elite));   // salts on the bodies worth the most
     }
   }
   function playRun(B,rec){
@@ -148,6 +158,7 @@
     opts=Object.assign({bots:30,days:40,seed:1000,diff:null,tw:null,push:false,early:0,modes:['noSkills','skills']},opts||{});
     const keep={S:JSON.stringify(S),rand:Math.random,save:save,DIFF:JSON.stringify(DIFF),TW:JSON.stringify(TW),SAFE:SAFE.slice()};
     save=function(){};
+    const sfxWas=typeof SFX!=='undefined'&&SFX.on; if(typeof SFX!=='undefined') SFX.on=false;   // no sound during simulations
     if(opts.early){ SAFE[4]-=opts.early; SAFE[5]-=opts.early; }   // let fair bots enter A and S early (the XP curve stalls them near level 20)
     if(opts.diff) Object.assign(DIFF,JSON.parse(JSON.stringify(opts.diff)));
     if(opts.tw) Object.assign(TW,opts.tw);
@@ -158,7 +169,7 @@
         out[name]=summarize(res,opts.days);
       }
     } finally {
-      Math.random=keep.rand; save=keep.save; keep.SAFE.forEach((v,i)=>SAFE[i]=v);
+      Math.random=keep.rand; save=keep.save; keep.SAFE.forEach((v,i)=>SAFE[i]=v); if(typeof SFX!=='undefined') SFX.on=sfxWas;
       Object.assign(DIFF,JSON.parse(keep.DIFF)); Object.assign(TW,JSON.parse(keep.TW));
       S=JSON.parse(keep.S);
     }
