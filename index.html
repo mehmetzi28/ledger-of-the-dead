@@ -481,7 +481,30 @@ kbd{border:0;background:rgba(0,0,0,.35);border-radius:3px;padding:1px 5px;opacit
 .hist td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top}
 .hist .num{text-align:right}
 .hist-wrap{overflow-x:auto}
-.res-cleared{color:var(--ok)}.res-fell{color:var(--blood-text)}.res-fled,.res-left{color:var(--mute)}
+.tbuff{color:var(--ok)}
+.res-cleared{color:var(--ok)}
+/* doors, sets, orders, story */
+.doors{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
+.door{display:grid;align-content:start;gap:4px;text-align:left;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--bone);padding:12px 14px;cursor:pointer;font:400 13px/1.4 var(--font-body)}
+.door b{font:600 17px/1.2 var(--font-head)}.door span{color:var(--mute)}
+.door:hover,.door:focus-visible{border-color:var(--gold);background:#24201c}
+.door.d-elite b{color:#ee8f6f}.door.d-rest b{color:var(--ok)}.door.d-treasure b{color:var(--gold)}.door.d-boss b{color:#ff9a78}
+.setl{font:400 12px/1.4 var(--font-body);color:var(--mute)}.setl .on{color:var(--ok)}
+.cmds{align-items:center}.cmd-l{font:500 13px/1.2 var(--font-body);color:var(--mute);margin-right:4px}
+.log li.story,.note.story span{font:italic 400 15px/1.45 var(--font-lore);color:var(--gold)}
+.note.story{border-left-color:var(--brass)}
+.log li.boss{font:italic 400 14.5px/1.4 var(--font-lore);color:#ffb59c}
+.chron{border-radius:8px;background:var(--panel-2);padding:8px 12px;margin-bottom:6px}
+.chron summary{cursor:pointer;font:600 16px/1.3 var(--font-head);color:var(--bone)}
+.chron p{margin:8px 0 2px;font:italic 400 16px/1.5 var(--font-lore);color:var(--bone)}
+.filebtn{position:relative;overflow:hidden;cursor:pointer}.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
+/* display settings */
+body.ts1 #app{zoom:1.12}body.ts2 #app{zoom:1.25}
+body.calm *,body.calm *::before,body.calm *::after{animation:none!important;transition:none!important}
+body.hc{--mute:#cfc6b6;--line:#5a5048;--line-2:#7a6c5f}
+body.hc .fill.hp{background:#ff5a46}body.hc .fill.mp{background:#b8f58e}body.hc .fill.xp{background:#ffd36b}
+body.hc .bar{background:#000;outline:1px solid rgba(255,255,255,.35)}
+body.hc .u-sub,body.hc .q-note,body.hc .lede{color:#e6ddcc}.res-fell{color:var(--blood-text)}.res-fled,.res-left{color:var(--mute)}
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
@@ -679,7 +702,7 @@ const dropChances=(boss,elite)=>boss?[1,.6]:[elite?.65:.28];
 function pickRow(rows){ let x=Math.random(),acc=0; for(const r of rows){ acc+=r.p; if(x<acc) return r.id; } return rows[rows.length-1].id; }
 function rollDrops(e){
   const out=[], rows=e.tw?towerTable(e.tw,e.role,e.boss,e.elite):tableFor(e.rankI,e.role,e.boss,e.elite,SIG[e.base]);
-  const more=(!e.tw&&runMod())?MOD_DROP:1;
+  const more=((!e.tw&&runMod())?MOD_DROP:1)*(roomKind()==='elite'?ELITE_DROP:1);
   for(const c of dropChances(e.boss,e.elite)) if(Math.random()<c*more) out.push(pickRow(rows));
   return out;
 }
@@ -702,7 +725,7 @@ function rollItem(id,atLeast){
 }
 const itStat=(it,k)=>{ const d=ITEM[it.id]; let n=(d&&d.stats[k])||0; if(it.ro) for(const r of it.ro) if(r[0]===k) n+=r[1]; return n; };
 const itStats=it=>{ const o=Object.assign({},ITEM[it.id].stats); if(it.ro) for(const r of it.ro) o[r[0]]=(o[r[0]]||0)+r[1]; return o; };
-const G=k=>{ let n=0; if(S&&S.equip) for(const sl in S.equip){ const it=S.equip[sl]; if(it&&ITEM[it.id]) n+=itStat(it,k); } return n; };
+const G=k=>{ let n=0; if(S&&S.equip) for(const sl in S.equip){ const it=S.equip[sl]; if(it&&ITEM[it.id]) n+=itStat(it,k); } return n+xb(k); };   // gear plus the worn title
 const A=k=>S.player.stats[k]+G(k);
 const sk=id=>(S&&S.player&&S.player.skills&&S.player.skills[id])||0;   // learned rank of a skill (0 = not learned)
 const hasFlag=f=>!!(S&&S.equip)&&Object.values(S.equip).some(it=>it&&ITEM[it.id]&&ITEM[it.id].flag===f);
@@ -761,8 +784,8 @@ function spawnFloor(){
   if(boss){ list.push(makeTowerEnemy(f,true)); const adds=f===100?4:f>=50?3:2; for(let i=0;i<adds;i++) spawnTowerOne(list,f,-1); }
   else { const n=f<30?3:f<70?3+(Math.random()<.5?1:0):4; for(let i=0;i<n;i++) spawnTowerOne(list,f,0); }
   foeScale(list,TW.foeAtk);
-  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; r.loot=[]; r.spoils=[]; r.lostLoot=[];
-  log(boss?'Floor '+f+'. The warden of this tier is waiting.':'Floor '+f+'.');
+  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0;
+  log(boss?'Floor '+f+'. The warden of this tier is waiting.':'Floor '+f+'.'); if(boss) bossSpeaks(list[0],'hi');
   if(hasFlag('infernal')) infernalWard();
 }
 const towerStarts=()=>{ const a=[1]; for(let k=1;k*10<=S.tower.best;k++) a.push(k*10+1); return a; };   // a checkpoint after every tenth floor, endlessly past 100
@@ -795,7 +818,7 @@ function towerTable(f,role,boss,elite){
   }
   return tcache[key]=rows;
 }
-const pierceMul=p=>(hasFlag('ruin')?1.25:1)*(S&&S.run&&S.run.bless?1.15:1)*(1-foeArmor()*(1-p));   // bless: the blood shrine event   // p = share of foe armor ignored (some skills pierce)
+const pierceMul=p=>(hasFlag('ruin')?1.25:1)*(1+xb('dmgp')/100)*(S&&S.run&&S.run.bless?1.15:1)*(1-foeArmor()*(1-p));   // bless: the blood shrine event   // p = share of foe armor ignored (some skills pierce)
 const dmgMul=()=>pierceMul(0);   // every hit you and your minions land goes through this
 const enrage=e=>(e.tw&&e.boss)?1+Math.max(0,S.run.turn-8)*(e.tw===100?.12:.07):1;   // tower wardens hit harder every turn after turn 8
 
@@ -822,11 +845,11 @@ const need = l=>Math.round(DIFF.xpBase*Math.pow(l,DIFF.xpExp));
 const mneed = l=>Math.round(36*Math.pow(l,1.6));
 
 // ----- player-derived stats
-const pMax = ()=>Math.round((24+A('constitution')*6+S.player.lvl*4+G('hp'))*(S.player.debuff?.8:1)*(1+.06*sk('bonearmor')));
-const pMana = ()=>20+A('intelligence')*5+A('will')*3+G('mana');
+const pMax = ()=>Math.round((24+A('constitution')*6+S.player.lvl*4+G('hp'))*(S.player.debuff?.8:1)*(1+.06*sk('bonearmor')+(hasMod('bonearmor','a')?.06:0))*(1+xb('hpp')/100));
+const pMana = ()=>Math.round((20+A('intelligence')*5+A('will')*3+G('mana'))*(1+xb('manap')/100));
 const pAtk = ()=>Math.round(3+A('strength')*1.5+S.player.lvl+G('atk'));
 const pSiph = ()=>Math.round(6+A('intelligence')*2+S.player.lvl+G('siph'));
-const pWard = ()=>Math.round(10+A('intelligence')*2+S.player.lvl*1.5+G('ward'));
+const pWard = ()=>Math.round((10+A('intelligence')*2+S.player.lvl*1.5+G('ward'))*(hasMod('bonearmor','b')?1.3:1));
 const slots = ()=>Math.min(10,1+Math.floor(A('will')/3)+Math.floor(S.player.lvl/5)+G('slot'));
 const pRankI = ()=>{const l=S.player.lvl;return l<4?0:l<8?1:l<12?2:l<17?3:l<23?4:5};
 
@@ -850,7 +873,7 @@ function gearBonus(m){
 function syncMinion(m){
   const s=m.tw?towerStats(m.tw,m.lvl,m.hf,m.af,m.boss,m.elite):mobStats(m.rankI,m.lvl,m.hf,m.af,m.boss,m.elite);
   const gg=gearBonus(m);
-  const b=(1+.02*A('will'))*(1+(G('mpow')+gg.mpow+6*sk('gravepact'))/100)*(1+STAGE_BONUS*(m.stage||0));
+  const b=(1+.02*A('will'))*(1+(G('mpow')+gg.mpow+6*sk('gravepact')+(hasMod('gravepact','a')?6:0))/100)*(1+STAGE_BONUS*(m.stage||0));
   const nh=Math.round((s.hp*b+gg.hp)*(hasTrait(m,'thick')?1.25:1)), na=Math.round((s.atk*b+gg.atk)*(hasTrait(m,'vicious')?1.2:1));
   if(m.maxHp!=null && nh>m.maxHp) m.hp+=nh-m.maxHp;
   m.maxHp=nh; m.atk=na; m.hp=Math.min(m.hp,m.maxHp);
@@ -862,23 +885,23 @@ function notify(m,c){ S.notices.unshift({m,c:c||'info'}); S.notices.length=Math.
 // ----- game lifecycle
 function freshState(){
   return {v:2,day:1,watches:WATCHES,uid:0,mode:'town',run:null,notices:[],runs:0,kills:{},tower:{best:0,got:{}},inv:[],equip:{weapon:null,armor:null,relic:null},
-     player:{id:'p',name:'You',lvl:1,xp:0,pts:3,hp:0,mana:0,shield:0,debuff:false,stats:{strength:4,constitution:4,intelligence:4,will:4},sp:0,skills:{}},
+     player:{id:'p',name:'You',lvl:1,xp:0,pts:3,hp:0,mana:0,shield:0,debuff:false,stats:{strength:4,constitution:4,intelligence:4,will:4},sp:0,skills:{},skMod:{}},
      army:[],quest:{kills:0,raises:0,clears:0,claimed:false},gold:0,trophies:{},belt:{hp:0,mp:0},shop:null,bagLv:0,salts:0,tips:{},ngp:0,
-     mod:null,hist:[],life:Object.fromEntries(LIFE_KEYS.map(k=>[k,0]))};
+     mod:null,hist:[],story:{},life:Object.fromEntries(LIFE_KEYS.map(k=>[k,0]))};
 }
 function newGame(){
   S=freshState();
   S.player.hp=pMax(); S.player.mana=pMana();
-  notify('The Ledger is open. Spend your 3 points, then enter the Rat Warren. Raise what you kill.');
+  notify('The Ledger is open. Spend your 3 points, then enter the Rat Warren. Raise what you kill.'); unlockStory('intro');
 }
 // New Game+: after clearing the Throne of Ash, start over at level 1 keeping titles, bestiary, tips and one unique.
 const canNGP=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]);
 const ownedUniques=()=>[...new Set(S.inv.concat(Object.values(S.equip)).filter(it=>it&&ITEM[it.id]&&ITEM[it.id].uq).map(it=>it.id))];
 function startNGP(carry){
   if(S.mode!=='town'||!canNGP()) return false;
-  const own=ownedUniques(), keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,ngp:(S.ngp||0)+1};   // lifetime totals carry over too
+  const own=ownedUniques(), keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},ngp:(S.ngp||0)+1};   // lifetime totals carry over too
   newGame(); Object.assign(S,keep); S.ti.clr={};   // titles stay earned; New Game+ again needs another Throne of Ash clear
-  S.notices=[]; if(carry&&own.includes(carry)) addItem(carry);
+  S.notices=[]; if(carry&&own.includes(carry)) addItem(carry,null); unlockStory('ngp');
   notify('New Game+ '+S.ngp+' begins. Foes have '+Math.round(NGP_FOE*S.ngp*100)+'% more HP and attack, and pay '+Math.round(NGP_REWARD*S.ngp*100)+'% more XP and gold.'+(carry&&own.includes(carry)?' '+ITEM[carry].name+' is in your bag.':''),'ok');
   return true;
 }
@@ -910,6 +933,7 @@ function normalizeSave(src){
   P.lvl=Math.floor(P.lvl); P.xp=num(P.xp,0); P.pts=num(P.pts,0); P.hp=num(P.hp,0); P.mana=num(P.mana,0); P.shield=0;
   P.skills=obj(P.skills)?P.skills:{}; for(const k in P.skills) if(!SKILL[k]||typeof P.skills[k]!=='number') delete P.skills[k];
   P.sp=hadSp?num(P.sp,0):Math.max(0,P.lvl-1);
+  const sm=obj(P.skMod)?P.skMod:{}; P.skMod={}; for(const k in sm) if(SKILL_MODS[k]&&(sm[k]==='a'||sm[k]==='b')&&P.skills[k]>=SK_MAX) P.skMod[k]=sm[k];
   g.day=Math.max(1,num(g.day,1)); g.watches=clamp(num(g.watches,WATCHES),0,WATCHES); g.runs=num(g.runs,0);
   for(const k of ['notices','inv','army']) if(!Array.isArray(g[k])) g[k]=[];
   for(const k of ['kills','tower','equip','quest']) if(!obj(g[k])) g[k]=d[k];
@@ -937,6 +961,7 @@ function normalizeSave(src){
   g.inv.concat(Object.values(g.equip),...g.army.map(m=>m.eq?Object.values(m.eq):[]),g.shop?g.shop.stock:[]).forEach(fixRo);
   delete P.dots; g.army.forEach(m=>{ delete m.dots; });   // status effects only live inside a fight
   g.mod=(obj(g.mod)&&typeof g.mod.day==='number'&&typeof g.mod.gi==='number'&&(g.mod.gi<0||(MODS[g.mod.id]&&RK[g.mod.gi])))?{day:g.mod.day,gi:g.mod.gi,id:g.mod.gi<0?null:g.mod.id}:null;
+  const so=obj(g.story)?g.story:{}; g.story={}; for(const k in so) if(STORY_BY[k]&&typeof so[k]==='number') g.story[k]=so[k];
   g.hist=Array.isArray(g.hist)?g.hist.filter(h=>obj(h)&&typeof h.d==='number'&&typeof h.res==='string').slice(-HIST_N):[];
   const L=obj(g.life)?g.life:{}; g.life={}; for(const k of LIFE_KEYS) g.life[k]=Math.max(0,num(L[k],0));
   return g;
@@ -1021,6 +1046,79 @@ TW_TITLES.forEach((n,i)=>{ const f=(i+1)*10; TITLES.push({id:'t'+f,grp:'Hell Tow
  ['d_ngp','Twice-Risen','Begin a New Game+.',()=>(S.ngp||0)>=1],
  ['d_ngp3','The Undying Ledger','Begin New Game+ 3.',()=>(S.ngp||0)>=3],
 ].forEach(a=>TITLES.push({id:a[0],grp:'Deeds',name:a[1],req:a[2],ok:a[3]}));
+// 50 more titles: mastery of each gate, curses and events, skills, combat, trade, the army and endurance.
+const T_=k=>(S.ti&&S.ti[k])||0, L_=k=>(S.life&&S.life[k])||0;
+const roll3=()=>S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&!ITEM[it.id].uq&&ITEM[it.id].tier===4&&it.ro&&it.ro.length>=3);
+[
+ ['m0','Gates','Warren-Born','Clear the Rat Warren 25 times.',()=>T_('clrN0')>=25,{constitution:1}],
+ ['m1','Gates','Crypt-Keeper','Clear the Sunken Crypt 25 times.',()=>T_('clrN1')>=25,{intelligence:2}],
+ ['m2','Gates','Ember-Tongued','Clear the Ashen Barrow 25 times.',()=>T_('clrN2')>=25,{strength:2}],
+ ['m3','Gates','Cantor of Bones','Clear the Hollow Cathedral 25 times.',()=>T_('clrN3')>=25,{will:2}],
+ ['m4','Gates','Orchard-Walker','Clear the Iron Orchard 25 times.',()=>T_('clrN4')>=25,{hpp:4}],
+ ['m5','Gates','Throne-Breaker','Clear the Throne of Ash 25 times.',()=>T_('clrN5')>=25,{dmgp:4}],
+ ['tw75','Hell Tower','Ash-Climber','Reach floor 75 of the Hell Tower.',()=>S.tower.best>=75,{hpp:4}],
+ ['tw200','Hell Tower','Lord of the Abyss','Reach floor 200 of the Hell Tower.',()=>S.tower.best>=200,{dmgp:8}],
+ ['twruns','Hell Tower','Tower Regular','Climb the Hell Tower 50 times.',()=>T_('twRuns')>=50,{ward:5}],
+ ['c_volatile','Curses and events','Ember-Proof','Clear a gate cursed with Volatile dead.',()=>T_('cur_volatile')>=1,{drp:2}],
+ ['c_drought','Curses and events','Dry-Souled','Clear a gate cursed with Drought.',()=>T_('cur_drought')>=1,{regen:1}],
+ ['c_fury','Curses and events','Fury-Tamer','Clear a gate cursed with Fury.',()=>T_('cur_fury')>=1,{drp:2}],
+ ['c_bulwark','Curses and events','Wallbreaker','Clear a gate cursed with Bulwark.',()=>T_('cur_bulwark')>=1,{dmgp:3}],
+ ['c_horde','Curses and events','Horde-Reaper','Clear a gate cursed with Horde.',()=>T_('cur_horde')>=1,{mpow:4}],
+ ['c_25','Curses and events','Curse-Eater','Clear 25 cursed gates.',()=>T_('cursed')>=25,{goldp:8}],
+ ['e_shrine','Curses and events','Blood-Sworn','Feed 10 blood shrines.',()=>T_('shrine')>=10,{dmgp:3}],
+ ['e_pedlar','Curses and events','Haggler','Buy from 10 wandering pedlars.',()=>T_('pedlar')>=10,{goldp:4}],
+ ['e_coffer','Curses and events','Lockbreaker','Force open 15 sealed coffers.',()=>T_('coffer')>=15,{goldp:5}],
+ ['e_trap','Curses and events','Needle-Scarred','Spring 5 coffer traps.',()=>T_('trap')>=5,{hp:20}],
+ ['e_strag','Curses and events','Shepherd of Stragglers','Raise 10 wounded stragglers.',()=>T_('straggler')>=10,{raise:3}],
+ ['s_poison','Deeds','Plaguebringer','Poison foes 200 times with Venomous minions.',()=>T_('poisoned')>=200,{mpow:3}],
+ ['s_cure','Deeds','Bloodless','Cure bleeding, burns or poison 25 times.',()=>T_('cures')>=25,{hpp:3}],
+ ['s_venom','Deeds','Venom-Keeper','Command a Venomous minion.',()=>S.army.some(m=>hasTrait(m,'venom')),{mpow:2}],
+ ['p_25','Deeds','Tippler','Drink 25 potions.',()=>T_('drank')>=25,{hp:15}],
+ ['p_100','Deeds','Alchemist\'s Friend','Drink 100 potions.',()=>T_('drank')>=100,{manap:5}],
+ ['k_spear','Deeds','Spearwright','Hurl 100 Bone Spears.',()=>T_('sk_spear')>=100,{atk:3}],
+ ['k_blast','Deeds','Corpse-Burster','Set off 50 Corpse Explosions.',()=>T_('sk_blast')>=50,{siph:4}],
+ ['k_chill','Deeds','Frostbinder','Freeze 50 foes with Grave Chill.',()=>T_('frozen')>=50,{siph:3}],
+ ['k_reap','Deeds','Reaper of Souls','Reap 100 times.',()=>T_('sk_reap')>=100,{dmgp:3}],
+ ['k_master3','Deeds','Adept of Bones','Master three skills.',()=>Object.values(S.player.skills).filter(r=>r>=SK_MAX).length>=3,{intelligence:2}],
+ ['k_all','Deeds','Fully Versed','Learn every skill.',()=>SKILLS.every(s=>sk(s.id)>0),{manap:4}],
+ ['f_crit','Deeds','Keen Eye','Land 100 critical hits (you or your army).',()=>T_('crits')>=100,{crit:2}],
+ ['f_crit1000','Deeds','Butcher\'s Eye','Land 1,000 critical hits.',()=>T_('crits')>=1000,{crit:4}],
+ ['f_flawless','Deeds','Untouched','Clear a gate without losing any HP.',()=>T_('flawless')>=1,{ward:4}],
+ ['f_last','Deeds','Last Breath','Win a room with 10% of your HP or less.',()=>T_('lastBreath')>=1,{drp:3}],
+ ['f_boss25','Deeds','Giant-Slayer','Defeat 25 bosses or wardens.',()=>T_('bosses')>=25,{dmgp:3}],
+ ['f_elite100','Deeds','Elite Hunter','Defeat 100 elites.',()=>T_('elites')>=100,{crit:2,goldp:2}],
+ ['g_gold','Deeds','Merchant Prince','Find 50,000 gold in your runs.',()=>L_('gold')>=50000,{goldp:6}],
+ ['g_items','Deeds','Collector','Find 200 pieces of gear.',()=>L_('items')>=200,{goldp:3}],
+ ['g_reforge','Deeds','Reforger','Reforge gear 25 times.',()=>T_('reforged')>=25,{mana:15}],
+ ['g_sold','Deeds','Junk Dealer','Sell 100 pieces of gear.',()=>T_('soldItems')>=100,{goldp:4}],
+ ['g_roll3','Deeds','Fortune\'s Favourite','Own a Legendary with three bonus lines.',roll3,{xpp:3}],
+ ['a_boss','Deeds','Kingmaker','Raise a boss.',()=>T_('raisedBoss')>=1,{mpow:3}],
+ ['a_raise500','Deeds','Boneyard Lord','Raise 500 minions.',()=>T_('raised')>=500,{mpow:6}],
+ ['a_traits','Deeds','Menagerie','Command minions with all seven traits at once.',()=>TRAIT_IDS.every(t=>S.army.some(m=>hasTrait(m,t))),{mpow:4}],
+ ['a_elders','Deeds','Elder Council','Command three Elder minions at once.',()=>S.army.filter(m=>m.stage===2).length>=3,{mpow:5}],
+ ['e_day100','Deeds','Centurion of Days','Reach day 100.',()=>S.day>=100,{xpp:4}],
+ ['e_runs100','Deeds','Veteran','Go on 100 runs.',()=>L_('runs')>=100,{hp:25}],
+ ['e_rooms1000','Deeds','Thousand Rooms','Win 1,000 rooms.',()=>L_('rooms')>=1000,{hpp:4}],
+ ['e_lv75','Deeds','Deathless Sage','Reach level 75.',()=>S.player.lvl>=75,{hpp:5,manap:5}],
+].forEach(a=>TITLES.push({id:a[0],grp:a[1],name:a[2],req:a[3],ok:a[4],b:a[5]}));
+// ----- title bonuses. Small, and only the title you wear counts. Stat keys add like gear; the rest are percentages.
+const TITLE_BUFF={
+ g0:{hp:10},g1:{mana:10},g2:{hpp:3},g3:{dmgp:3},g4:{mpow:5},g5:{dmgp:5,hpp:3},
+ t10:{crit:2},t20:{drp:2},t30:{regen:1},t40:{mpow:4},t50:{manap:5},t60:{raise:4},t70:{dmgp:4},t80:{hpp:5},t90:{drp:4},t100:{dmgp:6,drp:3},
+ d_raise1:{raise:2},d_raise50:{raise:3},d_raise200:{mpow:5},d_army:{mpow:3},d_kill100:{atk:2},d_kill1000:{dmgp:2},d_kill5000:{dmgp:4},
+ d_lv10:{intelligence:1},d_lv25:{intelligence:2,will:1},d_lv50:{hpp:4,manap:4},d_uq:{goldp:5},d_tuq:{dmgp:5,hpp:5},d_study:{xpp:3},d_all:{xpp:8},
+ d_death:{hp:15},d_death10:{drp:3},d_quest7:{xpp:4},d_armed1:{goldp:4},d_armed3:{mpow:4},d_tower1:{ward:3},d_tower50:{drp:3},
+ d_cancel:{siph:3},d_cancel10:{siph:6},d_master:{goldp:6},d_trophy500:{goldp:8},d_gold:{goldp:5},d_bag:{mana:20},d_altar:{mpow:4},
+ d_evolve:{mpow:3},d_elder:{mpow:6},d_tower110:{dmgp:5},d_tower150:{drp:5},d_ngp:{xpp:5},d_ngp3:{xpp:10}
+};
+TITLES.forEach(t=>{ if(!t.b) t.b=TITLE_BUFF[t.id]||{}; });
+const TBUFF_L={hpp:['Max HP','%'],manap:['Max mana','%'],dmgp:['Damage dealt','%'],drp:['Damage taken','%',-1],goldp:['Gold from kills','%'],xpp:['XP from kills','%']};
+const buffTxt=b=>Object.keys(b||{}).map(k=>{ const L=TBUFF_L[k]||STATL[k]; return ((L[2]||1)<0?'&minus;':'+')+b[k]+L[1]+' '+L[0]; }).join(', ');
+const titleB=k=>{ const id=S&&S.ti&&S.ti.sel, t=id&&S.ti.got&&S.ti.got[id]&&TITLE[id]; return (t&&t.b[k])||0; };
+function wearTitle(id){   // wear or take off a title; HP and mana follow the change like gear
+  const T=S.ti; if(S.mode==='battle'||!T||!T.got||!T.got[id]) return false;
+  const P=S.player; vitals(()=>{ T.sel=T.sel===id?null:id; }); P.hp=Math.min(P.hp,pMax()); P.mana=Math.min(P.mana,pMana()); return true;
+}
 function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // deed counters for titles
 const TITLE=Object.fromEntries(TITLES.map(t=>[t.id,t]));
 const totalKills=()=>Object.values(S.kills).reduce((a,b)=>a+b,0);
@@ -1030,12 +1128,15 @@ function checkTitles(){
   const T=S.ti=S.ti||{}; T.got=T.got||{}; T.clr=T.clr||{}; T.raised=T.raised||0; T.deaths=T.deaths||0; T.claims=T.claims||0;
   if(S.army.some(m=>m.armed&&m.eq&&GEAR_SLOTS.every(sl=>m.eq[sl]))) T.fullGear=true;
   if(!T.hasUq&&(S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&ITEM[it.id].uq))) T.hasUq=true;
+  const sel0=T.sel, valid=T.sel&&T.got[T.sel]&&TITLE[T.sel];
+  let next=valid?T.sel:null;
   for(const t of TITLES){
     if(T.got[t.id]) continue;
     let ok=false; try{ ok=t.ok(); }catch(e){}
-    if(ok){ T.got[t.id]=S.day; T.sel=t.id; notify('Title earned: '+t.name+'. '+t.req,'ok'); }
+    if(ok){ T.got[t.id]=S.day; if(!next) next=t.id; notify('Title earned: '+t.name+'. '+t.req+(buffTxt(t.b)?' Worn, it gives '+buffTxt(t.b)+'.':''),'ok'); }   // only auto-worn if you wear none
   }
-  if(T.sel&&!T.got[T.sel]) T.sel=null;
+  // a title put on or taken off here changes stats like wearing it by hand: HP, mana and the army follow
+  if(next!==sel0){ const P=S.player; T.sel=sel0; vitals(()=>{ T.sel=next; }); P.hp=Math.min(P.hp,pMax()); P.mana=Math.min(P.mana,pMana()); }
 }
 const titleName=()=>{ const t=S.ti&&S.ti.sel&&TITLE[S.ti.sel]; return t?t.name:''; };
 
@@ -1054,10 +1155,8 @@ function minionXp(m,n){
 }
 function alloc(k){
   const P=S.player; if(P.pts<=0||S.mode==='battle') return;
-  P.stats[k]++; P.pts--;
-  if(k==='constitution') P.hp+=6;
-  if(k==='intelligence') P.mana+=5;
-  if(k==='will'){ P.mana+=3; syncArmy(); }
+  if(!(k in P.stats)) return;
+  vitals(()=>{ P.stats[k]++; P.pts--; });   // HP and mana rise by exactly what their max rose by (titles, sets, Bone Armor and the wounded dawn scale it)
 }
 const questDone = ()=>S.quest.kills>=QUEST.kills&&S.quest.raises>=QUEST.raises&&S.quest.clears>=QUEST.clears;
 function claimQuest(){
@@ -1110,13 +1209,15 @@ function spawnRoom(){
   if(boss){ list.push(makeEnemy(di,lvl,true)); const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); }
   else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
   foeScale(list,foeAtkMul(di)); bulwark(list);
-  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; r.loot=[]; r.spoils=[]; r.lostLoot=[];
-  log(boss?'The air thickens. Something large waits ahead.':'Room '+(room+1)+' of '+r.rooms+'.');
+  if(!boss&&r.roomKind==='elite') for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*ELITE_ROOM); e.atk=Math.max(1,Math.round(e.atk*ELITE_ROOM)); }
+  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null;
+  log(boss?'The air thickens. Something large waits ahead.':'Room '+(room+1)+' of '+r.rooms+(r.roomKind==='elite'?', behind the bloodied arch. These foes are stronger.':'.'));
+  if(boss) bossSpeaks(list[0],'hi');
   if(hasFlag('infernal')) infernalWard();
 }
 function startTower(f){
   f=+f; if(S.mode!=='town'||S.watches<=0||S.player.lvl<TW.unlock||!towerStarts().includes(f)) return;
-  S.watches--; S.runs++;
+  S.watches--; S.runs++; tally('twRuns');
   S.run={tw:f,tw0:f,di:5,room:0,rooms:1,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[]};
   S.mode='battle';
   log('You step into the Hell Tower.');
@@ -1135,27 +1236,29 @@ const allies = ()=>[S.player].concat(S.army);
 const liveFoes = ()=>S.run.enemies.filter(e=>e.hp>0);
 function mark(id,d,h){ const f=S.run.fx[id]||(S.run.fx[id]={d:0,h:0}); f.d+=d; f.h+=h; }
 function hit(b){ return Math.max(1,Math.round(b*rnd(.85,1.15))); }
-function hurtFoe(e,d){ if(e.curse) d=Math.round(d*e.curse.mul);
+function hurtFoe(e,d){ if(e.curse) d=Math.round(d*e.curse.mul); if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25);
   if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e.id,0,0); return; } }   // Bone Wall shield soaks damage first
   d=Math.min(d,e.hp); e.hp-=d; mark(e.id,d,0); }
 function hurtAlly(a,d){
   if(a.id!=='p'&&hasFlag('swarmguard')) d=Math.max(1,Math.round(d*.75));
   if(a.id!=='p'&&hasTrait(a,'stalwart')) d=Math.max(1,Math.round(d*.8));
+  if(a.id==='p'&&xb('drp')) d=Math.max(1,Math.round(d*(1-xb('drp')/100)));
+  if(a.id!=='p'&&hasMod('gravepact','b')) d=Math.max(1,Math.round(d*.9));
   if(a.id==='p'){ const s=Math.min(S.player.shield,d); S.player.shield-=s; d-=s; }
-  d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a.id,d,0);
+  d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a.id,d,0); if(a.id==='p'&&d>0&&S.run) S.run.hurt=true;
 }
 function healAlly(a,h){
   const max=a.id==='p'?pMax():a.maxHp; h=Math.min(h,max-a.hp); if(h<=0) return 0;
   a.hp+=h; mark(a.id,0,h); return h;
 }
-function killXp(e){ return Math.round((4+e.lvl*2.5)*RK[e.rankI].xp*(e.boss?2.5:1)*(e.elite?1.5:1)*(e.tw?1+e.tw/12:1)*ngpReward()*(runMod()?MOD_XP:1)); }
+function killXp(e){ return Math.round((4+e.lvl*2.5)*RK[e.rankI].xp*(e.boss?2.5:1)*(e.elite?1.5:1)*(e.tw?1+e.tw/12:1)*ngpReward()*(runMod()?MOD_XP:1)*(1+xb('xpp')/100)); }
 function checkDeaths(){
   const r=S.run;
   for(const e of r.enemies){
     if(e.hp<=0&&!e.dead){
-      e.dead=true; r.kills++; S.quest.kills++; { const n=S.kills[e.base]=(S.kills[e.base]||0)+1; if(n===KNOW_AT) notify('Bestiary: you have studied '+e.base+'. Its drop table is now known.','ok'); } r.pending+=killXp(e); r.loot.push(...rollDrops(e)); killLoot(e,r); if(hasFlag('soulharvest')) S.player.mana=Math.min(pMana(),S.player.mana+6); if(hasFlag('censer')){ S.player.mana=Math.min(pMana(),S.player.mana+10); healAlly(S.player,Math.round(pMax()*.05)); }
+      e.dead=true; r.kills++; S.quest.kills++; if(e.boss) tally('bosses'); if(e.elite) tally('elites'); { const n=S.kills[e.base]=(S.kills[e.base]||0)+1; if(n===KNOW_AT) notify('Bestiary: you have studied '+e.base+'. Its drop table is now known.','ok'); } r.pending+=killXp(e); r.loot.push(...rollDrops(e)); killLoot(e,r); if(hasFlag('soulharvest')) S.player.mana=Math.min(pMana(),S.player.mana+6); if(hasFlag('censer')){ S.player.mana=Math.min(pMana(),S.player.mana+10); healAlly(S.player,Math.round(pMax()*.05)); }
       r.corpses.push({id:'c'+e.id,armed:isArmed(e.base),name:e.name,base:e.base,role:e.role,rankI:e.rankI,lvl:e.lvl,hf:e.hf,af:e.af,tw:e.tw,boss:e.boss,elite:e.elite,tried:false,result:null,minion:null});
-      log(e.name+' falls.'); sfx('kill');
+      if(e.boss) bossSpeaks(e,'bye'); log(e.name+' falls.'); sfx('kill');
       if(runMod()==='volatile') volatileBurst(e);
     }
   }
@@ -1172,15 +1275,15 @@ function act(kind){
   const r=S.run, P=S.player; r.fx={};
   const t=currentTarget(); if(!t) return;
   if(kind==='strike'){
-    let d=hit(pAtk()*dmgMul()*(1+.1*sk('edge'))), crit=Math.random()<.1+G('crit')/100; if(crit) d=Math.round(d*1.8); if(hasFlag('execute')&&t.hp<t.maxHp*.35) d=Math.round(d*1.5);
-    hurtFoe(t,d); P.mana=Math.min(pMana(),P.mana+3);
+    let d=hit(pAtk()*dmgMul()*(1+.1*sk('edge'))), crit=Math.random()<.1+G('crit')/100+(hasMod('edge','a')?.1:0); if(crit){ d=Math.round(d*1.8); tally('crits'); } if(hasFlag('execute')&&t.hp<t.maxHp*.35) d=Math.round(d*1.5);
+    hurtFoe(t,d); P.mana=Math.min(pMana(),P.mana+3); if(hasMod('edge','b')) healAlly(P,Math.round(d*.1));
     log('You strike '+t.name+' for '+d+(crit?' (crit)':'')+'. +3 mana.');
     if(hasFlag('echo')&&t.hp>0&&Math.random()<.25){ const d2=hit(pAtk()*dmgMul()); hurtFoe(t,d2); log('Echo: the blade strikes again for '+d2+'.','ok'); }
     if(hasFlag('hellfire')){ for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.4)); }
     else if(hasFlag('cleave')){ const o=liveFoes().filter(x=>x!==t); if(o.length) hurtFoe(pick(o),Math.round(d*.6)); }
   }else if(kind==='siphon'){
-    if(P.mana<8) return;
-    P.mana-=8; const d=hit(pSiph()*dmgMul()); hurtFoe(t,d);
+    if(P.mana<siphonCost()) return;
+    P.mana-=siphonCost(); const d=hit(pSiph()*dmgMul()); hurtFoe(t,d);
     if(hasFlag('chorus')) for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.5));
     const h=healAlly(P,Math.round(d*(hasFlag('lifedrain')?.8:.35)));
     log('Soul Siphon drains '+t.name+' for '+d+(h?', you recover '+h:'')+'.');
@@ -1203,20 +1306,22 @@ function act(kind){
       if(hurt){ const h=healAlly(hurt,Math.round(m.atk*.9*rnd(.9,1.1))); log(m.nick+' mends '+(hurt.id==='p'?'you':nameOf(hurt))+' for '+h+'.','ok'); continue; }
     }
     let tg=currentTarget(); if(!tg) break;
-    let d=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)); const crit=m.role==='striker'&&Math.random()<.25; if(crit) d=Math.round(d*1.8);
+    let d=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*(m.role==='reaper'&&r.execute&&tg.hp<tg.maxHp*.4?2:1)); const crit=m.role==='striker'&&(r.focus||Math.random()<.25); if(crit){ d=Math.round(d*1.8); tally('crits'); }
     hurtFoe(tg,d); let extra='';
-    if(hasTrait(m,'venom')&&tg.hp>0){ addDot(tg,'poison',m.atk*.15*pierceMul(.5),3); extra+=' and poisons it'; }
+    if(hasTrait(m,'venom')&&tg.hp>0){ addDot(tg,'poison',m.atk*.15*pierceMul(.5),3); tally('poisoned'); extra+=' and poisons it'; }
     if(m.role==='reaper'){ const o=liveFoes().filter(x=>x!==tg); if(o.length){ const o2=pick(o); const d2=Math.round(d*.5); hurtFoe(o2,d2); extra=' and cleaves '+o2.name+' for '+d2; } }
     if(hasTrait(m,'frenzied')&&tg.hp>0&&Math.random()<.2){ const d3=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)); hurtFoe(tg,d3); d+=d3; extra+=', then strikes again for '+d3; }
     if(hasTrait(m,'leech')){ const h=healAlly(m,Math.round(d*.25)); if(h) extra+=' and drinks '+h+' HP'; }
     log(m.nick+' hits '+tg.name+' for '+d+(crit?' (crit)':'')+extra+'.');
     checkDeaths();
   }
+  r.focus=false; r.execute=false;   // these orders last one minion phase
   if(!liveFoes().length){ roomWon(); return; }
   // foes act
   const hpBefore=P.hp;
   for(const e of liveFoes()){
-    if(e.hp<=0) continue; const alive=allies().filter(a=>a.hp>0); if(!alive.length) break;
+    if(e.hp<=0) continue; let alive=allies().filter(a=>a.hp>0); if(!alive.length) break;
+    if(r.taunt>0){ const v=alive.filter(a=>a.role==='vanguard'&&a.id!=='p'); if(v.length) alive=v; }   // Taunt
     if(e.stun>0){ e.stun--; if(e.charging){ e.charging=false; e.abilT=BOSS_ABIL[e.abil].every; log(e.name+' is frozen. The frost breaks its focus and '+BOSS_ABIL[e.abil].name+' is lost.','ok'); tally('cancels'); } else log(e.name+' is frozen and cannot act.','ok'); continue; }
     if(e.abil&&bossTurn(e)){ if(P.hp<=0&&playerFalls()) return; checkDeaths(); continue; }
     if(e.role==='mender'){
@@ -1235,7 +1340,7 @@ function act(kind){
   tickDots(); if(P.hp<=0&&playerFalls()) return;
   if(P.hp<hpBefore){ sfx('hurt'); if(hpBefore-P.hp>=pMax()*.2) ui.shake=true; }   // a heavy turn shakes the screen
   checkDeaths(); if(!liveFoes().length){ roomWon(); return; }
-  r.turn++; if(runMod()!=='drought') P.mana=Math.min(pMana(),P.mana+1+G('regen')+sk('soulwell')); skillTick();
+  r.turn++; if(runMod()!=='drought') P.mana=Math.min(pMana(),P.mana+1+G('regen')+sk('soulwell')+(hasMod('soulwell','a')?1:0)); skillTick();
   if(hasFlag('halo')) allies().forEach(a=>{ if(a.hp>0) healAlly(a,Math.round((a.id==='p'?pMax():a.maxHp)*.04)); });
   if(r.turn===9&&liveFoes().some(e=>e.tw&&e.boss)) log('Wrath: the warden is enraged and hits harder every turn.','bad');
 }
@@ -1250,13 +1355,14 @@ function roomWon(){
     else{ m.hp=Math.ceil(m.maxHp*.4); r.events.push({m:m.nick+' was downed but binds back together.',c:''}); }
   }
   if(r.tw){
-    const f=r.tw; S.tower.best=Math.max(S.tower.best,f);
+    const f=r.tw; S.tower.best=Math.max(S.tower.best,f); for(const k of [25,50,75,100]) if(S.tower.best>=k) unlockStory('t'+k,r);
     if(f%10===0){ xp+=120*f; S.quest.clears++; towerBossLoot(f,r); }
     if(f===100) r.cleared=true;   // floor 100 ends the first climb; floor 101 onward is the endless abyss
-  } else if(last){ xp+=RK[r.di].clear; r.cleared=true; S.quest.clears++; S.ti=S.ti||{}; S.ti.clr=S.ti.clr||{}; S.ti.clr[r.di]=1; }
+  } else if(last){ unlockStory('g'+r.di,r); xp+=RK[r.di].clear; r.cleared=true; S.quest.clears++; S.ti=S.ti||{}; S.ti.clr=S.ti.clr||{}; S.ti.clr[r.di]=1; tally('clrN'+r.di); if(r.mod){ tally('cur_'+r.mod); tally('cursed'); } if(!r.hurt) tally('flawless'); }
   for(const id of r.loot){ const it=addItem(id); if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name); } r.loot=[];
-  bankLoot(r); r.won=(r.won||0)+1;
+  bankLoot(r); r.won=(r.won||0)+1; if(P.hp>0&&P.hp<=pMax()*.1) tally('lastBreath');
   r.event=(!r.tw&&!last&&Math.random()<EVENT_CHANCE)?rollEvent():null;   // something waits between rooms
+  r.doors=(!r.tw&&!last)?rollDoors(r):null;   // which way next
   r.gained+=xp; r.lastXp=xp;
   r.ups+=addXp(xp);
   S.mode='raise';
@@ -1267,12 +1373,15 @@ function defeat(){
   S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); });
   notify('You were dragged out of '+(r.tw?'the Hell Tower on floor '+r.tw:'the '+DUNGEONS[r.di].name)+'. That room\'s spoils are lost, and you lose '+Math.round(DIFF.deathXp*100)+'% of a level in XP.','bad');
 }
-function descend(){
-  if(S.mode!=='raise'||S.run.cleared) return;
+function descend(kind){   // go on: through one of the doors in the gates (the first door by default), or up a floor in the Tower
+  if(S.mode!=='raise'||S.run.cleared) return false;
   const r=S.run, P=S.player;
+  if(r.doors){ if(kind==null) kind=r.doors[0]; if(!r.doors.includes(kind)) return false; } else kind='fight';
   P.hp=Math.min(pMax(),P.hp+Math.round(pMax()*DIFF.heal)); P.mana=Math.min(pMana(),P.mana+Math.round(pMana()*DIFF.mana)); P.shield=0;
   S.army.forEach(m=>m.hp=Math.min(m.maxHp,m.hp+Math.round(m.maxHp*DIFF.mheal)));
-  r.cd={}; r.frenzy=0; r.silence=0; r.event=null; allies().forEach(clearDots); if(r.tw) r.tw++; r.room++; S.mode='battle'; spawnRoom();
+  r.cd={}; r.frenzy=0; r.silence=0; r.event=null; allies().forEach(clearDots); if(r.tw) r.tw++; r.room++; r.roomKind=kind; r.doors=null;
+  if(kind==='rest'||kind==='treasure'){ quietRoom(kind); return true; }
+  S.mode='battle'; spawnRoom(); return true;
 }
 function returnTown(){
   const P=S.player;
@@ -1305,11 +1414,11 @@ function discard(u){ S.inv=S.inv.filter(x=>x.u!==u); }
 
 // ----- raising
 function raiseChance(c){
-  let ch=35+A('will')*2.2+G('raise')+4*sk('mastery')+(S.player.lvl-c.lvl)*3-RK[c.rankI].pen;
+  let ch=35+A('will')*2.2+G('raise')+4*sk('mastery')+(hasMod('mastery','a')?6:0)+(S.player.lvl-c.lvl)*3-RK[c.rankI].pen;
   if(c.elite) ch-=10; if(c.boss) ch-=15; if(c.free) ch+=STRAGGLER_BONUS;
   return clamp(Math.round(ch),5,90);
 }
-const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*(hasFlag('cheapraise')?.5:1));
+const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*(hasFlag('cheapraise')?.5:1)*(hasMod('mastery','b')?.75:1));
 function freeNick(){ const used=S.army.map(m=>m.nick); const f=NICKS.filter(n=>!used.includes(n)); return f.length?pick(f):pick(NICKS)+' II'; }
 const SALT_BONUS=20, SALT_MAX=3, saltPrice=()=>10+S.player.lvl*3;   // Grave Salts: bought at the market, +20% on one raise
 const saltChance=c=>clamp(raiseChance(c)+SALT_BONUS,5,95);
@@ -1327,7 +1436,7 @@ function tryRaise(id,salt){
     if(hasFlag('bindsouls')) m.lvl=Math.min(S.player.lvl+2,m.lvl+2);
     m.lvl0=m.lvl; m.stage=0; m.traits=[rollTrait([])]; if(c.boss) m.traits.push(rollTrait(m.traits));   // bosses rise with two traits
     syncMinion(m); m.hp=m.maxHp; S.army.push(m); S.quest.raises++; r.raised++; S.ti=S.ti||{}; S.ti.raised=(S.ti.raised||0)+1; if(m.armed) S.ti.armed=(S.ti.armed||0)+1;
-    c.result='raised'; c.minion=m.nick+' ('+m.traits.map(t=>TRAITS[t].name).join(', ')+')'; sfx('raise');
+    if(c.free) tally('straggler'); if(c.boss) tally('raisedBoss'); c.result='raised'; c.minion=m.nick+' ('+m.traits.map(t=>TRAITS[t].name).join(', ')+')'; sfx('raise');
   }else{ c.result='failed'; sfx('fail'); }
 }
 function returnGear(m){ if(!m.eq) return; for(const sl of GEAR_SLOTS){ if(m.eq[sl]){ S.inv.push(m.eq[sl]); m.eq[sl]=null; } } }
@@ -1379,15 +1488,18 @@ function canUse(id){
 function useSkill(id,t){
   if(!canUse(id)) return false;
   const s=SKILL[id], rk=sk(id), r=S.run, P=S.player;
-  P.mana-=s.cost; r.cd=r.cd||{}; r.cd[id]=s.cd+1;   // +1: the end-of-turn tick runs this same turn
-  if(id==='spear'){ const d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(.5)); hurtFoe(t,d); log('Bone Spear impales '+t.name+' for '+d+'.'); }
-  else if(id==='blast'){ const c=freeCorpse(); c.tried=true; c.result='exploded'; const base=pSiph()*(.6+.2*rk)*pierceMul(1); let tot=0; for(const o of liveFoes()){ const d=hit(base); hurtFoe(o,d); tot+=d; } log('The body of '+c.name+' bursts apart, dealing '+tot+' damage across the room.'); }
-  else if(id==='mend'){ let tot=0; const cured=allies().some(a=>a.dots); for(const m of S.army) if(m.hp>0) tot+=healAlly(m,Math.round(m.maxHp*(.15+.08*rk))); allies().forEach(clearDots); log('Dark Mending knits your army back together for '+tot+' HP'+(cured?' and cures every wound and burn':'')+'.','ok'); }
-  else if(id==='curse'){ t.curse={mul:1+(.15+.1*rk),t:3}; mark(t.id,0,0); log(t.name+' is cursed and takes '+Math.round((.15+.1*rk)*100)+'% more damage.'); }
-  else if(id==='chill'){ const d=hit(pSiph()*.5*dmgMul()); hurtFoe(t,d); const held=!t.boss||Math.random()*100<40+10*rk;
-    if(held&&t.hp>0){ t.stun=rk>=3?2:1; log('Grave Chill hits '+t.name+' for '+d+' and freezes it solid.'); } else log('Grave Chill hits '+t.name+' for '+d+', but it shakes off the frost.'); }
-  else if(id==='frenzy'){ r.frenzy=3; r.frenzyMul=1+(.2+.15*rk); log('Unholy Frenzy: your army surges with '+Math.round((r.frenzyMul-1)*100)+'% more damage.','ok'); }
-  else if(id==='reap'){ const low=t.hp<t.maxHp*.35; let d=hit(pSiph()*(1.2+.3*rk)*pierceMul(1)); if(low) d*=2; hurtFoe(t,d); log('You reap '+t.name+' for '+d+(low?' (harvest)':'')+'.'); }
+  P.mana-=s.cost; r.cd=r.cd||{}; r.cd[id]=s.cd+1; tally('sk_'+id);   // +1: the end-of-turn tick runs this same turn
+  if(id==='spear'){ const d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(hasMod('spear','a')?1:.5)); hurtFoe(t,d); log('Bone Spear impales '+t.name+' for '+d+'.');
+    if(hasMod('spear','b')){ const o=liveFoes().filter(x=>x!==t); if(o.length){ const o2=pick(o), d2=Math.round(d*.5); hurtFoe(o2,d2); log('A splinter tears into '+o2.name+' for '+d2+'.'); } } }
+  else if(id==='blast'){ const c=freeCorpse(); c.tried=true; c.result='exploded'; const base=pSiph()*(.6+.2*rk)*pierceMul(1)*(hasMod('blast','a')?1.3:1); let tot=0; for(const o of liveFoes()){ const d=hit(base); hurtFoe(o,d); tot+=d; if(hasMod('blast','b')) addDot(o,'poison',pSiph()*.15,3); } log('The body of '+c.name+' bursts apart, dealing '+tot+' damage across the room.'); }
+  else if(id==='mend'){ let tot=0; const cured=allies().some(a=>a.dots); for(const m of S.army) if(m.hp>0) tot+=healAlly(m,Math.round(m.maxHp*(.15+.08*rk+(hasMod('mend','a')?.15:0)))); if(hasMod('mend','b')) tot+=healAlly(P,Math.round(pMax()*.15)); if(cured) tally('cures'); allies().forEach(clearDots); log('Dark Mending knits your army back together for '+tot+' HP'+(cured?' and cures every wound and burn':'')+'.','ok'); }
+  else if(id==='curse'){ const turns=hasMod('curse','a')?5:3, bonus=.15+.1*rk;
+    if(hasMod('curse','b')){ for(const o of liveFoes()){ o.curse={mul:1+bonus*.8,t:turns}; mark(o.id,0,0); } log('Every foe is cursed and takes '+Math.round(bonus*80)+'% more damage.'); }
+    else { t.curse={mul:1+bonus,t:turns}; mark(t.id,0,0); log(t.name+' is cursed and takes '+Math.round(bonus*100)+'% more damage.'); } }
+  else if(id==='chill'){ const d=hit(pSiph()*.5*dmgMul()); hurtFoe(t,d); const held=!t.boss||Math.random()*100<40+10*rk+(hasMod('chill','a')?20:0);
+    if(held&&t.hp>0){ t.stun=rk>=3?2:1; tally('frozen'); log('Grave Chill hits '+t.name+' for '+d+' and freezes it solid.'); } else log('Grave Chill hits '+t.name+' for '+d+', but it shakes off the frost.'); }
+  else if(id==='frenzy'){ r.frenzy=hasMod('frenzy','a')?5:3; r.frenzyMul=1+(.2+.15*rk); if(hasMod('frenzy','b')) for(const m of S.army) if(m.hp>0) healAlly(m,Math.round(m.maxHp*.15)); log('Unholy Frenzy: your army surges with '+Math.round((r.frenzyMul-1)*100)+'% more damage.','ok'); }
+  else if(id==='reap'){ const low=t.hp<t.maxHp*(hasMod('reap','a')?.5:.35); let d=hit(pSiph()*(1.2+.3*rk)*pierceMul(1)); if(low) d*=2; hurtFoe(t,d); if(t.hp<=0&&hasMod('reap','b')) P.mana=Math.min(pMana(),P.mana+10); log('You reap '+t.name+' for '+d+(low?' (harvest)':'')+'.'); }
   return true;
 }
 function skillTick(){
@@ -1395,6 +1507,7 @@ function skillTick(){
   if(r.cd) for(const k in r.cd) if(r.cd[k]>0) r.cd[k]--;
   if(r.frenzy>0) r.frenzy--;
   if(r.silence>0) r.silence--;
+  if(r.taunt>0) r.taunt--;
   for(const e of r.enemies) if(e.curse&&--e.curse.t<=0) delete e.curse;
 }
 function learnSkill(id){
@@ -1405,7 +1518,7 @@ function learnSkill(id){
 function resetSkills(){
   const P=S.player; if(S.mode!=='town') return;
   const spent=Object.values(P.skills).reduce((a,b)=>a+b,0); if(!spent) return;
-  vitals(()=>{ P.skills={}; P.sp+=spent; }); P.hp=Math.min(P.hp,pMax()); P.mana=Math.min(P.mana,pMana());
+  vitals(()=>{ P.skills={}; P.skMod={}; P.sp+=spent; }); P.hp=Math.min(P.hp,pMax()); P.mana=Math.min(P.mana,pMana());
   notify('Your skills are forgotten. '+spent+' skill point'+(spent>1?'s':'')+' returned.');
 }
 
@@ -1426,7 +1539,7 @@ const TROPHY={};                             // key -> {name, value, ico, rankI}
 const trophyKey=e=>e.boss?'b:'+e.base:(e.tw?'t:':'')+e.base;
 function killLoot(e,r){   // called once per kill, from checkDeaths
   const cursed=runMod()?MOD_GOLD:1;
-  const coin=Math.max(1,Math.round((1+e.lvl*.5)*(1+e.rankI*.5)*(e.boss?5:1)*(e.elite?2:1)*rnd(.7,1.3)*ngpReward()*cursed));
+  const coin=Math.max(1,Math.round((1+e.lvl*.5)*(1+e.rankI*.5)*(e.boss?5:1)*(e.elite?2:1)*rnd(.7,1.3)*ngpReward()*cursed*(roomKind()==='elite'?ELITE_GOLD:1)*(1+xb('goldp')/100)));
   r.gold=(r.gold||0)+coin;
   const key=trophyKey(e); if(!TROPHY[key]) return;
   const n=(e.boss?1:e.elite?2:(Math.random()<.6?1:0))*cursed;
@@ -1445,8 +1558,8 @@ const POTIONS={
 };
 function drink(k){
   const P=S.player; if(!S.belt[k]) return false;
-  if(k==='hp'){ if(P.hp>=pMax()&&!P.dots) return false; S.belt.hp--; const h=healAlly(P,Math.round(pMax()*.35)), cured=!!P.dots; clearDots(P); log('You drink a Healing Draught and recover '+h+' HP'+(cured?'. Your wounds close':'')+'.','ok'); }
-  else { if(P.mana>=pMana()) return false; S.belt.mp--; const m=Math.min(pMana()-P.mana,Math.round(pMana()*.4)); P.mana+=m; mark('p',0,0); log('You drink a Mana Tonic and recover '+m+' mana.','ok'); }
+  if(k==='hp'){ if(P.hp>=pMax()&&!P.dots) return false; S.belt.hp--; const h=healAlly(P,Math.round(pMax()*.35)), cured=!!P.dots; clearDots(P); tally('drank'); if(cured) tally('cures'); log('You drink a Healing Draught and recover '+h+' HP'+(cured?'. Your wounds close':'')+'.','ok'); }
+  else { if(P.mana>=pMana()) return false; S.belt.mp--; tally('drank'); const m=Math.min(pMana()-P.mana,Math.round(pMana()*.4)); P.mana+=m; mark('p',0,0); log('You drink a Mana Tonic and recover '+m+' mana.','ok'); }
   return true;
 }
 // Market prices. Gear sells for a quarter of what the merchant asks. Uniques cannot be sold.
@@ -1550,6 +1663,9 @@ const TIPS=[
   {id:'dots',   t:'Bleeding and burns', m:'Enemy strikers\' crits make you bleed, and Cinder Waves burn. These tick at the end of each turn and ignore your ward. A Healing Draught cures you; Dark Mending cures your whole side.', when:()=>S.mode==='battle'&&allies().some(a=>a.dots)},
   {id:'rolls',  t:'Bonus lines', m:'Gear can roll extra stat lines, shown in green under its base stats. Each line raises the sell price. Reforge (Gear tab) re-rolls them for gold.', when:()=>S.mode==='town'&&S.inv.some(it=>it.ro)},
   {id:'curse',  t:'A cursed gate', m:'Each day one gate you have cleared is cursed with a twist that makes it harder. In return it pays double gold and trophies, more XP and more gear.', when:()=>S.mode==='town'&&(ui.tab||'gates')==='gates'&&dayMod().gi>=0},
+  {id:'doors',  t:'Choose your way', m:'Pick the next room: an ordinary fight, a bloodied arch with stronger foes and better loot, a quiet ossuary to rest, or a sealed vault.', when:()=>S.mode==='raise'&&S.run&&S.run.doors&&S.run.doors.length>1},
+  {id:'cmd',    t:'Give orders', m:'Each kind of minion can take one order per room, for free: Taunt, Focus, Bone Shield or Execute. The buttons sit above your skills.', when:()=>S.mode==='battle'&&S.army.some(m=>m.hp>0)},
+  {id:'skmod',  t:'Choose an upgrade', m:'One of your skills reached its last rank. Open the Skills tab and choose one of its two upgrades.', when:()=>S.mode==='town'&&SKILLS.some(x=>sk(x.id)>=SK_MAX&&!skMod(x.id))},
   {id:'tower',  t:'The Hell Tower is open', m:'A separate 100-floor climb, one fight per floor, with a unique relic on every tenth floor. Floors you clear become checkpoints.', when:()=>S.mode==='town'&&S.player.lvl>=TW.unlock},
 ];
 const currentTip=()=>{ if(!S||(S.tips&&S.tips.off)) return null; try{ return TIPS.find(t=>!(S.tips&&S.tips[t.id])&&t.when())||null; }catch(e){ return null; } };
@@ -1597,7 +1713,7 @@ function playerFalls(){   // the player hit 0 HP: revive from gear if possible, 
   if((r.revives||0)<lim){ r.revives=(r.revives||0)+1; P.hp=Math.round(pMax()*(hasFlag('deathless')?.5:.3)); log('Your armor refuses to break. You rise at '+P.hp+' HP.','ok'); return false; }
   defeat(); return true;
 }
-function sellItem(u){ if(S.mode!=='town') return 0; const i=S.inv.findIndex(x=>x.u===u); if(i<0) return 0; const it=S.inv[i], d=ITEM[it.id]; if(d.uq) return 0; S.inv.splice(i,1); const g=sellValue(it); S.gold+=g; sfx('coin'); return g; }
+function sellItem(u){ if(S.mode!=='town') return 0; const i=S.inv.findIndex(x=>x.u===u); if(i<0) return 0; const it=S.inv[i], d=ITEM[it.id]; if(d.uq) return 0; S.inv.splice(i,1); const g=sellValue(it); S.gold+=g; tally('soldItems'); sfx('coin'); return g; }
 const isJunk=it=>{ const d=ITEM[it.id]; return !!d&&!d.uq&&d.tier<=1; };   // Common and Uncommon pieces in the bag (never what you wear)
 function sellJunk(){ if(S.mode!=='town') return null; const list=S.inv.filter(isJunk); let g=0; for(const it of list) g+=sellItem(it.u); return {n:list.length,g}; }
 
@@ -1611,7 +1727,7 @@ function tickDots(){
   let foeD=0, ourD=0;
   const tick=(u,hurt)=>{ if(!u.dots) return; for(const k of Object.keys(u.dots)){ const o=u.dots[k]; if(u.hp>0) hurt(u,o.d); if(--o.t<=0) delete u.dots[k]; } if(!Object.keys(u.dots).length) delete u.dots; };
   for(const e of S.run.enemies) tick(e,(u,d)=>{ const h=u.hp; hurtFoe(u,d); foeD+=h-u.hp; });
-  for(const a of allies()) tick(a,(u,d)=>{ const n=Math.min(d,u.hp); u.hp-=n; if(n>0) mark(u.id,n,0); ourD+=n; if(u.hp<=0&&u.id!=='p') log(u.nick+' succumbs.','bad'); });
+  for(const a of allies()) tick(a,(u,d)=>{ const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u.id,n,0); if(u.id==='p') S.run.hurt=true; } ourD+=n; if(u.hp<=0&&u.id!=='p') log(u.nick+' succumbs.','bad'); });
   if(foeD) log('Poison eats '+foeD+' HP from your foes.','ok');
   if(ourD) log('Bleeding and burns cost your side '+ourD+' HP.','bad');
 }
@@ -1632,12 +1748,12 @@ function resolveEvent(ch){
   const r=S.run; if(S.mode!=='raise'||!r||!r.event||r.event.done) return false;
   const ev=r.event, P=S.player, lvl=RK[r.di].lv+Math.floor(r.room/2); let m='', c='';
   if(ch==='pass') m='You leave it be.';
-  else if(ev.id==='shrine'&&ch==='bleed'){ if(P.hp<=1) return false; const d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*.2))); P.hp-=d; r.bless=true; m='The shrine drinks '+d+' HP. You and your army hit 15% harder for the rest of this gate.'; c='ok'; }
-  else if(ev.id==='pedlar'&&ch==='buy'){ if(S.gold<ev.price||S.belt[ev.pot]>=BELT_MAX) return false; S.gold-=ev.price; S.belt[ev.pot]++; m='You buy a '+POTIONS[ev.pot].name+' for '+ev.price+' gold.'; c='ok'; sfx('coin'); }
-  else if(ev.id==='coffer'&&ch==='open'){
+  else if(ev.id==='shrine'&&ch==='bleed'){ if(P.hp<=1) return false; const d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*.2))); P.hp-=d; r.bless=true; tally('shrine'); m='The shrine drinks '+d+' HP. You and your army hit 15% harder for the rest of this gate.'; c='ok'; }
+  else if(ev.id==='pedlar'&&ch==='buy'){ if(S.gold<ev.price||S.belt[ev.pot]>=BELT_MAX) return false; S.gold-=ev.price; S.belt[ev.pot]++; tally('pedlar'); m='You buy a '+POTIONS[ev.pot].name+' for '+ev.price+' gold.'; c='ok'; sfx('coin'); }
+  else if(ev.id==='coffer'&&ch==='open'){ tally('coffer');
     if(Math.random()<.6){ const g=Math.round((10+P.lvl*4)*(1+r.di)*ngpReward()); S.gold+=g; r.goldTot=(r.goldTot||0)+g; const it=addItem(pickRow(tableFor(r.di,'vanguard',false,true)));
       if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } m='Inside: '+g+' gold'+(it?' and '+withArticle(ITEM[it.id].name)+'.':'. There was gear too, but your bag is full.'); c='ok'; sfx('coin'); }
-    else { const d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*.25))); P.hp-=d; m='A needle trap. You lose '+d+' HP and find nothing.'; c='bad'; sfx('hurt'); }
+    else { const d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*.25))); P.hp-=d; tally('trap'); m='A needle trap. You lose '+d+' HP and find nothing.'; c='bad'; sfx('hurt'); }
   }
   else if(ev.id==='straggler'&&ch==='raise'){ const e=makeEnemy(r.di,lvl,false), cp=corpseOf(e); cp.free=true; r.corpses.push(cp); m=e.name+' waits with the other bodies. Raising it costs no mana.'; c='ok'; }
   else if(ev.id==='straggler'&&ch==='finish'){ const e=makeEnemy(r.di,lvl,false), xp=Math.round(killXp(e)*1.5); r.gained+=xp; r.ups+=addXp(xp); m='You finish '+theName(e.name)+'. +'+xp+' XP.'; c='ok'; }
@@ -1667,7 +1783,7 @@ const runMod=()=>(S.run&&!S.run.tw&&S.run.mod)||null;
 const foeAtkMul=di=>DIFF.foeAtk[di]*(runMod()==='fury'?1.25:1);
 const bulwark=list=>{ if(runMod()==='bulwark') for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*1.3); } };
 function volatileBurst(e){   // Volatile dead: a dying foe bursts on you
-  const P=S.player; let d=Math.round(e.atk*.5); const s=Math.min(P.shield,d); P.shield-=s; d=Math.max(0,Math.min(d-s,P.hp-1)); P.hp-=d; if(d) mark('p',d,0);
+  const P=S.player; let d=Math.round(e.atk*.5); const s=Math.min(P.shield,d); P.shield-=s; d=Math.max(0,Math.min(d-s,P.hp-1)); P.hp-=d; if(d){ mark('p',d,0); S.run.hurt=true; }
   log(e.name+' bursts'+(d?' and burns you for '+d:', but your ward takes it')+'.','bad');
 }
 
@@ -1681,6 +1797,123 @@ function recordRun(target,r,res){
   L.runs++; if(res==='cleared') L.clears++; if(res==='fell') L.deaths++; if(res==='fled') L.fled++;
   L.rooms+=h.rooms; L.kills+=h.kills; L.xp+=h.xp; L.gold+=h.gold; L.items+=h.items; L.raised+=h.raised;
 }
+// ===== DOORS =====
+// After each gate room (not before the boss, not in the Tower) you pick the next room from two or three doors.
+// The first door is always an ordinary fight, so "descend" with no choice behaves as before.
+const ELITE_ROOM=1.25, ELITE_DROP=2, ELITE_GOLD=1.5, REST_HEAL=.4;
+const DOORS={
+  fight:   {name:'A dark passage',  desc:'Another room of the gate.'},
+  elite:   {name:'A bloodied arch', desc:'Stronger foes (+25% HP and attack). Twice the gear drops and 50% more gold.'},
+  rest:    {name:'A quiet ossuary', desc:'No fight. Rest to recover 40% of your HP and mana, and your army 40%.'},
+  treasure:{name:'A sealed vault',  desc:'No fight. Gold and a piece of gear.'},
+  boss:    {name:'The boss chamber',desc:'The master of this gate.'}
+};
+function rollDoors(r){
+  if(r.room+1>=r.rooms-1) return ['boss'];
+  let pool=['elite','elite','elite','rest','rest','treasure']; const out=['fight'], n=Math.random()<.4?2:1;   // weighted: elite 3, rest 2, treasure 1
+  while(out.length<1+n&&pool.length){ const k=pick(pool); out.push(k); pool=pool.filter(x=>x!==k); }
+  return out;
+}
+const roomKind=()=>(S.run&&!S.run.tw&&S.run.roomKind)||null;
+function quietRoom(kind){   // a rest or treasure room: no fight, then the doors again
+  const r=S.run, P=S.player; let m;
+  r.corpses=[]; r.spoils=[]; r.lostLoot=[]; r.events=[]; r.lastXp=0; r.lastGold=0; r.lastTroph={}; r.enemies=[];
+  if(kind==='rest'){ P.hp=Math.min(pMax(),P.hp+Math.round(pMax()*REST_HEAL)); P.mana=Math.min(pMana(),P.mana+Math.round(pMana()*REST_HEAL)); S.army.forEach(x=>{ x.hp=Math.min(x.maxHp,x.hp+Math.round(x.maxHp*REST_HEAL)); });
+    m='You rest among the bones. You and your army recover.'; sfx('heal'); }
+  else { const g=Math.round((15+P.lvl*5)*(1+r.di)*ngpReward()*(1+xb('goldp')/100)); S.gold+=g; r.goldTot=(r.goldTot||0)+g; r.lastGold=g; const it=addItem(pickRow(tableFor(r.di,'vanguard',true,false)));
+    if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } m='The vault gives up '+g+' gold'+(it?' and '+withArticle(ITEM[it.id].name):'')+'.'; sfx('coin'); }
+  r.events.push({m,c:'ok'}); r.quiet=kind; r.doors=rollDoors(r); S.mode='raise';
+}
+
+// ===== GEAR SETS =====
+// Two or three pieces from the same gate's set (its uniques count too) give a bonus. Tower gear belongs to no set.
+const SET_NAMES=['Scavenger\'s Kit','Drowned Vigil','Ember Rite','Choir of Bones','Ironbark','Pale Court'];
+const SET_BONUS=[{2:{hp:15},3:{goldp:10}},{2:{mana:20},3:{manap:8}},{2:{strength:3},3:{dmgp:5}},{2:{will:3},3:{mpow:10}},{2:{constitution:4},3:{drp:5}},{2:{mpow:8},3:{dmgp:6,drp:3}}];
+const setCount=si=>(S&&S.equip)?GEAR_SLOTS.filter(sl=>{ const it=S.equip[sl], d=it&&ITEM[it.id]; return d&&!d.tower&&d.set===si; }).length:0;
+const setB=k=>{ let n=0; for(let i=0;i<SET_BONUS.length;i++){ const c=setCount(i); if(c>=2) n+=SET_BONUS[i][2][k]||0; if(c>=3) n+=SET_BONUS[i][3][k]||0; } return n; };
+const xb=k=>titleB(k)+setB(k);   // everything that is neither gear stats nor skills: the worn title and set bonuses
+
+// ===== SKILL UPGRADES =====
+// At rank 3 each skill offers a choice of two upgrades. Forgetting your skills lets you choose again.
+const SKILL_MODS={
+  spear:    {a:['Impaler','Pierces all foe armor.'],                      b:['Splinter','Also hits another foe for 50%.']},
+  bonearmor:{a:['Ossified','+6% more max HP.'],                            b:['Bone Ward','Bone Ward grants 30% more ward.']},
+  mend:     {a:['Deep Mending','Heals 15% more of each minion\'s HP.'],   b:['Shared Flesh','Also heals you for 15% of your max HP.']},
+  blast:    {a:['Bigger Bang','Deals 30% more damage.'],                   b:['Grave Gas','Also poisons every foe it hits.']},
+  soulwell: {a:['Overflow','+1 more mana every turn.'],                    b:['Thrift','Soul Siphon costs 6 mana instead of 8.']},
+  curse:    {a:['Lingering','Lasts 5 turns.'],                             b:['Spreading','Curses every foe, at 80% strength.']},
+  gravepact:{a:['Blood Oath','+6% more minion power.'],                    b:['Bone Shell','Your minions take 10% less damage.']},
+  chill:    {a:['Deep Freeze','Bosses resist 20% less often.'],            b:['Shatter','Frozen foes take 25% more damage.']},
+  edge:     {a:['Rending','Strike has +10% crit chance.'],                 b:['Vampiric','Strike heals you for 10% of its damage.']},
+  frenzy:   {a:['Bloodlust','Lasts 2 turns longer.'],                      b:['Unholy Vigor','Also heals each minion for 15% of its HP.']},
+  mastery:  {a:['Gravecaller','+6% more chance to raise.'],                b:['Thrifty Rites','Raising costs 25% less mana.']},
+  reap:     {a:['Harvest Moon','Doubles below 50% HP instead of 35%.'],    b:['Soul Reap','A kill with Reap refunds 10 mana.']}
+};
+const skMod=id=>(sk(id)>=SK_MAX&&S.player.skMod&&S.player.skMod[id])||null;
+const hasMod=(id,c)=>skMod(id)===c;
+function chooseMod(id,c){ const P=S.player; if(S.mode!=='town'||!SKILL_MODS[id]||!SKILL_MODS[id][c]||sk(id)<SK_MAX||skMod(id)) return false; vitals(()=>{ P.skMod=P.skMod||{}; P.skMod[id]=c; }); return true; }
+const siphonCost=()=>hasMod('soulwell','b')?6:8;
+
+// ===== MINION COMMANDS =====
+// Once per room, each kind of minion in your army can be given an order. Orders are free: they do not use your turn.
+const CMDS={
+  vanguard:{name:'Taunt',      desc:'For 2 turns, foes aim their attacks at your vanguards (boss moves still land where they land).'},
+  striker: {name:'Focus',      desc:'This turn your strikers always crit.'},
+  mender:  {name:'Bone Shield',desc:'Each mender wards you for 150% of its attack.'},
+  reaper:  {name:'Execute',    desc:'This turn your reapers deal double damage to foes below 40% HP.'}
+};
+const canCommand=role=>S.mode==='battle'&&!!CMDS[role]&&!(S.run.cmd&&S.run.cmd[role])&&S.army.some(m=>m.role===role&&m.hp>0);
+function command(role){
+  if(!canCommand(role)) return false;
+  const r=S.run, P=S.player, mine=S.army.filter(m=>m.role===role&&m.hp>0); r.cmd=r.cmd||{}; r.cmd[role]=true; tally('commands');
+  if(role==='vanguard'){ r.taunt=2; log('Taunt: your vanguards bellow, and every foe turns on them.','ok'); }
+  else if(role==='striker'){ r.focus=true; log('Focus: your strikers pick their spots.','ok'); }
+  else if(role==='mender'){ const w=mine.reduce((a,m)=>a+Math.round(m.atk*1.5),0); P.shield=Math.min(Math.round(pMax()*.6),P.shield+w); mark('p',0,0); log('Bone Shield: your menders ward you. You hold '+P.shield+' ward.','ok'); }
+  else { r.execute=true; log('Execute: your reapers look for the weak.','ok'); }
+  sfx('skill'); return true;
+}
+
+// ===== STORY AND BOSS VOICES =====
+// The Ledger tells its story as you go: a passage for the first clear of each gate and for Tower milestones. Bosses speak.
+const STORY=[
+  {id:'intro',t:'The Ledger opens',m:'You found the book in a drowned chapel, its pages blank but warm. When you wrote your name inside, every grave in the valley turned over in its sleep. The Ledger wants names. It will give you the dead who answer to them.'},
+  {id:'g0',t:'The Rat King',m:'The Rat King was a tanner once, buried under his own vats. He held his court of vermin for forty years, waiting for someone to tell him he could stop. The Ledger wrote his name in a careful hand, and somewhere beneath the city a second page filled itself in.'},
+  {id:'g1',t:'The Crypt Warden',m:'The Warden kept his post long after the family he guarded had rotted. He did not fight you for treasure. He fought because no one had ever relieved him of his watch. In the Ledger his entry ends with a single word: dismissed.'},
+  {id:'g2',t:'The Ember Knight',m:'The barrow burned because the Knight would not let it go out. He believed the fire kept something worse asleep beneath the mound. The Ledger does not say whether he was right. The ground is still warm.'},
+  {id:'g3',t:'The Bishop of Teeth',m:'The Bishop preached that the dead should keep their voices. His choir sang for a century without breath. When he fell, the Ledger turned to a page already written, in your handwriting, that you do not remember writing.'},
+  {id:'g4',t:'The Orchard Mother',m:'The Mother planted iron in the ground and grew a forest of it, to fence in her children. You learn too late that her children were the graves of the valley, and that the Ledger had been eating them one name at a time.'},
+  {id:'g5',t:'The Pale Sovereign',m:'The Sovereign was the last to hold the Ledger before you. He wrote until there were no names left but his own, and then he wrote that one too. His court kneels to you now. The book has a new final page, and it is blank, and it is waiting.'},
+  {id:'t25',t:'The burning stair',m:'Twenty-five floors into the Tower, the walls begin to whisper names from the Ledger. Some of them are yours. The dead you raised did not come from nowhere; the Tower has been sending them up for a very long time.'},
+  {id:'t50',t:'Halfway to the throne',m:'At the fiftieth floor you find a lectern of black iron, and on it a ledger like yours, open to a page of crossed-out names. Every name but one has a line through it. The last is the name of the Tower itself.'},
+  {id:'t75',t:'The hollow choir',m:'The seraphs here were never holy. They were the Ledger\'s first keepers, burned for the names they would not give up. They sing your name as you climb, not in warning, but in welcome.'},
+  {id:'t100',t:'The King of Hell',m:'Abaddon kept the other half of the book. When he falls, his pages fly to yours and stitch themselves in. The Ledger is whole for the first time in a thousand years, and every soul in it, above and below, now answers to you.'},
+  {id:'ngp',t:'The book begins again',m:'You closed the Ledger and opened it again, and the first page was blank. Your titles remain, written in a margin no one else can read. The dead remember you. They will be harder to convince this time.'}
+];
+const STORY_BY=Object.fromEntries(STORY.map(s=>[s.id,s]));
+function unlockStory(id,r){
+  const st=STORY_BY[id]; if(!st) return false; S.story=S.story||{}; if(S.story[id]) return false;
+  S.story[id]=S.day; const m='From the Ledger, "'+st.t+'": '+st.m;
+  if(r) r.events.push({m,c:'story'}); else notify(m,'story'); return true;
+}
+const BOSS_LINES={
+  'The Rat King':        ['Another tenant for my court? Kneel, and the rats will not eat you first.','Tell them... the vats can go cold now.'],
+  'The Crypt Warden':    ['No one passes. No one has passed in two hundred years.','Relieved... at last. Guard them well.'],
+  'The Ember Knight':    ['Keep back from the fire! You do not know what sleeps beneath it.','The flame goes out... may you never hear what wakes.'],
+  'The Bishop of Teeth': ['Sing with us, little scribe. Your voice will keep forever.','The hymn... ends on a note I never learned.'],
+  'The Orchard Mother':  ['My children grow so quietly. You will make a fine tree.','Water them... someone must water them...'],
+  'The Pale Sovereign':  ['So the book chose you. It chose me too, once. It lies.','Write your own name last, scribe. Leave room for it.'],
+  'The Gate Hound':      ['(The Hound lowers three heads and breathes sulphur.)','(It whimpers, and the gate behind it falls open.)'],
+  'Cinder Matron':       ['Little moth. Come closer to the light.','Burn bright... it is over so quickly...'],
+  'The Iron Inquisitor': ['Confess your names. All of them.','Absolved. We are all absolved.'],
+  'Lord of Flies':       ['Everything that dies comes to me in the end. Why hurry?','Buzzing... so quiet now...'],
+  'The Bone Cantor':     ['One more voice for the choir. One more.','The silence... is louder than I feared.'],
+  'Duke of Chains':      ['Every soul here wears my iron. You will too.','The links break... I had forgotten the weight.'],
+  'The Pale Executioner':['Kneel. It is easier for both of us.','Finally... a clean stroke.'],
+  'Archdevil Vael':      ['You climb well, for a thief. That book belongs to Hell.','Take it, then... and all that comes with it.'],
+  'The Hollow Seraph':   ['We burned for that book. Will you?','Keep it... better than we did...'],
+  'Abaddon, King of Hell':['At last. Bring me the other half, little scribe.','The book... is whole... and it is yours. Pity you.']
+};
+function bossSpeaks(e,when){ const L=BOSS_LINES[e.base]; if(!L) return; log(e.name+': "'+L[when==='hi'?0:1]+'"','boss'); }
 //==UI==
 
 // ----- sound: tiny synthesized effects (Web Audio, no files). Off/on lives in Settings and is remembered per browser, not in the save.
@@ -1716,6 +1949,48 @@ function sfx(kind){
     case 'boss':   tone(c,70,40,.5,'sawtooth',.12); noise(c,.45,.2,400); break;
     case 'death':  tone(c,200,40,.9,'sawtooth',.1); break;
   } }catch(e){}
+}
+
+// ----- music: a slow synthesized drone per place. Off by default; remembered per browser. Starts after your first click.
+const MUSIC={on:false,armed:false,scene:null,nodes:null};
+try{ MUSIC.on=localStorage.getItem('lotd-music')==='on'; }catch(e){}
+const SCENES={town:{f:[55,82.4],cut:380,lfo:.05,vol:.05,noise:0},gate:{f:[49,73.4,58.3],cut:300,lfo:.08,vol:.055,noise:0},tower:{f:[41.2,61.7,49],cut:460,lfo:.13,vol:.06,noise:.05}};
+const musicScene=()=>S.mode==='town'?(ui.tab==='tower'?'tower':'town'):(S.run&&S.run.tw?'tower':'gate');
+function stopMusic(){
+  const n=MUSIC.nodes, c=SFX.ctx; MUSIC.nodes=null; MUSIC.scene=null; if(!n||!c) return;
+  try{ n.g.gain.cancelScheduledValues(c.currentTime); n.g.gain.setTargetAtTime(0.0001,c.currentTime,.7); }catch(e){}
+  setTimeout(()=>n.src.forEach(o=>{ try{ o.stop(); }catch(e){} }),4000);
+}
+function music(){
+  if(!MUSIC.on){ stopMusic(); return; }
+  if(!MUSIC.armed) return;
+  const sc=musicScene(); if(sc===MUSIC.scene&&MUSIC.nodes) return;
+  let c; try{ c=sfxCtx(); }catch(e){ return; } if(!c) return;
+  stopMusic();
+  const P=SCENES[sc], t=c.currentTime, g=c.createGain(), lp=c.createBiquadFilter(), lfo=c.createOscillator(), lg=c.createGain(), src=[];
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(P.vol,t+3);
+  lp.type='lowpass'; lp.frequency.value=P.cut; lp.Q.value=4; lfo.frequency.value=P.lfo; lg.gain.value=P.cut*.45; lfo.connect(lg).connect(lp.frequency); lfo.start(t); src.push(lfo);
+  P.f.forEach((f,i)=>{ for(const det of [-7,6]){ const o=c.createOscillator(); o.type=i?'sawtooth':'triangle'; o.frequency.value=f; o.detune.value=det; o.connect(lp); o.start(t); src.push(o); } });
+  const sub=c.createOscillator(), sg=c.createGain(); sub.frequency.value=P.f[0]/2; sg.gain.value=.6; sub.connect(sg).connect(g); sub.start(t); src.push(sub);
+  if(P.noise){ const n=Math.floor(c.sampleRate*2), b=c.createBuffer(1,n,c.sampleRate), d=b.getChannelData(0); for(let i=0;i<n;i++) d[i]=Math.random()*2-1;
+    const ns=c.createBufferSource(), bp=c.createBiquadFilter(), ng=c.createGain(); ns.buffer=b; ns.loop=true; bp.type='bandpass'; bp.frequency.value=180; bp.Q.value=.7; ng.gain.value=P.noise*8; ns.connect(bp).connect(ng).connect(g); ns.start(t); src.push(ns); }
+  lp.connect(g); g.connect(c.destination);
+  MUSIC.nodes={g,src}; MUSIC.scene=sc;
+}
+// ----- display settings (per browser, not in the save): text size, reduced motion, high contrast
+const VIEW={size:0,calm:false,hc:false};
+try{ const v=JSON.parse(localStorage.getItem('lotd-view')||'null'); if(v&&typeof v==='object'){ VIEW.size=clamp(+v.size||0,0,2); VIEW.calm=!!v.calm; VIEW.hc=!!v.hc; }
+  else VIEW.calm=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){}
+function saveView(){ try{ localStorage.setItem('lotd-view',JSON.stringify(VIEW)); }catch(e){} }
+function applyView(){ const c=document.body.classList; c.toggle('ts1',VIEW.size===1); c.toggle('ts2',VIEW.size===2); c.toggle('calm',VIEW.calm); c.toggle('hc',VIEW.hc); }
+// ----- save files: the same text as a save code, as a download
+function downloadSave(){
+  try{ const code=exportCode(); if(!code) return false; const url=URL.createObjectURL(new Blob([code],{type:'text/plain'})), a=document.createElement('a');
+    a.href=url; a.download='ledger-of-the-dead-day'+S.day+'-lv'+S.player.lvl+'.txt'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000); return true; }catch(e){ return false; }
+}
+function importText(txt){   // a save file holds a save code; plain JSON saves work too
+  txt=String(txt||'').trim(); if(txt.indexOf(CODE_TAG)===0) return importCode(txt);
+  try{ return adoptSave(JSON.parse(txt)); }catch(e){ return false; }
 }
 
 // ----- icons (32x32 silhouettes; .c = cutout, .cs = cut line, .s = stroke)
@@ -2050,10 +2325,12 @@ function cmpHTML(it){   // what wearing this would change, against what is in th
   const a=itStats(it), b=itStats(cur), keys=[...new Set(Object.keys(a).concat(Object.keys(b)))].filter(k=>(a[k]||0)!==(b[k]||0));
   return '<div class="cmp">vs '+ITEM[cur.id].name+': '+(keys.length?keys.map(k=>{ const v=(a[k]||0)-(b[k]||0); return '<span class="'+(v>0?'up':'down')+'">'+statTxt(k,v)+'</span>'; }).join(''):'<span>same stats</span>')+'</div>';
 }
+function setLine(d){ if(d.tower||SET_NAMES[d.set]==null) return ''; const n=setCount(d.set), B=SET_BONUS[d.set];
+  return '<div class="setl">'+SET_NAMES[d.set]+' set'+(n?' ('+n+'/3 worn)':'')+': <span class="'+(n>=2?'on':'')+'">2: '+buffTxt(B[2])+'</span> &middot; <span class="'+(n>=3?'on':'')+'">3: '+buffTxt(B[3])+'</span></div>'; }
 function itemCard(it,acts,cmp){
   const d=ITEM[it.id];
   return '<div class="item t'+d.tier+'">'+iico(d)+'<div class="i-body"><div class="i-top"><span class="i-name">'+d.name+'</span><span class="i-tag">'+TIERS[d.tier]+' &middot; '+SLOTS[d.slot]+(d.tower?' &middot; <span class="i-floor">Hell Tower '+d.floor+'</span>':'')+'</span></div>'
-   +'<div class="i-stats">'+statsHTML(d,it)+'</div>'+(d.flag?'<div class="i-fx">'+FLAGS[d.flag]+'</div>':'')+(cmp?cmpHTML(it):'')+'</div><div class="i-acts">'+(acts||'')+'</div></div>';
+   +'<div class="i-stats">'+statsHTML(d,it)+'</div>'+(d.flag?'<div class="i-fx">'+FLAGS[d.flag]+'</div>':'')+setLine(d)+(cmp?cmpHTML(it):'')+'</div><div class="i-acts">'+(acts||'')+'</div></div>';
 }
 const reforgeBtn=it=>ITEM[it.id].uq||S.mode!=='town'?'':'<button class="btn small" data-a="reforge" data-k="'+it.u+'"'+(S.gold<reforgeCost(it)?' disabled':'')+' title="Re-roll its bonus lines">Reforge &middot; '+gold(reforgeCost(it))+'</button>';
 const pc=p=>{ p*=100; return (p>=10?p.toFixed(0):p>=1?p.toFixed(1):p.toFixed(2))+'%'; };
@@ -2061,7 +2338,9 @@ function equipHTML(){
   const locked=S.mode==='battle';
   const rows=['weapon','armor','relic'].map(sl=>{ const it=S.equip[sl];
     return it?itemCard(it,locked?'':'<button class="btn small" data-a="unequip" data-k="'+sl+'">Unequip</button>'+reforgeBtn(it)):'<div class="gempty">No '+SLOTS[sl].toLowerCase()+' equipped.</div>'; }).join('');
-  return '<section class="win" aria-labelledby="h-gear"><h2 class="win-h" id="h-gear">Equipment</h2><div class="items">'+rows+'</div>'+(locked?'<p class="q-note">Gear is locked while you fight.</p>':'')+'</section>';
+  const sets=SET_NAMES.map((n,i)=>({n,i,c:setCount(i)})).filter(x=>x.c>=2);
+  return '<section class="win" aria-labelledby="h-gear"><h2 class="win-h" id="h-gear">Equipment</h2><div class="items">'+rows+'</div>'
+   +(sets.length?sets.map(x=>'<p class="q-note ok">'+x.n+' set ('+x.c+'/3): '+buffTxt(SET_BONUS[x.i][2])+(x.c>=3?', '+buffTxt(SET_BONUS[x.i][3]):'')+'</p>').join(''):'')+(locked?'<p class="q-note">Gear is locked while you fight.</p>':'')+'</section>';
 }
 const BAG_SORTS={tier:'Best first',slot:'By slot',new:'Newest'};
 function sortedBag(){
@@ -2151,7 +2430,7 @@ function statusHTML(){
   const rows=[['strength','Strength','Strike damage'],['constitution','Constitution','Max HP'],['intelligence','Intelligence','Mana, Siphon, Ward'],['will','Will','Army slots, raise odds, minion bond']];
   const canAlloc=P.pts>0&&S.mode!=='battle';
   return '<section class="win" aria-labelledby="h-status"><h2 class="win-h" id="h-status">Status</h2>'
-   +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(titleName()?'<div class="ttl">'+titleName()+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+(P.debuff?' &middot; <span class="bad">Wounded dawn</span>':'')+'</div></div></div>'
+   +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+(P.debuff?' &middot; <span class="bad">Wounded dawn</span>':'')+'</div></div></div>'
    +meter('HP',P.hp,pMax(),'hp')+meter('Mana',P.mana,pMana(),'mp')+meter('XP',P.xp,need(P.lvl),'xp')
    +((P.pts>0||P.sp>0)?'<div class="chips">'+(P.pts>0?'<span class="chip">'+P.pts+' unspent point'+(P.pts>1?'s':'')+'</span>':'')+(P.sp>0?'<span class="chip">'+P.sp+' skill point'+(P.sp>1?'s':'')+'</span>':'')+'</div>':'')
    +'<div class="stats">'+rows.map(r=>'<div class="stat"><div><b>'+r[1]+'</b><small>'+r[2]+'</small></div><span class="val">'+st[r[0]]+(G(r[0])?'<small class="gb"> +'+G(r[0])+'</small>':'')+'</span>'
@@ -2183,11 +2462,13 @@ function gateHTML(i){
 function titlesHTML(){
   const T=S.ti||{got:{}}, n=Object.keys(T.got).length;
   let h='<section class="win" aria-labelledby="h-tt"><h2 class="win-h" id="h-tt">Titles &middot; '+n+'/'+TITLES.length+'</h2>'
-   +'<p class="lede">Titles are earned once and kept. Wear one beneath your name. They are an honour, not a bonus.</p>';
-  ['Gates','Hell Tower','Deeds'].forEach(g=>{
-    h+='<p class="group-h">'+g+'</p><div class="items">'+TITLES.filter(t=>t.grp===g).map(t=>{
+   +'<p class="lede">Titles are earned once and kept. Wear one beneath your name. Each carries a small bonus, and only the title you wear gives it.</p>'
+   +(titleName()?'<p class="q-note ok">Wearing <b>'+titleName()+'</b>: '+(buffTxt(TITLE[T.sel].b)||'no bonus')+'.</p>':'<p class="q-note">You wear no title, so no title bonus applies.</p>');
+  ['Gates','Hell Tower','Curses and events','Deeds'].forEach(g=>{
+    const list=TITLES.filter(t=>t.grp===g), have=list.filter(t=>T.got[t.id]).length;
+    h+='<p class="group-h">'+g+' &middot; '+have+'/'+list.length+'</p><div class="items">'+list.map(t=>{
       const got=T.got[t.id], on=T.sel===t.id;
-      return '<div class="tt-row'+(on?' on':'')+(got?'':' off')+(g==='Hell Tower'?' hellt':'')+'"><div><h4>'+t.name+'</h4><div class="u-sub">'+t.req+(got?' &middot; earned day '+got:'')+'</div></div>'
+      return '<div class="tt-row'+(on?' on':'')+(got?'':' off')+(g==='Hell Tower'?' hellt':'')+'"><div><h4>'+t.name+'</h4><div class="u-sub">'+t.req+(got?' &middot; earned day '+got:'')+'</div>'+(buffTxt(t.b)?'<div class="u-sub tbuff">When worn: '+buffTxt(t.b)+'</div>':'')+'</div>'
         +(got?'<button class="btn small'+(on?'':' primary')+'" data-a="wear" data-k="'+t.id+'">'+(on?'Remove':'Wear')+'</button>':'<span class="u-tag">Locked</span>')+'</div>'; }).join('')+'</div>';
   });
   return h+'</section>';
@@ -2284,10 +2565,14 @@ function skillsHTML(){
       const meta=(s.type==='active'?s.cost+' mana &middot; cooldown '+s.cd+' turn'+(s.cd>1?'s':'')+' &middot; ':'')+'Unlocks at Lv '+s.lv;
       const body='<div class="u-sub">'+(rk?'<span class="ok">Rank '+rk+':</span> '+s.desc(rk):s.desc(1))+'</div>'
         +(rk&&rk<SK_MAX?'<div class="u-sub dim">Rank '+next+(lockedLv?' (Lv '+req+')':'')+': '+s.desc(next)+'</div>':'');
+      const M=SKILL_MODS[s.id], mod=skMod(s.id);
+      const modH=rk>=SK_MAX?(mod?'<div class="u-sub ok">Upgrade: <b>'+M[mod][0]+'</b>. '+M[mod][1]+'</div>'
+          :'<div class="u-sub">Choose an upgrade:</div><div class="btns" style="margin:4px 0 0">'+['a','b'].map(c=>'<button class="btn small primary" data-a="skmod" data-k="'+s.id+'|'+c+'" title="'+M[c][1]+'">'+M[c][0]+': '+M[c][1]+'</button>').join('')+'</div>')
+        :'<div class="u-sub dim">At rank '+SK_MAX+', choose: '+M.a[0]+' ('+M.a[1].replace(/\.$/,'')+') or '+M.b[0]+' ('+M.b[1].replace(/\.$/,'')+').</div>';
       const btn=rk>=SK_MAX?'<span class="u-tag ok">Mastered</span>'
         :lockedLv?'<button class="btn small" disabled>Reach Lv '+req+'</button>'
         :'<button class="btn small primary" data-a="learn" data-k="'+s.id+'"'+(P.sp<=0?' disabled':'')+'>'+(rk?'Rank up':'Learn')+'</button>';
-      return '<div class="tt-row'+(rk?' on':'')+(!rk&&lockedLv?' off':'')+'"><div><h4>'+s.name+' <span class="u-tag">'+rk+'/'+SK_MAX+'</span></h4><div class="u-sub">'+meta+'</div>'+body+'</div>'+btn+'</div>';
+      return '<div class="tt-row'+(rk?' on':'')+(!rk&&lockedLv?' off':'')+'"><div><h4>'+s.name+' <span class="u-tag">'+rk+'/'+SK_MAX+'</span></h4><div class="u-sub">'+meta+'</div>'+body+modH+'</div>'+btn+'</div>';
     }).join('')+'</div>';
   });
   if(spent) h+='<div class="btns"><button class="btn small warn" data-a="skreset">'+(ui.confirm==='skreset'?'Press again to forget all skills':'Forget all skills ('+spent+' back)')+'</button></div>';
@@ -2318,6 +2603,10 @@ function helpHTML(){
    +sec('Between rooms',['After some rooms you find something: a blood shrine that trades HP for 15% more damage in this gate, a pedlar selling a potion at half price, a coffer that holds gold and gear or a trap, or a wounded straggler you can raise for free or finish for XP. Walking past is always safe.'])
    +sec('Cursed gates',['Each day one gate you have cleared is cursed with a twist (volatile dead, drought, fury, bulwark or horde). '+MOD_REWARD+' The curse is shown on the gate card.'])
    +sec('Gear rolls',['Gear can roll bonus stat lines, shown in green; rarer tiers roll more. Each line adds to the sell price. Reforge re-rolls the lines for gold. Your bag shows how each piece compares with what you wear, can sort, and can sell all Common and Uncommon gear at once.'])
+   +sec('Doors',['After each gate room you choose the next from two or three doors. A dark passage is an ordinary fight; a bloodied arch holds stronger foes with twice the gear and more gold; a quiet ossuary lets you rest; a sealed vault holds gold and gear. The room before the boss always leads to the boss.'])
+   +sec('Gear sets',['Each gate\'s gear is a set, and its unique counts toward it. Wearing two pieces of one set gives a small bonus; three give another. Item cards show the set and which bonuses are active.'])
+   +sec('Skill upgrades',['When a skill reaches rank '+SK_MAX+', choose one of two upgrades on the Skills tab. Forgetting your skills refunds the points and lets you choose again.'])
+   +sec('Orders',['Once per room, each kind of minion in your army can be given an order: vanguards Taunt, strikers Focus, menders raise a Bone Shield, reapers Execute. Orders are free and do not use your turn.'])
    +sec('Bosses',['Every boss has a signature move it uses every few turns. Moves marked Charging land next turn: soak them with Bone Ward or freeze the boss with Grave Chill to cancel them. Tower wardens borrow these moves.'])
    +sec('Skills',['One skill point per level. Actives (keys 4 and up) cost mana and have cooldowns that reset each room; passives always apply. Each skill has three ranks. Forgetting your skills is free in town.'])
    +sec('Raising the dead',['After a room, raise the fallen for mana. Will, your level and Master of Bones raise your odds; Grave Salts add +'+SALT_BONUS+'% to one attempt. Minions keep their level and grow with every room, up to two levels above you. Downed minions may shatter.',
@@ -2325,6 +2614,7 @@ function helpHTML(){
    +sec('Gold and the market',['Kills drop gold and trophies. In the Market you can buy potions (Q and W in battle), salts and daily gear; forge six trophies from one gate into gear of your choice; brew four trophies into a potion; level minions at the Bone Altar; enlarge your bag; and sell trophies and spare gear.'])
    +sec('The Hell Tower',['Opens at level '+TW.unlock+'. One fight per floor, a warden with a unique relic every tenth floor, checkpoints every ten floors. Past floor 100 the climb never ends: each tenth floor pays out gold and a legendary.'])
    +sec('New Game+',['Clear the Throne of Ash and Settings offers New Game+: start again at level 1 with your titles, your bestiary, and one unique of your choice, against stronger foes that pay more XP and gold. Each New Game+ stacks.'])
+   +sec('Titles',['Titles are earned once and kept forever. Each gives a small bonus, like a little more HP, damage, gold or XP, but only the one you wear counts. Change it any time outside battle on the Titles tab.'])
    +sec('Saving',['The game saves itself. Closing the tab in a dungeon counts as leaving it. Use save slots before something risky, and save codes to move your game to another browser.'])
    +'<div class="btns"><button class="btn small" data-a="tab" data-k="settings">Back to settings</button></div></section>';
 }
@@ -2338,6 +2628,12 @@ function saveTabHTML(){
    +'<div class="btns" style="margin:0">'+(tipsOff?'<button class="btn small primary" data-a="tipson">Show tips</button>':'')+(seenTips?'<button class="btn small" data-a="tipsreset">Show all again</button>':'')+'</div></div></div>'
    +'<p class="group-h">Sound</p><div class="tt-row'+(SFX.on?' on':'')+'"><div><h4>Sound effects</h4><div class="u-sub">Strikes, hits, kills, raises, coins and boss moves. Remembered in this browser.</div></div>'
    +'<button class="btn small'+(SFX.on?'':' primary')+'" data-a="sound" aria-pressed="'+SFX.on+'">'+(SFX.on?'Turn off':'Turn on')+'</button></div>'
+   +'<div class="tt-row'+(MUSIC.on?' on':'')+'"><div><h4>Music</h4><div class="u-sub">A quiet drone that changes between town, the gates and the Tower. Remembered in this browser.</div></div>'
+   +'<button class="btn small'+(MUSIC.on?'':' primary')+'" data-a="music" aria-pressed="'+MUSIC.on+'">'+(MUSIC.on?'Turn off':'Turn on')+'</button></div>'
+   +'<p class="group-h">Display</p><div class="items"><div class="tt-row"><div><h4>Text size</h4><div class="u-sub">Makes the whole page larger.</div></div><div class="btns" style="margin:0">'
+   +['Normal','Large','Larger'].map((t,i)=>'<button class="btn small'+(VIEW.size===i?' primary':'')+'" data-a="view" data-k="size|'+i+'" aria-pressed="'+(VIEW.size===i)+'">'+t+'</button>').join('')+'</div></div>'
+   +'<div class="tt-row'+(VIEW.calm?' on':'')+'"><div><h4>Reduce motion</h4><div class="u-sub">Stops drifting embers, flames, pulses and screen shake.</div></div><button class="btn small'+(VIEW.calm?'':' primary')+'" data-a="view" data-k="calm" aria-pressed="'+VIEW.calm+'">'+(VIEW.calm?'Turn off':'Turn on')+'</button></div>'
+   +'<div class="tt-row'+(VIEW.hc?' on':'')+'"><div><h4>High contrast</h4><div class="u-sub">Brighter text and bolder HP, mana and XP bars.</div></div><button class="btn small'+(VIEW.hc?'':' primary')+'" data-a="view" data-k="hc" aria-pressed="'+VIEW.hc+'">'+(VIEW.hc?'Turn off':'Turn on')+'</button></div></div>'
    +'<p class="group-h">Save &amp; load</p><p class="lede">The game saves itself every time you are in town. Slots are for keeping a safe copy before something risky, like a Tower warden. A save code lets you carry your progress to another browser or device.</p>';
   if(!ok) h+='<div class="note bad"><i>Storage</i><span>This browser is not letting the page store anything, so autosave and slots will not persist. Use a save code below to keep your progress.</span></div>';
   if(ui.msg) h+='<div class="note '+(ui.msg.c||'')+'"><i>Save</i><span>'+ui.msg.m+'</span></div>';
@@ -2350,7 +2646,10 @@ function saveTabHTML(){
      +(d?'<button class="btn small" data-a="slotload" data-k="'+i+'">'+(ui.confirm==='sl'+i?'Confirm load':'Load')+'</button><button class="btn small warn" data-a="slotdel" data-k="'+i+'">'+(ui.confirm==='sd'+i?'Confirm':'Delete')+'</button>':'')
      +'</div></div>';
   }
-  h+='</div><p class="group-h">Save code</p><p class="q-note">Copy this text somewhere safe. Pasting it back restores this exact character.</p>'
+  h+='</div><p class="group-h">Save file</p><p class="q-note">Download your game as a small file to keep as a backup or move to another browser, then load it back here.</p>'
+   +'<div class="btns"><button class="btn small primary" data-a="dlsave">Download save file</button><label class="btn small filebtn">Load a save file<input type="file" id="loadfile" accept=".txt,.json,text/plain,application/json"></label></div>'
+   +(ui.file?'<div class="btns"><button class="btn small warn" data-a="loadfile">'+(ui.confirm==='lf'?'Press again: '+ui.file.name+' replaces your current game':'Load '+ui.file.name)+'</button><button class="linkbtn" data-a="dropfile">Cancel</button></div>':'');
+  h+='<p class="group-h">Save code</p><p class="q-note">Copy this text somewhere safe. Pasting it back restores this exact character.</p>'
    +(ui.exp?'<textarea id="exp" class="codebox" readonly rows="4">'+ui.exp+'</textarea><div class="btns"><button class="btn small primary" data-a="copycode">Copy code</button></div>'
      :'<div class="btns"><button class="btn small primary" data-a="mkcode">Create save code</button></div>')
    +'<p class="group-h">Restore from a code</p><textarea id="imp" class="codebox" rows="3" placeholder="Paste a save code here">'+(ui.imp||'')+'</textarea>'
@@ -2364,7 +2663,11 @@ function histHTML(){
   const L=S.life||{}, n=v=>(v||0).toLocaleString(), H=(S.hist||[]).slice().reverse();
   const where=h=>h.g<0?'Hell Tower, floor'+(h.f1>h.f0?'s '+h.f0+'&ndash;'+h.f1:' '+h.f0):DUNGEONS[h.g].name;
   const RES={cleared:'Cleared',fell:'Fell',fled:'Fled',left:'Walked out'};
+  const seen=STORY.filter(st=>S.story&&S.story[st.id]);
   let h='<section class="win" aria-labelledby="h-hist"><h2 class="win-h" id="h-hist">History</h2><h3 class="win-title">The ledger keeps count</h3>'
+   +'<p class="group-h">Chronicle &middot; '+seen.length+'/'+STORY.length+'</p>'
+   +seen.map(st=>'<details class="chron"'+(st===seen[seen.length-1]?' open':'')+'><summary>'+st.t+' <span class="dim">&middot; day '+S.story[st.id]+'</span></summary><p>'+st.m+'</p></details>').join('')
+   +(seen.length<STORY.length?'<p class="q-note">'+(STORY.length-seen.length)+' more passages are written in pages you have not reached. Clear gates and climb the Tower to read them.</p>':'')
    +'<p class="group-h">Every run so far'+(S.ngp?' (New Game+ runs included)':'')+'</p><div class="life">'
    +[['Runs',L.runs],['Gates cleared',L.clears],['Falls',L.deaths],['Fled',L.fled],['Rooms won',L.rooms],['Kills',L.kills],['XP earned',L.xp],['Gold found',L.gold],['Gear found',L.items],['Dead raised',L.raised]]
      .map(x=>'<div><span>'+x[0]+'</span><b>'+n(x[1])+'</b></div>').join('')+'</div>'
@@ -2409,6 +2712,11 @@ function unitCard(u,side){
   const cls='unit '+side+(dead?' dead':'')+(sel?' sel':'')+(u.elite?' elite':'')+(f.d?' hit':'');
   return side==='foe'&&!dead?'<button class="'+cls+'" data-a="target" data-k="'+u.id+'" aria-pressed="'+sel+'">'+inner+'</button>':'<div class="'+cls+'">'+inner+'</div>';
 }
+function cmdHTML(){
+  const roles=Object.keys(CMDS).filter(k=>S.army.some(m=>m.role===k&&m.hp>0)); if(!roles.length) return '';
+  return '<div class="btns cmds"><span class="cmd-l">Orders (free, once a room):</span>'+roles.map(k=>{ const used=S.run.cmd&&S.run.cmd[k];
+    return '<button class="btn small" data-a="cmd" data-k="'+k+'" title="'+CMDS[k].desc+'"'+(used?' disabled':'')+'>'+CMDS[k].name+(used?' &middot; given':'')+'</button>'; }).join('')+'</div>';
+}
 function logHTML(){ return '<ol class="log" aria-live="polite">'+S.run.log.map(l=>'<li class="'+l.c+'">'+l.m+'</li>').join('')+'</ol>'; }
 function battleHTML(){
   currentTarget();
@@ -2417,13 +2725,14 @@ function battleHTML(){
    +(r.mod?'<p class="q-note"><span class="curse-line" style="margin:0">Cursed: <b>'+MODS[r.mod].name+'</b>. '+MODS[r.mod].desc+'</span></p>':'')
    +(r.bless?'<p class="q-note ok">Blood-blessed: you and your army hit 15% harder in this gate.</p>':'')
    +'<p class="group-h">Foes'+(foeArmor()?' &middot; armor '+Math.round(foeArmor()*100)+'% (blunts every hit you and your army land)':'')+' &middot; choose a target, your army follows it</p><div class="row">'+r.enemies.map(e=>unitCard(e,'foe')).join('')+'</div>'
-   +'<p class="group-h">Your side'+(r.frenzy>0?' &middot; <span class="ok">Frenzy '+r.frenzy+'</span>':'')+(r.silence>0?' &middot; <span class="bad">Silenced '+r.silence+'</span>':'')+'</p><div class="row">'+allies().map(a=>unitCard(a,'ally')).join('')+'</div>'
+   +'<p class="group-h">Your side'+(r.frenzy>0?' &middot; <span class="ok">Frenzy '+r.frenzy+'</span>':'')+(r.silence>0?' &middot; <span class="bad">Silenced '+r.silence+'</span>':'')+(r.taunt>0?' &middot; <span class="ok">Taunting '+r.taunt+'</span>':'')+'</p><div class="row">'+allies().map(a=>unitCard(a,'ally')).join('')+'</div>'
    +'<div class="actbar"><div class="btns"><button class="btn primary" data-a="act" data-k="strike">Strike +3 mana<kbd>1</kbd></button>'
-   +'<button class="btn" data-a="act" data-k="siphon"'+(P.mana<8?' disabled':'')+'>Soul Siphon 8<kbd>2</kbd></button>'
+   +'<button class="btn" data-a="act" data-k="siphon"'+(P.mana<siphonCost()?' disabled':'')+'>Soul Siphon '+siphonCost()+'<kbd>2</kbd></button>'
    +'<button class="btn" data-a="act" data-k="ward"'+(P.mana<6?' disabled':'')+'>Bone Ward 6<kbd>3</kbd></button>'
    +'<button class="btn warn" data-a="flee">Flee</button></div>'
    +((S.belt.hp||S.belt.mp)?'<div class="btns">'+Object.keys(POTIONS).filter(k=>S.belt[k]).map(k=>{ const p=POTIONS[k], full=k==='hp'?P.hp>=pMax()&&!P.dots:P.mana>=pMana();
       return '<button class="btn potion" data-a="act" data-k="pot:'+k+'"'+(full?' disabled title="Already full"':' title="'+p.desc+'"')+'>'+p.name+' &times;'+S.belt[k]+'<kbd>'+p.key+'</kbd></button>'; }).join('')+'</div>':'')
+   +cmdHTML()
    +(activeSkills().length?'<div class="btns">'+activeSkills().map((s,i)=>{ const cd=skCd(s.id), why=r.silence>0?'Silenced by the Hymn':cd>0?'Ready in '+cd+' turn'+(cd>1?'s':''):s.id==='blast'&&!freeCorpse()?'Needs a body that fell this room':s.id==='mend'&&!S.army.some(m=>m.hp>0&&m.hp<m.maxHp)?'No wounded minions':P.mana<s.cost?'Not enough mana':s.desc(sk(s.id));
       return '<button class="btn" data-a="act" data-k="sk:'+s.id+'" title="'+why+'"'+(canUse(s.id)?'':' disabled')+'>'+s.name+' '+s.cost+(cd>0?' &middot; '+cd+'t':'')+(i<6?'<kbd>'+(i+4)+'</kbd>':'')+'</button>'; }).join('')+'</div>':'')
    +'</div>'+logHTML()+'</section>';
@@ -2472,15 +2781,21 @@ function raiseHTML(){
     return '<div class="corpse'+(c.tried?' done '+c.result:'')+'"><div><div class="u-head">'+ico(c.base,c.rankI,c)+'<div class="u-id"><div class="u-top"><span class="rk r'+c.rankI+'">'+RANKS[c.rankI]+'</span><span class="u-tag">'+ROLES[c.role].label+(c.armed?' &middot; Armed':'')+(c.boss?' &middot; Boss':'')+(c.elite?' &middot; Elite':'')+'</span></div>'
      +'<div class="u-name" style="'+(c.elite?'color:var(--gold)':'')+'">'+c.name+'</div><div class="u-sub num">Lv '+c.lvl+(c.free?' &middot; <span class="free-t">Straggler: free, +'+STRAGGLER_BONUS+'%</span>':'')+'</div></div></div></div>'+right+'</div>';
   }).join('');
-  const done=r.cleared;
-  return '<section class="win" aria-labelledby="h-raise"><h2 class="win-h" id="h-raise">'+(r.tw?'Hell Tower &middot; Floor '+r.tw+(done?' &middot; Conquered':' cleared'):D.name+' &middot; '+(done?'Cleared':'Room '+(r.room+1)+' quiet'))+'</h2>'
-   +'<h3 class="win-title">'+(r.tw?(done?'Abaddon is dead. The Tower is yours.':'The floor is still.'):(done?'The gate falls silent.':'The room is still.'))+'</h3>'
-   +'<p class="lede">+'+r.lastXp+' XP'+(r.ups?' &middot; level up':'')+'. Mana '+P.mana+'/'+pMana()+'. Bodies cool quickly, so decide now. Whatever you do not raise is gone.</p>'
+  const done=r.cleared, q=r.quiet&&DOORS[r.quiet];
+  return '<section class="win" aria-labelledby="h-raise"><h2 class="win-h" id="h-raise">'+(r.tw?'Hell Tower &middot; Floor '+r.tw+(done?' &middot; Conquered':' cleared'):D.name+' &middot; '+(done?'Cleared':'Room '+(r.room+1)+(q?'':' quiet')))+'</h2>'
+   +'<h3 class="win-title">'+(r.tw?(done?'Abaddon is dead. The Tower is yours.':'The floor is still.'):(done?'The gate falls silent.':q?q.name:'The room is still.'))+'</h3>'
+   +(q?'<p class="lede">No fight here. Mana '+P.mana+'/'+pMana()+'.</p>':'<p class="lede">+'+r.lastXp+' XP'+(r.ups?' &middot; level up':'')+'. Mana '+P.mana+'/'+pMana()+'. Bodies cool quickly, so decide now. Whatever you do not raise is gone.</p>')
    +(r.events.length?'<div class="notes">'+r.events.map(e=>'<div class="note '+e.c+'"><i>Log</i><span>'+e.m+'</span></div>').join('')+'</div>':'')
    +(full&&r.corpses.some(c=>!c.tried)?'<div class="note bad"><i>Full</i><span>Your army is full. Release someone below to make room.</span></div>':'')
-   +eventHTML()+spoilsHTML()+'<p class="group-h">The fallen</p><div class="corpses">'+(corpses||'<p class="lede">Nothing left to raise.</p>')+'</div>'
-   +'<div class="btns">'+(done?'<button class="btn primary" data-a="town">Return to the gate</button>':'<button class="btn primary" data-a="descend">'+(r.tw?'Ascend to floor '+(r.tw+1)+' (heal ':'Descend (heal ')+Math.round(DIFF.heal*100)+'%, mana +'+Math.round(DIFF.mana*100)+'%)</button><button class="btn" data-a="town">'+(r.tw?'Descend with spoils':'Leave with spoils')+'</button>')+'</div></section>'
+   +eventHTML()+spoilsHTML()+(q&&!r.corpses.length?'':'<p class="group-h">The fallen</p><div class="corpses">'+(corpses||'<p class="lede">Nothing left to raise.</p>')+'</div>')
+   +(r.doors&&!done?doorsHTML():'<div class="btns">'+(done?'<button class="btn primary" data-a="town">Return to the gate</button>':'<button class="btn primary" data-a="descend">'+(r.tw?'Ascend to floor '+(r.tw+1)+' (heal ':'Descend (heal ')+Math.round(DIFF.heal*100)+'%, mana +'+Math.round(DIFF.mana*100)+'%)</button><button class="btn" data-a="town">'+(r.tw?'Descend with spoils':'Leave with spoils')+'</button>')+'</div>')+'</section>'
    +armyHTML();
+}
+function doorsHTML(){
+  const r=S.run;
+  return '<p class="group-h">Which way? Going on heals '+Math.round(DIFF.heal*100)+'% and restores '+Math.round(DIFF.mana*100)+'% mana</p><div class="doors">'
+   +r.doors.map((k,i)=>'<button class="door d-'+k+'" data-a="door" data-k="'+k+'"><b>'+DOORS[k].name+'</b><span>'+DOORS[k].desc+'</span></button>').join('')+'</div>'
+   +'<div class="btns"><button class="btn" data-a="town">Leave with spoils</button></div>';
 }
 function eventHTML(){
   const r=S.run, ev=r.event; if(!ev||ev.done) return '';
@@ -2518,7 +2833,8 @@ function render(){
    +'<button class="gearbtn'+((ui.tab==='settings'&&S.mode==='town')?' on':'')+'" data-a="settings" aria-label="Settings" aria-pressed="'+(ui.tab==='settings'&&S.mode==='town')+'"'+(S.mode==='town'?' title="Settings: save, load, new game"':' disabled title="Settings open when you are back in town"')+'><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M10.3 2h3.4l.5 2.6c.6.2 1.2.5 1.7.9l2.5-.9 1.7 2.9-2 1.7c.1.6.1 1.3 0 1.9l2 1.7-1.7 2.9-2.5-.9c-.5.4-1.1.7-1.7.9l-.5 2.6h-3.4l-.5-2.6c-.6-.2-1.2-.5-1.7-.9l-2.5.9-1.7-2.9 2-1.7a6 6 0 0 1 0-1.9l-2-1.7 1.7-2.9 2.5.9c.5-.4 1.1-.7 1.7-.9zM12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z"/></svg></button></header>'
    +'<div class="layout"><div class="main">'+tipHTML()+main+'</div><aside class="rail">'+statusHTML()+equipHTML()+questHTML()+'</aside></div>';
   if(key){ const n=app.querySelector(key); if(n) n.focus({preventScroll:true}); }
-  if(ui.shake){ ui.shake=false; const w=app.querySelector('.main > .win'); if(w) w.classList.add('shake'); }
+  if(ui.shake&&!VIEW.calm){ ui.shake=false; const w=app.querySelector('.main > .win'); if(w) w.classList.add('shake'); }
+  try{ music(); }catch(e){}
   save();   // every screen saves; outside town the snapshot is "as if you walked out now"
 }
 const ACTIONS={
@@ -2540,7 +2856,13 @@ const ACTIONS={
   forge:k=>{ const a=k.split('|'), res=forgeGear(+a[0],a[1]); ui.msg=res?{mk:1,m:(res.master?'Masterwork! ':'')+'The forge gives you '+ITEM[res.it.id].name+'. It is in your bag.',c:'ok'}:null; },
   brew:k=>{ ui.msg=brew(k)?{mk:1,m:'You brew a '+POTIONS[k].name+' from four trophies.',c:'ok'}:null; },
   raisesalt:k=>tryRaise(k,true),
-  event:k=>{ resolveEvent(k); }, sort:k=>{ ui.sort=BAG_SORTS[k]?k:'tier'; },
+  event:k=>{ resolveEvent(k); }, door:k=>{ descend(k); }, cmd:k=>{ command(k); },
+  skmod:k=>{ const a=k.split('|'); chooseMod(a[0],a[1]); },
+  music:()=>{ MUSIC.on=!MUSIC.on; MUSIC.armed=true; try{ localStorage.setItem('lotd-music',MUSIC.on?'on':'off'); }catch(e){} },
+  view:k=>{ const a=k.split('|'); if(a[0]==='size') VIEW.size=clamp(+a[1]||0,0,2); else if(a[0]==='calm'||a[0]==='hc') VIEW[a[0]]=!VIEW[a[0]]; saveView(); applyView(); },
+  dlsave:()=>{ ui.msg=downloadSave()?{m:'Save file downloaded.',c:'ok'}:{m:'This browser would not create the file. Use a save code instead.',c:'bad'}; },
+  loadfile:()=>{ if(!ui.file) return; if(ui.confirm!=='lf'){ ui.confirm='lf'; return; } ui.confirm=null; const ok=importText(ui.file.text); ui.msg=ok?{m:'Loaded '+ui.file.name+'.',c:'ok'}:{m:ui.file.name+' is not a valid save.',c:'bad'}; ui.file=null; ui.exp=''; },
+  dropfile:()=>{ ui.file=null; }, sort:k=>{ ui.sort=BAG_SORTS[k]?k:'tier'; },
   reforge:k=>{ const it=findItem(+k), c=it&&reforgeCost(it); ui.msg=reforge(+k)?{mk:1,m:'Reforged '+ITEM[it.id].name+' for '+c+' gold.',c:'ok'}:null; },
   junk:()=>{ if(ui.confirm!=='junk'){ ui.confirm='junk'; return; } ui.confirm=null; const r=sellJunk(); ui.msg=r&&r.n?{mk:1,m:'Sold '+r.n+' piece'+(r.n>1?'s':'')+' of junk for '+r.g+' gold.',c:'ok'}:null; },
   sellitem:k=>{ if(ui.confirm!=='si'+k){ ui.confirm='si'+k; return; } ui.confirm=null; const it=S.inv.find(x=>x.u===+k), nm=it&&ITEM[it.id].name, g=sellItem(+k); ui.msg=g?{mk:1,m:'Sold '+nm+' for '+g+' gold.',c:'ok'}:null; }, skreset:()=>{ if(ui.confirm==='skreset'){ ui.confirm=null; resetSkills(); } else ui.confirm='skreset'; }, claim:()=>claimQuest(), dismiss:()=>{S.notices=[]},
@@ -2556,18 +2878,25 @@ const ACTIONS={
     const fallback=()=>{ const x=document.getElementById('exp'); let ok=false; if(x){ x.focus(); x.select(); try{ ok=document.execCommand('copy'); }catch(e){} }
       ui.msg=ok?{m:'Code copied.',c:'ok'}:{m:'Copying is blocked here. The code is selected: press Ctrl+C (Cmd+C on a Mac) to copy it.',c:'bad'}; render(); const y=document.getElementById('exp'); if(y&&!ok){ y.focus(); y.select(); } };
     try{ navigator.clipboard.writeText(v).then(()=>{ ui.msg={m:'Code copied.',c:'ok'}; render(); },fallback); }catch(e){ setTimeout(fallback,0); } },
-  loadcode:()=>{ if(ui.confirm!=='lc'){ ui.confirm='lc'; return; } ui.confirm=null; if(importCode(ui.imp)){ ui.imp=''; ui.exp=''; ui.msg={m:'Save code loaded.',c:'ok'}; } else ui.msg={m:'That code is not a valid save.',c:'bad'}; }, wear:k=>{ S.ti.sel=(S.ti.sel===k?null:k); }, tower:k=>startTower(+k), act:k=>act(k), target:k=>setTarget(k), flee:()=>flee(),
+  loadcode:()=>{ if(ui.confirm!=='lc'){ ui.confirm='lc'; return; } ui.confirm=null; if(importCode(ui.imp)){ ui.imp=''; ui.exp=''; ui.msg={m:'Save code loaded.',c:'ok'}; } else ui.msg={m:'That code is not a valid save.',c:'bad'}; }, wear:k=>{ wearTitle(k); }, tower:k=>startTower(+k), act:k=>act(k), target:k=>setTarget(k), flee:()=>flee(),
   raise:k=>tryRaise(k), descend:()=>descend(), town:()=>returnTown(), rest:()=>restDay(),
   release:k=>{ if(ui.confirm===+k){ release(+k); ui.confirm=null; } else ui.confirm=+k; },
   newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); ui.tab='gates'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
 };
 document.addEventListener('click',e=>{
+  MUSIC.armed=true;
   const b=e.target.closest('[data-a]'); if(!b||b.disabled) return;
   const a=b.dataset.a;
-  if(ui.confirm!==null && !['release','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk'].includes(a)) ui.confirm=null;
+  if(ui.confirm!==null && !['release','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile'].includes(a)) ui.confirm=null;
   ACTIONS[a]&&ACTIONS[a](b.dataset.k); render();
 });
 document.addEventListener('input',e=>{ if(e.target&&e.target.id==='imp') ui.imp=e.target.value; });
+document.addEventListener('change',e=>{   // a save file was picked: read it, then ask before loading
+  const f=e.target&&e.target.id==='loadfile'&&e.target.files&&e.target.files[0]; if(!f) return;
+  if(f.size>2e6){ ui.msg={m:'That file is too large to be a save.',c:'bad'}; render(); return; }
+  const rd=new FileReader(); rd.onload=()=>{ ui.file={name:f.name,text:String(rd.result||'')}; ui.confirm=null; render(); }; rd.readAsText(f);
+});
+document.addEventListener('pointerdown',()=>{ if(!MUSIC.armed){ MUSIC.armed=true; music(); } },{once:true});
 document.addEventListener('keydown',e=>{
   if(S.mode!=='battle'||e.ctrlKey||e.metaKey||e.altKey) return;
   let k={'1':'strike','2':'siphon','3':'ward'}[e.key];
@@ -2592,6 +2921,7 @@ document.addEventListener('keydown',e=>{
     }
   }
   function step(t){
+    if(document.body.classList.contains('calm')){ draw(0); requestAnimationFrame(step); return; }
     const hot=document.body.classList.contains('hell')?2.2:1;
     for(let i=0;i<P.length;i++){ const p=P[i]; p.y-=p.vy*hot; p.x+=p.dx+Math.sin(t/2000+p.ph)*.15; if(p.y<-12) P[i]=mk(false); }
     draw(t); requestAnimationFrame(step);
@@ -2601,5 +2931,5 @@ document.addEventListener('keydown',e=>{
   if(still) draw(0); else requestAnimationFrame(step);
 })();
 
-loadGame(); render();
+applyView(); loadGame(); render();
 </script>

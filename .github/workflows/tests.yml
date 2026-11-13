@@ -15,3 +15,5 @@ jobs:
           node-version: 20
       - name: Game tests
         run: node tests/run-tests.js
+      - name: UI fuzz (random clicks, 12 seeds)
+        run: node tests/fuzz.js 12 2500
