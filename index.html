@@ -34,6 +34,26 @@ body{
 body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,.75) 100%)}
 body::after{content:"";position:fixed;inset:0;z-index:3;pointer-events:none;background-image:var(--grain);opacity:.07;mix-blend-mode:overlay}
 #embers{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+/* Hell backdrop: shown on the Hell Tower tab and during a Tower climb (body.hell). Burning horizon, silhouette of hell, flames along the bottom. */
+#hellbg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity 1.2s ease;overflow:hidden}
+body.hell #hellbg{opacity:1}
+body.hell{background:radial-gradient(1200px 560px at 50% 112%, rgba(210,73,47,.38), transparent 70%),radial-gradient(800px 320px at 50% -10%, rgba(120,24,12,.25), transparent 70%),#0a0403;background-attachment:fixed}
+#hellbg .hb-sky{position:absolute;inset:0;background:linear-gradient(0deg,rgba(150,30,12,.55),rgba(70,12,6,.25) 35%,transparent 70%);animation:hbPulse 5s ease-in-out infinite}
+#hellbg svg{position:absolute;left:0;bottom:0;width:100%;height:min(62vh,560px)}
+#hellbg .hb-win{fill:#ff8a3c;filter:drop-shadow(0 0 4px #ff6a2a);animation:hbWin 3.2s ease-in-out infinite}
+#hellbg .hb-win:nth-of-type(2n){animation-delay:-1.3s}#hellbg .hb-win:nth-of-type(3n){animation-delay:-2.1s}
+#hellbg .hb-flames{position:absolute;left:-10%;right:-10%;bottom:-6px;transform-origin:50% 100%;background-repeat:repeat-x;background-position:0 100%}
+#hellbg .hb-back{height:150px;opacity:.85;background-size:160px 150px;animation:hbDrift 9s linear infinite,hbFlick 1.1s ease-in-out infinite alternate;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='150' viewBox='0 0 160 150'><path d='M0 150C8 118 22 104 18 66C34 92 40 108 38 128C46 96 58 72 52 20C76 64 78 96 70 122C80 100 92 88 96 50C110 90 114 116 108 136C118 118 130 108 132 78C146 104 150 126 146 140C152 132 156 128 160 120L160 150Z' fill='%239c2412'/></svg>")}
+#hellbg .hb-front{height:96px;background-size:110px 96px;animation:hbDrift 5.5s linear infinite reverse,hbFlick .7s ease-in-out infinite alternate-reverse;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='110' height='96' viewBox='0 0 110 96'><path d='M0 96C6 74 16 64 13 40C26 58 30 70 28 84C36 64 44 50 40 14C58 44 60 66 54 84C62 70 70 62 72 36C84 62 86 78 82 90C90 80 100 74 104 56C110 74 110 86 110 96Z' fill='%23e0581f'/><path d='M14 96C20 82 26 74 25 60C32 72 33 82 32 90C38 78 44 70 43 50C52 68 52 80 49 92C54 84 60 80 62 66C68 80 68 90 66 96Z' fill='%23ffb347'/></svg>")}
+#hellbg .hb-vig{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 40%,transparent 40%,rgba(0,0,0,.7) 100%)}
+@keyframes hbPulse{50%{opacity:.75}}
+@keyframes hbWin{0%,100%{opacity:1}40%{opacity:.45}60%{opacity:.9}}
+@keyframes hbDrift{to{background-position:-320px 100%}}
+@keyframes hbFlick{from{transform:scaleY(.86)}to{transform:scaleY(1.08)}}
+body:not(.hell) #hellbg *{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){#hellbg *{animation:none!important}#hellbg{transition:none}}
 .wrap{position:relative;z-index:1;max-width:1120px;margin:0 auto}
 button{font:inherit}
 :focus-visible{outline:2px solid var(--soul);outline-offset:2px}
@@ -249,7 +269,22 @@ button.unit.foe:hover{border-color:var(--blood)}
 /* Hell Tower */
 :root{--hell:#d2492f;--hell-d:#7a2417}
 .tab.hell[aria-selected="true"]{color:#ff8a6a;border-color:var(--hell);background:rgba(210,73,47,.12)}
-.tab.hell{color:#c9705c}
+.tab.hell{color:#e07a5c}
+/* Hell Tower tab: smouldering border, heat rising from the bottom edge, sparks drifting up */
+.tab.hell{position:relative;overflow:hidden;isolation:isolate;border-color:#5a2418;text-shadow:0 0 8px rgba(226,90,50,.55);animation:hellGlow 2.6s ease-in-out infinite}
+.tab.hell::before{content:'';position:absolute;left:0;right:0;bottom:0;height:70%;z-index:-1;pointer-events:none;transform-origin:50% 100%;
+  background:linear-gradient(0deg,rgba(210,73,47,.38),rgba(224,138,60,.12) 50%,transparent);animation:hellHeat 1.7s ease-in-out infinite alternate}
+.tab.hell::after{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(circle,#ffb35c 0 1px,transparent 1.6px) 18% 100%/100% 100% no-repeat,
+             radial-gradient(circle,#ff7a3c 0 1px,transparent 1.6px) 52% 110%/100% 100% no-repeat,
+             radial-gradient(circle,#ffd27a 0 .8px,transparent 1.4px) 81% 105%/100% 100% no-repeat;
+  animation:hellSparks 2.4s linear infinite}
+.tab.hell:hover{color:#ff9a78;border-color:var(--hell)}
+@keyframes hellGlow{0%,100%{box-shadow:0 0 6px -2px rgba(210,73,47,.4),inset 0 -6px 12px -8px rgba(210,73,47,.6);border-color:#5a2418}
+  50%{box-shadow:0 0 16px -2px rgba(226,90,50,.7),inset 0 -10px 16px -8px rgba(255,120,60,.85);border-color:#a8402a}}
+@keyframes hellHeat{from{opacity:.55;transform:scaleY(.8)}to{opacity:1;transform:scaleY(1.12)}}
+@keyframes hellSparks{0%{transform:translateY(0);opacity:0}15%{opacity:1}100%{transform:translateY(-34px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.tab.hell,.tab.hell::before,.tab.hell::after{animation:none}.tab.hell{box-shadow:0 0 10px -3px rgba(226,90,50,.6)}}
 .tw-hero{display:grid;gap:8px;padding:14px;border:1px solid var(--hell-d);background:linear-gradient(180deg,rgba(122,36,23,.28),rgba(0,0,0,.2))}
 .tw-hero b{font:700 12px/1 var(--font-data);letter-spacing:.14em;text-transform:uppercase;color:#ff8a6a}
 .tw-prog{height:8px;background:#1a0f0c;border:1px solid var(--hell-d)}
@@ -272,7 +307,24 @@ button.unit.foe:hover{border-color:var(--blood)}
 .tt-row.hellt h4{color:#ff8a6a}
 .codebox{width:100%;box-sizing:border-box;background:rgba(0,0,0,.4);color:var(--bone);border:1px solid var(--line-2);padding:10px;font:12px/1.4 var(--font-data);resize:vertical;word-break:break-all}
 .codebox:focus{outline:2px solid var(--gold);outline-offset:1px}
-.savebtn{letter-spacing:.14em}.savebtn.done{color:var(--ok);border-color:var(--ok)}
+.top{padding-right:56px}
+.gearbtn{position:absolute;top:0;right:0;width:42px;height:42px;display:grid;place-items:center;padding:0;cursor:pointer;color:var(--gold);background:linear-gradient(180deg,#221e1a,#171412);border:1px solid var(--line-2);box-shadow:inset 0 1px 0 rgba(232,222,198,.06)}
+.gearbtn svg{transition:transform .5s ease}
+.gearbtn:hover:not(:disabled){border-color:var(--gold);box-shadow:0 0 12px -4px var(--gold)}
+.gearbtn:hover:not(:disabled) svg,.gearbtn.on svg{transform:rotate(60deg)}
+.gearbtn.on{border-color:var(--gold);background:rgba(211,166,77,.1)}
+.gearbtn:disabled{opacity:.38;cursor:not-allowed}
+.gold-n{display:inline-flex;align-items:center;gap:5px;color:var(--gold);font-family:var(--font-data);font-weight:600;letter-spacing:0}
+.gold-n .coin{flex:none;filter:drop-shadow(0 0 4px rgba(211,166,77,.45))}
+.btn .gold-n{color:inherit}
+.trow{grid-template-columns:auto minmax(0,1fr) auto}
+.trow .ico{width:40px;height:40px}
+@media (max-width:540px){.trow{grid-template-columns:auto minmax(0,1fr)}.trow .btns{grid-column:1/-1}}
+.loot-line{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.tro-chip{font:500 12px/1.2 var(--font-body);padding:4px 8px;border:1px solid var(--line-2);background:var(--well);color:var(--bone)}
+.btn.potion{color:#f2b49e;border-color:rgba(184,58,42,.55)}
+.btn.potion:hover:not(:disabled){color:#ffd1c2;border-color:var(--blood-text)}
+.danger-zone{border:1px solid rgba(184,58,42,.45);background:rgba(184,58,42,.06);padding:12px 14px}
 .gear-row{grid-column:1/-1;display:grid;gap:8px;padding-top:10px;border-top:1px dashed var(--line-2)}
 .gear-h{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
 .gear-slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
@@ -284,6 +336,39 @@ button.unit.foe:hover{border-color:var(--blood)}
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
+<div id="hellbg" aria-hidden="true">
+  <div class="hb-sky"></div>
+  <svg viewBox="0 0 1600 500" preserveAspectRatio="xMidYMax slice">
+    <defs><radialGradient id="hbGlow" cx="50%" cy="100%" r="65%"><stop offset="0" stop-color="#ff6a2a" stop-opacity=".55"/><stop offset=".5" stop-color="#b8321a" stop-opacity=".22"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient></defs>
+    <rect width="1600" height="500" fill="url(#hbGlow)"/>
+    <!-- far ridge -->
+    <path fill="#2a0c07" d="M0 380L80 330L140 360L220 300L300 350L360 310L450 360L520 290L600 340L680 320L760 360L840 300L930 350L1010 310L1100 360L1180 300L1260 345L1340 315L1420 355L1500 305L1600 350V500H0Z"/>
+    <!-- spires -->
+    <g fill="#160604">
+      <path d="M540 500L548 330L556 270L564 330L572 500Z"/><path d="M590 500L596 380L604 340L612 380L618 500Z"/><path d="M620 500L630 360L640 300L650 360L660 500Z"/>
+      <path d="M960 500L968 360L978 290L988 360L996 500Z"/><path d="M1020 500L1026 390L1034 345L1042 390L1048 500Z"/><path d="M1060 500L1070 330L1078 265L1086 330L1094 500Z"/>
+      <path d="M300 500L310 400L318 360L326 400L336 500Z"/><path d="M1270 500L1280 395L1288 352L1296 395L1306 500Z"/>
+    </g>
+    <!-- the Tower -->
+    <g fill="#0d0302">
+      <path d="M700 500L715 420L735 420L740 300L755 300L760 200L775 200L785 110L800 40L815 110L825 200L840 200L845 300L860 300L865 420L885 420L900 500Z"/>
+      <path d="M786 122C770 104 764 84 770 62C777 86 786 100 796 112Z"/><path d="M814 122C830 104 836 84 830 62C823 86 814 100 804 112Z"/>
+    </g>
+    <g>
+      <rect class="hb-win" x="797" y="150" width="6" height="12"/><rect class="hb-win" x="762" y="258" width="6" height="10"/><rect class="hb-win" x="832" y="258" width="6" height="10"/>
+      <rect class="hb-win" x="797" y="330" width="6" height="12"/><rect class="hb-win" x="745" y="382" width="5" height="10"/><rect class="hb-win" x="850" y="382" width="5" height="10"/>
+    </g>
+    <!-- near crags and giant horns -->
+    <g fill="#070201">
+      <path d="M40 432C18 340 60 250 152 208C100 270 90 342 112 424Z"/><path d="M1560 432C1582 340 1540 250 1448 208C1500 270 1510 342 1488 424Z"/>
+      <path d="M0 500V430L60 410L110 440L170 400L230 445L300 420L360 460L420 435L480 470L520 500Z"/>
+      <path d="M1080 500L1130 460L1200 430L1260 455L1330 410L1400 440L1460 405L1530 435L1600 415V500Z"/>
+    </g>
+  </svg>
+  <div class="hb-flames hb-back"></div>
+  <div class="hb-flames hb-front"></div>
+  <div class="hb-vig"></div>
+</div>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="gSh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".26"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".5"/></linearGradient></defs></svg>
 <div class="wrap"><div id="app"></div></div>
 
@@ -370,10 +455,10 @@ const NAMES=[
 ];
 function kindStats(k,m){ const r=Math.round,f=Math.floor; switch(k){
   case 'wa':return {atk:r(3*m),crit:r(.8*m)};
-  case 'wb':return {atk:r(1.5*m),siph:r(2.2*m),intellect:f(m/2.2)};
-  case 'aa':return {hp:r(10*m),vigor:f(m/2)};
+  case 'wb':return {atk:r(1.5*m),siph:r(2.2*m),intelligence:f(m/2.2)};
+  case 'aa':return {hp:r(10*m),constitution:f(m/2)};
   case 'ab':return {hp:r(5*m),ward:r(2.4*m),mana:r(3*m)};
-  case 'ta':return {mana:r(8*m),intellect:f(m/1.6)};
+  case 'ta':return {mana:r(8*m),intelligence:f(m/1.6)};
   case 'tb':return {raise:r(1.6*m),will:f(m/1.8)};
   default:return {mpow:r(2*m),regen:m>=3?1:0}; } }
 const ITEM={};
@@ -381,11 +466,11 @@ NAMES.forEach((names,set)=>KINDS.forEach((k,i)=>{ const id=set+'-'+k; ITEM[id]={
 // Uniques: one per boss, very powerful, each with a special effect.
 const UNIQ=[
  {name:'Crown of Gnawed Bones',slot:'relic',glyph:'i_u0',stats:{slot:2,mpow:20,will:4,mana:40},flag:'bonebank'},
- {name:"Warden's Key-Blade",slot:'weapon',glyph:'i_wa',stats:{atk:26,crit:12,might:5},flag:'echo'},
- {name:"Ember Knight's Cinderplate",slot:'armor',glyph:'i_aa',stats:{hp:130,vigor:6,ward:14,might:3},flag:'undying'},
- {name:"Bishop's Tithe-Staff",slot:'weapon',glyph:'i_wb',stats:{atk:14,siph:42,intellect:7,mana:50},flag:'lifedrain'},
+ {name:"Warden's Key-Blade",slot:'weapon',glyph:'i_wa',stats:{atk:26,crit:12,strength:5},flag:'echo'},
+ {name:"Ember Knight's Cinderplate",slot:'armor',glyph:'i_aa',stats:{hp:130,constitution:6,ward:14,strength:3},flag:'undying'},
+ {name:"Bishop's Tithe-Staff",slot:'weapon',glyph:'i_wb',stats:{atk:14,siph:42,intelligence:7,mana:50},flag:'lifedrain'},
  {name:"Mother's Seedheart",slot:'relic',glyph:'i_u4',stats:{mana:90,regen:2,raise:14,will:5},flag:'soulharvest'},
- {name:'Funeral Shroud of the Pale Sovereign',slot:'armor',glyph:'i_ab',stats:{hp:100,mpow:28,will:8,intellect:6,raise:10},flag:'cheapraise'}
+ {name:'Funeral Shroud of the Pale Sovereign',slot:'armor',glyph:'i_ab',stats:{hp:100,mpow:28,will:8,intelligence:6,raise:10},flag:'cheapraise'}
 ];
 UNIQ.forEach((u,i)=>{ ITEM['u'+i]=Object.assign({id:'u'+i,set:i,tier:5,uq:true,kind:'u'},u); });
 const FLAGS={
@@ -408,7 +493,7 @@ const FLAGS={
  hellfire:'Hellfire: Strike also scorches every other foe for 40% of the damage.',
  deathless:'Deathless: twice per run, a killing blow leaves you at 50% HP.'
 };
-const STATL={atk:['Strike',''],crit:['Crit chance','%'],siph:['Siphon',''],hp:['Max HP',''],mana:['Max mana',''],ward:['Ward',''],might:['Might',''],vigor:['Vigor',''],intellect:['Intellect',''],will:['Will',''],raise:['Raise chance','%'],mpow:['Minion power','%'],regen:['Mana per turn',''],slot:['Army slots','']};
+const STATL={atk:['Strike',''],crit:['Crit chance','%'],siph:['Siphon',''],hp:['Max HP',''],mana:['Max mana',''],ward:['Ward',''],strength:['Strength',''],constitution:['Constitution',''],intelligence:['Intelligence',''],will:['Will',''],raise:['Raise chance','%'],mpow:['Minion power','%'],regen:['Mana per turn',''],slot:['Army slots','']};
 
 // ===== DROP TABLES =====
 // Share of each tier in a gate's drops [common, uncommon, rare, epic, legendary]. Each gate leans on its own tier and sometimes the next.
@@ -452,28 +537,29 @@ const BAG_MAX=30;
 const KNOW_AT=25;   // kills of one enemy type needed to study its drop table in the bestiary
 const G=k=>{ let n=0; if(S&&S.equip) for(const sl in S.equip){ const it=S.equip[sl]; if(it&&ITEM[it.id]) n+=ITEM[it.id].stats[k]||0; } return n; };
 const A=k=>S.player.stats[k]+G(k);
+const sk=id=>(S&&S.player&&S.player.skills&&S.player.skills[id])||0;   // learned rank of a skill (0 = not learned)
 const hasFlag=f=>!!(S&&S.equip)&&Object.values(S.equip).some(it=>it&&ITEM[it.id]&&ITEM[it.id].flag===f);
 
 // ===== HELL TOWER =====
 // A separate 100-floor climb. Each floor is one fight; every tenth floor is a warden. Enemies grow every single floor.
-const TW={unlock:10,hp0:4.5,hpG:.025,atk0:3.8,atkG:.021,repeat:.06};
+const TW={unlock:10,hp0:4.7,hpG:.025,atk0:3.9,atkG:.021,repeat:.06,armor:.85,foeAtk:1.25};   // foeHp/foeAtk: enemy-only multipliers (see DIFF.foeHp)
 const TW_MOBS=[['Imp','striker',.95,1.3],['Hellhound','striker',.95,1.3],['Chain Devil','vanguard',1.4,.9],['Pit Warden','vanguard',1.4,.9],['Soul Tender','mender',.8,.8],['Brimstone Chanter','mender',.8,.8]];
 TW_MOBS.push(['Hell Legionary','vanguard',1.4,.9],['Infernal Duelist','striker',.95,1.3]);
 const TW_BOSS=['The Gate Hound','Cinder Matron','The Iron Inquisitor','Lord of Flies','The Bone Cantor','Duke of Chains','The Pale Executioner','Archdevil Vael','The Hollow Seraph','Abaddon, King of Hell'];
 // 12 uniques: one per warden, and the final warden drops three. They get stronger every ten floors and the last three are the strongest items in the game.
 const TW_UNIQ=[
- {f:10,name:'Hound-Fang Dagger',slot:'weapon',glyph:'i_wa',stats:{atk:34,crit:15,might:6},flag:'execute'},
- {f:20,name:"Matron's Ember Mantle",slot:'armor',glyph:'i_ab',stats:{hp:190,vigor:8,ward:22,mpow:5},flag:'thorns'},
- {f:30,name:"Inquisitor's Censer",slot:'relic',glyph:'i_censer',stats:{mana:130,intellect:9,regen:2,will:5},flag:'censer'},
- {f:40,name:'Chitin of the Fly-Lord',slot:'armor',glyph:'i_aa',stats:{hp:260,vigor:10,mpow:18,will:7},flag:'swarmguard'},
- {f:50,name:"Cantor's Rib-Staff",slot:'weapon',glyph:'i_wb',stats:{atk:40,siph:70,intellect:12,mana:90},flag:'chorus'},
+ {f:10,name:'Hound-Fang Dagger',slot:'weapon',glyph:'i_wa',stats:{atk:34,crit:15,strength:6},flag:'execute'},
+ {f:20,name:"Matron's Ember Mantle",slot:'armor',glyph:'i_ab',stats:{hp:190,constitution:8,ward:22,mpow:5},flag:'thorns'},
+ {f:30,name:"Inquisitor's Censer",slot:'relic',glyph:'i_censer',stats:{mana:130,intelligence:9,regen:2,will:5},flag:'censer'},
+ {f:40,name:'Chitin of the Fly-Lord',slot:'armor',glyph:'i_aa',stats:{hp:260,constitution:10,mpow:18,will:7},flag:'swarmguard'},
+ {f:50,name:"Cantor's Rib-Staff",slot:'weapon',glyph:'i_wb',stats:{atk:40,siph:70,intelligence:12,mana:90},flag:'chorus'},
  {f:60,name:"Chain-Duke's Collar",slot:'relic',glyph:'i_tb',stats:{mana:170,will:12,raise:18,slot:1,mpow:20},flag:'bindsouls'},
- {f:70,name:"Executioner's Axe",slot:'weapon',glyph:'i_axe',stats:{atk:78,crit:22,might:12},flag:'cleave'},
- {f:80,name:"Vael's Hellplate",slot:'armor',glyph:'i_aa',stats:{hp:400,vigor:14,ward:40,might:8},flag:'infernal'},
- {f:90,name:"Seraph's Broken Halo",slot:'relic',glyph:'i_halo',stats:{mana:220,intellect:14,will:12,regen:3,raise:20},flag:'halo'},
- {f:100,name:'Crown of Ruin',slot:'relic',glyph:'i_u0',stats:{mana:300,intellect:20,will:20,mpow:40,regen:5,slot:2,raise:25},flag:'ruin'},
- {f:100,name:'Hellmaw, the Last Blade',slot:'weapon',glyph:'i_greatsword',stats:{atk:120,crit:30,might:20,siph:60},flag:'hellfire'},
- {f:100,name:'Mantle of the Last Sovereign',slot:'armor',glyph:'i_ab',stats:{hp:650,vigor:24,ward:70,might:10,mpow:20},flag:'deathless'}
+ {f:70,name:"Executioner's Axe",slot:'weapon',glyph:'i_axe',stats:{atk:78,crit:22,strength:12},flag:'cleave'},
+ {f:80,name:"Vael's Hellplate",slot:'armor',glyph:'i_aa',stats:{hp:400,constitution:14,ward:40,strength:8},flag:'infernal'},
+ {f:90,name:"Seraph's Broken Halo",slot:'relic',glyph:'i_halo',stats:{mana:220,intelligence:14,will:12,regen:3,raise:20},flag:'halo'},
+ {f:100,name:'Crown of Ruin',slot:'relic',glyph:'i_u0',stats:{mana:300,intelligence:20,will:20,mpow:40,regen:5,slot:2,raise:25},flag:'ruin'},
+ {f:100,name:'Hellmaw, the Last Blade',slot:'weapon',glyph:'i_greatsword',stats:{atk:120,crit:30,strength:20,siph:60},flag:'hellfire'},
+ {f:100,name:'Mantle of the Last Sovereign',slot:'armor',glyph:'i_ab',stats:{hp:650,constitution:24,ward:70,strength:10,mpow:20},flag:'deathless'}
 ];
 const TW_IDS={};
 TW_UNIQ.forEach((u,i)=>{ const id='w'+(i+1); ITEM[id]=Object.assign({id,set:6,tier:5,uq:true,kind:'u',tower:true,floor:u.f},u); (TW_IDS[u.f]=TW_IDS[u.f]||[]).push(id); });
@@ -504,6 +590,7 @@ function spawnFloor(){
   const r=S.run, f=r.tw, boss=f%10===0, list=[];
   if(boss){ list.push(makeTowerEnemy(f,true)); const adds=f===100?4:f>=50?3:2; for(let i=0;i<adds;i++) spawnTowerOne(list,f,-1); }
   else { const n=f<30?3:f<70?3+(Math.random()<.5?1:0):4; for(let i=0;i<n;i++) spawnTowerOne(list,f,0); }
+  foeScale(list,TW.foeAtk);
   r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; r.loot=[]; r.spoils=[]; r.lostLoot=[];
   log(boss?'Floor '+f+'. The warden of this tier is waiting.':'Floor '+f+'.');
   if(hasFlag('infernal')) infernalWard();
@@ -534,13 +621,23 @@ function towerTable(f,role,boss,elite){
   }
   return tcache[key]=rows;
 }
-const dmgMul=()=>hasFlag('ruin')?1.25:1;
+const pierceMul=p=>(hasFlag('ruin')?1.25:1)*(1-foeArmor()*(1-p));   // p = share of foe armor ignored (some skills pierce)
+const dmgMul=()=>pierceMul(0);   // every hit you and your minions land goes through this
 const enrage=e=>(e.tw&&e.boss)?1+Math.max(0,S.run.turn-8)*(e.tw===100?.12:.07):1;   // tower wardens hit harder every turn after turn 8
 
 // ===== DIFFICULTY (tune here) =====
-const DIFF={hp:2.2,atk:2.0,gate:[0.85,1.5,2.2,1.9,1.7,2.3],xpBase:70,xpExp:1.85,heal:.15,mana:.25,mheal:.2,deathXp:.15};
+// gate[1] 1.5->1.65 and gate[5] 2.3->2.45 after the skill system (tests/balance-test.js): skill users now match the old no-skill death rates.
+const DIFF={hp:2.2,atk:2.0,gate:[0.85,1.65,2.2,1.9,1.7,2.45],xpBase:70,xpExp:1.85,heal:.15,mana:.25,mheal:.2,deathXp:.15};
 // Level at which a decent player wins most runs at each gate (measured with a test bot). Used for the Recommended and danger labels.
 const SAFE=[1,6,10,15,22,28];
+// Foe armor: the share of damage living foes shrug off, per gate (TW.armor in the Tower). It makes fights last more turns without
+// inflating any numbers, and the extra turns are what make a room dangerous. Minions use the same stat formula as enemies, so
+// DIFF.hp/atk and DIFF.gate move both sides; armor and foeAtk affect living foes only. Tuned with tests/balance-test.js.
+// Target: a bot that learns skills, entering each gate at its Recommended level, clears ~80% of runs (A and S were tuned entering 3 levels early,
+// because the XP curve stalls the fair bot near level 20). The no-skill bot dies noticeably more often.
+DIFF.armor=[0.38,0.78,0.88,0.85,0.89,0.85]; DIFF.foeAtk=[1,1.2,1.25,1.7,1.4,0.65];   // raised on D, C, A, S after the market (potions + bought gear), so a player using skills and the market clears ~80%
+function foeScale(list,a){ if(a!==1) for(const e of list) e.atk=Math.max(1,Math.round(e.atk*a)); }
+const foeArmor=()=>S.run?(S.run.tw?TW.armor:DIFF.armor[S.run.di]):0;
 let S = null;
 const rnd = (a,b)=>a+Math.random()*(b-a);
 const pick = a=>a[Math.floor(Math.random()*a.length)];
@@ -549,11 +646,11 @@ const need = l=>Math.round(DIFF.xpBase*Math.pow(l,DIFF.xpExp));
 const mneed = l=>Math.round(36*Math.pow(l,1.6));
 
 // ----- player-derived stats
-const pMax = ()=>Math.round((24+A('vigor')*6+S.player.lvl*4+G('hp'))*(S.player.debuff?.8:1));
-const pMana = ()=>20+A('intellect')*5+A('will')*3+G('mana');
-const pAtk = ()=>Math.round(3+A('might')*1.5+S.player.lvl+G('atk'));
-const pSiph = ()=>Math.round(6+A('intellect')*2+S.player.lvl+G('siph'));
-const pWard = ()=>Math.round(10+A('intellect')*2+S.player.lvl*1.5+G('ward'));
+const pMax = ()=>Math.round((24+A('constitution')*6+S.player.lvl*4+G('hp'))*(S.player.debuff?.8:1)*(1+.06*sk('bonearmor')));
+const pMana = ()=>20+A('intelligence')*5+A('will')*3+G('mana');
+const pAtk = ()=>Math.round(3+A('strength')*1.5+S.player.lvl+G('atk'));
+const pSiph = ()=>Math.round(6+A('intelligence')*2+S.player.lvl+G('siph'));
+const pWard = ()=>Math.round(10+A('intelligence')*2+S.player.lvl*1.5+G('ward'));
 const slots = ()=>Math.min(10,1+Math.floor(A('will')/3)+Math.floor(S.player.lvl/5)+G('slot'));
 const pRankI = ()=>{const l=S.player.lvl;return l<4?0:l<8?1:l<12?2:l<17?3:l<23?4:5};
 
@@ -569,15 +666,15 @@ function mobStats(rankI,lvl,hf,af,boss,elite){
 function gearBonus(m){
   const o={atk:0,hp:0,mpow:0}; if(!m.eq) return o;
   for(const sl of GEAR_SLOTS){ const it=m.eq[sl]; if(!it||!ITEM[it.id]) continue; const t=ITEM[it.id].stats;
-    o.atk+=(t.atk||0)+2*(t.might||0)+.5*(t.crit||0)+.4*(t.siph||0)+.5*(t.intellect||0);
-    o.hp+=(t.hp||0)+8*(t.vigor||0)+2.5*(t.ward||0)+.25*(t.mana||0)+4*(t.will||0);
+    o.atk+=(t.atk||0)+2*(t.strength||0)+.5*(t.crit||0)+.4*(t.siph||0)+.5*(t.intelligence||0);
+    o.hp+=(t.hp||0)+8*(t.constitution||0)+2.5*(t.ward||0)+.25*(t.mana||0)+4*(t.will||0);
     o.mpow+=(t.mpow||0); }
   o.atk=Math.round(o.atk); o.hp=Math.round(o.hp); return o;
 }
 function syncMinion(m){
   const s=m.tw?towerStats(m.tw,m.lvl,m.hf,m.af,m.boss,m.elite):mobStats(m.rankI,m.lvl,m.hf,m.af,m.boss,m.elite);
   const gg=gearBonus(m);
-  const b=(1+.02*A('will'))*(1+(G('mpow')+gg.mpow)/100);
+  const b=(1+.02*A('will'))*(1+(G('mpow')+gg.mpow+6*sk('gravepact'))/100);
   const nh=Math.round(s.hp*b+gg.hp), na=Math.round(s.atk*b+gg.atk);
   if(m.maxHp!=null && nh>m.maxHp) m.hp+=nh-m.maxHp;
   m.maxHp=nh; m.atk=na; m.hp=Math.min(m.hp,m.maxHp);
@@ -587,43 +684,99 @@ const syncArmy = ()=>S.army.forEach(syncMinion);
 function notify(m,c){ S.notices.unshift({m,c:c||'info'}); S.notices.length=Math.min(S.notices.length,6); }
 
 // ----- game lifecycle
+function freshState(){
+  return {v:2,day:1,watches:WATCHES,uid:0,mode:'town',run:null,notices:[],runs:0,kills:{},tower:{best:0,got:{}},inv:[],equip:{weapon:null,armor:null,relic:null},
+     player:{id:'p',name:'You',lvl:1,xp:0,pts:3,hp:0,mana:0,shield:0,debuff:false,stats:{strength:4,constitution:4,intelligence:4,will:4},sp:0,skills:{}},
+     army:[],quest:{kills:0,raises:0,clears:0,claimed:false},gold:0,trophies:{},belt:{hp:0,mp:0},shop:null};
+}
 function newGame(){
-  S={v:1,day:1,watches:WATCHES,uid:0,mode:'town',run:null,notices:[],runs:0,kills:{},tower:{best:0,got:{}},inv:[],equip:{weapon:null,armor:null,relic:null},
-     player:{id:'p',name:'You',lvl:1,xp:0,pts:3,hp:0,mana:0,shield:0,debuff:false,stats:{might:4,vigor:4,intellect:4,will:4}},
-     army:[],quest:{kills:0,raises:0,clears:0,claimed:false}};
+  S=freshState();
   S.player.hp=pMax(); S.player.mana=pMana();
   notify('The Ledger is open. Spend your 3 points, then enter the Rat Warren. Raise what you kill.');
 }
-function save(){ try{ S.savedAt=Date.now(); localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
+// What goes to disk. Outside town it is the state you would have after walking out of the gate now, so closing the tab
+// mid-run counts as leaving: the watch stays spent, cleared rooms' XP and loot are kept, and a defeat's penalty sticks.
+function snapshot(){
+  if(S.mode==='town') return S;
+  const c=JSON.parse(JSON.stringify(S));
+  c.mode='town'; c.run=null; c.player.hp=pMax(); c.player.mana=pMana(); c.player.shield=0; c.army.forEach(m=>m.hp=m.maxHp);
+  return c;
+}
+function save(){ try{ S.savedAt=Date.now(); localStorage.setItem(SAVE_KEY, JSON.stringify(snapshot())); }catch(e){} }
 // ----- save slots and save codes
 const SLOTS_N=3, CODE_TAG='LOTD1:';
 const slotKey=i=>SAVE_KEY+'-slot'+i;
-function validSave(g){ return !!(g&&g.v===1&&g.player&&g.army&&g.quest&&typeof g.player.lvl==='number'); }
+// Repair a save into the current shape, or return null if it cannot be a save. Works on a copy; never touches S.
+// Migrates v1 saves (Might/Vigor/Intellect) and fills in anything missing, so older or damaged saves still load.
+function normalizeSave(src){
+  if(!src||typeof src!=='object'||!src.player||typeof src.player!=='object') return null;
+  let g; try{ g=JSON.parse(JSON.stringify(src)); }catch(e){ return null; }
+  if(g.v===1){ const st=g.player.stats||{}, ren={might:'strength',vigor:'constitution',intellect:'intelligence'};
+    for(const o in ren) if(o in st){ st[ren[o]]=st[o]; delete st[o]; } g.player.stats=st; g.v=2; }
+  if(g.v!==2||typeof g.player.lvl!=='number'||!(g.player.lvl>=1)) return null;
+  const d=freshState(), num=(v,def)=>typeof v==='number'&&isFinite(v)?v:def, obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
+  const hadSp=typeof g.player.sp==='number';   // saves from before skills get one point per level already reached
+  const P=g.player=Object.assign({},d.player,g.player);
+  P.stats=Object.assign({},d.player.stats,obj(P.stats)?P.stats:{}); for(const k in d.player.stats) P.stats[k]=num(P.stats[k],d.player.stats[k]);
+  P.lvl=Math.floor(P.lvl); P.xp=num(P.xp,0); P.pts=num(P.pts,0); P.hp=num(P.hp,0); P.mana=num(P.mana,0); P.shield=0;
+  P.skills=obj(P.skills)?P.skills:{}; for(const k in P.skills) if(!SKILL[k]||typeof P.skills[k]!=='number') delete P.skills[k];
+  P.sp=hadSp?num(P.sp,0):Math.max(0,P.lvl-1);
+  g.day=Math.max(1,num(g.day,1)); g.watches=clamp(num(g.watches,WATCHES),0,WATCHES); g.runs=num(g.runs,0);
+  for(const k of ['notices','inv','army']) if(!Array.isArray(g[k])) g[k]=[];
+  for(const k of ['kills','tower','equip','quest']) if(!obj(g[k])) g[k]=d[k];
+  g.quest=Object.assign({},d.quest,g.quest);
+  g.tower={best:num(g.tower.best,0),got:obj(g.tower.got)?g.tower.got:{}};
+  const okItem=it=>!!(it&&ITEM[it.id]&&typeof it.u==='number');
+  g.inv=g.inv.filter(okItem);
+  for(const sl of GEAR_SLOTS) if(!okItem(g.equip[sl])) g.equip[sl]=null;
+  g.army=g.army.filter(m=>m&&typeof m==='object'&&ROLES[m.role]&&typeof m.lvl==='number'&&(m.tw||RK[m.rankI]));
+  for(const m of g.army){ m.hf=num(m.hf,1); m.af=num(m.af,1); m.xp=num(m.xp,0); m.hp=num(m.hp,1); m.nick=m.nick||'Nameless'; m.kind=m.kind||m.name;
+    if(m.armed){ m.eq=obj(m.eq)?m.eq:{}; for(const sl of GEAR_SLOTS) if(!okItem(m.eq[sl])) m.eq[sl]=null; } }
+  let top=num(g.uid,0);   // next id must stay above every id in use, or two items/minions would share one
+  g.inv.concat(Object.values(g.equip),...g.army.map(m=>m.eq?Object.values(m.eq):[])).forEach(it=>{ if(it) top=Math.max(top,it.u); });
+  g.army.forEach(m=>{ top=Math.max(top,num(m.uid,0)); }); g.army.forEach(m=>{ if(typeof m.uid!=='number') m.uid=++top; });
+  g.uid=top; g.mode='town'; g.run=null;
+  g.gold=Math.max(0,Math.floor(num(g.gold,0)));
+  const tr={}; if(obj(g.trophies)) for(const k in g.trophies){ const n=Math.floor(num(g.trophies[k],0)); if(TROPHY[k]&&n>0) tr[k]=n; } g.trophies=tr;
+  const b=obj(g.belt)?g.belt:{}; g.belt={hp:clamp(Math.floor(num(b.hp,0)),0,BELT_MAX),mp:clamp(Math.floor(num(b.mp,0)),0,BELT_MAX)};
+  g.shop=(obj(g.shop)&&typeof g.shop.day==='number'&&Array.isArray(g.shop.stock)&&g.shop.stock.every(s=>s&&ITEM[s.id]))?g.shop:null;
+  return g;
+}
+function validSave(g){ return !!normalizeSave(g); }
+// Make a repaired save the live game. Throws if something is still wrong; callers restore the previous game.
+function applyLoaded(g){
+  S=g; syncArmy();
+  const P=S.player; P.hp=P.hp>0?Math.min(P.hp,pMax()):pMax(); P.mana=clamp(P.mana,0,pMana());
+  S.army.forEach(m=>{ m.hp=clamp(m.hp,1,m.maxHp); });
+  if(!isFinite(pMax())||S.army.some(m=>!isFinite(m.maxHp)||!isFinite(m.atk))) throw new Error('bad numbers');
+  if(S.watches<=0) endDay();   // closed the tab after spending the last watch: the day ends as it would on leaving
+}
 function slotRead(i){ try{ const r=localStorage.getItem(slotKey(i)); if(!r) return null; const g=JSON.parse(r); return validSave(g.data)?g:null; }catch(e){ return null; } }
 function slotWrite(i){ if(S.mode!=='town') return false; try{ S.savedAt=Date.now(); localStorage.setItem(slotKey(i),JSON.stringify({t:Date.now(),data:S})); return true; }catch(e){ return false; } }
 function slotDelete(i){ try{ localStorage.removeItem(slotKey(i)); }catch(e){} }
-function adoptSave(g){   // validate, then hand the data to loadGame so every compatibility fixup runs
-  if(!validSave(g)) return false;
-  let backup=null; try{ backup=localStorage.getItem(SAVE_KEY); }catch(e){}
-  try{ localStorage.setItem(SAVE_KEY,JSON.stringify(g)); }catch(e){ return false; }
-  loadGame();
-  if(!S||!S.player){ return false; }
-  return true;
+function adoptSave(g){   // load a slot or code; on any problem the current game is left exactly as it was
+  const n=normalizeSave(g); if(!n) return false;
+  const prev=S;
+  try{ applyLoaded(n); }catch(e){ S=prev; return false; }
+  save(); return true;
 }
 function slotLoad(i){ const g=slotRead(i); return g?adoptSave(g.data):false; }
 function exportCode(){ try{ return CODE_TAG+btoa(unescape(encodeURIComponent(JSON.stringify(S)))); }catch(e){ return ''; } }
 function importCode(txt){
-  try{ txt=(txt||'').trim(); if(txt.indexOf(CODE_TAG)!==0) return false;
+  try{ txt=(txt||'').replace(/\s+/g,''); if(txt.indexOf(CODE_TAG)!==0) return false;
     const g=JSON.parse(decodeURIComponent(escape(atob(txt.slice(CODE_TAG.length))))); return adoptSave(g);
   }catch(e){ return false; }
 }
 function storageOk(){ try{ localStorage.setItem('lotd-test','1'); localStorage.removeItem('lotd-test'); return true; }catch(e){ return false; } }
 function loadGame(){
-  try{
-    const raw=localStorage.getItem(SAVE_KEY);
-    if(raw){ const g=JSON.parse(raw); if(g&&g.v===1&&g.player&&g.army&&g.quest){ S=g; S.mode='town'; S.run=null; S.kills=S.kills||{}; S.tower=S.tower||{best:0,got:{}}; S.tower.got=S.tower.got||{}; S.inv=(S.inv||[]).filter(it=>ITEM[it.id]); S.equip=S.equip||{}; for(const sl of ['weapon','armor','relic']){ if(!S.equip[sl]||!ITEM[S.equip[sl].id]) S.equip[sl]=null; } syncArmy(); return; } }
-  }catch(e){}
+  let raw=null;
+  try{ raw=localStorage.getItem(SAVE_KEY); }catch(e){}
+  if(raw){
+    try{ const g=normalizeSave(JSON.parse(raw)); if(g){ applyLoaded(g); return; } }catch(e){}
+    try{ localStorage.setItem(SAVE_KEY+'-broken',raw); }catch(e){}   // never throw an unreadable save away
+  }
   newGame();
+  if(raw) notify('Your saved game could not be read, so a new one was started. The old data was kept in this browser under "'+SAVE_KEY+'-broken".','bad');
 }
 
 // ===== TITLES =====
@@ -675,8 +828,8 @@ const titleName=()=>{ const t=S.ti&&S.ti.sel&&TITLE[S.ti.sel]; return t?t.name:'
 
 function addXp(n){
   const P=S.player; P.xp+=n; let ups=0;
-  while(P.xp>=need(P.lvl)){ P.xp-=need(P.lvl); P.lvl++; P.pts+=3; ups++; }
-  if(ups){ P.hp=pMax(); P.mana=pMana(); syncArmy(); notify('Level '+P.lvl+'. 3 stat points to spend.','ok'); }
+  while(P.xp>=need(P.lvl)){ P.xp-=need(P.lvl); P.lvl++; P.pts+=3; P.sp=(P.sp||0)+1; ups++; }
+  if(ups){ P.hp=pMax(); P.mana=pMana(); syncArmy(); const nu=SKILLS.filter(s=>s.lv>P.lvl-ups&&s.lv<=P.lvl).map(s=>s.name); notify('Level '+P.lvl+'. +'+(3*ups)+' stat points and +'+ups+' skill point'+(ups>1?'s':'')+' to spend.'+(nu.length?' New skill: '+nu.join(', ')+'.':''),'ok'); }
   return ups;
 }
 function minionXp(m,n){
@@ -689,8 +842,8 @@ function minionXp(m,n){
 function alloc(k){
   const P=S.player; if(P.pts<=0||S.mode==='battle') return;
   P.stats[k]++; P.pts--;
-  if(k==='vigor') P.hp+=6;
-  if(k==='intellect') P.mana+=5;
+  if(k==='constitution') P.hp+=6;
+  if(k==='intelligence') P.mana+=5;
   if(k==='will'){ P.mana+=3; syncArmy(); }
 }
 const questDone = ()=>S.quest.kills>=QUEST.kills&&S.quest.raises>=QUEST.raises&&S.quest.clears>=QUEST.clears;
@@ -740,6 +893,7 @@ function spawnRoom(){
   const list=[];
   if(boss){ list.push(makeEnemy(di,lvl,true)); const adds=di===0?2:3; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); }
   else{ const n=room===0?2:room===1?3:3+Math.round(Math.random()); for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
+  foeScale(list,DIFF.foeAtk[di]);
   r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; r.loot=[]; r.spoils=[]; r.lostLoot=[];
   log(boss?'The air thickens. Something large waits ahead.':'Room '+(room+1)+' of '+r.rooms+'.');
   if(hasFlag('infernal')) infernalWard();
@@ -765,7 +919,7 @@ const allies = ()=>[S.player].concat(S.army);
 const liveFoes = ()=>S.run.enemies.filter(e=>e.hp>0);
 function mark(id,d,h){ const f=S.run.fx[id]||(S.run.fx[id]={d:0,h:0}); f.d+=d; f.h+=h; }
 function hit(b){ return Math.max(1,Math.round(b*rnd(.85,1.15))); }
-function hurtFoe(e,d){ d=Math.min(d,e.hp); e.hp-=d; mark(e.id,d,0); }
+function hurtFoe(e,d){ if(e.curse) d=Math.round(d*e.curse.mul); d=Math.min(d,e.hp); e.hp-=d; mark(e.id,d,0); }
 function hurtAlly(a,d){
   if(a.id!=='p'&&hasFlag('swarmguard')) d=Math.max(1,Math.round(d*.75));
   if(a.id==='p'){ const s=Math.min(S.player.shield,d); S.player.shield-=s; d-=s; }
@@ -780,7 +934,7 @@ function checkDeaths(){
   const r=S.run;
   for(const e of r.enemies){
     if(e.hp<=0&&!e.dead){
-      e.dead=true; r.kills++; S.quest.kills++; { const n=S.kills[e.base]=(S.kills[e.base]||0)+1; if(n===KNOW_AT) notify('Bestiary: you have studied '+e.base+'. Its drop table is now known.','ok'); } r.pending+=killXp(e); r.loot.push(...rollDrops(e)); if(hasFlag('soulharvest')) S.player.mana=Math.min(pMana(),S.player.mana+6); if(hasFlag('censer')){ S.player.mana=Math.min(pMana(),S.player.mana+10); healAlly(S.player,Math.round(pMax()*.05)); }
+      e.dead=true; r.kills++; S.quest.kills++; { const n=S.kills[e.base]=(S.kills[e.base]||0)+1; if(n===KNOW_AT) notify('Bestiary: you have studied '+e.base+'. Its drop table is now known.','ok'); } r.pending+=killXp(e); r.loot.push(...rollDrops(e)); killLoot(e,r); if(hasFlag('soulharvest')) S.player.mana=Math.min(pMana(),S.player.mana+6); if(hasFlag('censer')){ S.player.mana=Math.min(pMana(),S.player.mana+10); healAlly(S.player,Math.round(pMax()*.05)); }
       r.corpses.push({id:'c'+e.id,armed:isArmed(e.base),name:e.name,base:e.base,role:e.role,rankI:e.rankI,lvl:e.lvl,hf:e.hf,af:e.af,tw:e.tw,boss:e.boss,elite:e.elite,tried:false,result:null,minion:null});
       log(e.name+' falls.');
     }
@@ -798,7 +952,7 @@ function act(kind){
   const r=S.run, P=S.player; r.fx={};
   const t=currentTarget(); if(!t) return;
   if(kind==='strike'){
-    let d=hit(pAtk()*dmgMul()), crit=Math.random()<.1+G('crit')/100; if(crit) d=Math.round(d*1.8); if(hasFlag('execute')&&t.hp<t.maxHp*.35) d=Math.round(d*1.5);
+    let d=hit(pAtk()*dmgMul()*(1+.1*sk('edge'))), crit=Math.random()<.1+G('crit')/100; if(crit) d=Math.round(d*1.8); if(hasFlag('execute')&&t.hp<t.maxHp*.35) d=Math.round(d*1.5);
     hurtFoe(t,d); P.mana=Math.min(pMana(),P.mana+3);
     log('You strike '+t.name+' for '+d+(crit?' (crit)':'')+'. +3 mana.');
     if(hasFlag('echo')&&t.hp>0&&Math.random()<.25){ const d2=hit(pAtk()*dmgMul()); hurtFoe(t,d2); log('Echo: the blade strikes again for '+d2+'.','ok'); }
@@ -814,7 +968,9 @@ function act(kind){
     if(P.mana<6) return;
     P.mana-=6; const w=pWard(); P.shield=Math.min(Math.round(pMax()*.6),P.shield+w);
     mark('p',0,0); log('Bone Ward raised. You hold '+P.shield+' ward.');
-  }else return;
+  }else if(kind.startsWith('sk:')){ if(!useSkill(kind.slice(3),t)) return; }
+  else if(kind.startsWith('pot:')){ if(!drink(kind.slice(4))) return; }
+  else return;
   checkDeaths();
   if(!liveFoes().length){ roomWon(); return; }
   // minions act
@@ -826,7 +982,7 @@ function act(kind){
       if(hurt){ const h=healAlly(hurt,Math.round(m.atk*.9*rnd(.9,1.1))); log(m.nick+' mends '+nameOf(hurt)+' for '+h+'.','ok'); continue; }
     }
     let tg=currentTarget(); if(!tg) break;
-    let d=hit(m.atk*dmgMul()); const crit=m.role==='striker'&&Math.random()<.25; if(crit) d=Math.round(d*1.8);
+    let d=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)); const crit=m.role==='striker'&&Math.random()<.25; if(crit) d=Math.round(d*1.8);
     hurtFoe(tg,d); let extra='';
     if(m.role==='reaper'){ const o=liveFoes().filter(x=>x!==tg); if(o.length){ const o2=pick(o); const d2=Math.round(d*.5); hurtFoe(o2,d2); extra=' and cleaves '+o2.name+' for '+d2; } }
     log(m.nick+' hits '+tg.name+' for '+d+(crit?' (crit)':'')+extra+'.');
@@ -836,21 +992,22 @@ function act(kind){
   // foes act
   for(const e of liveFoes()){
     if(e.hp<=0) continue; const alive=allies().filter(a=>a.hp>0); if(!alive.length) break;
+    if(e.stun>0){ e.stun--; log(e.name+' is frozen and cannot act.','ok'); continue; }
     if(e.role==='mender'){
       const hurt=liveFoes().filter(x=>x.hp<x.maxHp*.7).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
-      if(hurt){ const h=Math.min(Math.round(e.atk*.9),hurt.maxHp-hurt.hp); hurt.hp+=h; log(e.name+' mends '+hurt.name+'.'); continue; }
+      if(hurt){ const h=Math.min(Math.round(e.atk*.9*(1-foeArmor())),hurt.maxHp-hurt.hp); /* scaled by armor like your damage, so menders can't stall a fight */ hurt.hp+=h; log(e.name+' mends '+hurt.name+'.'); continue; }
     }
     const weights=alive.map(a=>a.role==='vanguard'?5:2); let roll=Math.random()*weights.reduce((x,y)=>x+y,0), tg=alive[0];
     for(let i=0;i<alive.length;i++){ roll-=weights[i]; if(roll<=0){ tg=alive[i]; break; } }
     let d=hit(e.atk*enrage(e)); const crit=e.role==='striker'&&Math.random()<.25; if(crit) d=Math.round(d*1.8);
     hurtAlly(tg,d);
     log(e.name+' hits '+nameOf(tg)+' for '+d+(crit?' (crit)':'')+'.','bad');
-    if(tg.id==='p'&&hasFlag('thorns')&&e.hp>0) hurtFoe(e,Math.max(1,Math.round(d*.2)));
+    if(tg.id==='p'&&hasFlag('thorns')&&e.hp>0) hurtFoe(e,Math.max(1,Math.round(d*.2*(1-foeArmor()))));
     if(tg.hp<=0&&tg.id!=='p') log(tg.nick+' is down.','bad');
     if(P.hp<=0){ const lim=hasFlag('deathless')?2:hasFlag('undying')?1:0; if((r.revives||0)<lim){ r.revives=(r.revives||0)+1; P.hp=Math.round(pMax()*(hasFlag('deathless')?.5:.3)); log('Your armor refuses to break. You rise at '+P.hp+' HP.','ok'); } else { defeat(); return; } }
   }
   checkDeaths(); if(!liveFoes().length){ roomWon(); return; }
-  r.turn++; P.mana=Math.min(pMana(),P.mana+1+G('regen'));
+  r.turn++; P.mana=Math.min(pMana(),P.mana+1+G('regen')+sk('soulwell')); skillTick();
   if(hasFlag('halo')) allies().forEach(a=>{ if(a.hp>0) healAlly(a,Math.round((a.id==='p'?pMax():a.maxHp)*.04)); });
   if(r.turn===9&&liveFoes().some(e=>e.tw&&e.boss)) log('Wrath: the warden is enraged and hits harder every turn.','bad');
 }
@@ -870,12 +1027,13 @@ function roomWon(){
     if(f>=100) r.cleared=true;
   } else if(last){ xp+=RK[r.di].clear; r.cleared=true; S.quest.clears++; S.ti=S.ti||{}; S.ti.clr=S.ti.clr||{}; S.ti.clr[r.di]=1; }
   for(const id of r.loot){ const it=addItem(id); if(it) r.spoils.push(it.u); else r.lostLoot.push(ITEM[id].name); } r.loot=[];
+  bankLoot(r);
   r.gained+=xp; r.lastXp=xp;
   r.ups+=addXp(xp);
   S.mode='raise';
 }
 function defeat(){
-  const r=S.run; S.ti=S.ti||{}; S.ti.deaths=(S.ti.deaths||0)+1; r.pending=0; S.mode='defeat'; S.player.xp=Math.max(0,S.player.xp-Math.round(need(S.player.lvl)*DIFF.deathXp));
+  const r=S.run; S.ti=S.ti||{}; S.ti.deaths=(S.ti.deaths||0)+1; r.pending=0; r.gold=0; r.troph={}; S.mode='defeat'; S.player.xp=Math.max(0,S.player.xp-Math.round(need(S.player.lvl)*DIFF.deathXp));
   S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); });
   notify('You were dragged out of '+(r.tw?'the Hell Tower on floor '+r.tw:'the '+DUNGEONS[r.di].name)+'. That room\'s spoils are lost, and you lose '+Math.round(DIFF.deathXp*100)+'% of a level in XP.','bad');
 }
@@ -884,7 +1042,7 @@ function descend(){
   const r=S.run, P=S.player;
   P.hp=Math.min(pMax(),P.hp+Math.round(pMax()*DIFF.heal)); P.mana=Math.min(pMana(),P.mana+Math.round(pMana()*DIFF.mana)); P.shield=0;
   S.army.forEach(m=>m.hp=Math.min(m.maxHp,m.hp+Math.round(m.maxHp*DIFF.mheal)));
-  if(r.tw) r.tw++; r.room++; S.mode='battle'; spawnRoom();
+  r.cd={}; r.frenzy=0; if(r.tw) r.tw++; r.room++; S.mode='battle'; spawnRoom();
 }
 function returnTown(){
   const P=S.player;
@@ -909,7 +1067,7 @@ function discard(u){ S.inv=S.inv.filter(x=>x.u!==u); }
 
 // ----- raising
 function raiseChance(c){
-  let ch=35+A('will')*2.2+G('raise')+(S.player.lvl-c.lvl)*3-RK[c.rankI].pen;
+  let ch=35+A('will')*2.2+G('raise')+4*sk('mastery')+(S.player.lvl-c.lvl)*3-RK[c.rankI].pen;
   if(c.elite) ch-=10; if(c.boss) ch-=15;
   return clamp(Math.round(ch),5,90);
 }
@@ -943,6 +1101,131 @@ function takeGear(uid,sl){
   const it=m.eq[sl]; if(S.inv.length>=BAG_MAX&&!ITEM[it.id].uq){ notify('Your bag is full. Make room first.','bad'); return; }
   S.inv.push(it); m.eq[sl]=null; syncMinion(m); m.hp=Math.min(m.hp,m.maxHp);
 }
+
+// ===== SKILLS =====
+// One skill point per level. Each skill has three ranks; rank n needs level lv+(n-1)*SK_STEP.
+// Actives cost mana and have a cooldown in turns (cooldowns reset each room). Passives always apply.
+const SK_MAX=3, SK_STEP=5;
+const SKILLS=[
+ {id:'spear',name:'Bone Spear',type:'active',lv:2,cost:10,cd:2,desc:r=>'Hurl a lance of bone at your target for '+(70+15*r)+'% of your Strike plus Siphon. Pierces half of foe armor.'},
+ {id:'bonearmor',name:'Bone Armor',type:'passive',lv:3,desc:r=>'+'+(6*r)+'% max HP.'},
+ {id:'mend',name:'Dark Mending',type:'active',lv:4,cost:12,cd:3,desc:r=>'Knit your minions back together. Each one heals '+(15+8*r)+'% of its max HP.'},
+ {id:'blast',name:'Corpse Explosion',type:'active',lv:5,cost:10,cd:3,desc:r=>'Detonate a body that fell this room. Every foe takes '+(60+20*r)+'% of your Siphon, ignoring armor. That body can no longer be raised.'},
+ {id:'soulwell',name:'Soul Well',type:'passive',lv:6,desc:r=>'+'+r+' mana every turn in battle.'},
+ {id:'curse',name:'Curse of Frailty',type:'active',lv:7,cost:8,cd:4,desc:r=>'Your target takes '+(15+10*r)+'% more damage from every source for 3 turns.'},
+ {id:'gravepact',name:'Grave Pact',type:'passive',lv:9,desc:r=>'+'+(6*r)+'% minion power.'},
+ {id:'chill',name:'Grave Chill',type:'active',lv:10,cost:14,cd:5,desc:r=>'Deal 50% of your Siphon and freeze your target for '+(r>=3?'2 turns':'1 turn')+'. Bosses resist '+(60-10*r)+'% of the time.'},
+ {id:'edge',name:'Necrotic Edge',type:'passive',lv:12,desc:r=>'Strike deals '+(10*r)+'% more damage.'},
+ {id:'frenzy',name:'Unholy Frenzy',type:'active',lv:13,cost:15,cd:6,desc:r=>'Your minions deal '+(20+15*r)+'% more damage for 3 turns.'},
+ {id:'mastery',name:'Master of Bones',type:'passive',lv:15,desc:r=>'+'+(4*r)+'% chance to raise the dead.'},
+ {id:'reap',name:'Reap',type:'active',lv:18,cost:18,cd:4,desc:r=>'Deal '+(120+30*r)+'% of your Siphon to your target, ignoring armor, doubled if it is below 35% HP.'}
+];
+const SKILL={}; SKILLS.forEach(s=>SKILL[s.id]=s);
+const skReq=(s,rank)=>s.lv+(rank-1)*SK_STEP;
+const activeSkills=()=>SKILLS.filter(s=>s.type==='active'&&sk(s.id)>0);
+const freeCorpse=()=>S.run&&S.run.corpses.find(c=>!c.tried);
+function skCd(id){ return (S.run&&S.run.cd&&S.run.cd[id])||0; }
+function canUse(id){
+  const s=SKILL[id]; if(S.mode!=='battle'||!s||s.type!=='active'||!sk(id)) return false;
+  if(skCd(id)>0||S.player.mana<s.cost) return false;
+  if(id==='blast'&&!freeCorpse()) return false;
+  if(id==='mend'&&!S.army.some(m=>m.hp>0&&m.hp<m.maxHp)) return false;
+  return true;
+}
+function useSkill(id,t){
+  if(!canUse(id)) return false;
+  const s=SKILL[id], rk=sk(id), r=S.run, P=S.player;
+  P.mana-=s.cost; r.cd=r.cd||{}; r.cd[id]=s.cd+1;   // +1: the end-of-turn tick runs this same turn
+  if(id==='spear'){ const d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(.5)); hurtFoe(t,d); log('Bone Spear impales '+t.name+' for '+d+'.'); }
+  else if(id==='blast'){ const c=freeCorpse(); c.tried=true; c.result='exploded'; const base=pSiph()*(.6+.2*rk)*pierceMul(1); let tot=0; for(const o of liveFoes()){ const d=hit(base); hurtFoe(o,d); tot+=d; } log('The body of '+c.name+' bursts apart, dealing '+tot+' damage across the room.'); }
+  else if(id==='mend'){ let tot=0; for(const m of S.army) if(m.hp>0) tot+=healAlly(m,Math.round(m.maxHp*(.15+.08*rk))); log('Dark Mending knits your army back together for '+tot+' HP.','ok'); }
+  else if(id==='curse'){ t.curse={mul:1+(.15+.1*rk),t:3}; mark(t.id,0,0); log(t.name+' is cursed and takes '+Math.round((.15+.1*rk)*100)+'% more damage.'); }
+  else if(id==='chill'){ const d=hit(pSiph()*.5*dmgMul()); hurtFoe(t,d); const held=!t.boss||Math.random()*100<40+10*rk;
+    if(held&&t.hp>0){ t.stun=rk>=3?2:1; log('Grave Chill hits '+t.name+' for '+d+' and freezes it solid.'); } else log('Grave Chill hits '+t.name+' for '+d+', but it shakes off the frost.'); }
+  else if(id==='frenzy'){ r.frenzy=3; r.frenzyMul=1+(.2+.15*rk); log('Unholy Frenzy: your army surges with '+Math.round((r.frenzyMul-1)*100)+'% more damage.','ok'); }
+  else if(id==='reap'){ const low=t.hp<t.maxHp*.35; let d=hit(pSiph()*(1.2+.3*rk)*pierceMul(1)); if(low) d*=2; hurtFoe(t,d); log('You reap '+t.name+' for '+d+(low?' (harvest)':'')+'.'); }
+  return true;
+}
+function skillTick(){
+  const r=S.run;
+  if(r.cd) for(const k in r.cd) if(r.cd[k]>0) r.cd[k]--;
+  if(r.frenzy>0) r.frenzy--;
+  for(const e of r.enemies) if(e.curse&&--e.curse.t<=0) delete e.curse;
+}
+function learnSkill(id){
+  const s=SKILL[id], P=S.player; if(!s||S.mode!=='town'||P.sp<=0) return;
+  const rk=sk(id); if(rk>=SK_MAX||P.lvl<skReq(s,rk+1)) return;
+  vitals(()=>{ P.skills[id]=rk+1; P.sp--; });
+}
+function resetSkills(){
+  const P=S.player; if(S.mode!=='town') return;
+  const spent=Object.values(P.skills).reduce((a,b)=>a+b,0); if(!spent) return;
+  vitals(()=>{ P.skills={}; P.sp+=spent; }); P.hp=Math.min(P.hp,pMax()); P.mana=Math.min(P.mana,pMana());
+  notify('Your skills are forgotten. '+spent+' skill point'+(spent>1?'s':'')+' returned.');
+}
+
+// ===== GOLD, TROPHIES AND THE MARKET =====
+// Every kill drops a little gold and often a trophy of that enemy type. Trophies stack in a pouch (no bag space) and sell at the market.
+// Like XP and items, a room's gold and trophies are only banked when the room is won.
+const TROPHY_PART={vanguard:['Hide','Shell','Bone Plate','Scale'],striker:['Fang','Claw','Talon','Tooth'],mender:['Relic','Prayer Bead','Vial','Bone Charm'],reaper:['Fang','Claw']};
+const TROPHY_VAL=[3,7,14,26,45,75];          // sell value of an ordinary trophy, per gate
+const TROPHY={};                             // key -> {name, value, ico, rankI}
+(function(){
+  const h=s=>{ let x=0; for(const c of s) x=(x*31+c.charCodeAt(0))|0; return Math.abs(x); };
+  const add=(key,name,value,ico,rankI)=>{ if(!TROPHY[key]) TROPHY[key]={name,value,ico,rankI}; };
+  const part=(n,role)=>{ const p=TROPHY_PART[role]||TROPHY_PART.vanguard; return n+' '+p[h(n)%p.length]; };
+  DUNGEONS.forEach((D,i)=>{ D.mobs.forEach(m=>add(m[0],part(m[0],m[1]),TROPHY_VAL[i],m[0],i)); add('b:'+D.boss[0],'Heart of '+D.boss[0],TROPHY_VAL[i]*10,D.boss[0],i); });
+  TW_MOBS.forEach(m=>add('t:'+m[0],part(m[0],m[1]),40,m[0],4));
+  TW_BOSS.forEach((n,i)=>add('b:'+n,'Heart of '+n,120*(i+1),n,5));
+})();
+const trophyKey=e=>e.boss?'b:'+e.base:(e.tw?'t:':'')+e.base;
+function killLoot(e,r){   // called once per kill, from checkDeaths
+  const coin=Math.max(1,Math.round((1+e.lvl*.5)*(1+e.rankI*.5)*(e.boss?5:1)*(e.elite?2:1)*rnd(.7,1.3)));
+  r.gold=(r.gold||0)+coin;
+  const key=trophyKey(e); if(!TROPHY[key]) return;
+  const n=e.boss?1:e.elite?2:(Math.random()<.6?1:0);
+  if(n){ r.troph=r.troph||{}; r.troph[key]=(r.troph[key]||0)+n; }
+}
+function bankLoot(r){     // called when a room is won
+  r.lastGold=r.gold||0; r.lastTroph=r.troph||{};
+  S.gold+=r.lastGold; for(const k in r.lastTroph) S.trophies[k]=(S.trophies[k]||0)+r.lastTroph[k];
+  r.gold=0; r.troph={};
+}
+// Potions: carried on the belt, drunk in battle as your action.
+const BELT_MAX=3;
+const POTIONS={
+  hp:{name:'Healing Draught',key:'Q',desc:'Restores 35% of your max HP. Drinking it uses your turn.',price:()=>15+S.player.lvl*5},
+  mp:{name:'Mana Tonic',key:'W',desc:'Restores 40% of your max mana. Drinking it uses your turn.',price:()=>12+S.player.lvl*4}
+};
+function drink(k){
+  const P=S.player; if(!S.belt[k]) return false;
+  if(k==='hp'){ if(P.hp>=pMax()) return false; S.belt.hp--; const h=healAlly(P,Math.round(pMax()*.35)); log('You drink a Healing Draught and recover '+h+' HP.','ok'); }
+  else { if(P.mana>=pMana()) return false; S.belt.mp--; const m=Math.min(pMana()-P.mana,Math.round(pMana()*.4)); P.mana+=m; mark('p',0,0); log('You drink a Mana Tonic and recover '+m+' mana.','ok'); }
+  return true;
+}
+// Market prices. Gear sells for a quarter of what the merchant asks. Uniques cannot be sold.
+const SET_PRICE=[30,80,200,480,1100,2400];
+const buyPrice=d=>SET_PRICE[Math.min(d.set,5)];
+const sellPrice=d=>d.uq?0:Math.max(1,Math.round(buyPrice(d)*.25));
+const STOCK_N=4;
+function shopStock(){   // four pieces of gear from your highest unlocked gate (and the one below); new every day and whenever a gate unlocks
+  let g=0; for(let i=0;i<RK.length;i++) if(S.player.lvl>=RK[i].unlock) g=i;
+  if(!S.shop||S.shop.day!==S.day||S.shop.g!==g){
+    const pool=Object.values(ITEM).filter(d=>!d.uq&&d.set<=g&&d.set>=g-1), ids=[];
+    while(ids.length<Math.min(STOCK_N,pool.length)){ const d=pick(pool); if(!ids.includes(d.id)) ids.push(d.id); }
+    S.shop={day:S.day,g,stock:ids.map(id=>({id,sold:false}))};
+  }
+  return S.shop.stock;
+}
+function buyPotion(k){ const p=POTIONS[k], cost=p&&p.price(); if(!p||S.mode!=='town'||S.belt[k]>=BELT_MAX||S.gold<cost) return false; S.gold-=cost; S.belt[k]++; return true; }
+function buyStock(i){
+  const s=shopStock()[i]; if(!s||s.sold||S.mode!=='town') return false; const d=ITEM[s.id], cost=buyPrice(d);
+  if(S.gold<cost||S.inv.length>=BAG_MAX) return false;
+  S.gold-=cost; s.sold=true; addItem(s.id); return true;
+}
+function sellTrophy(k,all){ const n=S.trophies[k]||0; if(!n||!TROPHY[k]||S.mode!=='town') return 0; const q=all?n:1; S.trophies[k]-=q; if(!S.trophies[k]) delete S.trophies[k]; const g=q*TROPHY[k].value; S.gold+=g; return g; }
+function sellAllTrophies(){ let g=0; for(const k of Object.keys(S.trophies)) g+=sellTrophy(k,true); return g; }
+function sellItem(u){ if(S.mode!=='town') return 0; const i=S.inv.findIndex(x=>x.u===u); if(i<0) return 0; const d=ITEM[S.inv[i].id]; if(d.uq) return 0; S.inv.splice(i,1); const g=sellPrice(d); S.gold+=g; return g; }
 //==UI==
 
 // ----- icons (32x32 silhouettes; .c = cutout, .cs = cut line, .s = stroke)
@@ -1342,12 +1625,12 @@ function bestiaryHTML(){
 
 function statusHTML(){
   const P=S.player, st=P.stats, ri=pRankI();
-  const rows=[['might','Might','Strike damage'],['vigor','Vigor','Max HP'],['intellect','Intellect','Mana, Siphon, Ward'],['will','Will','Army slots, raise odds, minion bond']];
+  const rows=[['strength','Strength','Strike damage'],['constitution','Constitution','Max HP'],['intelligence','Intelligence','Mana, Siphon, Ward'],['will','Will','Army slots, raise odds, minion bond']];
   const canAlloc=P.pts>0&&S.mode!=='battle';
   return '<section class="win" aria-labelledby="h-status"><h2 class="win-h" id="h-status">Status</h2>'
    +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(titleName()?'<div class="ttl">'+titleName()+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+(P.debuff?' &middot; <span class="bad">Wounded dawn</span>':'')+'</div></div></div>'
    +meter('HP',P.hp,pMax(),'hp')+meter('Mana',P.mana,pMana(),'mp')+meter('XP',P.xp,need(P.lvl),'xp')
-   +(P.pts>0?'<div><span class="chip">'+P.pts+' unspent point'+(P.pts>1?'s':'')+'</span></div>':'')
+   +((P.pts>0||P.sp>0)?'<div class="chips">'+(P.pts>0?'<span class="chip">'+P.pts+' unspent point'+(P.pts>1?'s':'')+'</span>':'')+(P.sp>0?'<span class="chip">'+P.sp+' skill point'+(P.sp>1?'s':'')+'</span>':'')+'</div>':'')
    +'<div class="stats">'+rows.map(r=>'<div class="stat"><div><b>'+r[1]+'</b><small>'+r[2]+'</small></div><span class="val">'+st[r[0]]+(G(r[0])?'<small class="gb"> +'+G(r[0])+'</small>':'')+'</span>'
       +(canAlloc?'<button class="plus" data-a="alloc" data-k="'+r[0]+'" aria-label="Add a point to '+r[1]+'">+</button>':'<span class="plus-slot"></span>')+'</div>').join('')+'</div>'
    +'<div class="derived"><div><span>Strike</span><b>'+pAtk()+'</b></div><div><span>Siphon</span><b>'+pSiph()+'</b></div><div><span>Slots</span><b>'+slots()+'</b></div></div>'
@@ -1369,7 +1652,7 @@ function gateHTML(i){
   const D=DUNGEONS[i], R=RK[i], P=S.player, locked=P.lvl<R.unlock, diff=P.lvl-SAFE[i];
   const danger=locked?'Locked':diff<-2?'Deadly':diff<0?'Hard':diff<=3?'Fair':'Easy';
   return '<div class="gate'+(locked?' locked':'')+'"><div class="badge r'+i+'">'+RANKS[i]+'</div><div><h3>'+D.name+'</h3><p>'+D.blurb+'</p>'
-   +'<div class="meta">Recommended Lv '+SAFE[i]+'&ndash;'+(SAFE[i]+3)+' &middot; '+danger+' &middot; Boss: '+D.boss[0]+'</div></div>'
+   +'<div class="meta">Recommended Lv '+SAFE[i]+'&ndash;'+(SAFE[i]+3)+' &middot; '+danger+(DIFF.armor[i]?' &middot; Foe armor '+Math.round(DIFF.armor[i]*100)+'%':'')+' &middot; Boss: '+D.boss[0]+'</div></div>'
    +'<button class="btn '+(locked?'':'primary')+'" data-a="enter" data-k="'+i+'"'+(locked?' disabled':'')+'>'+(locked?'Reach Lv '+R.unlock:'Enter')+'</button></div>';
 }
 function titlesHTML(){
@@ -1389,7 +1672,7 @@ function towerHTML(){
   const bosses=TW_BOSS.map((n,i)=>({f:(i+1)*10,name:n}));
   let h='<section class="win" aria-labelledby="h-tw"><h2 class="win-h" id="h-tw">The Hell Tower</h2>'
    +'<h3 class="win-title">One hundred floors. Every floor is harder than the last.</h3>'
-   +'<p class="lede">A separate climb from the gates. Each floor is a single fight; between floors you raise the dead and climb on. A warden waits on every tenth floor and carries a unique relic. The first time you break a warden its unique is guaranteed. After that it drops '+Math.round(TW.repeat*100)+'% of the time. Wardens grow wrathful if the fight drags on. A climb uses one watch, and floors you have cleared become checkpoints.</p>'
+   +'<p class="lede">A separate climb from the gates. Each floor is a single fight; between floors you raise the dead and climb on. A warden waits on every tenth floor and carries a unique relic. The first time you break a warden its unique is guaranteed. After that it drops '+Math.round(TW.repeat*100)+'% of the time. Wardens grow wrathful if the fight drags on. A climb uses one watch, and floors you have cleared become checkpoints.'+(TW.armor?' Tower foes wear '+Math.round(TW.armor*100)+'% armor.':'')+'</p>'
    +'<div class="tw-hero"><b>Highest floor '+T.best+' / 100</b><div class="tw-prog"><i style="width:'+T.best+'%"></i></div>'
    +'<div class="u-sub">Uniques claimed '+Object.keys(T.got).length+' / '+TW_UNIQ.length+'</div></div>'
    +'<p class="group-h">Begin the climb from</p>';
@@ -1410,10 +1693,61 @@ function towerHTML(){
   });
   return h+'</div></section>';
 }
+const COIN='<svg class="coin" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="currentColor"/><circle cx="8" cy="8" r="4.3" fill="none" stroke="#5a4420" stroke-width="1.1"/><path d="M8 5.2v5.6M6.4 6.6h3.2" stroke="#5a4420" stroke-width="1.1"/></svg>';
+const gold=n=>'<span class="gold-n">'+COIN+n.toLocaleString()+'</span>';
+function marketHTML(){
+  const P=S.player, stock=shopStock(), tk=Object.keys(S.trophies).sort((a,b)=>TROPHY[b].value-TROPHY[a].value||TROPHY[a].name.localeCompare(TROPHY[b].name));
+  const tTotal=tk.reduce((a,k)=>a+S.trophies[k]*TROPHY[k].value,0), bagFull=S.inv.length>=BAG_MAX;
+  let h='<section class="win" aria-labelledby="h-mk"><h2 class="win-h" id="h-mk">Bone Market</h2><h3 class="win-title">You have '+gold(S.gold)+'</h3>'
+   +'<p class="lede">The dead pay well for what the living leave behind. Sell trophies and spare gear here, and buy supplies before you go down. The merchant\'s wares change every dawn.</p>';
+  if(ui.msg&&ui.msg.mk) h+='<div class="note '+(ui.msg.c||'')+'"><i>Market</i><span>'+ui.msg.m+'</span></div>';
+  // supplies
+  h+='<p class="group-h">Supplies &middot; carry up to '+BELT_MAX+' of each</p><div class="items">'+Object.keys(POTIONS).map(k=>{ const p=POTIONS[k], c=p.price(), full=S.belt[k]>=BELT_MAX;
+    return '<div class="tt-row"><div><h4>'+p.name+' <span class="u-tag">'+S.belt[k]+'/'+BELT_MAX+'</span></h4><div class="u-sub">'+p.desc+' Key '+p.key+' in battle.</div></div>'
+     +'<button class="btn small primary" data-a="buypot" data-k="'+k+'"'+(full||S.gold<c?' disabled':'')+'>'+(full?'Belt full':'Buy &middot; '+gold(c))+'</button></div>'; }).join('')+'</div>';
+  // merchant stock
+  h+='<p class="group-h">Merchant\'s wares &middot; day '+S.day+'</p>'+(bagFull?'<p class="q-note bad">Your bag is full. Sell or discard something first.</p>':'')
+   +'<div class="items">'+stock.map((s,i)=>{ const d=ITEM[s.id], c=buyPrice(d);
+     return itemCard({id:s.id},s.sold?'<span class="u-tag">Sold</span>':'<button class="btn small primary" data-a="buyitem" data-k="'+i+'"'+(S.gold<c||bagFull?' disabled':'')+'>Buy &middot; '+gold(c)+'</button>'); }).join('')+'</div>';
+  // trophies
+  h+='<p class="group-h">Trophy pouch &middot; worth '+gold(tTotal)+'</p>';
+  if(tk.length){
+    h+='<div class="items">'+tk.map(k=>{ const t=TROPHY[k], n=S.trophies[k];
+      return '<div class="tt-row trow">'+ico(t.ico,t.rankI,{boss:k.startsWith('b:')})+'<div><h4>'+t.name+' <span class="u-tag">&times;'+n+'</span></h4><div class="u-sub">'+gold(t.value)+' each</div></div>'
+       +'<div class="btns" style="margin:0"><button class="btn small" data-a="selltro" data-k="'+k+'">Sell 1</button>'+(n>1?'<button class="btn small primary" data-a="selltroall" data-k="'+k+'">Sell all &middot; '+gold(n*t.value)+'</button>':'')+'</div></div>'; }).join('')+'</div>'
+     +'<div class="btns"><button class="btn primary" data-a="sellalltro">Sell every trophy &middot; '+gold(tTotal)+'</button></div>';
+  } else h+='<p class="lede">Empty. Enemies drop trophies when they fall; win the room to keep them.</p>';
+  // gear from the bag
+  const sellable=S.inv.slice().sort((a,b)=>ITEM[a.id].tier-ITEM[b.id].tier||ITEM[a.id].name.localeCompare(ITEM[b.id].name));
+  h+='<p class="group-h">Sell gear from your bag &middot; '+S.inv.length+'/'+BAG_MAX+'</p>';
+  h+=sellable.length?'<div class="items">'+sellable.map(it=>{ const d=ITEM[it.id];
+      return itemCard(it,d.uq?'<span class="u-tag">Cannot be sold</span>':'<button class="btn small" data-a="sellitem" data-k="'+it.u+'">'+(ui.confirm==='si'+it.u?'Confirm':'Sell &middot; '+gold(sellPrice(d)))+'</button>'); }).join('')+'</div>'
+    :'<p class="lede">Nothing in your bag. Equipped gear is not for sale; unequip it first.</p>';
+  return h+'</section>';
+}
+function skillsHTML(){
+  const P=S.player, spent=Object.values(P.skills).reduce((a,b)=>a+b,0);
+  let h='<section class="win" aria-labelledby="h-sk"><h2 class="win-h" id="h-sk">Skills &middot; '+P.sp+' point'+(P.sp===1?'':'s')+' to spend</h2>'
+   +'<p class="lede">You earn one skill point each level. Active skills appear as buttons in battle (keys 4 and up). They cost mana, and their cooldowns reset every room. Passive skills always apply. Each skill has '+SK_MAX+' ranks, and each rank needs '+SK_STEP+' more levels than the last.</p>';
+  [['active','Active'],['passive','Passive']].forEach(g=>{
+    h+='<p class="group-h">'+g[1]+'</p><div class="items">'+SKILLS.filter(s=>s.type===g[0]).map(s=>{
+      const rk=sk(s.id), next=rk+1, req=rk<SK_MAX?skReq(s,next):0, lockedLv=rk<SK_MAX&&P.lvl<req;
+      const meta=(s.type==='active'?s.cost+' mana &middot; cooldown '+s.cd+' turn'+(s.cd>1?'s':'')+' &middot; ':'')+'Unlocks at Lv '+s.lv;
+      const body='<div class="u-sub">'+(rk?'<span class="ok">Rank '+rk+':</span> '+s.desc(rk):s.desc(1))+'</div>'
+        +(rk&&rk<SK_MAX?'<div class="u-sub dim">Rank '+next+(lockedLv?' (Lv '+req+')':'')+': '+s.desc(next)+'</div>':'');
+      const btn=rk>=SK_MAX?'<span class="u-tag ok">Mastered</span>'
+        :lockedLv?'<button class="btn small" disabled>Reach Lv '+req+'</button>'
+        :'<button class="btn small primary" data-a="learn" data-k="'+s.id+'"'+(P.sp<=0?' disabled':'')+'>'+(rk?'Rank up':'Learn')+'</button>';
+      return '<div class="tt-row'+(rk?' on':'')+(!rk&&lockedLv?' off':'')+'"><div><h4>'+s.name+' <span class="u-tag">'+rk+'/'+SK_MAX+'</span></h4><div class="u-sub">'+meta+'</div>'+body+'</div>'+btn+'</div>';
+    }).join('')+'</div>';
+  });
+  if(spent) h+='<div class="btns"><button class="btn small warn" data-a="skreset">'+(ui.confirm==='skreset'?'Press again to forget all skills':'Forget all skills ('+spent+' back)')+'</button></div>';
+  return h+'</section>';
+}
 function saveTabHTML(){
   const ok=storageOk(), when=t=>t?new Date(t).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'never';
-  let h='<section class="win" aria-labelledby="h-sv"><h2 class="win-h" id="h-sv">Save &amp; load</h2>'
-   +'<p class="lede">The game saves itself every time you are in town. Slots are for keeping a safe copy before something risky, like a Tower warden. A save code lets you carry your progress to another browser or device.</p>';
+  let h='<section class="win" aria-labelledby="h-sv"><h2 class="win-h" id="h-sv">Settings</h2>'
+   +'<p class="group-h">Save &amp; load</p><p class="lede">The game saves itself every time you are in town. Slots are for keeping a safe copy before something risky, like a Tower warden. A save code lets you carry your progress to another browser or device.</p>';
   if(!ok) h+='<div class="note bad"><i>Storage</i><span>This browser is not letting the page store anything, so autosave and slots will not persist. Use a save code below to keep your progress.</span></div>';
   if(ui.msg) h+='<div class="note '+(ui.msg.c||'')+'"><i>Save</i><span>'+ui.msg.m+'</span></div>';
   h+='<div class="u-sub">Autosave: '+(ok?'on &middot; last saved '+when(S.savedAt):'off')+'</div><p class="group-h">Slots</p><div class="items">';
@@ -1429,22 +1763,25 @@ function saveTabHTML(){
    +(ui.exp?'<textarea id="exp" class="codebox" readonly rows="4">'+ui.exp+'</textarea><div class="btns"><button class="btn small primary" data-a="copycode">Copy code</button></div>'
      :'<div class="btns"><button class="btn small primary" data-a="mkcode">Create save code</button></div>')
    +'<p class="group-h">Restore from a code</p><textarea id="imp" class="codebox" rows="3" placeholder="Paste a save code here">'+(ui.imp||'')+'</textarea>'
-   +'<div class="btns"><button class="btn small" data-a="loadcode">'+(ui.confirm==='lc'?'Confirm: replaces your current game':'Load code')+'</button></div></section>';
+   +'<div class="btns"><button class="btn small" data-a="loadcode">'+(ui.confirm==='lc'?'Confirm: replaces your current game':'Load code')+'</button></div>'
+   +'<p class="group-h">New game</p><div class="danger-zone"><p class="q-note" style="margin-top:0">Erases this character, its army, gear, skills and titles, and starts again on day 1. Save slots are kept, so save to a slot first if you might want this character back.</p>'
+   +'<div class="btns"><button class="btn small warn" data-a="newgame">'+(ui.confirm==='new'?'Press again to erase everything':'New game')+'</button></div></div></section>';
   return h;
 }
 function townHTML(){
   let h=notesHTML();
-  h+='<div class="tabs" role="tablist">'+[['gates','Gates'],['gear','Gear &middot; '+S.inv.length],['tower','Hell Tower'],['titles','Titles &middot; '+Object.keys((S.ti&&S.ti.got)||{}).length],['bes','Bestiary']].map(t=>'<button class="tab'+(t[0]==='tower'?' hell':'')+'" role="tab" data-a="tab" data-k="'+t[0]+'" aria-selected="'+((ui.tab||'gates')===t[0])+'">'+t[1]+'</button>').join('')+'</div>';
+  h+='<div class="tabs" role="tablist">'+[['gates','Gates'],['tower','Hell Tower'],['gear','Gear &middot; '+S.inv.length],['market','Market'],['skills','Skills'+(S.player.sp?' &middot; '+S.player.sp:'')],['titles','Titles &middot; '+Object.keys((S.ti&&S.ti.got)||{}).length],['bes','Bestiary']].map(t=>'<button class="tab'+(t[0]==='tower'?' hell':'')+'" role="tab" data-a="tab" data-k="'+t[0]+'" aria-selected="'+((ui.tab||'gates')===t[0])+'">'+t[1]+'</button>').join('')+'</div>';
   if(ui.tab==='gear') return h+bagHTML()+armyHTML();
   if(ui.tab==='bes') return h+bestiaryHTML();
+  if(ui.tab==='skills') return h+skillsHTML();
+  if(ui.tab==='market') return h+marketHTML();
   if(ui.tab==='tower') return h+towerHTML()+armyHTML();
   if(ui.tab==='titles') return h+titlesHTML();
-  if(ui.tab==='save') return h+saveTabHTML();
+  if(ui.tab==='settings') return h+saveTabHTML();
   h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'
    +'<p class="lede">Every kill can be raised. Minions keep their level and grow with every room they survive, up to two levels above you. Higher gates drop stronger dead.</p>'
    +'<div class="gates">'+DUNGEONS.map((d,i)=>gateHTML(i)).join('')+'</div>'
-   +'<div class="btns"><button class="btn small" data-a="rest">Rest until dawn</button>'
-   +'<button class="btn small warn" data-a="newgame">'+(ui.confirm==='new'?'Press again to erase everything':'New game')+'</button></div></section>';
+   +'<div class="btns"><button class="btn small" data-a="rest">Rest until dawn</button></div></section>';
   return h+armyHTML();
 }
 function nick(u){ return u.id==='p'?'You':u.nick||u.name; }
@@ -1454,7 +1791,7 @@ function unitCard(u,side){
   const tag=isP?'Necromancer':ROLES[u.role].label+(isArmed(u.base||u.name)?' &middot; Armed':'')+(u.boss?' &middot; Boss':'')+(u.elite?' &middot; Elite':'');
   const rk=isP?'':'<span class="rk r'+u.rankI+'">'+RANKS[u.rankI]+'</span>';
   const fx=f.d?'<span class="fx neg">-'+f.d+'</span>':f.h?'<span class="fx pos">+'+f.h+'</span>':'';
-  const sub=side==='foe'?'Lv '+u.lvl+' &middot; ATK '+u.atk:isP?'Lv '+u.lvl+' &middot; ATK '+pAtk():u.name+' &middot; Lv '+u.lvl+' &middot; ATK '+u.atk;
+  const sub=side==='foe'?'Lv '+u.lvl+' &middot; ATK '+u.atk+(u.curse&&!dead?' &middot; <span class="bad">Cursed '+u.curse.t+'</span>':'')+(u.stun&&!dead?' &middot; <span class="ok">Frozen</span>':''):isP?'Lv '+u.lvl+' &middot; ATK '+pAtk():u.name+' &middot; Lv '+u.lvl+' &middot; ATK '+u.atk;
   const inner=fx+'<div class="u-head">'+(isP?ico('Necromancer',pRankI(),{}):ico(u.base||u.kind||u.name,u.rankI,u))+'<div class="u-id"><div class="u-top">'+rk+'<span class="u-tag">'+tag+'</span></div>'
    +'<div class="u-name">'+(side==='foe'?u.name:nick(u))+'</div><div class="u-sub num">'+sub+'</div></div></div>'
    +'<div class="bar"><i class="fill hp" style="width:'+pct(u.hp,max)+'%"></i></div>'
@@ -1468,12 +1805,16 @@ function battleHTML(){
   currentTarget();
   const r=S.run, D=DUNGEONS[r.di], P=S.player, boss=r.room===r.rooms-1;
   return '<section class="win" aria-labelledby="h-battle"><h2 class="win-h" id="h-battle">'+(r.tw?'Hell Tower &middot; Floor '+r.tw+(r.tw%10===0?' &middot; Warden':'')+' &middot; Turn '+r.turn:D.name+' &middot; Room '+(r.room+1)+'/'+r.rooms+(boss?' &middot; Boss':'')+' &middot; Turn '+r.turn)+'</h2>'
-   +'<p class="group-h">Foes &middot; choose a target, your army follows it</p><div class="row">'+r.enemies.map(e=>unitCard(e,'foe')).join('')+'</div>'
-   +'<p class="group-h">Your side</p><div class="row">'+allies().map(a=>unitCard(a,'ally')).join('')+'</div>'
+   +'<p class="group-h">Foes'+(foeArmor()?' &middot; armor '+Math.round(foeArmor()*100)+'% (blunts every hit you and your army land)':'')+' &middot; choose a target, your army follows it</p><div class="row">'+r.enemies.map(e=>unitCard(e,'foe')).join('')+'</div>'
+   +'<p class="group-h">Your side'+(r.frenzy>0?' &middot; <span class="ok">Frenzy '+r.frenzy+'</span>':'')+'</p><div class="row">'+allies().map(a=>unitCard(a,'ally')).join('')+'</div>'
    +'<div class="btns"><button class="btn primary" data-a="act" data-k="strike">Strike +3 mana<kbd>1</kbd></button>'
    +'<button class="btn" data-a="act" data-k="siphon"'+(P.mana<8?' disabled':'')+'>Soul Siphon 8<kbd>2</kbd></button>'
    +'<button class="btn" data-a="act" data-k="ward"'+(P.mana<6?' disabled':'')+'>Bone Ward 6<kbd>3</kbd></button>'
    +'<button class="btn warn" data-a="flee">Flee</button></div>'
+   +((S.belt.hp||S.belt.mp)?'<div class="btns">'+Object.keys(POTIONS).filter(k=>S.belt[k]).map(k=>{ const p=POTIONS[k], full=k==='hp'?P.hp>=pMax():P.mana>=pMana();
+      return '<button class="btn potion" data-a="act" data-k="pot:'+k+'"'+(full?' disabled title="Already full"':' title="'+p.desc+'"')+'>'+p.name+' &times;'+S.belt[k]+'<kbd>'+p.key+'</kbd></button>'; }).join('')+'</div>':'')
+   +(activeSkills().length?'<div class="btns">'+activeSkills().map((s,i)=>{ const cd=skCd(s.id), why=cd>0?'Ready in '+cd+' turn'+(cd>1?'s':''):s.id==='blast'&&!freeCorpse()?'Needs a body that fell this room':s.id==='mend'&&!S.army.some(m=>m.hp>0&&m.hp<m.maxHp)?'No wounded minions':P.mana<s.cost?'Not enough mana':s.desc(sk(s.id));
+      return '<button class="btn" data-a="act" data-k="sk:'+s.id+'" title="'+why+'"'+(canUse(s.id)?'':' disabled')+'>'+s.name+' '+s.cost+(cd>0?' &middot; '+cd+'t':'')+(i<6?'<kbd>'+(i+4)+'</kbd>':'')+'</button>'; }).join('')+'</div>':'')
    +logHTML()+'</section>';
 }
 function slotsHTML(){ const n=slots(); let s='<span class="slots" aria-label="'+S.army.length+' of '+n+' slots used">'; for(let i=0;i<n;i++) s+='<i class="slot'+(i<S.army.length?' on':'')+'"></i>'; return s+'</span>'; }
@@ -1514,7 +1855,7 @@ function raiseHTML(){
   const corpses=r.corpses.map(c=>{
     const ch=raiseChance(c), cost=raiseCost(c);
     let right;
-    if(c.tried) right=c.result==='raised'?'<span class="ok num">Raised as '+c.minion+'</span>':'<span class="bad num">Crumbled</span>';
+    if(c.tried) right=c.result==='raised'?'<span class="ok num">Raised as '+c.minion+'</span>':c.result==='exploded'?'<span class="dim num">Burst apart</span>':'<span class="bad num">Crumbled</span>';
     else right='<button class="btn primary small" data-a="raise" data-k="'+c.id+'"'+(P.mana<cost||full?' disabled':'')+'>Raise &middot; '+ch+'% &middot; '+cost+' mana</button>';
     return '<div class="corpse'+(c.tried?' done '+c.result:'')+'"><div><div class="u-head">'+ico(c.base,c.rankI,c)+'<div class="u-id"><div class="u-top"><span class="rk r'+c.rankI+'">'+RANKS[c.rankI]+'</span><span class="u-tag">'+ROLES[c.role].label+(c.armed?' &middot; Armed':'')+(c.boss?' &middot; Boss':'')+(c.elite?' &middot; Elite':'')+'</span></div>'
      +'<div class="u-name" style="'+(c.elite?'color:var(--gold)':'')+'">'+c.name+'</div><div class="u-sub num">Lv '+c.lvl+'</div></div></div></div>'+right+'</div>';
@@ -1534,6 +1875,9 @@ function spoilsHTML(){
   let h='';
   if(sp.some(it=>ITEM[it.id].uq)) h+='<div class="note ok"><i>Unique</i><span>Something very few ever hold. Equip it and read what it does.</span></div>';
   if((r.lostLoot||[]).length) h+='<div class="note bad"><i>Bag full</i><span>Left behind: '+r.lostLoot.join(', ')+'.</span></div>';
+  const tro=Object.keys(r.lastTroph||{});
+  if(r.lastGold||tro.length) h+='<p class="group-h">Gold and trophies</p><div class="loot-line">'+gold(r.lastGold||0)
+    +tro.map(k=>'<span class="tro-chip">'+TROPHY[k].name+(r.lastTroph[k]>1?' &times;'+r.lastTroph[k]:'')+'</span>').join('')+'</div>';
   if(sp.length) h+='<p class="group-h">Spoils from this room</p><div class="items">'+sp.map(it=>itemCard(it,'<button class="btn small primary" data-a="equip" data-k="'+it.u+'">'+(S.equip[ITEM[it.id].slot]?'Swap in':'Equip')+'</button>')).join('')+'</div>';
   return h;
 }
@@ -1545,43 +1889,56 @@ function defeatHTML(){
 }
 function render(){
   checkTitles();
+  document.body.classList.toggle('hell', S.mode==='town'?ui.tab==='tower':!!(S.run&&S.run.tw));   // hell backdrop on the Tower tab and during a climb
   const f=document.activeElement; let key=null;
   if(f&&f.dataset&&f.dataset.a) key='[data-a="'+f.dataset.a+'"]'+(f.dataset.k?'[data-k="'+f.dataset.k+'"]':'');
   let pips=''; for(let i=0;i<WATCHES;i++) pips+='<i class="pip'+(i<S.watches?' on':'')+'"></i>';
   const main=S.mode==='battle'?battleHTML():S.mode==='raise'?raiseHTML():S.mode==='defeat'?defeatHTML():townHTML();
-  app.innerHTML='<header class="top"><div class="brand"><svg class="sigil" viewBox="0 0 64 64" width="54" height="54" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="32" cy="32" r="30"/><circle cx="32" cy="32" r="24" stroke-dasharray="1.5 3.5"/><rect x="16" y="16" width="32" height="32"/><rect x="16" y="16" width="32" height="32" transform="rotate(45 32 32)"/><circle cx="32" cy="32" r="6"/><circle cx="32" cy="32" r="2" fill="currentColor"/></g></svg><div><h1>Ledger of the Dead</h1><p class="tag">Every name in this book answers to you.</p></div></div><div class="top-meta"><span>Day '+S.day+'</span><span>Watches<span class="pips" aria-label="'+S.watches+' of '+WATCHES+' watches left">'+pips+'</span></span><button class="btn small savebtn'+((ui.tab==='save'&&S.mode==='town')?' done':'')+'" data-a="quicksave"'+(S.mode==='town'?'':' disabled title="You can save when you are back in town"')+'>Save</button></div></header>'
+  app.innerHTML='<header class="top"><div class="brand"><svg class="sigil" viewBox="0 0 64 64" width="54" height="54" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="32" cy="32" r="30"/><circle cx="32" cy="32" r="24" stroke-dasharray="1.5 3.5"/><rect x="16" y="16" width="32" height="32"/><rect x="16" y="16" width="32" height="32" transform="rotate(45 32 32)"/><circle cx="32" cy="32" r="6"/><circle cx="32" cy="32" r="2" fill="currentColor"/></g></svg><div><h1>Ledger of the Dead</h1><p class="tag">Every name in this book answers to you.</p></div></div><div class="top-meta"><span>Day '+S.day+'</span><span title="Gold">'+gold(S.gold)+'</span><span>Watches<span class="pips" aria-label="'+S.watches+' of '+WATCHES+' watches left">'+pips+'</span></span></div>'
+   +'<button class="gearbtn'+((ui.tab==='settings'&&S.mode==='town')?' on':'')+'" data-a="settings" aria-label="Settings" aria-pressed="'+(ui.tab==='settings'&&S.mode==='town')+'"'+(S.mode==='town'?' title="Settings: save, load, new game"':' disabled title="Settings open when you are back in town"')+'><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M10.3 2h3.4l.5 2.6c.6.2 1.2.5 1.7.9l2.5-.9 1.7 2.9-2 1.7c.1.6.1 1.3 0 1.9l2 1.7-1.7 2.9-2.5-.9c-.5.4-1.1.7-1.7.9l-.5 2.6h-3.4l-.5-2.6c-.6-.2-1.2-.5-1.7-.9l-2.5.9-1.7-2.9 2-1.7a6 6 0 0 1 0-1.9l-2-1.7 1.7-2.9 2.5.9c.5-.4 1.1-.7 1.7-.9zM12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z"/></svg></button></header>'
    +'<div class="layout"><div class="main">'+main+'</div><aside class="rail">'+statusHTML()+equipHTML()+questHTML()+'</aside></div>';
   if(key){ const n=app.querySelector(key); if(n) n.focus({preventScroll:true}); }
-  if(S.mode==='town') save();
+  save();   // every screen saves; outside town the snapshot is "as if you walked out now"
 }
 const ACTIONS={
-  equip:k=>equip(+k), unequip:k=>unequip(k), tab:k=>{ ui.tab=k; }, bes:k=>{ ui.bes=ui.bes===k?null:k; },
+  equip:k=>equip(+k), unequip:k=>unequip(k), tab:k=>{ ui.tab=k; ui.msg=null; }, bes:k=>{ ui.bes=ui.bes===k?null:k; },
   discard:k=>{ if(ui.confirm==='d'+k){ discard(+k); ui.confirm=null; } else ui.confirm='d'+k; },
-  alloc:k=>alloc(k), claim:()=>claimQuest(), dismiss:()=>{S.notices=[]},
+  alloc:k=>alloc(k), learn:k=>learnSkill(k),
+  buypot:k=>{ const c=POTIONS[k].price(); ui.msg=buyPotion(k)?{mk:1,m:'Bought a '+POTIONS[k].name+' for '+c+' gold.',c:'ok'}:null; },
+  buyitem:k=>{ const s=shopStock()[+k], c=s&&buyPrice(ITEM[s.id]); ui.msg=buyStock(+k)?{mk:1,m:'Bought '+ITEM[s.id].name+' for '+c+' gold. It is in your bag.',c:'ok'}:null; },
+  selltro:k=>{ const g=sellTrophy(k,false); ui.msg=g?{mk:1,m:'Sold '+TROPHY[k].name+' for '+g+' gold.',c:'ok'}:null; },
+  selltroall:k=>{ const n=S.trophies[k], g=sellTrophy(k,true); ui.msg=g?{mk:1,m:'Sold '+n+' '+TROPHY[k].name+' for '+g+' gold.',c:'ok'}:null; },
+  sellalltro:()=>{ const g=sellAllTrophies(); ui.msg=g?{mk:1,m:'Sold every trophy for '+g+' gold.',c:'ok'}:null; },
+  sellitem:k=>{ if(ui.confirm!=='si'+k){ ui.confirm='si'+k; return; } ui.confirm=null; const it=S.inv.find(x=>x.u===+k), nm=it&&ITEM[it.id].name, g=sellItem(+k); ui.msg=g?{mk:1,m:'Sold '+nm+' for '+g+' gold.',c:'ok'}:null; }, skreset:()=>{ if(ui.confirm==='skreset'){ ui.confirm=null; resetSkills(); } else ui.confirm='skreset'; }, claim:()=>claimQuest(), dismiss:()=>{S.notices=[]},
   enter:k=>startRun(+k),
   pick:k=>{ const a=k.split('|'); ui.pick=(ui.pick&&ui.pick.uid===+a[0]&&ui.pick.slot===a[1])?null:{uid:+a[0],slot:a[1]}; },
   give:k=>{ const a=k.split('|'); giveGear(+a[0],+a[1]); ui.pick=null; },
-  take:k=>{ const a=k.split('|'); takeGear(+a[0],a[1]); }, quicksave:()=>{ if(S.mode!=='town') return; ui.tab='save'; ui.msg=null; },
+  take:k=>{ const a=k.split('|'); takeGear(+a[0],a[1]); }, settings:()=>{ if(S.mode!=='town') return; ui.tab=ui.tab==='settings'?'gates':'settings'; ui.msg=null; ui.exp=''; },
   slotsave:k=>{ if(slotRead(+k)&&ui.confirm!=='ss'+k){ ui.confirm='ss'+k; return; } ui.confirm=null; ui.msg=slotWrite(+k)?{m:'Saved to slot '+k+'.',c:'ok'}:{m:'Could not write to slot '+k+'. Use a save code instead.',c:'bad'}; },
   slotload:k=>{ if(ui.confirm!=='sl'+k){ ui.confirm='sl'+k; return; } ui.confirm=null; ui.msg=slotLoad(+k)?{m:'Loaded slot '+k+'.',c:'ok'}:{m:'That slot could not be read.',c:'bad'}; ui.exp=''; },
   slotdel:k=>{ if(ui.confirm!=='sd'+k){ ui.confirm='sd'+k; return; } ui.confirm=null; slotDelete(+k); ui.msg={m:'Slot '+k+' deleted.',c:''}; },
   mkcode:()=>{ ui.exp=exportCode(); ui.msg=ui.exp?null:{m:'Could not create a code.',c:'bad'}; },
-  copycode:()=>{ const t=document.getElementById('exp'); if(!t) return; t.select(); try{ navigator.clipboard.writeText(t.value).then(()=>{ ui.msg={m:'Code copied.',c:'ok'}; render(); },()=>{}); }catch(e){} },
+  copycode:()=>{ const t=document.getElementById('exp'); if(!t) return; const v=t.value;
+    const fallback=()=>{ const x=document.getElementById('exp'); let ok=false; if(x){ x.focus(); x.select(); try{ ok=document.execCommand('copy'); }catch(e){} }
+      ui.msg=ok?{m:'Code copied.',c:'ok'}:{m:'Copying is blocked here. The code is selected: press Ctrl+C (Cmd+C on a Mac) to copy it.',c:'bad'}; render(); const y=document.getElementById('exp'); if(y&&!ok){ y.focus(); y.select(); } };
+    try{ navigator.clipboard.writeText(v).then(()=>{ ui.msg={m:'Code copied.',c:'ok'}; render(); },fallback); }catch(e){ setTimeout(fallback,0); } },
   loadcode:()=>{ if(ui.confirm!=='lc'){ ui.confirm='lc'; return; } ui.confirm=null; if(importCode(ui.imp)){ ui.imp=''; ui.exp=''; ui.msg={m:'Save code loaded.',c:'ok'}; } else ui.msg={m:'That code is not a valid save.',c:'bad'}; }, wear:k=>{ S.ti.sel=(S.ti.sel===k?null:k); }, tower:k=>startTower(+k), act:k=>act(k), target:k=>setTarget(k), flee:()=>flee(),
   raise:k=>tryRaise(k), descend:()=>descend(), town:()=>returnTown(), rest:()=>restDay(),
   release:k=>{ if(ui.confirm===+k){ release(+k); ui.confirm=null; } else ui.confirm=+k; },
-  newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); } else ui.confirm='new'; }
+  newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); ui.tab='gates'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
 };
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-a]'); if(!b||b.disabled) return;
   const a=b.dataset.a;
-  if(ui.confirm!==null && !['release','newgame','discard','slotsave','slotload','slotdel','loadcode'].includes(a)) ui.confirm=null;
+  if(ui.confirm!==null && !['release','newgame','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode'].includes(a)) ui.confirm=null;
   ACTIONS[a]&&ACTIONS[a](b.dataset.k); render();
 });
 document.addEventListener('input',e=>{ if(e.target&&e.target.id==='imp') ui.imp=e.target.value; });
 document.addEventListener('keydown',e=>{
   if(S.mode!=='battle'||e.ctrlKey||e.metaKey||e.altKey) return;
-  const k={'1':'strike','2':'siphon','3':'ward'}[e.key];
+  let k={'1':'strike','2':'siphon','3':'ward'}[e.key];
+  if(!k&&/^[4-9]$/.test(e.key)){ const s=activeSkills()[+e.key-4]; if(s) k='sk:'+s.id; }
+  if(!k){ const pk=Object.keys(POTIONS).find(x=>POTIONS[x].key.toLowerCase()===e.key.toLowerCase()); if(pk) k='pot:'+pk; }
   if(k){ e.preventDefault(); act(k); render(); }
 });
 
@@ -1593,15 +1950,16 @@ document.addEventListener('keydown',e=>{
   function size(){ const d=Math.min(2,window.devicePixelRatio||1); W=window.innerWidth; H=window.innerHeight; cv.width=W*d; cv.height=H*d; cx.setTransform(d,0,0,d,0,0); }
   function mk(init){ return {x:Math.random()*W,y:init?Math.random()*H:H+12,r:rnd(.7,2.2),vy:rnd(.12,.5),dx:rnd(-.12,.12),ph:Math.random()*6.28,soul:Math.random()<.65}; }
   function draw(t){
-    cx.clearRect(0,0,W,H);
+    cx.clearRect(0,0,W,H); const hell=document.body.classList.contains('hell');
     for(const p of P){
-      const a=.25+.35*Math.sin(t/900+p.ph), c=p.soul?'143,212,106':'224,138,60';
+      const a=.25+.35*Math.sin(t/900+p.ph), c=hell?(p.soul?'255,122,60':'255,190,90'):p.soul?'143,212,106':'224,138,60';   // in the Tower every soul burns
       cx.fillStyle='rgba('+c+','+(a*.18)+')'; cx.beginPath(); cx.arc(p.x,p.y,p.r*4,0,6.283); cx.fill();
       cx.fillStyle='rgba('+c+','+a+')'; cx.beginPath(); cx.arc(p.x,p.y,p.r,0,6.283); cx.fill();
     }
   }
   function step(t){
-    for(let i=0;i<P.length;i++){ const p=P[i]; p.y-=p.vy; p.x+=p.dx+Math.sin(t/2000+p.ph)*.15; if(p.y<-12) P[i]=mk(false); }
+    const hot=document.body.classList.contains('hell')?2.2:1;
+    for(let i=0;i<P.length;i++){ const p=P[i]; p.y-=p.vy*hot; p.x+=p.dx+Math.sin(t/2000+p.ph)*.15; if(p.y<-12) P[i]=mk(false); }
     draw(t); requestAnimationFrame(step);
   }
   size(); const n=W<600?22:44; for(let i=0;i<n;i++) P.push(mk(true));
