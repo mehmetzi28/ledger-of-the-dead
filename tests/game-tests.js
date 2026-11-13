@@ -46,7 +46,7 @@ function firstDiff(a,b,p){ p=p||''; if(canon(a)===canon(b)) return null;
   if(!a||!b||typeof a!=='object'||typeof b!=='object') return p+': '+fmt(a)+' vs '+fmt(b);
   for(const k of new Set(Object.keys(a).concat(Object.keys(b)))){ const d=firstDiff(a[k],b[k],p+'.'+k); if(d) return d; } return p; }
 function renderAll(where){ render(); cleanHTML(app.innerHTML,where); return app.innerHTML; }
-const TABS=['gates','gear','bes','skills','market','tower','titles','settings','help'];
+const TABS=['gates','gear','bes','skills','market','tower','titles','settings','help','hist'];
 function richState(){
   fresh(30); const P=S.player; P.sp=4; P.pts=2; SKILLS.forEach(s=>P.skills[s.id]=3);
   S.gold=99999; S.belt={hp:3,mp:3}; S.bagLv=BAG_COST.length; S.salts=SALT_MAX; S.ngp=2; S.day=40;
@@ -60,6 +60,9 @@ function richState(){
   mkMinion({name:'The Rat King',kind:'The Rat King',role:'reaper',boss:true,traits:['vicious','leech'],lvl:20,lvl0:10,stage:2});
   mkMinion({name:'Imp',kind:'Imp',tw:30,rankI:3,lvl:20,traits:['gravebound'],stage:1});
   mkMinion({name:'Ashen Drowned Priest',kind:'Drowned Priest',role:'mender',rankI:1,elite:true,lvl:12,traits:['stalwart','frenzied']});
+  S.inv.forEach((it,i)=>{ if(!ITEM[it.id].uq&&i%2) it.ro=rollItem(it.id,true); });
+  S.hist=[]; for(let i=0;i<25;i++){ const r={di:i%6,tw:i%5===0?10+i:0,tw0:i%5===0?10:0,won:3,kills:9,gained:400,goldTot:120,items:2,raised:1,mod:i%3?null:'drought',cleared:i%2===0}; S.mode='town'; recordRun(S,r,['cleared','fell','fled','left'][i%4]); }
+  S.mod={day:S.day,gi:2,id:'horde'};
   S.notices=[{m:'A notice.',c:'info'},{m:'A bad one.',c:'bad'}];
   return S;
 }
@@ -740,6 +743,175 @@ test('Sound: effects never throw, even without Web Audio, and stay quiet when of
 
 // =====================================================================================================
 // PLAYTHROUGH
+// =====================================================================================================
+// GEAR ROLLS
+test('Rolls: rarer tiers roll more bonus lines, uniques never roll',()=>{
+  seed(21); const lines=t=>{ let max=0, sum=0; const id=Object.values(ITEM).find(d=>!d.uq&&d.tier===t).id; for(let i=0;i<2000;i++){ const r=rollItem(id); const n=r?r.length:0; max=Math.max(max,n); sum+=n; } return {max,avg:sum/2000}; };
+  const c=lines(0), u=lines(1), r=lines(2), e=lines(3), l=lines(4);
+  eq(c.max,1); eq(r.max,2); eq(l.max,3); ok(c.avg<u.avg&&u.avg<r.avg&&r.avg<e.avg&&e.avg<l.avg,'average lines rise with tier');
+  eq(rollItem('u0'),null); eq(rollItem('w12'),null); eq(rollItem('nope'),null);
+});
+test('Rolls: lines use real stats, never repeat a stat, and grow with the gate set',()=>{
+  seed(5); let lo=0, hi=0;
+  for(let i=0;i<500;i++){ const r=rollItem('4-wa',true); ok(r.length>=1); eq(new Set(r.map(x=>x[0])).size,r.length); r.forEach(x=>{ ok(ROLL_KEYS[x[0]]&&STATL[x[0]],x[0]); ok(x[1]>=1&&Number.isInteger(x[1])); }); }
+  for(let i=0;i<500;i++){ (rollItem('0-wa',true)||[]).forEach(x=>lo+=x[1]/ROLL_KEYS[x[0]]); (rollItem('5-wa',true)||[]).forEach(x=>hi+=x[1]/ROLL_KEYS[x[0]]); } ok(hi>lo*5,'set 5 rolls far higher than set 0');
+});
+test('Rolls: bonus lines count for you and for gear-bearers',()=>{
+  const it={u:++S.uid,id:'0-wa',ro:[['strength',5],['hp',40]]}; S.equip.weapon=it; eq(A('strength'),9); eq(G('hp'),40); eq(itStat(it,'atk'),ITEM['0-wa'].stats.atk);
+  const plain=gearBonus({eq:{weapon:{id:'0-wa'}}}), rolled=gearBonus({eq:{weapon:it}}); eq(rolled.atk,plain.atk+10); eq(rolled.hp,plain.hp+40);
+});
+test('Rolls: found and forged gear rolls; each line adds a quarter to the sell price',()=>{
+  fix(0); const it=addItem('2-wa'); ok(it.ro&&it.ro.length===2,'rolled 2 lines'); eq(sellValue(it),Math.round(sellPrice(ITEM['2-wa'])*1.5)); eq(sellItem(it.u),Math.round(50*1.5));
+  const plain=addItem('2-wa',null); eq(plain.ro,undefined); eq(sellValue(plain),50);
+});
+test('Rolls: the merchant shows the rolls you will get',()=>{
+  seed(8); setLvl(30); const st=shopStock(); const s=st.find(x=>x.ro)||st[0]; s.ro=s.ro||[['will',3]]; S.gold=1e6; ok(buyStock(st.indexOf(s))); eq(canon(S.inv[S.inv.length-1].ro),canon(s.ro));
+});
+test('Rolls: reforging re-rolls for gold, always leaves a line, only in town and never on uniques',()=>{
+  const it=give('3-ab'); S.gold=1000; const c=reforgeCost(it); eq(c,Math.round(480*REFORGE_COST)); ok(reforge(it.u)); eq(S.gold,1000-c); ok(it.ro&&it.ro.length>=1); eq(S.ti.reforged,1);
+  S.gold=0; ok(!reforge(it.u),'too poor'); S.gold=1e4; const u=give('u0'); ok(!reforge(u.u)); ok(!reforge(999));
+  const w={u:++S.uid,id:'3-aa'}; S.equip.armor=w; S.player.hp=pMax(); seq([.1,.1,.1,.1,0,.5,.1,0],.5); ok(reforge(w.u),'equipped gear can be reforged'); ok(S.player.hp<=pMax());
+  arena([foe()]); ok(!reforge(it.u),'not in battle');
+});
+test('Rolls: damaged rolls in a save are cleaned up',()=>{
+  const g=normalizeSave({v:2,player:{lvl:3},inv:[{u:1,id:'0-wa',ro:[['atk',3],['fly',9],['hp',-2],['hp','x'],['crit',2.6],['will',1],['mana',4]]},{u:2,id:'u0',ro:[['atk',5]]},{u:3,id:'0-ta',ro:'junk'}],
+    shop:{day:1,g:0,stock:[{id:'0-wa',ro:[['bogus',1]]}]}});
+  eq(canon(g.inv[0].ro),canon([['atk',3],['crit',3],['will',1]])); eq(g.inv[1].ro,undefined,'uniques never keep rolls'); eq(g.inv[2].ro,undefined); eq(g.shop.stock[0].ro,undefined);
+});
+test('Rolls: the bag compares each piece with what you wear',()=>{
+  S.equip.weapon={u:++S.uid,id:'0-wa'}; const b=give('1-wa'); b.ro=[['will',2]]; const h=cmpHTML(b); ok(/class="up"/.test(h)&&/Will/.test(h)); ok(!/class="down"/.test(h));
+  const c=give('0-wb'); ok(/class="down"/.test(cmpHTML(c)),'losing Strike shows in red'); eq(cmpHTML(S.equip.weapon),''); ok(/empty/.test(cmpHTML(give('0-aa'))));
+});
+
+// =====================================================================================================
+// EVENTS
+function eventScene(id,lvl){ arena([foe({hp:0,dead:true})],0); if(lvl) setLvl(lvl); fix(.99); roomWon(); S.run.event=Object.assign(rollEvent(),{id}); if(id==='pedlar'){ S.run.event.pot='hp'; S.run.event.price=Math.ceil(POTIONS.hp.price()/2); } return S.run; }
+test('Events: rolled after some gate rooms, never after the last room or in the Tower',()=>{
+  arena([foe({hp:0,dead:true})]); fix(0); roomWon(); ok(S.run.event,'event after room 1'); ok(EVENTS[S.run.event.id]);
+  descend(); eq(S.run.event,null,'gone when you move on'); S.run.room=3; S.run.enemies=[foe({hp:0,dead:true})]; roomWon(); eq(S.run.event,null,'not after the boss');
+  fresh(); setLvl(20); startTower(1); S.run.enemies=[foe({hp:0,dead:true})]; fix(0); roomWon(); eq(S.run.event,null,'not in the Tower');
+  fresh(); seed(31); let n=0; for(let i=0;i<1000;i++){ S.mode='town'; S.run=null; S.watches=3; startRun(0); S.run.enemies=[foe({hp:0,dead:true})]; roomWon(); if(S.run.event) n++; } near(n/1000,EVENT_CHANCE,.04);
+});
+test('Events: the blood shrine trades 20% max HP for 15% more damage this gate',()=>{
+  const r=eventScene('shrine'); const P=S.player; P.hp=pMax(); const m=dmgMul(); ok(resolveEvent('bleed')); eq(P.hp,pMax()-Math.round(pMax()*.2)); ok(r.bless); near(dmgMul(),m*1.15,1e-9); ok(r.event.done);
+  ok(!resolveEvent('bleed'),'only once'); descend(); near(dmgMul(),m*1.15,1e-9,'lasts all gate'); flee(); eq(foeArmor(),0);
+  eventScene('shrine'); S.player.hp=1; ok(!resolveEvent('bleed'),'no blood to spare'); ok(!S.run.bless);
+});
+test('Events: the pedlar sells a potion at half price',()=>{
+  eventScene('pedlar'); const ev=S.run.event; S.gold=0; ok(!resolveEvent('buy'),'too poor'); S.gold=100; ok(resolveEvent('buy')); eq(S.belt.hp,1); eq(S.gold,100-ev.price); eq(ev.price,Math.ceil(POTIONS.hp.price()/2));
+  eventScene('pedlar'); S.belt.hp=BELT_MAX; S.gold=100; ok(!resolveEvent('buy'),'belt full'); ok(resolveEvent('pass')); eq(S.gold,100);
+});
+test('Events: a coffer holds gold and gear, or a trap that never kills',()=>{
+  eventScene('coffer'); fix(0); const g=S.gold; ok(resolveEvent('open')); ok(S.gold>g); eq(S.run.spoils.length,1); ok(/Inside/.test(S.run.event.done));
+  eventScene('coffer'); fix(.99); S.player.hp=pMax(); ok(resolveEvent('open')); eq(S.player.hp,pMax()-Math.round(pMax()*.25));
+  eventScene('coffer'); fix(.99); S.player.hp=3; resolveEvent('open'); eq(S.player.hp,1,'the trap leaves you at 1 HP at worst');
+});
+test('Events: a straggler can be raised for free or finished for XP',()=>{
+  eventScene('straggler',3); const n=S.run.corpses.length; fix(.5); ok(resolveEvent('raise')); const c=S.run.corpses[n]; ok(c&&c.free); eq(raiseCost(c),0); eq(raiseChance(c),raiseChance(Object.assign({},c,{free:false}))+STRAGGLER_BONUS);
+  S.player.mana=0; fix(0); tryRaise(c.id); eq(S.army.length,1,'raised with no mana');
+  eventScene('straggler',3); const xp=S.player.xp, lv=S.player.lvl; ok(resolveEvent('finish')); ok(S.player.xp>xp||S.player.lvl>lv); ok(/XP/.test(S.run.event.done));
+});
+test('Events: only on the raise screen, and unknown choices do nothing',()=>{ const r=eventScene('coffer'); ok(!resolveEvent('dance')); ok(!r.event.done); S.mode='battle'; ok(!resolveEvent('open')); S.mode='raise'; r.event=null; ok(!resolveEvent('pass')); });
+
+// =====================================================================================================
+// CURSED GATES
+test('Curses: none until you clear a gate; then one cleared gate is cursed all day',()=>{
+  eq(dayMod().gi,-1); eq(gateMod(0),null); S.ti={clr:{0:1}}; eq(dayMod().gi,-1,'already decided for today'); endDay(); const m=dayMod(); eq(m.gi,0); ok(MODS[m.id]); eq(gateMod(0),m.id);
+  const again=dayMod(); ok(again===m,'same all day'); setLvl(30); S.ti.clr={0:1,1:1,5:1}; seed(3); const seen=new Set(); for(let d=0;d<60;d++){ S.day++; seen.add(dayMod().gi); } ok([...seen].every(g=>[0,1,5].includes(g))); eq(seen.size,3);
+});
+test('Curses: never on a gate you are too low for',()=>{ S.ti={clr:{0:1,3:1}}; setLvl(5); for(let d=0;d<40;d++){ S.day++; ok(dayMod().gi!==3); } });
+function cursedRun(id,di){ di=di||0; setLvl(Math.max(RK[di].unlock,5)); S.ti={clr:{[di]:1}}; S.mod={day:S.day,gi:di,id}; S.watches=3; startRun(di); eq(S.run.mod,id); return S.run; }
+test('Curses: Horde adds a foe to every room, Bulwark adds 30% HP, Fury 25% attack',()=>{
+  cursedRun('horde'); eq(S.run.enemies.length,3); S.run.room=3; spawnRoom(); eq(S.run.enemies.length,4);
+  fresh(); seed(4); startRun(0); const base=S.run.enemies.map(e=>[e.maxHp,e.atk]);
+  fresh(); seed(4); S.ti={clr:{0:1}}; S.mod={day:1,gi:0,id:'bulwark'}; startRun(0); S.run.enemies.forEach((e,i)=>{ eq(e.maxHp,Math.round(base[i][0]*1.3)); eq(e.atk,base[i][1]); });
+  fresh(); seed(4); S.ti={clr:{0:1}}; S.mod={day:1,gi:0,id:'fury'}; startRun(0); S.run.enemies.forEach((e,i)=>{ eq(e.maxHp,base[i][0]); ok(e.atk>=Math.round(base[i][1]*1.25)-1); });
+});
+test('Curses: Drought stops mana coming back at the end of a turn',()=>{ cursedRun('drought'); const t=foe({hp:1e6}); S.run.enemies=[t]; S.run.target=t.id; S.player.mana=0; fix(.5); act('strike'); eq(S.player.mana,3); });
+test('Curses: Volatile dead burst on death, soaked by ward, never below 1 HP',()=>{
+  cursedRun('volatile'); const a=foe({hp:1,atk:40}), b=foe({hp:1e6}); S.run.enemies=[a,b]; S.run.target=a.id; fix(.5); const P=S.player; P.hp=pMax();
+  act('strike'); ok(a.dead); eq(P.hp,pMax()-20-1,'20 from the burst, 1 from the other foe');
+  const c=foe({hp:1,atk:40}); S.run.enemies.push(c); setTarget(c.id); P.shield=15; P.hp=50; act('strike'); eq(P.hp,50-5-1); eq(P.shield,0);
+  const d=foe({hp:1,atk:400}); S.run.enemies=[d]; S.run.target=d.id; P.hp=3; act('strike'); eq(P.hp,1,'a burst alone never kills'); eq(S.mode,'raise');
+});
+test('Curses: cursed runs pay double gold and trophies, more XP and more gear',()=>{
+  const r=cursedRun('fury'); const e=foe({lvl:4}); const x=killXp(e); S.run.mod=null; eq(x,Math.round(killXp(e)*MOD_XP)); S.run.mod='fury';
+  fix(.5); killLoot(foe({elite:true}),r); eq(r.troph['Tunnel Rat'],4,'elite trophies doubled');
+  seed(6); let n=0; for(let i=0;i<4000;i++) n+=rollDrops(foe({base:'Tunnel Rat',role:'striker'})).length; near(n/4000,.28*MOD_DROP,.03);
+});
+test('Curses: the Tower is never cursed',()=>{ setLvl(20); S.ti={clr:{0:1}}; S.mod={day:1,gi:5,id:'horde'}; startTower(1); eq(runMod(),null); eq(S.run.enemies.length,3); });
+
+// =====================================================================================================
+// STATUS EFFECTS
+test('Status: a new dose refreshes, it ticks each turn, then wears off',()=>{
+  const t=foe({hp:1000}); arena([t]); addDot(t,'poison',10,2); addDot(t,'poison',6,3); eq(t.dots.poison.d,10); eq(t.dots.poison.t,3); addDot(t,'poison',0.2,5); eq(t.dots.poison.t,3,'tiny doses are ignored');
+  tickDots(); eq(t.hp,990); tickDots(); tickDots(); eq(t.hp,970); eq(t.dots,undefined); const dead=foe({hp:0}); addDot(dead,'poison',5,3); eq(dead.dots,undefined,'the dead cannot be poisoned');
+});
+test('Status: bleeding ignores your ward, can down minions, and can kill you',()=>{
+  arena([foe({hp:1e6})]); const P=S.player; P.shield=500; addDot(P,'bleed',7,2); tickDots(); eq(P.hp,pMax()-7); eq(P.shield,500);
+  const m=mkMinion({}); m.hp=3; addDot(m,'burn',10,2); tickDots(); eq(m.hp,0); ok(S.run.log.some(l=>/succumbs/.test(l.m)));
+  P.shield=0; P.hp=5; addDot(P,'bleed',50,2); fix(.5); act('strike'); eq(S.mode,'defeat','bled out');
+});
+test('Status: enemy striker crits cause bleeding, Cinder Wave burns',()=>{
+  const s=foe({role:'striker',atk:20,hp:1e6}); arena([s]); S.player.stats.constitution=200; S.player.hp=pMax(); seq([.5,.9,.5,.5,.1],.5); act('strike'); ok(S.player.dots&&S.player.dots.bleed,'bleeding after a crit'); eq(S.player.dots.bleed.d,6);
+  fresh(); const b=bossFight(2); const m=mkMinion({}); m.hp=m.maxHp=1e5; S.player.stats.constitution=500; S.player.hp=pMax(); fireAbility(b); ok(S.player.dots.burn); ok(m.dots.burn);
+});
+test('Status: Venomous minions poison what they hit',()=>{ const t=foe({hp:1e6}); arena([t],3); const m=mkMinion({traits:['venom']}); m.atk=200; fix(.5); act('strike'); ok(t.dots&&t.dots.poison); eq(t.dots.poison.d,Math.round(200*.15*pierceMul(.5))); ok(TRAITS.venom); });
+test('Status: a Healing Draught cures you, Dark Mending cures your whole side',()=>{
+  arena([foe({hp:1e6})]); const P=S.player; S.belt.hp=2; addDot(P,'bleed',5,3); fix(.5); act('pot:hp'); eq(P.dots,undefined,'drinkable even at full HP when bleeding'); eq(S.belt.hp,1);
+  const m=mkMinion({}); S.player.skills.mend=1; S.player.mana=100; ok(!canUse('mend')); addDot(m,'burn',5,3); addDot(P,'burn',5,3); ok(canUse('mend'),'usable to cure alone'); act('sk:mend'); eq(m.dots,undefined); eq(P.dots,undefined);
+});
+test('Status: effects end when you leave a room and never reach a save',()=>{
+  arena([foe({hp:0,dead:true})]); fix(.5); const m=mkMinion({}); addDot(S.player,'bleed',3,3); addDot(m,'poison',3,3); const snap=snapshot(); eq(snap.player.dots,undefined); eq(snap.army[0].dots,undefined); ok(S.player.dots,'live game untouched');
+  roomWon(); descend(); eq(S.player.dots,undefined); eq(m.dots,undefined);
+  addDot(S.player,'bleed',3,3); flee(); eq(S.player.dots,undefined);
+  eq(normalizeSave({v:2,player:{lvl:2,dots:{bleed:{d:9,t:9}}},army:[{role:'striker',lvl:1,rankI:0,name:'Imp',dots:{poison:{d:1,t:1}}}]}).player.dots,undefined);
+});
+
+// =====================================================================================================
+// HISTORY
+test('History: every way out of a run is recorded with its numbers',()=>{
+  arena([foe({hp:1})]); fix(.5); act('strike'); returnTown(); let h=S.hist[S.hist.length-1]; eq(h.res,'left'); eq(h.rooms,1); eq(h.kills,1); ok(h.xp>0&&h.gold>0); eq(h.g,0);
+  arena([foe()]); flee(); eq(S.hist[S.hist.length-1].res,'fled');
+  arena([foe({atk:1e6})]); S.player.hp=1; act('strike'); returnTown(); eq(S.hist[S.hist.length-1].res,'fell');
+  const P=S.player; P.stats.strength=400; P.stats.constitution=300; P.hp=pMax(); S.watches=3; startRun(0); let n=0; while(n++<300&&!(S.mode==='raise'&&S.run.cleared)){ if(S.mode==='battle') act('strike'); else descend(); } returnTown();
+  h=S.hist[S.hist.length-1]; eq(h.res,'cleared'); eq(h.rooms,4);
+  const L=S.life; eq(L.runs,4); eq(L.clears,1); eq(L.deaths,1); eq(L.fled,1); eq(L.rooms,5); ok(L.kills>=5); eq(L.gold,S.hist.reduce((a,x)=>a+x.gold,0));
+});
+test('History: Tower runs record their floors; only the last 20 runs are kept',()=>{
+  setLvl(30); S.tower.best=20; startTower(11); S.run.enemies=[foe({hp:0,dead:true})]; roomWon(); descend(); S.run.enemies=[foe({hp:0,dead:true})]; roomWon(); returnTown();
+  const h=S.hist[0]; eq(h.g,-1); eq(h.f0,11); eq(h.f1,12); eq(h.rooms,2);
+  for(let i=0;i<30;i++){ S.watches=3; startRun(0); flee(); } eq(S.hist.length,HIST_N); eq(S.life.runs,31);
+});
+test('History: closing the tab mid-run records it in the save, not twice',()=>{
+  startRun(0); const snap=snapshot(); eq(snap.hist.length,1); eq(snap.life.runs,1); eq(S.hist.length,0,'live game untouched');
+  save(); S=null; loadGame(); eq(S.hist.length,1); eq(S.life.runs,1);
+});
+test('History: lifetime totals survive New Game+, damaged history is cleaned',()=>{
+  S.life.runs=50; S.ti={clr:{5:1}}; ok(startNGP()); eq(S.life.runs,50); eq(S.hist.length,0);
+  const g=normalizeSave({v:2,player:{lvl:2},hist:[{d:1,res:'left'},null,'x',{d:'a'}],life:{runs:'x',kills:5,bogus:9}}); eq(g.hist.length,1); eq(g.life.runs,0); eq(g.life.kills,5); eq(g.life.bogus,undefined);
+});
+test('History: the History tab renders',()=>{ ui.tab='hist'; ok(/No runs yet/.test(renderAll('empty history'))); richState(); ui.tab='hist'; const h=renderAll('full history'); ok(/Hell Tower, floor/.test(h)&&/Drought/.test(h)); });
+
+// =====================================================================================================
+// BAG TOOLS
+test('Bag: sorts best first, by slot, or newest',()=>{
+  const a=give('0-ta'), b=give('3-wa'), c=give('1-aa'); ui.sort='tier'; eq(sortedBag().map(x=>x.u).join(),[b.u,c.u,a.u].join()); ui.sort='slot'; eq(sortedBag().map(x=>x.u).join(),[b.u,c.u,a.u].join());
+  ui.sort='new'; eq(sortedBag()[0].u,c.u); ACTIONS.sort('bogus'); eq(ui.sort,'tier');
+});
+test('Bag: selling junk sells only Common and Uncommon pieces from the bag, after asking',()=>{
+  give('0-wa'); give('1-aa'); const keep=give('2-wa'), u=give('u0'); S.equip.weapon={u:++S.uid,id:'0-wb'};
+  ACTIONS.junk(); eq(S.inv.length,4,'asks first'); ACTIONS.junk(); eq(S.inv.map(x=>x.u).sort().join(),[keep.u,u.u].sort().join()); eq(S.gold,sellPrice(ITEM['0-wa'])+sellPrice(ITEM['1-aa'])); ok(S.equip.weapon,'worn gear is safe'); ok(/junk/.test(ui.msg.m));
+  arena([foe()]); eq(sellJunk(),null);
+});
+test('Bag: the gear tab shows tools, rolls and comparisons',()=>{ const it=give('2-wa'); it.ro=[['will',3]]; give('0-ta'); ui.tab='gear'; const h=renderAll('gear tab'); ok(/data-a="sort"/.test(h)&&/data-a="junk"/.test(h)&&/data-a="reforge"/.test(h)&&/class="roll"/.test(h)&&/class="cmp"/.test(h)); });
+test('UI: events, curses and status effects render',()=>{
+  richState(); S.ti.clr={0:1}; S.mod={day:S.day,gi:0,id:'volatile'}; ui.tab='gates'; ok(/Cursed today/.test(renderAll('cursed gate card')));
+  S.watches=3; startRun(0); addDot(S.player,'bleed',5,2); addDot(S.run.enemies[0],'poison',4,3); S.run.bless=true; const h=renderAll('battle with effects'); ok(/Bleeding 5/.test(h)&&/Poisoned 4/.test(h)&&/Cursed:/.test(h)&&/Blood-blessed/.test(h));
+  S.run.enemies.forEach(e=>{ e.hp=0; }); checkDeaths(); fix(.99); roomWon(); for(const id of Object.keys(EVENTS)){ S.run.event=Object.assign({id},id==='pedlar'?{pot:'mp',price:9}:{}); const x=renderAll('event '+id); ok(x.includes(EVENTS[id].name)); }
+  ACTIONS.event('pass'); ok(!/event-box/.test(renderAll('after the event')));
+});
+
 test('Playthrough: a bot plays 30 days, checking every rule after every action',()=>{
   seed(2024); fresh(); const order=['will','constitution','strength','intelligence','constitution']; let steps=0, clears=0, lastDay=0, towers=0;
   while(S.day<=30){

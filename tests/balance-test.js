@@ -13,10 +13,10 @@
 // Difficulty comes from foe armor (DIFF.armor / TW.armor): fights last more turns instead of numbers growing.
 // The ~80% target is for the 'market' bot (skills + shopping + altar). The early option is no longer needed: SAFE for A and S
 // now matches where they are balanced. Current numbers, averaged over seeds 7700 and 9100 (results swing ~±7 points per seed set):
-// LOTD_BALANCE.run({bots:40, days:100, seed:7700, modes:['market']})   (run one mode per call; each takes ~15 s)
-//   market:    clears 80-86% per gate, deaths ~18%, level ~32 on day 100, S first cleared ~day 62 by 37/40 bots, tower ~46
-//              (after minion traits and evolution; the bot gets traits automatically)
-//   skills:    clears 57-77% per gate, deaths ~26%, level ~26 on day 100 (seed 7700, before the last C tweak)
+// LOTD_BALANCE.run({bots:40, days:100, seed:7700, modes:['market']})   (one mode per call, ~15 s in a browser), or in Node: node tests/run-balance.js
+//   market:    clears 80-88% per gate, deaths ~17%, level ~33 on day 100, S first cleared ~day 55 by 38/40 bots, tower ~45
+//              (after gear rolls, events, cursed gates, status effects and the early-game pass: E and D are gentler)
+//   skills:    clears 63-87% per gate, deaths ~21%, level ~31 on day 100 (seed 7700, before the A trim)
 //   no skills: clears 41-75% per gate, deaths ~35%, level ~24 on day 100 (seed 7700, before the last C tweak)
 // The bots play the real game functions from a new game: they allocate stats, equip gear, raise the dead,
 // pick the highest gate they are "Fair" for (level >= SAFE), and climb the Hell Tower once at the end.
