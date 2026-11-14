@@ -46,7 +46,7 @@ function firstDiff(a,b,p){ p=p||''; if(canon(a)===canon(b)) return null;
   if(!a||!b||typeof a!=='object'||typeof b!=='object') return p+': '+fmt(a)+' vs '+fmt(b);
   for(const k of new Set(Object.keys(a).concat(Object.keys(b)))){ const d=firstDiff(a[k],b[k],p+'.'+k); if(d) return d; } return p; }
 function renderAll(where){ render(); cleanHTML(app.innerHTML,where); return app.innerHTML; }
-const TABS=['gates','gear','bes','skills','market','tower','titles','settings','help','hist'];
+const TABS=['gates','gear','bes','skills','market','town','tower','titles','settings','help','hist','codex'];
 function richState(){
   fresh(30); const P=S.player; P.sp=4; P.pts=2; SKILLS.forEach(s=>P.skills[s.id]=3);
   S.gold=99999; S.belt={hp:3,mp:3}; S.bagLv=BAG_COST.length; S.salts=SALT_MAX; S.ngp=2; S.day=40;
@@ -72,7 +72,7 @@ function invariants(where){
   finite(P.hp,'player hp'+w); finite(P.mana,'player mana'+w); finite(P.xp,'xp'+w); finite(S.gold,'gold'+w); finite(P.shield,'shield'+w);
   ok(P.hp<=pMax(),'player hp '+P.hp+' above max '+pMax()+w); ok(P.mana>=0&&P.mana<=pMana(),'mana '+P.mana+' outside 0..'+pMana()+w);
   ok(S.gold>=0,'gold below zero'+w); ok(S.watches>=0&&S.watches<=WATCHES,'watches '+S.watches+w); ok(P.xp>=0&&P.xp<need(P.lvl),'xp '+P.xp+' not rolled into a level'+w);
-  ok(S.army.length<=10,'army larger than 10'+w);
+  ok(S.army.length<=10+bl('crypt'),'army larger than its cap'+w); finite(S.dust||0,'dust'+w); ok((S.dust||0)>=0,'dust below zero'+w);
   for(const m of S.army){ finite(m.hp,'minion hp'+w); finite(m.maxHp,'minion maxHp'+w); finite(m.atk,'minion atk'+w); ok(m.hp<=m.maxHp,m.nick+' hp above max'+w); ok(m.lvl<=Math.max(P.lvl+2,m.lvl0),m.nick+' grew past the level cap'+w);
     const c=JSON.parse(JSON.stringify(m)); syncMinion(c); ok(c.maxHp===m.maxHp&&c.atk===m.atk,m.nick+' has stale stats ('+m.maxHp+'/'+m.atk+', should be '+c.maxHp+'/'+c.atk+')'+w); }
   const seen=new Set(), all=S.inv.concat(Object.values(S.equip).filter(Boolean)); S.army.forEach(m=>m.eq&&Object.values(m.eq).forEach(x=>x&&all.push(x)));
@@ -1106,6 +1106,198 @@ test('Save files: a save file round-trips, plain JSON saves load too, junk is re
   const cur=S; ok(!importText('hello')); ok(!importText('')); ok(!importText('{"v":9}')); ok(S===cur);
   ui.file={name:'save.txt',text:code}; S.gold=1; ACTIONS.loadfile(); eq(S.gold,1,'asks first'); ACTIONS.loadfile(); eq(S.gold,777); eq(ui.file,null);
   ui.file={name:'bad.txt',text:'nope'}; ACTIONS.loadfile(); ACTIONS.loadfile(); eq(ui.msg.c,'bad'); ACTIONS.dlsave(); ok(ui.msg); ui.tab='settings'; ok(/data-a="dlsave"/.test(renderAll('save files')));
+});
+
+// =====================================================================================================
+// TOWN BUILDINGS
+test('Town: buildings cost gold, then bone dust, and stop at level 3',()=>{
+  S.gold=0; ok(!build('crypt'),'no gold'); S.gold=1e6; ok(build('crypt')); eq(bl('crypt'),1); eq(S.gold,1e6-BUILD_COST[0][0]);
+  ok(!build('crypt'),'level 2 needs dust'); S.dust=200; ok(build('crypt')); ok(build('crypt')); eq(bl('crypt'),BUILD_MAX); eq(S.dust,200-BUILD_COST[1][1]-BUILD_COST[2][1]);
+  ok(!build('crypt'),'maxed'); eq(buildCost('crypt'),null); ok(!build('nope'));
+  arena([foe()]); ok(!build('forge'),'not in battle'); eq(bl('forge'),0);
+});
+test('Town: each building changes its numbers',()=>{
+  const P=S.player; setLvl(60); P.stats.will=100; eq(slots(),10); S.build.crypt=2; eq(slots(),12,'Crypt lifts the cap');
+  const it=give('3-wa'), r0=reforgeCost(it), e0=enchCost(it); S.build.forge=2; eq(reforgeCost(it),Math.round(buyPrice(ITEM['3-wa'])*REFORGE_COST*.7)); ok(enchCost(it)<e0&&reforgeCost(it)<r0);
+  setLvl(1); P.stats.will=4; const c=corpse({}), ch=raiseChance(c); S.build.ossuary=1; eq(raiseChance(c),ch+3);
+  const m0=pMana(), mn=mkMinion({lvl:1}), ec=empowerCost(mn); S.build.altar=2; near(pMana(),m0*1.1,1); eq(empowerCost(mn),Math.round(mneed(1)*.6*.8)); ok(empowerCost(mn)<=ec);
+});
+test('Town: building the Altar fills the new mana at once, like gear',()=>{ const P=S.player; S.gold=1e4; P.mana=pMana(); ok(build('altar')); eq(P.mana,pMana()); invariants('altar'); });
+test('Town: the Town tab shows the buildings; saves keep only valid buildings and dust',()=>{
+  ui.tab='town'; const h=renderAll('town'); ok(/data-a="build" data-k="crypt"/.test(h)&&/Flesh Pit/.test(h));
+  S.gold=1e4; ACTIONS.build('ossuary'); eq(bl('ossuary'),1); ok(ui.msg&&/Ossuary raised to level 1/.test(ui.msg.m));
+  const g=normalizeSave({v:2,player:{lvl:1},build:{crypt:2,forge:9,fake:1,altar:'x',ossuary:0},dust:-5});
+  eq(JSON.stringify(g.build),'{"crypt":2,"forge":3}'); eq(g.dust,0);
+  const o=normalizeSave({v:2,player:{lvl:1}}); eq(JSON.stringify(o.build),'{}'); eq(o.dust,0); eq(o.bounty,null);
+});
+
+// =====================================================================================================
+// BOUNTY BOARD
+const board=list=>{ S.bounty={day:S.day,list:list.map(b=>Object.assign({claimed:false,base:bountyVal(b.id),n:BOUNTIES[b.id].n},b))}; return S.bounty.list; };
+test('Bounties: three a day, all different, new every dawn, counted from when the board goes up',()=>{
+  S.kills={'Tunnel Rat':50}; const L=bounties(); eq(L.length,BOUNTY_N); eq(new Set(L.map(b=>b.id)).size,BOUNTY_N); L.forEach(b=>{ ok(BOUNTIES[b.id]); eq(bountyGot(b),0); ok(!b.claimed); });
+  ok(bounties()===L,'same board all day'); endDay(); ok(bounties()!==L,'a new board at dawn'); eq(S.bounty.day,S.day);
+});
+test('Bounties: deeds count toward contracts, and a finished one pays once, in town',()=>{
+  const L=board([{id:'kills',rw:{g:100}},{id:'elites',rw:{g:5,salt:1}},{id:'rooms',rw:{g:0,dust:7}}]);
+  eq(claimBounty(0),null,'not done'); S.kills['Tunnel Rat']=(S.kills['Tunnel Rat']||0)+15; ok(bountyDone(L[0]));
+  arena([foe()]); eq(claimBounty(0),null,'not in battle'); flee(); let g=S.gold; ok(claimBounty(0)); eq(S.gold,g+100); eq(claimBounty(0),null,'only once');
+  tally('elites',2); S.salts=SALT_MAX; g=S.gold; ok(/pouch is full/.test(claimBounty(1))); eq(S.gold,g+5+saltPrice());
+  wonRoom(0); eq(T_('rooms')-L[2].base,1,'a won room counts'); returnTown(); tally('rooms',5); ok(claimBounty(2)); eq(S.dust,7);
+});
+test('Bounties: arches, floors and bosses are counted where they happen',()=>{
+  const a=T_('archs'), f=T_('floors'); const r=wonRoom(0); r.doors=['fight','elite']; descend('elite'); eq(T_('archs'),a+1);
+  returnTown(); setLvl(20); startTower(1); S.run.enemies=[foe({hp:0,dead:true})]; roomWon(); eq(T_('floors'),f+1);
+});
+test('Bounties: gear needs bag room; conditional contracts only appear when they make sense',()=>{
+  const L=board([{id:'kills',rw:{gear:1}}]); L[0].base=totalKills()-L[0].n;
+  while(S.inv.length<bagMax()) give('0-ta'); eq(claimBounty(0),null,'bag full'); S.inv=[]; ok(claimBounty(0)); eq(S.inv.length,1); ok(S.inv[0].ro&&S.inv[0].ro.length>=1); eq(ITEM[S.inv[0].id].set,topGate());
+  for(let i=0;i<60;i++){ seed(i+1); makeBounties(); S.bounty.list.forEach(b=>ok(!['cursed','flawless','orders','floors','poison'].includes(b.id),b.id+' offered too early')); }
+});
+test('Bounties: the board shows in the side panel and survives a save',()=>{
+  const L=board([{id:'kills',rw:{g:50}},{id:'raise',rw:{dust:3}},{id:'bosses',rw:{gear:1}}]); L[0].base-=L[0].n;
+  let h=renderAll('board'); ok(/Bounty board/.test(h)&&/Defeat 15 foes/.test(h)); ok(/data-a="claimb" data-k="0"/.test(h)); ok(!/data-k="1"[^>]*>Claim/.test(h));
+  save(); const a=JSON.stringify(S); S=null; loadGame(); eq(JSON.stringify(S),a);
+  ACTIONS.claimb('0'); ok(S.notices.some(n=>/Bounty claimed: 50 gold/.test(n.m))); ok(/Claimed\./.test(renderAll('claimed')));
+  eq(normalizeSave({v:2,player:{lvl:1},bounty:{day:1,list:[{id:'fake',n:1,base:0,rw:{},claimed:false}]}}).bounty,null);
+});
+
+// =====================================================================================================
+// ELITE AFFIXES
+test('Affixes: every elite gets one (two deeper), and a shield matches its final HP',()=>{
+  setLvl(40); arena([foe()],0); const e=foe({elite:true}); affixAll([e]); eq(e.aff.length,1); ok(AFFIX[e.aff[0]]);
+  const n=foe(); affixAll([n]); eq(n.aff,undefined,'ordinary foes have none');
+  flee(); arena([foe()],3); const d=foe({elite:true}); affixAll([d]); eq(d.aff.length,2); ok(d.aff[0]!==d.aff[1]);
+  fix(0); const s=foe({elite:true,hp:1000}); giveAffixes(s,1); eq(s.aff[0],'shielded'); eq(s.shield,300);
+  flee(); fix(.05); S.watches=3; startRun(0); ok(S.run.enemies.length&&S.run.enemies.every(x=>x.elite&&x.aff&&x.aff.length===1),'spawned elites carry affixes');
+});
+test('Affixes: Splitting, Vampiric, Enraged and Warded do what they say',()=>{
+  const P=S.player; P.stats.constitution=500; P.hp=pMax();
+  const sp=foe({elite:true,aff:['splitting'],hp:100,atk:10}); arena([sp,foe()]); sp.hp=0; checkDeaths(); eq(S.run.enemies.length,4);
+  const kids=S.run.enemies.slice(2); kids.forEach(k=>{ eq(k.maxHp,35); eq(k.atk,5); ok(k.split&&!k.elite); }); kids.forEach(k=>k.hp=0); checkDeaths(); eq(S.run.enemies.length,4,'copies do not split again'); eq(S.run.corpses.length,3);
+  flee(); const v=foe({aff:['vampiric'],atk:100,hp:1e5}); arena([v]); v.hp=v.maxHp/2; fix(.5); act('strike'); eq(S.run.fx[v.id].h,40,'heals 40% of a 100 hit');
+  flee(); P.hp=pMax(); const en=foe({aff:['enraged'],atk:100,hp:1e5}); arena([en]); en.hp=en.maxHp*.4; const h=P.hp; act('strike'); eq(h-P.hp,160,'60% harder below half');
+  const w=foe({aff:['warded']}); addDot(w,'poison',10,3); eq(w.dots,undefined); const m=mkMinion({traits:['warded']}); addDot(m,'bleed',10,2); eq(m.dots,undefined); const o=foe(); addDot(o,'burn',10,2); ok(o.dots&&o.dots.burn);
+});
+test('Affixes: a Warded minion hit by a crit does not bleed, and the log does not claim it does',()=>{
+  const P=S.player; P.stats.constitution=500; P.hp=pMax(); arena([foe({role:'striker',atk:10})]); const m=mkMinion({role:'vanguard',traits:['warded']}); m.hp=m.maxHp=1e5; S.run.taunt=2; fix(.1); act('strike');
+  const l=S.run.log.find(x=>/hits Mn/.test(x.m)); ok(l&&/\(crit\)/.test(l.m),'a crit landed'); ok(!/bleeding/.test(l.m)); eq(m.dots,undefined);
+});
+test('Affixes: Wrathful minions hit harder while wounded',()=>{
+  const e=foe({hp:1e6}); arena([e]); const m=mkMinion({role:'vanguard',traits:['wrathful'],lvl:10}); fix(.5);
+  act('strike'); const d1=e.maxHp-e.hp; e.hp=e.maxHp; S.run.cd={}; m.hp=Math.floor(m.maxHp*.4); act('strike'); const d2=e.maxHp-e.hp; ok(d2>d1,'wounded '+d2+' vs '+d1);
+});
+test('Affixes: a raised elite keeps one of its affixes as a trait, and cards show them',()=>{
+  const c=corpse({elite:true,aff:['vampiric']}); raiseScene([c],20); S.run.lastXp=0; ok(/Vampiric &rarr; Leeching/.test(renderAll('corpse'))); fix(0); tryRaise(c.id); eq(c.result,'raised');
+  const m=S.army[0]; ok(m.traits.includes('leech')&&m.traits.includes('thick'),m.traits.join());
+  returnTown(); arena([foe({elite:true,aff:['enraged','warded']})]); const h=renderAll('elite'); ok(/class="aff"[^>]*>Enraged/.test(h)&&/Warded/.test(h));
+  eq(corpseOf(foe({aff:['warded']})).aff[0],'warded'); eq(corpseOf(foe()).aff,undefined);
+});
+
+// =====================================================================================================
+// BOSS PHASES
+test('Phases: at half HP a boss enters its second phase once, and speaks',()=>{
+  const b=bossFight(0); b.hp=b.maxHp*.6; checkPhase(); ok(!b.phase2); b.hp=b.maxHp*.5; checkPhase(); ok(b.phase2); eq(b.fast,1); ok(b.abilT<=2);
+  ok(S.run.log.some(l=>/My court/.test(l.m))&&S.run.log.some(l=>/second phase/.test(l.m))); eq(T_('phases'),1); checkPhase(); eq(T_('phases'),1,'only once');
+  const x=foe({hp:10}); S.run.enemies.push(x); x.hp=1; checkPhase(); ok(!x.phase2,'only bosses');
+});
+test('Phases: every second-phase move is announced, alternating with Sundering Blow',()=>{
+  const b=bossFight(1), P=S.player; P.stats.constitution=900; P.hp=pMax(); b.hp=b.maxHp/2; checkPhase(); b.abilT=1;
+  ok(bossTurn(b)); ok(b.charging); eq(b.move,'sunder'); eq(P.hp,pMax(),'warning only');
+  ok(bossTurn(b)); ok(!b.charging); eq(P.hp,pMax()-Math.round(pMax()*.35)); eq(b.abilT,2);
+  eq(bossTurn(b),false); ok(bossTurn(b)); ok(b.charging); eq(b.move,'bonewall','its own move, now telegraphed'); ok(bossTurn(b)); ok(b.shield>0);
+});
+test('Phases: Taunt turns Sundering Blow onto a vanguard; Focus crits and Grave Chill break a charge',()=>{
+  const b=bossFight(2), P=S.player; P.stats.constitution=900; P.hp=pMax(); const v=mkMinion({role:'vanguard'}); v.hp=v.maxHp=1e6; fix(.5);
+  S.run.taunt=2; fireAbility(b,'sunder'); eq(P.hp,pMax()); eq(v.hp,1e6-H(b.atk*2.2));
+  S.run.taunt=0; fireAbility(b,'sunder'); eq(P.hp,pMax()-Math.round(pMax()*.35));
+  P.hp=pMax(); mkMinion({role:'striker'}); b.charging=true; b.move='sunder'; ok(command('striker')); act('strike'); ok(!b.charging,'focus broke it'); ok(S.run.log.some(l=>/focused strike/.test(l.m)&&/Sundering Blow is lost/.test(l.m)));
+  b.charging=true; b.move='sunder'; b.stun=1; S.run.cmd={}; act('strike'); ok(!b.charging); ok(S.run.log.some(l=>/frozen/.test(l.m)&&/Sundering Blow is lost/.test(l.m)));
+});
+test('Phases: the boss card shows its phase and the move it is charging',()=>{
+  const b=bossFight(3); b.phase2=true; b.charging=true; b.move='sunder'; const h=renderAll('phase'); ok(/Second phase/.test(h)&&/Charging Sundering Blow/.test(h));
+});
+
+// =====================================================================================================
+// MINION FUSION
+test('Fusion: two minions of one role become one stronger minion',()=>{
+  setLvl(20); const a=mkMinion({role:'striker',lvl:10,traits:['thick']}), b=mkMinion({role:'striker',lvl:12,traits:['vicious','thick'],stage:1}); S.gold=1e4;
+  const c=fuseCost(a,b); eq(c,(10+12)*25); const k=fuse(a.uid,b.uid); ok(k===b,'the stronger survives'); eq(S.army.length,1); eq(k.lvl,12+FUSE_LV); eq(k.traits.join(),'vicious,thick'); eq(S.gold,1e4-c); eq(k.hp,k.maxHp); eq(T_('fused'),1); invariants('fused');
+});
+test('Fusion: same role, in town, paid for; levels and traits are capped and gear comes back',()=>{
+  setLvl(10); S.gold=1e5; const a=mkMinion({role:'striker',lvl:12,traits:['thick','vicious','leech']}), v=mkMinion({role:'vanguard',lvl:5});
+  eq(fuse(a.uid,v.uid),null,'different roles'); eq(fuse(a.uid,a.uid),null,'itself');
+  const b=mkMinion({role:'striker',lvl:11,armed:true,eq:{weapon:{u:++S.uid,id:'1-wa'},armor:null,relic:null},traits:['stalwart','gravebound','venom']});
+  S.gold=0; eq(fuse(a.uid,b.uid),null,'no gold'); S.gold=1e5; arena([foe()]); eq(fuse(a.uid,b.uid),null,'not in battle'); flee();
+  const k=fuse(a.uid,b.uid); ok(k===a); eq(k.lvl,12,'never past your level + 2'); eq(k.traits.length,FUSE_TRAITS); ok(S.inv.some(it=>it.id==='1-wa'),'gear back in the bag');
+});
+test('Fusion: the Flesh Pit on the Town tab asks before it consumes a minion',()=>{
+  setLvl(20); S.gold=1e4; const a=mkMinion({role:'mender',lvl:8}), b=mkMinion({role:'mender',lvl:9}); mkMinion({role:'reaper'}); ui.tab='town';
+  let h=renderAll('pit'); ok(new RegExp('data-a="fusepick" data-k="'+a.uid+'"').test(h)); ACTIONS.fusepick(String(a.uid)); h=renderAll('picked'); ok(new RegExp('data-a="fuse" data-k="'+b.uid+'"').test(h));
+  ACTIONS.fuse(String(b.uid)); eq(S.army.length,3,'asks first'); ok(/Confirm/.test(renderAll('confirm'))); ACTIONS.fuse(String(b.uid)); eq(S.army.length,2); ok(ui.msg&&ui.msg.c==='ok'); eq(ui.fuse,null);
+});
+
+// =====================================================================================================
+// SALVAGE AND ENCHANTING
+test('Salvage: gear breaks into bone dust; uniques and battles refuse',()=>{
+  const it=give('3-wa'); it.ro=[['hp',5],['atk',3]]; eq(dustValue(it),DUST_TIER[ITEM['3-wa'].tier]+2); const n=dustValue(it); eq(salvage(it.u),n); eq(S.dust,n); ok(!S.inv.includes(it));
+  const uq=give(Object.values(ITEM).find(d=>d.uq).id); eq(salvage(uq.u),0); ok(S.inv.includes(uq));
+  give('0-wa'); give('1-wa'); const keep=give('3-wa'); const r=salvageJunk(); eq(r.n,2); eq(r.d,DUST_TIER[0]+DUST_TIER[1]); ok(S.inv.includes(keep));
+  arena([foe()]); eq(salvage(keep.u),0);
+});
+test('Salvage: enchanting adds a line where there is room, or re-roll the line you choose, for dust',()=>{
+  const it=give('4-wa'); delete it.ro; const c=enchCost(it); ok(!enchant(it.u,-1),'no dust'); S.dust=1000;
+  for(let i=0;i<lineMax(it);i++) ok(enchant(it.u,-1)); eq(it.ro.length,lineMax(it)); ok(!enchant(it.u,-1),'full'); eq(new Set(it.ro.map(r=>r[0])).size,it.ro.length,'no repeated stat');
+  eq(S.dust,1000-c*lineMax(it)); const before=it.ro.map(r=>r.join()); ok(enchant(it.u,1)); eq(it.ro[0].join(),before[0]); eq(it.ro[2].join(),before[2]); eq(new Set(it.ro.map(r=>r[0])).size,3);
+  ok(!enchant(it.u,7),'no such line'); const uq=give(Object.values(ITEM).find(d=>d.uq).id); ok(!enchant(uq.u,-1));
+  it.ro.forEach(r=>{ ok(ROLL_KEYS[r[0]]&&r[1]>=1); }); equip(it.u); ok(enchant(it.u,0),'works on worn gear'); invariants('enchant worn');
+  const nm=normalizeSave(JSON.parse(JSON.stringify(S))); eq(JSON.stringify(nm.equip.weapon.ro),JSON.stringify(it.ro),'enchanted lines survive a save');
+});
+test('Salvage: buttons on the Gear tab, dust in the bag header',()=>{
+  const it=give('3-wa'); give('0-ta'); ui.tab='gear'; let h=renderAll('gear'); ok(new RegExp('data-a="salvage" data-k="'+it.u+'"').test(h)&&/data-a="ench"/.test(h)&&/0 dust/.test(h));
+  ACTIONS.ench(String(it.u)); h=renderAll('enchant open'); ok(/data-a="enchadd"/.test(h)); ACTIONS.salvage(String(it.u)); ok(S.dust>0); ok(ui.msg&&/Salvaged/.test(ui.msg.m));
+  ACTIONS.sjunk(); eq(S.inv.length,1,'asks first'); ACTIONS.sjunk(); eq(S.inv.length,0);
+});
+
+// =====================================================================================================
+// CODEX
+const cdx=k=>{ ui.tab='codex'; ACTIONS.cx(k); return renderAll('codex '+k); };
+test('Codex: a tab with a page for every part of the game, each rendering cleanly',()=>{
+  ui.tab='gates'; ok(/data-a="tab" data-k="codex"/.test(renderAll('tabs'))); eq(new Set(CODEX.map(c=>c[0])).size,CODEX.length);
+  for(const [k] of CODEX){ const h=cdx(k); ok(new RegExp('data-a="cx" data-k="'+k+'"[^>]*aria-selected="true"').test(h),k+' selected'); ok(codexSection(k).length>200,k+' has content'); }
+  ui.cx='nope'; ok(/Codex &middot; Basics/.test(renderAll('fallback')));
+});
+test('Codex: lists every role, trait, affix, boss move, status, skill, order, power, set, building, door, event, curse and bounty',()=>{
+  const has=(k,names)=>{ const h=cdx(k); names.forEach(n=>ok(h.includes(n),k+' is missing '+n)); };
+  has('roles',Object.values(ROLES).map(r=>r.label)); has('traits',TRAIT_IDS.map(t=>TRAITS[t].name)); has('affixes',AFFIX_IDS.map(a=>AFFIX[a].name));
+  has('bosses',Object.values(BOSS_ABIL).map(a=>a.name)); has('status',Object.values(DOTS).map(d=>d.name)); has('skills',SKILLS.map(x=>x.name).concat(Object.values(SKILL_MODS).map(m=>m.a[0])));
+  has('orders',Object.values(CMDS).map(c=>c.name)); has('uniques',Object.values(FLAGS).map(f=>f.split(':')[0])); has('sets',SET_NAMES);
+  has('gear',TIERS); has('supplies',Object.values(POTIONS).map(p=>p.name)); has('rooms',Object.values(DOORS).map(d=>d.name).concat(Object.values(EVENTS).map(e=>e.name)));
+  has('curses',Object.values(MODS).map(m=>m.name)); has('town',Object.values(BUILD).map(b=>b.name)); has('bounties',Object.keys(BOUNTIES).map(b=>BOUNTIES[b].t(BOUNTIES[b].n)));
+  has('gates',DUNGEONS.map(d=>d.name));
+});
+test('Codex: creatures you have not met stay hidden until you meet them',()=>{
+  S.kills={}; let h=cdx('gates'); ok(!h.includes('Tunnel Rat')&&!h.includes('The Rat King')&&/\?\?\?/.test(h)); ok(!cdx('tower').includes(TW_BOSS[1]));
+  S.kills={'Tunnel Rat':1,'The Rat King':1}; h=cdx('gates'); ok(h.includes('Tunnel Rat (striker)')&&h.includes('The Rat King, Call the Swarm')); ok(!h.includes('Grave Beetle'));
+  ok(cdx('bosses').includes('The Rat King')); S.tower.best=12; ok(cdx('tower').includes(TW_BOSS[1]));
+});
+test('Codex: numbers come from the game tables, so they follow balance changes',()=>{
+  ok(cdx('status').includes(Math.round(DIFF.armor[3]*100)+'%')); ok(cdx('town').includes(BUILD_COST[2][0]+' gold + '+BUILD_COST[2][1]+' bone dust')); ok(cdx('skills').includes('Rank 3 (Lv '+skReq(SKILL.reap,3)+')'));
+  const keep=EVENT_CHANCE; ok(cdx('rooms').includes(Math.round(keep*100)+'% of gate rooms'));
+});
+
+// =====================================================================================================
+// ICONS
+test('Icons: creatures show a role badge (bosses too), you do not; set gear shows its gate letter, uniques do not',()=>{
+  for(const r of Object.keys(ROLES)){ const h=ico('Tunnel Rat',0,{role:r}); ok(h.includes('rb rb-'+r),r+' badge'); }
+  ok(!ico('Necromancer',0,{role:'striker'}).includes('class="rb'),'no badge on you'); ok(!ico('Tunnel Rat',0,{}).includes('class="rb'),'no role, no badge');
+  const g=iico(ITEM['3-wa']); ok(/class="ico t\d s3"/.test(g)&&/class="rb gl r3">B</.test(g));
+  const u=Object.values(ITEM).find(d=>d.uq); ok(!iico(u).includes('rb gl')); const tw=Object.values(ITEM).find(d=>d.tower); ok(!tw||!iico(tw).includes('rb gl'));
+  arena([foe({role:'mender'})]); mkMinion({role:'reaper'}); const h=renderAll('badges'); ok(h.includes('rb rb-mender')&&h.includes('rb rb-reaper'));
+});
+test('Icons: every redrawn enemy still has a picture and no two gate or Tower icons are identical',()=>{
+  const names=allNames(); names.forEach(n=>ok(IC[n]&&IC[n].length>200,n));
+  const seen={}; names.forEach(n=>{ ok(!seen[IC[n]],n+' looks exactly like '+seen[IC[n]]); seen[IC[n]]=n; });
 });
 
 test('Playthrough: a bot plays 30 days, checking every rule after every action',()=>{
