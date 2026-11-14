@@ -100,6 +100,12 @@ test('Language: Turkish lays over the English text, numbers and names kept; unkn
   eq(trText('Lv 12 · ATK 40'),'Sv 12 · SAL 40'); eq(trText('Rest until dawn'),'Şafağa kadar dinlen'); eq(trText('+5 Strength'),'+5 Güç');
   eq(trText(' Room 2 of 4. '),' Oda 2 / 4. '); eq(trText('Rare · Relic'),'Nadir · Emanet'); eq(trText('Tunnel Rat'),'Tunnel Rat','names stay');
   eq(trText('A sentence nobody wrote down'),'A sentence nobody wrote down');
+  for(const s of ['weapon','armor','relic']) ok(!/equipped/.test(trText('No '+s+' equipped.')),s+' slot empty');
+  ok(!/Reach floor/.test(trText('Reach floor 11 to learn what waits here.'))); ok(!/Beyond/.test(trText('Beyond floor 100 lies the Abyss, a climb with no top.')));
+  for(const D of DUNGEONS) ok(trText(D.blurb)!==D.blurb,D.name+' blurb'); eq(trText('Hidden'),'Gizli'); eq(trText('Chosen'),'Seçildi');
+  for(const t of TIERS) ok(/^Gizli bir /.test(trText('A hidden '+t.toLowerCase()+' title. Keep playing to discover it.')),'hidden '+t);
+  eq(trText('When worn: −3% Damage taken'),'Giyilince: −%3 Alınan hasar','minus sign'); eq(trText('3: −5% Damage taken'),'3: −%5 Alınan hasar');
+  eq(trText('costs −8% Damage dealt, −15% Gold from kills'),'bedeli: −%8 Verilen hasar, −%15 öldürmeden altın');
   for(const [k,v] of TR_DICT) eq((k.match(/#/g)||[]).length,(v.match(/#/g)||[]).length,'numbers in '+k);
   ui.tab='settings'; const h=renderAll('settings'); ok(/data-k="lang\|tr"/.test(h)&&/Türkçe/.test(h)); ACTIONS.view('lang|tr'); eq(VIEW.lang,'tr'); ACTIONS.view('lang|xx'); eq(VIEW.lang,'tr'); ACTIONS.view('lang|en'); eq(VIEW.lang,'en');
 });
@@ -148,5 +154,27 @@ test('Tuning: cursed foes x1.15 on Normal, x1.5 with a difficulty; Nightmare foe
   setLvl(10); S.ti=S.ti||{}; S.ti.clr={0:1}; S.mod={day:S.day,gi:0,id:'drought'}; S.watches=3; startRun(0); near(foeHeat(),CURSE_FOE,1e-9); eq(heatK('gold'),1);
   S.mode='town'; S.run=null; S.heatMax={0:2}; setHeat(0,3); S.watches=3; startRun(0); near(foeHeat(),3.6*DAMNED_FOE,1e-9); near(heatK('xp'),2.3*DAMNED,1e-9);
   eq(UQ_MOB,.02); eq(raiseCost(corpse({}))>0,true); eq(DUST_TIER.join(),'1,1,2,4,7');
+});
+test('Keys: town tabs carry number keys, ? opens the shortcut sheet, and the new-day line sums up raids',()=>{
+  S.mode='town'; ui.tab='gates'; let h=renderAll('tabs'); ok(/data-k="gates" aria-keyshortcuts="1"/.test(h)&&/data-a="keys"/.test(h),'tab keys and ? button'); ok(/Gear &middot; [0-9]+<kbd aria-hidden="true">3<\/kbd>/.test(h),'the tab hint stays out of the name');
+  ACTIONS.keys(); h=renderAll('keys'); ok(/keys-ov/.test(h)&&/Switch tabs/.test(h)&&/Raise the best/.test(h),'sheet lists the keys'); ACTIONS.keys(); ok(!/keys-ov/.test(renderAll('closed')));
+  eq(raidDayLine([]),''); eq(raidDayLine([{won:true,lost:0},{won:false,lost:2}]),' Raids: 1 won, 1 thrown back, 2 fallen.');
+  ok(Array.isArray(resolveRaids()),'resolveRaids returns results');
+});
+test('Bulk: every two-press action keeps its pending confirm on the second click',()=>{
+  ['selltier','salvtier','junk','sjunk','fuse','discard'].forEach(a=>ok(CONFIRM_ACTS.includes(a),a));
+  const src=Object.entries(ACTIONS).filter(([k,f])=>/ui\.confirm\s*=\s*'/.test(String(f))).map(([k])=>k); src.forEach(k=>ok(CONFIRM_ACTS.includes(k),k+' sets a confirm but a click would clear it'));
+});
+test('Farming: a gate far below you pays less on Normal, ramping from 8 to 20 levels past its safe level down to half',()=>{
+  eq(farmK(5,SAFE[5]+DIFF.farmFrom),1); eq(farmK(5,SAFE[5]),1); near(farmK(5,SAFE[5]+14),.75,1e-9); eq(farmK(5,SAFE[5]+20),.5); eq(farmK(2,SAFE[2]+40),DIFF.farmMin);
+  ok(farmK(3,SAFE[3]+12)<farmK(3,SAFE[3]+11),'smooth, one level at a time');
+  S.ti=S.ti||{}; S.ti.clr={}; setLvl(SAFE[1]+20); S.watches=3; startRun(1); eq(runFarm(),1,'first clear pays in full');
+  eq(gateCleared(S.run),RK[1].clear,'first clear bonus in full'); near(runFarm(),.5,1e-9); eq(heatK('xp'),.5); eq(heatK('gold'),.5); eq(heatK('drop'),1,'drops never shrink');
+  eq(gateCleared(S.run),Math.round(RK[1].clear*.5),'a later clear bonus is halved');
+  S.run.heat=1; eq(runFarm(),1,'Hard'); eq(heatK('xp'),HEAT[1].xp); S.run.heat=0; S.run.mod=Object.keys(MODS)[0]; eq(runFarm(),1,'cursed'); S.run.mod=null;
+  S.run.rift=1; eq(runFarm(),1,'the Rift'); S.run.rift=0; S.mode='town'; S.run=null; eq(runFarm(),1,'no run');
+  ui.tab='gates'; ui.gsub='open'; S.heat={}; let h=renderAll('farm line'); ok(/Rewards here 50% on Normal at your level; Hard and up pay in full\./.test(h),'card line');
+  setHeat(1,1); h=renderAll('hard'); ok(!/Rewards here/.test(h),'no line on Hard'); setHeat(1,0);
+  setLvl(SAFE[1]+3); ok(!/Rewards here/.test(renderAll('fair')),'no line near the safe level');
 });
 })();

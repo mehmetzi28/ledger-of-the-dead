@@ -375,8 +375,10 @@ i,em{font-style:normal}
   .unit .u-sub{font-size:11px}
   .actbar{position:sticky;bottom:0;z-index:2;margin:10px -12px 0;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));background:linear-gradient(0deg,rgba(8,7,6,.97) 70%,rgba(8,7,6,.85));border-top:1px solid var(--line);gap:8px}
   .actbar .btns{gap:6px}
+  .actbar .pstrip{display:flex;gap:3px;height:6px;margin:0 0 6px}
   .actbar .btn{flex:1 1 calc(50% - 6px);min-height:40px;padding:9px 8px;font-size:11px;letter-spacing:.08em}
   .actbar kbd{display:none}
+  .tabs kbd,.tabs .keyhint{display:none}
   .actbar .btns+.btns{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}   /* skills and potions: one swipeable row each */
   .actbar .btns+.btns::-webkit-scrollbar{display:none}
   .actbar .btns+.btns .btn{flex:0 0 auto;white-space:nowrap}
@@ -506,6 +508,16 @@ kbd{border:0;background:rgba(0,0,0,.35);border-radius:3px;padding:1px 5px;opacit
 .event-box h4{margin:0;font:600 19px/1.2 var(--font-head);color:var(--gold)}
 .event-box p{margin:0;font:400 16px/1.4 var(--font-lore)}
 .curse-line{display:block;margin-top:6px;color:#ff9a78}
+.farm-line{margin-top:4px;font-size:12px}
+.pstrip{display:none}.pt{flex:1 1 0;max-width:44px;min-width:8px;background:rgba(0,0,0,.55);border:1px solid var(--line);overflow:hidden}.pt b{display:block;height:100%;background:var(--soul)}.pt.low b{background:var(--blood)}.pt.down{opacity:.3}
+.a-dens{display:inline-flex;gap:10px;margin-left:auto}.a-dens .linkbtn.on{color:var(--bone);text-decoration:none}
+.army.compact{gap:4px}
+.mrow{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:6px 10px;min-width:0;border:1px solid rgba(63,107,43,.5);background:var(--panel-2);font:500 13px/1.3 var(--font-body)}
+.mr-name{flex:1 1 150px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mr-hp{display:inline-flex;align-items:center;gap:6px;flex:0 1 140px;min-width:96px;font-size:12px}.mr-hp .bar{flex:1;height:5px;margin:0}
+.mr-hp.low .num{color:var(--blood-text)}
+.mr-tags{font-size:11px;min-width:0;overflow-wrap:anywhere}
+.mr-acts{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}.mr-acts .btn.small{min-height:28px;padding:6px 9px;font-size:10px}
 .curse-line b{color:#ffb59c!important}
 .dot-t{color:#e58c6e}.dot-t.poison{color:#9fd47a}
 .free-t{color:var(--ok)}
@@ -698,6 +710,12 @@ body.scened::before{opacity:.35}
 body.lite .ico svg>g{filter:url(#paintLite)}
 body.lite::after{display:none}body.lite .win{background:color-mix(in srgb,var(--panel) 90%,transparent)}
 body.lite .unit,body.lite .minion,body.lite .corpse,body.lite .item,body.lite .gate,body.lite .door,body.lite .tt-row,body.lite .raid-row{background-image:none}
+.tabs kbd{margin-left:10px;font-size:9px}.tabs .keyhint{min-width:34px}
+.keys-ov{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;padding:16px}
+.keys-win{max-width:440px;width:100%;max-height:86vh;overflow:auto;margin:0}
+.keys-win .kh{display:flex;justify-content:space-between;align-items:center;gap:10px}.keys-win h2{margin:0}
+.keys-win h3{margin:12px 0 4px;font-size:13px;color:var(--gold)}
+.kr{display:flex;gap:10px;align-items:baseline;padding:2px 0;font-size:13px}.kr kbd{min-width:46px;text-align:center;margin:0;color:var(--bone);opacity:1;font-size:11px;background:rgba(0,0,0,.45);border:1px solid var(--line-2);border-bottom-width:2px;border-radius:2px;padding:2px 6px}
 .raid-odds{margin-top:4px;font:500 12px/1.3 var(--font-body);color:var(--gold)}
 body.lite #scene *{animation:none!important}body.lite #scene .sc-ray,body.lite #scene .sc-pulse,body.lite #scene .sc-mote,body.lite #scene .sc-ember{display:none}
 body.towerscene #hellbg svg,body.towerscene #hellbg .hb-vig{display:none}body.towerscene #hellbg .hb-sky{opacity:.45}
@@ -1073,7 +1091,11 @@ const SAFE=[1,6,10,15,19,25];   // A and S were 22/28, which the XP from B could
 // DIFF.hp/atk and DIFF.gate move both sides; armor and foeAtk affect living foes only. Tuned with tests/balance-test.js.
 // Target: a bot that learns skills, entering each gate at its Recommended level, clears ~80% of runs (A and S were tuned entering 3 levels early,
 // because the XP curve stalls the fair bot near level 20). The no-skill bot dies noticeably more often.
-DIFF.armor=[0.30,0.74,0.88,0.85,0.89,0.85]; DIFF.foeAtk=[1,1.2,1.2,2.1,1.38,0.8];   // retuned after boss abilities, altar, salts, and minion traits/evolution (D, A, S raised); xpBase 70->64 keeps the leveling pace (S first cleared ~day 64)   A 1.5->1.38 after status effects (bleeding from its strikers)
+DIFF.armor=[0.30,0.74,0.88,0.85,0.89,0.85]; DIFF.foeAtk=[1,1.1,1.0,2.1,1.38,0.8];   // retuned after boss abilities, altar, salts, and minion traits/evolution (D, A, S raised); xpBase 70->64 keeps the leveling pace (S first cleared ~day 64)   A 1.5->1.38 after status effects (bleeding from its strikers)   D 1.2->1.1 and C 1.2->1.0: the bots cleared C 69% (market) and D 71% (full), now about 80% and 76%
+// Farming far below you on Normal pays less: kill XP, kill gold and the clear bonus are full up to FARM_FROM levels past a gate's SAFE level,
+// then ramp down to FARM_MIN at FARM_TO and beyond. Hard and up, cursed gates, a gate's first clear, drops, the Tower, the Rift, raids, bounties and quests pay in full.
+DIFF.farmFrom=8; DIFF.farmTo=20; DIFF.farmMin=.5;
+const farmK=(di,lvl)=>{ const t=clamp(((lvl-SAFE[di])-DIFF.farmFrom)/(DIFF.farmTo-DIFF.farmFrom),0,1); return 1-(1-DIFF.farmMin)*t; };
 const NGP_FOE=.3, NGP_REWARD=.25, ngpFoe=()=>1+NGP_FOE*((S&&S.ngp)||0), ngpReward=()=>1+NGP_REWARD*((S&&S.ngp)||0);   // New Game+: tougher foes, richer rewards
 function foeScale(list,a){ const n=ngpFoe(); for(const e of list){ if(n!==1){ e.maxHp=e.hp=Math.round(e.maxHp*n); } if(a*n!==1) e.atk=Math.max(1,Math.round(e.atk*a*n)); } }
 const foeArmor=()=>S.run?(S.run.tw?TW.armor:DIFF.armor[S.run.di]):0;
@@ -1491,10 +1513,10 @@ function endDay(){
     }
   }
   S.day++; S.watches=WATCHES; S.quest={kills:0,rooms:0,clears:0,claimed:false};
-  resolveRaids();
+  const rr=resolveRaids();
   P.hp=pMax(); P.mana=pMana(); P.shield=0;
   S.army.forEach(m=>m.hp=m.maxHp);
-  notify('Day '+S.day+' begins. You have '+WATCHES+' watches.');
+  notify('Day '+S.day+' begins. You have '+WATCHES+' watches.'+raidDayLine(rr));
 }
 function restDay(){ if(S.mode!=='town') return; S.watches=0; endDay(); }
 
@@ -1699,7 +1721,7 @@ function act(kind){
   if(r.turn===9&&liveFoes().some(e=>e.tw&&e.boss)) log('Wrath: the warden is enraged and hits harder every turn.','bad');
 }
 function gateCleared(r){   // the boss room of a gate is won: story, clear tallies (titles, difficulty, curses) and the secret-master hint; returns the clear bonus XP
-  const di=r.di; unlockStory('g'+di,r); r.cleared=true; S.quest.clears++;
+  const di=r.di, fk=runFarm(); unlockStory('g'+di,r); r.cleared=true; S.quest.clears++;   /* fk before the clear is marked: a first clear pays in full */
   S.ti=S.ti||{}; S.ti.clr=S.ti.clr||{}; S.ti.clr[di]=1; tally('clrN'+di);
   if(T_('clrN'+di)===SECRET_HINT&&secretHinted(di)) notify('A torn page in the Ledger: '+SECRET[di].hint,'');
   if(r.heat){
@@ -1708,7 +1730,7 @@ function gateCleared(r){   // the boss room of a gate is won: story, clear talli
   }
   if(r.mod){ tally('cur_'+r.mod); tally('cursed'); }
   if(!r.hurt) tally('flawless');
-  return RK[di].clear;
+  return Math.round(RK[di].clear*fk);
 }
 function roomWon(){
   const r=S.run, P=S.player; r.events=[];
@@ -2083,8 +2105,11 @@ function resolveRaid(x){
   }
   x.units.forEach(syncMinion); S.army.push(...x.units); notify(msg,won?'ok':'bad');
   S.raidLog=[{day:S.day,di:x.di,won,nick:lead.nick,lost:lost.length}].concat(S.raidLog||[]).slice(0,RAID_LOG);
+  return {won,lost:lost.length};
 }
-function resolveRaids(){ const out=S.raids||[]; S.raids=[]; out.forEach(resolveRaid); }
+function resolveRaids(){ const out=S.raids||[]; S.raids=[]; return out.map(resolveRaid); }
+function raidDayLine(rr){ if(!rr||!rr.length) return ''; const w=rr.filter(x=>x.won).length, b=rr.length-w, f=rr.reduce((a,x)=>a+x.lost,0);   // one line for the new-day message
+  return ' Raids: '+[w?w+' won':'',b?b+' thrown back':'',f?f+' fallen':''].filter(Boolean).join(', ')+'.'; }
 
 // ===== THE RIFT =====
 // Endless endgame: from level 40, once the Throne of Ash has fallen. Each depth is a five-room run through a random gate's
@@ -2314,7 +2339,9 @@ const heatMax=di=>Math.min(HEAT.length-1,S.ti&&S.ti.clr&&S.ti.clr[di]?((S.heatMa
 const heatOf=di=>Math.min((S.heat&&S.heat[di])||0,heatMax(di));
 function setHeat(di,lv){ if(S.mode!=='town'||!RK[di]||!(lv>=0&&lv<=heatMax(di))) return false; S.heat=S.heat||{}; if(lv) S.heat[di]=lv; else delete S.heat[di]; return true; }
 const runHeat=()=>(S.run&&!S.run.tw&&S.run.heat)||0;
-const heatK=k=>{ const h=runHeat(); if(!h) return 1; return (k==='foe'?foeHeat():HEAT[h][k]*(runMod()?DAMNED:1)); };   // the cursed and the hard together
+const gateFarm=di=>(heatOf(di)||gateMod(di)||!(S.ti&&S.ti.clr&&S.ti.clr[di]))?1:farmK(di,S.player.lvl);   // what a Normal run of this gate would pay now (the gate card)
+const runFarm=()=>{ const r=S.run; if(!r||r.tw||r.rift||r.heat||runMod()||!(S.ti&&S.ti.clr&&S.ti.clr[r.di])) return 1; return farmK(r.di,S.player.lvl); };
+const heatK=k=>{ const h=runHeat(); if(!h) return (k==='xp'||k==='gold')?runFarm():1; return (k==='foe'?foeHeat():HEAT[h][k]*(runMod()?DAMNED:1)); };   // the cursed and the hard together
 
 // ===== RUN HISTORY =====
 const HIST_N=20, LIFE_KEYS=['runs','clears','deaths','fled','rooms','kills','xp','gold','items','raised'];
@@ -3226,10 +3253,10 @@ function scene(){
 }
 // ----- display settings (per browser, not in the save): text size, reduced motion, high contrast
 const LANGS={en:'English',tr:'Türkçe'};   // see LANGUAGE below
-const VIEW={size:0,calm:false,hc:false,nobg:false,lang:'en',fx:'auto',fold:{}};
+const VIEW={size:0,calm:false,hc:false,nobg:false,lang:'en',fx:'auto',army:'cards',fold:{}};
 const FX_MODES={auto:'Auto',full:'Full',light:'Light'};
 const fxLight=()=>VIEW.fx==='light'||(VIEW.fx==='auto'&&((window.innerWidth||1200)<=540||((typeof navigator!=='undefined'&&navigator.hardwareConcurrency)||8)<=4));   // phones and weak machines get the cheap painting
-try{ const v=JSON.parse(localStorage.getItem('lotd-view')||'null'); if(v&&typeof v==='object'){ VIEW.size=clamp(+v.size||0,-1,2); VIEW.calm=!!v.calm; VIEW.hc=!!v.hc; VIEW.nobg=!!v.nobg; VIEW.lang=LANGS[v.lang]?v.lang:'en'; VIEW.fx=FX_MODES[v.fx]?v.fx:'auto'; if(v.fold&&typeof v.fold==='object') for(const k of ['equip','quest','bounty']) if(v.fold[k]) VIEW.fold[k]=true; }
+try{ const v=JSON.parse(localStorage.getItem('lotd-view')||'null'); if(v&&typeof v==='object'){ VIEW.size=clamp(+v.size||0,-1,2); VIEW.calm=!!v.calm; VIEW.hc=!!v.hc; VIEW.nobg=!!v.nobg; VIEW.lang=LANGS[v.lang]?v.lang:'en'; VIEW.fx=FX_MODES[v.fx]?v.fx:'auto'; VIEW.army=v.army==='compact'?'compact':'cards'; if(v.fold&&typeof v.fold==='object') for(const k of ['equip','quest','bounty']) if(v.fold[k]) VIEW.fold[k]=true; }
   else { VIEW.calm=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches); if(window.innerWidth<=540) VIEW.fold={equip:true,bounty:true}; } }catch(e){}   // first visit on a phone: the side panel starts folded
 const FOLD_NAME={equip:'Equipment',quest:'Daily quest',bounty:'Bounty board'};
 const foldBtn=k=>'<button class="fold" data-a="fold" data-k="'+k+'" aria-expanded="'+!VIEW.fold[k]+'" aria-label="'+(VIEW.fold[k]?'Show ':'Hide ')+FOLD_NAME[k]+'">'+(VIEW.fold[k]?'&#9662;':'&#9652;')+'</button>';
@@ -3252,6 +3279,7 @@ const TR_DICT=new Map(Object.entries({
 "# Will":"# İrade",
 "# army slot per level. Also lifts the cap of # slots by one per level":"Seviye başına # ordu yeri. Ayrıca # yer sınırını seviye başına bir artırır",
 "# dust":"# toz",
+"# fallen":"# düştü",
 "# levels":"# seviye",
 "# mana":"# mana",
 "# mana every turn in battle":"Savaşta her tur # mana",
@@ -3268,6 +3296,7 @@ const TR_DICT=new Map(Object.entries({
 "# skill points":"# yetenek puanı",
 "# skill points: open Skills":"# yetenek puanı: Yetenekler'i aç",
 "# slots per upgrade, # upgrades. The bag starts at #":"Yükseltme başına # yer, # yükseltme. Çanta # ile başlar",
+"# thrown back":"# püskürtüldü",
 "# title":"# unvan",
 "# titles":"# unvan",
 "# titles earned":"# unvan kazanıldı",
@@ -3275,6 +3304,7 @@ const TR_DICT=new Map(Object.entries({
 "# trophies from one gate (a boss heart counts as #) and some gold forge that gate's gear in the slot you choose. #% come out a masterwork from the next gate":"Bir kapıdan # ganimet (bir boss kalbi # sayılır) ve biraz altın, seçtiğin yuvada o kapının teçhizatını döver. %#'i bir sonraki kapıdan bir şaheser olarak çıkar",
 "# ultimates":"# nihai",
 "# unspent points":"# harcanmamış puan",
+"# won":"# kazanıldı",
 "#% Crit chance":"%# Kritik şansı",
 "#% Damage dealt":"%# Verilen hasar",
 "#% Damage taken":"%# Alınan hasar",
@@ -3398,8 +3428,10 @@ const TR_DICT=new Map(Object.entries({
 "Armor blunts every hit you and your army land, so fights take longer. Bone Spear pierces half of it, and Corpse Explosion and Reap ignore it completely":"Zırh senin ve ordunun her vuruşunu zayıflatır, bu yüzden dövüşler uzar. Kemik Mızrak yarısını deler; Ceset Patlaması ve Biç onu tamamen yok sayar",
 "Army":"Ordu",
 "Army #/#":"Ordu #/#",
+"Army health":"Ordu sağlığı",
 "Army slots":"Ordu yeri",
 "Army slots, raise odds, minion bond":"Ordu yeri, diriltme şansı, hizmetkâr bağı",
+"Army view":"Ordu görünümü",
 "Ashfall":"Kül Yağmuru",
 "Asking for more":"Daha fazlasını istemek",
 "At #% HP a boss (from the Sunken Crypt on, and every Tower warden) enters its second phase: its moves come a turn sooner, every move is telegraphed, and it alternates its own move with Sundering Blow. Taunt sends that blow at a vanguard, and a Focus crit breaks any charging move":"Canı %#'te bir boss (Sunken Crypt'ten itibaren ve her Kule muhafızı) ikinci evresine girer: hamleleri bir tur erken gelir, her hamle önceden belli olur ve kendi hamlesiyle Parçalayan Darbe'yi sırayla kullanır. Kışkırt o darbeyi bir öncüye yollar; bir Odak kritiği güç toplayan her hamleyi bozar",
@@ -3419,6 +3451,7 @@ const TR_DICT=new Map(Object.entries({
 "At the fiftieth floor you find a lectern of black iron, and on it a ledger like yours, open to a page of crossed-out names. Every name but one has a line through it. The last is the name of the Tower itself":"Ellinci katta kara demirden bir kürsü buluyorsun, üstünde seninkine benzer bir defter, üstü çizilmiş isimlerin olduğu bir sayfada açık. Biri hariç her ismin üstü çizili. Sonuncusu Kulenin kendi adı",
 "At the two hundredth floor the ink in the Ledger thins to grey. The book is not running out of pages. It is running out of reasons. For the first time since the drowned chapel, it asks you a question: Why do you keep climbing":"İki yüzüncü katta Defterdeki mürekkep griye dönüşüyor. Kitabın sayfası bitmiyor. Sebebi bitiyor. Boğulmuş şapelden beri ilk kez sana bir soru soruyor: Neden tırmanmaya devam ediyorsun",
 "Auto":"Otomatik",
+"Back to the gate list, cancel a rename or a confirm":"Kapı listesine dön, ad değiştirmeyi ya da onayı iptal et",
 "Backgrounds":"Arka planlar",
 "Bag #/#":"Çanta #/#",
 "Base form":"Temel biçim",
@@ -3438,6 +3471,7 @@ const TR_DICT=new Map(Object.entries({
 "Bestiary":"Canavar Defteri",
 "Bestiary & drop tables":"Canavar defteri ve ganimet tabloları",
 "Between rooms":"Odalar arasında",
+"Beyond floor # lies the Abyss, a climb with no top":"#. katın ötesinde Uçurum uzanır: tepesi olmayan bir tırmanış",
 "Bigger Bang":"Büyük Patlama",
 "Biggest single hit":"En büyük tek vuruş",
 "Bleeding":"Kanıyor",
@@ -3457,6 +3491,7 @@ const TR_DICT=new Map(Object.entries({
 "Bone Shield":"Kemik Siper",
 "Bone Spear":"Kemik Mızrak",
 "Bone Spear #":"Kemik Mızrak #",
+"Bone Ward":"Kemik Kalkanı",
 "Bone Ward #":"Kemik Kalkanı #",
 "Bone Ward grants #% more ward":"Kemik Kalkanı %# daha fazla kalkan verir",
 "Bone Ward raised":"Kemik Kalkanı kaldırıldı",
@@ -3505,6 +3540,8 @@ const TR_DICT=new Map(Object.entries({
 "Cancel # boss moves":"# boss hamlesini boz",
 "Cancel a boss's telegraphed move by freezing it":"Bir bossun önceden belli hamlesini dondurarak boz",
 "Cannot be sold":"Satılamaz",
+"Cards":"Kartlar",
+"Change target":"Hedef değiştir",
 "Charging":"Güç topluyor",
 "Choices":"Seçenekler",
 "Choose":"Seç",
@@ -3513,6 +3550,7 @@ const TR_DICT=new Map(Object.entries({
 "Choose the unique to carry":"Taşınacak eşsizi seç",
 "Choose where to hunt":"Nerede avlanacağını seç",
 "Choose your way":"Yolunu seç",
+"Chosen":"Seçildi",
 "Cinder Wave is lost":"Kor Dalgası kayboldu",
 "Claim":"Al",
 "Claim all # Hell Tower uniques":"Cehennem Kulesi'nin # eşsizinin hepsini al",
@@ -3537,6 +3575,7 @@ const TR_DICT=new Map(Object.entries({
 "Cleaves a second foe for half damage. Only your reapers cleave; enemy reapers strike one target. Every gate boss and Tower warden is a reaper, so a raised boss cleaves for you. Execute doubles your reapers' hits on foes below #% HP":"İkinci bir düşmanı yarım hasarla yarar. Yalnızca senin biçicilerin yarar; düşman biçiciler tek hedefe vurur. Her kapı bossu ve Kule muhafızı bir biçicidir, bu yüzden diriltilen bir boss senin için yarar. İnfaz, biçicilerinin canı %#'in altındaki düşmanlara vuruşlarını ikiye katlar",
 "Climb # floors of the Hell Tower":"Cehennem Kulesi'nde # kat tırman",
 "Climb the Hell Tower # times":"Cehennem Kulesi'ne # kez tırman",
+"Close":"Kapat",
 "Close to earning":"Kazanılmak üzere",
 "Codex":"Kodeks",
 "Codex · Basics":"Kodeks · Temeller",
@@ -3834,6 +3873,7 @@ const TR_DICT=new Map(Object.entries({
 "Hell Tower · Lv #":"Cehennem Kulesi · Sv #",
 "Hell Tower, locked until level #":"Cehennem Kulesi, # seviyeye kadar kilitli",
 "Help":"Yardım",
+"Hidden":"Gizli",
 "Hide Bounty board":"Ödül panosunu gizle",
 "Hide Daily quest":"Günlük görevi gizle",
 "Hide Equipment":"Donanımı gizle",
@@ -3860,8 +3900,10 @@ const TR_DICT=new Map(Object.entries({
 "Immune to bleeding, burns and poison. Kept from a Warded elite":"Kanamaya, yanığa ve zehre bağışık. Korunaklı bir seçkinden kalır",
 "Impaler":"Delici",
 "In about #% of the events between rooms, a sworn necromancer meets a shrine of their own path instead: the Honored One may pray at a shrine of the Old Gods (heal #% HP and refill mana), the Dishonored One may loot a defiled altar (gold and a Soul for #% of their HP)":"Odalar arasındaki olayların yaklaşık %#'inde ant içmiş bir ölüçağıran onun yerine kendi yolunun bir tapınağıyla karşılaşır: Onurlu, Eski Tanrıların tapınağında dua edebilir (%# can ve mana dolar), Onursuz kirletilmiş bir sunağı yağmalayabilir (canının %#'i karşılığında altın ve bir Ruh)",
+"In battle":"Savaşta",
 "In the margin of an early page, in a shaking hand, Oswin wrote: I wanted no one forgotten. I did not understand that some things are meant to be forgotten, and that remembering them forever is its own kind of grave":"İlk sayfalardan birinin kenarına Oswin titrek bir elle yazmış: Kimsenin unutulmasını istemedim. Bazı şeylerin unutulmak için olduğunu ve onları sonsuza dek hatırlamanın da başlı başına bir mezar olduğunu anlamadım",
 "In the plague year the dead came faster than Oswin could write. He worked by candle until his eyes failed, and still the names piled up unrecorded, and in the night he heard them weeping to be written. He prayed for a book that could keep up":"Veba yılında ölüler Oswin'in yazabildiğinden hızlı geldi. Gözleri bozulana kadar mum ışığında çalıştı, yine de isimler kaydedilmeden yığıldı ve gece yazılmak için ağladıklarını duydu. Yetişebilecek bir kitap için dua etti",
+"In town":"Kasabada",
 "Ink under the nails":"Tırnak altında mürekkep",
 "Insight":"Sezgi",
 "Intelligence":"Zekâ",
@@ -3873,6 +3915,7 @@ const TR_DICT=new Map(Object.entries({
 "Keep back from the fire! You do not know what sleeps beneath it":"Ateşten uzak dur! Altında neyin uyuduğunu bilmiyorsun",
 "Keep it... better than we did":"Onu sakla... bizden daha iyi",
 "Keepers and wardens":"Bekçiler ve muhafızlar",
+"Keyboard shortcuts":"Klavye kısayolları",
 "Keys in battle":"Savaşta tuşlar",
 "Kills":"Öldürmeler",
 "Kind":"Tür",
@@ -3980,6 +4023,7 @@ const TR_DICT=new Map(Object.entries({
 "Next point: Strike +#":"Sonraki puan: Vuruş +#",
 "Next room · heal #%, mana +#% · keys #–#":"Sonraki oda · iyileş %#, mana +%# · tuşlar #–#",
 "Nightmare":"Kâbus",
+"No armor equipped":"Takılı zırh yok",
 "No bottom":"Dipsiz",
 "No fight here":"Burada dövüş yok",
 "No fight. Gold and a piece of gear":"Dövüş yok. Altın ve bir parça teçhizat",
@@ -3990,6 +4034,8 @@ const TR_DICT=new Map(Object.entries({
 "No one passes. No one has passed in two hundred years":"Kimse geçemez. İki yüz yıldır kimse geçmedi",
 "No other mender to fuse with":"Birleşecek başka şifacı yok",
 "No other reaper to fuse with":"Birleşecek başka biçici yok",
+"No relic equipped":"Takılı emanet yok",
+"No weapon equipped":"Takılı silah yok",
 "No wounded minions":"Yaralı hizmetkâr yok",
 "Normal":"Normal",
 "Not enough mana":"Yeterli mana yok",
@@ -3999,6 +4045,7 @@ const TR_DICT=new Map(Object.entries({
 "Old blood crusts a stone basin. Feed it, and it sharpens every blow for the rest of this gate":"Eski kan taş bir leğende kabuklanmış. Onu besle, bu kapının geri kalanında her darbeni keskinleştirir",
 "Omen today":"Bugünün kehaneti",
 "Omens":"Kehanetler",
+"On Normal, a gate far below you pays less: kill XP, gold and the clear bonus stay full up to # levels past its best level, then fall to #% at # levels past. A first clear, a cursed gate and every harder difficulty pay in full, and gear drops never shrink":"Normal'de senden çok aşağıda kalan bir kapı daha az öder: öldürme TP'si, altın ve temizleme bonusu kapının en iyi seviyesinin # seviye üstüne kadar tamdır, sonra azalarak %#'e iner (# seviye üstünde). İlk temizleme, lanetli bir kapı ve her zor seviye tam öder; teçhizat düşüşleri hiç azalmaz",
 "Once per dungeon, a killing blow leaves you at #% HP":"Zindan başına bir kez, öldürücü darbe seni %# canla bırakır",
 "Once per gate run, a killing blow leaves you at #% HP instead (not in the Tower)":"Kapı koşusu başına bir kez, öldürücü darbe seni %# canla bırakır (Kulede değil)",
 "Once per room, each kind of minion in your army can be given one order. Orders are free and do not use your turn":"Oda başına bir kez, ordundaki her hizmetkâr türüne bir emir verilebilir. Emirler bedavadır ve turunu harcamaz",
@@ -4052,6 +4099,7 @@ const TR_DICT=new Map(Object.entries({
 "Pays a Legendary piece with bonus lines":"Ek satırlı bir Efsanevi parça öder",
 "Penalty if unfinished at dawn: lose #% of a level in XP and max HP -#% for a day":"Şafakta bitmemişse ceza: bir seviyenin %#'i kadar TP kaybı ve bir gün boyunca azami Can -%#",
 "Petrified":"Taşlaşmış",
+"Pick a door":"Bir kapı seç",
 "Pick a target and your army attacks it with you. Strike (#) refills mana, Soul Siphon (#) drains, heals and harvests a Soul, Bone Ward (#) shields you. Then every foe hits back":"Bir hedef seç, ordun seninle ona saldırır. Vuruş (#) mana doldurur, Ruh Emme (#) emer, iyileştirir ve bir Ruh toplar, Kemik Kalkanı (#) seni korur. Sonra her düşman karşılık verir",
 "Pick at least one follower":"En az bir takipçi seç",
 "Pick the language of the game. Names of places, foes and items stay as they are":"Oyunun dilini seç. Yer, düşman ve eşya adları olduğu gibi kalır",
@@ -4109,6 +4157,7 @@ const TR_DICT=new Map(Object.entries({
 "Reach Lv #":"Sv #'e ulaş",
 "Reach day #":"Gün #'e ulaş",
 "Reach floor # of the Hell Tower":"Cehennem Kulesi'nin # katına ulaş",
+"Reach floor # to learn what waits here":"Burada seni neyin beklediğini öğrenmek için #. kata ulaş",
 "Reach level #":"Seviye #'e ulaş",
 "Reach the Hell Tower":"Cehennem Kulesi'ne ulaş",
 "Ready in # turn":"# tur sonra hazır",
@@ -4148,6 +4197,7 @@ const TR_DICT=new Map(Object.entries({
 "Result":"Sonuç",
 "Return to the gate":"Kapıya dön",
 "Reward: +# stat point and bonus XP":"Ödül: +# nitelik puanı ve ek TP",
+"Rewards here #% on Normal at your level; Hard and up pay in full":"Seviyende burada Normal ödüller %#; Zor ve üstü tam öder",
 "Role":"Rol",
 "Roles":"Roller",
 "Room # cleared":"Oda # temizlendi",
@@ -4205,6 +4255,7 @@ const TR_DICT=new Map(Object.entries({
 "Shielded":"Kalkanlı",
 "Shields every foe for #% of its max HP (a shield holds at most #%)":"Her düşmanı azami canının %#'i kadar kalkanlar (bir kalkan en fazla %# tutar)",
 "Shields every foe for #% of its max HP (a shield holds at most #%). Every # turns":"Her düşmanı azami canının %#'i kadar kalkanlar (bir kalkan en fazla %# tutar). Her # turda",
+"Show or hide this list":"Bu listeyi göster ya da gizle",
 "Silenced":"Susturuldu",
 "Silenced #":"Susturuldu #",
 "Silenced by the Hymn":"İlahiyle susturuldu",
@@ -4234,6 +4285,7 @@ const TR_DICT=new Map(Object.entries({
 "Sort":"Sırala",
 "Soul Prison":"Ruh Hapishanesi",
 "Soul Reap":"Ruh Biçme",
+"Soul Siphon":"Ruh Emme",
 "Soul Siphon #":"Ruh Emme #",
 "Soul Siphon (key #, # mana) pierces #% of foe armor, drains twice as hard from a foe below #% HP, heals you for #% of what it drains (#% with Lifedrain), and harvests a Soul. Every elite or boss that falls also gives a Soul. You hold up to #, and they last for the whole run":"Ruh Emme (# tuşu, # mana) düşman zırhının %#'ini deler, canı %#'in altındaki düşmandan iki kat sert emer, emdiğinin %#'i kadar seni iyileştirir (Lifedrain ile %#) ve bir Ruh toplar. Düşen her seçkin ya da boss da bir Ruh verir. En fazla # tutarsın ve tüm koşu boyunca kalırlar",
 "Soul Siphon also drains every other foe for #%":"Ruh Emme diğer her düşmandan da %# emer",
@@ -4295,6 +4347,7 @@ const TR_DICT=new Map(Object.entries({
 "Swear":"Ant iç",
 "Swear an oath. Each path gives and takes. Devotion grows with the days you keep it; renouncing costs gold and starts it over":"Bir ant iç. Her yol verir ve alır. Bağlılık onu tuttuğun günlerle büyür; vazgeçmek altına mal olur ve baştan başlatır",
 "Swear to the Old Gods of the valley. They keep your body whole, and ask for restraint":"Vadinin Eski Tanrılarına ant iç. Bedenini bütün tutarlar ve ölçülülük isterler",
+"Switch tabs":"Sekme değiştir",
 "Take":"Al",
 "Take it as it is (free raise, +#%)":"Olduğu gibi al (bedava diriltme, +%#)",
 "Take it, then... and all that comes with it":"Al o zaman... ve onunla gelen her şeyi",
@@ -4359,6 +4412,7 @@ const TR_DICT=new Map(Object.entries({
 "The burning stair":"Yanan merdiven",
 "The choir will have your voice, scribe, one way or another":"Koro sesini alacak, kâtip, öyle ya da böyle",
 "The climb":"Tırmanış",
+"The congregation left. The choir did not":"Cemaat gitti. Koro gitmedi",
 "The dead do not obey the Ledger because it is strong. They obey because it remembers them, and nothing else does. A name in the book is a name that cannot be lost. Most of them would rather serve than be forgotten. You find you understand":"Ölüler Deftere güçlü olduğu için itaat etmez. Onları hatırladığı için itaat ederler, başka hiçbir şey hatırlamaz. Kitaptaki bir isim kaybolamayan bir isimdir. Çoğu unutulmaktansa hizmet etmeyi tercih eder. Anladığını fark ediyorsun",
 "The dead pay well for what the living leave behind. Sell trophies and spare gear here, and buy supplies before you go down. The merchant's wares change every dawn":"Ölüler, yaşayanların geride bıraktığına iyi para öder. Ganimetleri ve yedek teçhizatı burada sat, aşağı inmeden erzak al. Tüccarın malları her şafak değişir",
 "The drowning":"Boğulma",
@@ -4488,6 +4542,7 @@ const TR_DICT=new Map(Object.entries({
 "Vanguards":"Öncüler",
 "Venomous":"Zehirli",
 "Vicious":"Gaddar",
+"View":"Görünüm",
 "Volatile dead":"Patlayan ölüler",
 "Walk past":"Geç git",
 "Walked out":"Çıktı",
@@ -4509,6 +4564,7 @@ const TR_DICT=new Map(Object.entries({
 "What the Ledger has told you":"Defterin sana anlattıkları",
 "Whatever you do not raise is gone when you move on":"Diriltmediğin her şey sen ilerleyince yok olur",
 "When the two halves meet, the Ledger will hold every name above and below. Whoever keeps it then will not rule the dead. They will be the dead's memory, the only thing between every soul and nothing. It is not a crown. It is a weight":"İki yarı buluştuğunda Defter yukarıdaki ve aşağıdaki her ismi tutacak. O zaman onu tutan ölülere hükmetmeyecek. Ölülerin hafızası olacak, her ruhla hiçlik arasındaki tek şey. Bu bir taç değil. Bir yük",
+"When worn":"Giyilince",
 "Where":"Nerede",
 "Where the ink runs out":"Mürekkebin bittiği yer",
 "Which way? Going on heals #% and restores #% mana":"Hangi yoldan? Devam etmek %# iyileştirir ve %# mana verir",
@@ -4577,6 +4633,7 @@ const TR_DICT=new Map(Object.entries({
 "Your rank at level #+. Rank S foes have #x HP and #x attack, give #x XP and are #% harder to raise":"Seviye #+ için rütben. S rütbe düşmanlar x# can ve x# saldırıya sahiptir, x# TP verir ve diriltmesi %# daha zordur",
 "Your relic slot is empty":"Emanet yuvan boş",
 "Your side":"Senin tarafın",
+"Your skills":"Yeteneklerin",
 "Your skills are silenced for # turns and every foe mends":"Yeteneklerin # tur susturuldu ve her düşman onarılıyor",
 "Your squad's total attack and HP against the gate's foes, raised #% per Commander evolution and #% for a boss. Between #% and #%":"Bölüğünün toplam saldırısı ve canı kapının düşmanlarına karşı; Komutan evrimi başına %#, boss için %# artar. %# ile %# arasında",
 "Your squads come back with gold you did not earn and stories they cannot tell. The gates you cleared are being cleared again in your name, while you sleep. Somewhere a village has started telling tales of a dead captain who marches past at midnight and harms no one who keeps their door shut":"Bölüklerin senin kazanmadığın altınla ve anlatamadıkları hikâyelerle dönüyor. Temizlediğin kapılar sen uyurken adına yeniden temizleniyor. Bir yerde bir köy, gece yarısı geçip giden ve kapısını kapalı tutan kimseye zarar vermeyen ölü bir yüzbaşının hikâyelerini anlatmaya başladı",
@@ -4595,6 +4652,7 @@ const TR_DICT=new Map(Object.entries({
 "claimed":"alındı",
 "cleared":"temizlendi",
 "day #":"gün #",
+"down":"düştü",
 "each":"tanesi",
 "earned day #":"gün # kazanıldı",
 "gear x#":"teçhizat x#",
@@ -4616,13 +4674,13 @@ const TR_DICT=new Map(Object.entries({
 "won":"kazanıldı",
 "x# strength":"x# güç"
 }));
-const TR_RX=[[new RegExp("^Heart of ([^\u00b7]+)$"),"$1 Kalbi"],[new RegExp("^([^\u00b7]+) Tooth$"),"$1 Dişi"],[new RegExp("^([^\u00b7]+) Claw$"),"$1 Pençesi"],[new RegExp("^([^\u00b7]+) Fang$"),"$1 Sivri Dişi"],[new RegExp("^([^\u00b7]+) Shell$"),"$1 Kabuğu"],[new RegExp("^([^\u00b7]+) Hide$"),"$1 Postu"],[new RegExp("^([^\u00b7]+) Scale$"),"$1 Pulu"],[new RegExp("^([^\u00b7]+) Talon$"),"$1 Pençesi"],[new RegExp("^([^\u00b7]+) Relic$"),"$1 Kalıntısı"],[new RegExp("^([^\u00b7]+) Vial$"),"$1 Şişesi"],[new RegExp("^([^\u00b7]+) Bone Plate$"),"$1 Kemik Plakası"],[new RegExp("^([^\u00b7]+) Bone Charm$"),"$1 Kemik Tılsımı"],[new RegExp("^([^\u00b7]+) Prayer Bead$"),"$1 Dua Boncuğu"],[new RegExp("^([^\u00b7]+) forge$"),"$1 demircisi"],[new RegExp("^gate ([SABCDE]) set$"),"$1 kapısı takımı"],[new RegExp("^([^\u00b7]+) set$"),"$1 takımı"],[new RegExp("^Clear the (.+?) (\\d+) times$"),"$1 kapısını $2 kez temizle"],[new RegExp("^Clear the (.+) on Nightmare$"),"$1 kapısını Kâbus'ta temizle"],[new RegExp("^Clear the (.+) \\(([A-Z])-rank gate\\)$"),"$1 kapısını temizle ($2 rütbe kapı)"],[new RegExp("^Clear the (.+)$"),"$1 kapısını temizle"],[new RegExp("^Defeat (.+) on floor (\\d+)$"),"$1 düşmanını kat $2'de yen"],[new RegExp("^Clear a gate cursed with (.+)$"),"{t1} lanetli bir kapıyı temizle"],[new RegExp("^Slay (.+?), the (.+)'s secret master$"),"$2 kapısının gizli efendisi $1'i öldür"],[new RegExp("^vs (.+)$"),"karşı: $1"],[new RegExp("^Act (I|II|III|IV|V) \u00b7 (.+) \u00b7 (\\d+)/(\\d+)$"),"Perde $1 · {t2} · $3/$4"],[new RegExp("^Act (I|II|III|IV|V) \u00b7 (.+)$"),"Perde $1 · {t2}"],[new RegExp("^Telegraphed \u00b7 (.+) \u00b7 (.+)$"),"Önceden belli · $1 · $2"],[new RegExp("^Floor (\\d+) \u00b7 recommended level (\\d+) \u00b7 (.+)$"),"Kat $1 · önerilen seviye $2 · $3"],[new RegExp("^(.+) \u00b7 Studied$"),"{t1} · İncelendi"],[new RegExp("^(.+) \u00b7 (\\d+)% per kill$"),"{t1} · öldürme başına %$2"],[new RegExp("^(.+?) \\((.+?)\\) or (.+?) \\((.+?)\\)$"),"{t1} ({t2}) ya da {t3} ({t4})"],[new RegExp("^Choices: (.+) or (.+)$"),"Seçenekler: {t1} ya da {t2}"],[new RegExp("^(Common|Uncommon|Rare|Epic|Legendary) (\\d+)%$"),"{t1} %$2"],[new RegExp("^(.+?) hits you for (\\d+) \\(crit\\)$"),"$1 sana $2 vuruyor (kritik)"],[new RegExp("^(.+?) hits you for (\\d+)$"),"$1 sana $2 vuruyor"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit\\)$"),"$1 → $2: $3 hasar (kritik)"],[new RegExp("^(.+?) hits (.+?) for (\\d+) and poisons it$"),"$1 → $2: $3 hasar, zehirlendi"],[new RegExp("^(.+?) hits (.+?) for (\\d+) and drinks (\\d+) HP$"),"$1 → $2: $3 hasar, $4 can emdi"],[new RegExp("^(.+?) hits (.+?) for (\\d+)$"),"$1 → $2: $3 hasar"],[new RegExp("^(.+?) mends you for (\\d+)$"),"$1 seni $2 onarıyor"],[new RegExp("^(.+?) mends (.+?) for (\\d+)$"),"$1, $2 için $3 onarıyor"],[new RegExp("^You strike (.+?) for (\\d+)$"),"$1 düşmanına $2 vuruyorsun"],[new RegExp("^You strike (.+?) for (\\d+) \\(crit\\)$"),"$1 düşmanına $2 vuruyorsun (kritik)"],[new RegExp("^Bone Spear impales (.+?) for (\\d+)$"),"Kemik Mızrak $1 düşmanını deliyor: $2 hasar"],[new RegExp("^Grave Chill hits (.+?) for (\\d+) and freezes it solid$"),"Mezar Soğuğu $1 düşmanına $2 vuruyor ve onu donduruyor"],[new RegExp("^You reap (.+?) for (\\d+) \\(harvest\\)$"),"$1 düşmanını $2 hasarla biçiyorsun (hasat)"],[new RegExp("^You reap (.+?) for (\\d+)$"),"$1 düşmanını $2 hasarla biçiyorsun"],[new RegExp("^The body of (.+?) bursts apart, dealing (\\d+) damage across the room$"),"$1 cesedi parçalanıyor ve odaya $2 hasar saçıyor"],[new RegExp("^(.+?) gathers itself for (.+?)! (.+)$"),"$1, $2 için güç topluyor! {t3}"],[new RegExp("^(.+?) enters its second phase$"),"$1 ikinci evresine giriyor"],[new RegExp("^(.+?) raises a Bone Wall$"),"$1 bir Kemik Duvar yükseltiyor"],[new RegExp("^You step through the (.+?) gate$"),"$1 kapısından geçiyorsun"],[new RegExp("^You drink a (.+?) and recover (\\d+) HP$"),"{t1} içiyorsun ve $2 can kazanıyorsun"],[new RegExp("^You drink a (.+?) and recover (\\d+) mana$"),"{t1} içiyorsun ve $2 mana kazanıyorsun"],[new RegExp("^([^.]+) falls$"),"$1 düşüyor"],[new RegExp("^Echo: the blade strikes again for (\\d+)$"),"Echo: kılıç yeniden vuruyor: $1"],[new RegExp("^(.+?) mends (.+?)$"),"$1, $2 için onarıyor"],[new RegExp("^(.+?) unleashes a Cinder Wave for (\\d+) damage across your side$"),"$1 tarafına $2 hasarlık bir Kor Dalgası salıyor"],[new RegExp("^(.+?) is frozen and cannot act$"),"$1 donmuş, hareket edemiyor"],[new RegExp("^(.+?) is frozen$"),"$1 donmuş"],[new RegExp("^(.+?) is cursed and takes (\\d+)% more damage$"),"$1 lanetlendi ve %$2 daha fazla hasar alıyor"],[new RegExp("^Dark Mending knits your army back together for (\\d+) HP and cures every wound and burn$"),"Karanlık Onarım orduyu $1 canla yeniden örüyor ve her yarayı ve yanığı iyileştiriyor"],[new RegExp("^Dark Mending knits your army back together for (\\d+) HP$"),"Karanlık Onarım orduyu $1 canla yeniden örüyor"],[new RegExp("^(.+?) hits (.+?) for (\\d+) and poisons it and drinks (\\d+) HP$"),"$1 → $2: $3 hasar, zehirlendi, $4 can emdi"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit\\) and drinks (\\d+) HP$"),"$1 → $2: $3 hasar (kritik), $4 can emdi"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit\\) and poisons it$"),"$1 → $2: $3 hasar (kritik), zehirlendi"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit, bleeding\\)$"),"$1 → $2: $3 hasar (kritik, kanama)"],[new RegExp("^Soul Siphon (drains|devours) (.+?) for (\\d+), you recover (\\d+)$"),"Ruh Emme $2 düşmanından $3 emiyor, $4 iyileşiyorsun"],[new RegExp("^Soul Siphon (drains|devours) (.+?) for (\\d+) and harvest a Soul \\((\\d+)/(\\d+)\\)$"),"Ruh Emme $2 düşmanından $3 emiyor ve bir Ruh topluyor ($4/$5)"],[new RegExp("^You were dragged out of the (.+?)$"),"$1 kapısından sürüklenerek çıkarıldın"],[new RegExp("^You were dragged out of the Hell Tower on floor (\\d+)$"),"Cehennem Kulesi'nin $1. katından sürüklenerek çıkarıldın"],[new RegExp("^(.+?) calls, but nothing more answers$"),"$1 çağırıyor ama artık kimse cevap vermiyor"],[new RegExp("^(.+?) speaks a Royal Decree$"),"$1 bir Kraliyet Fermanı okuyor"],[new RegExp("^It strikes you for (\\d+)$"),"Sana $1 vuruyor"],[new RegExp("^(.+?) scatters Seedfall$"),"$1 Tohum Yağmuru saçıyor"],[new RegExp("^Every foe mends and (.+?) sprouts from the ground$"),"Her düşman onarılıyor ve topraktan $1 filizleniyor"],[new RegExp("^(.+?)'s focused strike breaks (.+?)'s focus$"),"$1 odaklanmış vuruşuyla $2 düşmanının odağını bozuyor"],[new RegExp("^(.+?) bursts and burns you for (\\d+)$"),"$1 patlıyor ve seni $2 yakıyor"],[new RegExp("^(.+?) is down$"),"$1 yere düştü"],[new RegExp("^(.+?) sings the Hymn of Silence$"),"$1 Sessizlik İlahisi'ni söylüyor"],[new RegExp("^(.+?) brings down a Sundering Blow on (you|.+?) for (\\d+)$"),"$1, $2 üstüne Parçalayan Darbe indiriyor: $3"],[new RegExp("^(.+?) calls the swarm$"),"$1 sürüyü çağırıyor"],[new RegExp("^Soul Siphon (drains|devours) (.+?) for (\\d+), you recover (\\d+) and harvest a Soul \\((\\d+)/(\\d+)\\)$"),"Ruh Emme $2 düşmanından $3 emiyor, $4 iyileşiyorsun ve bir Ruh topluyorsun ($5/$6)"],[new RegExp("^Soul Siphon (drains|devours) (.+?) for (\\d+)$"),"Ruh Emme $2 düşmanından $3 emiyor"],[new RegExp("^You tear the Rift open at depth (\\d+)$"),"Yarığı $1 derinliğinde yırtıp açıyorsun"],[new RegExp("^The dead of the (.+?) wait beyond it$"),"Ötesinde $1 ölüleri bekliyor"],[new RegExp("^(.+?) brings down a Sundering Blow, but (.+?) takes it for you: (\\d+) damage$"),"$1 bir Parçalayan Darbe indiriyor ama $2 onu senin yerine alıyor: $3 hasar"],[new RegExp("^(.+?) splits into (\\d+) lesser copies$"),"$1 $2 küçük kopyaya bölünüyor"],[new RegExp("^(.+?) uses Call the Swarm: (.+?) and (.+?) join the fight$"),"$1 Sürüyü Çağır kullanıyor: $2 ve $3 dövüşe katılıyor"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit\\) and poisons it and drinks (\\d+) HP$"),"$1 → $2: $3 hasar (kritik), zehirlendi, $4 can emdi"],[new RegExp("^(.+?): \"(.+)\"$"),"$1: \"{t2}\""],[new RegExp("^(.+?) and (\\d+) of your strongest; set the squad on the War table$"),"$1 ve en güçlü $2 hizmetkârın; bölüğü Savaş masasında ayarla"]];   // patterns: names stay English, $n keeps a group, {tn} translates it
+const TR_RX=[[new RegExp("^Gives ([+\\-\u2212]\\d.*?); costs ([+\\-\u2212]\\d.*)$"),"Verir: {t1}; bedeli: {t2}"],[new RegExp("^Gives ([+\\-\u2212]\\d.*)$"),"Verir: {t1}"],[new RegExp("^costs ([+\\-\u2212]\\d.*)$"),"bedeli: {t1}"],[new RegExp("^A hidden uncommon title\\. Keep playing to discover it$"),"Gizli bir az bulunur unvan. Bulmak i\u00e7in oynamaya devam et"],[new RegExp("^A hidden (\\w+) title\\. Keep playing to discover it$"),"Gizli bir {t1} unvan. Bulmak i\u00e7in oynamaya devam et"],[new RegExp("^Heart of ([^\u00b7]+)$"),"$1 Kalbi"],[new RegExp("^([^\u00b7]+) Tooth$"),"$1 Dişi"],[new RegExp("^([^\u00b7]+) Claw$"),"$1 Pençesi"],[new RegExp("^([^\u00b7]+) Fang$"),"$1 Sivri Dişi"],[new RegExp("^([^\u00b7]+) Shell$"),"$1 Kabuğu"],[new RegExp("^([^\u00b7]+) Hide$"),"$1 Postu"],[new RegExp("^([^\u00b7]+) Scale$"),"$1 Pulu"],[new RegExp("^([^\u00b7]+) Talon$"),"$1 Pençesi"],[new RegExp("^([^\u00b7]+) Relic$"),"$1 Kalıntısı"],[new RegExp("^([^\u00b7]+) Vial$"),"$1 Şişesi"],[new RegExp("^([^\u00b7]+) Bone Plate$"),"$1 Kemik Plakası"],[new RegExp("^([^\u00b7]+) Bone Charm$"),"$1 Kemik Tılsımı"],[new RegExp("^([^\u00b7]+) Prayer Bead$"),"$1 Dua Boncuğu"],[new RegExp("^([^\u00b7]+) forge$"),"$1 demircisi"],[new RegExp("^gate ([SABCDE]) set$"),"$1 kapısı takımı"],[new RegExp("^([^\u00b7]+) set$"),"$1 takımı"],[new RegExp("^Clear the (.+?) (\\d+) times$"),"$1 kapısını $2 kez temizle"],[new RegExp("^Clear the (.+) on Nightmare$"),"$1 kapısını Kâbus'ta temizle"],[new RegExp("^Clear the (.+) \\(([A-Z])-rank gate\\)$"),"$1 kapısını temizle ($2 rütbe kapı)"],[new RegExp("^Clear the (.+)$"),"$1 kapısını temizle"],[new RegExp("^Defeat (.+) on floor (\\d+)$"),"$1 düşmanını kat $2'de yen"],[new RegExp("^Clear a gate cursed with (.+)$"),"{t1} lanetli bir kapıyı temizle"],[new RegExp("^Slay (.+?), the (.+)'s secret master$"),"$2 kapısının gizli efendisi $1'i öldür"],[new RegExp("^vs (.+)$"),"karşı: $1"],[new RegExp("^Act (I|II|III|IV|V) \u00b7 (.+) \u00b7 (\\d+)/(\\d+)$"),"Perde $1 · {t2} · $3/$4"],[new RegExp("^Act (I|II|III|IV|V) \u00b7 (.+)$"),"Perde $1 · {t2}"],[new RegExp("^Telegraphed \u00b7 (.+) \u00b7 (.+)$"),"Önceden belli · $1 · $2"],[new RegExp("^Floor (\\d+) \u00b7 recommended level (\\d+) \u00b7 (.+)$"),"Kat $1 · önerilen seviye $2 · $3"],[new RegExp("^(.+) \u00b7 Studied$"),"{t1} · İncelendi"],[new RegExp("^(.+) \u00b7 (\\d+)% per kill$"),"{t1} · öldürme başına %$2"],[new RegExp("^(.+?) \\((.+?)\\) or (.+?) \\((.+?)\\)$"),"{t1} ({t2}) ya da {t3} ({t4})"],[new RegExp("^Choices: (.+) or (.+)$"),"Seçenekler: {t1} ya da {t2}"],[new RegExp("^(Common|Uncommon|Rare|Epic|Legendary) (\\d+)%$"),"{t1} %$2"],[new RegExp("^(.+?) hits you for (\\d+) \\(crit\\)$"),"$1 sana $2 vuruyor (kritik)"],[new RegExp("^(.+?) hits you for (\\d+)$"),"$1 sana $2 vuruyor"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit\\)$"),"$1 → $2: $3 hasar (kritik)"],[new RegExp("^(.+?) hits (.+?) for (\\d+) and poisons it$"),"$1 → $2: $3 hasar, zehirlendi"],[new RegExp("^(.+?) hits (.+?) for (\\d+) and drinks (\\d+) HP$"),"$1 → $2: $3 hasar, $4 can emdi"],[new RegExp("^(.+?) hits (.+?) for (\\d+)$"),"$1 → $2: $3 hasar"],[new RegExp("^(.+?) mends you for (\\d+)$"),"$1 seni $2 onarıyor"],[new RegExp("^(.+?) mends (.+?) for (\\d+)$"),"$1, $2 için $3 onarıyor"],[new RegExp("^You strike (.+?) for (\\d+)$"),"$1 düşmanına $2 vuruyorsun"],[new RegExp("^You strike (.+?) for (\\d+) \\(crit\\)$"),"$1 düşmanına $2 vuruyorsun (kritik)"],[new RegExp("^Bone Spear impales (.+?) for (\\d+)$"),"Kemik Mızrak $1 düşmanını deliyor: $2 hasar"],[new RegExp("^Grave Chill hits (.+?) for (\\d+) and freezes it solid$"),"Mezar Soğuğu $1 düşmanına $2 vuruyor ve onu donduruyor"],[new RegExp("^You reap (.+?) for (\\d+) \\(harvest\\)$"),"$1 düşmanını $2 hasarla biçiyorsun (hasat)"],[new RegExp("^You reap (.+?) for (\\d+)$"),"$1 düşmanını $2 hasarla biçiyorsun"],[new RegExp("^The body of (.+?) bursts apart, dealing (\\d+) damage across the room$"),"$1 cesedi parçalanıyor ve odaya $2 hasar saçıyor"],[new RegExp("^(.+?) gathers itself for (.+?)! (.+)$"),"$1, $2 için güç topluyor! {t3}"],[new RegExp("^(.+?) enters its second phase$"),"$1 ikinci evresine giriyor"],[new RegExp("^(.+?) raises a Bone Wall$"),"$1 bir Kemik Duvar yükseltiyor"],[new RegExp("^You step through the (.+?) gate$"),"$1 kapısından geçiyorsun"],[new RegExp("^You drink a (.+?) and recover (\\d+) HP$"),"{t1} içiyorsun ve $2 can kazanıyorsun"],[new RegExp("^You drink a (.+?) and recover (\\d+) mana$"),"{t1} içiyorsun ve $2 mana kazanıyorsun"],[new RegExp("^([^.]+) falls$"),"$1 düşüyor"],[new RegExp("^Echo: the blade strikes again for (\\d+)$"),"Echo: kılıç yeniden vuruyor: $1"],[new RegExp("^(.+?) mends (.+?)$"),"$1, $2 için onarıyor"],[new RegExp("^(.+?) unleashes a Cinder Wave for (\\d+) damage across your side$"),"$1 tarafına $2 hasarlık bir Kor Dalgası salıyor"],[new RegExp("^(.+?) is frozen and cannot act$"),"$1 donmuş, hareket edemiyor"],[new RegExp("^(.+?) is frozen$"),"$1 donmuş"],[new RegExp("^(.+?) is cursed and takes (\\d+)% more damage$"),"$1 lanetlendi ve %$2 daha fazla hasar alıyor"],[new RegExp("^Dark Mending knits your army back together for (\\d+) HP and cures every wound and burn$"),"Karanlık Onarım orduyu $1 canla yeniden örüyor ve her yarayı ve yanığı iyileştiriyor"],[new RegExp("^Dark Mending knits your army back together for (\\d+) HP$"),"Karanlık Onarım orduyu $1 canla yeniden örüyor"],[new RegExp("^(.+?) hits (.+?) for (\\d+) and poisons it and drinks (\\d+) HP$"),"$1 → $2: $3 hasar, zehirlendi, $4 can emdi"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit\\) and drinks (\\d+) HP$"),"$1 → $2: $3 hasar (kritik), $4 can emdi"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit\\) and poisons it$"),"$1 → $2: $3 hasar (kritik), zehirlendi"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit, bleeding\\)$"),"$1 → $2: $3 hasar (kritik, kanama)"],[new RegExp("^Soul Siphon (drains|devours) (.+?) for (\\d+), you recover (\\d+)$"),"Ruh Emme $2 düşmanından $3 emiyor, $4 iyileşiyorsun"],[new RegExp("^Soul Siphon (drains|devours) (.+?) for (\\d+) and harvest a Soul \\((\\d+)/(\\d+)\\)$"),"Ruh Emme $2 düşmanından $3 emiyor ve bir Ruh topluyor ($4/$5)"],[new RegExp("^You were dragged out of the (.+?)$"),"$1 kapısından sürüklenerek çıkarıldın"],[new RegExp("^You were dragged out of the Hell Tower on floor (\\d+)$"),"Cehennem Kulesi'nin $1. katından sürüklenerek çıkarıldın"],[new RegExp("^(.+?) calls, but nothing more answers$"),"$1 çağırıyor ama artık kimse cevap vermiyor"],[new RegExp("^(.+?) speaks a Royal Decree$"),"$1 bir Kraliyet Fermanı okuyor"],[new RegExp("^It strikes you for (\\d+)$"),"Sana $1 vuruyor"],[new RegExp("^(.+?) scatters Seedfall$"),"$1 Tohum Yağmuru saçıyor"],[new RegExp("^Every foe mends and (.+?) sprouts from the ground$"),"Her düşman onarılıyor ve topraktan $1 filizleniyor"],[new RegExp("^(.+?)'s focused strike breaks (.+?)'s focus$"),"$1 odaklanmış vuruşuyla $2 düşmanının odağını bozuyor"],[new RegExp("^(.+?) bursts and burns you for (\\d+)$"),"$1 patlıyor ve seni $2 yakıyor"],[new RegExp("^(.+?) is down$"),"$1 yere düştü"],[new RegExp("^(.+?) sings the Hymn of Silence$"),"$1 Sessizlik İlahisi'ni söylüyor"],[new RegExp("^(.+?) brings down a Sundering Blow on (you|.+?) for (\\d+)$"),"$1, $2 üstüne Parçalayan Darbe indiriyor: $3"],[new RegExp("^(.+?) calls the swarm$"),"$1 sürüyü çağırıyor"],[new RegExp("^Soul Siphon (drains|devours) (.+?) for (\\d+), you recover (\\d+) and harvest a Soul \\((\\d+)/(\\d+)\\)$"),"Ruh Emme $2 düşmanından $3 emiyor, $4 iyileşiyorsun ve bir Ruh topluyorsun ($5/$6)"],[new RegExp("^Soul Siphon (drains|devours) (.+?) for (\\d+)$"),"Ruh Emme $2 düşmanından $3 emiyor"],[new RegExp("^You tear the Rift open at depth (\\d+)$"),"Yarığı $1 derinliğinde yırtıp açıyorsun"],[new RegExp("^The dead of the (.+?) wait beyond it$"),"Ötesinde $1 ölüleri bekliyor"],[new RegExp("^(.+?) brings down a Sundering Blow, but (.+?) takes it for you: (\\d+) damage$"),"$1 bir Parçalayan Darbe indiriyor ama $2 onu senin yerine alıyor: $3 hasar"],[new RegExp("^(.+?) splits into (\\d+) lesser copies$"),"$1 $2 küçük kopyaya bölünüyor"],[new RegExp("^(.+?) uses Call the Swarm: (.+?) and (.+?) join the fight$"),"$1 Sürüyü Çağır kullanıyor: $2 ve $3 dövüşe katılıyor"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit\\) and poisons it and drinks (\\d+) HP$"),"$1 → $2: $3 hasar (kritik), zehirlendi, $4 can emdi"],[new RegExp("^(.+?): \"(.+)\"$"),"$1: \"{t2}\""],[new RegExp("^(.+?) and (\\d+) of your strongest; set the squad on the War table$"),"$1 ve en güçlü $2 hizmetkârın; bölüğü Savaş masasında ayarla"]];   // patterns: names stay English, $n keeps a group, {tn} translates it
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
 function trText(s){
   if(!s||!/[A-Za-z]/.test(s)) return s;
-  const m=s.match(/^([\s·.,:;+\-–]*)([\s\S]*?)([\s·.,:;!?\-–]*)$/), pre=m[1], core=m[2], post=m[3]; if(!core) return s;
+  const m=s.match(/^([\s·.,:;+\-−–]*)([\s\S]*?)([\s·.,:;!?\-–]*)$/), pre=m[1], core=m[2], post=m[3]; if(!core) return s;
   let v=trCore(core);
   if(v==null&&/\((vanguard|striker|mender|reaper)/.test(core)){ const r2=core.replace(/\((vanguard|striker|mender|reaper)(, gear-bearer)?\)/g,(x,a,b)=>'('+trCore(a)+(b?', '+trCore('gear-bearer'):'')+')'); if(r2!==core) v=r2; }   // creature lists: names stay, roles translate
   if(v==null) for(const [re,rep] of TR_RX){ const g=core.match(re); if(g){ v=rep.replace(/\{t(\d)\}/g,(x,n)=>trText(g[+n]||'')).replace(/\$(\d)/g,(x,n)=>g[+n]||''); break; } }
@@ -5361,7 +5419,7 @@ function gateHTML(i){
    +(DIFF.armor[i]?' &middot; <span title="Foes wear '+Math.round(DIFF.armor[i]*100)+'% armor">armor '+Math.round(DIFF.armor[i]*100)+'%</span>':'')+' &middot; Boss: <b>'+D.boss[0]+'</b>'
    +(gateMod(i)?'<span class="curse-line">Cursed: <b>'+MODS[gateMod(i)].name+'</b>. '+MODS[gateMod(i)].desc+' '+MOD_REWARD+(S.ti&&S.ti.clr&&S.ti.clr[5]&&P.lvl-CURSE_GAP>RK[i].lv?' Foes about Lv '+(P.lvl-CURSE_GAP)+'.':'')+'</span>':'')
    +(S.mode==='town'&&raidGates().includes(i)&&bestSquad()&&!(S.raids||[]).length?(sq=>'<div class="raid-odds" title="'+sq[0].nick+' and '+(sq.length-1)+' of your strongest; set the squad on the War table">Raid odds '+Math.round(raidOdds(sq,i)*100)+'%</div>')(bestSquad()):'')
-   +heatHTML(i)+'</div></div>'
+   +heatHTML(i)+(gateFarm(i)<1?'<div class="farm-line dim">Rewards here '+Math.round(gateFarm(i)*100)+'% on Normal at your level; Hard and up pay in full.</div>':'')+'</div></div>'
    +'<button class="btn '+(locked?'':'primary')+'" data-a="enter" data-k="'+i+'"'+(locked?' disabled':'')+'>'+(locked?'Reach Lv '+R.unlock:'Enter'+(heatOf(i)?' &middot; '+HEAT[heatOf(i)].name:''))+'</button></div>';
 }
 function heatHTML(i){   // difficulty picker on a cleared gate's card
@@ -5726,6 +5784,7 @@ function codexSection(k){
   if(k==='orders') return cxP('Once per room, each kind of minion in your army can be given one order. Orders are free and do not use your turn.')+cxList(Object.keys(CMDS).map(r=>cxRow(CMDS[r].name,CMDS[r].desc,ROLES[r].label+'s')));
   if(k==='gates') return cxP('Six gates of four rooms each, the last holding the boss. Clearing a gate pays bonus XP and, the first time, a page of the story.')
     +cxP('A cleared gate can be entered on a harder difficulty, picked on its card: '+HEAT.slice(1).map(h=>h.name+' (foes x'+h.foe+'; XP x'+h.xp+', gold x'+h.gold+', gear x'+h.drop+')').join(', ')+'. Each opens after clearing the one below. On a cursed day the curse feeds on it: a further x'+DAMNED_FOE+' to foes, x'+DAMNED+' to rewards. A Nightmare clear marks the gate\'s card and earns that gate\'s Nightmare title.')
+    +cxP('On Normal, a gate far below you pays less: kill XP, gold and the clear bonus stay full up to '+DIFF.farmFrom+' levels past its best level, then fall to '+pct(DIFF.farmMin)+' at '+DIFF.farmTo+' levels past. A first clear, a cursed gate and every harder difficulty pay in full, and gear drops never shrink.')
     +cxList(DUNGEONS.map((D,i)=>{ const mobs=D.mobs.map(m=>metName(m[0])?m[0]+' ('+ROLES[m[1]].label.toLowerCase()+(isArmed(m[0])?', gear-bearer':'')+')':'???').join(', ');
       return cxRow(D.name,'Opens at level '+RK[i].unlock+', best at '+SAFE[i]+'&ndash;'+(SAFE[i]+3)+'. Armor '+pct(DIFF.armor[i])+'. Clear bonus '+RK[i].clear+' XP.<br><b>Foes:</b> '+mobs+'<br><b>Boss:</b> '+(metName(D.boss[0])?D.boss[0]+', '+BOSS_ABIL[GATE_ABIL[i]].name:'???')+(secretHinted(i)?'<br><i class="dim">'+SECRET[i].hint+'</i>':''),'Rank '+RANKS[i]); }));
   if(k==='tower') return cxP('Opens at level '+TW.unlock+'. One fight per floor and a warden every tenth floor, each carrying a unique: guaranteed the first time, '+pct(TW.repeat)+' after (as gold while you carry one). Floors you clear become checkpoints every ten floors. Past floor 100 the Abyss never ends, and each tenth floor pays gold and a legendary. Tower foes wear '+pct(TW.armor)+' armor.')
@@ -5825,7 +5884,8 @@ function townHTML(){
   if(ui.tab==='town'&&!townOpen()) ui.tab='gates';
   const twLock=S.player.lvl<TW.unlock; if(ui.tab==='tower'&&twLock) ui.tab='gates';   // the Hell Tower tab shows from the start but opens at TW.unlock
   let h=notesHTML()+spendStrip();
-  h+='<div class="tabs" role="tablist">'+[['gates','Gates'],['tower','Hell Tower'],['gear','Gear &middot; '+S.inv.length],['market','Market']].concat(townOpen()?[['town','Town']]:[]).concat([['skills','Skills'+(S.player.sp?' &middot; '+S.player.sp:'')],['titles','Titles &middot; '+Object.keys((S.ti&&S.ti.got)||{}).length],['ledger','Ledger']]).map(t=>(t[0]==='tower'&&twLock)?'<button class="tab tw-lock" role="tab" disabled aria-disabled="true" aria-label="Hell Tower, locked until level '+TW.unlock+'" title="The Hell Tower opens at level '+TW.unlock+'"><span aria-hidden="true">&#128274; </span>Hell Tower &middot; Lv '+TW.unlock+'</button>':'<button class="tab'+(t[0]==='tower'?' hell':'')+'" role="tab" data-a="tab" data-k="'+t[0]+'" aria-selected="'+(t[0]==='ledger'?LEDGER.some(x=>x[0]===ui.tab):(ui.tab||'gates')===t[0])+'">'+t[1]+'</button>').join('')+'</div>';
+  h+='<div class="tabs" role="tablist">'+[['gates','Gates'],['tower','Hell Tower'],['gear','Gear &middot; '+S.inv.length],['market','Market']].concat(townOpen()?[['town','Town']]:[]).concat([['skills','Skills'+(S.player.sp?' &middot; '+S.player.sp:'')],['titles','Titles &middot; '+Object.keys((S.ti&&S.ti.got)||{}).length],['ledger','Ledger']]).map((t,i)=>(t[0]==='tower'&&twLock)?'<button class="tab tw-lock" role="tab" disabled aria-disabled="true" aria-label="Hell Tower, locked until level '+TW.unlock+'" title="The Hell Tower opens at level '+TW.unlock+'"><span aria-hidden="true">&#128274; </span>Hell Tower &middot; Lv '+TW.unlock+'</button>':'<button class="tab'+(t[0]==='tower'?' hell':'')+'" role="tab" data-a="tab" data-k="'+t[0]+'" aria-keyshortcuts="'+(i+1)+'" aria-selected="'+(t[0]==='ledger'?LEDGER.some(x=>x[0]===ui.tab):(ui.tab||'gates')===t[0])+'">'+t[1]+(i<9?'<kbd aria-hidden="true">'+(i+1)+'</kbd>':'')+'</button>').join('')
+   +'<button class="tab keyhint" data-a="keys" aria-keyshortcuts="?" aria-label="Keyboard shortcuts" title="Keyboard shortcuts">?</button></div>';
   if(LEDGER.some(x=>x[0]===ui.tab)){ ui.ledger=ui.tab; h+='<div class="chips sub-nav" role="tablist">'+LEDGER.map(x=>'<button class="btn small'+(x[0]===ui.tab?' primary':'')+'" role="tab" data-a="tab" data-k="'+x[0]+'" aria-selected="'+(x[0]===ui.tab)+'">'+x[1]+'</button>').join('')+'</div>'; }
   if(ui.tab==='gear') return h+bagHTML()+armyHTML();
   if(ui.tab==='bes') return h+bestiaryHTML();
@@ -5901,7 +5961,7 @@ function battleHTML(){
    +(r.bless?'<p class="q-note ok">Blood-blessed: you and your army hit 15% harder in this gate.</p>':'')
    +'<p class="group-h">Foes'+(foeArmor()?' &middot; <span title="Blunts every hit you and your army land">armor '+Math.round(foeArmor()*100)+'%</span>':'')+'</p><div class="row">'+r.enemies.map(e=>unitCard(e,'foe')).join('')+'</div>'
    +'<p class="group-h">Your side'+(r.frenzy>0?' &middot; <span class="ok">Frenzy '+r.frenzy+'</span>':'')+(r.silence>0?' &middot; <span class="bad">Silenced '+r.silence+'</span>':'')+(r.taunt>0?' &middot; <span class="ok">Taunting '+r.taunt+'</span>':'')+'</p><div class="row minis side">'+unitCard(S.player,'ally')+S.army.map(a=>unitCard(a,'ally',true)).join('')+'</div>'
-   +'<div class="actbar"><div class="btns"><button class="btn primary" data-a="act" data-k="strike">Strike +3 mana<kbd>1</kbd></button>'
+   +'<div class="actbar">'+partyStrip()+'<div class="btns"><button class="btn primary" data-a="act" data-k="strike">Strike +3 mana<kbd>1</kbd></button>'
    +'<button class="btn" data-a="act" data-k="siphon"'+(P.mana<siphonCost()?' disabled':'')+'>Soul Siphon '+siphonCost()+'<kbd>2</kbd></button>'
    +'<button class="btn" data-a="act" data-k="ward"'+(P.mana<6?' disabled':'')+'>Bone Ward 6<kbd>3</kbd></button>'
    +'<button class="btn warn" data-a="flee">Flee</button></div>'
@@ -5937,6 +5997,19 @@ function minionCard(m,canRelease){
    +'<div class="meter"><div class="m-top"><span>Lv '+m.lvl+' &middot; ATK '+m.atk+'</span><span class="num">'+(capped?'cap':m.xp+'/'+nx)+'</span></div><div class="bar"><i class="fill xp" style="width:'+(capped?100:pct(m.xp,nx))+'%"></i></div></div></div></div>'
    +(canRelease?'<button class="btn small warn" data-a="release" data-k="'+m.uid+'">'+(conf?'Confirm release':'Release')+'</button>':'<span></span>')
    +(m.armed?gearRowHTML(m,canRelease):'')+'</div>';
+}
+function partyStrip(){   // phones: the pinned action bar hides your side, so one thin HP tick per minion sits above the buttons (CSS shows it only at phone width)
+  if(!S.army.length) return '';
+  return '<div class="pstrip" role="group" aria-label="Army health">'+S.army.map(m=>{ const lab=m.nick+': '+(m.hp>0?m.hp+'/'+m.maxHp:'down'); return '<i class="pt'+(m.hp<=0?' down':m.hp<m.maxHp*.3?' low':'')+'" role="img" title="'+lab+'" aria-label="'+lab+'"><b style="width:'+pct(Math.max(0,m.hp),m.maxHp)+'%"></b></i>'; }).join('')+'</div>';
+}
+function minionRow(m,canRelease){   // the compact army list: one row per minion, same actions as the card
+  const low=m.hp>0&&m.hp<m.maxHp*.3, tags=(m.traits||[]).map(t=>TRAITS[t].name), next=evoNext(m);
+  if(next!=null) tags.push('Evolves at Lv '+next); else if((m.stage||0)===STAGE_MAX) tags.push('Eternal');
+  return '<div class="mrow"><span class="rk r'+m.rankI+'">'+RANKS[m.rankI]+'</span><span class="mr-name"><b style="'+(m.elite?'color:var(--gold)':'')+'">'+m.nick+'</b> <span class="dim">'+theName(mName(m))+'</span></span>'
+   +'<span class="u-tag">'+ROLES[m.role].label+(m.armed?' &middot; Armed':'')+'</span><span class="num mr-st">Lv '+m.lvl+' &middot; ATK '+m.atk+'</span>'
+   +'<span class="mr-hp'+(low?' low':'')+'"><span class="bar"><i class="fill hp" style="width:'+pct(m.hp,m.maxHp)+'%"></i></span><span class="num">'+m.hp+'/'+m.maxHp+'</span></span>'
+   +(tags.length?'<span class="mr-tags dim">'+tags.join(', ')+'</span>':'')
+   +'<span class="mr-acts"><button class="btn small" data-a="mdet" data-k="'+m.uid+'" aria-expanded="false">Details</button>'+(canRelease?'<button class="btn small" data-a="renameo" data-k="'+m.uid+'">Rename</button><button class="btn small warn" data-a="release" data-k="'+m.uid+'">'+(ui.confirm===m.uid?'Confirm release':'Release')+'</button>':'')+'</span></div>';
 }
 function gearRowHTML(m,can){
   const g=gearBonus(m), pk=ui.pick&&ui.pick.uid===m.uid?ui.pick.slot:null;
@@ -5980,10 +6053,10 @@ function raidHTML(){
   return h+'</section>';
 }
 function armyHTML(){
-  const canRel=S.mode==='town'||S.mode==='raise';
+  const canRel=S.mode==='town'||S.mode==='raise', compact=VIEW.army==='compact'&&S.army.length>1&&S.mode!=='battle';   // an open Details or Rename shows that minion's full card
   return '<section class="win" aria-labelledby="h-army"><h2 class="win-h" id="h-army">Army '+armyUsed()+'/'+slots()+(raidN()?' &middot; '+raidN()+' raiding':'')+slotsHTML()+'</h2>'
-   +(S.army.length>1&&S.mode!=='battle'?'<div class="bag-tools">Order: '+Object.keys(ARMY_SORTS).map(k=>'<button class="linkbtn" data-a="asort" data-k="'+k+'">'+ARMY_SORTS[k]+'</button>').join('')+'</div>':'')
-   +(S.army.length?'<div class="army">'+S.army.map(m=>minionCard(m,canRel)).join('')+'</div>':'<p class="lede">No one answers you yet. Win a room, then raise what fell.</p>')+'</section>';
+   +(S.army.length>1&&S.mode!=='battle'?'<div class="bag-tools">Order: '+Object.keys(ARMY_SORTS).map(k=>'<button class="linkbtn" data-a="asort" data-k="'+k+'">'+ARMY_SORTS[k]+'</button>').join('')+'<span class="a-dens" role="group" aria-label="Army view">View: '+[['cards','Cards'],['compact','Compact']].map(x=>'<button class="linkbtn'+(VIEW.army===x[0]?' on':'')+'" data-a="view" data-k="army|'+x[0]+'" aria-pressed="'+(VIEW.army===x[0])+'">'+x[1]+'</button>').join('')+'</span></div>':'')
+   +(S.army.length?'<div class="army'+(compact?' compact':'')+'">'+S.army.map(m=>compact&&ui.mdet!==m.uid&&ui.rename!==m.uid?minionRow(m,canRel):minionCard(m,canRel)).join('')+'</div>':'<p class="lede">No one answers you yet. Win a room, then raise what fell.</p>')+'</section>';
 }
 function raiseHTML(){
   const r=S.run, P=S.player, D=DUNGEONS[r.di];
@@ -6039,6 +6112,16 @@ function defeatHTML(){
    +'<p class="lede">Loot from rooms already cleared is kept. This room\'s spoils are lost and you lose some XP. Your army carried you out and bound itself back together.</p>'
    +'<div class="btns"><button class="btn primary" data-a="town">Return to the gate</button></div>'+logHTML()+'</section>';
 }
+function keysHTML(){   // every shortcut in one list; ? opens it, Esc closes it
+  const row=(k,t)=>'<div class="kr"><kbd>'+k+'</kbd><span>'+t+'</span></div>';
+  return '<div class="keys-ov" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts"><div class="win keys-win"><div class="kh"><h2>Keyboard shortcuts</h2><button class="btn small" data-a="keys">Close<kbd>Esc</kbd></button></div>'
+   +'<h3>In town</h3>'+row('1-9','Switch tabs')+row('Esc','Back to the gate list, cancel a rename or a confirm')
+   +'<h3>Between rooms</h3>'+row('1-4','Pick a door')+row('Space','Raise the best')
+   +'<h3>In battle</h3>'+row('1','Strike')+row('2','Soul Siphon')+row('3','Bone Ward')+row('4-9','Your skills')+row('R','Ultimate')+row('[ ]','Change target')
+   +Object.keys(CMDS).filter(k=>ORDER_KEY[k]).map(k=>row(ORDER_KEY[k],CMDS[k].name)).join('')
+   +Object.keys(POTIONS).map(k=>row(POTIONS[k].key,POTIONS[k].name)).join('')
+   +row('?','Show or hide this list')+'</div></div>';
+}
 function render(){
   checkTitles(); try{ loreCheck(); }catch(e){}
   document.body.classList.toggle('hell', S.mode==='town'?ui.tab==='tower':!!(S.run&&S.run.tw));   // hell backdrop on the Tower tab and during a climb
@@ -6051,7 +6134,7 @@ function render(){
   const main=S.mode==='battle'?battleHTML():S.mode==='raise'?raiseHTML():S.mode==='defeat'?defeatHTML():townHTML();
   app.innerHTML='<header class="top"><div class="brand"><svg class="sigil" viewBox="0 0 64 64" width="54" height="54" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="32" cy="32" r="30"/><circle cx="32" cy="32" r="24" stroke-dasharray="1.5 3.5"/><rect x="16" y="16" width="32" height="32"/><rect x="16" y="16" width="32" height="32" transform="rotate(45 32 32)"/><circle cx="32" cy="32" r="6"/><circle cx="32" cy="32" r="2" fill="currentColor"/></g></svg><div><h1>Ledger of the Dead</h1><p class="tag">Every name in this book answers to you.</p></div></div><div class="top-meta">'+(S.ngp?'<span class="ngp-b" title="New Game+">NG+'+S.ngp+'</span>':'')+'<span>Day '+S.day+'</span><span title="Gold">'+gold(S.gold)+'</span><span>Watches<span class="pips" aria-label="'+S.watches+' of '+WATCHES+' watches left">'+pips+'</span></span></div>'
    +'<button class="gearbtn'+((ui.tab==='settings'&&S.mode==='town')?' on':'')+'" data-a="settings" aria-label="Settings" aria-pressed="'+(ui.tab==='settings'&&S.mode==='town')+'"'+(S.mode==='town'?' title="Settings: save, load, new game"':' disabled title="Settings open when you are back in town"')+'><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M10.3 2h3.4l.5 2.6c.6.2 1.2.5 1.7.9l2.5-.9 1.7 2.9-2 1.7c.1.6.1 1.3 0 1.9l2 1.7-1.7 2.9-2.5-.9c-.5.4-1.1.7-1.7.9l-.5 2.6h-3.4l-.5-2.6c-.6-.2-1.2-.5-1.7-.9l-2.5.9-1.7-2.9 2-1.7a6 6 0 0 1 0-1.9l-2-1.7 1.7-2.9 2.5.9c.5-.4 1.1-.7 1.7-.9zM12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z"/></svg></button></header>'
-   +'<div class="layout"><div class="main">'+tabNote+mo+tipHTML()+main+'</div><aside class="rail">'+questHTML()+statusHTML()+equipHTML()+(townOpen()?bountyHTML():'')+'</aside></div>';
+   +'<div class="layout"><div class="main">'+tabNote+mo+tipHTML()+main+'</div><aside class="rail">'+questHTML()+statusHTML()+equipHTML()+(townOpen()?bountyHTML():'')+'</aside></div>'+(ui.keys?keysHTML():'');
   try{ trDom(app); if(document.documentElement) document.documentElement.lang=VIEW.lang; }catch(e){}
   if(key){ const n=app.querySelector(key); if(n){ n.focus({preventScroll:true}); if(n.tagName==='INPUT'&&n.type==='search'){ const l=n.value.length; try{ n.setSelectionRange(l,l); }catch(e){} } } }
   const scr=S.mode+'|'+(S.mode==='town'?ui.tab:(S.run?(S.run.tw||'g')+':'+S.run.room:''));   // entering a gate, a new room or another tab starts at the top
@@ -6093,12 +6176,13 @@ const ACTIONS={
   enchadd:k=>{ const it=findItem(+k); ui.msg=enchant(+k,-1)?{mk:1,m:ITEM[it.id].name+' gains a bonus line.',c:'ok'}:null; },
   enchline:k=>{ const a=k.split('|'), it=findItem(+a[0]); ui.msg=enchant(+a[0],+a[1])?{mk:1,m:'Re-rolled a line on '+ITEM[it.id].name+'.',c:'ok'}:null; },
   music:()=>{ MUSIC.on=!MUSIC.on; MUSIC.armed=true; try{ localStorage.setItem('lotd-music',MUSIC.on?'on':'off'); }catch(e){} },
-  view:k=>{ const a=k.split('|'); if(a[0]==='size') VIEW.size=clamp(+a[1]||0,-1,2); else if(a[0]==='calm'||a[0]==='hc'||a[0]==='nobg') VIEW[a[0]]=!VIEW[a[0]]; else if(a[0]==='lang'&&LANGS[a[1]]) VIEW.lang=a[1]; else if(a[0]==='fx'&&FX_MODES[a[1]]) VIEW.fx=a[1]; saveView(); applyView(); },
+  view:k=>{ const a=k.split('|'); if(a[0]==='size') VIEW.size=clamp(+a[1]||0,-1,2); else if(a[0]==='calm'||a[0]==='hc'||a[0]==='nobg') VIEW[a[0]]=!VIEW[a[0]]; else if(a[0]==='lang'&&LANGS[a[1]]) VIEW.lang=a[1]; else if(a[0]==='fx'&&FX_MODES[a[1]]) VIEW.fx=a[1]; else if(a[0]==='army'&&(a[1]==='cards'||a[1]==='compact')) VIEW.army=a[1]; saveView(); applyView(); },
   dlsave:()=>{ ui.msg=downloadSave()?{m:'Save file downloaded.',c:'ok'}:{m:'This browser would not create the file. Use a save code instead.',c:'bad'}; },
   loadfile:()=>{ if(!ui.file) return; if(ui.confirm!=='lf'){ ui.confirm='lf'; return; } ui.confirm=null; const ok=importText(ui.file.text); ui.msg=ok?{m:'Loaded '+ui.file.name+'.',c:'ok'}:{m:ui.file.name+' is not a valid save.',c:'bad'}; ui.file=null; ui.exp=''; },
   dropfile:()=>{ ui.file=null; }, fold:k=>{ if(!['equip','quest','bounty'].includes(k)) return; if(VIEW.fold[k]) delete VIEW.fold[k]; else VIEW.fold[k]=true; saveView(); }, sort:k=>{ ui.sort=BAG_SORTS[k]?k:'tier'; }, mk:k=>{ ui.mk=k; ui.msg=null; },
   tabsync:()=>{ TAB.blocked=false; TAB.last=null; loadGame(); ui.tab='gates'; ui.msg=null; },
   lock:k=>{ lockItem(+k); }, asort:k=>{ sortArmy(k); }, mdet:k=>{ ui.mdet=ui.mdet===+k?null:+k; },
+  keys:()=>{ ui.keys=!ui.keys; },
   renameo:k=>{ ui.rename=+k; const m=S.army.find(x=>x.uid===+k); ui.rn=m?m.nick:''; }, renamex:()=>{ ui.rename=null; },
   rename:k=>{ if(renameMinion(+k,ui.rn)) ui.rename=null; },
   reforge:k=>{ const it=findItem(+k), c=it&&reforgeCost(it); ui.msg=reforge(+k)?{mk:1,m:'Reforged '+ITEM[it.id].name+' for '+c+' gold.',c:'ok'}:null; },
@@ -6136,11 +6220,12 @@ const ACTIONS={
   release:k=>{ if(ui.confirm===+k){ release(+k); ui.confirm=null; } else ui.confirm=+k; },
   newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); OPEN_HELP.on=false; ui.tab='help'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
 };
+const CONFIRM_ACTS=['release','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier'];   // two-press actions: a click on these keeps the pending confirm
 document.addEventListener('click',e=>{
   MUSIC.armed=true;
   const b=e.target.closest('[data-a]'); if(!b||b.disabled) return;
   const a=b.dataset.a;
-  if(ui.confirm!==null && !['release','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce'].includes(a)) ui.confirm=null;
+  if(ui.confirm!==null && !CONFIRM_ACTS.includes(a)) ui.confirm=null;
   ACTIONS[a]&&ACTIONS[a](b.dataset.k); render();
 });
 document.addEventListener('input',e=>{ if(e.target&&e.target.id==='cxq'){ ui.cxq=e.target.value.slice(0,40); render(); return; } if(e.target&&e.target.id==='imp') ui.imp=e.target.value; if(e.target&&e.target.id==='rn') ui.rn=e.target.value; });
@@ -6156,8 +6241,18 @@ window.addEventListener('storage',e=>{   // another tab of this game saved: stop
 window.addEventListener('resize',()=>{ if(VIEW.fx==='auto') try{ applyView(); }catch(e){} });   // Auto effects follow the window size
 document.addEventListener('pointerdown',()=>{ if(!MUSIC.armed){ MUSIC.armed=true; music(); } },{once:true});
 document.addEventListener('keydown',e=>{
-  if(e.target&&e.target.id==='rn'){ if(e.key==='Enter'&&ui.rename!=null){ e.preventDefault(); ACTIONS.rename(String(ui.rename)); render(); } return; }   // typing a minion's new name
+  if(e.target&&e.target.id==='rn'){ if(e.key==='Escape'){ e.preventDefault(); ui.rename=null; render(); return; } if(e.key==='Enter'&&ui.rename!=null){ e.preventDefault(); ACTIONS.rename(String(ui.rename)); render(); } return; }   // typing a minion's new name
   if(e.ctrlKey||e.metaKey||e.altKey) return;
+  const typing=e.target&&/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+  if(e.key==='?'&&!typing){ e.preventDefault(); ui.keys=!ui.keys; render(); return; }   // the shortcut sheet
+  if(e.key==='Escape'){ let ch=true;   // closes the sheet, then a pending confirm, a rename, a Gates sub-tab, then any other town tab
+    if(ui.keys) ui.keys=false; else if(ui.confirm) ui.confirm=null; else if(ui.rename!=null) ui.rename=null;
+    else if(S.mode==='town'&&ui.tab==='gates'&&ui.gsub&&ui.gsub!=='open') ui.gsub='open';
+    else if(S.mode==='town'&&ui.tab&&ui.tab!=='gates'){ ui.tab='gates'; ui.gsub='open'; } else ch=false;
+    if(ch){ e.preventDefault(); ui.msg=null; render(); } return; }
+  if(ui.keys) return;
+  if(S.mode==='town'&&!typing&&/^[1-9]$/.test(e.key)){ const b=app.querySelectorAll('.tabs>.tab:not(.keyhint)')[+e.key-1];   // town: 1-9 switch tabs
+    if(b&&!b.disabled&&b.dataset.k){ e.preventDefault(); ACTIONS.tab(b.dataset.k); render(); } return; }
   if(S.mode==='raise'&&e.target&&!/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)){   // between rooms: 1-4 pick a door
     const r=S.run, ds=r&&!r.cleared&&r.doors; const i=/^[1-9]$/.test(e.key)?+e.key-1:-1;
     if(ds&&i>=0&&i<ds.length){ e.preventDefault(); ACTIONS.door(ds[i]); render(); }
