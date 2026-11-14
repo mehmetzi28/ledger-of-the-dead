@@ -4,8 +4,19 @@
     {
       "name": "game",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["tools/serve.js"],
+      "runtimeArgs": [
+        "tools/serve.js"
+      ],
       "port": 5173
+    },
+    {
+      "name": "playtest",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "tools/serve.js",
+        "5174"
+      ],
+      "port": 5174
     }
   ]
 }

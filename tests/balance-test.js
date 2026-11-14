@@ -14,9 +14,10 @@
 // The ~80% target is for the 'market' bot (skills + shopping + altar). The early option is no longer needed: SAFE for A and S
 // now matches where they are balanced. Current numbers, averaged over seeds 7700 and 9100 (results swing ~±7 points per seed set):
 // LOTD_BALANCE.run({bots:40, days:100, seed:7700, modes:['market']})   (one mode per call, ~15 s in a browser), or in Node: node tests/run-balance.js
-//   market:    clears ~79% overall, deaths ~18%, level ~50 on day 100, tower ~61 (daily quest: clear 4 rooms, 1 point + 15% of a level)
+//   market:    clears ~81% overall, deaths ~16%, level ~51 on day 100, tower ~62 (daily quest: clear 4 rooms, 1 point + 15% of a level;
+//              skill bots pick Death's Toll at level 20 and use it with five Souls)
 //   full:      the market bot plus buildings, salvage, enchanting, fusion, bounties and orders against charging bosses:
-//              ~86% overall, deaths ~12%, level ~53 on day 100, tower ~70. Target: a little above market.
+//              ~87% overall, deaths ~10%, level ~54 on day 100, tower ~70. Target: a little above market.
 //              opts.off (e.g. ['fuse','crypt']) switches parts off to measure each one.
 // Abyss probe: LOTD_BALANCE.probe(seed, days, climbs) plays one full bot to that day, then climbs from its best checkpoint
 //   again and again. With the gentler curve past floor 60, day-200 bots (level ~85) reach the 90s; floor 100 is endgame.
@@ -44,6 +45,7 @@
         for(let rank=1;rank<=SK_MAX&&!again;rank++) for(const id of SKILL_ORDER){
           if(sk(id)===rank-1&&P.lvl>=skReq(SKILL[id],rank)){ learnSkill(id); again=true; break; } } }
     }
+    if(B.skills&&S.player.lvl>=ULT_LV&&!S.player.ult) chooseUlt('toll');   // ultimates open at level 20
     for(const sl of GEAR_SLOTS){
       const cur=S.equip[sl]; let best=null, bs=cur?itemScore(ITEM[cur.id]):-1;
       for(const it of S.inv){ const d=ITEM[it.id]; if(d.slot===sl&&itemScore(d)>bs){ best=it; bs=itemScore(d); } }
@@ -89,6 +91,7 @@
       if(B.skills&&charging.charging&&canUse('chill')&&P.mana>=SKILL.chill.cost){ setTarget(charging.id); return 'sk:chill'; }
       if((mv==='decree'||mv==='cinder'||mv==='sunder')&&charging.charging&&P.mana>=6&&P.shield<max*.3) return 'ward';
     }
+    if(B.skills&&canUlt()&&foes.length>=2) return 'ult';
     if(B.market&&P.hp<max*.3&&S.belt.hp) return 'pot:hp';
     if(B.market&&P.mana<10&&P.hp<max*.6&&S.belt.mp) return 'pot:mp';
     if(P.hp<max*.35&&P.mana>=8) return 'siphon';

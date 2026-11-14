@@ -1,7 +1,7 @@
 // Tiny static server for playing/testing locally with working saves (browsers block localStorage on data: pages).
-// Run: node tools/serve.js   then open http://localhost:5173
+// Run: node tools/serve.js   then open http://localhost:5173  (add a port, e.g. 5174, for a separate set of saves)
 const http=require('http'), fs=require('fs'), path=require('path');
-const root=path.join(__dirname,'..'), port=+process.env.PORT||5173;
+const root=path.join(__dirname,'..'), port=+process.argv[2]||+process.env.PORT||5173;   // node tools/serve.js 5174 runs a second copy with its own saves (saves are kept per port)
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css','.png':'image/png','.svg':'image/svg+xml','.json':'application/json'};
 http.createServer((req,res)=>{
   let p=decodeURIComponent(req.url.split('?')[0]); if(p==='/') p='/index.html';
