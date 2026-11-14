@@ -497,6 +497,9 @@ kbd{border:0;background:rgba(0,0,0,.35);border-radius:3px;padding:1px 5px;opacit
 @keyframes moment{0%{opacity:0;transform:translateY(-8px)}10%{opacity:1;transform:none}75%{opacity:1}100%{opacity:0}}
 body.calm .moment{animation:none}
 .lockb.on{border-color:var(--gold);color:var(--gold)}
+.gain{display:block;color:var(--ok);font-size:11.5px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:540px){.u-tag,.unit .u-tag{font-size:10px}}
 .setl.uset{color:#e8c98a}.setl.uset b{color:var(--gold)}.q-note.uset-on{color:var(--gold)}
 .m-links{display:flex;gap:14px;margin-top:4px}
 .m-det{display:grid;gap:4px;margin-top:8px;padding:8px 10px;background:rgba(0,0,0,.25);border-radius:6px;font-size:13px}
@@ -640,7 +643,7 @@ const ROLES = {
 };
 const ELITE = ['Gravetouched','Ashen','Hollowed','Bone-sworn','Pale'];
 const NICKS = ['Vesk','Moth','Cairn','Ossa','Pike','Wren','Tallow','Brine','Hollis','Dusk','Marrow','Sable','Rook','Thimble','Ash','Gaunt','Lorn','Nettle','Bram','Cinder','Fenn','Grist','Harrow','Ivo','Juniper','Kest','Lull','Mire','Nox','Orrin','Pall','Quill','Rue','Sorrel','Thane','Umber','Vale','Wick','Yarrow','Zed'];
-const QUEST = {kills:8, raises:2, clears:1}, QUEST_LOSS=.15, QUEST_DEBUFF=.1;   // the dawn penalty for an unfinished quest
+const QUEST = {kills:8, rooms:4, clears:1}, QUEST_LOSS=.15, QUEST_DEBUFF=.1, QUEST_PTS=1, QUEST_XP=.15;   // the dawn penalty for an unfinished quest
 const WATCHES = 3;
 // mobs: [name, role, hp factor, atk factor]
 const DUNGEONS = [
@@ -833,10 +836,13 @@ const TW_IDS={};
 TW_UNIQ.forEach((u,i)=>{ const id='w'+(i+1); ITEM[id]=Object.assign({id,set:6,tier:5,uq:true,kind:'u',tower:true,floor:u.f},u); (TW_IDS[u.f]=TW_IDS[u.f]||[]).push(id); });
 const twLvl=f=>6+Math.round(f*.5);                       // enemy level on floor f
 const twRank=f=>Math.min(5,2+Math.floor(f/25));          // rank letter shown for tower enemies (C..S)
-const recLv=f=>10+Math.round(f*.5);                      // level a decent player wants for floor f
+// Above floor 60 the climb steepens more slowly (attack at half the rate, HP at 70%): the old curve one-shot level-70 players
+// on floor 90, so floor 100 was out of reach. The recommended level now also climbs faster up there, so it tells the truth.
+const twHpF=f=>f<=60?f:60+(f-60)*.7, twAtkF=f=>f<=60?f:60+(f-60)*.5;
+const recLv=f=>f<=60?10+Math.round(f*.5):40+Math.round((f-60)*1.2);   // level a decent player wants for floor f
 function towerStats(f,lvl,hf,af,boss,elite){
-  let hp=14*TW.hp0*Math.pow(1+TW.hpG,f-1)*hf*DIFF.hp*(1+.16*(lvl-1));
-  let atk=3.2*TW.atk0*Math.pow(1+TW.atkG,f-1)*af*DIFF.atk*(1+.12*(lvl-1));
+  let hp=14*TW.hp0*Math.pow(1+TW.hpG,twHpF(f)-1)*hf*DIFF.hp*(1+.16*(lvl-1));
+  let atk=3.2*TW.atk0*Math.pow(1+TW.atkG,twAtkF(f)-1)*af*DIFF.atk*(1+.12*(lvl-1));
   if(boss){ hp*=2.2+5.8*(f/100); atk*=1.2+.8*(f/100); if(f===100){ hp*=1.6; atk*=1.35; } }   // the last warden is on a different scale
   if(elite){ hp*=1.5; atk*=1.3; }
   return {hp:Math.round(hp),atk:Math.max(1,Math.round(atk))};
@@ -968,7 +974,7 @@ function notify(m,c){ S.notices.unshift({m,c:c||'info'}); S.notices.length=Math.
 function freshState(){
   return {v:2,day:1,watches:WATCHES,uid:0,mode:'town',run:null,notices:[],runs:0,kills:{},tower:{best:0,got:{}},inv:[],equip:{weapon:null,armor:null,relic:null},
      player:{id:'p',name:'You',lvl:1,xp:0,pts:3,hp:0,mana:0,shield:0,debuff:false,stats:{strength:4,constitution:4,intelligence:4,will:4},sp:0,skills:{},skMod:{}},
-     army:[],quest:{kills:0,raises:0,clears:0,claimed:false},gold:0,trophies:{},belt:{hp:0,mp:0},shop:null,bagLv:0,salts:0,tips:{},ngp:0,
+     army:[],quest:{kills:0,rooms:0,clears:0,claimed:false},gold:0,trophies:{},belt:{hp:0,mp:0},shop:null,bagLv:0,salts:0,tips:{},ngp:0,
      mod:null,hist:[],story:{},life:Object.fromEntries(LIFE_KEYS.map(k=>[k,0])),build:{},dust:0,bounty:null};
 }
 function newGame(){
@@ -997,9 +1003,18 @@ function snapshot(){
   return c;
 }
 // TAB guards against two open tabs overwriting each other: when another tab saves, this one stops saving until you reload.
-const TAB={blocked:false,last:null,out:null};
+const TAB={blocked:false,last:null,out:null,bakDay:null};
 function save(){ if(TAB.blocked) return; try{ const t=S.savedAt; S.savedAt=0; const j=JSON.stringify(snapshot()); if(j===TAB.last&&localStorage.getItem(SAVE_KEY)===TAB.out){ S.savedAt=t; return; }   // nothing changed and the save is still there: no write
-  S.savedAt=Date.now(); const out=JSON.stringify(snapshot()); localStorage.setItem(SAVE_KEY,out); TAB.last=j; TAB.out=out; }catch(e){} }
+  S.savedAt=Date.now(); const out=JSON.stringify(snapshot()); localStorage.setItem(SAVE_KEY,out); TAB.last=j; TAB.out=out; dayBackup(out); }catch(e){} }
+// Earlier autosaves: the first save of each new day also goes into a ring of three (newest first), restorable from Settings.
+const BAK_N=3, bakKey=i=>SAVE_KEY+'-bak'+i;
+function bakRead(i){ try{ const r=localStorage.getItem(bakKey(i)); if(!r) return null; const g=JSON.parse(r); return g&&validSave(g.data)?g:null; }catch(e){ return null; } }
+function dayBackup(out){
+  if(S.mode!=='town') return; if(TAB.bakDay==null){ const b=bakRead(1); TAB.bakDay=b?b.day:-1; } if(TAB.bakDay===S.day) return;
+  try{ for(let i=BAK_N;i>1;i--){ const r=localStorage.getItem(bakKey(i-1)); if(r) localStorage.setItem(bakKey(i),r); }
+    localStorage.setItem(bakKey(1),JSON.stringify({t:Date.now(),day:S.day,data:JSON.parse(out)})); TAB.bakDay=S.day; }catch(e){}
+}
+function bakLoad(i){ const g=bakRead(i); return g?adoptSave(g.data):false; }
 // ----- save slots and save codes
 const SLOTS_N=3, CODE_TAG='LOTD1:';
 const slotKey=i=>SAVE_KEY+'-slot'+i;
@@ -1022,7 +1037,7 @@ function normalizeSave(src){
   g.day=Math.max(1,num(g.day,1)); g.watches=clamp(num(g.watches,WATCHES),0,WATCHES); g.runs=num(g.runs,0);
   for(const k of ['notices','inv','army']) if(!Array.isArray(g[k])) g[k]=[];
   for(const k of ['kills','tower','equip','quest']) if(!obj(g[k])) g[k]=d[k];
-  g.quest=Object.assign({},d.quest,g.quest);
+  g.quest=Object.assign({},d.quest,g.quest); if('raises' in g.quest){ delete g.quest.raises; }   // the old "raise the dead" goal became "clear rooms"
   g.tower={best:num(g.tower.best,0),got:obj(g.tower.got)?g.tower.got:{}};
   const okItem=it=>!!(it&&ITEM[it.id]&&typeof it.u==='number');
   g.inv=g.inv.filter(okItem);
@@ -1113,7 +1128,7 @@ TW_TITLES.forEach((n,i)=>{ const f=(i+1)*10; TITLES.push({id:'t'+f,grp:'Hell Tow
  ['d_uq','Touched by Legend','Hold a unique item.',()=>S.ti.hasUq],
  ['d_tuq','Relic-Lord of Hell','Claim all 12 Hell Tower uniques.',()=>TW_UNIQ.every((u,i)=>S.tower.got['w'+(i+1)])],
  ['d_study','Student of the Dead','Study an enemy (25 kills) and learn its drops.',()=>Object.keys(S.kills).some(k=>S.kills[k]>=KNOW_AT)],
- ['d_all','Keeper of the Ledger','Study every enemy in the gates and the Tower.',()=>allNames().every(n=>(S.kills[n]||0)>=KNOW_AT)],
+ ['d_all','Keeper of the Ledger','Study every enemy in the gates and the Tower (the wardens excepted).',()=>allNames().filter(n=>!TW_BOSS.includes(n)).every(n=>(S.kills[n]||0)>=KNOW_AT)],
  ['d_death','Rises Again','Be dragged out of a dungeon after falling.',()=>S.ti.deaths>=1],
  ['d_death10','Stubborn Corpse','Fall 10 times.',()=>S.ti.deaths>=10],
  ['d_quest7','Dutiful Scribe','Claim the daily quest reward 7 times.',()=>S.ti.claims>=7],
@@ -1139,11 +1154,11 @@ TW_TITLES.forEach((n,i)=>{ const f=(i+1)*10; TITLES.push({id:'t'+f,grp:'Hell Tow
 const T_=k=>(S.ti&&S.ti[k])||0, L_=k=>(S.life&&S.life[k])||0;
 const roll3=()=>S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&!ITEM[it.id].uq&&ITEM[it.id].tier===4&&it.ro&&it.ro.length>=3);
 [
- ['m0','Gates','Warren-Born','Clear the Rat Warren 25 times.',()=>T_('clrN0')>=25,{constitution:1}],
- ['m1','Gates','Crypt-Keeper','Clear the Sunken Crypt 25 times.',()=>T_('clrN1')>=25,{intelligence:2}],
- ['m2','Gates','Ember-Tongued','Clear the Ashen Barrow 25 times.',()=>T_('clrN2')>=25,{strength:2}],
- ['m3','Gates','Cantor of Bones','Clear the Hollow Cathedral 25 times.',()=>T_('clrN3')>=25,{will:2}],
- ['m4','Gates','Orchard-Walker','Clear the Iron Orchard 25 times.',()=>T_('clrN4')>=25,{hpp:4}],
+ ['m0','Gates','Warren-Born','Clear the Rat Warren 10 times.',()=>T_('clrN0')>=10,{constitution:1}],
+ ['m1','Gates','Crypt-Keeper','Clear the Sunken Crypt 10 times.',()=>T_('clrN1')>=10,{intelligence:2}],
+ ['m2','Gates','Ember-Tongued','Clear the Ashen Barrow 12 times.',()=>T_('clrN2')>=12,{strength:2}],
+ ['m3','Gates','Cantor of Bones','Clear the Hollow Cathedral 12 times.',()=>T_('clrN3')>=12,{will:2}],
+ ['m4','Gates','Orchard-Walker','Clear the Iron Orchard 15 times.',()=>T_('clrN4')>=15,{hpp:4}],
  ['m5','Gates','Throne-Breaker','Clear the Throne of Ash 25 times.',()=>T_('clrN5')>=25,{dmgp:4}],
  ['tw75','Hell Tower','Ash-Climber','Reach floor 75 of the Hell Tower.',()=>S.tower.best>=75,{hpp:4}],
  ['tw200','Hell Tower','Lord of the Abyss','Reach floor 200 of the Hell Tower.',()=>S.tower.best>=200,{dmgp:8}],
@@ -1247,12 +1262,12 @@ function alloc(k){
   if(!(k in P.stats)) return;
   vitals(()=>{ P.stats[k]++; P.pts--; });   // HP and mana rise by exactly what their max rose by (titles, sets, Bone Armor and the wounded dawn scale it)
 }
-const questDone = ()=>S.quest.kills>=QUEST.kills&&S.quest.raises>=QUEST.raises&&S.quest.clears>=QUEST.clears;
+const questDone = ()=>S.quest.kills>=QUEST.kills&&S.quest.rooms>=QUEST.rooms&&S.quest.clears>=QUEST.clears;
 function claimQuest(){
   if(S.quest.claimed||!questDone()) return;
-  const xp=Math.round(need(S.player.lvl)*.3);
-  S.quest.claimed=true; S.player.pts+=2; addXp(xp); S.ti=S.ti||{}; S.ti.claims=(S.ti.claims||0)+1;
-  notify('Daily quest complete: +2 stat points and +'+xp+' XP.','ok');
+  const xp=Math.round(need(S.player.lvl)*QUEST_XP);
+  S.quest.claimed=true; S.player.pts+=QUEST_PTS; addXp(xp); S.ti=S.ti||{}; S.ti.claims=(S.ti.claims||0)+1;
+  notify('Daily quest complete: +'+QUEST_PTS+' stat point'+(QUEST_PTS>1?'s':'')+' and +'+xp+' XP.','ok');
 }
 function endDay(){
   const P=S.player; P.debuff=false;
@@ -1264,7 +1279,7 @@ function endDay(){
       notify('Day '+S.day+' closed with the daily quest unfinished. Penalty: -'+loss+' XP, and max HP is cut by '+Math.round(QUEST_DEBUFF*100)+'% today.','bad');
     }
   }
-  S.day++; S.watches=WATCHES; S.quest={kills:0,raises:0,clears:0,claimed:false};
+  S.day++; S.watches=WATCHES; S.quest={kills:0,rooms:0,clears:0,claimed:false};
   P.hp=pMax(); P.mana=pMana(); P.shield=0;
   S.army.forEach(m=>m.hp=m.maxHp);
   notify('Day '+S.day+' begins. You have '+WATCHES+' watches.');
@@ -1292,7 +1307,7 @@ function spawnOne(list,di,lvl){
 function spawnRoom(){
   if(S.run.tw) return spawnFloor();
   const r=S.run, di=r.di, room=r.room, boss=room===r.rooms-1;
-  const lvl=RK[di].lv+Math.floor(room/2)+(boss?2:0);
+  const lvl=RK[di].lv+Math.floor(room/2)+(boss?2:0)+curseRise(di);
   const list=[];
   const extra=runMod()==='horde'?1:0;
   if(boss){ list.push(makeEnemy(di,lvl,true)); const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); }
@@ -1454,7 +1469,7 @@ function roomWon(){
     if(f===100) r.cleared=true;   // floor 100 ends the first climb; floor 101 onward is the endless abyss
   } else if(last){ unlockStory('g'+r.di,r); xp+=RK[r.di].clear; r.cleared=true; S.quest.clears++; S.ti=S.ti||{}; S.ti.clr=S.ti.clr||{}; S.ti.clr[r.di]=1; tally('clrN'+r.di); if(r.mod){ tally('cur_'+r.mod); tally('cursed'); } if(!r.hurt) tally('flawless'); }
   for(const id of r.loot){ const it=addItem(id); if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name); } r.loot=[];
-  bankLoot(r); r.won=(r.won||0)+1; tally('rooms'); if(r.tw) tally('floors'); if(P.hp>0&&P.hp<=pMax()*.1) tally('lastBreath');
+  bankLoot(r); r.won=(r.won||0)+1; S.quest.rooms=(S.quest.rooms||0)+1; tally('rooms'); if(r.tw) tally('floors'); if(P.hp>0&&P.hp<=pMax()*.1) tally('lastBreath');
   r.event=(!r.tw&&!last&&Math.random()<EVENT_CHANCE)?rollEvent():null;   // something waits between rooms
   r.doors=(!r.tw&&!last)?rollDoors(r):null;   // which way next
   r.gained+=xp; r.lastXp=xp;
@@ -1530,7 +1545,7 @@ function tryRaise(id,salt){
     if(hasFlag('bindsouls')) m.lvl=Math.min(S.player.lvl+2,m.lvl+2);
     m.lvl0=m.lvl; m.stage=0; m.traits=[rollTrait([])]; if(c.boss) m.traits.push(rollTrait(m.traits));   // bosses rise with two traits
     if(c.aff&&c.aff.length){ const t=AFFIX[pick(c.aff)].trait; if(!m.traits.includes(t)) m.traits.push(t); }   // an elite keeps one of its affixes
-    syncMinion(m); m.hp=m.maxHp; S.army.push(m); S.quest.raises++; r.raised++; S.ti=S.ti||{}; S.ti.raised=(S.ti.raised||0)+1; if(m.armed) S.ti.armed=(S.ti.armed||0)+1;
+    syncMinion(m); m.hp=m.maxHp; S.army.push(m); r.raised++; S.ti=S.ti||{}; S.ti.raised=(S.ti.raised||0)+1; if(m.armed) S.ti.armed=(S.ti.armed||0)+1;
     if(c.free) tally('straggler'); if(c.boss) tally('raisedBoss'); c.result='raised'; if(c.boss||c.elite) moment(m.nick+' rises: '+(c.boss?'a boss':'an elite')+' serves you','ok'); c.minion=m.nick+' ('+m.traits.map(t=>TRAITS[t].name).join(', ')+')'; sfx('raise');
   }else{ c.result='failed'; sfx('fail'); }
 }
@@ -1766,7 +1781,8 @@ const TIPS=[
   {id:'affix',  t:'Elite affixes', m:'Elites carry affixes, shown on their card: Shielded, Splitting, Vampiric, Enraged or Warded. Hover one to read it. Raise a fallen elite and the minion keeps one as a trait.', when:()=>S.mode==='battle'&&S.run&&liveFoes().some(e=>e.aff)},
   {id:'phase',  t:'A second phase', m:'At half HP a boss turns dangerous: it moves sooner and adds Sundering Blow. Every move is announced a turn ahead. Taunt sends the blow at a vanguard, and a Focus crit or Grave Chill breaks a charging move.', when:()=>S.mode==='battle'&&S.run&&liveFoes().some(e=>e.phase2)},
   {id:'bounty', t:'A bounty is done', m:'You finished a contract on the bounty board in the side panel. Claim it in town before dawn.', when:()=>S.mode==='town'&&S.bounty&&S.bounty.day===S.day&&S.bounty.list.some(b=>!b.claimed&&bountyDone(b))},
-  {id:'salvage',t:'Salvage and enchant', m:'Gear you will not wear can be salvaged into bone dust on the Gear tab. Dust enchants gear (add or re-roll a bonus line) and builds the higher levels of town buildings.', when:()=>S.mode==='town'&&ui.tab==='gear'&&S.inv.length>=6},
+  {id:'salvage',t:'Salvage and enchant', m:'Gear you will not wear can be salvaged into bone dust on the Gear tab. Dust enchants gear (add or re-roll a bonus line) and builds the higher levels of town buildings.', when:()=>S.mode==='town'&&ui.tab==='gear'&&S.inv.length>=6&&workOpen()},
+  {id:'townopen',t:'The town opens', m:'A Town tab has appeared: build up the necropolis and fuse minions in the Flesh Pit. A bounty board in the side panel now posts three contracts every dawn.', when:()=>S.mode==='town'&&townOpen()},
   {id:'tower',  t:'The Hell Tower is open', m:'A separate 100-floor climb, one fight per floor, with a unique relic on every tenth floor. Floors you clear become checkpoints.', when:()=>S.mode==='town'&&S.player.lvl>=TW.unlock},
 ];
 const currentTip=()=>{ if(!S||(S.tips&&S.tips.off)) return null; try{ return TIPS.find(t=>!(S.tips&&S.tips[t.id])&&t.when())||null; }catch(e){ return null; } };
@@ -1887,6 +1903,10 @@ function dayMod(){
 }
 const gateMod=di=>{ const m=dayMod(); return m.gi===di?m.id:null; };
 const runMod=()=>(S.run&&!S.run.tw&&S.run.mod)||null;
+// Once the Throne of Ash has fallen, a cursed gate's foes rise to just below your level: cursed days stay a real fight, and
+// pay for it (XP and gold already follow foe level).
+const CURSE_GAP=5;
+const curseRise=di=>(runMod()&&S.ti&&S.ti.clr&&S.ti.clr[5])?Math.max(0,S.player.lvl-CURSE_GAP-RK[di].lv):0;
 const foeAtkMul=di=>DIFF.foeAtk[di]*(runMod()==='fury'?1.25:1);
 const bulwark=list=>{ if(runMod()==='bulwark') for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*1.3); } };
 function volatileBurst(e){   // Volatile dead: a dying foe bursts on you
@@ -2100,22 +2120,29 @@ function build(k){
   S.gold-=c[0]; S.dust=(S.dust||0)-c[1]; vitals(()=>{ S.build=S.build||{}; S.build[k]=bl(k)+1; }); tally('built'); sfx('level'); return true;
 }
 
+// ===== WHAT IS OPEN YET =====
+// New players meet the town economy gradually: the Town tab and bounty board open after the first gate clear (or level 4),
+// salvage and enchanting at level 6 (or once you hold bone dust). The functions work regardless; this only hides the buttons.
+const anyClear=()=>!!(S&&S.ti&&S.ti.clr&&Object.keys(S.ti.clr).length);
+const townOpen=()=>!!S&&(S.player.lvl>=4||anyClear()||Object.keys(S.build||{}).length>0);
+const workOpen=()=>!!S&&(S.player.lvl>=6||(S.dust||0)>0);
+
 // ===== BOUNTY BOARD =====
 // Three contracts a day. Progress counts from the moment the board goes up; finished contracts are claimed in town.
 // Unclaimed contracts simply lapse at dawn (no penalty).
 const BOUNTY_N=3;
 const BOUNTIES={
-  kills:   {t:n=>'Defeat '+n+' foes in one day',       n:30,w:1, key:null},
+  kills:   {t:n=>'Defeat '+n+' foes in one day',       n:40,w:1, key:null},
   elites:  {t:n=>'Defeat '+n+' elites',                n:2, w:2, key:'elites'},
-  raise:   {t:n=>'Raise '+n+' of the dead in one day', n:6, w:1, key:'raised'},
-  rooms:   {t:n=>'Win '+n+' rooms or floors',          n:6, w:2, key:'rooms'},
-  bosses:  {t:()=>'Defeat a boss or a warden',         n:1, w:2, key:'bosses'},
+  raise:   {t:n=>'Raise '+n+' of the dead in one day', n:4, w:1, key:'raised'},
+  rooms:   {t:n=>'Win '+n+' rooms or floors',          n:9, w:2, key:'rooms'},
+  bosses:  {t:n=>'Defeat '+n+' bosses or wardens',     n:2, w:2, key:'bosses'},
   cursed:  {t:()=>'Clear today\'s cursed gate',        n:1, w:2, key:'cursed',  ok:()=>dayMod().gi>=0},
   flawless:{t:()=>'Clear a gate without losing HP',    n:1, w:1, key:'flawless',ok:()=>!!(S.ti&&S.ti.clr&&Object.keys(S.ti.clr).length)},
   arch:    {t:n=>'Go through '+n+' bloodied arches',   n:2, w:2, key:'archs'},
   orders:  {t:n=>'Give your army '+n+' orders',        n:5, w:1, key:'commands',ok:()=>S.army.length>0},
   floors:  {t:n=>'Climb '+n+' floors of the Hell Tower',n:4,w:2, key:'floors',  ok:()=>S.player.lvl>=TW.unlock},
-  poison:  {t:n=>'Poison foes '+n+' times',            n:8, w:1, key:'poisoned',ok:()=>S.army.some(m=>hasTrait(m,'venom'))}
+  poison:  {t:n=>'Poison foes '+n+' times',            n:20,w:1, key:'poisoned',ok:()=>S.army.some(m=>hasTrait(m,'venom'))}
 };
 const BOUNTY_RW=['gold','gold','gold','salt','dust','dust','gear'];
 const bountyVal=id=>id==='kills'?totalKills():T_(BOUNTIES[id].key);
@@ -2611,14 +2638,14 @@ function setLine(d){ if(d.tower||SET_NAMES[d.set]==null) return usetLine(d); con
   return '<div class="setl">'+SET_NAMES[d.set]+' set'+(n?' ('+n+'/3 worn)':'')+': <span class="'+(n>=2?'on':'')+'">2: '+buffTxt(B[2])+'</span> &middot; <span class="'+(n>=3?'on':'')+'">3: '+buffTxt(B[3])+'</span></div>'+usetLine(d); }
 function itemCard(it,acts,cmp){
   const d=ITEM[it.id];
-  return '<div class="item t'+d.tier+'">'+iico(d)+'<div class="i-body"><div class="i-top"><span class="i-name">'+d.name+'</span><span class="i-tag">'+TIERS[d.tier]+' &middot; '+SLOTS[d.slot]+(d.tower?' &middot; <span class="i-floor">Hell Tower '+d.floor+'</span>':'')+'</span></div>'
+  return '<div class="item t'+d.tier+'">'+iico(d)+'<div class="i-body"><div class="i-top"><span class="i-name">'+d.name+'</span><span class="i-tag">'+TIERS[d.tier]+' &middot; '+SLOTS[d.slot]+(!d.uq&&!d.tower&&RANKS[d.set]?'<span class="sr"> &middot; gate '+RANKS[d.set]+' set</span>':'')+(d.tower?' &middot; <span class="i-floor">Hell Tower '+d.floor+'</span>':'')+'</span></div>'
    +'<div class="i-stats">'+statsHTML(d,it)+'</div>'+(d.flag?'<div class="i-fx">'+FLAGS[d.flag]+'</div>':'')+setLine(d)+(cmp?cmpHTML(it):'')+'</div><div class="i-acts">'+(acts||'')+'</div></div>';
 }
 const lockBtn=it=>'<button class="btn small lockb'+(it.lk?' on':'')+'" data-a="lock" data-k="'+it.u+'" aria-pressed="'+!!it.lk+'" title="'+(it.lk?'Locked: never sold, salvaged or discarded. Press to unlock.':'Lock it so it is never sold, salvaged or discarded')+'">'+(it.lk?'Locked':'Lock')+'</button>';
 const reforgeBtn=it=>ITEM[it.id].uq||S.mode!=='town'?'':'<button class="btn small" data-a="reforge" data-k="'+it.u+'"'+(S.gold<reforgeCost(it)?' disabled':'')+' title="Re-roll its bonus lines">Reforge &middot; '+gold(reforgeCost(it))+'</button>'+enchBtn(it);
 const dust=n=>'<span class="dust-n">'+n.toLocaleString()+' dust</span>';
 function enchBtn(it){   // Enchant opens the choices: add a line (if there is room) or re-roll one line
-  if(ITEM[it.id].uq||S.mode!=='town') return '';
+  if(ITEM[it.id].uq||S.mode!=='town'||!workOpen()) return '';
   const open=ui.ench===it.u, c=enchCost(it), poor=(S.dust||0)<c, ro=it.ro||[];
   let h='<button class="btn small" data-a="ench" data-k="'+it.u+'" aria-expanded="'+open+'" title="Spend bone dust on its bonus lines">Enchant</button>';
   if(open) h+='<div class="ench">'+(ro.length<lineMax(it)?'<button class="btn small primary" data-a="enchadd" data-k="'+it.u+'"'+(poor?' disabled':'')+'>Add a line &middot; '+dust(c)+'</button>':'')
@@ -2648,14 +2675,14 @@ function junkHTML(){
   return '<button class="btn small warn" data-a="junk">'+(ui.confirm==='junk'?'Press again to sell '+j.length+' for '+gold(g):'Sell junk ('+j.length+' Common and Uncommon) &middot; '+gold(g))+'</button>';
 }
 function salvJunkHTML(){
-  const j=S.inv.filter(isJunk); if(!j.length||S.mode!=='town') return '';
+  const j=S.inv.filter(isJunk); if(!j.length||S.mode!=='town'||!workOpen()) return '';
   const n=j.reduce((a,it)=>a+dustValue(it),0);
   return '<button class="btn small" data-a="sjunk">'+(ui.confirm==='sjunk'?'Press again to salvage '+j.length+' for '+dust(n):'Salvage junk &middot; '+dust(n))+'</button>';
 }
 function bagHTML(){
   const rows=sortedBag().map(it=>{ const d=ITEM[it.id], cur=S.equip[d.slot], conf=ui.confirm==='d'+it.u;
-    return itemCard(it,'<button class="btn small primary" data-a="equip" data-k="'+it.u+'">'+(cur?'Swap':'Equip')+'</button>'+(d.uq?'':lockBtn(it))+reforgeBtn(it)+(d.uq||it.lk?'':'<button class="btn small" data-a="salvage" data-k="'+it.u+'" title="Break it into bone dust">Salvage &middot; '+dust(dustValue(it))+'</button>'+'<button class="btn small warn" data-a="discard" data-k="'+it.u+'">'+(conf?'Confirm':'Discard')+'</button>'),true); }).join('');
-  return '<section class="win" aria-labelledby="h-bag"><h2 class="win-h" id="h-bag">Bag '+S.inv.length+'/'+bagMax()+' &middot; '+dust(S.dust||0)+'</h2>'
+    return itemCard(it,'<button class="btn small primary" data-a="equip" data-k="'+it.u+'">'+(cur?'Swap':'Equip')+'</button>'+(d.uq?'':lockBtn(it))+reforgeBtn(it)+(d.uq||it.lk?'':(workOpen()?'<button class="btn small" data-a="salvage" data-k="'+it.u+'" title="Break it into bone dust">Salvage &middot; '+dust(dustValue(it))+'</button>':'')+'<button class="btn small warn" data-a="discard" data-k="'+it.u+'">'+(conf?'Confirm':'Discard')+'</button>'),true); }).join('');
+  return '<section class="win" aria-labelledby="h-bag"><h2 class="win-h" id="h-bag">Bag '+S.inv.length+'/'+bagMax()+(workOpen()?' &middot; '+dust(S.dust||0):'')+'</h2>'
    +'<p class="lede">Loot from rooms you clear lands here. Uniques ignore the bag limit. When the bag is full, other finds are left behind. Green lines are bonus rolls; each item shows how it compares with what you wear.</p>'
    +(ui.msg&&ui.msg.mk?'<div class="note '+(ui.msg.c||'')+'"><span>'+ui.msg.m+'</span></div>':'')
    +(S.inv.length?'<div class="bag-tools">Sort: '+Object.keys(BAG_SORTS).map(k=>'<button class="linkbtn" data-a="sort" data-k="'+k+'" aria-pressed="'+((ui.sort||'tier')===k)+'">'+BAG_SORTS[k]+'</button>').join('')+junkHTML()+salvJunkHTML()+'</div>':'')
@@ -2724,6 +2751,14 @@ function bestiaryHTML(){
   return h+'</section>';
 }
 
+// What one more point in a stat would change, worked out from the real formulas (shown next to each + button).
+function statGain(k){
+  const P=S.player, f=()=>({Strike:pAtk(),'Max HP':pMax(),Mana:pMana(),Siphon:pSiph(),Ward:pWard(),Slots:slots()});
+  const a=f(); P.stats[k]++; const b=f(); P.stats[k]--;
+  const out=Object.keys(a).filter(x=>b[x]!==a[x]).map(x=>x+' +'+(b[x]-a[x]));
+  if(k==='will') out.push('raise +2.2%','minions +2%');
+  return out.join(', ');
+}
 function statusHTML(){
   const P=S.player, st=P.stats, ri=pRankI();
   const rows=[['strength','Strength','Strike damage'],['constitution','Constitution','Max HP'],['intelligence','Intelligence','Mana, Siphon, Ward'],['will','Will','Army slots, raise odds, minion bond']];
@@ -2732,17 +2767,17 @@ function statusHTML(){
    +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+(P.debuff?' &middot; <span class="bad">Wounded dawn</span>':'')+'</div></div></div>'
    +meter('HP',P.hp,pMax(),'hp')+meter('Mana',P.mana,pMana(),'mp')+meter('XP',P.xp,need(P.lvl),'xp')
    +((P.pts>0||P.sp>0)?'<div class="chips">'+(P.pts>0?'<span class="chip">'+P.pts+' unspent point'+(P.pts>1?'s':'')+'</span>':'')+(P.sp>0?'<span class="chip">'+P.sp+' skill point'+(P.sp>1?'s':'')+'</span>':'')+'</div>':'')
-   +'<div class="stats">'+rows.map(r=>'<div class="stat"><div><b>'+r[1]+'</b><small>'+r[2]+'</small></div><span class="val">'+st[r[0]]+(G(r[0])?'<small class="gb"> +'+G(r[0])+'</small>':'')+'</span>'
+   +'<div class="stats">'+rows.map(r=>'<div class="stat"><div><b>'+r[1]+'</b><small>'+r[2]+'</small>'+(canAlloc?'<small class="gain">Next point: '+statGain(r[0])+'</small>':'')+'</div><span class="val">'+st[r[0]]+(G(r[0])?'<small class="gb"> +'+G(r[0])+'</small>':'')+'</span>'
       +(canAlloc?'<button class="plus" data-a="alloc" data-k="'+r[0]+'" aria-label="Add a point to '+r[1]+'">+</button>':'<span class="plus-slot"></span>')+'</div>').join('')+'</div>'
    +'<div class="derived"><div><span>Strike</span><b>'+pAtk()+'</b></div><div><span>Siphon</span><b>'+pSiph()+'</b></div><div><span>Slots</span><b>'+slots()+'</b></div></div>'
    +'</section>';
 }
 function questHTML(){
-  const q=S.quest, rows=[['Defeat foes',q.kills,QUEST.kills],['Raise the dead',q.raises,QUEST.raises],['Clear a dungeon',q.clears,QUEST.clears]];
+  const q=S.quest, rows=[['Defeat foes',q.kills,QUEST.kills],['Clear rooms',q.rooms,QUEST.rooms],['Clear a dungeon',q.clears,QUEST.clears]];
   const done=questDone();
   return '<section class="win'+foldCls('quest')+'" aria-labelledby="h-quest"><h2 class="win-h" id="h-quest">Daily quest &middot; Day '+S.day+'<span class="fold-sum">'+(q.claimed?'claimed':done?'ready to claim':rows.filter(r=>r[1]>=r[2]).length+'/3')+'</span>'+foldBtn('quest')+'</h2>'
    +rows.map(r=>'<div class="q-row"><span class="box'+(r[1]>=r[2]?' on':'')+'"></span><span>'+r[0]+'</span><span class="num">'+Math.min(r[1],r[2])+'/'+r[2]+'</span></div>').join('')
-   +(q.claimed?'<p class="q-note ok">Reward claimed for today.</p>':done?'<button class="btn primary" data-a="claim">Claim reward</button>':'<p class="q-note">Reward: +2 stat points and bonus XP.<br><span class="bad">Penalty if unfinished at dawn: lose '+Math.round(QUEST_LOSS*100)+'% of a level in XP and max HP -'+Math.round(QUEST_DEBUFF*100)+'% for a day.</span></p>')
+   +(q.claimed?'<p class="q-note ok">Reward claimed for today.</p>':done?'<button class="btn primary" data-a="claim">Claim reward</button>':'<p class="q-note">Reward: +'+QUEST_PTS+' stat point'+(QUEST_PTS>1?'s':'')+' and bonus XP.<br><span class="bad">Penalty if unfinished at dawn: lose '+Math.round(QUEST_LOSS*100)+'% of a level in XP and max HP -'+Math.round(QUEST_DEBUFF*100)+'% for a day.</span></p>')
    +'<p class="q-note">Each dungeon you enter uses a watch. When the third is spent, the day closes.</p></section>';
 }
 function bountyHTML(){
@@ -2765,7 +2800,7 @@ function gateHTML(i){
   return '<div class="gate'+(locked?' locked':'')+'"><div class="badge r'+i+'">'+RANKS[i]+'</div><div><h3>'+D.name+'</h3><p>'+D.blurb+'</p>'
    +'<div class="meta">'+(locked?'Opens at level '+R.unlock:'<span class="danger-'+danger.toLowerCase()+'">'+danger+' for you</span>')+' &middot; best at level '+SAFE[i]+'&ndash;'+(SAFE[i]+3)
    +'<br>'+(DIFF.armor[i]?'Foes wear '+Math.round(DIFF.armor[i]*100)+'% armor. ':'')+'Boss: <b>'+D.boss[0]+'</b>'
-   +(gateMod(i)?'<span class="curse-line">Cursed today: <b>'+MODS[gateMod(i)].name+'</b>. '+MODS[gateMod(i)].desc+' '+MOD_REWARD+'</span>':'')+'</div></div>'
+   +(gateMod(i)?'<span class="curse-line">Cursed today: <b>'+MODS[gateMod(i)].name+'</b>. '+MODS[gateMod(i)].desc+' '+MOD_REWARD+(S.ti&&S.ti.clr&&S.ti.clr[5]&&P.lvl-CURSE_GAP>RK[i].lv?' Since the Throne fell, its foes rise to about level '+(P.lvl-CURSE_GAP)+'.':'')+'</span>':'')+'</div></div>'
    +'<button class="btn '+(locked?'':'primary')+'" data-a="enter" data-k="'+i+'"'+(locked?' disabled':'')+'>'+(locked?'Reach Lv '+R.unlock:'Enter')+'</button></div>';
 }
 function titlesHTML(){
@@ -2915,7 +2950,7 @@ function tipHTML(){
 function helpHTML(){
   const sec=(t,ps)=>'<p class="group-h">'+t+'</p>'+ps.map(p=>'<p class="help-p">'+p+'</p>').join('');
   return '<section class="win" aria-labelledby="h-help"><h2 class="win-h" id="h-help">How to play</h2><h3 class="win-title">Every name in this book answers to you.</h3>'
-   +sec('The day',['You get '+WATCHES+' watches a day; entering a gate or the Tower uses one. When the last is spent, the day ends. Finish the daily quest (defeat foes, raise the dead, clear a dungeon) for 2 stat points and XP, or lose some XP at dawn.'])
+   +sec('The day',['You get '+WATCHES+' watches a day; entering a gate or the Tower uses one. When the last is spent, the day ends. Finish the daily quest (defeat foes, clear rooms, clear a dungeon) for '+QUEST_PTS+' stat point'+(QUEST_PTS>1?'s':'')+' and XP, or lose some XP at dawn.'])
    +sec('Fighting',['Choose a target; your army attacks it with you. Strike (1) deals damage and refills 3 mana. Soul Siphon (2) drains a foe and heals you. Bone Ward (3) raises a shield. After you act, your minions act, then every foe.',
      'Foes in deeper gates wear armor, shown on each gate card. Armor blunts every hit you and your army land, so fights last longer. Bone Spear pierces half of it; Corpse Explosion and Reap ignore it.',
      'Vanguards draw blows, strikers crit, menders heal, reapers cleave. A room never holds more than one enemy mender.'])
@@ -2928,7 +2963,7 @@ function helpHTML(){
      'The uniques also form six unique sets of three (a weapon, an armor and a relic): two from the gate bosses and four from the Tower wardens. Their bonuses are bigger, and stack with a gate set\'s. The Codex lists them all.'])
    +sec('Skill upgrades',['When a skill reaches rank '+SK_MAX+', choose one of two upgrades on the Skills tab. Forgetting your skills refunds the points and lets you choose again.'])
    +sec('Orders',['Once per room, each kind of minion in your army can be given an order: vanguards Taunt (Z), strikers Focus (X), menders raise a Bone Shield (C), reapers Execute (V). Orders are free and do not use your turn.'])
-   +sec('Keys in battle',['1 Strike, 2 Soul Siphon, 3 Bone Ward, 4 to 9 your skills, Q and W potions, Z X C V orders, and Tab (Shift+Tab) to change target.'])
+   +sec('Keys in battle',['1 Strike, 2 Soul Siphon, 3 Bone Ward, 4 to 9 your skills, Q and W potions, Z X C V orders, and ] and [ to change target. Tab moves between buttons as usual.'])
    +sec('Bosses',['Every boss has a signature move it uses every few turns. Moves marked Charging land next turn: soak them with Bone Ward or freeze the boss with Grave Chill to cancel them. Tower wardens borrow these moves.',
      'At half HP a boss enters its second phase. Its moves come sooner, it announces every one a turn ahead, and it adds Sundering Blow, a hit worth 35% of your max HP. Taunt sends that blow at a vanguard instead, and a Focus crit, like Grave Chill, breaks any move the boss is charging.'])
    +sec('Elites',['Elites carry named affixes: Shielded, Splitting, Vampiric, Enraged or Warded (two in the Hollow Cathedral and deeper, and from Tower floor 50). Hover an affix in battle to read it. A raised elite keeps one of its affixes as a trait.'])
@@ -2973,6 +3008,12 @@ function saveTabHTML(){
      +(d?'<button class="btn small" data-a="slotload" data-k="'+i+'">'+(ui.confirm==='sl'+i?'Confirm load':'Load')+'</button><button class="btn small warn" data-a="slotdel" data-k="'+i+'">'+(ui.confirm==='sd'+i?'Confirm':'Delete')+'</button>':'')
      +'</div></div>';
   }
+  h+='</div><p class="group-h">Earlier autosaves</p><p class="q-note">The game keeps your save from the start of each of the last '+BAK_N+' days. Restore one if something went wrong.</p><div class="items">';
+  let anyBak=false;
+  for(let i=1;i<=BAK_N;i++){ const g=bakRead(i), d=g&&g.data; if(!d) continue; anyBak=true;
+    h+='<div class="tt-row"><div><h4>Start of day '+d.day+'</h4><div class="u-sub">Level '+d.player.lvl+' &middot; '+(d.gold||0).toLocaleString()+' gold &middot; '+(d.army||[]).length+' minions &middot; saved '+when(g.t)+'</div></div>'
+     +'<button class="btn small" data-a="bakload" data-k="'+i+'">'+(ui.confirm==='bl'+i?'Confirm: replaces your current game':'Restore')+'</button></div>'; }
+  if(!anyBak) h+='<p class="lede">None yet. One is kept at the start of every day.</p>';
   h+='</div><p class="group-h">Save file</p><p class="q-note">Download your game as a small file to keep as a backup or move to another browser, then load it back here.</p>'
    +'<div class="btns"><button class="btn small primary" data-a="dlsave">Download save file</button><label class="btn small filebtn">Load a save file<input type="file" id="loadfile" accept=".txt,.json,text/plain,application/json"></label></div>'
    +(ui.file?'<div class="btns"><button class="btn small warn" data-a="loadfile">'+(ui.confirm==='lf'?'Press again: '+ui.file.name+' replaces your current game':'Load '+ui.file.name)+'</button><button class="linkbtn" data-a="dropfile">Cancel</button></div>':'');
@@ -3025,7 +3066,7 @@ const cxList=a=>'<div class="items">'+a.join('')+'</div>';
 const metName=n=>!!(S.kills&&S.kills[n]>0);
 function codexSection(k){
   const pct=v=>Math.round(v*100)+'%';
-  if(k==='basics') return cxP('A day has '+WATCHES+' watches. Entering a gate or the Tower uses one; when the last is spent the day ends. The daily quest asks you to defeat '+QUEST.kills+' foes, raise '+QUEST.raises+' of the dead and clear '+QUEST.clears+' dungeon. Finish it for 2 stat points and 30% of a level in XP. Leave it unfinished and dawn costs '+pct(QUEST_LOSS)+' of a level in XP and '+pct(QUEST_DEBUFF)+' of your max HP for a day.')
+  if(k==='basics') return cxP('A day has '+WATCHES+' watches. Entering a gate or the Tower uses one; when the last is spent the day ends. The daily quest asks you to defeat '+QUEST.kills+' foes, clear '+QUEST.rooms+' rooms (gate rooms or Tower floors) and clear '+QUEST.clears+' dungeon. Finish it for '+QUEST_PTS+' stat point'+(QUEST_PTS>1?'s':'')+' and '+pct(QUEST_XP)+' of a level in XP. Leave it unfinished and dawn costs '+pct(QUEST_LOSS)+' of a level in XP and '+pct(QUEST_DEBUFF)+' of your max HP for a day.')
     +cxP('Each level gives 3 stat points and 1 skill point. Falling in a fight loses that room\'s spoils and '+pct(DIFF.deathXp)+' of a level in XP. Going on to the next room heals '+pct(DIFF.heal)+' of your HP, restores '+pct(DIFF.mana)+' of your mana and heals your minions '+pct(DIFF.mheal)+'.')
     +'<p class="group-h">Stats</p>'+cxList([cxRow('Strength','Strike damage: 3 + 1.5 per point + your level + gear.'),cxRow('Constitution','Max HP: 24 + 6 per point + 4 per level + gear.'),
       cxRow('Intelligence','Mana (5 per point), Soul Siphon (2 per point) and Bone Ward (2 per point).'),cxRow('Will','Mana (3 per point), one army slot per 3 points, 2.2% raise chance per point, and 2% minion power per point.')])
@@ -3111,8 +3152,9 @@ function buildHTML(){
 }
 const LEDGER=[['codex','Codex'],['bes','Bestiary'],['hist','History'],['help','How to play']];   // the Ledger tab's pages
 function townHTML(){
+  if(ui.tab==='town'&&!townOpen()) ui.tab='gates';
   let h=notesHTML();
-  h+='<div class="tabs" role="tablist">'+[['gates','Gates'],['tower','Hell Tower'],['gear','Gear &middot; '+S.inv.length],['market','Market'],['town','Town'],['skills','Skills'+(S.player.sp?' &middot; '+S.player.sp:'')],['titles','Titles &middot; '+Object.keys((S.ti&&S.ti.got)||{}).length],['ledger','Ledger']].map(t=>'<button class="tab'+(t[0]==='tower'?' hell':'')+'" role="tab" data-a="tab" data-k="'+t[0]+'" aria-selected="'+(t[0]==='ledger'?LEDGER.some(x=>x[0]===ui.tab):(ui.tab||'gates')===t[0])+'">'+t[1]+'</button>').join('')+'</div>';
+  h+='<div class="tabs" role="tablist">'+[['gates','Gates'],['tower','Hell Tower'],['gear','Gear &middot; '+S.inv.length],['market','Market']].concat(townOpen()?[['town','Town']]:[]).concat([['skills','Skills'+(S.player.sp?' &middot; '+S.player.sp:'')],['titles','Titles &middot; '+Object.keys((S.ti&&S.ti.got)||{}).length],['ledger','Ledger']]).map(t=>'<button class="tab'+(t[0]==='tower'?' hell':'')+'" role="tab" data-a="tab" data-k="'+t[0]+'" aria-selected="'+(t[0]==='ledger'?LEDGER.some(x=>x[0]===ui.tab):(ui.tab||'gates')===t[0])+'">'+t[1]+'</button>').join('')+'</div>';
   if(LEDGER.some(x=>x[0]===ui.tab)){ ui.ledger=ui.tab; h+='<div class="chips sub-nav" role="tablist">'+LEDGER.map(x=>'<button class="btn small'+(x[0]===ui.tab?' primary':'')+'" role="tab" data-a="tab" data-k="'+x[0]+'" aria-selected="'+(x[0]===ui.tab)+'">'+x[1]+'</button>').join('')+'</div>'; }
   if(ui.tab==='gear') return h+bagHTML()+armyHTML();
   if(ui.tab==='bes') return h+bestiaryHTML();
@@ -3283,7 +3325,7 @@ function render(){
   const main=S.mode==='battle'?battleHTML():S.mode==='raise'?raiseHTML():S.mode==='defeat'?defeatHTML():townHTML();
   app.innerHTML='<header class="top"><div class="brand"><svg class="sigil" viewBox="0 0 64 64" width="54" height="54" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="32" cy="32" r="30"/><circle cx="32" cy="32" r="24" stroke-dasharray="1.5 3.5"/><rect x="16" y="16" width="32" height="32"/><rect x="16" y="16" width="32" height="32" transform="rotate(45 32 32)"/><circle cx="32" cy="32" r="6"/><circle cx="32" cy="32" r="2" fill="currentColor"/></g></svg><div><h1>Ledger of the Dead</h1><p class="tag">Every name in this book answers to you.</p></div></div><div class="top-meta">'+(S.ngp?'<span class="ngp-b" title="New Game+">NG+'+S.ngp+'</span>':'')+'<span>Day '+S.day+'</span><span title="Gold">'+gold(S.gold)+'</span><span>Watches<span class="pips" aria-label="'+S.watches+' of '+WATCHES+' watches left">'+pips+'</span></span></div>'
    +'<button class="gearbtn'+((ui.tab==='settings'&&S.mode==='town')?' on':'')+'" data-a="settings" aria-label="Settings" aria-pressed="'+(ui.tab==='settings'&&S.mode==='town')+'"'+(S.mode==='town'?' title="Settings: save, load, new game"':' disabled title="Settings open when you are back in town"')+'><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M10.3 2h3.4l.5 2.6c.6.2 1.2.5 1.7.9l2.5-.9 1.7 2.9-2 1.7c.1.6.1 1.3 0 1.9l2 1.7-1.7 2.9-2.5-.9c-.5.4-1.1.7-1.7.9l-.5 2.6h-3.4l-.5-2.6c-.6-.2-1.2-.5-1.7-.9l-2.5.9-1.7-2.9 2-1.7a6 6 0 0 1 0-1.9l-2-1.7 1.7-2.9 2.5.9c.5-.4 1.1-.7 1.7-.9zM12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z"/></svg></button></header>'
-   +'<div class="layout"><div class="main">'+tabNote+mo+tipHTML()+main+'</div><aside class="rail">'+statusHTML()+equipHTML()+questHTML()+bountyHTML()+'</aside></div>';
+   +'<div class="layout"><div class="main">'+tabNote+mo+tipHTML()+main+'</div><aside class="rail">'+statusHTML()+equipHTML()+questHTML()+(townOpen()?bountyHTML():'')+'</aside></div>';
   if(key){ const n=app.querySelector(key); if(n) n.focus({preventScroll:true}); }
   if(ui.shake&&!VIEW.calm){ ui.shake=false; const w=app.querySelector('.main > .win'); if(w) w.classList.add('shake'); }
   try{ music(); }catch(e){}
@@ -3337,6 +3379,7 @@ const ACTIONS={
   take:k=>{ const a=k.split('|'); takeGear(+a[0],a[1]); }, settings:()=>{ if(S.mode!=='town') return; ui.tab=ui.tab==='settings'?'gates':'settings'; ui.msg=null; ui.exp=''; },
   slotsave:k=>{ if(slotRead(+k)&&ui.confirm!=='ss'+k){ ui.confirm='ss'+k; return; } ui.confirm=null; ui.msg=slotWrite(+k)?{m:'Saved to slot '+k+'.',c:'ok'}:{m:'Could not write to slot '+k+'. Use a save code instead.',c:'bad'}; },
   slotload:k=>{ if(ui.confirm!=='sl'+k){ ui.confirm='sl'+k; return; } ui.confirm=null; ui.msg=slotLoad(+k)?{m:'Loaded slot '+k+'.',c:'ok'}:{m:'That slot could not be read.',c:'bad'}; ui.exp=''; },
+  bakload:k=>{ if(ui.confirm!=='bl'+k){ ui.confirm='bl'+k; return; } ui.confirm=null; ui.msg=bakLoad(+k)?{m:'Restored the earlier autosave.',c:'ok'}:{m:'That autosave could not be read.',c:'bad'}; ui.exp=''; },
   slotdel:k=>{ if(ui.confirm!=='sd'+k){ ui.confirm='sd'+k; return; } ui.confirm=null; slotDelete(+k); ui.msg={m:'Slot '+k+' deleted.',c:''}; },
   mkcode:()=>{ ui.exp=exportCode(); ui.msg=ui.exp?null:{m:'Could not create a code.',c:'bad'}; },
   copycode:()=>{ const t=document.getElementById('exp'); if(!t) return; const v=t.value;
@@ -3352,7 +3395,7 @@ document.addEventListener('click',e=>{
   MUSIC.armed=true;
   const b=e.target.closest('[data-a]'); if(!b||b.disabled) return;
   const a=b.dataset.a;
-  if(ui.confirm!==null && !['release','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk'].includes(a)) ui.confirm=null;
+  if(ui.confirm!==null && !['release','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload'].includes(a)) ui.confirm=null;
   ACTIONS[a]&&ACTIONS[a](b.dataset.k); render();
 });
 document.addEventListener('input',e=>{ if(e.target&&e.target.id==='imp') ui.imp=e.target.value; if(e.target&&e.target.id==='rn') ui.rn=e.target.value; });
@@ -3367,7 +3410,7 @@ document.addEventListener('pointerdown',()=>{ if(!MUSIC.armed){ MUSIC.armed=true
 document.addEventListener('keydown',e=>{
   if(e.target&&e.target.id==='rn'){ if(e.key==='Enter'&&ui.rename!=null){ e.preventDefault(); ACTIONS.rename(String(ui.rename)); render(); } return; }   // typing a minion's new name
   if(S.mode!=='battle'||e.ctrlKey||e.metaKey||e.altKey) return;
-  if(e.key==='Tab'){ const f=liveFoes(); if(f.length>1){ e.preventDefault(); const i=f.findIndex(x=>x.id===S.run.target); setTarget(f[(i+(e.shiftKey?f.length-1:1))%f.length].id); render(); } return; }
+  if(e.key===']'||e.key==='['){ const f=liveFoes(); if(f.length>1){ e.preventDefault(); const i=f.findIndex(x=>x.id===S.run.target); setTarget(f[(i+(e.key==='['?f.length-1:1))%f.length].id); render(); } return; }   // Tab stays with the browser, so keyboard players can still move between buttons
   const ord=ORDER_KEYS[e.key.toLowerCase()]; if(ord){ e.preventDefault(); if(command(ord)) render(); return; }
   let k={'1':'strike','2':'siphon','3':'ward'}[e.key];
   if(!k&&/^[4-9]$/.test(e.key)){ const s=activeSkills()[+e.key-4]; if(s) k='sk:'+s.id; }

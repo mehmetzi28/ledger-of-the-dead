@@ -14,10 +14,12 @@
 // The ~80% target is for the 'market' bot (skills + shopping + altar). The early option is no longer needed: SAFE for A and S
 // now matches where they are balanced. Current numbers, averaged over seeds 7700 and 9100 (results swing ~±7 points per seed set):
 // LOTD_BALANCE.run({bots:40, days:100, seed:7700, modes:['market']})   (one mode per call, ~15 s in a browser), or in Node: node tests/run-balance.js
-//   market:    clears 81-82% overall (79-87% per gate), deaths ~16%, level ~38 on day 100, tower ~50
+//   market:    clears ~79% overall, deaths ~18%, level ~50 on day 100, tower ~61 (daily quest: clear 4 rooms, 1 point + 15% of a level)
 //   full:      the market bot plus buildings, salvage, enchanting, fusion, bounties and orders against charging bosses:
-//              84-88% per gate near its level, deaths ~6%, level ~45 on day 100, tower ~63. Target: a little above market.
+//              ~86% overall, deaths ~12%, level ~53 on day 100, tower ~70. Target: a little above market.
 //              opts.off (e.g. ['fuse','crypt']) switches parts off to measure each one.
+// Abyss probe: LOTD_BALANCE.probe(seed, days, climbs) plays one full bot to that day, then climbs from its best checkpoint
+//   again and again. With the gentler curve past floor 60, day-200 bots (level ~85) reach the 90s; floor 100 is endgame.
 //              (after gear rolls, events, cursed gates, status effects and the early-game pass: E and D are gentler)
 //   skills:    clears 63-87% per gate, deaths ~21%, level ~31 on day 100 (seed 7700, before the A trim)
 //   no skills: clears 41-75% per gate, deaths ~35%, level ~24 on day 100 (seed 7700, before the last C tweak)
@@ -134,8 +136,8 @@
     }
     rec.push(run);
   }
-  function climb(B){   // one tower climb from floor 1, never retreating; returns the highest floor cleared
-    S.watches=Math.max(1,S.watches); S.mode='town'; S.run=null; startTower(1); let guard=0;
+  function climb(B,from){   // one tower climb (from floor 1 unless told otherwise), never retreating; returns the highest floor cleared
+    S.watches=Math.max(1,S.watches); S.mode='town'; S.run=null; startTower(from||1); let guard=0;
     while(S.mode!=='town'&&guard++<6000){
       if(S.mode==='battle') act(decide(B));
       else if(S.mode==='raise'){ raisePhase(); if(S.run.cleared) break; descend(); }
@@ -194,5 +196,11 @@
     out.ms=Date.now()-t0;
     return out;
   }
-  window.LOTD_BALANCE={run};
+  // for tools: play one bot to a given day, then climb from checkpoints (see the Abyss probe in the notes)
+  function probe(seed,days,climbs){ const B={skills:true,market:true,full:true,off:{}}, keep={S:JSON.stringify(S),rand:Math.random,save}; save=function(){};
+    try{ simBot(seed,B,days); const out=[];
+      for(let i=0;i<climbs;i++){ town(B); S.player.hp=pMax(); S.player.mana=pMana(); S.army.forEach(m=>m.hp=m.maxHp); const f=Math.max(...towerStarts()); climb(B,f); out.push(S.tower.best); if(S.mode!=='town') returnTown(); }
+      return {lvl:S.player.lvl,best:S.tower.best,path:out}; }
+    finally{ Math.random=keep.rand; save=keep.save; S=JSON.parse(keep.S); } }
+  window.LOTD_BALANCE={run,probe};
 })();

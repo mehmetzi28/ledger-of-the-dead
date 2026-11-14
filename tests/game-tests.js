@@ -171,14 +171,20 @@ test('XP: kill XP grows with level, rank, boss, elite, tower floor and NG+',()=>
 test('Days: ending a day with the quest undone costs XP and HP',()=>{
   const P=S.player; P.xp=40; endDay(); eq(S.day,2); eq(S.watches,WATCHES); eq(P.xp,40-Math.round(need(1)*QUEST_LOSS)); ok(P.debuff); eq(P.hp,pMax()); eq(pMax(),Math.round(52*(1-QUEST_DEBUFF)));
 });
-test('Days: the debuff lifts the next day',()=>{ endDay(); ok(S.player.debuff); S.quest={kills:8,raises:2,clears:1,claimed:false}; endDay(); ok(!S.player.debuff); });
-test('Days: a finished quest is claimed once for 2 points and XP',()=>{
-  const P=S.player; S.quest={kills:8,raises:2,clears:1,claimed:false}; ok(questDone());
-  claimQuest(); eq(P.pts,5); ok(P.xp>0||P.lvl>1); eq(S.ti.claims,1); ok(S.quest.claimed);
-  claimQuest(); eq(P.pts,5,'second claim gives nothing'); eq(S.ti.claims,1);
+test('Days: the debuff lifts the next day',()=>{ endDay(); ok(S.player.debuff); S.quest={kills:8,rooms:4,clears:1,claimed:false}; endDay(); ok(!S.player.debuff); });
+test('Days: a finished quest is claimed once for 1 point and 15% of a level',()=>{
+  const P=S.player; S.quest={kills:8,rooms:4,clears:1,claimed:false}; ok(questDone());
+  eq(QUEST_PTS,1); eq(QUEST_XP,.15); claimQuest(); eq(P.pts,3+QUEST_PTS); eq(P.xp,Math.round(need(1)*QUEST_XP)); eq(S.ti.claims,1); ok(S.quest.claimed); ok(/\+1 stat point and/.test(S.notices[0].m));
+  claimQuest(); eq(P.pts,3+QUEST_PTS,'second claim gives nothing'); eq(S.ti.claims,1);
 });
-test('Days: an unclaimed finished quest is claimed when the day ends',()=>{ S.quest={kills:9,raises:3,clears:1,claimed:false}; endDay(); eq(S.ti.claims,1); ok(!S.player.debuff); });
-test('Days: an unfinished quest cannot be claimed',()=>{ S.quest={kills:8,raises:1,clears:1,claimed:false}; claimQuest(); ok(!S.quest.claimed); eq(S.player.pts,3); });
+test('Days: an unclaimed finished quest is claimed when the day ends',()=>{ S.quest={kills:9,rooms:5,clears:1,claimed:false}; endDay(); eq(S.ti.claims,1); ok(!S.player.debuff); });
+test('Days: the daily quest counts cleared rooms (gate rooms and Tower floors), and old saves migrate',()=>{
+  eq(QUEST.rooms,4); eq(S.quest.rooms,0); wonRoom(0); eq(S.quest.rooms,1); returnTown(); setLvl(20); startTower(1); S.run.enemies=[foe({hp:0,dead:true})]; roomWon(); eq(S.quest.rooms,2,'a Tower floor counts');
+  returnTown(); const c=corpse({}); raiseScene([c],20); fix(0); tryRaise(c.id); eq(S.quest.raises,undefined,'raising no longer feeds the quest'); returnTown();
+  ok(/Clear rooms/.test(renderAll('quest')));
+  const g=normalizeSave({v:2,player:{lvl:3},quest:{kills:5,raises:2,clears:0,claimed:false}}); eq(g.quest.rooms,0); eq('raises' in g.quest,false); eq(g.quest.kills,5);
+});
+test('Days: an unfinished quest cannot be claimed',()=>{ S.quest={kills:8,rooms:3,clears:1,claimed:false}; claimQuest(); ok(!S.quest.claimed); eq(S.player.pts,3); });
 test('Days: resting skips to the next day, only from town',()=>{ restDay(); eq(S.day,2); arena([foe()]); restDay(); eq(S.day,2); });
 test('Days: the third watch ends the day when you walk back into town',()=>{
   for(let i=0;i<WATCHES;i++){ startRun(0); ok(S.mode==='battle','run '+i); flee(); }
@@ -286,7 +292,7 @@ test('Raising: chance rises with Will and level, falls for rank, elites and boss
 });
 test('Raising: a success adds a named minion with a trait (bosses two)',()=>{
   const c=corpse(), b=corpse({boss:true,name:'The Rat King',base:'The Rat King',role:'reaper'}); const r=raiseScene([c,b],5); fix(0); const P=S.player; P.mana=100;
-  tryRaise(c.id); eq(S.army.length,1); eq(P.mana,100-raiseCost(c)); eq(c.result,'raised'); ok(c.tried); eq(S.army[0].traits.length,1); eq(S.army[0].hp,S.army[0].maxHp); eq(S.quest.raises,1); eq(S.ti.raised,1); eq(r.raised,1);
+  tryRaise(c.id); eq(S.army.length,1); eq(P.mana,100-raiseCost(c)); eq(c.result,'raised'); ok(c.tried); eq(S.army[0].traits.length,1); eq(S.army[0].hp,S.army[0].maxHp); eq(S.ti.raised,1); eq(r.raised,1);
   tryRaise(b.id); eq(S.army[1].traits.length,2); ok(S.army[1].traits[0]!==S.army[1].traits[1]); ok(S.army[0].nick!==S.army[1].nick,'unique names');
   tryRaise(c.id); eq(S.army.length,2,'a body can only be tried once');
 });
@@ -1131,7 +1137,7 @@ test('Town: each building changes its numbers',()=>{
 });
 test('Town: building the Altar fills the new mana at once, like gear',()=>{ const P=S.player; S.gold=1e4; P.mana=pMana(); ok(build('altar')); eq(P.mana,pMana()); invariants('altar'); });
 test('Town: the Town tab shows the buildings; saves keep only valid buildings and dust',()=>{
-  ui.tab='town'; const h=renderAll('town'); ok(/data-a="build" data-k="crypt"/.test(h)&&/Flesh Pit/.test(h));
+  setLvl(6); ui.tab='town'; const h=renderAll('town'); ok(/data-a="build" data-k="crypt"/.test(h)&&/Flesh Pit/.test(h));
   S.gold=1e4; ACTIONS.build('ossuary'); eq(bl('ossuary'),1); ok(ui.msg&&/Ossuary raised to level 1/.test(ui.msg.m));
   const g=normalizeSave({v:2,player:{lvl:1},build:{crypt:2,forge:9,fake:1,altar:'x',ossuary:0},dust:-5});
   eq(JSON.stringify(g.build),'{"crypt":2,"forge":3}'); eq(g.dust,0);
@@ -1150,7 +1156,7 @@ test('Bounties: deeds count toward contracts, and a finished one pays once, in t
   eq(claimBounty(0),null,'not done'); S.kills['Tunnel Rat']=(S.kills['Tunnel Rat']||0)+L[0].n; ok(bountyDone(L[0]));
   arena([foe()]); eq(claimBounty(0),null,'not in battle'); flee(); let g=S.gold; ok(claimBounty(0)); eq(S.gold,g+100); eq(claimBounty(0),null,'only once');
   tally('elites',2); S.salts=SALT_MAX; g=S.gold; ok(/pouch is full/.test(claimBounty(1))); eq(S.gold,g+5+saltPrice());
-  wonRoom(0); eq(T_('rooms')-L[2].base,1,'a won room counts'); returnTown(); tally('rooms',5); ok(claimBounty(2)); eq(S.dust,7);
+  wonRoom(0); eq(T_('rooms')-L[2].base,1,'a won room counts'); returnTown(); tally('rooms',L[2].n-1); ok(claimBounty(2)); eq(S.dust,7);
 });
 test('Bounties: arches, floors and bosses are counted where they happen',()=>{
   const a=T_('archs'), f=T_('floors'); const r=wonRoom(0); r.doors=['fight','elite']; descend('elite'); eq(T_('archs'),a+1);
@@ -1162,8 +1168,8 @@ test('Bounties: gear needs bag room; conditional contracts only appear when they
   for(let i=0;i<60;i++){ seed(i+1); makeBounties(); S.bounty.list.forEach(b=>ok(!['cursed','flawless','orders','floors','poison'].includes(b.id),b.id+' offered too early')); }
 });
 test('Bounties: the board shows in the side panel and survives a save',()=>{
-  const L=board([{id:'kills',rw:{g:50}},{id:'raise',rw:{dust:3}},{id:'bosses',rw:{gear:1}}]); L[0].base-=L[0].n;
-  let h=renderAll('board'); ok(/Bounty board/.test(h)&&/Defeat 30 foes in one day/.test(h)); ok(/data-a="claimb" data-k="0"/.test(h)); ok(!/data-k="1"[^>]*>Claim/.test(h));
+  setLvl(6); const L=board([{id:'kills',rw:{g:50}},{id:'raise',rw:{dust:3}},{id:'bosses',rw:{gear:1}}]); L[0].base-=L[0].n;
+  let h=renderAll('board'); ok(/Bounty board/.test(h)&&/Defeat 40 foes in one day/.test(h)); ok(/data-a="claimb" data-k="0"/.test(h)); ok(!/data-k="1"[^>]*>Claim/.test(h));
   save(); const a=JSON.stringify(S); S=null; loadGame(); eq(JSON.stringify(S),a);
   ACTIONS.claimb('0'); ok(S.notices.some(n=>/Bounty claimed: 50 gold/.test(n.m))); ok(/Claimed\./.test(renderAll('claimed')));
   eq(normalizeSave({v:2,player:{lvl:1},bounty:{day:1,list:[{id:'fake',n:1,base:0,rw:{},claimed:false}]}}).bounty,null);
@@ -1266,7 +1272,7 @@ test('Salvage: enchanting adds a line where there is room, or re-roll the line y
   const nm=normalizeSave(JSON.parse(JSON.stringify(S))); eq(JSON.stringify(nm.equip.weapon.ro),JSON.stringify(it.ro),'enchanted lines survive a save');
 });
 test('Salvage: buttons on the Gear tab, dust in the bag header',()=>{
-  const it=give('3-wa'); give('0-ta'); ui.tab='gear'; let h=renderAll('gear'); ok(new RegExp('data-a="salvage" data-k="'+it.u+'"').test(h)&&/data-a="ench"/.test(h)&&/0 dust/.test(h));
+  setLvl(6); const it=give('3-wa'); give('0-ta'); ui.tab='gear'; let h=renderAll('gear'); ok(new RegExp('data-a="salvage" data-k="'+it.u+'"').test(h)&&/data-a="ench"/.test(h)&&/0 dust/.test(h));
   ACTIONS.ench(String(it.u)); h=renderAll('enchant open'); ok(/data-a="enchadd"/.test(h)); ACTIONS.salvage(String(it.u)); ok(S.dust>0); ok(ui.msg&&/Salvaged/.test(ui.msg.m));
   ACTIONS.sjunk(); eq(S.inv.length,1,'asks first'); ACTIONS.sjunk(); eq(S.inv.length,0);
 });
@@ -1373,9 +1379,10 @@ test('Feel: big moments get a banner once (level up, boss phase, broken move, ev
   flee(); const m=mkMinion({lvl:5}); m.lvl=10; checkEvolve(m); ok(MOMENTS.some(x=>/evolves/.test(x.t))); ok(MOMENTS.length<=3,'at most three at once');
   MOMENTS.length=0; const c=corpse({elite:true}); raiseScene([c],20); fix(0); tryRaise(c.id); ok(MOMENTS.some(x=>/an elite serves you/.test(x.t)));
 });
-test('Feel: Tab and Shift+Tab change target, Z X C V give orders',()=>{
+test('Feel: ] and [ change target (Tab is left to the browser), Z X C V give orders',()=>{
   if(!NODE) return; const key=(k,o)=>window.__listeners.keydown[0](Object.assign({key:k,preventDefault(){},target:{}},o||{}));
-  const a=foe(), b=foe(), c=foe(); arena([a,b,c]); eq(S.run.target,a.id); key('Tab'); eq(S.run.target,b.id); key('Tab'); eq(S.run.target,c.id); key('Tab'); eq(S.run.target,a.id); key('Tab',{shiftKey:true}); eq(S.run.target,c.id);
+  const a=foe(), b=foe(), c=foe(); arena([a,b,c]); eq(S.run.target,a.id); key(']'); eq(S.run.target,b.id); key(']'); eq(S.run.target,c.id); key(']'); eq(S.run.target,a.id); key('['); eq(S.run.target,c.id);
+  let prevented=false; window.__listeners.keydown[0]({key:'Tab',preventDefault(){ prevented=true; },target:{}}); ok(!prevented,'Tab is not taken over'); eq(S.run.target,c.id);
   mkMinion({role:'vanguard'}); mkMinion({role:'striker'}); key('z'); eq(S.run.taunt,2); ok(S.run.cmd.vanguard); key('X'); ok(S.run.focus); eq(S.run.turn,1,'orders do not use the turn');
   ok(/Taunt &middot; given<kbd>Z<\/kbd>/.test(renderAll('keys')));
   S.mode='town'; S.run=null; ui.rename=null; const m=mkMinion({}); ui.rename=m.uid; ui.rn='Keyed'; key('Enter',{target:{id:'rn'}}); eq(m.nick,'Keyed','Enter saves a new name');
@@ -1428,6 +1435,45 @@ test('Saves: a damaged fusion count is clamped, so the two-fusion limit holds (b
   const g=normalizeSave(JSON.parse(JSON.stringify(S))); eq(g.army[0].fused,1); eq(g.army[1].fused,0); a.fused=7; eq(normalizeSave(JSON.parse(JSON.stringify(S))).army[0].fused,FUSE_MAX);
   const c=mkMinion({}); eq('fused' in normalizeSave(JSON.parse(JSON.stringify(S))).army[2],false,'never fused: no field added');
 });
+test('Screens: the Town tab, bounty board, salvage and enchanting appear only once they matter',()=>{
+  ui.tab='gates'; let h=renderAll('new game'); ok(!/data-k="town"/.test(h)&&!/Bounty board/.test(h),'hidden at the start');
+  const it=give('2-wa'); ui.tab='gear'; h=renderAll('gear'); ok(!/data-a="salvage"/.test(h)&&!/data-a="ench"/.test(h)&&!/ dust</.test(h));
+  ui.tab='town'; renderAll('locked town'); eq(ui.tab,'gates','a closed tab falls back to the gates');
+  S.ti=S.ti||{}; S.ti.clr={0:1}; ui.tab='gates'; h=renderAll('after a clear'); ok(/data-k="town"/.test(h)&&/Bounty board/.test(h)); ok(TIPS.find(t=>t.id==='townopen').when());
+  ui.tab='gear'; ok(!/data-a="salvage"/.test(renderAll('still early'))); S.dust=1; ok(/data-a="salvage"/.test(renderAll('with dust'))); S.dust=0; setLvl(6); ok(/data-a="ench"/.test(renderAll('level 6')));
+});
+// =====================================================================================================
+// LATE GAME, BACKUPS, PREVIEWS
+test('Curses: after the Throne falls, a cursed gate\'s foes rise to five levels below you; before that, and in plain gates, they do not',()=>{
+  setLvl(40); S.ti={clr:{0:1}}; S.mod={day:S.day,gi:0,id:'fury'}; S.watches=3; startRun(0); eq(curseRise(0),0,'Throne not cleared yet'); const lv0=S.run.enemies[0].lvl; flee();
+  S.ti.clr[5]=1; S.mod={day:S.day,gi:0,id:'fury'}; S.watches=3; startRun(0); eq(curseRise(0),40-CURSE_GAP-RK[0].lv); ok(S.run.enemies.every(e=>e.lvl>=40-CURSE_GAP),'foes rose'); ok(S.run.enemies[0].lvl>lv0); flee();
+  S.mod={day:S.day,gi:1,id:'fury'}; S.watches=3; startRun(0); eq(curseRise(0),0,'a plain gate stays as it is'); flee();
+  ui.tab='gates'; S.mod={day:S.day,gi:0,id:'horde'}; ok(/foes rise to about level 35/.test(renderAll('gate card')));
+});
+test('Tower: the climb steepens more slowly past floor 60, and the recommended level tells the truth',()=>{
+  eq(twHpF(60),60); eq(twAtkF(60),60); eq(twHpF(100),88); eq(twAtkF(100),80); eq(towerStats(100,60,1,1,false,false).atk,Math.max(1,Math.round(3.2*TW.atk0*Math.pow(1+TW.atkG,79)*DIFF.atk*(1+.12*59))),'floor 100 attacks like old floor 80');
+  eq(recLv(20),20); eq(recLv(60),40); eq(recLv(90),76); eq(recLv(100),88); for(let f=2;f<=200;f++) ok(recLv(f)>=recLv(f-1),'never drops at floor '+f);
+  eq(towerStats(30,20,1,1,false,false).hp,Math.round(14*TW.hp0*Math.pow(1+TW.hpG,29)*DIFF.hp*(1+.16*19)),'floors up to 60 are unchanged');
+});
+test('Saves: the first save of each day is kept as an earlier autosave (three at most), and can be restored',()=>{
+  TAB.bakDay=null; TAB.last=null; for(let i=1;i<=BAK_N;i++) localStorage.removeItem(bakKey(i));
+  S.gold=1; save(); eq(bakRead(1).day,1); S.gold=2; save(); eq(bakRead(1).data.gold,1,'once per day');
+  for(let d=0;d<4;d++){ endDay(); S.gold=10+d; save(); } eq(bakRead(1).day,5); eq(bakRead(3).day,3); eq(localStorage.getItem(bakKey(4)),null,'only three');
+  arena([foe()]); const n=S.day; endDay(); save(); ok(bakRead(1).day!==S.day||S.mode==='town','no backup from inside a fight'); flee();
+  ui.tab='settings'; let h=renderAll('settings'); ok(/Earlier autosaves/.test(h)&&/data-a="bakload" data-k="3"/.test(h)); const b3=bakRead(3).data;
+  ACTIONS.bakload('3'); eq(ui.confirm,'bl3','asks first'); ACTIONS.bakload('3'); eq(S.day,b3.day); eq(S.gold,b3.gold); ok(/Restored/.test(ui.msg.m));
+});
+test('Stats: each + button previews what the next point gives, from the real formulas',()=>{
+  const P=S.player; P.pts=3; const h=renderAll('preview'); const a=pAtk(), m=pMax();
+  ok(/Next point: Strike \+[12]/.test(h)); ok(/Next point: Max HP \+6/.test(h)); ok(/raise \+2.2%/.test(h)); eq(pAtk(),a,'previewing changes nothing'); eq(pMax(),m);
+  P.pts=0; ok(!/Next point/.test(renderAll('no points')));
+});
+test('Accessibility: an item\'s gate set is spelled out for screen readers',()=>{ ok(/class="sr"> &middot; gate B set/.test(itemCard(give('3-wa'),''))); ok(!/class="sr"/.test(itemCard(give('u0'),''))); });
+test('Titles: gate-farming titles ask for fewer clears, and Keeper of the Ledger leaves the wardens out',()=>{
+  eq(TITLE.m0.req,'Clear the Rat Warren 10 times.'); S.ti={clrN0:10}; ok(TITLE.m0.ok()); eq(TITLE.m5.req,'Clear the Throne of Ash 25 times.');
+  allNames().forEach(n=>{ if(!TW_BOSS.includes(n)) S.kills[n]=KNOW_AT; }); ok(TITLE.d_all.ok(),'no warden kills needed');
+});
+
 test('Playthrough: a bot plays 30 days, checking every rule after every action',()=>{
   seed(2024); fresh(); const order=['will','constitution','strength','intelligence','constitution']; let steps=0, clears=0, lastDay=0, towers=0;
   while(S.day<=30){
