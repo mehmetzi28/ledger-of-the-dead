@@ -17,8 +17,24 @@
 //   market:    clears ~81% overall, deaths ~16%, level ~51 on day 100, tower ~62 (daily quest: clear 4 rooms, 1 point + 15% of a level;
 //              skill bots pick Death's Toll at level 20 and use it with five Souls)
 //   full:      the market bot plus buildings, salvage, enchanting, fusion, bounties and orders against charging bosses:
-//              ~87% overall, deaths ~10%, level ~54 on day 100, tower ~70. Target: a little above market.
+//              ~85% overall, deaths ~12%, level ~56 on day 100, tower ~76 (with faith, Hard on cleared gates and devotion
+//              blessings; ~87% and tower ~70 without them). Target: a little above market.
 //              opts.off (e.g. ['fuse','crypt']) switches parts off to measure each one.
+//   The full bot now swears faith by default (Honored on even bots, Dishonored on odd) and climbs to Hard on cleared gates
+//   (opts.heat:1); pass faith/heat to override, heat:0 for the old behaviour. Every run also reports secret masters met/slain.
+//   opts.faith ('hon'|'dis') swears an oath at level 8; opts.ult ('toll'|'rise'|'prison') picks the ultimate; opts.heat (1-3) lets
+//   the bot climb a cleared gate's difficulty up to that level, stepping down after a death there. Measured (full, seed 7700):
+//   both faiths +1-2 points of clears (Honored and Dishonored within a point of each other); the three ultimates within ~2 Tower
+//   floors after Death's Toll went to 400%; Hard clears ~82% (Normal 85%), Brutal ~63%, Nightmare ~41% with ~54% deaths, and
+//   Nightmare bots level slower (51.6 vs 53.9 on day 100), so it is a challenge, not the best farm.
+// Secret-master duel: LOTD_BALANCE.duel(seed, days, trials) plays one full bot to that day, then fights each cleared gate's
+//   boss room straight away (full HP) with and without the secret master. To sweep constants without editing the game, run
+//   Node with LOTD_HTML pointing at a tuned copy of index.html.
+//   Tuned (seeds 7700, 7701, 9100): ordinary boss rooms ~100%; secret masters ~55-65% at fresh HP on days 30, 50 and 75 (the Rat
+//   Warren's is the mildest, ~80-100%). Their HP grows SB_GROW per level you stand past your hardest gate's Recommended level, so
+//   they keep pace with a growing army; attack does not grow (it only one-shot the player). Real fights come after three rooms.
+//   Frequency: at 2% + 0.25% per miss the full bots met one every ~19 boss rooms of a gate (540 per 12000 runs); now 1% + 0.05%
+//   per miss (+1% per difficulty level), about every 41.
 // Abyss probe: LOTD_BALANCE.probe(seed, days, climbs) plays one full bot to that day, then climbs from its best checkpoint
 //   again and again. With the gentler curve past floor 60, day-200 bots (level ~85) reach the 90s; floor 100 is endgame.
 //              (after gear rolls, events, cursed gates, status effects and the early-game pass: E and D are gentler)
@@ -43,9 +59,10 @@
       let again=true;
       while(again&&P.sp>0){ again=false;
         for(let rank=1;rank<=SK_MAX&&!again;rank++) for(const id of SKILL_ORDER){
-          if(sk(id)===rank-1&&P.lvl>=skReq(SKILL[id],rank)){ learnSkill(id); again=true; break; } } }
+          if(sk(id)===rank-1&&P.lvl>=skReq(SKILL[id],rank)){ const sp=P.sp; learnSkill(id); if(P.sp<sp){ again=true; break; } } } }   // stop if learning fails (e.g. not in town)
     }
-    if(B.skills&&S.player.lvl>=ULT_LV&&!S.player.ult) chooseUlt('toll');   // ultimates open at level 20
+    if(B.skills&&S.player.lvl>=ULT_LV&&S.player.ult!==(B.ult||'toll')) chooseUlt(B.ult||'toll');   // ultimates open at level 20
+    if(B.faith&&S.player.lvl>=FAITH_LV&&!faithOf()) swear(B.faith);   // opts.faith: 'hon' or 'dis'
     for(const sl of GEAR_SLOTS){
       const cur=S.equip[sl]; let best=null, bs=cur?itemScore(ITEM[cur.id]):-1;
       for(const it of S.inv){ const d=ITEM[it.id]; if(d.slot===sl&&itemScore(d)>bs){ best=it; bs=itemScore(d); } }
@@ -91,7 +108,10 @@
       if(B.skills&&charging.charging&&canUse('chill')&&P.mana>=SKILL.chill.cost){ setTarget(charging.id); return 'sk:chill'; }
       if((mv==='decree'||mv==='cinder'||mv==='sunder')&&charging.charging&&P.mana>=6&&P.shield<max*.3) return 'ward';
     }
-    if(B.skills&&canUlt()&&foes.length>=2) return 'ult';
+    if(B.skills&&canUlt()){ const u=P.ult, down=S.army.filter(m=>m.hp<=0).length;
+      if(u==='toll'&&foes.length>=2) return 'ult';
+      if(u==='rise'&&(down>=2||P.hp<max*.4||(down>=1&&t.boss))) return 'ult';
+      if(u==='prison'&&(t.boss||foes.length>=3||charging)) return 'ult'; }
     if(B.market&&P.hp<max*.3&&S.belt.hp) return 'pot:hp';
     if(B.market&&P.mana<10&&P.hp<max*.6&&S.belt.mp) return 'pot:mp';
     if(P.hp<max*.35&&P.mana>=8) return 'siphon';
@@ -122,9 +142,12 @@
     }
   }
   function playRun(B,rec){
-    const gi=pickGate(B), lvl=S.player.lvl; startRun(gi);
+    const gi=pickGate(B), lvl=S.player.lvl;
+    if(B.heat&&B.hw&&B.hw[gi]!=null&&S.day-B.hwDay[gi]>=3) delete B.hw[gi];   // try again a few days later
+    if(B.heat){ B.hw=B.hw||{}; setHeat(gi,Math.min(B.heat,heatMax(gi),B.hw[gi]==null?9:B.hw[gi])); }   // opts.heat: the highest difficulty the bot picks; it steps down a level after each death there
+    startRun(gi);
     if(S.mode!=='battle'){ S.watches=0; endDay(); return; }
-    const run={gate:gi,lvl,diff:lvl-SAFE[gi],cleared:false,died:false,left:false,rooms:0,turns:0,hpEnd:[]}; let guard=0;
+    const run={gate:gi,lvl,diff:lvl-SAFE[gi],heat:S.run.heat||0,cleared:false,died:false,left:false,rooms:0,turns:0,hpEnd:[]}; let guard=0;
     for(;;){
       if(S.mode==='battle'){ if(++guard>400){ flee(); run.left=true; break; } act(decide(B)); run.turns++; continue; }
       if(S.mode==='raise'){
@@ -134,7 +157,7 @@
         if(P.hp+pMax()*DIFF.heal>=pMax()*.5||(P.hp>=pMax()*.3&&live>=2)) descend(); else { run.left=true; returnTown(); break; }
         continue;
       }
-      if(S.mode==='defeat'){ run.died=true; returnTown(); break; }
+      if(S.mode==='defeat'){ run.died=true; if(B.heat){ B.hw[gi]=Math.max(0,run.heat-1); B.hwDay=B.hwDay||{}; B.hwDay[gi]=S.day; } returnTown(); break; }
       break;
     }
     rec.push(run);
@@ -149,7 +172,7 @@
     return S.tower.best;
   }
   function simBot(seed,B,days){
-    Math.random=mulberry32(seed); newGame(); B.statI=0;
+    Math.random=mulberry32(seed); newGame(); B.statI=0; B.hw={}; B.hwDay={};
     const rec=[], lvAt={}, firstClear={};
     while(S.day<=days){
       town(B); const d=S.day; playRun(B,rec);
@@ -158,7 +181,8 @@
     }
     town(B);
     const tower=S.player.lvl>=TW.unlock?climb(B):0;
-    return {rec,lvAt,firstClear,lvl:S.player.lvl,tower};
+    const sec={met:T_('secretMet'),slain:SECRET.reduce((a,B,i)=>a+T_('secret_'+i),0)};
+    return {rec,lvAt,firstClear,lvl:S.player.lvl,tower,sec};
   }
 
   // ----- reporting
@@ -174,7 +198,9 @@
     });
     const all=[].concat(...res.map(r=>r.rec)), lv={};
     [10,20,30,days].forEach(d=>{ if(d<=days) lv['day'+d]=avg(res.map(r=>r.lvAt[d]).filter(x=>x!=null)); });
-    return {gates,runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
+    const heat=HEAT.map((H,h)=>{ const g=all.filter(x=>x.heat===h); return g.length?H.name+' '+g.length+' runs, clear '+pc(g.filter(x=>x.cleared).length,g.length)+', death '+pc(g.filter(x=>x.died).length,g.length):null; }).filter(Boolean);
+    const sec={met:res.reduce((a,r)=>a+(r.sec?r.sec.met:0),0),slain:res.reduce((a,r)=>a+(r.sec?r.sec.slain:0),0)};
+    return {gates,heat,sec,runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
   }
 
   function run(opts){
@@ -188,7 +214,7 @@
     const out={settings:{DIFF:JSON.parse(JSON.stringify(DIFF)),TW:Object.assign({},TW),bots:opts.bots,days:opts.days}}, t0=Date.now();
     try{
       for(const [name,skills,market,full] of [['noSkills',false,false,false],['skills',true,false,false],['market',true,true,false],['full',true,true,true]].filter(m=>opts.modes.includes(m[0]))){
-        const res=[]; for(let b=0;b<opts.bots;b++) res.push(simBot(opts.seed+b,{skills,market,full,push:opts.push,off:Object.fromEntries((opts.off||[]).map(k=>[k,1]))},opts.days));
+        const res=[]; for(let b=0;b<opts.bots;b++) res.push(simBot(opts.seed+b,{skills,market,full,push:opts.push,faith:opts.faith||(full?(b%2?'dis':'hon'):null),ult:opts.ult,heat:opts.heat!=null?opts.heat:(full?1:0),off:Object.fromEntries((opts.off||[]).map(k=>[k,1]))},opts.days));
         out[name]=summarize(res,opts.days);
       }
     } finally {
@@ -205,5 +231,19 @@
       for(let i=0;i<climbs;i++){ town(B); S.player.hp=pMax(); S.player.mana=pMana(); S.army.forEach(m=>m.hp=m.maxHp); const f=Math.max(...towerStarts()); climb(B,f); out.push(S.tower.best); if(S.mode!=='town') returnTown(); }
       return {lvl:S.player.lvl,best:S.tower.best,path:out}; }
     finally{ Math.random=keep.rand; save=keep.save; S=JSON.parse(keep.S); } }
-  window.LOTD_BALANCE={run,probe};
+  // for tools: play one bot to a given day, then fight the boss room of each cleared gate many times, with and without the secret master
+  // (fresh HP and army, straight into the boss room: kinder than a real run, so these rates are an upper bound)
+  function duel(seed,days,trials,opts){ opts=opts||{}; const B={skills:true,market:true,full:true,off:{},faith:opts.faith,ult:opts.ult}, keep={S:JSON.stringify(S),rand:Math.random,save,roll:secretRoll}; save=function(){};
+    try{ simBot(seed,B,days); if(S.mode!=='town') returnTown(); town(B); const snap=JSON.stringify(S), out={lvl:S.player.lvl,gates:[]};
+      for(let di=0;di<DUNGEONS.length;di++){ if(!(S.ti&&S.ti.clr&&S.ti.clr[di])) continue; const row={gate:DUNGEONS[di].name};
+        for(const sec of [false,true]){ let win=0,turns=0;
+          for(let i=0;i<trials;i++){ S=JSON.parse(snap); S.mode='town'; S.watches=1; S.run=null; if(opts.heat) setHeat(di,Math.min(opts.heat,heatMax(di)));
+            secretRoll=()=>sec; startRun(di); const r=S.run; r.room=r.rooms-1; spawnRoom(); let g=0;
+            while(S.mode==='battle'&&g++<400){ act(decide(B)); turns++; }
+            if(S.mode==='raise') win++; else if(opts.log&&sec&&di===opts.log.gate&&i===0) { row.log=S.run.log.slice(-(opts.log.n||25)).map(l=>l.m); row.end=S.mode+' turn '+S.run.turn+' foes '+S.run.enemies.map(e=>e.name+' '+e.hp+'/'+e.maxHp+(e.shield?' sh'+e.shield:'')).join(', ')+' P '+S.player.hp+'/'+pMax(); } }
+          row[sec?'secret':'boss']=Math.round(win/trials*100)+'%'; row[sec?'secretTurns':'bossTurns']=Math.round(turns/trials); }
+        out.gates.push(row); }
+      return out; }
+    finally{ Math.random=keep.rand; save=keep.save; secretRoll=keep.roll; S=JSON.parse(keep.S); } }
+  window.LOTD_BALANCE={run,probe,duel};
 })();

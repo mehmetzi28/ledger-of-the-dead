@@ -493,6 +493,9 @@ kbd{border:0;background:rgba(0,0,0,.35);border-radius:3px;padding:1px 5px;opacit
 .sub-nav{margin:-4px 0 4px;gap:6px}
 .step-n{display:inline-grid;place-items:center;width:22px;height:22px;margin-right:8px;border-radius:50%;border:1px solid var(--line-2);font-size:12px;color:var(--mute)}.step.on .step-n{border-color:var(--ok);color:var(--ok)}
 .spend-strip{display:none}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.rec-v{font:600 14px/1.2 var(--font-body);text-align:right;white-space:nowrap}
+.tab.tw-lock{opacity:.45;cursor:not-allowed}
 .faith-l{font:600 12px/1.2 var(--font-body)}.faith-l.hon{color:#e8d9a8}.faith-l.dis{color:#e8564a}
 .ult-row{align-items:center}.souls{display:inline-flex;gap:4px;align-items:center;font:600 12px/1 var(--font-body);color:var(--mute);margin-right:6px}
 .soul{width:11px;height:11px;border-radius:50%;border:1px solid var(--soul-dim)}.soul.on{background:var(--soul);box-shadow:0 0 6px var(--soul)}
@@ -503,6 +506,11 @@ kbd{border:0;background:rgba(0,0,0,.35);border-radius:3px;padding:1px 5px;opacit
 .chip-btn{background:var(--well);color:var(--bone);border:1px solid var(--line-2);border-radius:999px;padding:3px 10px;font:600 12px/1.2 var(--font-body);cursor:pointer}
 .chip-btn.on{border-color:#c8642c;color:#ffb38a;background:rgba(200,100,44,.12)}.chip-btn:disabled{opacity:.4;cursor:not-allowed}
 .heat-note{flex-basis:100%;font-size:12.5px}
+.tt-filter{margin:6px 0 4px;align-items:center}.tt-rsel{display:inline-flex;gap:6px;align-items:center;font:600 12px/1 var(--font-body);color:var(--mute)}
+.tt-rsel select{background:var(--panel,#16130f);color:var(--ink,#e8dec6);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit}.tt-filter .t-rar{margin:0}
+.tprog{position:relative;overflow:hidden;min-width:54px;text-align:center}.tprog i{position:absolute;left:0;bottom:0;height:2px;background:var(--soul)}
+.nm-mark{font:600 11px/1 var(--font-body);color:#e8564a;margin-left:6px}
+.sec-k{font:600 12px/1.3 var(--font-body);color:#e8564a;text-shadow:0 0 6px rgba(232,86,74,.45)}.sec-list{display:flex;flex-wrap:wrap;gap:6px 14px;margin-bottom:8px}
 .t-rar{font:600 11px/1 var(--font-body);color:var(--tc);border:1px solid var(--tc);border-radius:999px;padding:2px 7px;margin-left:6px;vertical-align:middle}
 .hidden-t h4{letter-spacing:.2em}
 @media (max-width:540px){.top{gap:6px 12px;padding-bottom:10px;margin-bottom:12px}.top .tag{display:none}.top h1{font-size:24px}.top .sigil{width:40px;height:40px}}
@@ -595,7 +603,8 @@ body.compact .log{font-size:12px;padding:7px 9px;min-height:0;max-height:10em;ov
 body.compact .stat{padding:5px 0}body.compact .q-row{font-size:13px}body.compact .meter{gap:2px}
 body.compact .b-row{padding:4px 0}
 #bossbg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity 1.4s ease;--bb1:#000;--bb2:#333}
-body.bossfight #bossbg{opacity:.75}
+body.bossfight #bossbg{opacity:.75}body.nobg #bossbg{display:none}
+@media (prefers-reduced-motion:reduce){#bossbg{animation:none!important;transition:none}}
 #bossbg.bb-rays{background:radial-gradient(circle at 50% 30%,transparent 0 20%,var(--bb1) 70%),repeating-conic-gradient(from 0deg at 50% 30%,color-mix(in srgb,var(--bb2) 30%,transparent) 0 6deg,transparent 6deg 18deg),var(--bb1);animation:bbTurn 90s linear infinite}
 #bossbg.bb-rings{background:repeating-radial-gradient(circle at 50% 35%,color-mix(in srgb,var(--bb2) 22%,transparent) 0 2px,transparent 2px 46px),radial-gradient(circle at 50% 35%,color-mix(in srgb,var(--bb2) 30%,transparent),var(--bb1) 70%);animation:bbBreathe 7s ease-in-out infinite}
 #bossbg.bb-drip{background:repeating-linear-gradient(90deg,transparent 0 38px,color-mix(in srgb,var(--bb2) 18%,transparent) 38px 41px),linear-gradient(180deg,color-mix(in srgb,var(--bb2) 35%,transparent),var(--bb1) 65%)}
@@ -609,7 +618,7 @@ body.hc .u-sub,body.hc .q-note,body.hc .lede{color:#e6ddcc}.res-fell{color:var(-
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
-<div id="bossbg" aria-hidden="true"></div>
+<div id="bossbg" aria-hidden="true"></div><div id="sr-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 <div id="hellbg" aria-hidden="true">
   <div class="hb-sky"></div>
   <svg viewBox="0 0 1600 500" preserveAspectRatio="xMidYMax slice">
@@ -720,7 +729,15 @@ const SECRET=[
   {name:'The Rootking',          lines:['The Mother planted the orchard. I am what grew beneath it.','Cut me down... and I grow back... somewhere...']},
   {name:'The Nameless Sovereign',lines:['Before the Pale Sovereign, before the Ledger, there was me. I had a name once. You will write it.','So... that was my name...']}
 ];
-const SECRET_CHANCE=.02, SECRET_HEAT=.01, SB_HP=4, SB_ATK=1.7, SB_REWARD=4;
+const SECRET_CHANCE=.01, SECRET_HEAT=.01, SECRET_PITY=.0005,   /* about 41 boss rooms of one gate between masters on Normal (bots met one every ~19 at 2%/0.25%) */ SB_LV=1, SB_HP=3.5, SB_ATK=1.7, SB_GROW=.12, SB_REWARD=4;   // SB_GROW: extra HP (not attack: bigger hits only one-shot you) per level you stand above your hardest gate's Recommended level
+// The roll for a cleared gate's boss room. Each boss room without the secret master makes the next a little likelier (S.sbPity), so it stays rare but never out of reach.
+const secretChance=di=>SECRET_CHANCE+SECRET_HEAT*runHeat()+SECRET_PITY*((S.sbPity&&S.sbPity[di])||0);
+function secretRoll(di){
+  if(!(S.ti&&S.ti.clr&&S.ti.clr[di])) return false;
+  S.sbPity=S.sbPity||{}; const hit=Math.random()<secretChance(di);
+  if(hit) delete S.sbPity[di]; else S.sbPity[di]=(S.sbPity[di]||0)+1;
+  return hit;
+}
 const secretOf=n=>SECRET.findIndex(x=>x.name===n);
 const GEAR_SLOTS=['weapon','armor','relic'];
 
@@ -767,13 +784,13 @@ const FLAGS={
  lifedrain:'Lifedrain: Soul Siphon heals you for 80% of the damage it deals.',
  soulharvest:'Soul Harvest: every kill restores 6 mana.',
  cheapraise:'Cheap Dead: raising the dead costs half the mana.',
- execute:'Execute: Strike deals 50% more damage to foes below 35% HP.',
+ execute:'Headsman: Strike deals 50% more damage to foes below 35% HP.',
  thorns:'Thorns: foes that hit you take 20% of the damage back.',
  censer:'Censer: every kill restores 10 mana and heals you for 5% of your max HP.',
  swarmguard:'Swarmguard: your minions take 25% less damage.',
  chorus:'Chorus: Soul Siphon also drains every other foe for 50%.',
  bindsouls:'Bind Souls: raised minions return at full health and two levels higher.',
- cleave:'Cleave: Strike also hits another foe for 60% of the damage.',
+ cleave:'Wide Arc: Strike also hits another foe for 60% of the damage.',
  infernal:'Infernal: every fight begins with a ward worth 25% of your max HP.',
  halo:'Halo: at the end of each turn you and your minions heal 4% of max HP.',
  ruin:'Ruin: all damage dealt by you and your minions is increased by 25%.',
@@ -1027,7 +1044,7 @@ const canNGP=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]);
 const ownedUniques=()=>[...new Set(S.inv.concat(Object.values(S.equip)).filter(it=>it&&ITEM[it.id]&&ITEM[it.id].uq).map(it=>it.id))];
 function startNGP(carry){
   if(S.mode!=='town'||!canNGP()) return false;
-  const own=ownedUniques(), keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},ngp:(S.ngp||0)+1};   // lifetime totals carry over too
+  const own=ownedUniques(), keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},ngp:(S.ngp||0)+1};   // lifetime totals carry over too
   newGame(); Object.assign(S,keep); S.ti.clr={};   // titles stay earned; New Game+ again needs another Throne of Ash clear
   S.notices=[]; if(carry&&own.includes(carry)) addItem(carry,null); unlockStory('ngp');
   notify('New Game+ '+S.ngp+' begins. Foes have '+Math.round(NGP_FOE*S.ngp*100)+'% more HP and attack, and pay '+Math.round(NGP_REWARD*S.ngp*100)+'% more XP and gold.'+(carry&&own.includes(carry)?' '+ITEM[carry].name+' is in your bag.':''),'ok');
@@ -1035,6 +1052,14 @@ function startNGP(carry){
 }
 // What goes to disk. Outside town it is the state you would have after walking out of the gate now, so closing the tab
 // mid-run counts as leaving: the watch stays spent, cleared rooms' XP and loot are kept, and a defeat's penalty sticks.
+// ===== RECORDS =====
+// Personal bests for the Ledger's Records page. They are kept through New Game+.
+// S.rec = {hit:{v,day}, fast:{di:{t,day,heat}}, kills:{v,day}, gold:{v,day}, floor:{v,day}, sec:{i:day}}
+function recBest(k,v){ if(!S||!(v>0)) return; S.rec=S.rec||{}; const o=S.rec[k]; if(!o||v>o.v) S.rec[k]={v:Math.round(v),day:S.day}; }
+function recRun(r){   // at the end of every run
+  if(!r) return; recBest('kills',r.kills||0); recBest('gold',r.goldTot||0);
+  if(!r.tw&&r.cleared&&r.tt>0){ S.rec=S.rec||{}; const f=S.rec.fast=S.rec.fast||{}, o=f[r.di]; if(!o||r.tt<o.t) f[r.di]={t:r.tt,day:S.day,heat:r.heat||0}; }
+}
 function snapshot(){
   if(S.mode==='town') return S;
   const c=JSON.parse(JSON.stringify(S));
@@ -1104,10 +1129,17 @@ function normalizeSave(src){
   g.mod=(obj(g.mod)&&typeof g.mod.day==='number'&&typeof g.mod.gi==='number'&&(g.mod.gi<0||(MODS[g.mod.id]&&RK[g.mod.gi])))?{day:g.mod.day,gi:g.mod.gi,id:g.mod.gi<0?null:g.mod.id}:null;
   const so=obj(g.story)?g.story:{}; g.story={}; for(const k in so) if(STORY_BY[k]&&typeof so[k]==='number') g.story[k]=so[k];
   g.hist=Array.isArray(g.hist)?g.hist.filter(h=>obj(h)&&typeof h.d==='number'&&typeof h.res==='string').slice(-HIST_N):[];
+  g.hist.forEach(h=>{ if('sec' in h&&secretOf(h.sec)<0) delete h.sec; if('heat' in h&&!HEAT[h.heat]) delete h.heat; });
   const L=obj(g.life)?g.life:{}; g.life={}; for(const k of LIFE_KEYS) g.life[k]=Math.max(0,num(L[k],0));
   if(!obj(g.build)) g.build={}; for(const k of Object.keys(g.build)){ const v=g.build[k]; if(!BUILD[k]||typeof v!=='number'||!(v>=1)) delete g.build[k]; else g.build[k]=Math.min(BUILD_MAX,Math.floor(v)); }
   g.dust=Math.max(0,Math.floor(num(g.dust,0)));
   if(g.faith!==undefined&&!(obj(g.faith)&&FAITH[g.faith.id]&&typeof g.faith.day==='number')) delete g.faith;
+  if(g.rec!==undefined){ if(!obj(g.rec)) delete g.rec; else { const R0=g.rec, okv=o=>obj(o)&&typeof o.v==='number'&&o.v>0&&typeof o.day==='number';
+    for(const k of ['hit','kills','gold','floor']) if(k in R0&&!okv(R0[k])) delete R0[k];
+    if('fast' in R0){ if(!obj(R0.fast)) delete R0.fast; else for(const di of Object.keys(R0.fast)){ const o=R0.fast[di]; if(!RK[di]||!obj(o)||!(o.t>0)||typeof o.day!=='number') delete R0.fast[di]; } }
+    if('sec' in R0){ if(!obj(R0.sec)) delete R0.sec; else for(const i of Object.keys(R0.sec)) if(!SECRET[i]||typeof R0.sec[i]!=='number') delete R0.sec[i]; }
+    for(const k of Object.keys(R0)) if(!['hit','kills','gold','floor','fast','sec'].includes(k)) delete R0[k]; } }
+  if(g.sbPity!==undefined){ if(!obj(g.sbPity)) delete g.sbPity; else for(const di of Object.keys(g.sbPity)){ const v=g.sbPity[di]; if(!RK[di]||typeof v!=='number'||!(v>=0)) delete g.sbPity[di]; else g.sbPity[di]=Math.min(1000,Math.floor(v)); } }
   for(const k of ['heat','heatMax']){ if(!obj(g[k])) g[k]={}; for(const di of Object.keys(g[k])){ const v=g[k][di]; if(!RK[di]||typeof v!=='number'||!(v>=0)) delete g[k][di]; else g[k][di]=Math.min(HEAT.length-1,Math.floor(v)); } }
   const okB=b=>obj(b)&&BOUNTIES[b.id]&&typeof b.n==='number'&&typeof b.base==='number'&&obj(b.rw)&&typeof b.claimed==='boolean';
   g.bounty=(obj(g.bounty)&&typeof g.bounty.day==='number'&&Array.isArray(g.bounty.list)&&g.bounty.list.every(okB))?g.bounty:null;
@@ -1203,6 +1235,15 @@ const roll3=()=>S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&!
  ['m3','Gates','Cantor of Bones','Clear the Hollow Cathedral 12 times.',()=>T_('clrN3')>=12,{will:2}],
  ['m4','Gates','Orchard-Walker','Clear the Iron Orchard 15 times.',()=>T_('clrN4')>=15,{hpp:4}],
  ['m5','Gates','Throne-Breaker','Clear the Throne of Ash 25 times.',()=>T_('clrN5')>=25,{dmgp:4}],
+ ['hd1','Gates','Hard-Won','Clear any gate on Hard.',()=>T_('heat1')>0,{xpp:2}],
+ ['hd2','Gates','Unbowed','Clear any gate on Brutal.',()=>T_('heat2')>0,{drp:2}],
+ ['nm0','Gates','Nightmare of the Warren','Clear the Rat Warren on Nightmare.',()=>T_('nm0')>0,{goldp:3}],
+ ['nm1','Gates','Nightmare of the Crypt','Clear the Sunken Crypt on Nightmare.',()=>T_('nm1')>0,{manap:3}],
+ ['nm2','Gates','Nightmare of the Barrow','Clear the Ashen Barrow on Nightmare.',()=>T_('nm2')>0,{hpp:2}],
+ ['nm3','Gates','Nightmare of the Cathedral','Clear the Hollow Cathedral on Nightmare.',()=>T_('nm3')>0,{mpow:3}],
+ ['nm4','Gates','Nightmare of the Orchard','Clear the Iron Orchard on Nightmare.',()=>T_('nm4')>0,{dmgp:2}],
+ ['nm5','Gates','Nightmare Sovereign','Clear the Throne of Ash on Nightmare.',()=>T_('nm5')>0,{dmgp:2,hpp:2}],
+ ['dm3','Gates','The Damned','Clear a cursed gate on Nightmare.',()=>T_('damned3')>0,{xpp:3,goldp:3}],
  ['sb0','Gates','Plague-Ender','Slay the Plague Matriarch, the Rat Warren\'s secret master.',()=>T_('secret_0')>0,{xpp:3}],
  ['sb1','Gates','Tide-Breaker','Slay the Drowned Abbot, the Sunken Crypt\'s secret master.',()=>T_('secret_1')>0,{manap:3}],
  ['sb2','Gates','Wyrmsbane','Slay the Cinder Wyrm, the Ashen Barrow\'s secret master.',()=>T_('secret_2')>0,{dmgp:2}],
@@ -1276,10 +1317,15 @@ function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // d
 // Title rarity uses the item tier names and colours (Common to Unique). Rarer titles give bigger bonuses, and Epic and
 // rarer ones stay hidden ("???") until earned. Rarity follows how hard a title is: bot runs measured the reachable ones,
 // and deeds the bots skip (events, forging) were judged by hand.
-const TITLE_RARITY={sb0:5,sb1:5,sb2:5,sb3:5,sb4:5,sb5:5,g0:0,g1:0,d_raise1:0,d_kill100:0,d_death:0,d_armed1:0,d_lv10:0,d_study:0,s_venom:0,f_crit:0,d_tower1:0,d_quest7:0,d_army:0,g2:1,t10:1,t20:1,d_raise50:1,d_cancel:1,d_evolve:1,d_uq:1,d_gold:1,m0:1,m1:1,c_drought:1,c_fury:1,c_bulwark:1,c_horde:1,c_volatile:1,p_25:1,k_spear:1,k_blast:1,k_chill:1,g_items:1,g_sold:1,f_flawless:1,f_last:1,a_boss:1,e_strag:1,e_pedlar:1,e_trap:1,d_death10:1,g3:2,g4:2,t30:2,t40:2,t50:2,d_kill1000:2,d_lv25:2,d_raise200:2,d_tower50:2,d_cancel10:2,d_trophy500:2,d_altar:2,d_elder:2,m2:2,m3:2,d_armed3:2,d_master:2,d_bag:2,c_25:2,e_shrine:2,e_coffer:2,s_poison:2,s_cure:2,k_reap:2,k_master3:2,k_all:2,f_boss25:2,f_elite100:2,g_gold:2,g_roll3:2,a_traits:2,a_elders:2,e_day100:2,e_runs100:2,g_reforge:2,g5:3,t60:3,t70:3,m4:3,m5:3,tw75:3,d_lv50:3,p_100:3,f_crit1000:3,e_rooms1000:3,twruns:3,d_ngp:3,d_tower110:3,t80:4,t90:4,t100:4,d_kill5000:4,d_all:4,d_tower150:4,a_raise500:4,e_lv75:4,tw200:5,d_ngp3:5,d_tuq:5};
+const TITLE_RARITY={hd1:1,hd2:2,nm0:3,nm1:3,nm2:3,nm3:4,nm4:4,nm5:5,dm3:5,sb0:5,sb1:5,sb2:5,sb3:5,sb4:5,sb5:5,g0:0,g1:0,d_raise1:0,d_kill100:0,d_death:0,d_armed1:0,d_lv10:0,d_study:0,s_venom:0,f_crit:0,d_tower1:0,d_quest7:0,d_army:0,g2:1,t10:1,t20:1,d_raise50:1,d_cancel:1,d_evolve:1,d_uq:1,d_gold:1,m0:1,m1:1,c_drought:1,c_fury:1,c_bulwark:1,c_horde:1,c_volatile:1,p_25:1,k_spear:1,k_blast:1,k_chill:1,g_items:1,g_sold:1,f_flawless:1,f_last:1,a_boss:1,e_strag:1,e_pedlar:1,e_trap:1,d_death10:1,g3:2,g4:2,t30:2,t40:2,t50:2,d_kill1000:2,d_lv25:2,d_raise200:2,d_tower50:2,d_cancel10:2,d_trophy500:2,d_altar:2,d_elder:2,m2:2,m3:2,d_armed3:2,d_master:2,d_bag:2,c_25:2,e_shrine:2,e_coffer:2,s_poison:2,s_cure:2,k_reap:2,k_master3:2,k_all:2,f_boss25:2,f_elite100:2,g_gold:2,g_roll3:2,a_traits:2,a_elders:2,e_day100:2,e_runs100:2,g_reforge:2,g5:3,t60:3,t70:3,m4:3,m5:3,tw75:3,d_lv50:3,p_100:3,f_crit1000:3,e_rooms1000:3,twruns:3,d_ngp:3,d_tower110:3,t80:4,t90:4,t100:4,d_kill5000:4,d_all:4,d_tower150:4,a_raise500:4,e_lv75:4,tw200:5,d_ngp3:5,d_tuq:5};
 const RARITY_MUL=[1,1,1.25,1.5,2,3], HIDDEN_FROM=3;
 TITLES.forEach(t=>{ t.r=TITLE_RARITY[t.id]!=null?TITLE_RARITY[t.id]:1; const m=RARITY_MUL[t.r]; for(const k in t.b) t.b[k]=Math.max(t.b[k],Math.round(t.b[k]*m)); });
 const titleHidden=t=>t.r>=HIDDEN_FROM&&!(S&&S.ti&&S.ti.got&&S.ti.got[t.id]);
+// Progress for count titles ("Clear the Throne of Ash 25 times" shows 12/25). Read from the title's own check, so a new
+// count title gets its progress for free: any check of the form ()=>something>=N with N above 1.
+TITLES.forEach(t=>{ const m=/^\(\)\s*=>\s*(.+?)\s*>=\s*(\d+)$/.exec(String(t.ok).trim()); if(/^t\d+$/.test(t.id)){ t.prog={get:()=>S.tower.best,n:+t.id.slice(1)}; return; } if(!m||+m[2]<=1) return;
+  try{ t.prog={get:new Function('return ('+m[1]+')||0'),n:+m[2]}; }catch(e){} });
+const titleProg=t=>{ if(!t.prog) return null; let v=0; try{ v=Math.max(0,Math.floor(+t.prog.get())||0); }catch(e){ return null; } return {v:Math.min(v,t.prog.n),n:t.prog.n}; };
 const TITLE=Object.fromEntries(TITLES.map(t=>[t.id,t]));
 const totalKills=()=>Object.values(S.kills).reduce((a,b)=>a+b,0);
 const allNames=()=>{ const a=[]; DUNGEONS.forEach(D=>{ D.mobs.forEach(m=>a.push(m[0])); a.push(D.boss[0]); }); TW_MOBS.forEach(m=>a.push(m[0])); TW_BOSS.forEach(n=>a.push(n)); return a; };
@@ -1359,8 +1405,10 @@ function makeEnemy(di,lvl,boss){
 }
 // Rule: a room never holds more than one mender. Re-roll until the new enemy fits.
 function makeSecret(di,lvl){
-  const e=makeEnemy(di,lvl+2,true), B=SECRET[di]; e.name=e.base=B.name; e.secret=true;
-  e.maxHp=e.hp=Math.round(e.maxHp*SB_HP); e.atk=Math.max(1,Math.round(e.atk*SB_ATK)); e.phase2=true; e.alt=true; e.fast=(e.fast||0)+1; e.abilT=2;
+  const e=makeEnemy(di,Math.max(lvl+2,S.player.lvl+SB_LV),true), B=SECRET[di]; e.name=e.base=B.name; e.secret=true;   // never weaker than you: an outgrown gate still hides a real threat
+  const sg=Math.max(di,topGate()); if(sg>di){ const st=mobStats(sg,e.lvl,1,1,true,false); e.maxHp=e.hp=st.hp; e.atk=st.atk; }   // fights with the strength of the hardest gate open to you
+  const grow=1+SB_GROW*Math.max(0,S.player.lvl-SAFE[sg]);   // a necromancer far past the gates has an army to match: so does the master
+  e.maxHp=e.hp=Math.round(e.maxHp*SB_HP*grow); e.atk=Math.max(1,Math.round(e.atk*SB_ATK)); e.phase2=true; e.alt=true; e.fast=(e.fast||0)+1; e.abilT=2;
   tally('secretMet'); return e;
 }
 function spawnOne(list,di,lvl){
@@ -1374,7 +1422,7 @@ function spawnRoom(){
   const lvl=RK[di].lv+Math.floor(room/2)+(boss?2:0)+curseRise(di);
   const list=[];
   const extra=runMod()==='horde'?1:0;
-  if(boss){ list.push(S.ti&&S.ti.clr&&S.ti.clr[di]&&Math.random()<SECRET_CHANCE+SECRET_HEAT*(r.heat||0)?makeSecret(di,lvl):makeEnemy(di,lvl,true)); const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); }
+  if(boss){ list.push(secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true)); const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); }
   else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
   foeScale(list,foeAtkMul(di)); bulwark(list);
   if(r.heat){ const f=heatK('foe'); for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*f); e.atk=Math.max(1,Math.round(e.atk*f)); } }
@@ -1389,7 +1437,7 @@ function startTower(f){
   f=+f; if(S.mode!=='town'||S.watches<=0||S.player.lvl<TW.unlock||!towerStarts().includes(f)) return;
   S.watches--; S.runs++; tally('twRuns'); S.notices=[];   // notes are about what happened since your last run
   S.run={tw:f,tw0:f,di:5,room:0,rooms:1,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[]};
-  S.mode='battle';
+  S.mode='battle'; titheSouls();
   log('You step into the Hell Tower.');
   spawnFloor();
 }
@@ -1397,7 +1445,7 @@ function startRun(di){
   if(S.mode!=='town'||S.watches<=0||S.player.lvl<RK[di].unlock) return;
   S.watches--; S.runs++; S.notices=[];
   S.run={di,room:0,rooms:4,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:gateMod(di),heat:heatOf(di)};
-  S.mode='battle';
+  S.mode='battle'; titheSouls();
   log('You step through the '+DUNGEONS[di].name+' gate.'+(S.run.mod?' It is cursed today: '+MODS[S.run.mod].name+'.':''));
   spawnRoom();
 }
@@ -1408,7 +1456,7 @@ function mark(id,d,h){ const f=S.run.fx[id]||(S.run.fx[id]={d:0,h:0}); f.d+=d; f
 function hit(b){ return Math.max(1,Math.round(b*rnd(.85,1.15))); }
 function hurtFoe(e,d){ if(e.curse) d=Math.round(d*e.curse.mul); if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25);
   if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e.id,0,0); return; } }   // Bone Wall shield soaks damage first
-  d=Math.min(d,e.hp); e.hp-=d; mark(e.id,d,0); }
+  recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e.id,d,0); }
 function hurtAlly(a,d){
   if(a.id!=='p'&&hasFlag('swarmguard')) d=Math.max(1,Math.round(d*.75));
   if(a.id!=='p'&&hasTrait(a,'stalwart')) d=Math.max(1,Math.round(d*.8));
@@ -1430,7 +1478,7 @@ function checkDeaths(){
       e.dead=true; r.kills++; S.quest.kills++; if(e.boss||e.elite) gainSoul(); if(e.boss) tally('bosses'); if(e.elite) tally('elites'); { const n=S.kills[e.base]=(S.kills[e.base]||0)+1; if(n===KNOW_AT) notify('Bestiary: you have studied '+e.base+'. Its drop table is now known.','ok'); } r.pending+=killXp(e); r.loot.push(...rollDrops(e)); killLoot(e,r); if(hasFlag('soulharvest')) S.player.mana=Math.min(pMana(),S.player.mana+6); if(hasFlag('censer')){ S.player.mana=Math.min(pMana(),S.player.mana+10); healAlly(S.player,Math.round(pMax()*.05)); }
       r.corpses.push(corpseOf(e));
       if(e.boss) bossSpeaks(e,'bye'); log(e.name+' falls.'); sfx('kill');
-      if(e.secret){ tally('secret_'+e.rankI); moment(e.name+' is slain','gold'); log('You have slain a secret master of the gate. The Ledger writes its name in red.','story'); }
+      if(e.secret){ tally('secret_'+e.rankI); r.secret=e.name; S.rec=S.rec||{}; S.rec.sec=S.rec.sec||{}; if(!S.rec.sec[e.rankI]) S.rec.sec[e.rankI]=S.day; moment(e.name+' is slain','gold'); log('You have slain a secret master of the gate. The Ledger writes its name in red.','story'); }
       if(runMod()==='volatile') volatileBurst(e);
       if(hasAff(e,'splitting')) splitFoe(e);
     }
@@ -1458,7 +1506,7 @@ function act(kind){
     if(P.mana<siphonCost()) return;
     P.mana-=siphonCost(); const low=t.hp<t.maxHp*SIPHON_LOW; let d=hit(pSiph()*pierceMul(SIPHON_PIERCE)); if(low) d*=2; hurtFoe(t,d);   // pierces a quarter of armor; devours the weak
     if(hasFlag('chorus')) for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.5));
-    const h=healAlly(P,Math.round(d*(hasFlag('lifedrain')?.8:.35))); const got=gainSoul();
+    const h=healAlly(P,Math.round(d*(hasFlag('lifedrain')?SIPHON_HEAL_LD:SIPHON_HEAL))); const got=gainSoul();
     log('Soul Siphon '+(low?'devours ':'drains ')+t.name+' for '+d+(h?', you recover '+h:'')+(got?' and harvest a Soul ('+S.run.souls+'/'+SOUL_MAX+')':'')+'.');
   }else if(kind==='ward'){
     if(P.mana<6) return;
@@ -1532,10 +1580,10 @@ function roomWon(){
     else{ m.hp=Math.ceil(m.maxHp*.4); r.events.push({m:m.nick+' was downed but binds back together.',c:''}); }
   }
   if(r.tw){
-    const f=r.tw; S.tower.best=Math.max(S.tower.best,f); for(const k of [25,50,75,100]) if(S.tower.best>=k) unlockStory('t'+k,r);
+    const f=r.tw; S.tower.best=Math.max(S.tower.best,f); recBest('floor',f); for(const k of [25,50,75,100]) if(S.tower.best>=k) unlockStory('t'+k,r);
     if(f%10===0){ xp+=120*f; S.quest.clears++; towerBossLoot(f,r); }
     if(f===100) r.cleared=true;   // floor 100 ends the first climb; floor 101 onward is the endless abyss
-  } else if(last){ unlockStory('g'+r.di,r); xp+=RK[r.di].clear; r.cleared=true; S.quest.clears++; S.ti=S.ti||{}; S.ti.clr=S.ti.clr||{}; S.ti.clr[r.di]=1; tally('clrN'+r.di); if(r.heat){ S.heatMax=S.heatMax||{}; S.heatMax[r.di]=Math.max(S.heatMax[r.di]||0,r.heat); tally('heat'+r.heat); if(r.mod) tally('damned'); } if(r.mod){ tally('cur_'+r.mod); tally('cursed'); } if(!r.hurt) tally('flawless'); }
+  } else if(last){ unlockStory('g'+r.di,r); xp+=RK[r.di].clear; r.cleared=true; S.quest.clears++; S.ti=S.ti||{}; S.ti.clr=S.ti.clr||{}; S.ti.clr[r.di]=1; tally('clrN'+r.di); if(r.heat){ S.heatMax=S.heatMax||{}; S.heatMax[r.di]=Math.max(S.heatMax[r.di]||0,r.heat); tally('heat'+r.heat); if(r.mod) tally('damned'); if(r.heat===3){ tally('nm'+r.di); if(r.mod) tally('damned3'); } } if(r.mod){ tally('cur_'+r.mod); tally('cursed'); } if(!r.hurt) tally('flawless'); }
   for(const id of r.loot){ const it=addItem(id); if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name); } r.loot=[];
   bankLoot(r); r.won=(r.won||0)+1; S.quest.rooms=(S.quest.rooms||0)+1; tally('rooms'); if(r.tw) tally('floors'); if(P.hp>0&&P.hp<=pMax()*.1) tally('lastBreath');
   r.event=(!r.tw&&!last&&Math.random()<EVENT_CHANCE)?rollEvent():null;   // something waits between rooms
@@ -1562,7 +1610,7 @@ function descend(kind){   // go on: through one of the doors in the gates (the f
 }
 function returnTown(){
   const P=S.player;
-  if(S.run) recordRun(S,S.run,runResult(S.run));
+  if(S.run){ recordRun(S,S.run,runResult(S.run)); recRun(S.run); }
   P.hp=pMax(); P.mana=pMana(); P.shield=0; allies().forEach(clearDots); S.army.forEach(m=>m.hp=m.maxHp);
   S.run=null; S.mode='town';
   if(S.watches<=0) endDay();
@@ -1593,12 +1641,13 @@ function discard(u){ S.inv=S.inv.filter(x=>x.u!==u||x.lk); }
 function raiseChance(c){
   let ch=35+A('will')*2.2+G('raise')+4*sk('mastery')+(hasMod('mastery','a')?6:0)+3*bl('ossuary')+(S.player.lvl-c.lvl)*3-RK[c.rankI].pen;
   if(c.elite) ch-=10; if(c.boss) ch-=15; if(c.free) ch+=STRAGGLER_BONUS;
-  return clamp(Math.round(ch),5,90);
+  return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
 }
 const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*(hasFlag('cheapraise')?.5:1)*(hasMod('mastery','b')?.75:1));
 function freeNick(){ const used=S.army.map(m=>m.nick); const f=NICKS.filter(n=>!used.includes(n)); return f.length?pick(f):pick(NICKS)+' II'; }
 const SALT_BONUS=20, SALT_MAX=3, saltPrice=()=>10+S.player.lvl*3;   // Grave Salts: bought at the market, +20% on one raise
-const saltChance=c=>clamp(raiseChance(c)+SALT_BONUS,5,95);
+const RAISE_MIN=5, RAISE_MAX=90, SALT_CAP=95;
+const saltChance=c=>clamp(raiseChance(c)+SALT_BONUS,RAISE_MIN,SALT_CAP);
 function tryRaise(id,salt){
   if(S.mode!=='raise') return;
   const r=S.run, P=S.player, c=r.corpses.find(x=>x.id===id); if(!c||c.tried) return;
@@ -1694,6 +1743,7 @@ function skillTick(){
   const r=S.run;
   if(r.cd) for(const k in r.cd) if(r.cd[k]>0) r.cd[k]--;
   if(r.frenzy>0) r.frenzy--;
+  r.tt=(r.tt||0)+1;   // turns this run, for the fastest-clear record
   if(r.silence>0) r.silence--;
   if(r.taunt>0) r.taunt--;
   for(const e of r.enemies) if(e.curse&&--e.curse.t<=0) delete e.curse;
@@ -1863,6 +1913,8 @@ const TIPS=[
   {id:'salvage',t:'Salvage and enchant', m:'Gear you will not wear can be salvaged into bone dust on the Gear tab. Dust enchants gear (add or re-roll a bonus line) and builds the higher levels of town buildings.', when:()=>S.mode==='town'&&ui.tab==='gear'&&S.inv.length>=6&&workOpen()},
   {id:'townopen',t:'The town opens', m:'A Town tab has appeared: build up the necropolis and fuse minions in the Flesh Pit. A bounty board in the side panel now posts three contracts every dawn.', when:()=>S.mode==='town'&&townOpen()},
   {id:'faith',  t:'The Old Shrine', m:'At level 8 the Old Shrine on the Town tab takes an oath: Honored One or Dishonored One. Each path gives a bonus and takes something in return.', when:()=>S.mode==='town'&&townOpen()&&S.player.lvl>=FAITH_LV&&!faithOf()},
+  {id:'ult',    t:'Your ultimate awaits', m:'At level 20 you can choose an ultimate on the Skills tab. Soul Siphon, elites and bosses give Souls; with five, press R in battle to unleash it.', when:()=>S.mode==='town'&&S.player.lvl>=ULT_LV&&!S.player.ult},
+  {id:'heat',   t:'Harder gates', m:'You have cleared a gate, so its card now offers Hard difficulty: stronger foes for more XP, gold and gear. Clear each level to open the next. On a cursed day the two stack.', when:()=>S.mode==='town'&&!T_('heat1')&&DUNGEONS.some((D,i)=>heatMax(i)>0)},
   {id:'tower',  t:'The Hell Tower is open', m:'A separate 100-floor climb, one fight per floor, with a unique relic on every tenth floor. Floors you clear become checkpoints.', when:()=>S.mode==='town'&&S.player.lvl>=TW.unlock},
 ];
 const currentTip=()=>{ if(!S||(S.tips&&S.tips.off)) return null; try{ return TIPS.find(t=>!(S.tips&&S.tips[t.id])&&t.when())||null; }catch(e){ return null; } };
@@ -1873,10 +1925,10 @@ function dismissTip(id){ S.tips=S.tips||{}; S.tips[id]=1; }
 // ahead: raise Bone Ward, or freeze the boss with Grave Chill to break its focus and cancel the move. Tower wardens borrow these.
 const BOSS_ABIL={
   swarm:   {name:'Call the Swarm', every:3,warn:false,desc:'Calls two more of its kind into the fight.'},
-  bonewall:{name:'Bone Wall',      every:4,warn:false,desc:'Shields every foe for 20% of its max HP.'},
-  cinder:  {name:'Cinder Wave',    every:3,warn:true, desc:'Burns you and every minion at once.'},
-  hymn:    {name:'Hymn of Silence',every:4,warn:true, desc:'Silences your skills for 2 turns and mends every foe.'},
-  seedfall:{name:'Seedfall',       every:4,warn:false,desc:'Mends every foe and sprouts a new one.'},
+  bonewall:{name:'Bone Wall',      every:4,warn:false,desc:'Shields every foe for 20% of its max HP (a shield holds at most 40%).'},
+  cinder:  {name:'Cinder Wave',    every:3,warn:true, desc:'Hits you and every minion for 70% of its attack and burns each of you for 2 turns.'},
+  hymn:    {name:'Hymn of Silence',every:4,warn:true, desc:'Silences your skills for 2 turns and mends every foe for 10% of its max HP.'},
+  seedfall:{name:'Seedfall',       every:4,warn:false,desc:'Mends every foe for 15% of its max HP and sprouts a new one.'},
   decree:  {name:'Royal Decree',   every:4,warn:true, desc:'One blow worth 45% of your max HP. Ward soaks it.'},
   sunder:  {name:'Sundering Blow', every:3,warn:true, desc:'One blow worth 35% of your max HP. Taunt turns it onto a vanguard; a Focus crit or Grave Chill breaks it.'}
 };
@@ -1903,7 +1955,7 @@ function fireAbility(e,mv){
   mv=mv||e.abil; const r=S.run, P=S.player, A=BOSS_ABIL[mv], foes=liveFoes();
   if(mv==='swarm'){ const got=[summonAdd(e),summonAdd(e)].filter(Boolean); log(got.length?e.name+' uses '+A.name+': '+got.map(x=>x.name).join(' and ')+' join the fight.':e.name+' calls, but nothing more answers.','bad'); }
   else if(mv==='bonewall'){ foes.forEach(f=>{ f.shield=Math.min(Math.round(f.maxHp*.4),(f.shield||0)+Math.round(f.maxHp*.2)); }); log(e.name+' raises a Bone Wall. Every foe is shielded.','bad'); }
-  else if(mv==='cinder'){ let tot=0; allies().filter(a=>a.hp>0).forEach(a=>{ const d=hit(e.atk*.7*enrage(e)); hurtAlly(a,d); addDot(a,'burn',e.atk*.15,2); tot+=d; if(a.hp<=0&&a.id!=='p') log(a.nick+' is down.','bad'); }); log(e.name+' unleashes a Cinder Wave for '+tot+' damage across your side.','bad'); }
+  else if(mv==='cinder'){ let tot=0; allies().filter(a=>a.hp>0).forEach(a=>{ const d=hit(e.atk*(e.secret?.45:.7)*enrage(e));   /* a secret master's wave is spread thinner: at full strength it wiped every army */ hurtAlly(a,d); addDot(a,'burn',e.atk*.15,2); tot+=d; if(a.hp<=0&&a.id!=='p') log(a.nick+' is down.','bad'); }); log(e.name+' unleashes a Cinder Wave for '+tot+' damage across your side.','bad'); }
   else if(mv==='hymn'){ r.silence=3; foes.forEach(f=>{ f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*.1)); }); log(e.name+' sings the Hymn of Silence. Your skills are silenced for 2 turns and every foe mends.','bad'); }
   else if(mv==='seedfall'){ foes.forEach(f=>{ f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*.15)); }); const a=summonAdd(e); log(e.name+' scatters Seedfall. Every foe mends'+(a?' and '+a.name+' sprouts from the ground':'')+'.','bad'); }
   else if(mv==='decree'){ const d=Math.round(pMax()*.45*enrage(e)); hurtAlly(P,d); log(e.name+' speaks a Royal Decree. It strikes you for '+d+'.','bad'); }
@@ -1915,6 +1967,7 @@ function fireAbility(e,mv){
 function playerFalls(){   // the player hit 0 HP: revive from gear if possible, otherwise the run is lost. True if defeated.
   const r=S.run, P=S.player, lim=hasFlag('deathless')?2:hasFlag('undying')?1:0;
   if((r.revives||0)<lim){ r.revives=(r.revives||0)+1; P.hp=Math.round(pMax()*(hasFlag('deathless')?.5:.3)); log('Your armor refuses to break. You rise at '+P.hp+' HP.','ok'); return false; }
+  if(blessed('hon')&&!r.grace){ r.grace=true; P.hp=Math.max(1,Math.round(pMax()*GRACE_HP)); tally('graced'); log('The Old Gods will not let you fall. You rise at '+P.hp+' HP.','story'); moment('Grace','gold'); return false; }
   defeat(); return true;
 }
 function sellItem(u){ if(S.mode!=='town') return 0; const i=S.inv.findIndex(x=>x.u===u); if(i<0) return 0; const it=S.inv[i], d=ITEM[it.id]; if(d.uq||it.lk) return 0; S.inv.splice(i,1); const g=sellValue(it); S.gold+=g; tally('soldItems'); sfx('coin'); return g; }
@@ -1943,10 +1996,13 @@ const EVENTS={
   shrine:   {name:'A blood shrine',     text:'Old blood crusts a stone basin. Feed it, and it sharpens every blow for the rest of this gate.', opts:[['bleed','Feed it 20% of your max HP'],['pass','Walk past']]},
   pedlar:   {name:'A wandering pedlar', text:'A hooded dead man rattles a tray of bottles and asks half the market price.', opts:[['buy','Buy'],['pass','Wave him off']]},
   coffer:   {name:'A sealed coffer',    text:'An iron box, chained shut. It might hold gold and gear, or a trap.', opts:[['open','Force it open'],['pass','Leave it']]},
+  oldgods:  {name:'A shrine of the Old Gods',faith:'hon',text:'A clean stone in a dirty place, still warm. The Old Gods know an Honored One.', opts:[['pray','Pray (heal 30% HP, refill mana)'],['pass','Walk past']]},
+  defiled:  {name:'A defiled altar',   faith:'dis',text:'Someone gutted the old altar and left the offerings. A Dishonored One takes what is owed.', opts:[['take','Take the offerings (lose 10% HP, gain gold and a Soul)'],['pass','Walk past']]},
   straggler:{name:'A wounded straggler',text:'One of the gate\'s dead drags itself away from the fight, broken.', opts:[['raise','Take it as it is (free raise, +25%)'],['finish','Finish it (bonus XP)']]}
 };
 const STRAGGLER_BONUS=25;
-function rollEvent(){ const id=pick(Object.keys(EVENTS)), ev={id}; if(id==='pedlar'){ ev.pot=pick(Object.keys(POTIONS)); ev.price=Math.ceil(POTIONS[ev.pot].price()/2); } return ev; }
+const FAITH_EVENT=.25;   // a sworn necromancer meets a shrine true to the oath in a quarter of events
+function rollEvent(){ const fe=Object.keys(EVENTS).find(k=>EVENTS[k].faith&&EVENTS[k].faith===faithOf()), id=fe&&Math.random()<FAITH_EVENT?fe:pick(Object.keys(EVENTS).filter(k=>!EVENTS[k].faith)), ev={id}; if(id==='pedlar'){ ev.pot=pick(Object.keys(POTIONS)); ev.price=Math.ceil(POTIONS[ev.pot].price()/2); } return ev; }
 function corpseOf(e){ const c={id:'c'+e.id,armed:isArmed(e.base),name:e.name,base:e.base,role:e.role,rankI:e.rankI,lvl:e.lvl,hf:e.hf,af:e.af,tw:e.tw,boss:e.boss,elite:e.elite,tried:false,result:null,minion:null}; if(e.aff&&e.aff.length) c.aff=e.aff.slice(); return c; }
 function resolveEvent(ch){
   const r=S.run; if(S.mode!=='raise'||!r||!r.event||r.event.done) return false;
@@ -1959,6 +2015,9 @@ function resolveEvent(ch){
       if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } m='Inside: '+g+' gold'+(it?' and '+withArticle(ITEM[it.id].name)+'.':'. There was gear too, but your bag is full.'); c='ok'; sfx('coin'); }
     else { const d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*.25))); P.hp-=d; tally('trap'); m='A needle trap. You lose '+d+' HP and find nothing.'; c='bad'; sfx('hurt'); }
   }
+  else if(ev.id==='oldgods'&&ch==='pray'){ const h=healAlly(P,Math.round(pMax()*.3)); P.mana=pMana(); tally('prayed'); m='The Old Gods hear you. You recover '+h+' HP and your mana is full.'; c='ok'; sfx('coin'); }
+  else if(ev.id==='defiled'&&ch==='take'){ const d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*.1))), g=Math.round((10+P.lvl*3)*(1+r.di)*ngpReward()); P.hp-=d; S.gold+=g; r.goldTot=(r.goldTot||0)+g; const got=gainSoul(); tally('defiled');
+    m='You take the offerings: '+g+' gold'+(got?' and a Soul ('+r.souls+'/'+SOUL_MAX+')':'')+'. The altar takes '+d+' HP in return.'; c='ok'; sfx('coin'); }
   else if(ev.id==='straggler'&&ch==='raise'){ const e=makeEnemy(r.di,lvl,false), cp=corpseOf(e); cp.free=true; r.corpses.push(cp); m=e.name+' waits with the other bodies. Raising it costs no mana.'; c='ok'; }
   else if(ev.id==='straggler'&&ch==='finish'){ const e=makeEnemy(r.di,lvl,false), xp=Math.round(killXp(e)*1.5); r.gained+=xp; r.ups+=addXp(xp); m='You finish '+theName(e.name)+'. +'+xp+' XP.'; c='ok'; }
   else return false;
@@ -2010,7 +2069,7 @@ const heatK=k=>{ const h=runHeat(); if(!h) return 1; return HEAT[h][k]*(runMod()
 const HIST_N=20, LIFE_KEYS=['runs','clears','deaths','fled','rooms','kills','xp','gold','items','raised'];
 const runResult=r=>r.cleared?'cleared':S.mode==='defeat'?'fell':r.fled?'fled':'left';
 function recordRun(target,r,res){
-  const h={d:S.day,g:r.tw?-1:r.di,f0:r.tw0||0,f1:r.tw||0,rooms:r.won||0,kills:r.kills||0,xp:r.gained||0,gold:r.goldTot||0,items:r.items||0,raised:r.raised||0,mod:r.mod||null,res};
+  const h={d:S.day,g:r.tw?-1:r.di,f0:r.tw0||0,f1:r.tw||0,rooms:r.won||0,kills:r.kills||0,xp:r.gained||0,gold:r.goldTot||0,items:r.items||0,raised:r.raised||0,mod:r.mod||null,res}; if(r.heat) h.heat=r.heat; if(r.secret) h.sec=r.secret;
   target.hist=(target.hist||[]).concat([h]).slice(-HIST_N);
   const L=target.life=target.life||{}; LIFE_KEYS.forEach(k=>{ L[k]=L[k]||0; });
   L.runs++; if(res==='cleared') L.clears++; if(res==='fell') L.deaths++; if(res==='fled') L.fled++;
@@ -2073,6 +2132,12 @@ const FAITH={
   dis:{name:'Dishonored One',vow:'Spit on the Old Gods and take what the grave owes you. Power and plunder, paid for in flesh.',buff:{dmgp:12,goldp:20},debuff:{hpp:-10,healp:-25}}
 };
 const FAITH_LV=8, DEVOTION=[0,10,25], DEVOTION_MUL=[1,1.5,2];
+// At full devotion (3/3) each path also grants a blessing, once per run.
+const GRACE_HP=.25, TITHE_SOULS=2;
+FAITH.hon.bless={name:'Grace of the Old Gods',desc:'Once per run, a killing blow leaves you at '+GRACE_HP*100+'% HP instead.'};
+FAITH.dis.bless={name:'Tithe of Souls',desc:'Every run begins with '+TITHE_SOULS+' Souls already harvested.'};
+const blessed=id=>faithOf()===id&&devotion()>=DEVOTION.length-1;
+function titheSouls(){ if(blessed('dis')&&S.run){ S.run.souls=Math.max(S.run.souls||0,Math.min(SOUL_MAX,TITHE_SOULS)); } }
 const faithOf=()=>(S&&S.faith&&FAITH[S.faith.id])?S.faith.id:null;
 const devotion=()=>{ if(!faithOf()) return 0; const d=S.day-S.faith.day; return d>=DEVOTION[2]?2:d>=DEVOTION[1]?1:0; };
 const faithBuff=id=>{ const F=FAITH[id], m=faithOf()===id?DEVOTION_MUL[devotion()]:1, o={}; for(const k in F.buff) o[k]=Math.round(F.buff[k]*m); return o; };
@@ -2086,14 +2151,14 @@ const xb=k=>titleB(k)+setB(k)+usetB(k)+faithB(k);   // everything that is neithe
 // At rank 3 each skill offers a choice of two upgrades. Forgetting your skills lets you choose again.
 const SKILL_MODS={
   spear:    {a:['Impaler','Pierces all foe armor.'],                      b:['Splinter','Also hits another foe for 50%.']},
-  bonearmor:{a:['Ossified','+6% more max HP.'],                            b:['Bone Ward','Bone Ward grants 30% more ward.']},
+  bonearmor:{a:['Ossified','+6% more max HP.'],                            b:['Marrow Ward','Bone Ward grants 30% more ward.']},
   mend:     {a:['Deep Mending','Heals 15% more of each minion\'s HP.'],   b:['Shared Flesh','Also heals you for 15% of your max HP.']},
   blast:    {a:['Bigger Bang','Deals 30% more damage.'],                   b:['Grave Gas','Also poisons every foe it hits.']},
   soulwell: {a:['Overflow','+1 more mana every turn.'],                    b:['Thrift','Soul Siphon costs 6 mana instead of 8.']},
   curse:    {a:['Lingering','Lasts 5 turns.'],                             b:['Spreading','Curses every foe, at 80% strength.']},
   gravepact:{a:['Blood Oath','+6% more minion power.'],                    b:['Bone Shell','Your minions take 10% less damage.']},
   chill:    {a:['Deep Freeze','Bosses resist 20% less often.'],            b:['Shatter','Frozen foes take 25% more damage.']},
-  edge:     {a:['Rending','Strike has +10% crit chance.'],                 b:['Vampiric','Strike heals you for 10% of its damage.']},
+  edge:     {a:['Rending','Strike has +10% crit chance.'],                 b:['Bloodletting','Strike heals you for 10% of its damage.']},
   frenzy:   {a:['Bloodlust','Lasts 2 turns longer.'],                      b:['Unholy Vigor','Also heals each minion for 15% of its HP.']},
   mastery:  {a:['Gravecaller','+6% more chance to raise.'],                b:['Thrifty Rites','Raising costs 25% less mana.']},
   reap:     {a:['Harvest Moon','Doubles below 50% HP instead of 35%.'],    b:['Soul Reap','A kill with Reap refunds 10 mana.']}
@@ -2289,10 +2354,11 @@ function claimBounty(i){
 // ===== SOULS AND ULTIMATE SKILLS =====
 // Soul Siphon harvests a Soul, and so does every elite or boss that falls. Souls last for the whole run (up to five).
 // From level 20 you choose one ultimate on the Skills tab; with five Souls you can unleash it in battle (key R).
-const SOUL_MAX=5, ULT_LV=20, SIPHON_PIERCE=.25, SIPHON_LOW=.3;
+const TOLL_MUL=4, TOLL_EXEC=.2;   // Death's Toll: x your Siphon to every foe, and the execute line
+const SOUL_MAX=5, ULT_LV=20, SIPHON_PIERCE=.25, SIPHON_LOW=.3, SIPHON_HEAL=.35, SIPHON_HEAL_LD=.8;
 const ULTS={
-  toll:  {name:"Death's Toll",         desc:'Every foe takes 300% of your Siphon, ignoring armor. Foes other than bosses left below 15% HP die outright.'},
-  rise:  {name:'Unholy Resurrection',  desc:'Every downed minion rises at full HP and the rest heal fully; you heal 40% of your max HP, and your army deals 50% more damage for 2 turns.'},
+  toll:  {name:"Death's Toll",         desc:'Every foe takes '+TOLL_MUL*100+'% of your Siphon, ignoring armor. Foes other than bosses left below '+TOLL_EXEC*100+'% HP die outright.'},
+  rise:  {name:'Unholy Resurrection',  desc:'Every downed minion rises at full HP and the rest heal fully; you heal 40% of your max HP, and your army deals 50% more damage for 3 turns.'},
   prison:{name:'Soul Prison',          desc:'Every foe is frozen for 2 turns (bosses 1), breaking any charging move, and takes 30% more damage for 3 turns.'}
 };
 function gainSoul(){ const r=S.run; if(!r) return false; r.souls=r.souls||0; if(r.souls>=SOUL_MAX) return false; r.souls++; return true; }
@@ -2300,7 +2366,7 @@ const canUlt=()=>S.mode==='battle'&&!!S.run&&S.player.lvl>=ULT_LV&&!!ULTS[S.play
 function chooseUlt(id){ if(S.mode!=='town'||!ULTS[id]||S.player.lvl<ULT_LV) return false; S.player.ult=id; return true; }
 function useUlt(t){
   if(!canUlt()) return false; const r=S.run, P=S.player, id=P.ult; r.souls=0; tally('ults');
-  if(id==='toll'){ let tot=0, slain=0; for(const o of liveFoes()){ const d=hit(pSiph()*3*pierceMul(1)); hurtFoe(o,d); tot+=d; if(o.hp>0&&!o.boss&&o.hp<o.maxHp*.15){ mark(o.id,o.hp,0); o.hp=0; slain++; } }
+  if(id==='toll'){ let tot=0, slain=0; for(const o of liveFoes()){ const d=hit(pSiph()*TOLL_MUL*pierceMul(1)); hurtFoe(o,d); tot+=d; if(o.hp>0&&!o.boss&&o.hp<o.maxHp*TOLL_EXEC){ mark(o.id,o.hp,0); o.hp=0; slain++; } }
     log("Death's Toll: every foe takes the Ledger's due, "+tot+' damage in all'+(slain?', and '+slain+' fall where they stand':'')+'.','ok'); }
   else if(id==='rise'){ let n=0; for(const m of S.army){ if(m.hp<=0){ m.hp=m.maxHp; n++; } else healAlly(m,m.maxHp); } healAlly(P,Math.round(pMax()*.4)); r.frenzy=Math.max(r.frenzy||0,3); r.frenzyMul=Math.max(r.frenzyMul||1,1.5);
     log('Unholy Resurrection: '+(n?n+' of your fallen rise again, ':'')+'your army is whole and burns with fury.','ok'); }
@@ -2448,8 +2514,9 @@ function music(){
   const note=(at,deg,oct)=>{ const o=c.createOscillator(), e=c.createGain(); o.type=P.tone==='square'?'square':'triangle'; o.frequency.value=st(M[deg%M.length]+12*(2+oct)); e.gain.setValueAtTime(0.0001,at); e.gain.exponentialRampToValueAtTime(P.tone==='square'?.05:.09,at+.03); e.gain.exponentialRampToValueAtTime(0.0001,at+beat*2.2); o.connect(e).connect(mel); o.start(at); o.stop(at+beat*2.4); };
   const pulse=at=>{ const o=c.createOscillator(), e=c.createGain(); o.type='sine'; o.frequency.setValueAtTime(70,at); o.frequency.exponentialRampToValueAtTime(38,at+.25); e.gain.setValueAtTime(0.0001,at); e.gain.exponentialRampToValueAtTime(.5*P.drum,at+.01); e.gain.exponentialRampToValueAtTime(0.0001,at+.35); o.connect(e).connect(g); o.start(at); o.stop(at+.4); };
   let deg=0;
-  const timer=setInterval(()=>{ if(!MUSIC.nodes||MUSIC.nodes.timer!==timer) return; const now=c.currentTime;
-    while(next<now+.35){ if(step%2===0&&Math.random()<P.dens){ deg=Math.max(0,Math.min(9,deg+[-2,-1,1,1,2][Math.floor(Math.random()*5)])); note(next,deg,deg>6?1:0); }   // a wandering line in the scene's mode
+  const timer=setInterval(()=>{ if(!MUSIC.nodes||MUSIC.nodes.timer!==timer) return; const now=c.currentTime, ahead=document.hidden?1.5:.35;
+    if(next<now) next=now+.05;   // the timer ran late (a busy or hidden tab): skip what was missed instead of playing it all at once
+    while(next<now+ahead){ if(step%2===0&&Math.random()<P.dens){ deg=Math.max(0,Math.min(9,deg+[-2,-1,1,1,2][Math.floor(Math.random()*5)])); note(next,deg,deg>6?1:0); }   // a wandering line in the scene's mode
       if(P.drum&&step%4===0&&Math.random()<.5+P.drum/2) pulse(next); next+=beat/2; step++; } },120);
   MUSIC.nodes={g,src,timer}; MUSIC.scene=sc;
 }
@@ -2470,14 +2537,14 @@ function bossBg(){
   el.className='bb-'+L[2]; el.style.setProperty('--bb1',L[0]); el.style.setProperty('--bb2',L[1]);
 }
 // ----- display settings (per browser, not in the save): text size, reduced motion, high contrast
-const VIEW={size:0,calm:false,hc:false,fold:{}};
-try{ const v=JSON.parse(localStorage.getItem('lotd-view')||'null'); if(v&&typeof v==='object'){ VIEW.size=clamp(+v.size||0,-1,2); VIEW.calm=!!v.calm; VIEW.hc=!!v.hc; if(v.fold&&typeof v.fold==='object') for(const k of ['equip','quest','bounty']) if(v.fold[k]) VIEW.fold[k]=true; }
+const VIEW={size:0,calm:false,hc:false,nobg:false,fold:{}};
+try{ const v=JSON.parse(localStorage.getItem('lotd-view')||'null'); if(v&&typeof v==='object'){ VIEW.size=clamp(+v.size||0,-1,2); VIEW.calm=!!v.calm; VIEW.hc=!!v.hc; VIEW.nobg=!!v.nobg; if(v.fold&&typeof v.fold==='object') for(const k of ['equip','quest','bounty']) if(v.fold[k]) VIEW.fold[k]=true; }
   else { VIEW.calm=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches); if(window.innerWidth<=540) VIEW.fold={equip:true,bounty:true}; } }catch(e){}   // first visit on a phone: the side panel starts folded
 const FOLD_NAME={equip:'Equipment',quest:'Daily quest',bounty:'Bounty board'};
 const foldBtn=k=>'<button class="fold" data-a="fold" data-k="'+k+'" aria-expanded="'+!VIEW.fold[k]+'" aria-label="'+(VIEW.fold[k]?'Show ':'Hide ')+FOLD_NAME[k]+'">'+(VIEW.fold[k]?'&#9662;':'&#9652;')+'</button>';
 const foldCls=k=>VIEW.fold[k]?' folded':'';
 function saveView(){ try{ localStorage.setItem('lotd-view',JSON.stringify(VIEW)); }catch(e){} }
-function applyView(){ const c=document.body.classList; c.toggle('compact',VIEW.size===-1); c.toggle('ts1',VIEW.size===1); c.toggle('ts2',VIEW.size===2); c.toggle('calm',VIEW.calm); c.toggle('hc',VIEW.hc); }
+function applyView(){ const c=document.body.classList; c.toggle('compact',VIEW.size===-1); c.toggle('ts1',VIEW.size===1); c.toggle('ts2',VIEW.size===2); c.toggle('calm',VIEW.calm); c.toggle('hc',VIEW.hc); c.toggle('nobg',VIEW.nobg); }
 // ----- save files: the same text as a save code, as a download
 function downloadSave(){
   try{ const code=exportCode(); if(!code) return false; const url=URL.createObjectURL(new Blob([code],{type:'text/plain'})), a=document.createElement('a');
@@ -2987,8 +3054,9 @@ function gateHTML(i){
 }
 function heatHTML(i){   // difficulty picker on a cleared gate's card
   const mx=heatMax(i); if(!mx) return '';
-  const cur=heatOf(i), H=HEAT[cur];
+  const cur=heatOf(i), H=HEAT[cur], nm=T_('nm'+i);
   return '<div class="heat"><span>Difficulty:</span>'+HEAT.map((x,lv)=>'<button class="chip-btn'+(lv===cur?' on':'')+'" data-a="heat" data-k="'+i+'|'+lv+'"'+(lv>mx?' disabled title="Clear the gate on '+HEAT[lv-1].name+' first"':'')+' aria-pressed="'+(lv===cur)+'">'+x.name+'</button>').join('')
+   +(nm?'<span class="nm-mark" title="Cleared on Nightmare '+nm+' time'+(nm>1?'s':'')+'">&#9760; Nightmare'+(nm>1?' x'+nm:'')+'</span>':'')
    +(cur?'<div class="heat-note">Foes x'+H.foe+'; XP x'+H.xp+', gold x'+H.gold+', gear x'+H.drop+'.'+(gateMod(i)?' <b class="bad">Cursed and '+H.name+': the curse feeds on it, a further x'+DAMNED+' to foes and rewards.</b>':'')+'</div>':'')+'</div>';
 }
 function titlesHTML(){
@@ -2996,14 +3064,21 @@ function titlesHTML(){
   let h='<section class="win" aria-labelledby="h-tt"><h2 class="win-h" id="h-tt">Titles &middot; '+n+'/'+TITLES.length+'</h2>'
    +'<p class="lede">Titles are earned once and kept. Wear one beneath your name. Each carries a bonus, bigger for rarer titles, and only the title you wear gives it. Epic, Legendary and Unique titles stay hidden until you earn them.</p>'
    +(titleName()?'<p class="q-note ok">Wearing <b>'+titleName()+'</b>: '+(buffTxt(TITLE[T.sel].b)||'no bonus')+'.</p>':'<p class="q-note">You wear no title, so no title bonus applies.</p>');
+  const F=ui.ttf||'all', FL={all:'All',got:'Earned',locked:'Locked',close:'Close to earning'};
+  const keep=t=>{ const got=T.got[t.id]; if(F==='got') return got; if(F==='locked') return !got; if(F==='close'){ const p=!got&&!titleHidden(t)&&titleProg(t); return p&&p.v/p.n>=.5; } if(F[0]==='r') return t.r===+F.slice(1); return true; };
+  h+='<div class="chips tt-filter" role="group" aria-label="Show titles">'+Object.keys(FL).map(k=>'<button class="btn small'+(F===k?' primary':'')+'" data-a="ttf" data-k="'+k+'" aria-pressed="'+(F===k)+'">'+FL[k]+'</button>').join('')
+   +'<label class="tt-rsel"><span>Rarity</span><select data-a="ttf" aria-label="Show titles of one rarity"><option value="all"'+(F[0]==='r'?'':' selected')+'>Any</option>'+TIERS.map((n,r)=>'<option value="r'+r+'"'+(F==='r'+r?' selected':'')+'>'+n+'</option>').join('')+'</select></label></div>';
+  let shown=0;
   ['Gates','Hell Tower','Curses and events','Deeds'].forEach(g=>{
-    const list=TITLES.filter(t=>t.grp===g), have=list.filter(t=>T.got[t.id]).length;
-    h+='<p class="group-h">'+g+' &middot; '+have+'/'+list.length+'</p><div class="items">'+list.map(t=>{
+    const all=TITLES.filter(t=>t.grp===g), list=all.filter(keep), have=all.filter(t=>T.got[t.id]).length;
+    if(!list.length) return; shown+=list.length;
+    h+='<p class="group-h">'+g+' &middot; '+have+'/'+all.length+'</p><div class="items">'+list.map(t=>{
       const got=T.got[t.id], on=T.sel===t.id, hid=titleHidden(t), rt='<span class="t-rar t'+t.r+'">'+TIERS[t.r]+'</span>';
       if(hid) return '<div class="tt-row off hidden-t"><div><h4>??? '+rt+'</h4><div class="u-sub">A hidden '+TIERS[t.r].toLowerCase()+' title. Keep playing to discover it.</div></div><span class="u-tag">Hidden</span></div>';
       return '<div class="tt-row'+(on?' on':'')+(got?'':' off')+(g==='Hell Tower'?' hellt':'')+'"><div><h4>'+t.name+' '+rt+'</h4><div class="u-sub">'+t.req+(got?' &middot; earned day '+got:'')+'</div>'+(buffTxt(t.b)?'<div class="u-sub tbuff">When worn: '+buffTxt(t.b)+'</div>':'')+'</div>'
-        +(got?'<button class="btn small'+(on?'':' primary')+'" data-a="wear" data-k="'+t.id+'">'+(on?'Remove':'Wear')+'</button>':'<span class="u-tag">Locked</span>')+'</div>'; }).join('')+'</div>';
+        +(got?'<button class="btn small'+(on?'':' primary')+'" data-a="wear" data-k="'+t.id+'">'+(on?'Remove':'Wear')+'</button>':(p=>p?'<span class="u-tag num tprog" title="Progress">'+p.v+'/'+p.n+'<i style="width:'+Math.round(p.v/p.n*100)+'%"></i></span>':'<span class="u-tag">Locked</span>')(titleProg(t)))+'</div>'; }).join('')+'</div>';
   });
+  if(!shown) h+='<p class="q-note">No titles match this filter yet.</p>';
   return h+'</section>';
 }
 function towerHTML(){
@@ -3149,7 +3224,17 @@ const FIRST_STEPS=[
   ['Finish a daily quest',()=>T_('claims')>0,'Defeat foes, clear rooms and clear a dungeon in one day for a stat point and XP. An unfinished quest costs a little at dawn.'],
   ['Open the town',()=>townOpen(),'After your first clear (or level 4) a Town tab and a bounty board appear: buildings, fusion and daily contracts.'],
   ['Reach the Hell Tower',()=>S.player.lvl>=TW.unlock,'At level '+TW.unlock+' a separate climb opens: one fight per floor, a unique relic every tenth floor, checkpoints as you go.'],
-  ['Break the Throne of Ash',()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]),'The last gate. Clearing it opens New Game+ in Settings and makes cursed gates rise to your level.']
+  ['Break the Throne of Ash',()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]),'The last gate. Clearing it opens New Game+ in Settings and makes cursed gates rise to just below your level.']
+];
+// Later systems for the How to play page, read from the game's own unlock levels so the page cannot go stale.
+const HELP_LATER=()=>[
+  ['Town and bounties','At level 4 or after your first clear: buildings, the Flesh Pit and three daily contracts.',townOpen()],
+  ['Salvage and enchanting','At level 6 or once you have bone dust: break spare gear into dust and add bonus lines.',workOpen()],
+  ['Faith','At level '+FAITH_LV+' the Old Shrine (Town tab) takes an oath: Honored One or Dishonored One, each with a gift and a price.',S.player.lvl>=FAITH_LV],
+  ['The Hell Tower','At level '+TW.unlock+': one fight per floor and a unique on every tenth floor.',S.player.lvl>=TW.unlock],
+  ['Harder gates','A cleared gate offers Hard, then Brutal and Nightmare: stronger foes, bigger rewards.',DUNGEONS.some((D,i)=>heatMax(i)>0)],
+  ['Cursed gates','Each day one cleared gate is cursed: harder, and pays more.',DUNGEONS.some((D,i)=>S.ti&&S.ti.clr&&S.ti.clr[i])],
+  ['Ultimates','At level '+ULT_LV+' choose an ultimate on the Skills tab. Gather '+SOUL_MAX+' Souls in a run and press R.',S.player.lvl>=ULT_LV]
 ];
 function helpHTML(){
   const done=FIRST_STEPS.filter(x=>{ try{ return x[1](); }catch(e){ return false; } }).length;
@@ -3158,8 +3243,9 @@ function helpHTML(){
    +'<p class="lede">Each day has '+WATCHES+' watches; entering a gate or the Tower uses one. Fight, raise the dead, grow your army, and go deeper. These steps tick themselves off as you play. Every rule and number is in the Codex.</p>'
    +'<div class="items">'+FIRST_STEPS.map((x,i)=>{ let ok=false; try{ ok=x[1](); }catch(e){}
       return '<div class="tt-row step'+(ok?' on':'')+'"><div><h4><span class="step-n">'+(ok?'&#10003;':(i+1))+'</span>'+x[0]+'</h4><div class="u-sub">'+x[2]+'</div></div></div>'; }).join('')+'</div>'
-   +'<p class="group-h">Keys in battle</p><p class="help-p">1 Strike, 2 Soul Siphon, 3 Bone Ward, 4 to 9 your skills, R your ultimate (from level 20), Q and W potions, Z X C V orders (Taunt, Focus, Bone Shield, Execute), and ] and [ to change target. Tab moves between buttons as usual.</p>'
-   +'<p class="group-h">Saving</p><p class="help-p">The game saves itself, and keeps your save from the start of each of the last three days (Settings). Closing the tab in a dungeon counts as leaving it. Use save slots before something risky, and save files or codes to move to another browser.</p>'
+   +'<p class="group-h">What opens later</p><div class="items">'+HELP_LATER().map(x=>'<div class="tt-row'+(x[2]?' on':'')+'"><div><h4>'+x[0]+'</h4><div class="u-sub">'+x[1]+'</div></div>'+(x[2]?'<span class="u-tag ok">Open</span>':'')+'</div>').join('')+'</div>'
+   +'<p class="group-h">Keys in battle</p><p class="help-p">1 Strike, 2 Soul Siphon, 3 Bone Ward, 4 to 9 your skills, R your ultimate (from level '+ULT_LV+'), Q and W potions, '+Object.keys(ORDER_KEYS).map(k=>k.toUpperCase()).join(' ')+' orders ('+Object.values(ORDER_KEYS).map(r=>CMDS[r].name).join(', ')+'), and ] and [ to change target. Tab moves between buttons as usual.</p>'
+   +'<p class="group-h">Saving</p><p class="help-p">The game saves itself after every action, and keeps your save from the start of each of the last '+BAK_N+' days (Settings). In a gate or the Tower it saves as if you had walked out, so closing the tab there counts as leaving. Use save slots before something risky, and save files or codes to move to another browser.</p>'
    +'<div class="btns"><button class="btn small primary" data-a="tab" data-k="codex">Open the Codex: every rule and number</button></div></section>';
 }
 function saveTabHTML(){
@@ -3172,13 +3258,14 @@ function saveTabHTML(){
    +'<div class="btns" style="margin:0">'+(tipsOff?'<button class="btn small primary" data-a="tipson">Show tips</button>':'')+(seenTips?'<button class="btn small" data-a="tipsreset">Show all again</button>':'')+'</div></div></div>'
    +'<p class="group-h">Sound</p><div class="tt-row'+(SFX.on?' on':'')+'"><div><h4>Sound effects</h4><div class="u-sub">Strikes, hits, kills, raises, coins and boss moves. Remembered in this browser.</div></div>'
    +'<button class="btn small'+(SFX.on?'':' primary')+'" data-a="sound" aria-pressed="'+SFX.on+'">'+(SFX.on?'Turn off':'Turn on')+'</button></div>'
-   +'<div class="tt-row'+(MUSIC.on?' on':'')+'"><div><h4>Music</h4><div class="u-sub">A quiet drone that changes between town, the gates and the Tower. Remembered in this browser.</div></div>'
+   +'<div class="tt-row'+(MUSIC.on?' on':'')+'"><div><h4>Music</h4><div class="u-sub">Its own theme for town, the gates and the Tower, and for every boss. Remembered in this browser.</div></div>'
    +'<button class="btn small'+(MUSIC.on?'':' primary')+'" data-a="music" aria-pressed="'+MUSIC.on+'">'+(MUSIC.on?'Turn off':'Turn on')+'</button></div>'
    +'<p class="group-h">Display</p><div class="items"><div class="tt-row"><div><h4>Size</h4><div class="u-sub">Compact fits more on a phone: smaller text, tighter spacing and tabs on one swipeable line'+(window.innerWidth<=540&&VIEW.size!==-1?' (recommended on this screen)':'')+'. Large and Larger make the whole page bigger.</div></div><div class="btns" style="margin:0">'
    +[['Compact',-1],['Normal',0],['Large',1],['Larger',2]].map(([t,i])=>'<button class="btn small'+(VIEW.size===i?' primary':'')+'" data-a="view" data-k="size|'+i+'" aria-pressed="'+(VIEW.size===i)+'">'+t+'</button>').join('')+'</div></div>'
    +'<div class="tt-row'+(VIEW.calm?' on':'')+'"><div><h4>Reduce motion</h4><div class="u-sub">Stops drifting embers, flames, pulses and screen shake.</div></div><button class="btn small'+(VIEW.calm?'':' primary')+'" data-a="view" data-k="calm" aria-pressed="'+VIEW.calm+'">'+(VIEW.calm?'Turn off':'Turn on')+'</button></div>'
+   +'<div class="tt-row'+(VIEW.nobg?'':' on')+'"><div><h4>Boss backgrounds</h4><div class="u-sub">Each boss fight paints its own colours and pattern behind the battle.</div></div><button class="btn small'+(VIEW.nobg?' primary':'')+'" data-a="view" data-k="nobg" aria-pressed="'+!VIEW.nobg+'">'+(VIEW.nobg?'Turn on':'Turn off')+'</button></div>'
    +'<div class="tt-row'+(VIEW.hc?' on':'')+'"><div><h4>High contrast</h4><div class="u-sub">Brighter text and bolder HP, mana and XP bars.</div></div><button class="btn small'+(VIEW.hc?'':' primary')+'" data-a="view" data-k="hc" aria-pressed="'+VIEW.hc+'">'+(VIEW.hc?'Turn off':'Turn on')+'</button></div></div>'
-   +'<p class="group-h">Save &amp; load</p><p class="lede">The game saves itself every time you are in town. Slots are for keeping a safe copy before something risky, like a Tower warden. A save code lets you carry your progress to another browser or device.</p>';
+   +'<p class="group-h">Save &amp; load</p><p class="lede">The game saves itself after every action (in a gate or the Tower, as if you had walked out). Slots are for keeping a safe copy before something risky, like a Tower warden. A save code lets you carry your progress to another browser or device.</p>';
   if(!ok) h+='<div class="note bad"><i>Storage</i><span>This browser is not letting the page store anything, so autosave and slots will not persist. Use a save code below to keep your progress.</span></div>';
   if(ui.msg) h+='<div class="note '+(ui.msg.c||'')+'"><i>Save</i><span>'+ui.msg.m+'</span></div>';
   h+='<div class="u-sub">Autosave: '+(ok?'on &middot; last saved '+when(S.savedAt):'off')+'</div><p class="group-h">Slots</p><div class="items">';
@@ -3209,6 +3296,20 @@ function saveTabHTML(){
    +'<div class="btns"><button class="btn small warn" data-a="newgame">'+(ui.confirm==='new'?'Press again to erase everything':'New game')+'</button></div></div></section>';
   return h;
 }
+function recordsHTML(){
+  const Rc=S.rec||{}, n=v=>(v||0).toLocaleString(), on=o=>o?'<b>'+n(o.v)+'</b> <span class="dim">&middot; day '+o.day+'</span>':'<span class="dim">not yet</span>';
+  const row=(t,v)=>'<div class="tt-row"><div><h4>'+t+'</h4></div><div class="rec-v">'+v+'</div></div>';
+  let h='<section class="win" aria-labelledby="h-rec"><h2 class="win-h" id="h-rec">Records</h2><h3 class="win-title">Your best, kept through every New Game+</h3>'
+   +'<div class="items">'+row('Deepest Tower floor',Rc.floor?'<b>'+Rc.floor.v+'</b>'+(Rc.floor.v>100?' <span class="dim">(Abyss)</span>':'')+' <span class="dim">&middot; day '+Rc.floor.day+'</span>':'<span class="dim">not yet</span>')
+   +row('Biggest single hit',on(Rc.hit))+row('Most foes slain in one run',on(Rc.kills))+row('Most gold from one run',on(Rc.gold))
+   +row('Souls spent on ultimates','<b>'+n(T_('ults')*SOUL_MAX)+'</b> <span class="dim">&middot; '+n(T_('ults'))+' ultimate'+(T_('ults')===1?'':'s')+'</span>')
+   +row('Highest level','<b>'+S.player.lvl+'</b>'+(S.ngp?' <span class="dim">&middot; New Game+ '+S.ngp+'</span>':''))+'</div>'
+   +'<p class="group-h">Fastest clears</p><p class="q-note">Fewest turns from the first room to the fallen boss, on any difficulty.</p><div class="items">'
+   +DUNGEONS.map((D,i)=>{ const o=Rc.fast&&Rc.fast[i]; return row(D.name,o?'<b>'+o.t+' turns</b> <span class="dim">&middot; day '+o.day+(o.heat&&HEAT[o.heat]?' &middot; '+HEAT[o.heat].name:'')+'</span>':'<span class="dim">not yet</span>'); }).join('')+'</div>';
+  const sl=SECRET.map((B,i)=>({B,i})).filter(x=>Rc.sec&&Rc.sec[x.i]);
+  if(sl.length) h+='<p class="group-h">Secret masters</p><div class="items">'+sl.map(x=>row('<span class="sec-k">&#9760; '+x.B.name+'</span>','<span class="dim">first slain day '+Rc.sec[x.i]+'</span>')).join('')+'</div>';
+  return h+'</section>';
+}
 function histHTML(){
   const L=S.life||{}, n=v=>(v||0).toLocaleString(), H=(S.hist||[]).slice().reverse();
   const where=h=>h.g<0?'Hell Tower, floor'+(h.f1>h.f0?'s '+h.f0+'&ndash;'+h.f1:' '+h.f0):DUNGEONS[h.g].name;
@@ -3221,10 +3322,11 @@ function histHTML(){
    +'<p class="group-h">Every run so far'+(S.ngp?' (New Game+ runs included)':'')+'</p><div class="life">'
    +[['Runs',L.runs],['Gates cleared',L.clears],['Falls',L.deaths],['Fled',L.fled],['Rooms won',L.rooms],['Kills',L.kills],['XP earned',L.xp],['Gold found',L.gold],['Gear found',L.items],['Dead raised',L.raised]]
      .map(x=>'<div><span>'+x[0]+'</span><b>'+n(x[1])+'</b></div>').join('')+'</div>'
+   +(()=>{ const sl=SECRET.filter((B,i)=>T_('secret_'+i)); return sl.length?'<p class="group-h">Secret masters slain &middot; '+sl.length+'/'+SECRET.length+'</p><div class="sec-list">'+sl.map(B=>'<span class="sec-k">&#9760; '+B.name+(T_('secret_'+secretOf(B.name))>1?' x'+T_('secret_'+secretOf(B.name)):'')+'</span>').join('')+'</div>':''; })()
    +'<p class="group-h">Last '+HIST_N+' runs</p>';
   if(!H.length) return h+'<p class="lede">No runs yet. Enter a gate and the ledger will remember it.</p></section>';
   return h+'<div class="hist-wrap"><table class="hist"><thead><tr><th>Day</th><th>Where</th><th>Result</th><th class="num">Rooms</th><th class="num">Kills</th><th class="num">XP</th><th class="num">Gold</th><th class="num">Gear</th><th class="num">Raised</th></tr></thead><tbody>'
-   +H.map(x=>'<tr><td class="num">'+x.d+'</td><td>'+where(x)+(x.mod&&MODS[x.mod]?' <span class="dim">('+MODS[x.mod].name+')</span>':'')+'</td><td class="res-'+x.res+'">'+(RES[x.res]||x.res)+'</td><td class="num">'+x.rooms+'</td><td class="num">'+x.kills+'</td><td class="num">'+n(x.xp)+'</td><td class="num">'+n(x.gold)+'</td><td class="num">'+x.items+'</td><td class="num">'+x.raised+'</td></tr>').join('')
+   +H.map(x=>'<tr><td class="num">'+x.d+'</td><td>'+where(x)+(x.mod&&MODS[x.mod]?' <span class="dim">('+MODS[x.mod].name+')</span>':'')+(x.heat&&HEAT[x.heat]?' <span class="dim">'+HEAT[x.heat].name+'</span>':'')+(x.sec?'<div class="sec-k">&#9760; '+x.sec+' slain</div>':'')+'</td><td class="res-'+x.res+'">'+(RES[x.res]||x.res)+'</td><td class="num">'+x.rooms+'</td><td class="num">'+x.kills+'</td><td class="num">'+n(x.xp)+'</td><td class="num">'+n(x.gold)+'</td><td class="num">'+x.items+'</td><td class="num">'+x.raised+'</td></tr>').join('')
    +'</tbody></table></div></section>';
 }
 // ----- the Codex: every rule and list in the game, read straight from the game's own tables so it never goes stale.
@@ -3233,9 +3335,9 @@ const CODEX=[['basics','Basics'],['raising','Raising'],['faith','Faith'],['roles
   ['gates','Gates'],['tower','Hell Tower'],['gear','Gear'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['rooms','Doors and events'],['curses','Curses'],['town','Town'],['bounties','Bounties'],['titles','Titles']];
 const CDX_ROLE={
   vanguard:'When a foe picks a target, each vanguard counts 5 and everyone else (you included) counts 2, so vanguards draw most blows. They take Taunt orders and stand in front of a Sundering Blow.',
-  striker:'Crits deal 1.8x damage. An enemy striker\'s crit also makes its target bleed. Focus makes your strikers crit every hit for a turn.',
+  striker:'This goes for your strikers and the enemy\'s. An enemy striker\'s crit also makes its target bleed. Focus makes your strikers crit every hit for a turn.',
   mender:'As a minion: heals the ally with the lowest share of HP, if anyone is below 85%. As a foe: heals the most hurt foe below 70%, blunted by its armor. A room never holds more than one enemy mender.',
-  reaper:'Every gate boss and Tower warden is a reaper. As a minion it cleaves a second foe for half damage, and Execute doubles its hits on foes below 40% HP.'
+  reaper:'Only your reapers cleave; enemy reapers strike one target. Every gate boss and Tower warden is a reaper, so a raised boss cleaves for you. Execute doubles your reapers\' hits on foes below 40% HP.'
 };
 const CDX_DOT={
   poison:'From Venomous minions and the Grave Gas upgrade of Corpse Explosion. 15% of the poisoner\'s attack (Grave Gas: 15% of your Siphon) each turn for 3 turns.',
@@ -3254,44 +3356,50 @@ function codexSection(k){
       cxRow('Intelligence','Mana (5 per point), Soul Siphon (2 per point) and Bone Ward (2 per point).'),cxRow('Will','Mana (3 per point), one army slot per 3 points, 2.2% raise chance per point, and 2% minion power per point.')])
     +'<p class="group-h">Everything gear can give</p>'+cxList(Object.keys(STATL).map(s=>cxRow(STATL[s][0],(ROLL_KEYS[s]?'Can appear as a bonus line.':'Only on base stats and uniques.')+(STATL[s][1]?' Measured in percent.':''))))
     +'<p class="group-h">New Game+</p>'+cxP('Clear the Throne of Ash and Settings offers New Game+: start again at level 1 with your titles, bestiary, story and one unique of your choice. Foes get '+Math.round(NGP_FOE*100)+'% more HP and attack and pay '+Math.round(NGP_REWARD*100)+'% more XP and gold, and each New Game+ stacks.')
-    +'<p class="group-h">Ranks</p>'+cxList(RK.map((R,i)=>cxRow('Rank '+RANKS[i],'Your rank at level '+[1,4,8,12,17,23][i]+'+. Rank '+RANKS[i]+' foes have '+R.hp+'x HP and '+R.atk+'x attack, give '+R.xp+'x XP and are '+R.pen+'% harder to raise.')));
-  if(k==='raising') return cxP('After a room, every foe that fell leaves a body. Raising one costs mana and can fail: the chance starts at 35% and rises with Will (2.2% a point), your level above the body\'s, gear, the Ossuary and Master of Bones. Deeper ranks are harder to raise; elites cost 10% and bosses 15%. Odds stay between 5% and 90% ('+(SALT_BONUS+90)+'% with salts).')
+    +'<p class="group-h">Bestiary</p>'+cxP('Defeat '+KNOW_AT+' of one kind of foe to study it: its drop table opens in the bestiary. Foes you have not met stay hidden, here and there.')
+    +'<p class="group-h">Saving</p>'+cxP('The game saves itself after every action. Settings holds '+SLOTS_N+' save slots, save codes and save files, and the first save of each day is kept as a backup ('+BAK_N+' days back).')
+    +'<p class="group-h">Ranks</p>'+cxList(RK.map((R,i)=>cxRow('Rank '+RANKS[i],'Your rank at level '+R.unlock+'+. Rank '+RANKS[i]+' foes have '+R.hp+'x HP and '+R.atk+'x attack, give '+R.xp+'x XP and are '+R.pen+'% harder to raise.')));
+  if(k==='raising') return cxP('After a room, every foe that fell leaves a body. Raising one costs mana and can fail: the chance starts at 35% and rises with Will (2.2% a point), your level above the body\'s, gear, the Ossuary and Master of Bones. Deeper ranks are harder to raise; elites cost 10% and bosses 15%. Odds stay between '+RAISE_MIN+'% and '+RAISE_MAX+'% ('+SALT_CAP+'% with salts).')
     +cxP('Grave Salts add '+SALT_BONUS+'% to one attempt. A wounded straggler between rooms can be raised for free at +'+STRAGGLER_BONUS+'%. Bodies you do not raise before moving on are gone. "Raise the best" on the raise screen tries every body, most valuable first.')
     +cxP('Minions keep the level they had, share half of each room\'s XP, and grow up to two levels above you. One downed in a fight may shatter when the room ends (less often with more Will; never if Grave-bound); otherwise it binds back together. Released or shattered gear-bearers return their gear to your bag.')
     +cxList([cxRow('Army slots','1, plus one per 3 Will, one per 5 levels, gear and the Crypt. At most 10, plus the Crypt\'s levels.'),cxRow('Gear-bearers','Armed foes (marked Armed) can wear a weapon, armor and relic from your bag once raised.'),cxRow('Bone Altar','Gold raises a minion one level at once, never past your level + 2.')]);
-  if(k==='faith') return cxP('From level '+FAITH_LV+' the Old Shrine on the Town tab takes an oath. Devotion grows with the days you keep it: the gift grows x'+DEVOTION_MUL[1]+' after '+DEVOTION[1]+' days and x'+DEVOTION_MUL[2]+' after '+DEVOTION[2]+'; the price stays as it is. Renouncing costs 100 gold per level and starts devotion over.')
-    +cxList(Object.keys(FAITH).map(k=>cxRow(FAITH[k].name,FAITH[k].vow+'<br><b>Gives:</b> '+buffTxt(FAITH[k].buff)+'<br><b>Costs:</b> '+buffTxt(FAITH[k].debuff),faithOf()===k?'Sworn':'')));
+  if(k==='faith') return cxP('From level '+FAITH_LV+' the Old Shrine on the Town tab takes an oath. Devotion grows with the days you keep it: the gift grows x'+DEVOTION_MUL[1]+' after '+DEVOTION[1]+' days and x'+DEVOTION_MUL[2]+' after '+DEVOTION[2]+'; the price stays as it is. Renouncing costs 100 gold per level and starts devotion over. Swearing and renouncing happen in town.')
+    +cxP('In about '+pct(FAITH_EVENT)+' of the events between rooms, a sworn necromancer meets a shrine of their own path instead: the Honored One may pray at a shrine of the Old Gods (heal 30% HP and refill mana), the Dishonored One may loot a defiled altar (gold and a Soul for 10% of their HP).')
+    +cxList(Object.keys(FAITH).map(k=>cxRow(FAITH[k].name,FAITH[k].vow+'<br><b>Gives:</b> '+buffTxt(FAITH[k].buff)+'<br><b>Costs:</b> '+buffTxt(FAITH[k].debuff)+'<br><b>At devotion 3:</b> '+FAITH[k].bless.name+'. '+FAITH[k].bless.desc,faithOf()===k?'Sworn':'')));
   if(k==='roles') return cxP('Every creature, yours or the enemy\'s, has one of four roles.')+cxList(Object.keys(ROLES).map(r=>cxRow(ROLES[r].label,ROLES[r].text+' '+CDX_ROLE[r])));
   if(k==='traits') return cxP('Every raised minion rolls one trait (bosses two). At '+EVOLVE_STEP+' and '+(2*EVOLVE_STEP)+' levels above the level it was raised at, it evolves into a '+STAGES[1].trim()+', then an '+STAGES[2].trim()+' form, each with '+pct(STAGE_BONUS)+' more stats and one more trait. A raised elite also keeps one of its affixes as a trait. Fusion can stack traits up to '+FUSE_TRAITS+'.')
-    +cxList(TRAIT_IDS.map(t=>{ const from=AFFIX_IDS.filter(a=>AFFIX[a].trait===t).map(a=>AFFIX[a].name); return cxRow(TRAITS[t].name,TRAITS[t].desc+(from.length?' Kept from a '+from.join(' or ')+' elite.':'')); }));
+    +cxList(TRAIT_IDS.map(t=>{ const from=AFFIX_IDS.filter(a=>AFFIX[a].trait===t).map(a=>AFFIX[a].name); return cxRow(TRAITS[t].name,TRAITS[t].desc+(from.length?' Kept from '+withArticle(from.join(' or '))+' elite.':'')); }));
   if(k==='affixes') return cxP('About one foe in ten is an elite: '+pct(.5)+' more HP, 30% more attack, more XP, gold, trophies and better drops, and harder to raise. Every elite carries a named affix, two in the '+DUNGEONS[3].name+' and deeper and from Tower floor 50.')
     +cxList(AFFIX_IDS.map(a=>cxRow(AFFIX[a].name,AFFIX[a].desc+' Raised, it becomes '+TRAITS[AFFIX[a].trait].name+': '+TRAITS[AFFIX[a].trait].desc)));
-  if(k==='bosses') return cxP('Every gate boss has a signature move it uses every few turns in place of attacking. Moves marked telegraphed are announced a turn ahead (Charging): soak them with Bone Ward, or freeze the boss with Grave Chill to cancel them. A boss calls at most '+SUMMON_CAP+' helpers a fight. Tower wardens borrow these moves, a turn sooner from floor 50, and grow wrathful after turn 8.')
+  if(k==='bosses') return cxP('Every gate boss has a signature move it uses every few turns in place of attacking. Moves marked telegraphed are announced a turn ahead (Charging): soak them with Bone Ward, or freeze the boss with Grave Chill to cancel them. A boss calls at most '+SUMMON_CAP+' helpers a fight. Tower wardens borrow these moves, a turn sooner from floor 50, and grow wrathful after turn 8: every turn after that they hit 7% harder (12% on floor 100).')
     +cxP('At '+pct(PHASE_AT)+' HP a boss (from the Sunken Crypt on, and every Tower warden) enters its second phase: its moves come a turn sooner, every move is telegraphed, and it alternates its own move with Sundering Blow. Taunt sends that blow at a vanguard, and a Focus crit breaks any charging move.')
     +cxList(Object.keys(BOSS_ABIL).map(id=>{ const A=BOSS_ABIL[id], gi=GATE_ABIL.indexOf(id), who=id==='sunder'?'Every boss, second phase':gi>=0?(metName(DUNGEONS[gi].boss[0])?DUNGEONS[gi].boss[0]:'An unmet boss')+' &middot; '+DUNGEONS[gi].name:'';
-      return cxRow(A.name,A.desc+' Every '+A.every+' turns.',(A.warn?'Telegraphed &middot; ':'')+who); }));
-  if(k==='status') return cxP('Damage over time ticks at the end of each turn, ignores ward and armor, and wears off when you leave the room. A new dose of the same kind refreshes it rather than stacking. A Healing Draught cures you; Dark Mending cures your whole side. Warded foes and minions are immune.')
+      return cxRow(A.name,A.desc+' Every '+A.every+' turns.',(A.warn?'Telegraphed &middot; ':'')+who); }))
+    +(()=>{ const met=SECRET.map((B,i)=>({B,i})).filter(x=>metName(x.B.name)); if(!met.length) return '';
+      return '<p class="group-h">Secret masters</p>'+cxP('Some gates hide an older master. Once a gate is cleared, its boss room very rarely holds that master instead, a little more often on harder difficulty and each time it stays away. It is never weaker than you, fights with the strength of the hardest gate open to you, and grows tougher the further you stand past that gate. It enters its second phase at once and acts faster. It pays four times the XP and gold, two legendaries and its heart, and its title.')
+        +cxList(met.map(x=>cxRow(x.B.name,'The secret master of the '+DUNGEONS[x.i].name+'. It borrows '+BOSS_ABIL[GATE_ABIL[x.i]].name+'.',T_('secret_'+x.i)?'Slain':'Met'))); })();
+  if(k==='status') return cxP('Damage over time ticks at the end of each turn, ignores ward and armor, and wears off when you leave the room. A new dose of the same kind refreshes it rather than stacking. A Healing Draught cures you; Dark Mending cures your whole side. Foes with the Warded affix and minions with the Warded trait are immune.')
     +cxList(Object.keys(DOTS).map(d=>cxRow(DOTS[d].name,CDX_DOT[d])))
-    +'<p class="group-h">Other effects in a fight</p>'+cxList([cxRow('Frozen','From Grave Chill. The foe skips its turn; a charging move is lost.'),cxRow('Cursed','From Curse of Frailty. The foe takes more damage from everything.'),
+    +'<p class="group-h">Other effects in a fight</p>'+cxList([cxRow('Frozen','From Grave Chill and Soul Prison. The foe skips its turn; a charging move is lost.'),cxRow('Cursed','From Curse of Frailty and Soul Prison. The foe takes more damage from everything.'),
       cxRow('Shield','Soaks damage before HP. Foes get it from Bone Wall and the Shielded affix; your Bone Ward is capped at 60% of your max HP.'),cxRow('Silenced','From the Hymn of Silence. Your skills cannot be used for 2 turns.'),
-      cxRow('Armor','Deeper foes wear armor that blunts every hit you and your army land: '+DIFF.armor.map((a,i)=>RANKS[i]+' '+pct(a)).join(', ')+', Tower '+pct(TW.armor)+'. Bone Spear pierces half; Corpse Explosion and Reap ignore it.')]);
+      cxRow('Armor','Deeper foes wear armor that blunts every hit you and your army land: '+DIFF.armor.map((a,i)=>RANKS[i]+' '+pct(a)).join(', ')+', Tower '+pct(TW.armor)+'. Soul Siphon pierces '+pct(SIPHON_PIERCE)+', Bone Spear half (all of it with Impaler); Corpse Explosion, Reap and Death\'s Toll ignore it.')]);
   if(k==='skills') return cxP('One skill point per level. Each skill has '+SK_MAX+' ranks, and each rank needs '+SK_STEP+' more levels than the last. Active skills cost mana and have cooldowns that reset every room. At rank '+SK_MAX+' you choose one of two upgrades. Forgetting your skills in town refunds every point.')
     +cxList(SKILLS.map(s=>{ const M=SKILL_MODS[s.id]; return cxRow(s.name,[1,2,3].map(r=>'<b>Rank '+r+' (Lv '+skReq(s,r)+'):</b> '+s.desc(r)).join('<br>')+(M?'<br><b>Upgrades:</b> '+M.a[0]+' ('+M.a[1]+') or '+M.b[0]+' ('+M.b[1]+')':''),s.type==='active'?'Active &middot; '+s.cost+' mana &middot; cooldown '+s.cd:'Passive'); }))
-    +'<p class="group-h">Soul Siphon and Souls</p>'+cxP('Soul Siphon (key 2, '+siphonCost()+' mana) pierces '+pct(SIPHON_PIERCE)+' of foe armor, drains twice as hard from a foe below '+pct(SIPHON_LOW)+' HP, heals you for part of what it drains, and harvests a Soul. Every elite or boss that falls also gives a Soul. You hold up to '+SOUL_MAX+', and they last for the whole run.')
+    +'<p class="group-h">Soul Siphon and Souls</p>'+cxP('Soul Siphon (key 2, '+siphonCost()+' mana) pierces '+pct(SIPHON_PIERCE)+' of foe armor, drains twice as hard from a foe below '+pct(SIPHON_LOW)+' HP, heals you for '+pct(SIPHON_HEAL)+' of what it drains ('+pct(SIPHON_HEAL_LD)+' with Lifedrain), and harvests a Soul. Every elite or boss that falls also gives a Soul. You hold up to '+SOUL_MAX+', and they last for the whole run.')
     +'<p class="group-h">Ultimates</p>'+cxP('From level '+ULT_LV+', choose one ultimate on the Skills tab (switch for free in town). With '+SOUL_MAX+' Souls, unleash it in battle with R; it uses your turn and all your Souls.')
     +cxList(Object.keys(ULTS).map(id=>cxRow(ULTS[id].name,ULTS[id].desc,S.player.ult===id?'Chosen':'')));
   if(k==='orders') return cxP('Once per room, each kind of minion in your army can be given one order. Orders are free and do not use your turn.')+cxList(Object.keys(CMDS).map(r=>cxRow(CMDS[r].name,CMDS[r].desc,ROLES[r].label+'s')));
   if(k==='gates') return cxP('Six gates of four rooms each, the last holding the boss. Clearing a gate pays bonus XP and, the first time, a page of the story.')
-    +cxP('A cleared gate can be entered on a harder difficulty, picked on its card: '+HEAT.slice(1).map(h=>h.name+' (foes x'+h.foe+'; XP x'+h.xp+', gold x'+h.gold+', gear x'+h.drop+')').join(', ')+'. Each opens after clearing the one below. On a cursed day the curse feeds on it: a further x'+DAMNED+' to foes and rewards.')
+    +cxP('A cleared gate can be entered on a harder difficulty, picked on its card: '+HEAT.slice(1).map(h=>h.name+' (foes x'+h.foe+'; XP x'+h.xp+', gold x'+h.gold+', gear x'+h.drop+')').join(', ')+'. Each opens after clearing the one below. On a cursed day the curse feeds on it: a further x'+DAMNED+' to foes and rewards. A Nightmare clear marks the gate\'s card and earns that gate\'s Nightmare title.')
     +cxList(DUNGEONS.map((D,i)=>{ const mobs=D.mobs.map(m=>metName(m[0])?m[0]+' ('+ROLES[m[1]].label.toLowerCase()+(isArmed(m[0])?', gear-bearer':'')+')':'???').join(', ');
       return cxRow(D.name,'Opens at level '+RK[i].unlock+', best at '+SAFE[i]+'&ndash;'+(SAFE[i]+3)+'. Armor '+pct(DIFF.armor[i])+'. Clear bonus '+RK[i].clear+' XP.<br><b>Foes:</b> '+mobs+'<br><b>Boss:</b> '+(metName(D.boss[0])?D.boss[0]+', '+BOSS_ABIL[GATE_ABIL[i]].name:'???'),'Rank '+RANKS[i]); }));
   if(k==='tower') return cxP('Opens at level '+TW.unlock+'. One fight per floor and a warden every tenth floor, each carrying a unique: guaranteed the first time, '+pct(TW.repeat)+' after (as gold while you carry one). Floors you clear become checkpoints every ten floors. Past floor 100 the Abyss never ends, and each tenth floor pays gold and a legendary. Tower foes wear '+pct(TW.armor)+' armor.')
     +cxList(TW_BOSS.map((n,i)=>{ const f=(i+1)*10, seen=S.tower.best>=f-10; return cxRow(seen?n:'???','Floor '+f+' &middot; recommended level '+recLv(f)+(seen?' &middot; '+BOSS_ABIL[GATE_ABIL[i%GATE_ABIL.length]].name:''),S.tower.best>=f?'Defeated':''); }));
-  if(k==='gear') return cxP('You wear a weapon, armor and a relic. Gear-bearer minions can wear them too: weapon stats become attack, armor and vitality become HP.')
+  if(k==='gear') return cxP('You wear a weapon, armor and a relic. Gear-bearer minions can wear them too. On a minion, attack, strength, crit, Siphon and intelligence add to its attack; HP, constitution, ward, mana and will add to its HP; minion power works as usual.')
     +cxList(TIERS.map((t,i)=>cxRow(t,i===5?'One per gate boss and Tower warden. Fixed stats and a unique power. A unique you already carry never drops again: you get ordinary gear (or gold, from a warden) instead. Cannot be sold, salvaged or enchanted, and ignores the bag limit.':(ROLL_LINES[i]?'Up to '+ROLL_LINES[i][0]+' bonus line'+(ROLL_LINES[i][0]>1?'s':'')+', each rolled at '+pct(ROLL_LINES[i][1])+'.':'')+' Salvages for '+(DUST_TIER[i]||0)+' bone dust, plus 1 per bonus line.',i===5?'':'Tier '+(i+1))))
     +'<p class="group-h">Working on gear</p>'+cxList([cxRow('Reforge','Re-rolls every bonus line for '+pct(REFORGE_COST)+' of the merchant price in gold. Always leaves at least one line.'),cxRow('Enchant','Spends bone dust to add one bonus line to a piece with room for it, or to re-roll one line you choose.'),
-      cxRow('Salvage','Breaks a piece into bone dust.'),cxRow('Sell','Gear sells for a quarter of the merchant price, plus a quarter more per bonus line.'),cxRow('Trophy forge',FORGE_N+' trophies from one gate (a boss heart counts as 5) and some gold forge that gate\'s gear in the slot you choose. '+pct(MASTERWORK)+' come out a masterwork from the next gate.')]);
-  if(k==='uniques') return cxP('Uniques carry one of these powers. Only worn gear counts.')+cxList(Object.keys(FLAGS).map(f=>{ const i=FLAGS[f].indexOf(':'); return cxRow(FLAGS[f].slice(0,i),FLAGS[f].slice(i+1).trim()); }));
+      cxRow('Salvage','Breaks a piece into bone dust.'),cxRow('Lock','A locked piece cannot be sold, salvaged or discarded until you unlock it.'),cxRow('Sell','Gear sells for a quarter of the merchant price, plus a quarter more per bonus line.'),cxRow('Trophy forge',FORGE_N+' trophies from one gate (a boss heart counts as 5) and some gold forge that gate\'s gear in the slot you choose. '+pct(MASTERWORK)+' come out a masterwork from the next gate.')]);
+  if(k==='uniques') return cxP('Uniques carry one of these powers. Only worn gear counts.')+cxList(Object.keys(FLAGS).map(f=>{ const i=FLAGS[f].indexOf(':'), d=FLAGS[f].slice(i+1).trim(); return cxRow(FLAGS[f].slice(0,i),d.charAt(0).toUpperCase()+d.slice(1)); }));
   if(k==='sets') return cxP('Each gate\'s gear is a set, and its unique counts toward it. Ordinary Tower gear belongs to no set.')+cxList(SET_NAMES.map((n,i)=>cxRow(n,'<b>2 pieces:</b> '+buffTxt(SET_BONUS[i][2])+'<br><b>3 pieces:</b> '+buffTxt(SET_BONUS[i][3]),DUNGEONS[i].name)))
     +'<p class="group-h">Unique sets</p>'+cxP('The uniques form six sets of three: a weapon, an armor and a relic. Their bonuses are bigger than a gate set\'s, and a gate unique counts toward both its gate set and its unique set.')
     +cxList(USET.map((U,i)=>{ return cxRow(U.name,'<b>Pieces:</b> '+U.ids.map(id=>ITEM[id].name).join(', ')+'<br><b>From:</b> '+U.from+'<br><b>2 pieces:</b> '+buffTxt(U.b[2])+'<br><b>3 pieces:</b> '+buffTxt(U.b[3]),'Worn '+usetCount(i)+'/3'); }));
@@ -3300,17 +3408,19 @@ function codexSection(k){
   if(k==='rooms') return '<p class="group-h">Doors</p>'+cxP('After each gate room you choose the next from two or three doors. The first is always an ordinary fight; the room before the boss leads only to the boss.')
     +cxList(Object.keys(DOORS).map(d=>cxRow(DOORS[d].name,DOORS[d].desc)))
     +'<p class="group-h">Between rooms</p>'+cxP('After '+pct(EVENT_CHANCE)+' of gate rooms (never the last, never in the Tower) you find something. Walking past is always safe.')
-    +cxList(Object.keys(EVENTS).map(e=>cxRow(EVENTS[e].name,EVENTS[e].text+' Choices: '+EVENTS[e].opts.map(o=>o[1]).join(' or ')+'.')));
-  if(k==='curses') return cxP('Each day one gate you have cleared is cursed. '+MOD_REWARD)+cxList(Object.keys(MODS).map(m=>cxRow(MODS[m].name,MODS[m].desc)));
+    +cxList(Object.keys(EVENTS).map(e=>cxRow(EVENTS[e].name,EVENTS[e].text+' Choices: '+EVENTS[e].opts.map(o=>o[1]).join(' or ')+'.'+(EVENTS[e].faith?' Only for the '+FAITH[EVENTS[e].faith].name+', in about '+pct(FAITH_EVENT)+' of events.':''))));
+  if(k==='curses') return cxP('Each day one gate you have cleared is cursed. '+MOD_REWARD+' Once the Throne of Ash has fallen, a cursed gate\'s foes rise to '+CURSE_GAP+' levels below yours, so cursed days stay a real fight.')+cxList(Object.keys(MODS).map(m=>cxRow(MODS[m].name,MODS[m].desc)));
   if(k==='town') return '<p class="group-h">Buildings</p>'+cxP('Each has '+BUILD_MAX+' levels, costing '+BUILD_COST.map((c,i)=>'level '+(i+1)+': '+c[0]+' gold'+(c[1]?' + '+c[1]+' bone dust':'')).join('; ')+'. They last until New Game+.')
     +cxList(Object.keys(BUILD).map(b=>cxRow(BUILD[b].name,BUILD[b].desc,'Level '+bl(b)+'/'+BUILD_MAX)))
     +'<p class="group-h">The Flesh Pit</p>'+cxP('Fuse two minions of the same role. The stronger survives with '+FUSE_LV+' more level (never past your level + 2), the higher evolution, and both sets of traits up to '+FUSE_TRAITS+'. A minion can take part in at most '+FUSE_MAX+' fusions. It costs 60 gold per level of the two minions together.');
   if(k==='bounties') return cxP('Three contracts go up each dawn; progress counts from then. Claim finished ones in town before the day ends. Rewards are gold, Grave Salts, bone dust, or a piece of gear from your deepest open gate with bonus lines.')
     +cxList(Object.keys(BOUNTIES).map(b=>cxRow(BOUNTIES[b].t(BOUNTIES[b].n),BOUNTIES[b].ok?'Only offered once it makes sense for you.':'Can be offered any day.')));
   if(k==='titles'){ const by=g=>TITLES.filter(t=>t.grp===g).length, rc=TIERS.map((n,i)=>TITLES.filter(t=>t.r===i).length+' '+n.toLowerCase()).join(', ');
-    return cxP('Titles are earned once and kept forever, even through New Game+. Each gives a small bonus, but only the one you wear counts. There are '+TITLES.length+': '+['Gates','Hell Tower','Curses and events','Deeds'].map(g=>by(g)+' for '+g.toLowerCase()).join(', ')+'.')
-      +'<p class="group-h">Rarity</p>'+cxP('Titles come in the same rarities as gear: '+rc+'. A rarer title gives a bigger bonus (Rare x1.25, Epic x1.5, Legendary x2, Unique x3). Epic and rarer titles stay hidden as "???" until you earn them.')
-      +'<p class="group-h">Kinds of title bonus</p>'+cxList(Object.keys(TBUFF_L).map(b=>cxRow(TBUFF_L[b][0],(TBUFF_L[b][2]<0?'Less ':'More ')+TBUFF_L[b][0].toLowerCase()+', in percent.')))
+    return cxP('Titles are earned once and kept forever, even through New Game+. Each gives a small bonus, but only the one you wear counts. There are '+TITLES.length+': '+['Gates','Hell Tower','Curses and events','Deeds'].map(g=>by(g)+' for '+(g==='Hell Tower'?g:g.toLowerCase())).join(', ')+'.')
+      +'<p class="group-h">Rarity</p>'+cxP('Titles come in the same rarities as gear: '+rc+'. A rarer title gives a bigger bonus ('+TIERS.map((n,i)=>RARITY_MUL[i]>1?n+' x'+RARITY_MUL[i]:'').filter(Boolean).join(', ')+'). '+TIERS.slice(HIDDEN_FROM).join(', ').replace(/, ([^,]*)$/,' and $1')+' titles stay hidden as "???" until you earn them.')
+      +cxP('The Titles tab filters by earned, locked, close to earning and rarity, and titles that count something show how far along you are.')
+      +'<p class="group-h">Kinds of title bonus</p>'+cxList((()=>{ const n={}; TITLES.forEach(t=>Object.keys(t.b||{}).forEach(k=>{ n[k]=(n[k]||0)+1; })); return Object.keys(n).sort((a,b)=>n[b]-n[a]).map(k=>{ const L=TBUFF_L[k]||STATL[k], pc=!!TBUFF_L[k], twin=!pc&&Object.values(TBUFF_L).some(x=>x[0]===L[0]);
+        return cxRow(L[0]+(pc&&Object.values(STATL).some(x=>x[0]===L[0])?' (percent)':twin?' (flat)':''),pc?(L[2]<0?'Lowers ':'Raises ')+'it by a percent of the total.':'Added like the same stat on gear'+(L[1]?' (in percentage points).':'.'),n[k]+' title'+(n[k]>1?'s':'')); }); })())
       +'<div class="btns"><button class="btn small" data-a="tab" data-k="titles">Open the Titles tab</button></div>'; }
   return '';
 }
@@ -3327,11 +3437,11 @@ function faithHTML(){
   if(P.lvl<FAITH_LV) return h+'<p class="lede">A cracked altar at the edge of town. It will hear an oath from a necromancer of level '+FAITH_LV+' or more.</p>';
   if(id){ const F=FAITH[id], dv=devotion(), nx=DEVOTION[dv+1];
     return h+'<div class="items"><div class="tt-row on"><div><h4>'+F.name+' <span class="u-tag">devotion '+(dv+1)+'/3</span></h4><div class="u-sub">Gives '+buffTxt(faithBuff(id))+'; costs '+buffTxt(F.debuff)+'.</div>'
-      +'<div class="u-sub">'+(nx!=null?'Keep the oath until day '+(S.faith.day+nx)+' for devotion '+(dv+2)+' (the gift grows x'+DEVOTION_MUL[dv+1]+').':'Your devotion is complete.')+'</div></div>'
+      +'<div class="u-sub">'+'<div class="u-sub'+(blessed(id)?' ok':'')+'"><b>'+F.bless.name+'</b> (devotion 3): '+F.bless.desc+(blessed(id)?'':' Not yet.')+'</div>'+'<div class="u-sub">'+(nx!=null?'Keep the oath until day '+(S.faith.day+nx)+' for devotion '+(dv+2)+' (the gift grows x'+DEVOTION_MUL[dv+1]+').':'Your devotion is complete.')+'</div></div>'
       +'<button class="btn small warn" data-a="renounce"'+(S.gold<renounceCost()?' disabled':'')+'>'+(ui.confirm==='renounce'?'Confirm: renounce for '+renounceCost()+' gold':'Renounce &middot; '+gold(renounceCost()))+'</button></div></div>';
   }
   return h+'<p class="q-note">Swear an oath. Each path gives and takes. Devotion grows with the days you keep it; renouncing costs gold and starts it over.</p><div class="items">'
-   +Object.keys(FAITH).map(k=>{ const F=FAITH[k]; return '<div class="tt-row"><div><h4>'+F.name+'</h4><div class="u-sub">'+F.vow+'</div><div class="u-sub"><span class="ok">Gives '+buffTxt(F.buff)+'</span> &middot; <span class="bad">costs '+buffTxt(F.debuff)+'</span></div></div>'
+   +Object.keys(FAITH).map(k=>{ const F=FAITH[k]; return '<div class="tt-row"><div><h4>'+F.name+'</h4><div class="u-sub">'+F.vow+'</div><div class="u-sub"><span class="ok">Gives '+buffTxt(F.buff)+'</span> &middot; <span class="bad">costs '+buffTxt(F.debuff)+'</span></div><div class="u-sub">At devotion 3: <b>'+F.bless.name+'</b>. '+F.bless.desc+'</div></div>'
      +'<button class="btn small primary" data-a="swear" data-k="'+k+'">'+(ui.confirm==='swear'+k?'Confirm the oath':'Swear')+'</button></div>'; }).join('')+'</div>';
 }
 function buildHTML(){
@@ -3358,7 +3468,7 @@ function buildHTML(){
   }
   return h+'</section>';
 }
-const LEDGER=[['codex','Codex'],['bes','Bestiary'],['hist','History'],['help','How to play']];   // the Ledger tab's pages
+const LEDGER=[['codex','Codex'],['bes','Bestiary'],['hist','History'],['rec','Records'],['help','How to play']];   // the Ledger tab's pages
 function spendStrip(){   // on narrow screens the stats sit far below: offer the + buttons up here while points are waiting
   const P=S.player; if(P.pts<=0&&!(P.sp>0)) return '';
   return '<div class="spend-strip">'+(P.pts>0?'<span>'+P.pts+' point'+(P.pts>1?'s':'')+' to spend:</span>'+[['strength','Strength'],['constitution','Constitution'],['intelligence','Intelligence'],['will','Will']].map(([k,n])=>'<button class="btn small" data-a="alloc" data-k="'+k+'" aria-label="Add a point to '+n+'">+ '+n+'</button>').join(''):'')
@@ -3366,8 +3476,9 @@ function spendStrip(){   // on narrow screens the stats sit far below: offer the
 }
 function townHTML(){
   if(ui.tab==='town'&&!townOpen()) ui.tab='gates';
+  const twLock=S.player.lvl<TW.unlock; if(ui.tab==='tower'&&twLock) ui.tab='gates';   // the Hell Tower tab shows from the start but opens at TW.unlock
   let h=notesHTML()+spendStrip();
-  h+='<div class="tabs" role="tablist">'+[['gates','Gates'],['tower','Hell Tower'],['gear','Gear &middot; '+S.inv.length],['market','Market']].concat(townOpen()?[['town','Town']]:[]).concat([['skills','Skills'+(S.player.sp?' &middot; '+S.player.sp:'')],['titles','Titles &middot; '+Object.keys((S.ti&&S.ti.got)||{}).length],['ledger','Ledger']]).map(t=>'<button class="tab'+(t[0]==='tower'?' hell':'')+'" role="tab" data-a="tab" data-k="'+t[0]+'" aria-selected="'+(t[0]==='ledger'?LEDGER.some(x=>x[0]===ui.tab):(ui.tab||'gates')===t[0])+'">'+t[1]+'</button>').join('')+'</div>';
+  h+='<div class="tabs" role="tablist">'+[['gates','Gates'],['tower','Hell Tower'],['gear','Gear &middot; '+S.inv.length],['market','Market']].concat(townOpen()?[['town','Town']]:[]).concat([['skills','Skills'+(S.player.sp?' &middot; '+S.player.sp:'')],['titles','Titles &middot; '+Object.keys((S.ti&&S.ti.got)||{}).length],['ledger','Ledger']]).map(t=>(t[0]==='tower'&&twLock)?'<button class="tab tw-lock" role="tab" disabled aria-disabled="true" aria-label="Hell Tower, locked until level '+TW.unlock+'" title="The Hell Tower opens at level '+TW.unlock+'"><span aria-hidden="true">&#128274; </span>Hell Tower &middot; Lv '+TW.unlock+'</button>':'<button class="tab'+(t[0]==='tower'?' hell':'')+'" role="tab" data-a="tab" data-k="'+t[0]+'" aria-selected="'+(t[0]==='ledger'?LEDGER.some(x=>x[0]===ui.tab):(ui.tab||'gates')===t[0])+'">'+t[1]+'</button>').join('')+'</div>';
   if(LEDGER.some(x=>x[0]===ui.tab)){ ui.ledger=ui.tab; h+='<div class="chips sub-nav" role="tablist">'+LEDGER.map(x=>'<button class="btn small'+(x[0]===ui.tab?' primary':'')+'" role="tab" data-a="tab" data-k="'+x[0]+'" aria-selected="'+(x[0]===ui.tab)+'">'+x[1]+'</button>').join('')+'</div>'; }
   if(ui.tab==='gear') return h+bagHTML()+armyHTML();
   if(ui.tab==='bes') return h+bestiaryHTML();
@@ -3379,6 +3490,7 @@ function townHTML(){
   if(ui.tab==='settings') return h+saveTabHTML();
   if(ui.tab==='help') return h+helpHTML();
   if(ui.tab==='hist') return h+histHTML();
+  if(ui.tab==='rec') return h+recordsHTML();
   if(ui.tab==='codex') return h+codexHTML();
   h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'
    +'<p class="lede">Everything you kill can be raised. The deeper the gate, the stronger the dead.</p>'
@@ -3415,7 +3527,10 @@ function cmdHTML(){
   return '<div class="btns cmds"><span class="cmd-l">Orders (free, once a room):</span>'+roles.map(k=>{ const used=S.run.cmd&&S.run.cmd[k];
     return '<button class="btn small" data-a="cmd" data-k="'+k+'" title="'+CMDS[k].desc+'"'+(used?' disabled':'')+'>'+CMDS[k].name+(used?' &middot; given':'')+'<kbd>'+ORDER_KEY[k]+'</kbd></button>'; }).join('')+'</div>';
 }
-function logHTML(){ return '<ol class="log" aria-live="polite">'+S.run.log.map(l=>'<li class="'+l.c+'">'+l.m+'</li>').join('')+'</ol>'; }
+function srAnnounce(){   // read out the newest battle line once (the log itself is rebuilt on every render, so it cannot be the live region)
+  const el=document.getElementById('sr-live'); if(!el) return; const L=S.run&&S.mode!=='town'&&S.run.log, last=L&&L.length?L[L.length-1].m:'';
+  if(last&&last!==TAB.sr){ TAB.sr=last; el.textContent=last.replace(/<[^>]+>/g,''); } }
+function logHTML(){ return '<ol class="log">'+S.run.log.map(l=>'<li class="'+l.c+'">'+l.m+'</li>').join('')+'</ol>'; }
 function battleHTML(){
   currentTarget();
   const r=S.run, D=DUNGEONS[r.di], P=S.player, boss=r.room===r.rooms-1;
@@ -3554,12 +3669,12 @@ function render(){
   if(ui.scr&&ui.scr!==scr&&typeof window.scrollTo==='function') try{ window.scrollTo(0,0); }catch(e){}
   ui.scr=scr;
   if(ui.shake&&!VIEW.calm){ ui.shake=false; const w=app.querySelector('.main > .win'); if(w) w.classList.add('shake'); }
-  try{ bossBg(); }catch(e){}
+  try{ bossBg(); }catch(e){} try{ srAnnounce(); }catch(e){}
   try{ music(); }catch(e){}
   save();   // every screen saves; outside town the snapshot is "as if you walked out now"
 }
 const ACTIONS={
-  equip:k=>equip(+k), unequip:k=>unequip(k), tab:k=>{ ui.tab=k==='ledger'?(ui.ledger||'codex'):k; ui.msg=null; }, bes:k=>{ ui.bes=ui.bes===k?null:k; },
+  equip:k=>equip(+k), unequip:k=>unequip(k), tab:k=>{ if(k==='tower'&&S.player.lvl<TW.unlock) return; ui.tab=k==='ledger'?(ui.ledger||'codex'):k; ui.msg=null; }, bes:k=>{ ui.bes=ui.bes===k?null:k; },
   discard:k=>{ if(ui.confirm==='d'+k){ discard(+k); ui.confirm=null; } else ui.confirm='d'+k; },
   alloc:k=>alloc(k), learn:k=>learnSkill(k),
   ngppick:k=>{ ui.ngpPick=ui.ngpPick===k?null:k; },
@@ -3589,7 +3704,7 @@ const ACTIONS={
   enchadd:k=>{ const it=findItem(+k); ui.msg=enchant(+k,-1)?{mk:1,m:ITEM[it.id].name+' gains a bonus line.',c:'ok'}:null; },
   enchline:k=>{ const a=k.split('|'), it=findItem(+a[0]); ui.msg=enchant(+a[0],+a[1])?{mk:1,m:'Re-rolled a line on '+ITEM[it.id].name+'.',c:'ok'}:null; },
   music:()=>{ MUSIC.on=!MUSIC.on; MUSIC.armed=true; try{ localStorage.setItem('lotd-music',MUSIC.on?'on':'off'); }catch(e){} },
-  view:k=>{ const a=k.split('|'); if(a[0]==='size') VIEW.size=clamp(+a[1]||0,-1,2); else if(a[0]==='calm'||a[0]==='hc') VIEW[a[0]]=!VIEW[a[0]]; saveView(); applyView(); },
+  view:k=>{ const a=k.split('|'); if(a[0]==='size') VIEW.size=clamp(+a[1]||0,-1,2); else if(a[0]==='calm'||a[0]==='hc'||a[0]==='nobg') VIEW[a[0]]=!VIEW[a[0]]; saveView(); applyView(); },
   dlsave:()=>{ ui.msg=downloadSave()?{m:'Save file downloaded.',c:'ok'}:{m:'This browser would not create the file. Use a save code instead.',c:'bad'}; },
   loadfile:()=>{ if(!ui.file) return; if(ui.confirm!=='lf'){ ui.confirm='lf'; return; } ui.confirm=null; const ok=importText(ui.file.text); ui.msg=ok?{m:'Loaded '+ui.file.name+'.',c:'ok'}:{m:ui.file.name+' is not a valid save.',c:'bad'}; ui.file=null; ui.exp=''; },
   dropfile:()=>{ ui.file=null; }, fold:k=>{ if(!['equip','quest','bounty'].includes(k)) return; if(VIEW.fold[k]) delete VIEW.fold[k]; else VIEW.fold[k]=true; saveView(); }, sort:k=>{ ui.sort=BAG_SORTS[k]?k:'tier'; }, mk:k=>{ ui.mk=k; ui.msg=null; },
@@ -3617,7 +3732,7 @@ const ACTIONS={
     const fallback=()=>{ const x=document.getElementById('exp'); let ok=false; if(x){ x.focus(); x.select(); try{ ok=document.execCommand('copy'); }catch(e){} }
       ui.msg=ok?{m:'Code copied.',c:'ok'}:{m:'Copying is blocked here. The code is selected: press Ctrl+C (Cmd+C on a Mac) to copy it.',c:'bad'}; render(); const y=document.getElementById('exp'); if(y&&!ok){ y.focus(); y.select(); } };
     try{ navigator.clipboard.writeText(v).then(()=>{ ui.msg={m:'Code copied.',c:'ok'}; render(); },fallback); }catch(e){ setTimeout(fallback,0); } },
-  loadcode:()=>{ if(ui.confirm!=='lc'){ ui.confirm='lc'; return; } ui.confirm=null; if(importCode(ui.imp)){ ui.imp=''; ui.exp=''; ui.msg={m:'Save code loaded.',c:'ok'}; } else ui.msg={m:'That code is not a valid save.',c:'bad'}; }, wear:k=>{ wearTitle(k); }, tower:k=>startTower(+k), act:k=>act(k), target:k=>setTarget(k), flee:()=>flee(),
+  loadcode:()=>{ if(ui.confirm!=='lc'){ ui.confirm='lc'; return; } ui.confirm=null; if(importCode(ui.imp)){ ui.imp=''; ui.exp=''; ui.msg={m:'Save code loaded.',c:'ok'}; } else ui.msg={m:'That code is not a valid save.',c:'bad'}; }, wear:k=>{ wearTitle(k); }, ttf:k=>{ ui.ttf=(k in {all:1,got:1,locked:1,close:1}||/^r[0-5]$/.test(k))?k:'all'; }, tower:k=>startTower(+k), act:k=>act(k), target:k=>setTarget(k), flee:()=>flee(),
   raise:k=>tryRaise(k), descend:()=>descend(), town:()=>returnTown(), rest:()=>restDay(),
   release:k=>{ if(ui.confirm===+k){ release(+k); ui.confirm=null; } else ui.confirm=+k; },
   newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); OPEN_HELP.on=false; ui.tab='help'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
@@ -3630,7 +3745,9 @@ document.addEventListener('click',e=>{
   ACTIONS[a]&&ACTIONS[a](b.dataset.k); render();
 });
 document.addEventListener('input',e=>{ if(e.target&&e.target.id==='imp') ui.imp=e.target.value; if(e.target&&e.target.id==='rn') ui.rn=e.target.value; });
-document.addEventListener('change',e=>{   // a save file was picked: read it, then ask before loading
+document.addEventListener('change',e=>{   // a dropdown with data-a works like a button whose data-k is the chosen value
+  const sl=e.target&&e.target.tagName==='SELECT'&&e.target.dataset&&e.target.dataset.a; if(sl&&ACTIONS[sl]){ ACTIONS[sl](e.target.value); render(); return; }
+  // a save file was picked: read it, then ask before loading
   const f=e.target&&e.target.id==='loadfile'&&e.target.files&&e.target.files[0]; if(!f) return;
   if(f.size>2e6){ ui.msg={m:'That file is too large to be a save.',c:'bad'}; render(); return; }
   const rd=new FileReader(); rd.onload=()=>{ ui.file={name:f.name,text:String(rd.result||'')}; ui.confirm=null; render(); }; rd.readAsText(f);

@@ -8,5 +8,7 @@ for(const m of ['noSkills','skills','market','full']){
   const r=out[m]; if(!r) continue;
   console.log('\n== '+m+'  runs '+r.runs+'  clears '+r.clearRate+'  deaths '+r.deathRate+'  tower '+r.towerBest+'  levels '+JSON.stringify(r.level));
   console.table(r.gates);
+  if(r.heat&&r.heat.length>1) console.log('  difficulty: '+r.heat.join(' | '));
+  if(r.sec) console.log('  secret masters: met '+r.sec.met+', slain '+r.sec.slain);
 }
 console.log((out.ms/1000).toFixed(1)+' s');

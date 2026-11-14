@@ -2,7 +2,7 @@
 // Used by run-tests.js and run-balance.js. Returns the vm context; extra files run in the same global scope.
 const fs=require('fs'), path=require('path'), vm=require('vm');
 module.exports=function loadGame(extraFiles){
-  const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+  const html=fs.readFileSync(process.env.LOTD_HTML||path.join(__dirname,'..','index.html'),'utf8');   // LOTD_HTML: load a tuned copy instead (balance sweeps)
   const m=html.match(/<script>([\s\S]*)<\/script>/);
   if(!m) throw new Error('No inline <script> found in index.html');
   const store=new Map(), classes=new Set(), listeners={};

@@ -25,4 +25,18 @@ test('Codex: numbers come from the game tables, so they follow balance changes',
   const keep=EVENT_CHANCE; ok(cdx('rooms').includes(Math.round(keep*100)+'% of gate rooms'));
 });
 
+test('Codex: the numbers it states match what the game does',()=>{
+  const txt=k=>cdx(k).replace(/<[^>]+>/g,' ');
+  ok(txt('raising').includes(RAISE_MAX+'% ('+SALT_CAP+'% with salts)'),'raise caps');
+  const c={rankI:0,lvl:1,boss:false,elite:false}; setLvl(80); S.player.stats.will=200; eq(raiseChance(c),RAISE_MAX); eq(saltChance(c),SALT_CAP,'salts really stop at '+SALT_CAP);
+  setLvl(25); S.mode='town'; chooseUlt('rise'); const m=mkMinion({}); arena([foe({hp:1e6})]); S.run.souls=SOUL_MAX; useUlt(); const f=S.run.frenzy; ok(ULTS.rise.desc.includes(f+' turns'),'Resurrection lasts '+f+' turns, as Unholy Frenzy (3) says');
+  ok(SKILL.frenzy.desc(1).includes('3 turns')); flee();
+  ok(txt('skills').includes(Math.round(SIPHON_HEAL*100)+'% of what it drains'));
+  ok(/rise to \d+ levels below yours/.test(txt('curses')));
+  ok(!/Kept from a [AEIOU]/.test(txt('traits')),'a/an');
+  ok(txt('titles').includes('Max HP (percent)')&&txt('titles').includes('Max HP (flat)')&&!txt('titles').includes('Healing received'),'only bonuses titles give');
+  S.kills={}; ok(!cdx('bosses').includes('Secret masters'),'secret until met'); S.kills[SECRET[1].name]=1; ok(cdx('bosses').includes(SECRET[1].name));
+  ok(txt('basics').includes('level '+RK[5].unlock+'+')); ok(txt('basics').includes(KNOW_AT+' of one kind'));
+});
+
 })();
