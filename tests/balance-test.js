@@ -19,6 +19,8 @@
 //   full:      the market bot plus buildings, salvage, enchanting, fusion, bounties and orders against charging bosses:
 //              ~85% overall, deaths ~12%, level ~56 on day 100, tower ~76 (with faith, Hard on cleared gates and devotion
 //              blessings; ~87% and tower ~70 without them). Target: a little above market.
+//              Blessings measured: Grace in the Tower as well was worth ~5 floors to the whole bot (~11 per Honored bot), at 10% HP
+//              still ~4; gates-only Grace with a 3-Soul Tithe lands at tower ~72-73 and 86% clears.
 //              opts.off (e.g. ['fuse','crypt']) switches parts off to measure each one.
 //   The full bot now swears faith by default (Honored on even bots, Dishonored on odd) and climbs to Hard on cleared gates
 //   (opts.heat:1); pass faith/heat to override, heat:0 for the old behaviour. Every run also reports secret masters met/slain.
@@ -28,7 +30,8 @@
 //   floors after Death's Toll went to 400%; Hard clears ~82% (Normal 85%), Brutal ~63%, Nightmare ~41% with ~54% deaths, and
 //   Nightmare bots level slower (51.6 vs 53.9 on day 100), so it is a challenge, not the best farm.
 // Secret-master duel: LOTD_BALANCE.duel(seed, days, trials) plays one full bot to that day, then fights each cleared gate's
-//   boss room straight away (full HP) with and without the secret master. To sweep constants without editing the game, run
+//   boss room straight away (full HP) with and without the secret master. opts {faith, ult, heat} set up the bot; opts.log={gate,n} keeps the
+//   last n log lines of the first lost secret fight in that gate (row.log, row.end) to see what killed it. To sweep constants without editing the game, run
 //   Node with LOTD_HTML pointing at a tuned copy of index.html.
 //   Tuned (seeds 7700, 7701, 9100): ordinary boss rooms ~100%; secret masters ~55-65% at fresh HP on days 30, 50 and 75 (the Rat
 //   Warren's is the mildest, ~80-100%). Their HP grows SB_GROW per level you stand past your hardest gate's Recommended level, so
@@ -46,7 +49,7 @@
 // Your real save is not touched: saving is switched off while the test runs and the game is restored afterwards.
 (function(){
   const STAT_ORDER=['intelligence','constitution','will','intelligence','constitution','strength'];
-  const SKILL_ORDER=['spear','bonearmor','mend','blast','soulwell','curse','gravepact','chill','frenzy','edge','mastery','reap'];
+  const SKILL_ORDER=['spear','bonearmor','mend','blast','soulwell','curse','gravepact','chill','frenzy','edge','mastery','reap','robber','scholar','calcify','sanguine','thrift','deathless'];   // the small passives last: actives come first
   const itemScore=d=>d.tier*10+(d.uq?25:0)+(d.set||0);
   const cval=c=>c.rankI*100+c.lvl+(c.boss?40:0)+(c.elite?15:0);
   function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
@@ -87,6 +90,11 @@
           if(pair&&S.gold-fuseCost(pair[0],pair[1])>=reserve) fuse(pair[0].uid,pair[1].uid); }
       }
       for(const m of S.army.slice().sort((a,b)=>cval(b)-cval(a))){ while(S.gold-empowerCost(m)>=reserve&&empower(m.uid)); }
+    }
+    if(B.full&&!B.off.raid&&typeof sendRaid==='function'&&!(S.raids||[]).length&&S.army.length>=5&&S.watches===1){   // before the day's last run (they are home at dawn either way), send a Commander and its two weakest companions at the deepest gate with fair odds
+      const c=S.army.filter(isCommander).sort((a,b)=>cval(b)-cval(a))[0];
+      if(c){ const fol=S.army.filter(m=>m!==c).sort((a,b)=>cval(a)-cval(b)).slice(0,Math.min(2,squadMax(c)-1)), units=[c].concat(fol);
+        const g=raidGates().slice().reverse().find(di=>raidOdds(units,di)>=.55); if(g!=null) sendRaid(c.uid,g,fol.map(m=>m.uid)); }
     }
     if(S.inv.length>20){ S.inv.sort((a,b)=>itemScore(ITEM[b.id])-itemScore(ITEM[a.id])); S.inv=S.inv.filter((it,i)=>i<12||ITEM[it.id].uq); }
   }
@@ -173,16 +181,22 @@
   }
   function simBot(seed,B,days){
     Math.random=mulberry32(seed); newGame(); B.statI=0; B.hw={}; B.hwDay={};
-    const rec=[], lvAt={}, firstClear={};
+    const rec=[], lvAt={}, firstClear={}, loreAt={};
     while(S.day<=days){
       town(B); const d=S.day; playRun(B,rec);
       const last=rec[rec.length-1]; if(last&&last.cleared&&firstClear[last.gate]==null) firstClear[last.gate]=d;
-      if(S.day!==d) lvAt[d]=S.player.lvl;
+      if(S.day!==d){ if(typeof loreCheck==='function') loreCheck(); lvAt[d]=S.player.lvl;   /* the game checks lore when it draws; bots never draw */ loreAt[d]=[Object.keys(S.story||{}).length,S.pages||0]; }
     }
     town(B);
     const tower=S.player.lvl>=TW.unlock?climb(B):0;
+    let riftDeaths=0;   // the Rift: keep going one depth deeper until it has killed the bot 3 times (at most 40 runs)
+    if(typeof riftOpen==='function'&&riftOpen()&&!B.off.rift) for(let i=0;i<40&&riftDeaths<3;i++){
+      S.mode='town'; S.run=null; S.watches=Math.max(1,S.watches); town(B); if(!startRift(riftBest()+1)) break; let guard=0;
+      while(S.mode!=='town'&&guard++<4000){ if(S.mode==='battle') act(decide(B)); else if(S.mode==='raise'){ raisePhase(); if(S.run.cleared) break; descend(); } else break; }
+      if(S.mode==='defeat') riftDeaths++; returnTown(); }
+    const raids={sent:T_('raidsSent'),won:T_('raidWins')}, passives=['robber','scholar','calcify','sanguine','thrift','deathless'].reduce((a,id)=>a+sk(id),0);
     const sec={met:T_('secretMet'),slain:SECRET.reduce((a,B,i)=>a+T_('secret_'+i),0)};
-    return {rec,lvAt,firstClear,lvl:S.player.lvl,tower,sec};
+    return {rec,lvAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,rift:typeof riftBest==='function'?riftBest():0,passives};
   }
 
   // ----- reporting
@@ -199,8 +213,11 @@
     const all=[].concat(...res.map(r=>r.rec)), lv={};
     [10,20,30,days].forEach(d=>{ if(d<=days) lv['day'+d]=avg(res.map(r=>r.lvAt[d]).filter(x=>x!=null)); });
     const heat=HEAT.map((H,h)=>{ const g=all.filter(x=>x.heat===h); return g.length?H.name+' '+g.length+' runs, clear '+pc(g.filter(x=>x.cleared).length,g.length)+', death '+pc(g.filter(x=>x.died).length,g.length):null; }).filter(Boolean);
+    const lore={}; [10,30,60,days].forEach(d=>{ const a=res.map(r=>r.loreAt&&r.loreAt[d]).filter(Boolean); if(a.length) lore['day'+d]=avg(a.map(x=>x[0]))+' passages, '+avg(a.map(x=>x[1]))+' pages'; });
     const sec={met:res.reduce((a,r)=>a+(r.sec?r.sec.met:0),0),slain:res.reduce((a,r)=>a+(r.sec?r.sec.slain:0),0)};
-    return {gates,heat,sec,runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
+    const raids={sent:res.reduce((a,r)=>a+(r.raids?r.raids.sent:0),0),won:res.reduce((a,r)=>a+(r.raids?r.raids.won:0),0)};
+    const rift={best:avg(res.map(r=>r.rift||0)),open:res.filter(r=>r.rift>0).length+'/'+res.length,deepest:Math.max(0,...res.map(r=>r.rift||0))};
+    return {gates,heat,sec,lore,raids,rift,passives:avg(res.map(r=>r.passives||0)),runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
   }
 
   function run(opts){

@@ -30,7 +30,7 @@ test('Data: every enemy, item and the player has an icon',()=>{
 test('Data: titles, skills, tips and boss moves have unique ids and readable text',()=>{
   const ids=a=>a.map(x=>x.id); const uniq=(a,n)=>eq(new Set(a).size,a.length,n+' ids');
   uniq(ids(TITLES),'title'); uniq(ids(SKILLS),'skill'); uniq(ids(TIPS),'tip');
-  eq(SKILLS.length,12); SKILLS.forEach(s=>{ for(let r=1;r<=SK_MAX;r++) ok(!BAD_TEXT.test(s.desc(r)),s.id+' rank '+r); if(s.type==='active') ok(s.cost>0&&s.cd>0,s.id+' cost/cd'); });
+  eq(SKILLS.length,18); SKILLS.forEach(s=>{ for(let r=1;r<=SK_MAX;r++) ok(!BAD_TEXT.test(s.desc(r)),s.id+' rank '+r); if(s.type==='active') ok(s.cost>0&&s.cd>0,s.id+' cost/cd'); });
   GATE_ABIL.forEach(a=>ok(BOSS_ABIL[a],a)); TITLES.forEach(t=>ok(t.name&&t.req&&!BAD_TEXT.test(t.req),t.id));
 });
 test('Data: tier weights add up to 100',()=>{ TIER_W.forEach((r,i)=>eq(r.reduce((a,b)=>a+b,0),100,'row '+i)); });

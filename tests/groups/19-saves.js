@@ -20,7 +20,7 @@ test('Saves: damaged saves are repaired',()=>{
     inv:[{u:50,id:'0-wa'},{u:51,id:'nope'},null],equip:{weapon:{u:9,id:'bad'}},army:[{role:'striker',lvl:2,rankI:0,name:'Imp',traits:['vicious','fake'],stage:9},{role:'wizard',lvl:1,rankI:0}],
     trophies:{'Tunnel Rat':2.6,'Fake':3,'Imp':-1},belt:{hp:99,mp:-1},bagLv:99,salts:-4,shop:{day:1,stock:[{id:'nope'}]},quest:'x'});
   eq(g.player.lvl,3); eq(g.player.xp,0); eq(g.player.stats.strength,4); eq(Object.keys(g.player.skills).join(),'spear'); eq(g.gold,0);
-  eq(g.inv.length,1); eq(g.equip.weapon,null); eq(g.army.length,1); eq(g.army[0].traits.join(),'vicious'); eq(g.army[0].stage,2); eq(g.army[0].uid,51); eq(g.uid,51);
+  eq(g.inv.length,1); eq(g.equip.weapon,null); eq(g.army.length,1); eq(g.army[0].traits.join(),'vicious'); eq(g.army[0].stage,STAGE_MAX); eq(g.army[0].uid,51); eq(g.uid,51);
   eq(canon(g.trophies),canon({'Tunnel Rat':2})); eq(g.belt.hp,BELT_MAX); eq(g.belt.mp,0); eq(g.bagLv,BAG_COST.length); eq(g.salts,0); eq(g.shop,null); eq(g.quest.kills,0); eq(g.mode,'town');
   ok(adoptSave(g),'the repaired save loads'); invariants('repaired save');
 });

@@ -7,7 +7,7 @@ test('Help: How to play reads its numbers from the game and lists what opens lat
   ok(h.includes(Object.values(ORDER_KEYS).map(r=>CMDS[r].name).join(', ')),'order names in key order');
   ok(/saves itself after every action/.test(h)); ok(!/rise to your level/.test(h),'cursed gates rise to just below your level');
   eq(HELP_LATER().length,7); setLvl(25); ok(HELP_LATER().find(x=>x[0]==='Ultimates')[2],'marked open');
-  ui.tab='settings'; const st=renderAll('settings'); ok(/after every action/.test(st)&&!/every time you are in town/.test(st)); ok(/every boss/.test(st),'music text is current');
+  ui.tab='settings'; const st=renderAll('settings'); ok(/after every action/.test(st)&&!/every time you are in town/.test(st)); ok(/each place and boss/.test(st),'music text is current');
 });
 test('Names: no skill upgrade, unique power, order, affix or basic action shares a name with another',()=>{
   const names=[['Strike','action'],['Soul Siphon','action'],['Bone Ward','action']];
@@ -35,7 +35,7 @@ test('Records: a turn counter runs through the whole gate, and a slain secret ma
 });
 test('Faith: full devotion grants a blessing once per run — Grace saves the Honored One, the Tithe starts the Dishonored with Souls',()=>{
   setLvl(30); S.mode='town'; S.gold=1e6; ok(swear('hon')); S.faith.day=S.day-DEVOTION[2]; ok(blessed('hon'));
-  arena([foe({hp:1e6})]); const P=S.player; P.hp=0; ok(!playerFalls(),'saved'); eq(P.hp,Math.round(pMax()*GRACE_HP)); P.hp=0; ok(playerFalls(),'only once a run');
+  arena([foe({hp:1e6})]); const P=S.player; S.run.tw=5; P.hp=0; ok(playerFalls(),'no Grace in the Tower'); S.mode='town'; S.run=null; arena([foe({hp:1e6})]); P.hp=0; ok(!playerFalls(),'saved'); eq(P.hp,Math.round(pMax()*GRACE_HP)); P.hp=0; ok(playerFalls(),'only once a run');
   returnTown(); S.mode='town'; ok(renounce()); ok(swear('dis')); ok(!blessed('dis'),'devotion starts over'); S.watches=3; startRun(0); eq(S.run.souls||0,0); flee();
   S.faith.day=S.day-DEVOTION[2]; S.watches=3; startRun(0); eq(S.run.souls,TITHE_SOULS); flee();
   ui.tab='town'; ok(renderAll('shrine').includes(FAITH.dis.bless.name)); ui.tab='codex'; ui.cx='faith'; ok(renderAll('cx faith').includes(FAITH.hon.bless.name));

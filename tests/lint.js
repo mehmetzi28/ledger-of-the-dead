@@ -2,7 +2,7 @@
 // into the middle of one silently comments out everything after it on that line (it happened twice). Run by run-tests.js.
 //   node tests/lint.js [file]      exit code 1 if anything looks swallowed
 const fs=require('fs');
-const html=fs.readFileSync(process.argv[2]||require('path').join(__dirname,'..','index.html'),'utf8');
+const html=fs.readFileSync((require.main===module&&process.argv[2])||require('path').join(__dirname,'..','index.html'),'utf8');
 const start=html.indexOf('<script>'), body=html.slice(start);
 const lines=body.split('\n'), off=html.slice(0,start).split('\n').length-1, hits=[];
 function commentAt(line){   // index of a // that starts a comment, skipping strings, template literals and regex literals (roughly)
@@ -17,5 +17,7 @@ function commentAt(line){   // index of a // that starts a comment, skipping str
 }
 lines.forEach((l,n)=>{ const i=commentAt(l); if(i<0) return; const c=l.slice(i+2);
   if(/;\s*[A-Za-z_$][\w$.\[\]'"]*\s*(=(?!=)|\()/.test(c)&&/[;})]\s*$/.test(c.trim())) hits.push((n+off+1)+': '+c.trim().slice(0,120)); });
+// Stray control characters (a backslash-b written through a script once became a real backspace and silently broke a regex).
+html.split('\n').forEach((l,n)=>{ const m=l.match(/[\x00-\x08\x0b\x0c\x0e-\x1f]/); if(m) hits.push((n+1)+': control character U+'+m[0].charCodeAt(0).toString(16).padStart(4,'0')+' near "'+l.slice(Math.max(0,m.index-30),m.index).trim()+'"'); });
 if(require.main===module){ console.log(hits.length?hits.length+' line comment(s) look like swallowed code:':'lint: no swallowed code'); hits.forEach(h=>console.log('  index.html:'+h)); process.exit(hits.length?1:0); }
 module.exports=hits;

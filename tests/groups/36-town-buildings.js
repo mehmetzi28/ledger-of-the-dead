@@ -8,7 +8,7 @@ test('Town: buildings cost gold, then bone dust, and stop at level 3',()=>{
   arena([foe()]); ok(!build('forge'),'not in battle'); eq(bl('forge'),0);
 });
 test('Town: each building changes its numbers',()=>{
-  const P=S.player; setLvl(60); P.stats.will=100; eq(slots(),10); S.build.crypt=2; eq(slots(),12,'Crypt lifts the cap');
+  const P=S.player; setLvl(60); P.stats.will=100; eq(slots(),ARMY_CAP); S.build.crypt=2; eq(slots(),ARMY_CAP+2,'Crypt lifts the cap');
   const it=give('3-wa'), r0=reforgeCost(it), e0=enchCost(it); S.build.forge=2; eq(reforgeCost(it),Math.round(buyPrice(ITEM['3-wa'])*REFORGE_COST*.7)); ok(enchCost(it)<e0&&reforgeCost(it)<r0);
   setLvl(1); P.stats.will=4; const c=corpse({}), ch=raiseChance(c); S.build.ossuary=1; eq(raiseChance(c),ch+3);
   const m0=pMana(), mn=mkMinion({lvl:1}), ec=empowerCost(mn); S.build.altar=2; near(pMana(),m0*1.1,1); eq(empowerCost(mn),Math.round(mneed(1)*.6*.8)); ok(empowerCost(mn)<=ec);

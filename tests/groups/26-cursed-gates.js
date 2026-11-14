@@ -9,8 +9,8 @@ test('Curses: never on a gate you are too low for',()=>{ S.ti={clr:{0:1,3:1}}; s
 test('Curses: Horde adds a foe to every room, Bulwark adds 30% HP, Fury 25% attack',()=>{
   cursedRun('horde'); eq(S.run.enemies.length,3); S.run.room=3; spawnRoom(); eq(S.run.enemies.length,4);
   fresh(); seed(4); startRun(0); const base=S.run.enemies.map(e=>[e.maxHp,e.atk]);
-  fresh(); seed(4); S.ti={clr:{0:1}}; S.mod={day:1,gi:0,id:'bulwark'}; startRun(0); S.run.enemies.forEach((e,i)=>{ eq(e.maxHp,Math.round(base[i][0]*1.3)); eq(e.atk,base[i][1]); });
-  fresh(); seed(4); S.ti={clr:{0:1}}; S.mod={day:1,gi:0,id:'fury'}; startRun(0); S.run.enemies.forEach((e,i)=>{ eq(e.maxHp,base[i][0]); ok(e.atk>=Math.round(base[i][1]*1.25)-1); });
+  fresh(); seed(4); S.ti={clr:{0:1}}; S.mod={day:1,gi:0,id:'bulwark'}; startRun(0); S.run.enemies.forEach((e,i)=>{ near(e.maxHp,base[i][0]*1.3*CURSE_FOE,2); near(e.atk,base[i][1]*CURSE_FOE,1); });
+  fresh(); seed(4); S.ti={clr:{0:1}}; S.mod={day:1,gi:0,id:'fury'}; startRun(0); S.run.enemies.forEach((e,i)=>{ near(e.maxHp,base[i][0]*CURSE_FOE,1); ok(e.atk>=Math.round(base[i][1]*1.25*CURSE_FOE)-1); });
 });
 test('Curses: Drought stops mana coming back at the end of a turn',()=>{ cursedRun('drought'); const t=foe({hp:1e6}); S.run.enemies=[t]; S.run.target=t.id; S.player.mana=0; fix(.5); act('strike'); eq(S.player.mana,3); });
 test('Curses: Volatile dead burst on death, soaked by ward, never below 1 HP',()=>{

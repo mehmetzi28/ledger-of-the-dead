@@ -10,5 +10,8 @@ for(const m of ['noSkills','skills','market','full']){
   console.table(r.gates);
   if(r.heat&&r.heat.length>1) console.log('  difficulty: '+r.heat.join(' | '));
   if(r.sec) console.log('  secret masters: met '+r.sec.met+', slain '+r.sec.slain);
+  if(r.lore) console.log('  lore: '+Object.entries(r.lore).map(([d,v])=>d+' '+v).join(' | '));
+  if(r.raids&&r.raids.sent) console.log('  raids: sent '+r.raids.sent+', won '+r.raids.won+' ('+Math.round(r.raids.won/r.raids.sent*100)+'%)');
+  if(r.rift) console.log('  rift: reached by '+r.rift.open+' bots, average deepest '+r.rift.best+', best '+r.rift.deepest+'  |  passive ranks learned: '+r.passives);
 }
 console.log((out.ms/1000).toFixed(1)+' s');

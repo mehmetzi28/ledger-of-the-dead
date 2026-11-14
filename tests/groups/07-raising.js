@@ -1,17 +1,17 @@
 // Raising tests. Helpers and the runner live in tests/game-tests.js; this file only adds tests.
 (function(){
 const {test,ok,eq,near,finite,fmt,BAD_TEXT,cleanHTML,mulberry32,seed,fix,seq,H,fresh,setLvl,foe,arena,mkMinion,corpse,raiseScene,wear,give,canon,firstDiff,renderAll,TABS,richState,invariants,NODE,bossFight,earn,eventScene,cursedRun,wonRoom,master,board,cdx}=window.LOTD_T;
-test('Raising: chance rises with Will and level, falls for rank, elites and bosses, clamped 5-90',()=>{
-  const c=corpse({lvl:1}); const base=raiseChance(c); eq(base,Math.round(35+4*2.2));
+test('Raising: chance rises with Will and level, falls for rank, elites and bosses, clamped 1-85',()=>{
+  const c=corpse({lvl:1}); const base=raiseChance(c); eq(base,Math.round(RAISE_BASE+4*RAISE_WILL)); eq(RAISE_MIN,1); eq(RAISE_MAX,85); eq(SALT_CAP,95);
   S.player.stats.will=10; ok(raiseChance(c)>base); S.player.stats.will=4;
   ok(raiseChance(corpse({elite:true}))<base); ok(raiseChance(corpse({boss:true}))<raiseChance(corpse({elite:true})));
-  eq(raiseChance(corpse({lvl:99})),5); S.player.lvl=99; eq(raiseChance(c),90); S.player.lvl=1;
+  eq(raiseChance(corpse({lvl:99})),1); S.player.lvl=99; eq(raiseChance(c),85); S.player.lvl=1;
   S.player.skills.mastery=2; eq(raiseChance(c),base+8);
 });
 test('Raising: a success adds a named minion with a trait (bosses two)',()=>{
   const c=corpse(), b=corpse({boss:true,name:'The Rat King',base:'The Rat King',role:'reaper'}); const r=raiseScene([c,b],5); fix(0); const P=S.player; P.mana=100;
   tryRaise(c.id); eq(S.army.length,1); eq(P.mana,100-raiseCost(c)); eq(c.result,'raised'); ok(c.tried); eq(S.army[0].traits.length,1); eq(S.army[0].hp,S.army[0].maxHp); eq(S.ti.raised,1); eq(r.raised,1);
-  tryRaise(b.id); eq(S.army[1].traits.length,2); ok(S.army[1].traits[0]!==S.army[1].traits[1]); ok(S.army[0].nick!==S.army[1].nick,'unique names');
+  tryRaise(b.id); eq(S.army[1].traits.filter(t=>t!=='commander').length,2); ok(S.army[1].traits[0]!==S.army[1].traits[1]); ok(S.army[0].nick!==S.army[1].nick,'unique names');
   tryRaise(c.id); eq(S.army.length,2,'a body can only be tried once');
 });
 test('Raising: a failure still spends the mana',()=>{ const c=corpse(); raiseScene([c]); fix(.999); S.player.mana=50; tryRaise(c.id); eq(S.army.length,0); eq(c.result,'failed'); eq(S.player.mana,50-raiseCost(c)); });

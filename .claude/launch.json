@@ -17,6 +17,15 @@
         "5174"
       ],
       "port": 5174
+    },
+    {
+      "name": "scratch",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "tools/serve.js",
+        "5175"
+      ],
+      "port": 5175
     }
   ]
 }

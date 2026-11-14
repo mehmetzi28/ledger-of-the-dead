@@ -7,8 +7,8 @@ test('Titles: earned once, worn automatically, with one notice',()=>{
 });
 test('Titles: every condition can be checked on a new game without errors',()=>{ checkTitles(); TITLES.forEach(t=>{ const v=t.ok(); ok(v===true||v===false||v===undefined||typeof v==='number','title '+t.id+' returned '+v); }); });
 test('Titles: deed counters add up',()=>{ tally('x'); tally('x',4); eq(S.ti.x,5); });
-test('Titles: 115 titles, each with a small, readable bonus',()=>{
-  eq(TITLES.length,115); eq(new Set(TITLES.map(t=>t.name)).size,115,'unique names');
+test('Titles: 122 titles, each with a small, readable bonus',()=>{
+  eq(TITLES.length,122); eq(new Set(TITLES.map(t=>t.name)).size,122,'unique names');
   for(const t of TITLES){ const ks=Object.keys(t.b); ok(ks.length>=1&&ks.length<=2,t.id+' bonus count'); ks.forEach(k=>{ ok(TBUFF_L[k]||STATL[k],t.id+' unknown bonus '+k); ok(t.b[k]>0&&t.b[k]<=(TBUFF_L[k]?10:25)*RARITY_MUL[t.r],t.id+' '+k+' is not small'); ok(k!=='slot',t.id+' gives army slots'); }); ok(buffTxt(t.b)&&!BAD_TEXT.test(buffTxt(t.b)),t.id+' text'); }
   ['Gates','Hell Tower','Curses and events','Deeds'].forEach(g=>ok(TITLES.some(t=>t.grp===g),g));
 });
@@ -61,7 +61,7 @@ test('Titles: flawless clears and last-breath wins are recognised',()=>{
 });
 test('Titles: the Titles page shows every bonus and what you wear',()=>{ earn('g2'); wearTitle('g2'); ui.tab='titles'; const h=renderAll('titles'); ok(/When worn: \+3% Max HP/.test(h)); ok(/Wearing <b>Ashwalker<\/b>/.test(h)); ok(/Curses and events/.test(h)); });
 test('Titles: the big deeds unlock',()=>{
-  const s=richState(); S.ti.got={}; S.ti.sel=null; S.player.lvl=50; S.ti.raised=200; S.ti.deaths=10; S.ti.claims=7; S.ti.cancels=10; S.ti.master=1; S.ti.soldTro=500; S.ti.emp=25; S.ti.evolved=1; S.ti.elder=1; S.ti.armed=1; S.tower.best=150; S.ngp=3;
+  const s=richState(); S.ti.got={}; S.ti.sel=null; S.player.lvl=50; S.ti.raised=200; S.ti.deaths=10; S.ti.claims=7; S.ti.cancels=10; S.ti.master=1; S.ti.soldTro=500; S.ti.emp=25; S.ti.evolved=1; S.ti.elder=1; S.ti.ancient=1; S.ti.eternal=1; S.ti.raidWins=25; S.rift={best:30}; S.ti.armed=1; S.tower.best=150; S.ngp=3;
   allNames().forEach(n=>S.kills[n]=2000);
   S.player.lvl=75; S.ti.raised=500; S.tower.best=200; S.day=100; for(let i=0;i<6;i++){ S.ti['secret_'+i]=1; S.ti['nm'+i]=1; } S.ti.heat1=S.ti.heat2=S.ti.damned3=1; for(let i=0;i<6;i++) S.ti['clrN'+i]=25; Object.keys(MODS).forEach(m=>S.ti['cur_'+m]=1);
   Object.assign(S.ti,{twRuns:50,cursed:25,shrine:10,pedlar:10,coffer:15,trap:5,straggler:10,poisoned:200,cures:25,drank:100,sk_spear:100,sk_blast:50,frozen:50,sk_reap:100,crits:1000,flawless:1,lastBreath:1,bosses:25,elites:100,reforged:25,soldItems:100,raisedBoss:1});

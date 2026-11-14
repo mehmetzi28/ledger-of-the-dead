@@ -26,12 +26,15 @@ test('Minions: shattered gear-bearers drop their gear into the bag',()=>{
   arena([foe({hp:0,dead:true})]); fix(0); const m=mkMinion({armed:true,eq:{weapon:{u:++S.uid,id:'0-wa'},armor:null,relic:null}}); m.hp=0; roomWon();
   ok(S.inv.some(it=>it.id==='0-wa'));
 });
-test('Minions: evolve at +5 and +10 levels, gaining a trait and 15% stats each time',()=>{
+test('Minions: evolve at +5, +10, +18 and +28 levels, each stage with its own buff and a trait',()=>{
   setLvl(30); const m=mkMinion({lvl:1}); const h=m.maxHp; m.lvl=6; checkEvolve(m); syncMinion(m); eq(m.stage,1); eq(m.traits.length,1); eq(mName(m),'Greater Tunnel Rat'); eq(S.ti.evolved,1);
-  m.lvl=11; checkEvolve(m); eq(m.stage,2); eq(m.traits.length,2); eq(S.ti.elder,1); m.lvl=40; checkEvolve(m); eq(m.stage,2,'Elder is the last stage');
-  const p=mkMinion({lvl:30,rankI:5}), q=mkMinion({lvl:30,rankI:5,stage:2}); near(q.maxHp/p.maxHp,1+2*STAGE_BONUS,.01,'Elder HP bonus'); near(q.atk/p.atk,1+2*STAGE_BONUS,.02,'Elder attack bonus');
+  m.lvl=11; checkEvolve(m); eq(m.stage,2); eq(m.traits.length,2); eq(S.ti.elder,1); m.lvl=18; checkEvolve(m); eq(m.stage,2,'not Ancient before +18'); m.lvl=19; checkEvolve(m); eq(m.stage,3); eq(S.ti.ancient,1); eq(mName(m),'Ancient Tunnel Rat');
+  m.lvl=60; checkEvolve(m); eq(m.stage,4,'Eternal is the last stage'); eq(S.ti.eternal,1); eq(m.traits.length,4);
+  const p=mkMinion({lvl:30,rankI:5}), q=mkMinion({lvl:30,rankI:5,stage:2}), g=mkMinion({lvl:30,rankI:5,stage:1});
+  near(g.maxHp/p.maxHp,1.2,.01,'Greater HP'); near(g.atk/p.atk,1.1,.02,'Greater attack'); near(q.maxHp/p.maxHp,1.3,.01,'Elder HP'); near(q.atk/p.atk,1.3,.02,'Elder attack');
+  const e=mkMinion({lvl:30,rankI:5,stage:4}); near(e.maxHp/p.maxHp,1.65,.01,'Eternal HP'); ok(/Greater \+20% HP, \+10% ATK; Elder/.test(minionDetail(q)),'buffs listed by stage'); ok(/Base stats/.test(minionDetail(q)));
 });
-test('Minions: evolving through XP or the Bone Altar works too',()=>{ setLvl(30); const m=mkMinion({lvl:1}); minionXp(m,1e5); eq(m.stage,2); const k=mkMinion({lvl:1}); S.gold=1e6; for(let i=0;i<5;i++) empower(k.uid); eq(k.stage,1); });
+test('Minions: evolving through XP or the Bone Altar works too',()=>{ setLvl(30); const m=mkMinion({lvl:1}); minionXp(m,1e5); eq(m.stage,4); const k=mkMinion({lvl:1}); S.gold=1e6; for(let i=0;i<5;i++) empower(k.uid); eq(k.stage,1); });
 test('Minions: names read naturally',()=>{
   eq(mName({name:'The Rat King',stage:2}),'The Elder Rat King'); eq(mName({name:'Crypt Ghoul',stage:1}),'Greater Crypt Ghoul'); eq(mName({name:'Imp'}),'Imp');
   eq(withArticle('Elder Imp'),'an Elder Imp'); eq(withArticle('Greater Imp'),'a Greater Imp'); eq(withArticle('The Elder Rat King'),'The Elder Rat King'); eq(theName('Imp'),'the Imp'); eq(theName('The Rat King'),'The Rat King');

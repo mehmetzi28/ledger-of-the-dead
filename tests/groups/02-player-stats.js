@@ -23,8 +23,8 @@ test('Stats: gear adds to stats, the dawn debuff cuts HP, Bone Armor adds 6% per
   S.player.debuff=true; eq(pMax(),Math.round(base*(1-QUEST_DEBUFF))); S.player.debuff=false;
   S.player.skills.bonearmor=3; eq(pMax(),Math.round(base*1.18));
 });
-test('Stats: army slots grow with Will and level, capped at 10',()=>{
-  eq(slots(),2); S.player.stats.will=9; eq(slots(),4); S.player.lvl=10; eq(slots(),6); S.player.stats.will=99; eq(slots(),10);
+test('Stats: army slots grow with Will (one per 2.5) and level (one per 4), capped at 12',()=>{
+  eq(slots(),2); S.player.stats.will=9; eq(slots(),4); S.player.lvl=10; eq(slots(),6); S.player.stats.will=99; eq(slots(),ARMY_CAP); eq(ARMY_CAP,12);
 });
 test('Stats: rank letter follows level',()=>{ [[1,0],[4,1],[8,2],[12,3],[17,4],[23,5],[60,5]].forEach(([l,r])=>{ S.player.lvl=l; eq(pRankI(),r,'level '+l); }); });
 

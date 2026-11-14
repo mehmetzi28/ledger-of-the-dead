@@ -6,11 +6,11 @@ test('Difficulty: Hard opens after a clear, each level after clearing the one be
   S.heatMax={0:1}; eq(heatMax(0),2); S.heatMax={0:3}; eq(heatMax(0),3,'Nightmare is the top'); ok(setHeat(0,3)); eq(heatOf(0),3); ok(setHeat(0,0)); eq(heatOf(0),0);
   arena([foe()]); ok(!setHeat(0,1),'not mid-run');
 });
-test('Difficulty: foes grow and rewards follow; a cursed day stacks a further x1.3',()=>{
+test('Difficulty: foes grow and rewards follow; a cursed day stacks x1.5 on foes and x1.3 on rewards',()=>{
   setLvl(5); S.ti=S.ti||{}; S.ti.clr={0:1}; S.mod={day:S.day,gi:3,id:'fury'}; fix(.5);
   S.watches=3; startRun(0); const base=S.run.enemies.map(e=>[e.maxHp,e.atk]); const x0=killXp(foe({lvl:5})); flee();
   S.heatMax={0:1}; ok(setHeat(0,2)); S.watches=3; fix(.5); startRun(0); eq(S.run.heat,2); S.run.enemies.forEach((e,i)=>{ near(e.maxHp,base[i][0]*HEAT[2].foe,1.5,'foe HP x2'); }); near(killXp(foe({lvl:5})),x0*HEAT[2].xp,1.5,'XP x1.7'); flee();
-  S.mod={day:S.day,gi:0,id:'fury'}; S.watches=3; fix(.5); startRun(0); near(heatK('foe'),HEAT[2].foe*DAMNED,1e-9,'damned'); ok(/the curse feeds on it/.test(renderAll('damned battle'))); flee();
+  S.mod={day:S.day,gi:0,id:'fury'}; S.watches=3; fix(.5); startRun(0); near(heatK('foe'),HEAT[2].foe*DAMNED_FOE,1e-9,'damned'); near(heatK('gold'),HEAT[2].gold*DAMNED,1e-9,'rewards unchanged'); ok(/the curse feeds on it/.test(renderAll('damned battle'))); flee();
   ui.tab='gates'; ok(/Cursed and Brutal: the curse feeds on it/.test(renderAll('card')));
 });
 test('Difficulty: a clear on a level opens the next, and saves keep only sane levels',()=>{

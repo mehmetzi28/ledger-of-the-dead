@@ -2,7 +2,7 @@
 (function(){
 const {test,ok,eq,near,finite,fmt,BAD_TEXT,cleanHTML,mulberry32,seed,fix,seq,H,fresh,setLvl,foe,arena,mkMinion,corpse,raiseScene,wear,give,canon,firstDiff,renderAll,TABS,richState,invariants,NODE,bossFight,earn,eventScene,cursedRun,wonRoom,master,board,cdx}=window.LOTD_T;
 test('Salvage: gear breaks into bone dust; uniques and battles refuse',()=>{
-  const it=give('3-wa'); it.ro=[['hp',5],['atk',3]]; eq(dustValue(it),DUST_TIER[ITEM['3-wa'].tier]+2); const n=dustValue(it); eq(salvage(it.u),n); eq(S.dust,n); ok(!S.inv.includes(it));
+  const it=give('3-wa'); it.ro=[['hp',5],['atk',3]]; eq(dustValue(it),DUST_TIER[ITEM['3-wa'].tier]+1,'one dust per two lines'); const n=dustValue(it); eq(salvage(it.u),n); eq(S.dust,n); ok(!S.inv.includes(it));
   const uq=give(Object.values(ITEM).find(d=>d.uq).id); eq(salvage(uq.u),0); ok(S.inv.includes(uq));
   give('0-wa'); give('1-wa'); const keep=give('3-wa'); const r=salvageJunk(); eq(r.n,2); eq(r.d,DUST_TIER[0]+DUST_TIER[1]); ok(S.inv.includes(keep));
   arena([foe()]); eq(salvage(keep.u),0);
