@@ -11,7 +11,7 @@ module.exports=function loadGame(extraFiles){
     localStorage:{getItem:k=>store.has(k)?store.get(k):null, setItem:(k,v)=>{ store.set(k,String(v)); }, removeItem:k=>{ store.delete(k); },
       clear:()=>store.clear(), key:i=>[...store.keys()][i]??null, get length(){ return store.size; }},
     requestAnimationFrame:()=>0, matchMedia:()=>({matches:true}), innerWidth:1200, innerHeight:800, devicePixelRatio:1,
-    addEventListener:()=>{},
+    addEventListener:(t,f)=>{ (listeners['w:'+t]=listeners['w:'+t]||[]).push(f); },   // window listeners, kept apart from document ones
     document:{
       body:{classList:{toggle:(c,v)=>{ (v===undefined?!classes.has(c):v)?classes.add(c):classes.delete(c); }, contains:c=>classes.has(c), add:c=>classes.add(c), remove:c=>classes.delete(c)}},
       activeElement:null,

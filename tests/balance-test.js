@@ -5,7 +5,7 @@
 //   LOTD_BALANCE.run({diff:{hp:2.4}})           // try a DIFF change without editing the game
 //   LOTD_BALANCE.run({push:true})               // bots enter the hardest unlocked gate (below Recommended)
 //   LOTD_BALANCE.run({modes:['skills']})        // only the bot that learns skills (faster)
-//   modes: 'noSkills', 'skills', 'market' (skills + sells loot, buys gear, potions and salts, empowers minions at the
+//   modes: 'noSkills', 'skills', 'full' (market + the town economy), 'market' (skills + sells loot, buys gear, potions and salts, empowers minions at the
 //          Bone Altar, drinks potions, and answers telegraphed boss moves with Grave Chill or Bone Ward)
 // With the local server running (node tools/serve.js) you can load this file instead of pasting it:
 //   await new Promise(r=>{ const s=document.createElement('script'); s.src='/tests/balance-test.js'; s.onload=r; document.head.appendChild(s); })
@@ -14,7 +14,10 @@
 // The ~80% target is for the 'market' bot (skills + shopping + altar). The early option is no longer needed: SAFE for A and S
 // now matches where they are balanced. Current numbers, averaged over seeds 7700 and 9100 (results swing ~±7 points per seed set):
 // LOTD_BALANCE.run({bots:40, days:100, seed:7700, modes:['market']})   (one mode per call, ~15 s in a browser), or in Node: node tests/run-balance.js
-//   market:    clears 80-88% per gate, deaths ~17%, level ~33 on day 100, S first cleared ~day 55 by 38/40 bots, tower ~45
+//   market:    clears 81-82% overall (79-87% per gate), deaths ~16%, level ~38 on day 100, tower ~50
+//   full:      the market bot plus buildings, salvage, enchanting, fusion, bounties and orders against charging bosses:
+//              84-88% per gate near its level, deaths ~6%, level ~45 on day 100, tower ~63. Target: a little above market.
+//              opts.off (e.g. ['fuse','crypt']) switches parts off to measure each one.
 //              (after gear rolls, events, cursed gates, status effects and the early-game pass: E and D are gentler)
 //   skills:    clears 63-87% per gate, deaths ~21%, level ~31 on day 100 (seed 7700, before the A trim)
 //   no skills: clears 41-75% per gate, deaths ~35%, level ~24 on day 100 (seed 7700, before the last C tweak)
@@ -44,6 +47,10 @@
       for(const it of S.inv){ const d=ITEM[it.id]; if(d.slot===sl&&itemScore(d)>bs){ best=it; bs=itemScore(d); } }
       if(best) equip(best.u);
     }
+    if(B.full){   // the new economy: claim bounties, salvage the better spares for dust, build, enchant what you wear
+      if(!B.off.bounty) for(let i=0;i<3;i++) claimBounty(i);
+      if(!B.off.salvage) for(const it of S.inv.slice()) if(!ITEM[it.id].uq&&ITEM[it.id].tier>=2) salvage(it.u);
+    }
     if(B.market){   // sell everything not worn, buy better gear from the merchant, keep the potion belt full
       sellAllTrophies(); for(const it of S.inv.slice()) if(!ITEM[it.id].uq) sellItem(it.u);
       shopStock().forEach((s,i)=>{ if(s.sold) return; const d=ITEM[s.id], cur=S.equip[d.slot];
@@ -51,6 +58,13 @@
       while(buyPotion('hp')); while(buyPotion('mp')); while(buySalt());
       // Bone Altar: strongest minions first, keeping enough gold to refill potions next time
       const reserve=(POTIONS.hp.price()+POTIONS.mp.price())*BELT_MAX;
+      if(B.full){
+        for(const k of ['crypt','ossuary','altar','forge']){ const c=buildCost(k); if(!B.off[k]&&c&&S.gold-c[0]>=reserve) build(k); }
+        if(!B.off.enchant) for(const sl of GEAR_SLOTS){ const it=S.equip[sl]; if(it&&!ITEM[it.id].uq) while((it.ro||[]).length<lineMax(it)&&enchant(it.u,-1)); }
+        if(!B.off.fuse&&S.army.length>=slots()){ const by={}; for(const m of S.army) (by[m.role]=by[m.role]||[]).push(m);
+          const pair=Object.values(by).filter(a=>a.length>=2).map(a=>a.sort((x,y)=>cval(x)-cval(y)).slice(0,2)).sort((a,b)=>cval(a[0])-cval(b[0]))[0];
+          if(pair&&S.gold-fuseCost(pair[0],pair[1])>=reserve) fuse(pair[0].uid,pair[1].uid); }
+      }
       for(const m of S.army.slice().sort((a,b)=>cval(b)-cval(a))){ while(S.gold-empowerCost(m)>=reserve&&empower(m.uid)); }
     }
     if(S.inv.length>20){ S.inv.sort((a,b)=>itemScore(ITEM[b.id])-itemScore(ITEM[a.id])); S.inv=S.inv.filter((it,i)=>i<12||ITEM[it.id].uq); }
@@ -67,8 +81,11 @@
     const P=S.player, t=chooseTarget(), max=pMax(), res=Math.min(15,Math.round(pMana()*.2)), foes=liveFoes();
     const charging=foes.find(e=>e.charging);   // a boss is winding up a telegraphed move: freeze it, or ward against the hit
     if(charging){
-      if(B.skills&&canUse('chill')&&P.mana>=SKILL.chill.cost){ setTarget(charging.id); return 'sk:chill'; }
-      if((charging.abil==='decree'||charging.abil==='cinder')&&P.mana>=6&&P.shield<max*.3) return 'ward';
+      const mv=charging.move||charging.abil;
+      if(B.full&&!B.off.orders&&mv==='sunder'&&canCommand('vanguard')) command('vanguard');   // orders are free: send the blow at a vanguard
+      if(B.full&&!B.off.orders&&canCommand('striker')){ setTarget(charging.id); command('striker'); }   // and let a Focus crit break the charge
+      if(B.skills&&charging.charging&&canUse('chill')&&P.mana>=SKILL.chill.cost){ setTarget(charging.id); return 'sk:chill'; }
+      if((mv==='decree'||mv==='cinder'||mv==='sunder')&&charging.charging&&P.mana>=6&&P.shield<max*.3) return 'ward';
     }
     if(B.market&&P.hp<max*.3&&S.belt.hp) return 'pot:hp';
     if(B.market&&P.mana<10&&P.hp<max*.6&&S.belt.mp) return 'pot:mp';
@@ -165,8 +182,8 @@
     if(opts.tw) Object.assign(TW,opts.tw);
     const out={settings:{DIFF:JSON.parse(JSON.stringify(DIFF)),TW:Object.assign({},TW),bots:opts.bots,days:opts.days}}, t0=Date.now();
     try{
-      for(const [name,skills,market] of [['noSkills',false,false],['skills',true,false],['market',true,true]].filter(m=>opts.modes.includes(m[0]))){
-        const res=[]; for(let b=0;b<opts.bots;b++) res.push(simBot(opts.seed+b,{skills,market,push:opts.push},opts.days));
+      for(const [name,skills,market,full] of [['noSkills',false,false,false],['skills',true,false,false],['market',true,true,false],['full',true,true,true]].filter(m=>opts.modes.includes(m[0]))){
+        const res=[]; for(let b=0;b<opts.bots;b++) res.push(simBot(opts.seed+b,{skills,market,full,push:opts.push,off:Object.fromEntries((opts.off||[]).map(k=>[k,1]))},opts.days));
         out[name]=summarize(res,opts.days);
       }
     } finally {

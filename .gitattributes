@@ -1,0 +1,5 @@
+# Keep every text file LF in the repo and in working copies, so edits never mix line endings.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary

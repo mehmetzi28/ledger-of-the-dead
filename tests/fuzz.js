@@ -34,7 +34,7 @@ for(let sd=first;sd<first+seeds;sd++){
       const at=m[1], a=(at.match(/data-a="([^"]+)"/)||[])[1]; if(!a||/\sdisabled/.test(at)) continue;
       const k=(at.match(/data-k="([^"]*)"/)||[])[1];
       // newgame wipes progress and copycode needs a clipboard: keep them rare
-      const w=a==='newgame'?.02:a==='copycode'?0:['act','raise','descend','door','enter','tower','town','learn','alloc','equip','event','cmd','target','skmod'].includes(a)?6:['build','claimb','fusepick','fuse','ench','enchadd','enchline'].includes(a)?4:1;
+      const w=a==='newgame'?.02:a==='copycode'?0:['act','raise','descend','door','enter','tower','town','learn','alloc','equip','event','cmd','target','skmod'].includes(a)?6:['build','claimb','fusepick','fuse','ench','enchadd','enchline'].includes(a)?4:['mk','lock','mdet','asort','fold','renameo','rename','tabsync'].includes(a)?2:1;
       if(w) btns.push({a,k,w});
     }
     const mode=run('S.mode');
