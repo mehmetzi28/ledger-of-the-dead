@@ -721,3 +721,20 @@ body.calm #scene *{animation:none!important}
 body.gatefight #bossbg{opacity:0}
 body.arena #bossbg{opacity:0}body.arena #hellbg{opacity:0}body.arena #scene.on{opacity:1}
 .win{background:var(--grain),var(--grime),linear-gradient(180deg,rgba(226,216,194,.035),rgba(0,0,0,.18) 70%),color-mix(in srgb,var(--panel) 84%,transparent)}
+/* visual pass: larger battle icons, role badge on the frame corner, icons in compact army rows, backed notices and tips */
+.unit .ico{width:64px;height:64px}.unit .ico svg{width:56px;height:56px}
+.unit .ico.boss{width:72px;height:72px}.unit .ico.boss svg{width:64px;height:64px}
+.unit.mini .ico{width:38px;height:38px}.unit.mini .ico svg{width:32px;height:32px}
+.rb{width:16px;height:16px;right:-8px;bottom:-8px}.rb svg{width:10px!important;height:10px!important}
+.unit .rb{width:14px;height:14px;right:-7px;bottom:-7px}.unit .rb svg{width:8px!important;height:8px!important}
+.army .mrow .ico{width:28px;height:28px;margin:-4px 0;box-shadow:inset 0 0 8px rgba(0,0,0,.85)}.army .mrow .ico svg{width:24px;height:24px}.mrow .ico .rb{display:none}
+.notes{padding:10px 14px;border:1px solid #2a241f;border-radius:3px;background:var(--grain),var(--grime),linear-gradient(180deg,rgba(226,216,194,.035),rgba(0,0,0,.18) 70%),color-mix(in srgb,var(--panel) 84%,transparent);box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.tip{background:linear-gradient(90deg,rgba(63,107,43,.18),rgba(63,107,43,.06)),color-mix(in srgb,var(--panel) 88%,transparent)}
+body.lite .notes{background:color-mix(in srgb,var(--panel) 90%,transparent)}body.lite .tip{background:linear-gradient(90deg,rgba(63,107,43,.18),rgba(63,107,43,.06)),color-mix(in srgb,var(--panel) 92%,transparent)}
+body.compact .unit .ico,body.compact .unit .ico.boss{width:34px;height:34px}body.compact .unit .ico svg,body.compact .unit .ico.boss svg{width:29px;height:29px}
+body.compact .unit.mini .ico{width:34px;height:34px}body.compact .unit.mini .ico svg{width:30px;height:30px}
+@media (max-width:540px){
+  .unit .ico,.unit .ico.boss{width:40px;height:40px}.unit .ico svg,.unit .ico.boss svg{width:34px;height:34px}
+  .unit.mini .ico{width:36px;height:36px}.unit.mini .ico svg{width:31px;height:31px}
+  .notes{padding:8px 10px}
+}

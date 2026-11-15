@@ -50,6 +50,17 @@ test('Battle effects: the cards carry the data-u keys the layer aims at, and hoo
   eq(fight(true),fight(false),'the same seed gives the same fight with the hooks spied on');
 }));
 
+test('Battle effects: each minion card shows its own damage number, and an unhurt one shows none',()=>noLayer(()=>{
+  setLvl(10); S.army=[]; const a=mkMinion({lvl:8}), b=mkMinion({lvl:8}), c=mkMinion({lvl:8}); arena([foe()]);
+  S.run.fx={}; hurtAlly(a,4); hurtAlly(b,9);   /* one turn: act() clears r.fx first, then the hits land */
+  ok(!('undefined' in S.run.fx),'no mark lands on an undefined key'); eq(S.run.fx['m'+a.uid].d,4); eq(S.run.fx['m'+b.uid].d,9); ok(!S.run.fx['m'+c.uid],'the third minion was not hit');
+  const h=renderAll('fx minion marks'), card=u=>{ const i=h.indexOf('data-u="m'+u.uid+'"'); ok(i>=0,'card for '+u.uid); const st=h.lastIndexOf('<div class="unit',i); return h.slice(st,h.indexOf('<div class="bar"',i)); };
+  const A=card(a), B=card(b), C=card(c);
+  ok(A.includes('<span class="fx neg">-4</span>')&&!A.includes('-9<'),'the first minion shows 4'); ok(B.includes('<span class="fx neg">-9</span>')&&!B.includes('-4<'),'the second shows 9');
+  const hit=s=>/^<div class="[^"]*\bhit\b/.test(s);
+  ok(hit(A)&&hit(B),'both hurt cards shake'); ok(!C.includes('class="fx')&&!hit(C),'the unhurt minion shows no number and no hit');
+}));
+
 test('Battle effects: Light, Reduce motion and the OS reduced-motion setting keep the library from loading',()=>{
   if(!NODE) return;   // needs the fake document
   const keep={st:FXL.st,tag:FXL.tag,later:FXL.later,mm:window.matchMedia,ce:document.createElement,head:document.head,fx:VIEW.fx,calm:VIEW.calm,info:console.info};

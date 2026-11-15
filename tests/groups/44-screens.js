@@ -34,6 +34,12 @@ test('Screens: the army list has a Compact view, one row per minion with the sam
   ACTIONS.view('army|nonsense'); eq(VIEW.army,'compact'); ACTIONS.view('army|cards'); eq(VIEW.army,'cards'); S.army=[];
 });
 
+test('Screens: each compact army row starts with the minion icon, the same one its card uses',()=>{
+  S.mode='town'; S.army=[]; const m=mkMinion({name:'Grave Ghoul',kind:'Grave Ghoul',rankI:2,role:'vanguard'}); VIEW.army='compact';
+  const h=minionRow(m,true); ok(h.startsWith('<div class="mrow">'+ico('Grave Ghoul',2,m)),'icon first'); ok(h.includes('<span class="ico r2'),'rank class');
+  mkMinion({lvl:3}); eq((armyHTML().match(/class="mrow"><span class="ico /g)||[]).length,2,'every row'); VIEW.army='cards'; S.army=[];
+});
+
 test('Screens: on phones the pinned action bar carries a thin HP tick per minion, none without an army',()=>{
   S.army=[]; arena([foe()]); let h=renderAll('no army'); ok(/class="actbar"/.test(h),'battle bar'); ok(!/class="pstrip"/.test(h),'absent with no army');
   const a=mkMinion({lvl:5}), b=mkMinion({lvl:5}), c=mkMinion({lvl:5}); b.hp=Math.floor(b.maxHp*.2); c.hp=0; h=renderAll('party strip');

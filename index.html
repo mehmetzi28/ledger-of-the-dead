@@ -732,6 +732,23 @@ body.calm #scene *{animation:none!important}
 body.gatefight #bossbg{opacity:0}
 body.arena #bossbg{opacity:0}body.arena #hellbg{opacity:0}body.arena #scene.on{opacity:1}
 .win{background:var(--grain),var(--grime),linear-gradient(180deg,rgba(226,216,194,.035),rgba(0,0,0,.18) 70%),color-mix(in srgb,var(--panel) 84%,transparent)}
+/* visual pass: larger battle icons, role badge on the frame corner, icons in compact army rows, backed notices and tips */
+.unit .ico{width:64px;height:64px}.unit .ico svg{width:56px;height:56px}
+.unit .ico.boss{width:72px;height:72px}.unit .ico.boss svg{width:64px;height:64px}
+.unit.mini .ico{width:38px;height:38px}.unit.mini .ico svg{width:32px;height:32px}
+.rb{width:16px;height:16px;right:-8px;bottom:-8px}.rb svg{width:10px!important;height:10px!important}
+.unit .rb{width:14px;height:14px;right:-7px;bottom:-7px}.unit .rb svg{width:8px!important;height:8px!important}
+.army .mrow .ico{width:28px;height:28px;margin:-4px 0;box-shadow:inset 0 0 8px rgba(0,0,0,.85)}.army .mrow .ico svg{width:24px;height:24px}.mrow .ico .rb{display:none}
+.notes{padding:10px 14px;border:1px solid #2a241f;border-radius:3px;background:var(--grain),var(--grime),linear-gradient(180deg,rgba(226,216,194,.035),rgba(0,0,0,.18) 70%),color-mix(in srgb,var(--panel) 84%,transparent);box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.tip{background:linear-gradient(90deg,rgba(63,107,43,.18),rgba(63,107,43,.06)),color-mix(in srgb,var(--panel) 88%,transparent)}
+body.lite .notes{background:color-mix(in srgb,var(--panel) 90%,transparent)}body.lite .tip{background:linear-gradient(90deg,rgba(63,107,43,.18),rgba(63,107,43,.06)),color-mix(in srgb,var(--panel) 92%,transparent)}
+body.compact .unit .ico,body.compact .unit .ico.boss{width:34px;height:34px}body.compact .unit .ico svg,body.compact .unit .ico.boss svg{width:29px;height:29px}
+body.compact .unit.mini .ico{width:34px;height:34px}body.compact .unit.mini .ico svg{width:30px;height:30px}
+@media (max-width:540px){
+  .unit .ico,.unit .ico.boss{width:40px;height:40px}.unit .ico svg,.unit .ico.boss svg{width:34px;height:34px}
+  .unit.mini .ico{width:36px;height:36px}.unit.mini .ico svg{width:31px;height:31px}
+  .notes{padding:8px 10px}
+}
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
@@ -1606,23 +1623,24 @@ function startRun(di){
 const nameOf = u=>u.id==='p'?'You':(u.nick||u.name);
 const allies = ()=>[S.player].concat(S.army);
 const liveFoes = ()=>S.run.enemies.filter(e=>e.hp>0);
-function mark(id,d,h){ const f=S.run.fx[id]||(S.run.fx[id]={d:0,h:0}); f.d+=d; f.h+=h; }
+const fxKey=u=>u==null?null:typeof u==='string'?u:u.id!=null?u.id:u.uid!=null?'m'+u.uid:null;   // the key a unit's card answers to (data-u, r.fx): minions have no id, only a uid
+function mark(u,d,h){ const id=fxKey(u); if(id==null) return; const f=S.run.fx[id]||(S.run.fx[id]={d:0,h:0}); f.d+=d; f.h+=h; }
 function hit(b){ return Math.max(1,Math.round(b*rnd(.85,1.15))); }
 function hurtFoe(e,d){ if(e.curse) d=Math.round(d*e.curse.mul); if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25);
-  if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e.id,0,0); return; } }   // Bone Wall shield soaks damage first
-  recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e.id,d,0); }
+  if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e,0,0); return; } }   // Bone Wall shield soaks damage first
+  recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e,d,0); }
 function hurtAlly(a,d){
   if(a.id!=='p'&&hasFlag('swarmguard')) d=Math.max(1,Math.round(d*.75));
   if(a.id!=='p'&&hasTrait(a,'stalwart')) d=Math.max(1,Math.round(d*.8));
   if(a.id==='p'&&xb('drp')) d=Math.max(1,Math.round(d*(1-xb('drp')/100)));
   if(a.id!=='p'&&hasMod('gravepact','b')) d=Math.max(1,Math.round(d*.9));
   if(a.id==='p'){ const s=Math.min(S.player.shield,d); S.player.shield-=s; d-=s; }
-  d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a.id,d,0); if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p') fxe('death',a);
+  d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a,d,0); if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p') fxe('death',a);
 }
 function healAlly(a,h){
   if(a.id==='p'&&xb('healp')) h=Math.max(0,Math.round(h*(1+xb('healp')/100)));   // faith changes the healing you receive
   const max=a.id==='p'?pMax():a.maxHp; h=Math.min(h,max-a.hp); if(h<=0) return 0;
-  a.hp+=h; mark(a.id,0,h); return h;
+  a.hp+=h; mark(a,0,h); return h;
 }
 function killXp(e){ return Math.round((4+e.lvl*2.5)*RK[e.rankI].xp*(e.boss?2.5*(omen()==='ashfall'?OMEN_BOSS_XP:1):1)*(e.elite?1.5:1)*(e.tw?1+e.tw/12:1)*(e.secret?SB_REWARD:1)*ngpReward()*(runMod()?MOD_XP:1)*heatK('xp')*(1+xb('xpp')/100)); }
 function studyFoe(name){   // count a kill toward studying this kind of foe (its drop table opens in the bestiary)
@@ -1727,7 +1745,7 @@ function act(kind){
     for(let i=0;i<alive.length;i++){ roll-=weights[i]; if(roll<=0){ tg=alive[i]; break; } }
     let d=hit(e.atk*enrage(e)*(hasAff(e,'enraged')&&e.hp<e.maxHp/2?1.6:1)); const crit=e.role==='striker'&&Math.random()<.25; if(crit) d=Math.round(d*1.8);
     hurtAlly(tg,d); fxe('hurt',tg,crit?{crit:1}:null); if(crit) addDot(tg,'bleed',e.atk*.3,2);   // a striker's crit opens a wound
-    if(hasAff(e,'vampiric')){ const h=Math.min(e.maxHp-e.hp,Math.round(d*.4)); if(h>0){ e.hp+=h; mark(e.id,0,h); } }
+    if(hasAff(e,'vampiric')){ const h=Math.min(e.maxHp-e.hp,Math.round(d*.4)); if(h>0){ e.hp+=h; mark(e,0,h); } }
     log(e.name+' hits '+(tg.id==='p'?'you':nameOf(tg))+' for '+d+(crit?' (crit'+(tg.hp>0&&tg.dots&&tg.dots.bleed?', bleeding':'')+')':'')+'.','bad');
     if(tg.id==='p'&&hasFlag('thorns')&&e.hp>0) hurtFoe(e,Math.max(1,Math.round(d*.2*(1-foeArmor()))));
     if(tg.hp<=0&&tg.id!=='p') log(tg.nick+' is down.','bad');
@@ -1923,10 +1941,19 @@ function useSkill(id,t){
   if(id==='spear'){ const d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(hasMod('spear','a')?1:.5)); hurtFoe(t,d); log('Bone Spear impales '+t.name+' for '+d+'.'); fxe('spear',t);
     if(hasMod('spear','b')){ const o=liveFoes().filter(x=>x!==t); if(o.length){ const o2=pick(o), d2=Math.round(d*.5); hurtFoe(o2,d2); log('A splinter tears into '+o2.name+' for '+d2+'.'); } } }
   else if(id==='blast'){ const c=freeCorpse(); c.tried=true; c.result='exploded'; const base=pSiph()*(.6+.2*rk)*pierceMul(1)*(hasMod('blast','a')?1.3:1); let tot=0; for(const o of liveFoes()){ const d=hit(base); hurtFoe(o,d); fxe('burst',o); tot+=d; if(hasMod('blast','b')) addDot(o,'poison',pSiph()*.15,3); } log('The body of '+c.name+' bursts apart, dealing '+tot+' damage across the room.'); }
-  else if(id==='mend'){ let tot=0; const cured=allies().some(a=>a.dots); for(const m of S.army) if(m.hp>0) tot+=healAlly(m,Math.round(m.maxHp*(.15+.08*rk+(hasMod('mend','a')?.15:0)))); if(hasMod('mend','b')) tot+=healAlly(P,Math.round(pMax()*.15)); if(cured) tally('cures'); allies().forEach(clearDots); fxe('mend',P); log('Dark Mending knits your army back together for '+tot+' HP'+(cured?' and cures every wound and burn':'')+'.','ok'); }
+  else if(id==='mend'){
+    let tot=0;
+    const cured=allies().some(a=>a.dots);
+    for(const m of S.army) if(m.hp>0) tot+=healAlly(m,Math.round(m.maxHp*(.15+.08*rk+(hasMod('mend','a')?.15:0))));
+    if(hasMod('mend','b')) tot+=healAlly(P,Math.round(pMax()*.15));
+    if(cured) tally('cures');
+    allies().forEach(clearDots);
+    fxe('mend',P);
+    log('Dark Mending knits your army back together for '+tot+' HP'+(cured?' and cures every wound and burn':'')+'.','ok');
+  }
   else if(id==='curse'){ const turns=hasMod('curse','a')?5:3, bonus=.15+.1*rk;
-    if(hasMod('curse','b')){ for(const o of liveFoes()){ o.curse={mul:1+bonus*.8,t:turns}; mark(o.id,0,0); } log('Every foe is cursed and takes '+Math.round(bonus*80)+'% more damage.'); }
-    else { t.curse={mul:1+bonus,t:turns}; mark(t.id,0,0); log(t.name+' is cursed and takes '+Math.round(bonus*100)+'% more damage.'); } }
+    if(hasMod('curse','b')){ for(const o of liveFoes()){ o.curse={mul:1+bonus*.8,t:turns}; mark(o,0,0); } log('Every foe is cursed and takes '+Math.round(bonus*80)+'% more damage.'); }
+    else { t.curse={mul:1+bonus,t:turns}; mark(t,0,0); log(t.name+' is cursed and takes '+Math.round(bonus*100)+'% more damage.'); } }
   else if(id==='chill'){ const d=hit(pSiph()*.5*dmgMul()); hurtFoe(t,d); fxe('ward',t); const held=!t.boss||Math.random()*100<40+10*rk+(hasMod('chill','a')?20:0);
     if(held&&t.hp>0){ t.stun=rk>=3?2:1; tally('frozen'); log('Grave Chill hits '+t.name+' for '+d+' and freezes it solid.'); } else log('Grave Chill hits '+t.name+' for '+d+', but it shakes off the frost.'); }
   else if(id==='frenzy'){ r.frenzy=hasMod('frenzy','a')?5:3; r.frenzyMul=1+(.2+.15*rk); if(hasMod('frenzy','b')) for(const m of S.army) if(m.hp>0) healAlly(m,Math.round(m.maxHp*.15)); log('Unholy Frenzy: your army surges with '+Math.round((r.frenzyMul-1)*100)+'% more damage.','ok'); }
@@ -2240,7 +2267,18 @@ function fireAbility(e,mv){
   mv=mv||e.abil; const r=S.run, P=S.player, A=BOSS_ABIL[mv], foes=liveFoes();
   if(mv==='swarm'){ const got=[summonAdd(e),summonAdd(e)].filter(Boolean); log(got.length?e.name+' uses '+A.name+': '+got.map(x=>x.name).join(' and ')+' join the fight.':e.name+' calls, but nothing more answers.','bad'); }
   else if(mv==='bonewall'){ foes.forEach(f=>{ f.shield=Math.min(Math.round(f.maxHp*.4),(f.shield||0)+Math.round(f.maxHp*.2)); fxe('ward',f); }); log(e.name+' raises a Bone Wall. Every foe is shielded.','bad'); }
-  else if(mv==='cinder'){ let tot=0; allies().filter(a=>a.hp>0).forEach(a=>{ const d=hit(e.atk*(e.secret?.45:.7)*enrage(e));   /* a secret master's wave is spread thinner: at full strength it wiped every army */ hurtAlly(a,d); fxe('hurt',a,{fire:1}); addDot(a,'burn',e.atk*.15,2); tot+=d; if(a.hp<=0&&a.id!=='p') log(a.nick+' is down.','bad'); }); log(e.name+' unleashes a Cinder Wave for '+tot+' damage across your side.','bad'); }
+  else if(mv==='cinder'){
+    let tot=0;
+    allies().filter(a=>a.hp>0).forEach(a=>{
+      const d=hit(e.atk*(e.secret?.45:.7)*enrage(e));   /* a secret master's wave is spread thinner: at full strength it wiped every army */
+      hurtAlly(a,d);
+      fxe('hurt',a,{fire:1});
+      addDot(a,'burn',e.atk*.15,2);
+      tot+=d;
+      if(a.hp<=0&&a.id!=='p') log(a.nick+' is down.','bad');
+    });
+    log(e.name+' unleashes a Cinder Wave for '+tot+' damage across your side.','bad');
+  }
   else if(mv==='hymn'){ r.silence=3; foes.forEach(f=>{ f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*.1)); }); log(e.name+' sings the Hymn of Silence. Your skills are silenced for 2 turns and every foe mends.','bad'); }
   else if(mv==='seedfall'){ foes.forEach(f=>{ f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*.15)); }); const a=summonAdd(e); log(e.name+' scatters Seedfall. Every foe mends'+(a?' and '+a.name+' sprouts from the ground':'')+'.','bad'); }
   else if(mv==='decree'){ const d=Math.round(pMax()*.45*enrage(e)); hurtAlly(P,d); fxe('hurt',P,{crit:1}); log(e.name+' speaks a Royal Decree. It strikes you for '+d+'.','bad'); }
@@ -2272,7 +2310,7 @@ function tickDots(){
   let foeD=0, ourD=0;
   const tick=(u,hurt)=>{ if(!u.dots) return; for(const k of Object.keys(u.dots)){ const o=u.dots[k]; if(u.hp>0) hurt(u,o.d); if(--o.t<=0) delete u.dots[k]; } if(!Object.keys(u.dots).length) delete u.dots; };
   for(const e of S.run.enemies) tick(e,(u,d)=>{ const h=u.hp; hurtFoe(u,d); foeD+=h-u.hp; });
-  for(const a of allies()) tick(a,(u,d)=>{ const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u.id,n,0); if(u.id==='p') S.run.hurt=true; } ourD+=n; if(u.hp<=0&&u.id!=='p'){ log(u.nick+' succumbs.','bad'); fxe('death',u); } });
+  for(const a of allies()) tick(a,(u,d)=>{ const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u,n,0); if(u.id==='p') S.run.hurt=true; } ourD+=n; if(u.hp<=0&&u.id!=='p'){ log(u.nick+' succumbs.','bad'); fxe('death',u); } });
   if(foeD) log('Poison eats '+foeD+' HP from your foes.','ok');
   if(ourD) log('Bleeding and burns cost your side '+ourD+' HP.','bad');
 }
@@ -2775,11 +2813,11 @@ const canUlt=()=>S.mode==='battle'&&!!S.run&&S.player.lvl>=ULT_LV&&!!ULTS[S.play
 function chooseUlt(id){ if(S.mode!=='town'||!ULTS[id]||S.player.lvl<ULT_LV) return false; S.player.ult=id; return true; }
 function useUlt(t){
   if(!canUlt()) return false; const r=S.run, P=S.player, id=P.ult; r.souls=0; tally('ults');
-  if(id==='toll'){ let tot=0, slain=0; for(const o of liveFoes()){ const d=hit(pSiph()*TOLL_MUL*pierceMul(1)); hurtFoe(o,d); tot+=d; if(o.hp>0&&!o.boss&&o.hp<o.maxHp*TOLL_EXEC){ mark(o.id,o.hp,0); o.hp=0; slain++; } }
+  if(id==='toll'){ let tot=0, slain=0; for(const o of liveFoes()){ const d=hit(pSiph()*TOLL_MUL*pierceMul(1)); hurtFoe(o,d); tot+=d; if(o.hp>0&&!o.boss&&o.hp<o.maxHp*TOLL_EXEC){ mark(o,o.hp,0); o.hp=0; slain++; } }
     log("Death's Toll: every foe takes the Ledger's due, "+tot+' damage in all'+(slain?', and '+slain+' fall where they stand':'')+'.','ok'); }
   else if(id==='rise'){ let n=0; for(const m of S.army){ if(m.hp<=0){ m.hp=m.maxHp; n++; } else healAlly(m,m.maxHp); } healAlly(P,Math.round(pMax()*.4)); r.frenzy=Math.max(r.frenzy||0,3); r.frenzyMul=Math.max(r.frenzyMul||1,1.5);
     log('Unholy Resurrection: '+(n?n+' of your fallen rise again, ':'')+'your army is whole and burns with fury.','ok'); }
-  else { for(const o of liveFoes()){ o.stun=Math.max(o.stun||0,o.boss?1:2); o.curse={mul:1.3,t:3}; mark(o.id,0,0); } log('Soul Prison: every foe is locked in the Ledger\'s pages, frozen and laid bare.','ok'); }
+  else { for(const o of liveFoes()){ o.stun=Math.max(o.stun||0,o.boss?1:2); o.curse={mul:1.3,t:3}; mark(o,0,0); } log('Soul Prison: every foe is locked in the Ledger\'s pages, frozen and laid bare.','ok'); }
   moment(ULTS[id].name,'gold'); sfx('boss'); fxe('ult',t,{id}); return true;
 }
 
@@ -2993,7 +3031,15 @@ const BACKDROPS={
     +[[300,150,380],[1250,120,420],[800,230,560]].map(([x,y,w],i)=>'<ellipse class="sc-fog'+(i%2?' d2':'')+'" cx="'+x+'" cy="'+y+'" rx="'+w+'" ry="'+(w*.2)+'" fill="#4a1208" opacity=".55" filter="url(#scB)"/>').join('')
     +scGlow(800,820,520,'#ff5a1a',.32)
     +'<path d="M0 560L90 500L160 530L240 470L320 520L380 480L470 530L540 460L620 510L700 490L780 530L860 470L950 520L1030 480L1120 530L1200 470L1280 515L1360 485L1440 525L1520 475L1600 520V900H0Z" fill="#2e0c06"/>';
-    for(let i=0;i<22;i++){ const x=r()*1600; if(Math.abs(x-800)<120) continue; const h=60+r()*170, w=10+r()*12, base=560+r()*30; o+='<path d="M'+(x-w).toFixed(0)+' '+base.toFixed(0)+'L'+(x-w*.4).toFixed(0)+' '+(base-h*.7).toFixed(0)+'L'+x.toFixed(0)+' '+(base-h).toFixed(0)+'L'+(x+w*.4).toFixed(0)+' '+(base-h*.7).toFixed(0)+'L'+(x+w).toFixed(0)+' '+base.toFixed(0)+'Z" fill="#1c0604"/>'; if(r()<.6) o+='<rect class="sc-flk" x="'+(x-1.5).toFixed(0)+'" y="'+(base-h*.5).toFixed(0)+'" width="3" height="6" fill="#ff8a3c"/>'; if(r()<.3) o+=scSmoke(x,base-h,140); }
+    for(let i=0;i<22;i++){
+      const x=r()*1600;
+      if(Math.abs(x-800)<120) continue;
+      const h=60+r()*170, w=10+r()*12, base=560+r()*30;
+      o+='<path d="M'+(x-w).toFixed(0)+' '+base.toFixed(0)+'L'+(x-w*.4).toFixed(0)+' '+(base-h*.7).toFixed(0)+'L'+x.toFixed(0)+' '+(base-h).toFixed(0)
+        +'L'+(x+w*.4).toFixed(0)+' '+(base-h*.7).toFixed(0)+'L'+(x+w).toFixed(0)+' '+base.toFixed(0)+'Z" fill="#1c0604"/>';
+      if(r()<.6) o+='<rect class="sc-flk" x="'+(x-1.5).toFixed(0)+'" y="'+(base-h*.5).toFixed(0)+'" width="3" height="6" fill="#ff8a3c"/>';
+      if(r()<.3) o+=scSmoke(x,base-h,140);
+    }
     o+='<path d="M700 760L715 640L735 640L740 500L755 500L760 380L775 380L785 250L800 140L815 250L825 380L840 380L845 500L860 500L865 640L885 640L900 760Z" fill="#0d0302"/>'
       +'<path d="M786 262C770 244 764 224 770 202C777 226 786 240 796 252ZM814 262C830 244 836 224 830 202C823 226 814 240 804 252Z" fill="#0d0302"/>'
       +'<path d="M800 140L815 250L825 380L840 380L845 500L860 500L865 640" stroke="#ff6a2a" stroke-opacity=".25" stroke-width="2" fill="none"/>'
@@ -3001,7 +3047,13 @@ const BACKDROPS={
       +'<path d="M0 700L80 660L150 690L230 640L310 690L380 660L460 700L520 760H0ZM1080 760L1140 700L1210 670L1280 700L1350 650L1420 690L1490 655L1560 690L1600 670V760Z" fill="#120403"/>'
       +'<path d="M760 760C700 800 620 810 560 840S420 880 380 900H520C560 880 640 860 700 840S790 800 840 760Z" fill="url(#lava)" opacity=".85" class="sc-flk"/><path d="M760 760C700 800 620 810 560 840S420 880 380 900" stroke="#ffe0a0" stroke-opacity=".5" stroke-width="2" fill="none"/>'
       +scGlow(600,840,140,'#ff7a2a',.35)+'<path d="M0 760H1600V900H0Z" fill="#0a0202" opacity=".5"/>';
-    for(let i=0;i<9;i++){ const x=r()*1600, y=120+r()*300, s=.6+r()*.9; o+='<path class="sc-mote'+(i%2?' d2':'')+'" d="M'+x.toFixed(0)+' '+y.toFixed(0)+'q'+(10*s).toFixed(1)+' '+(-8*s).toFixed(1)+' '+(20*s).toFixed(1)+' 0q'+(10*s).toFixed(1)+' '+(-8*s).toFixed(1)+' '+(20*s).toFixed(1)+' 0q'+(-10*s).toFixed(1)+' '+(3*s).toFixed(1)+' '+(-20*s).toFixed(1)+' '+(4*s).toFixed(1)+'q'+(-10*s).toFixed(1)+' '+(-1*s).toFixed(1)+' '+(-20*s).toFixed(1)+' -'+(4*s).toFixed(1)+'z" fill="#0a0202"/>'; }
+    for(let i=0;i<9;i++){
+      const x=r()*1600, y=120+r()*300, s=.6+r()*.9;
+      o+='<path class="sc-mote'+(i%2?' d2':'')+'" d="M'+x.toFixed(0)+' '+y.toFixed(0)+'q'+(10*s).toFixed(1)+' '+(-8*s).toFixed(1)+' '
+        +(20*s).toFixed(1)+' 0q'+(10*s).toFixed(1)+' '+(-8*s).toFixed(1)+' '+(20*s).toFixed(1)+' 0q'+(-10*s).toFixed(1)+' '+(3*s).toFixed(1)+' '
+        +(-20*s).toFixed(1)+' '+(4*s).toFixed(1)+'q'+(-10*s).toFixed(1)+' '+(-1*s).toFixed(1)+' '+(-20*s).toFixed(1)+' -'+(4*s).toFixed(1)
+        +'z" fill="#0a0202"/>';
+    }
     return o+scMotes(r,60,'#ff9a48',200,880,'sc-ember'); },
   town:()=>{ const r=scRand(7); let o='<defs>'+scSky('skT','#14130f','#342a1c','#4a3720')+'</defs><rect width="1600" height="900" fill="url(#skT)"/>'+scStars(r,70,420)
     +scGlow(1150,175,170,'#e0d6b8',.2)+'<circle cx="1150" cy="175" r="54" fill="#d8cfb2" opacity=".72"/><circle cx="1134" cy="162" r="11" fill="#b0a68a" opacity=".45"/><circle cx="1168" cy="192" r="8" fill="#b0a68a" opacity=".4"/><circle cx="1158" cy="150" r="5" fill="#b0a68a" opacity=".35"/>'
@@ -3016,7 +3068,15 @@ const BACKDROPS={
       +scFog(660,.2,'#b8ac90')
       +'<path d="M720 900L780 668H820L880 900Z" fill="#3a3024" opacity=".35"/>'
       +'<path d="M0 760Q400 715 760 740T1600 720V900H0Z" fill="#100e0b"/>';
-    for(let i=0;i<26;i++){ const x=30+i*62+r()*30; if(x>690&&x<910) continue; const y=772+r()*80, h=26+r()*30, k=r(); o+=k<.45?'<path d="M'+(x-2.5)+' '+y+'V'+(y-h)+'H'+(x+2.5)+'V'+y+'ZM'+(x-11)+' '+(y-h*.7)+'H'+(x+11)+'V'+(y-h*.7+5)+'H'+(x-11)+'Z" fill="#0a0907" transform="rotate('+(r()*16-8).toFixed(1)+' '+x+' '+y+')"/>':'<path d="M'+(x-13)+' '+y+'V'+(y-h*.7)+'Q'+x+' '+(y-h*1.1)+' '+(x+13)+' '+(y-h*.7)+'V'+y+'Z" fill="#0c0b09" transform="rotate('+(r()*10-5).toFixed(1)+' '+x+' '+y+')"/><path d="M'+(x-12)+' '+(y-h*.72)+'Q'+(x-4)+' '+(y-h*.98)+' '+(x+2)+' '+(y-h*.94)+'" stroke="#6a604c" stroke-opacity=".25" stroke-width="1.5" fill="none"/>'; }
+    for(let i=0;i<26;i++){
+      const x=30+i*62+r()*30;
+      if(x>690&&x<910) continue;
+      const y=772+r()*80, h=26+r()*30, k=r();
+      o+=k<.45?'<path d="M'+(x-2.5)+' '+y+'V'+(y-h)+'H'+(x+2.5)+'V'+y+'ZM'+(x-11)+' '+(y-h*.7)+'H'+(x+11)+'V'+(y-h*.7+5)+'H'+(x-11)
+        +'Z" fill="#0a0907" transform="rotate('+(r()*16-8).toFixed(1)+' '+x+' '+y+')"/>':'<path d="M'+(x-13)+' '+y+'V'+(y-h*.7)+'Q'+x+' '+(y-h*1.1)
+        +' '+(x+13)+' '+(y-h*.7)+'V'+y+'Z" fill="#0c0b09" transform="rotate('+(r()*10-5).toFixed(1)+' '+x+' '+y+')"/><path d="M'+(x-12)+' '+(y-h*.72)
+        +'Q'+(x-4)+' '+(y-h*.98)+' '+(x+2)+' '+(y-h*.94)+'" stroke="#6a604c" stroke-opacity=".25" stroke-width="1.5" fill="none"/>';
+    }
     o+='<g fill="#080706"><path d="M1330 900V690H1339V900Z"/><path d="M1326 690H1424V699H1326Z"/><path d="M1335 722L1364 694" stroke="#080706" stroke-width="6"/></g><path d="M1408 699V742" stroke="#080706" stroke-width="2"/><path d="M1401 742H1415L1412 760H1404Z" fill="#080706"/>'
       +scCrow(1360,688,1.2)+scCrow(1395,688,1)+scTree(r,140,900,360,'#090806')+scCrow(205,690,1.3)+scCrow(90,640,1)
       +scFog(870,.14,'#a89c80',1300,1)+scMotes(r,24,'#d8c8a0',300,880);
@@ -3109,7 +3169,13 @@ const BACKDROPS={
     let d='M800 40', pts=[[800,40]]; for(let y=100;y<=860;y+=60){ const x=800+(r()-.5)*(y<450?150:210); d+='L'+x.toFixed(0)+' '+y; pts.push([x,y]); }
     let br=''; pts.forEach(([x,y],i)=>{ if(i%3===1){ const dir=r()<.5?-1:1; br+='M'+x.toFixed(0)+' '+y+'l'+(dir*(40+r()*60)).toFixed(0)+' '+(10+r()*30).toFixed(0)+'l'+(dir*(20+r()*30)).toFixed(0)+' '+(r()*30-10).toFixed(0); } });
     o+=scGlow(800,450,300,'#e8564a',.22)+'<path d="'+d+'" stroke="#e8564a" stroke-width="34" fill="none" opacity=".22" filter="url(#scB2)"/><path d="'+d+br+'" stroke="#ff8a6a" stroke-width="6" fill="none" opacity=".55" filter="url(#scB2)"/><path d="'+d+'" stroke="#ffe0c8" stroke-width="3" fill="none" class="sc-flk"/><path d="'+br+'" stroke="#ffd0b0" stroke-width="1.4" fill="none" class="sc-flk"/>';
-    for(let i=0;i<16;i++){ const x=r()*1600, y=r()*820, s=18+r()*70, lit=x<800?1:-1; o+='<g class="sc-fog'+(i%2?' d2':'')+'"><path d="M'+x.toFixed(0)+' '+y.toFixed(0)+'l'+s.toFixed(0)+' '+(-s*.3).toFixed(0)+'l'+(s*.45).toFixed(0)+' '+(s*.6).toFixed(0)+'l'+(-s*.95).toFixed(0)+' '+(s*.42).toFixed(0)+'Z" fill="#0b0605"/><path d="M'+(lit>0?x+s:x).toFixed(0)+' '+(lit>0?y-s*.3:y).toFixed(0)+'l'+(lit>0?s*.45:-s*.5).toFixed(0)+' '+(s*.6).toFixed(0)+'" stroke="#e8564a" stroke-opacity=".55" stroke-width="2" fill="none"/></g>'; }
+    for(let i=0;i<16;i++){
+      const x=r()*1600, y=r()*820, s=18+r()*70, lit=x<800?1:-1;
+      o+='<g class="sc-fog'+(i%2?' d2':'')+'"><path d="M'+x.toFixed(0)+' '+y.toFixed(0)+'l'+s.toFixed(0)+' '+(-s*.3).toFixed(0)+'l'+(s*.45).toFixed(0)
+        +' '+(s*.6).toFixed(0)+'l'+(-s*.95).toFixed(0)+' '+(s*.42).toFixed(0)+'Z" fill="#0b0605"/><path d="M'+(lit>0?x+s:x).toFixed(0)+' '
+        +(lit>0?y-s*.3:y).toFixed(0)+'l'+(lit>0?s*.45:-s*.5).toFixed(0)+' '+(s*.6).toFixed(0)
+        +'" stroke="#e8564a" stroke-opacity=".55" stroke-width="2" fill="none"/></g>';
+    }
     return o+scMotes(r,40,'#ffb090',0,900,'sc-ember')+scFog(800,.12,'#a04030',1100); }
 };
 // ===== BOSS ARENAS =====
@@ -3175,14 +3241,22 @@ const ARENAS={
    for(let i=0;i<4;i++){ const x=200+i*30; o+='<path d="M'+x+' 300L'+(x+50)+' 520" stroke="#c83a2a" stroke-opacity=".4" stroke-width="6" stroke-linecap="round"/><path d="M'+(1300+i*30)+' 320L'+(1350+i*30)+' 540" stroke="#c83a2a" stroke-opacity=".4" stroke-width="6" stroke-linecap="round"/>'; }
    return o; },[40,'#ff7a40','sc-ember']),
  'Cinder Matron':(r)=>arFrame('Cinder Matron',r,(c1,c2)=>{ let o='';
-   for(const sx of [-1,1]) for(let i=0;i<7;i++){ const a=(-.15-i*.11)*Math.PI, len=420-i*30; o+='<path d="M800 420Q'+(800+sx*len*.5)+' '+(420+Math.sin(a)*len*.9).toFixed(0)+' '+(800+sx*len*Math.cos(a*.6)).toFixed(0)+' '+(420+Math.sin(a)*len*.6).toFixed(0)+'" stroke="#ff8a3c" stroke-opacity="'+(.35-i*.035).toFixed(2)+'" stroke-width="'+(14-i)+'" fill="none" stroke-linecap="round" class="sc-flk"/>'; }
+   for(const sx of [-1,1]) for(let i=0;i<7;i++){
+     const a=(-.15-i*.11)*Math.PI, len=420-i*30;
+     o+='<path d="M800 420Q'+(800+sx*len*.5)+' '+(420+Math.sin(a)*len*.9).toFixed(0)+' '+(800+sx*len*Math.cos(a*.6)).toFixed(0)+' '
+       +(420+Math.sin(a)*len*.6).toFixed(0)+'" stroke="#ff8a3c" stroke-opacity="'+(.35-i*.035).toFixed(2)+'" stroke-width="'+(14-i)
+       +'" fill="none" stroke-linecap="round" class="sc-flk"/>';
+   }
    o+='<ellipse cx="800" cy="790" rx="520" ry="60" fill="#ff6a1a" opacity=".5" class="sc-flk"/><ellipse cx="800" cy="790" rx="380" ry="38" fill="#ffc060" opacity=".45"/>'
      +[[700,790],[900,800],[620,810],[980,810]].map(([x,y])=>'<ellipse cx="'+x+'" cy="'+y+'" rx="40" ry="8" fill="#3a1406"/>').join('')+arSil('M760 790V480Q760 440 800 430Q840 440 840 480V790Z',.9);
    for(let i=0;i<3;i++) o+=arRing(800,420,90+i*60,'#ffb050',2,.3-i*.08,'sc-flk');
    return o; },[60,'#ffb050','sc-ember']),
  'The Iron Inquisitor':(r)=>arFrame('The Iron Inquisitor',r,(c1,c2)=>{ let o=arRing(800,380,200,'#5a5a54',22,.9)+arRing(800,380,200,'#9a9a90',2,.4);
    for(let i=0;i<12;i++){ const a=i*Math.PI/6; o+='<path d="M800 380L'+(800+Math.cos(a)*200).toFixed(0)+' '+(380+Math.sin(a)*200).toFixed(0)+'" stroke="#3a3a36" stroke-width="10"/><path d="M'+(800+Math.cos(a)*200).toFixed(0)+' '+(380+Math.sin(a)*200).toFixed(0)+'l'+(Math.cos(a)*26).toFixed(0)+' '+(Math.sin(a)*26).toFixed(0)+'" stroke="#6a6a62" stroke-width="6"/>'; }
-   o+='<circle cx="800" cy="380" r="34" fill="#2a2a26"/>'+[[420,760],[1180,760]].map(([x,y])=>'<path d="M'+(x-50)+' '+y+'V'+(y-260)+'Q'+x+' '+(y-330)+' '+(x+50)+' '+(y-260)+'V'+y+'Z" fill="#1a1a18"/><path d="M'+(x-30)+' '+(y-240)+'H'+(x+30)+'" stroke="#6a6a62" stroke-width="3"/>'+Array.from({length:5},(_,i)=>'<circle cx="'+(x-24+i*12)+'" cy="'+(y-150)+'" r="2.5" fill="#8a8a80"/>').join('')).join('')
+   o+='<circle cx="800" cy="380" r="34" fill="#2a2a26"/>'
+     +[[420,760],[1180,760]].map(([x,y])=>'<path d="M'+(x-50)+' '+y+'V'+(y-260)+'Q'+x+' '+(y-330)+' '+(x+50)+' '+(y-260)+'V'+y
+       +'Z" fill="#1a1a18"/><path d="M'+(x-30)+' '+(y-240)+'H'+(x+30)+'" stroke="#6a6a62" stroke-width="3"/>'
+       +Array.from({length:5},(_,i)=>'<circle cx="'+(x-24+i*12)+'" cy="'+(y-150)+'" r="2.5" fill="#8a8a80"/>').join('')).join('')
      +scGear(560,250,60,'#2a2a26')+scGear(1050,230,46,'#2a2a26')+scGear(1180,420,38,'#2a2a26');
    return o; },[22,'#c8c8c0']),
  'Lord of Flies':(r)=>arFrame('Lord of Flies',r,(c1,c2)=>{ let o='';
@@ -3242,11 +3316,26 @@ const ARENAS={
    for(let i=0;i<12;i++){ const t=i/12, x=220+t*1180, y=560-Math.sin(t*9)*150; o+='<path d="M'+x.toFixed(0)+' '+(y-40).toFixed(0)+'l14 -40l14 40" fill="#140604"/>'; }
    return o+scGlow(800,700,300,'#ff6a1a',.2); },[60,'#ffa040','sc-ember']),
  'The Choir Eternal':(r)=>arFrame('The Choir Eternal',r,(c1,c2)=>{ let o='';
-   for(let row=0;row<4;row++){ const n=7+row*2, y=420+row*80, sc=.6+row*.2; for(let i=0;i<n;i++){ const x=800+(i-(n-1)/2)*(110*sc); o+='<path d="M'+(x-24*sc).toFixed(0)+' '+(y+90*sc).toFixed(0)+'L'+(x-18*sc).toFixed(0)+' '+(y+10*sc).toFixed(0)+'Q'+x.toFixed(0)+' '+(y-34*sc).toFixed(0)+' '+(x+18*sc).toFixed(0)+' '+(y+10*sc).toFixed(0)+'L'+(x+24*sc).toFixed(0)+' '+(y+90*sc).toFixed(0)+'Z" fill="#0a0908" opacity="'+(.6+row*.1)+'"/><ellipse cx="'+x.toFixed(0)+'" cy="'+(y+12*sc).toFixed(0)+'" rx="'+(6*sc).toFixed(1)+'" ry="'+(8*sc).toFixed(1)+'" fill="'+c2+'" opacity=".35" class="sc-flk"/>'; } }
+   for(let row=0;row<4;row++){
+     const n=7+row*2, y=420+row*80, sc=.6+row*.2;
+     for(let i=0;i<n;i++){
+       const x=800+(i-(n-1)/2)*(110*sc);
+       o+='<path d="M'+(x-24*sc).toFixed(0)+' '+(y+90*sc).toFixed(0)+'L'+(x-18*sc).toFixed(0)+' '+(y+10*sc).toFixed(0)+'Q'+x.toFixed(0)+' '
+         +(y-34*sc).toFixed(0)+' '+(x+18*sc).toFixed(0)+' '+(y+10*sc).toFixed(0)+'L'+(x+24*sc).toFixed(0)+' '+(y+90*sc).toFixed(0)
+         +'Z" fill="#0a0908" opacity="'+(.6+row*.1)+'"/><ellipse cx="'+x.toFixed(0)+'" cy="'+(y+12*sc).toFixed(0)+'" rx="'+(6*sc).toFixed(1)+'" ry="'
+         +(8*sc).toFixed(1)+'" fill="'+c2+'" opacity=".35" class="sc-flk"/>';
+     }
+   }
    o+=arRing(800,200,90,c2,4,.4,'sc-flk')+'<path d="M760 0L840 0L900 420H700Z" fill="url(#arS)"/>';
    return o; },[26,'#fff4d8']),
  'The Rootking':(r)=>arFrame('The Rootking',r,(c1,c2)=>{ let o='';
-   for(let i=0;i<26;i++){ const x0=r()*1600, top=r()<.5; const y0=top?0:900, x1=800+(r()-.5)*300, y1=420+(r()-.5)*120; o+='<path d="M'+x0.toFixed(0)+' '+y0+'C'+(x0+(r()-.5)*300).toFixed(0)+' '+(top?200:700)+' '+(x1+(r()-.5)*300).toFixed(0)+' '+(y1+(top?-120:120)).toFixed(0)+' '+x1.toFixed(0)+' '+y1.toFixed(0)+'" stroke="#0c0e06" stroke-width="'+(8+r()*18).toFixed(0)+'" fill="none" stroke-linecap="round"/>'; }
+   for(let i=0;i<26;i++){
+     const x0=r()*1600, top=r()<.5;
+     const y0=top?0:900, x1=800+(r()-.5)*300, y1=420+(r()-.5)*120;
+     o+='<path d="M'+x0.toFixed(0)+' '+y0+'C'+(x0+(r()-.5)*300).toFixed(0)+' '+(top?200:700)+' '+(x1+(r()-.5)*300).toFixed(0)+' '
+       +(y1+(top?-120:120)).toFixed(0)+' '+x1.toFixed(0)+' '+y1.toFixed(0)+'" stroke="#0c0e06" stroke-width="'+(8+r()*18).toFixed(0)
+       +'" fill="none" stroke-linecap="round"/>';
+   }
    o+='<path d="M720 380L740 300L770 350L800 270L830 350L860 300L880 380Z" fill="#6a8a2a" opacity=".5"/><circle cx="800" cy="420" r="70" fill="#0c0e06"/><ellipse cx="780" cy="410" rx="9" ry="12" fill="#c8e060" class="sc-flk"/><ellipse cx="820" cy="410" rx="9" ry="12" fill="#c8e060" class="sc-flk"/>';
    return o; },[30,'#c8e090']),
  'The Nameless Sovereign':(r)=>arFrame('The Nameless Sovereign',r,(c1,c2)=>{ let o='';
@@ -3281,7 +3370,18 @@ const LANGS={en:'English',tr:'Türkçe'};   // see LANGUAGE below
 const VIEW={size:0,calm:false,hc:false,nobg:false,lang:'en',fx:'auto',army:'cards',fold:{}};
 const FX_MODES={auto:'Auto',full:'Full',light:'Light'};
 const fxLight=()=>VIEW.fx==='light'||(VIEW.fx==='auto'&&((window.innerWidth||1200)<=540||((typeof navigator!=='undefined'&&navigator.hardwareConcurrency)||8)<=4));   // phones and weak machines get the cheap painting
-try{ const v=JSON.parse(localStorage.getItem('lotd-view')||'null'); if(v&&typeof v==='object'){ VIEW.size=clamp(+v.size||0,-1,2); VIEW.calm=!!v.calm; VIEW.hc=!!v.hc; VIEW.nobg=!!v.nobg; VIEW.lang=LANGS[v.lang]?v.lang:'en'; VIEW.fx=FX_MODES[v.fx]?v.fx:'auto'; VIEW.army=v.army==='compact'?'compact':'cards'; if(v.fold&&typeof v.fold==='object') for(const k of ['equip','quest','bounty']) if(v.fold[k]) VIEW.fold[k]=true; }
+try{
+  const v=JSON.parse(localStorage.getItem('lotd-view')||'null');
+  if(v&&typeof v==='object'){
+    VIEW.size=clamp(+v.size||0,-1,2);
+    VIEW.calm=!!v.calm;
+    VIEW.hc=!!v.hc;
+    VIEW.nobg=!!v.nobg;
+    VIEW.lang=LANGS[v.lang]?v.lang:'en';
+    VIEW.fx=FX_MODES[v.fx]?v.fx:'auto';
+    VIEW.army=v.army==='compact'?'compact':'cards';
+    if(v.fold&&typeof v.fold==='object') for(const k of ['equip','quest','bounty']) if(v.fold[k]) VIEW.fold[k]=true;
+  }
   else { VIEW.calm=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches); if(window.innerWidth<=540) VIEW.fold={equip:true,bounty:true}; } }catch(e){}   // first visit on a phone: the side panel starts folded
 const FOLD_NAME={equip:'Equipment',quest:'Daily quest',bounty:'Bounty board'};
 const foldBtn=k=>'<button class="fold" data-a="fold" data-k="'+k+'" aria-expanded="'+!VIEW.fold[k]+'" aria-label="'+(VIEW.fold[k]?'Show ':'Hide ')+FOLD_NAME[k]+'">'+(VIEW.fold[k]?'&#9662;':'&#9652;')+'</button>';
@@ -3297,7 +3397,6 @@ const foldCls=k=>VIEW.fold[k]?' folded':'';
 const FXL={st:'off',   // off | loading | init | ready | failed
   app:null,root:null,tex:null,live:[],pool:[],q:[],spy:null,tag:false,later:null,col:null,seed:0x2f6b1d,vis:false,
   MAX:300,QMAX:80};
-const fxKey=u=>u==null?null:typeof u==='string'?u:u.id!=null?u.id:u.uid!=null?'m'+u.uid:null;   // minions have no id, only a uid
 const fxReduced=()=>{ try{ return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return true; } };
 const fxAllowed=()=>{ try{ return !VIEW.calm&&!fxLight()&&!fxReduced(); }catch(e){ return false; } };
 function fxRnd(){ let x=FXL.seed; x^=x<<13; x^=x>>>17; x^=x<<5; FXL.seed=x>>>0; return FXL.seed/4294967296; }   // xorshift32: never touches Math.random
@@ -5555,7 +5654,11 @@ function salvJunkHTML(){
 }
 function bagHTML(){
   const rows=sortedBag().map(it=>{ const d=ITEM[it.id], cur=S.equip[d.slot], conf=ui.confirm==='d'+it.u;
-    return itemCard(it,'<button class="btn small primary" data-a="equip" data-k="'+it.u+'">'+(cur?'Swap':'Equip')+'</button>'+(d.uq?'':lockBtn(it))+reforgeBtn(it)+(d.uq||it.lk?'':(workOpen()?'<button class="btn small" data-a="salvage" data-k="'+it.u+'" title="Break it into bone dust">Salvage &middot; '+dust(dustValue(it))+'</button>':'')+'<button class="btn small warn" data-a="discard" data-k="'+it.u+'">'+(conf?'Confirm':'Discard')+'</button>'),true); }).join('');
+    return itemCard(it,'<button class="btn small primary" data-a="equip" data-k="'+it.u+'">'+(cur?'Swap':'Equip')+'</button>'+(d.uq?'':lockBtn(it))
+      +reforgeBtn(it)
+      +(d.uq||it.lk?'':(workOpen()?'<button class="btn small" data-a="salvage" data-k="'+it.u+'" title="Break it into bone dust">Salvage &middot; '
+        +dust(dustValue(it))+'</button>':'')
+        +'<button class="btn small warn" data-a="discard" data-k="'+it.u+'">'+(conf?'Confirm':'Discard')+'</button>'),true); }).join('');
   return '<section class="win" aria-labelledby="h-bag"><h2 class="win-h" id="h-bag">Bag '+S.inv.length+'/'+bagMax()+(workOpen()?' &middot; '+dust(S.dust||0):'')+'</h2>'
    +'<p class="lede">Uniques ignore the bag limit. Green lines are bonus rolls.</p>'
    +(ui.msg&&ui.msg.mk?'<div class="note '+(ui.msg.c||'')+'"><span>'+ui.msg.m+'</span></div>':'')
@@ -5590,7 +5693,10 @@ function bestiaryHTML(){
         return;
       }
       const rolls=e.boss?'2 rolls (100% and 60%)':'28% per kill';
-      h+='<button class="bes-row" data-a="bes" data-k="'+e.name+'" aria-expanded="'+open+'">'+ico(e.name,di,{boss:e.boss,role:e.role,secret:e.secret})+'<div><div class="u-name">'+e.name+'</div><div class="u-sub">'+ROLES[e.role].label+(isArmed(e.name)?' &middot; Gear-bearer':'')+' &middot; '+(isStudied?rolls:'Kills '+k+'/'+KNOW_AT+' &middot; drops unknown')+'</div></div><span class="u-tag">'+(open?'Hide':(isStudied?'Drops':'Study'))+'</span></button>';
+      h+='<button class="bes-row" data-a="bes" data-k="'+e.name+'" aria-expanded="'+open+'">'+ico(e.name,di,{boss:e.boss,role:e.role,secret:e.secret})
+        +'<div><div class="u-name">'+e.name+'</div><div class="u-sub">'+ROLES[e.role].label+(isArmed(e.name)?' &middot; Gear-bearer':'')+' &middot; '
+        +(isStudied?rolls:'Kills '+k+'/'+KNOW_AT+' &middot; drops unknown')+'</div></div><span class="u-tag">'
+        +(open?'Hide':(isStudied?'Drops':'Study'))+'</span></button>';
       if(!open) return;
       h+=besExtra(e.boss?'b:'+e.name:e.name, e.boss?GATE_ABIL[di]:null);
       if(isStudied){
@@ -5610,7 +5716,10 @@ function bestiaryHTML(){
   twList.forEach(e=>{
     const k=kn(e.name), isStudied=k>=KNOW_AT, open=ui.bes===e.name;
     if(k<=0){ h+='<div class="bes-row locked"><span class="ico unk" aria-hidden="true"><svg viewBox="0 0 64 64">'+IC['?']+'</svg></span><div><div class="u-name">???</div><div class="u-sub">Unknown. Defeat it to add it to the ledger.</div></div><span class="u-tag">Unseen</span></div>'; return; }
-    h+='<button class="bes-row" data-a="bes" data-k="'+e.name+'" aria-expanded="'+open+'">'+ico(e.name,5,{boss:e.boss,role:e.boss?'reaper':e.role})+'<div><div class="u-name">'+e.name+'</div><div class="u-sub">'+(e.boss?'Warden':ROLES[e.role].label+(isArmed(e.name)?' &middot; Gear-bearer':''))+' &middot; '+(isStudied?'Studied':'Kills '+k+'/'+KNOW_AT)+'</div></div><span class="u-tag">'+(open?'Hide':'Open')+'</span></button>';
+    h+='<button class="bes-row" data-a="bes" data-k="'+e.name+'" aria-expanded="'+open+'">'+ico(e.name,5,{boss:e.boss,role:e.boss?'reaper':e.role})
+      +'<div><div class="u-name">'+e.name+'</div><div class="u-sub">'
+      +(e.boss?'Warden':ROLES[e.role].label+(isArmed(e.name)?' &middot; Gear-bearer':''))+' &middot; '+(isStudied?'Studied':'Kills '+k+'/'+KNOW_AT)
+      +'</div></div><span class="u-tag">'+(open?'Hide':'Open')+'</span></button>';
     if(!open) return;
     h+=besExtra(e.boss?'b:'+e.name:'t:'+e.name, e.boss?GATE_ABIL[TW_BOSS.indexOf(e.name)%GATE_ABIL.length]:null);
     if(isStudied){
@@ -5974,7 +6083,10 @@ function histHTML(){
    +'<p class="group-h">Last '+HIST_N+' runs</p>';
   if(!H.length) return h+'<p class="lede">No runs yet. Enter a gate and the ledger will remember it.</p></section>';
   return h+'<div class="hist-wrap"><table class="hist"><thead><tr><th>Day</th><th>Where</th><th>Result</th><th class="num">Rooms</th><th class="num">Kills</th><th class="num">XP</th><th class="num">Gold</th><th class="num">Gear</th><th class="num">Raised</th></tr></thead><tbody>'
-   +H.map(x=>'<tr><td class="num">'+x.d+'</td><td>'+where(x)+(x.mod&&MODS[x.mod]?' <span class="dim">('+MODS[x.mod].name+')</span>':'')+(x.heat&&HEAT[x.heat]?' <span class="dim">'+HEAT[x.heat].name+'</span>':'')+(x.sec?'<div class="sec-k">&#9760; '+x.sec+' slain</div>':'')+'</td><td class="res-'+x.res+'">'+(RES[x.res]||x.res)+'</td><td class="num">'+x.rooms+'</td><td class="num">'+x.kills+'</td><td class="num">'+n(x.xp)+'</td><td class="num">'+n(x.gold)+'</td><td class="num">'+x.items+'</td><td class="num">'+x.raised+'</td></tr>').join('')
+   +H.map(x=>'<tr><td class="num">'+x.d+'</td><td>'+where(x)+(x.mod&&MODS[x.mod]?' <span class="dim">('+MODS[x.mod].name+')</span>':'')
+     +(x.heat&&HEAT[x.heat]?' <span class="dim">'+HEAT[x.heat].name+'</span>':'')+(x.sec?'<div class="sec-k">&#9760; '+x.sec+' slain</div>':'')
+     +'</td><td class="res-'+x.res+'">'+(RES[x.res]||x.res)+'</td><td class="num">'+x.rooms+'</td><td class="num">'+x.kills+'</td><td class="num">'
+     +n(x.xp)+'</td><td class="num">'+n(x.gold)+'</td><td class="num">'+x.items+'</td><td class="num">'+x.raised+'</td></tr>').join('')
    +'</tbody></table></div></section>';
 }
 // ----- the Codex: every rule and list in the game, read straight from the game's own tables so it never goes stale.
@@ -6147,7 +6259,14 @@ function townHTML(){
   if(ui.tab==='town'&&!townOpen()) ui.tab='gates';
   const twLock=S.player.lvl<TW.unlock; if(ui.tab==='tower'&&twLock) ui.tab='gates';   // the Hell Tower tab shows from the start but opens at TW.unlock
   let h=notesHTML()+spendStrip();
-  h+='<div class="tabs" role="tablist">'+[['gates','Gates'],['tower','Hell Tower'],['gear','Gear &middot; '+S.inv.length],['market','Market']].concat(townOpen()?[['town','Town']]:[]).concat([['skills','Skills'+(S.player.sp?' &middot; '+S.player.sp:'')],['titles','Titles &middot; '+Object.keys((S.ti&&S.ti.got)||{}).length],['ledger','Ledger']]).map((t,i)=>(t[0]==='tower'&&twLock)?'<button class="tab tw-lock" role="tab" disabled aria-disabled="true" aria-label="Hell Tower, locked until level '+TW.unlock+'" title="The Hell Tower opens at level '+TW.unlock+'"><span aria-hidden="true">&#128274; </span>Hell Tower &middot; Lv '+TW.unlock+'</button>':'<button class="tab'+(t[0]==='tower'?' hell':'')+'" role="tab" data-a="tab" data-k="'+t[0]+'" aria-keyshortcuts="'+(i+1)+'" aria-selected="'+(t[0]==='ledger'?LEDGER.some(x=>x[0]===ui.tab):(ui.tab||'gates')===t[0])+'">'+t[1]+(i<9?'<kbd aria-hidden="true">'+(i+1)+'</kbd>':'')+'</button>').join('')
+  h+='<div class="tabs" role="tablist">'
+    +[['gates','Gates'],['tower','Hell Tower'],['gear','Gear &middot; '+S.inv.length],['market','Market']].concat(townOpen()?[['town','Town']]:[])
+    .concat([['skills','Skills'+(S.player.sp?' &middot; '+S.player.sp:'')],['titles','Titles &middot; '+Object.keys((S.ti&&S.ti.got)||{}).length],['ledger','Ledger']])
+    .map((t,i)=>(t[0]==='tower'&&twLock)
+      ?'<button class="tab tw-lock" role="tab" disabled aria-disabled="true" aria-label="Hell Tower, locked until level '+TW.unlock+'" title="The Hell Tower opens at level '
+        +TW.unlock+'"><span aria-hidden="true">&#128274; </span>Hell Tower &middot; Lv '+TW.unlock+'</button>'
+      :'<button class="tab'+(t[0]==='tower'?' hell':'')+'" role="tab" data-a="tab" data-k="'+t[0]+'" aria-keyshortcuts="'+(i+1)+'" aria-selected="'
+        +(t[0]==='ledger'?LEDGER.some(x=>x[0]===ui.tab):(ui.tab||'gates')===t[0])+'">'+t[1]+(i<9?'<kbd aria-hidden="true">'+(i+1)+'</kbd>':'')+'</button>').join('')
    +'<button class="tab keyhint" data-a="keys" aria-keyshortcuts="?" aria-label="Keyboard shortcuts" title="Keyboard shortcuts">?</button></div>';
   if(LEDGER.some(x=>x[0]===ui.tab)){ ui.ledger=ui.tab; h+='<div class="chips sub-nav" role="tablist">'+LEDGER.map(x=>'<button class="btn small'+(x[0]===ui.tab?' primary':'')+'" role="tab" data-a="tab" data-k="'+x[0]+'" aria-selected="'+(x[0]===ui.tab)+'">'+x[1]+'</button>').join('')+'</div>'; }
   if(ui.tab==='gear') return h+bagHTML()+armyHTML();
@@ -6180,13 +6299,22 @@ function gateSubs(){
 }
 function nick(u){ return u.id==='p'?'You':u.nick||u.name; }
 function unitCard(u,side,mini){
-  const r=S.run, isP=u.id==='p', max=isP?pMax():u.maxHp, f=r.fx[u.id]||{d:0,h:0}, dead=u.hp<=0;
+  const r=S.run, isP=u.id==='p', max=isP?pMax():u.maxHp, f=r.fx[fxKey(u)]||{d:0,h:0}, dead=u.hp<=0;
   const sel=side==='foe'&&r.target===u.id&&!dead;
-  const tag=isP?'Necromancer':ROLES[u.role].label+(isArmed(u.base||u.name)?' &middot; Armed':'')+(u.boss?' &middot; Boss':'')+(u.elite?' &middot; Elite':'')+(u.abil&&!isP?' &middot; <span title="'+BOSS_ABIL[u.abil].desc+'">'+BOSS_ABIL[u.abil].name+'</span>':'')+(u.phase2&&!isP?' &middot; <span class="phase-t">Second phase</span>':'')+(u.aff&&!isP?u.aff.map(a=>' &middot; <span class="aff" title="'+AFFIX[a].desc+'">'+AFFIX[a].name+'</span>').join(''):'');
+  const tag=isP?'Necromancer':ROLES[u.role].label+(isArmed(u.base||u.name)?' &middot; Armed':'')+(u.boss?' &middot; Boss':'')
+    +(u.elite?' &middot; Elite':'')+(u.abil&&!isP?' &middot; <span title="'+BOSS_ABIL[u.abil].desc+'">'+BOSS_ABIL[u.abil].name+'</span>':'')
+    +(u.phase2&&!isP?' &middot; <span class="phase-t">Second phase</span>':'')
+    +(u.aff&&!isP?u.aff.map(a=>' &middot; <span class="aff" title="'+AFFIX[a].desc+'">'+AFFIX[a].name+'</span>').join(''):'');
   const rk=isP?'':'<span class="rk r'+u.rankI+'">'+RANKS[u.rankI]+'</span>';
   const fx=f.d?'<span class="fx neg">-'+f.d+'</span>':f.h?'<span class="fx pos">+'+f.h+'</span>':'';
   const dots=u.dots&&!dead?Object.keys(u.dots).map(k=>' &middot; <span class="dot-t '+k+'" title="'+u.dots[k].d+' damage a turn for '+u.dots[k].t+' more turn'+(u.dots[k].t>1?'s':'')+'">'+DOTS[k].name+' '+u.dots[k].d+'&times;'+u.dots[k].t+'</span>').join(''):'';
-  const sub=side==='foe'?'Lv '+u.lvl+' &middot; ATK '+u.atk+(u.curse&&!dead?' &middot; <span class="bad">Cursed '+u.curse.t+'</span>':'')+(u.stun&&!dead?' &middot; <span class="ok">Frozen</span>':'')+(u.shield>0&&!dead?' &middot; <span class="sh-t">Shield '+u.shield+'</span>':'')+dots+(u.charging&&!dead?'<span class="charge">Charging '+BOSS_ABIL[u.move||u.abil].name+'</span>':''):(isP?'Lv '+u.lvl+' &middot; ATK '+pAtk():mName(u)+' &middot; Lv '+u.lvl+' &middot; ATK '+u.atk)+dots;
+  const sub=side==='foe'?'Lv '+u.lvl+' &middot; ATK '+u.atk+(u.curse&&!dead?' &middot; <span class="bad">Cursed '+u.curse.t+'</span>':'')
+    +(u.stun&&!dead?' &middot; <span class="ok">Frozen</span>':'')
+    +(u.shield>0&&!dead?' &middot; <span class="sh-t">Shield '+u.shield+'</span>':'')
+    +dots
+    +(u.charging&&!dead?'<span class="charge">Charging '+BOSS_ABIL[u.move||u.abil].name+'</span>':'')
+    :(isP?'Lv '+u.lvl+' &middot; ATK '+pAtk():mName(u)+' &middot; Lv '+u.lvl+' &middot; ATK '+u.atk)
+    +dots;
   const inner=fx+'<div class="u-head">'+(isP?ico('Necromancer',pRankI(),{}):ico(u.base||u.kind||u.name,u.rankI,u))+'<div class="u-id"><div class="u-top">'+rk+'<span class="u-tag">'+tag+'</span></div>'
    +'<div class="u-name">'+(side==='foe'?u.name:nick(u))+'</div><div class="u-sub num">'+sub+'</div></div></div>'
    +'<div class="bar"><i class="fill hp" style="width:'+pct(u.hp,max)+'%"></i></div>'
@@ -6269,7 +6397,7 @@ function partyStrip(){   // phones: the pinned action bar hides your side, so on
 function minionRow(m,canRelease){   // the compact army list: one row per minion, same actions as the card
   const low=m.hp>0&&m.hp<m.maxHp*.3, tags=(m.traits||[]).map(t=>TRAITS[t].name), next=evoNext(m);
   if(next!=null) tags.push('Evolves at Lv '+next); else if((m.stage||0)===STAGE_MAX) tags.push('Eternal');
-  return '<div class="mrow"><span class="rk r'+m.rankI+'">'+RANKS[m.rankI]+'</span><span class="mr-name"><b style="'+(m.elite?'color:var(--gold)':'')+'">'+m.nick+'</b> <span class="dim">'+theName(mName(m))+'</span></span>'
+  return '<div class="mrow">'+ico(m.kind||m.name,m.rankI,m)+'<span class="rk r'+m.rankI+'">'+RANKS[m.rankI]+'</span><span class="mr-name"><b style="'+(m.elite?'color:var(--gold)':'')+'">'+m.nick+'</b> <span class="dim">'+theName(mName(m))+'</span></span>'
    +'<span class="u-tag">'+ROLES[m.role].label+(m.armed?' &middot; Armed':'')+'</span><span class="num mr-st">Lv '+m.lvl+' &middot; ATK '+m.atk+'</span>'
    +'<span class="mr-hp'+(low?' low':'')+'"><span class="bar"><i class="fill hp" style="width:'+pct(m.hp,m.maxHp)+'%"></i></span><span class="num">'+m.hp+'/'+m.maxHp+'</span></span>'
    +(tags.length?'<span class="mr-tags dim">'+tags.join(', ')+'</span>':'')
@@ -6319,7 +6447,12 @@ function raidHTML(){
 function armyHTML(){
   const canRel=S.mode==='town'||S.mode==='raise', compact=VIEW.army==='compact'&&S.army.length>1&&S.mode!=='battle';   // an open Details or Rename shows that minion's full card
   return '<section class="win" aria-labelledby="h-army"><h2 class="win-h" id="h-army">Army '+armyUsed()+'/'+slots()+(raidN()?' &middot; '+raidN()+' raiding':'')+slotsHTML()+'</h2>'
-   +(S.army.length>1&&S.mode!=='battle'?'<div class="bag-tools">Order: '+Object.keys(ARMY_SORTS).map(k=>'<button class="linkbtn" data-a="asort" data-k="'+k+'">'+ARMY_SORTS[k]+'</button>').join('')+'<span class="a-dens" role="group" aria-label="Army view">View: '+[['cards','Cards'],['compact','Compact']].map(x=>'<button class="linkbtn'+(VIEW.army===x[0]?' on':'')+'" data-a="view" data-k="army|'+x[0]+'" aria-pressed="'+(VIEW.army===x[0])+'">'+x[1]+'</button>').join('')+'</span></div>':'')
+   +(S.army.length>1&&S.mode!=='battle'?'<div class="bag-tools">Order: '
+     +Object.keys(ARMY_SORTS).map(k=>'<button class="linkbtn" data-a="asort" data-k="'+k+'">'+ARMY_SORTS[k]+'</button>').join('')
+     +'<span class="a-dens" role="group" aria-label="Army view">View: '
+     +[['cards','Cards'],['compact','Compact']].map(x=>'<button class="linkbtn'+(VIEW.army===x[0]?' on':'')+'" data-a="view" data-k="army|'+x[0]
+       +'" aria-pressed="'+(VIEW.army===x[0])+'">'+x[1]+'</button>').join('')
+     +'</span></div>':'')
    +(S.army.length?'<div class="army'+(compact?' compact':'')+'">'+S.army.map(m=>compact&&ui.mdet!==m.uid&&ui.rename!==m.uid?minionRow(m,canRel):minionCard(m,canRel)).join('')+'</div>':'<p class="lede">No one answers you yet. Win a room, then raise what fell.</p>')+'</section>';
 }
 function raiseHTML(){
@@ -6332,7 +6465,10 @@ function raiseHTML(){
     else right='<div class="btns" style="margin:0"><button class="btn primary small" data-a="raise" data-k="'+c.id+'"'+(P.mana<cost||full?' disabled':'')+(firstRaise()?' title="Your first raise always answers"':'')+'>Raise &middot; '+ch+'% &middot; '+cost+' mana</button>'
       +(S.salts>0?'<button class="btn small" data-a="raisesalt" data-k="'+c.id+'"'+(P.mana<cost||full?' disabled':'')+' title="Uses one Grave Salts ('+S.salts+' left)">With salts &middot; '+saltChance(c)+'%</button>':'')+'</div>';
     return '<div class="corpse'+(c.tried?' done '+c.result:'')+'" data-u="'+c.id+'"><div><div class="u-head">'+ico(c.base,c.rankI,c)+'<div class="u-id"><div class="u-top"><span class="rk r'+c.rankI+'">'+RANKS[c.rankI]+'</span><span class="u-tag">'+ROLES[c.role].label+(c.armed?' &middot; Armed':'')+(c.boss?' &middot; Boss':'')+(c.elite?' &middot; Elite':'')+'</span></div>'
-     +'<div class="u-name" style="'+(c.elite?'color:var(--gold)':'')+'">'+c.name+'</div><div class="u-sub num">Lv '+c.lvl+(c.aff?' &middot; <span class="aff" title="A raised elite keeps one of these as a trait">'+c.aff.map(a=>AFFIX[a].name===TRAITS[AFFIX[a].trait].name?'keeps '+AFFIX[a].name:AFFIX[a].name+' &rarr; '+TRAITS[AFFIX[a].trait].name).join(', ')+'</span>':'')+(c.free?' &middot; <span class="free-t">Straggler: free, +'+STRAGGLER_BONUS+'%</span>':'')+'</div></div></div></div>'+right+'</div>';
+     +'<div class="u-name" style="'+(c.elite?'color:var(--gold)':'')+'">'+c.name+'</div><div class="u-sub num">Lv '+c.lvl
+       +(c.aff?' &middot; <span class="aff" title="A raised elite keeps one of these as a trait">'
+         +c.aff.map(a=>AFFIX[a].name===TRAITS[AFFIX[a].trait].name?'keeps '+AFFIX[a].name:AFFIX[a].name+' &rarr; '+TRAITS[AFFIX[a].trait].name).join(', ')+'</span>':'')
+       +(c.free?' &middot; <span class="free-t">Straggler: free, +'+STRAGGLER_BONUS+'%</span>':'')+'</div></div></div></div>'+right+'</div>';
   }).join('');
   const done=r.cleared, q=r.quiet&&DOORS[r.quiet];
   return '<section class="win" aria-labelledby="h-raise"><h2 class="win-h" id="h-raise">'+(r.tw?'Hell Tower &middot; Floor '+r.tw+(done?' &middot; Conquered':' cleared'):(r.rift?'The Rift '+r.rift+' &middot; ':'')+D.name+' &middot; '+(done?'Cleared':'Room '+(r.room+1)+(q?'':' cleared')))+'</h2>'
@@ -6479,7 +6615,18 @@ const ACTIONS={
     const fallback=()=>{ const x=document.getElementById('exp'); let ok=false; if(x){ x.focus(); x.select(); try{ ok=document.execCommand('copy'); }catch(e){} }
       ui.msg=ok?{m:'Code copied.',c:'ok'}:{m:'Copying is blocked here. The code is selected: press Ctrl+C (Cmd+C on a Mac) to copy it.',c:'bad'}; render(); const y=document.getElementById('exp'); if(y&&!ok){ y.focus(); y.select(); } };
     try{ navigator.clipboard.writeText(v).then(()=>{ ui.msg={m:'Code copied.',c:'ok'}; render(); },fallback); }catch(e){ setTimeout(fallback,0); } },
-  loadcode:()=>{ if(ui.confirm!=='lc'){ ui.confirm='lc'; return; } ui.confirm=null; if(importCode(ui.imp)){ ui.imp=''; ui.exp=''; ui.msg={m:'Save code loaded.',c:'ok'}; } else ui.msg={m:'That code is not a valid save.',c:'bad'}; }, wear:k=>{ wearTitle(k); }, cxclear:()=>{ ui.cxq=''; }, cxq:()=>{},   /* the search box: typing is handled by the input listener; data-a only lets focus come back after a render */ ttf:k=>{ ui.ttf=(k in {all:1,got:1,locked:1,close:1}||/^r[0-5]$/.test(k))?k:'all'; }, tower:k=>startTower(+k), act:k=>act(k), target:k=>setTarget(k), flee:()=>flee(),
+  loadcode:()=>{
+    if(ui.confirm!=='lc'){ ui.confirm='lc'; return; } ui.confirm=null;
+    if(importCode(ui.imp)){ ui.imp=''; ui.exp=''; ui.msg={m:'Save code loaded.',c:'ok'}; } else ui.msg={m:'That code is not a valid save.',c:'bad'};
+  },
+  wear:k=>{ wearTitle(k); },
+  cxclear:()=>{ ui.cxq=''; },
+  cxq:()=>{},   /* the search box: typing is handled by the input listener; data-a only lets focus come back after a render */
+  ttf:k=>{ ui.ttf=(k in {all:1,got:1,locked:1,close:1}||/^r[0-5]$/.test(k))?k:'all'; },
+  tower:k=>startTower(+k),
+  act:k=>act(k),
+  target:k=>setTarget(k),
+  flee:()=>flee(),
   raise:k=>tryRaise(k), descend:()=>descend(), town:()=>returnTown(), rest:()=>restDay(),
   release:k=>{ if(ui.confirm===+k){ release(+k); ui.confirm=null; } else ui.confirm=+k; },
   newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); OPEN_HELP.on=false; ui.tab='gates'; ui.gsub='open'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }

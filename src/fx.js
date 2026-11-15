@@ -9,7 +9,6 @@
 const FXL={st:'off',   // off | loading | init | ready | failed
   app:null,root:null,tex:null,live:[],pool:[],q:[],spy:null,tag:false,later:null,col:null,seed:0x2f6b1d,vis:false,
   MAX:300,QMAX:80};
-const fxKey=u=>u==null?null:typeof u==='string'?u:u.id!=null?u.id:u.uid!=null?'m'+u.uid:null;   // minions have no id, only a uid
 const fxReduced=()=>{ try{ return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return true; } };
 const fxAllowed=()=>{ try{ return !VIEW.calm&&!fxLight()&&!fxReduced(); }catch(e){ return false; } };
 function fxRnd(){ let x=FXL.seed; x^=x<<13; x^=x>>>17; x^=x<<5; FXL.seed=x>>>0; return FXL.seed/4294967296; }   // xorshift32: never touches Math.random
