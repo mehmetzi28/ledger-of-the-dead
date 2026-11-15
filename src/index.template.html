@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#080706">
+<title>Ledger of the Dead</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&family=Cinzel:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+@@include style.css
+</style>
+
+<canvas id="embers" aria-hidden="true"></canvas>
+<div id="scene" aria-hidden="true"></div><div id="bossbg" aria-hidden="true"></div><div id="sr-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+<div id="hellbg" aria-hidden="true">
+  <div class="hb-sky"></div>
+  <svg viewBox="0 0 1600 500" preserveAspectRatio="xMidYMax slice">
+    <defs><radialGradient id="hbGlow" cx="50%" cy="100%" r="65%"><stop offset="0" stop-color="#ff6a2a" stop-opacity=".55"/><stop offset=".5" stop-color="#b8321a" stop-opacity=".22"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient></defs>
+    <rect width="1600" height="500" fill="url(#hbGlow)"/>
+    <!-- far ridge -->
+    <path fill="#2a0c07" d="M0 380L80 330L140 360L220 300L300 350L360 310L450 360L520 290L600 340L680 320L760 360L840 300L930 350L1010 310L1100 360L1180 300L1260 345L1340 315L1420 355L1500 305L1600 350V500H0Z"/>
+    <!-- spires -->
+    <g fill="#160604">
+      <path d="M540 500L548 330L556 270L564 330L572 500Z"/><path d="M590 500L596 380L604 340L612 380L618 500Z"/><path d="M620 500L630 360L640 300L650 360L660 500Z"/>
+      <path d="M960 500L968 360L978 290L988 360L996 500Z"/><path d="M1020 500L1026 390L1034 345L1042 390L1048 500Z"/><path d="M1060 500L1070 330L1078 265L1086 330L1094 500Z"/>
+      <path d="M300 500L310 400L318 360L326 400L336 500Z"/><path d="M1270 500L1280 395L1288 352L1296 395L1306 500Z"/>
+    </g>
+    <!-- the Tower -->
+    <g fill="#0d0302">
+      <path d="M700 500L715 420L735 420L740 300L755 300L760 200L775 200L785 110L800 40L815 110L825 200L840 200L845 300L860 300L865 420L885 420L900 500Z"/>
+      <path d="M786 122C770 104 764 84 770 62C777 86 786 100 796 112Z"/><path d="M814 122C830 104 836 84 830 62C823 86 814 100 804 112Z"/>
+    </g>
+    <g>
+      <rect class="hb-win" x="797" y="150" width="6" height="12"/><rect class="hb-win" x="762" y="258" width="6" height="10"/><rect class="hb-win" x="832" y="258" width="6" height="10"/>
+      <rect class="hb-win" x="797" y="330" width="6" height="12"/><rect class="hb-win" x="745" y="382" width="5" height="10"/><rect class="hb-win" x="850" y="382" width="5" height="10"/>
+    </g>
+    <!-- near crags and giant horns -->
+    <g fill="#070201">
+      <path d="M40 432C18 340 60 250 152 208C100 270 90 342 112 424Z"/><path d="M1560 432C1582 340 1540 250 1448 208C1500 270 1510 342 1488 424Z"/>
+      <path d="M0 500V430L60 410L110 440L170 400L230 445L300 420L360 460L420 435L480 470L520 500Z"/>
+      <path d="M1080 500L1130 460L1200 430L1260 455L1330 410L1400 440L1460 405L1530 435L1600 415V500Z"/>
+    </g>
+  </svg>
+  <div class="hb-flames hb-back"></div>
+  <div class="hb-flames hb-front"></div>
+  <div class="hb-vig"></div>
+</div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><filter id="paintLite" x="-12%" y="-12%" width="124%" height="130%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceAlpha" stdDeviation="1.6" result="b"/><feDiffuseLighting in="b" surfaceScale="2.4" diffuseConstant="1.15" lighting-color="#fff6e8" result="d"><feDistantLight azimuth="230" elevation="52"/></feDiffuseLighting><feComposite in="SourceGraphic" in2="d" operator="arithmetic" k1="1" k2="0" k3="0" k4="0" result="l"/><feComposite in="l" in2="SourceAlpha" operator="in" result="l2"/><feOffset in="b" dx=".6" dy="1.6" result="o"/><feMerge><feMergeNode in="o"/><feMergeNode in="l2"/></feMerge></filter><filter id="paint" x="-12%" y="-12%" width="124%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4" result="nz"/><feDisplacementMap in="SourceGraphic" in2="nz" scale="1.1" xChannelSelector="R" yChannelSelector="G" result="g0"/><feColorMatrix in="g0" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="a0"/><feColorMatrix in="g0" type="luminanceToAlpha" result="lum"/><feGaussianBlur in="a0" stdDeviation="2.2" result="ab"/><feGaussianBlur in="lum" stdDeviation=".7" result="lb"/><feComposite in="ab" in2="lb" operator="arithmetic" k1="0" k2=".75" k3=".6" k4="0" result="h"/><feDiffuseLighting in="h" surfaceScale="2.7" diffuseConstant="1.18" lighting-color="#fff6e8" result="d"><feDistantLight azimuth="230" elevation="52"/></feDiffuseLighting><feDiffuseLighting in="a0" surfaceScale="0" diffuseConstant="1.45" lighting-color="#fff" result="v"><fePointLight x="16" y="6" z="62"/></feDiffuseLighting><feComposite in="g0" in2="d" operator="arithmetic" k1="1" k2="0" k3="0" k4="0" result="l1"/><feComposite in="l1" in2="v" operator="arithmetic" k1="1" k2="0" k3="0" k4="0" result="l2"/><feSpecularLighting in="h" surfaceScale="2.7" specularConstant=".5" specularExponent="24" lighting-color="#fff0d8" result="sp"><feDistantLight azimuth="230" elevation="56"/></feSpecularLighting><feComposite in="sp" in2="a0" operator="in" result="sp2"/><feComposite in="l2" in2="sp2" operator="arithmetic" k1="0" k2="1" k3=".55" k4="0" result="l3"/><feTurbulence type="fractalNoise" baseFrequency="1.7" numOctaves="2" seed="9" result="n2"/><feColorMatrix in="n2" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .4 -.13" result="gr"/><feComposite in="gr" in2="a0" operator="in" result="gr2"/><feComposite in="gr2" in2="l3" operator="over" result="l4"/><feComposite in="l4" in2="a0" operator="in" result="l5"/><feGaussianBlur in="a0" stdDeviation="1.3" result="sh"/><feOffset in="sh" dx=".6" dy="1.8" result="sho"/><feComponentTransfer in="sho" result="sha"><feFuncA type="linear" slope=".85"/></feComponentTransfer><feMerge><feMergeNode in="sha"/><feMergeNode in="l5"/></feMerge></filter><pattern id="txFur" width="5" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(-20)"><path d="M1 0.5L2 4.5M3.5 2L4.3 5.6" stroke="#000" stroke-opacity=".32" stroke-width=".7" stroke-linecap="round"/><path d="M2.4 0.2L3 2.8" stroke="#fff" stroke-opacity=".16" stroke-width=".5" stroke-linecap="round"/></pattern><pattern id="txChitin" width="9" height="5" patternUnits="userSpaceOnUse"><path d="M0 4.5C2 1.5 7 1.5 9 4.5" fill="none" stroke="#000" stroke-opacity=".35" stroke-width=".8"/><path d="M1.5 3C3 1.8 6 1.8 7.5 3" fill="none" stroke="#fff" stroke-opacity=".2" stroke-width=".5"/></pattern><pattern id="txFlesh" width="7" height="7" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="2" r=".55" fill="#000" fill-opacity=".28"/><circle cx="5" cy="5.2" r=".45" fill="#000" fill-opacity=".22"/><circle cx="4.6" cy="1.4" r=".9" fill="#fff" fill-opacity=".06"/><path d="M0 6C2 5 3 6.5 5 6" stroke="#5a1a14" stroke-opacity=".22" stroke-width=".4" fill="none"/></pattern><pattern id="txBone" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r=".45" fill="#3a2a1a" fill-opacity=".35"/><circle cx="6" cy="5" r=".35" fill="#3a2a1a" fill-opacity=".3"/><path d="M3 7.5L4.5 5.5L4 3.8" stroke="#3a2a1a" stroke-opacity=".25" stroke-width=".35" fill="none"/></pattern><pattern id="txCloth" width="3" height="3" patternUnits="userSpaceOnUse"><path d="M0 .75H3M0 2.25H1.5" stroke="#000" stroke-opacity=".22" stroke-width=".5"/><path d="M.75 0V3M2.25 1.5V3" stroke="#fff" stroke-opacity=".07" stroke-width=".5"/></pattern><pattern id="txMetal" width="16" height="3" patternUnits="userSpaceOnUse"><path d="M0 .6H16" stroke="#fff" stroke-opacity=".12" stroke-width=".4"/><path d="M0 2.1H9M11 2.1H16" stroke="#000" stroke-opacity=".2" stroke-width=".4"/><path d="M3 3L7 0" stroke="#fff" stroke-opacity=".08" stroke-width=".3"/></pattern><pattern id="txStone" width="11" height="11" patternUnits="userSpaceOnUse"><circle cx="2" cy="3" r=".7" fill="#000" fill-opacity=".3"/><circle cx="8" cy="7" r=".5" fill="#fff" fill-opacity=".14"/><circle cx="6" cy="2" r=".4" fill="#000" fill-opacity=".25"/><path d="M0 9L3 7.5L5 9.5L9 8.5" stroke="#000" stroke-opacity=".35" stroke-width=".5" fill="none"/></pattern><pattern id="txWood" width="6" height="14" patternUnits="userSpaceOnUse"><path d="M1 0C2 4 0 9 1.5 14M4 0C5.2 5 3.4 9 4.6 14" stroke="#000" stroke-opacity=".3" stroke-width=".6" fill="none"/><path d="M2.6 2C3.1 5 2.4 8 2.9 11" stroke="#fff" stroke-opacity=".1" stroke-width=".4" fill="none"/></pattern><pattern id="txSpirit" width="14" height="6" patternUnits="userSpaceOnUse"><path d="M0 3C3 1 6 5 9 3S13 1 14 3" stroke="#fff" stroke-opacity=".12" stroke-width=".6" fill="none"/></pattern><pattern id="txLeaf" width="6" height="6" patternUnits="userSpaceOnUse"><ellipse cx="1.6" cy="1.8" rx="1.3" ry=".7" transform="rotate(-30 1.6 1.8)" fill="#0c1406" fill-opacity=".35"/><ellipse cx="4.4" cy="4.4" rx="1.2" ry=".6" transform="rotate(25 4.4 4.4)" fill="#c8e090" fill-opacity=".14"/></pattern><pattern id="txGlass" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M0 10L10 0" stroke="#fff" stroke-opacity=".16" stroke-width=".6"/><path d="M-2 4L4 -2" stroke="#fff" stroke-opacity=".08" stroke-width=".4"/></pattern><filter id="relief" x="-15%" y="-15%" width="130%" height="135%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceAlpha" stdDeviation="1.1" result="b"/><feDiffuseLighting in="b" surfaceScale="2.6" diffuseConstant="1.2" lighting-color="#fff" result="d"><feDistantLight azimuth="235" elevation="48"/></feDiffuseLighting><feComposite in="SourceGraphic" in2="d" operator="arithmetic" k1="1" k2="0" k3="0" k4="0" result="lit"/><feSpecularLighting in="b" surfaceScale="2.6" specularConstant=".6" specularExponent="20" lighting-color="#fff2dc" result="s"><feDistantLight azimuth="235" elevation="52"/></feSpecularLighting><feComposite in="s" in2="SourceAlpha" operator="in" result="s2"/><feComposite in="lit" in2="s2" operator="arithmetic" k1="0" k2="1" k3=".8" k4="0" result="ls"/><feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed="7" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .7 -.18" result="gr"/><feComposite in="gr" in2="SourceAlpha" operator="in" result="gr2"/><feComposite in="gr2" in2="ls" operator="over" result="g"/><feComposite in="g" in2="SourceAlpha" operator="in" result="cut"/><feDropShadow dx="0" dy="1.4" stdDeviation="1.1" flood-color="#000" flood-opacity=".85"/></filter><linearGradient id="gSh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".26"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".5"/></linearGradient></defs></svg>
+<div class="wrap"><div id="app"></div></div>
+
+<script>
+@@include game.js
+@@include scenes.js
+@@include tr.js
+@@include ui.js
+</script>

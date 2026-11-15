@@ -13,6 +13,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Build check
+        run: node tools/build.js --check
       - name: Game tests
         run: node tests/run-tests.js
       - name: UI fuzz (random clicks, 12 seeds)

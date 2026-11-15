@@ -1,10 +1,13 @@
-// Runs tests/game-tests.js (helpers and runner) and every file in tests/groups (the tests) against index.html in Node, with a small fake browser (no packages needed).
+// Runs tests/game-tests.js (helpers and runner) and every file in tests/groups (the tests) against the built index.html in Node, with a small fake browser (no packages needed).
 //   node tests/run-tests.js            run everything
 //   node tests/run-tests.js save       only tests whose name contains "save"
 //   TRACE=1 node tests/run-tests.js    print each test name before it runs (finds a hang)
+// It first checks that index.html matches src/ (node tools/build.js --check), then lints src/ (tests/lint.js).
 // Exit code is 1 if any test fails, so it can gate a commit or CI.
+{ let msg; try{ msg=require('../tools/build').check(); }catch(e){ msg=e.message; }   // index.html is built from src/ (tools/build.js); a stale or hand-edited copy fails the run
+  if(msg){ console.error('Build check failed: '+msg); process.exit(1); } }
 const lint=require('./lint');   // a "// comment" pasted mid-line that swallows code (see tests/lint.js)
-if(lint.length){ console.error('Lint: these line comments look like swallowed code:'); lint.forEach(h=>console.error('  index.html:'+h)); process.exit(1); }
+if(lint.length){ console.error('Lint: these line comments look like swallowed code:'); lint.forEach(h=>console.error('  '+h)); process.exit(1); }
 let ctx;
 try{ const core=require('./load-game')(['game-tests.js']); ctx=core; for(const f of core.LOTD_TESTS.files) require('vm').runInContext(require('fs').readFileSync(require('path').join(__dirname,'groups',f),'utf8'),ctx,{filename:'groups/'+f}); }
 catch(e){ console.error('index.html failed to load:\n'+(e.stack||e)); process.exit(1); }
