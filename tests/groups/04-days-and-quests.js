@@ -1,10 +1,10 @@
 // Days And Quests tests. Helpers and the runner live in tests/game-tests.js; this file only adds tests.
 (function(){
 const {test,ok,eq,near,finite,fmt,BAD_TEXT,cleanHTML,mulberry32,seed,fix,seq,H,fresh,setLvl,foe,arena,mkMinion,corpse,raiseScene,wear,give,canon,firstDiff,renderAll,TABS,richState,invariants,NODE,bossFight,earn,eventScene,cursedRun,wonRoom,master,board,cdx}=window.LOTD_T;
-test('Days: ending a day with the quest undone costs XP and HP',()=>{
-  const P=S.player; P.xp=40; endDay(); eq(S.day,2); eq(S.watches,WATCHES); eq(P.xp,40-Math.round(need(1)*QUEST_LOSS)); ok(P.debuff); eq(P.hp,pMax()); eq(pMax(),Math.round(52*(1-QUEST_DEBUFF)));
+test('Days: ending a day with the quest undone costs XP and HP once a gate has been cleared',()=>{
+  const P=S.player; S.ti={clr:{0:1}}; P.xp=40; endDay(); eq(S.day,2); eq(S.watches,WATCHES); eq(P.xp,40-Math.round(need(1)*QUEST_LOSS)); ok(P.debuff); eq(P.hp,pMax()); eq(pMax(),Math.round(52*(1-QUEST_DEBUFF)));
 });
-test('Days: the debuff lifts the next day',()=>{ endDay(); ok(S.player.debuff); S.quest={kills:8,rooms:4,clears:1,claimed:false}; endDay(); ok(!S.player.debuff); });
+test('Days: the debuff lifts the next day',()=>{ S.ti={clr:{0:1}}; endDay(); ok(S.player.debuff); S.quest={kills:8,rooms:4,clears:1,claimed:false}; endDay(); ok(!S.player.debuff); });
 test('Days: a finished quest is claimed once for 1 point and 15% of a level',()=>{
   const P=S.player; S.quest={kills:8,rooms:4,clears:1,claimed:false}; ok(questDone());
   eq(QUEST_PTS,1); eq(QUEST_XP,.15); claimQuest(); eq(P.pts,3+QUEST_PTS); eq(P.xp,Math.round(need(1)*QUEST_XP)); eq(S.ti.claims,1); ok(S.quest.claimed); ok(/\+1 stat point and/.test(S.notices[0].m));
@@ -16,6 +16,13 @@ test('Days: the daily quest counts cleared rooms (gate rooms and Tower floors), 
   returnTown(); const c=corpse({}); raiseScene([c],20); fix(0); tryRaise(c.id); eq(S.quest.raises,undefined,'raising no longer feeds the quest'); returnTown();
   ok(/Clear rooms/.test(renderAll('quest')));
   const g=normalizeSave({v:2,player:{lvl:3},quest:{kills:5,raises:2,clears:0,claimed:false}}); eq(g.quest.rooms,0); eq('raises' in g.quest,false); eq(g.quest.kills,5);
+});
+test('Days: before the first gate clear an unfinished quest costs nothing at dawn, and the panel and dawn message say so',()=>{
+  const P=S.player; P.xp=40; ok(!anyClear()); let h=renderAll('quest, no clear'); ok(/No penalty if unfinished until you clear your first gate./.test(h)); ok(!/Penalty if unfinished at dawn/.test(h));
+  endDay(); eq(S.day,2); eq(P.xp,40,'no XP lost'); ok(!P.debuff,'no HP cut'); eq(pMax(),52); ok(S.notices.some(n=>/No penalty until you clear your first gate./.test(n.m)),'dawn message');
+  S.quest={kills:8,rooms:4,clears:1,claimed:false}; endDay(); eq(S.ti.claims,1,'finishing still pays');
+  S.ti.clr={0:1}; h=renderAll('quest, cleared'); ok(/Penalty if unfinished at dawn/.test(h)); ok(!/No penalty if unfinished/.test(h));
+  eq(trText('No penalty if unfinished until you clear your first gate.'),'İlk kapını temizleyene kadar bitirmemenin cezası yok.'); ok(trText('Day 3 closed with the daily quest unfinished. No penalty until you clear your first gate.').startsWith('Gün 3'));
 });
 test('Days: an unfinished quest cannot be claimed',()=>{ S.quest={kills:8,rooms:3,clears:1,claimed:false}; claimQuest(); ok(!S.quest.claimed); eq(S.player.pts,3); });
 test('Days: resting skips to the next day, only from town',()=>{ restDay(); eq(S.day,2); arena([foe()]); restDay(); eq(S.day,2); });

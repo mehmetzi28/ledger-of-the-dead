@@ -475,6 +475,7 @@ kbd{border:0;background:rgba(0,0,0,.35);border-radius:3px;padding:1px 5px;opacit
 .gate .meta{font:400 13px/1.45 var(--font-body);color:var(--mute);margin-top:6px}
 .gate .meta b{font-weight:600;color:var(--bone)}
 .danger-easy{color:var(--mute)}.danger-fair{color:var(--ok)}.danger-hard{color:var(--ember)}.danger-deadly{color:var(--blood-text)}
+.gate .meta .rec-lv{color:var(--bone)}.armor-tag{cursor:help;border-bottom:1px dotted currentColor}
 .u-tag,.i-tag{font:500 12px/1.2 var(--font-body)}
 .u-name{font-weight:600}
 .trait{border-radius:999px;font:500 11.5px/1.2 var(--font-body);padding:2px 8px}
@@ -700,6 +701,8 @@ body.lite .ico svg>g{filter:url(#paintLite)}
 body.lite::after{display:none}body.lite .win{background:color-mix(in srgb,var(--panel) 90%,transparent)}
 body.lite .unit,body.lite .minion,body.lite .corpse,body.lite .item,body.lite .gate,body.lite .door,body.lite .tt-row,body.lite .raid-row{background-image:none}
 .tabs kbd{margin-left:10px;font-size:9px}.tabs .keyhint{min-width:34px}
+/* battle effects canvas (src/fx.js): inside .wrap, over the cards and the action bar, under the banners (.moments 20) and overlays (.keys-ov 60) */
+#fxl{position:fixed;left:0;top:0;z-index:10;pointer-events:none;display:block}
 .keys-ov{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;padding:16px}
 .keys-win{max-width:440px;width:100%;max-height:86vh;overflow:auto;margin:0}
 .keys-win .kh{display:flex;justify-content:space-between;align-items:center;gap:10px}.keys-win h2{margin:0}

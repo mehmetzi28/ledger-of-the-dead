@@ -15,9 +15,10 @@ test('Play-test: on phones the point buttons sit at the top while points wait; w
   flee(); raiseScene([corpse({elite:true,aff:['warded','vampiric']})],5); S.run.lastXp=0; h=renderAll('raise'); ok(/keeps Warded/.test(h)&&/Vampiric &rarr; Leeching/.test(h)); ok(/Room 1 cleared/.test(h));
   ui.tab='gates'; S.mode='town'; S.run=null; ok(/aria-label="(Hide|Show) Daily quest"/.test(renderAll('fold labels')));
 });
-test('Requests: the daily quest sits at the top of the side panel, and a new game opens on How to play',()=>{
+test('Requests: the daily quest sits at the top of the side panel, and a new game opens on the Gates tab with a link to How to play',()=>{
   const h=renderAll('rail'); const r=h.slice(h.indexOf('class="rail"')); ok(r.indexOf('h-quest')>-1&&r.indexOf('h-quest')<r.indexOf('h-status'),'quest above status');
-  newGame(); ok(OPEN_HELP.on,'a new game asks for the guide'); OPEN_HELP.on=false; ui.confirm='new'; ACTIONS.newgame(); eq(ui.tab,'help'); ok(/Begin: to the gates/.test(renderAll('guide')));
+  newGame(); ok(OPEN_HELP.on,'a new game is marked new'); OPEN_HELP.on=false; ui.confirm='new'; ACTIONS.newgame(); eq(ui.tab,'gates'); ok(/data-a="tab" data-k="help">How to play &middot; first steps 0\/9</.test(renderAll('gates')),'guide link');
+  ui.tab='help'; ok(/Begin: to the gates/.test(renderAll('guide')),'the guide keeps its button');
 });
 test('Requests: bounties ask for more',()=>{ eq(BOUNTIES.kills.n,50); eq(BOUNTIES.elites.n,4); eq(BOUNTIES.rooms.n,12); eq(BOUNTIES.bosses.n,3); eq(BOUNTIES.poison.n,30); });
 })();

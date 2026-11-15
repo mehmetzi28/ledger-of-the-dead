@@ -486,6 +486,7 @@ kbd{border:0;background:rgba(0,0,0,.35);border-radius:3px;padding:1px 5px;opacit
 .gate .meta{font:400 13px/1.45 var(--font-body);color:var(--mute);margin-top:6px}
 .gate .meta b{font-weight:600;color:var(--bone)}
 .danger-easy{color:var(--mute)}.danger-fair{color:var(--ok)}.danger-hard{color:var(--ember)}.danger-deadly{color:var(--blood-text)}
+.gate .meta .rec-lv{color:var(--bone)}.armor-tag{cursor:help;border-bottom:1px dotted currentColor}
 .u-tag,.i-tag{font:500 12px/1.2 var(--font-body)}
 .u-name{font-weight:600}
 .trait{border-radius:999px;font:500 11.5px/1.2 var(--font-body);padding:2px 8px}
@@ -711,6 +712,8 @@ body.lite .ico svg>g{filter:url(#paintLite)}
 body.lite::after{display:none}body.lite .win{background:color-mix(in srgb,var(--panel) 90%,transparent)}
 body.lite .unit,body.lite .minion,body.lite .corpse,body.lite .item,body.lite .gate,body.lite .door,body.lite .tt-row,body.lite .raid-row{background-image:none}
 .tabs kbd{margin-left:10px;font-size:9px}.tabs .keyhint{min-width:34px}
+/* battle effects canvas (src/fx.js): inside .wrap, over the cards and the action bar, under the banners (.moments 20) and overlays (.keys-ov 60) */
+#fxl{position:fixed;left:0;top:0;z-index:10;pointer-events:none;display:block}
 .keys-ov{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;padding:16px}
 .keys-win{max-width:440px;width:100%;max-height:86vh;overflow:auto;margin:0}
 .keys-win .kh{display:flex;justify-content:space-between;align-items:center;gap:10px}.keys-win h2{margin:0}
@@ -1041,7 +1044,7 @@ function spawnFloor(){
   else { const n=f<30?3:f<70?3+(Math.random()<.5?1:0):4; for(let i=0;i<n;i++) spawnTowerOne(list,f,0); }
   foeScale(list,TW.foeAtk); affixAll(list);
   r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0;
-  log(boss?'Floor '+f+'. The warden of this tier is waiting.':'Floor '+f+'.'); if(boss) bossSpeaks(list[0],'hi');
+  log(boss?'Floor '+f+'. The warden of this tier is waiting.':'Floor '+f+'.'); if(boss){ bossSpeaks(list[0],'hi'); fxe('boss',list[0]); }
   if(hasFlag('infernal')) infernalWard();
 }
 const towerStarts=()=>{ const a=[1]; for(let k=1;k*10<=S.tower.best;k++) a.push(k*10+1); return a; };   // a checkpoint after every tenth floor, endlessly past 100
@@ -1084,18 +1087,33 @@ const enrage=e=>(e.tw&&e.boss)?1+Math.max(0,S.run.turn-8)*(e.tw===100?.12:.07):1
 // gate[1] 1.5->1.65 and gate[5] 2.3->2.45 after the skill system (tests/balance-test.js): skill users now match the old no-skill death rates.
 // gate[0] .85->.68 and armor[1] .78->.74 in the early-game pass: a new player died in ~1 of 5 Rat Warren runs and a third of Sunken Crypt runs.
 const DIFF={hp:2.2,atk:2.0,gate:[0.68,1.65,2.2,1.9,1.7,2.45],xpBase:64,xpExp:1.85,heal:.15,mana:.25,mheal:.2,deathXp:.15};
-// Level at which a decent player wins most runs at each gate (measured with a test bot). Used for the Recommended and danger labels.
+// SAFE: the hero level the balance bot (tests/balance-test.js) starts entering each gate at, and the reference level of the farming falloff (farmK)
+// and of secret-master growth (SB_GROW). Rules and bot only: what the player is told is gateRec (below), which is measured and follows the tuning.
 const SAFE=[1,6,10,15,19,25];   // A and S were 22/28, which the XP from B could not reach (players stalled near level 20); they were balanced at 19/25
 // Foe armor: the share of damage living foes shrug off, per gate (TW.armor in the Tower). It makes fights last more turns without
 // inflating any numbers, and the extra turns are what make a room dangerous. Minions use the same stat formula as enemies, so
 // DIFF.hp/atk and DIFF.gate move both sides; armor and foeAtk affect living foes only. Tuned with tests/balance-test.js.
 // Target: a bot that learns skills, entering each gate at its Recommended level, clears ~80% of runs (A and S were tuned entering 3 levels early,
 // because the XP curve stalls the fair bot near level 20). The no-skill bot dies noticeably more often.
-DIFF.armor=[0.30,0.74,0.88,0.85,0.89,0.85]; DIFF.foeAtk=[1,1.1,1.0,2.1,1.38,0.8];   // retuned after boss abilities, altar, salts, and minion traits/evolution (D, A, S raised); xpBase 70->64 keeps the leveling pace (S first cleared ~day 64)   A 1.5->1.38 after status effects (bleeding from its strikers)   D 1.2->1.1 and C 1.2->1.0: the bots cleared C 69% (market) and D 71% (full), now about 80% and 76%
+DIFF.armor=[0.30,0.66,0.88,0.85,0.89,0.85]; DIFF.foeAtk=[1,1.3,1.0,2.1,1.38,0.8];   // retuned after boss abilities, altar, salts, and minion traits/evolution (D, A, S raised); xpBase 70->64 keeps the leveling pace (S first cleared ~day 64)   A 1.5->1.38 after status effects (bleeding from its strikers)   D 1.2->1.1 and C 1.2->1.0: the bots cleared C 69% (market) and D 71% (full), now about 80% and 76%   D armor .74->.66 with foeAtk 1.1->1.3: same danger, shorter rooms (bots: 7.5->5.8 turns per room market, 9.6->7.1 full)
 // Farming far below you on Normal pays less: kill XP, kill gold and the clear bonus are full up to FARM_FROM levels past a gate's SAFE level,
 // then ramp down to FARM_MIN at FARM_TO and beyond. Hard and up, cursed gates, a gate's first clear, drops, the Tower, the Rift, raids, bounties and quests pay in full.
 DIFF.farmFrom=8; DIFF.farmTo=20; DIFF.farmMin=.5;
 const farmK=(di,lvl)=>{ const t=clamp(((lvl-SAFE[di])-DIFF.farmFrom)/(DIFF.farmTo-DIFF.farmFrom),0,1); return 1-(1-DIFF.farmMin)*t; };
+// Recommended hero level per gate: the gate card's "Recommended Lv N+", its Easy/Fair/Hard/Deadly label and the Codex.
+// REC_BASE is measured: the lowest hero level at which the market bot clears the gate about 75% or more on Normal
+// (node tests/run-balance.js '{"byLvl":true}', once as is and once with "push":true for the levels below SAFE), at the tuning in REC_AT.
+// gateRec moves it with that gate's tuning: a room's danger goes with foe HP / (1 - armor) x foe attack, so a change in armor, foeAtk,
+// DIFF.gate or foe level RK.lv shifts the advice by the number of foe levels (LV_HP/LV_ATK growth) that changes that product as much.
+// A test fails once the shift passes REC_DRIFT levels: then re-measure and update REC_BASE and REC_AT together.
+const LV_HP=.16, LV_ATK=.12;   // foe and minion growth per level (mobStats)
+const REC_BASE=[1,7,11,16,20,25], REC_AT=[[.30,1,.68,1],[.66,1.3,1.65,4],[.88,1,2.2,8],[.85,2.1,1.9,12],[.89,1.38,1.7,17],[.85,.8,2.45,23]], REC_DRIFT=2;   // REC_AT per gate: [armor, foeAtk, gate, RK.lv]. Measured 2026-11-15 (market bot, seed 7700): the bot first reached ~75% at 1/7/11/16/20/25, one level above SAFE on D, C, B and A
+function recShift(di){
+  const a=REC_AT[di], k=(g,ar,fa)=>g*g*fa/(1-ar), grow=t=>(1+LV_HP*t)*(1+LV_ATK*t);   // t = foe level - 1
+  const R=k(DIFF.gate[di],DIFF.armor[di],DIFF.foeAtk[di])/k(a[2],a[0],a[1])*grow(RK[di].lv+1), A=LV_HP*LV_ATK, B=LV_HP+LV_ATK;   // mid-run foes stand 2 levels above RK.lv
+  return (-B+Math.sqrt(Math.max(0,B*B-4*A*(1-R))))/(2*A)-(a[3]+1);   // the foe level whose old-tuning strength matches the new tuning, minus the old one
+}
+const gateRec=di=>Math.max(1,Math.round(REC_BASE[di]+recShift(di)));
 const NGP_FOE=.3, NGP_REWARD=.25, ngpFoe=()=>1+NGP_FOE*((S&&S.ngp)||0), ngpReward=()=>1+NGP_REWARD*((S&&S.ngp)||0);   // New Game+: tougher foes, richer rewards
 function foeScale(list,a){ const n=ngpFoe(); for(const e of list){ if(n!==1){ e.maxHp=e.hp=Math.round(e.maxHp*n); } if(a*n!==1) e.atk=Math.max(1,Math.round(e.atk*a*n)); } }
 const foeArmor=()=>S.run?(S.run.tw?TW.armor:DIFF.armor[S.run.di]):0;
@@ -1118,8 +1136,8 @@ const pRankI = ()=>{const l=S.player.lvl;return l<4?0:l<8?1:l<12?2:l<17?3:l<23?4
 
 function mobStats(rankI,lvl,hf,af,boss,elite){
   const R=RK[rankI];
-  let hp=14*R.hp*hf*DIFF.hp*DIFF.gate[rankI]*(1+.16*(lvl-1));
-  let atk=3.2*R.atk*af*DIFF.atk*DIFF.gate[rankI]*(1+.12*(lvl-1));
+  let hp=14*R.hp*hf*DIFF.hp*DIFF.gate[rankI]*(1+LV_HP*(lvl-1));
+  let atk=3.2*R.atk*af*DIFF.atk*DIFF.gate[rankI]*(1+LV_ATK*(lvl-1));
   if(boss){hp*=3.2;atk*=1.4}
   if(elite){hp*=1.5;atk*=1.3}
   return {hp:Math.round(hp), atk:Math.max(1,Math.round(atk))};
@@ -1151,10 +1169,10 @@ function notify(m,c){ S.notices.unshift({m,c:c||'info'}); S.notices.length=Math.
 function freshState(){
   return {v:2,day:1,watches:WATCHES,uid:0,mode:'town',run:null,notices:[],runs:0,kills:{},tower:{best:0,got:{}},inv:[],equip:{weapon:null,armor:null,relic:null},
      player:{id:'p',name:'You',lvl:1,xp:0,pts:3,hp:0,mana:0,shield:0,debuff:false,stats:{strength:4,constitution:4,intelligence:4,will:4},sp:0,skills:{},skMod:{}},
-     army:[],quest:{kills:0,rooms:0,clears:0,claimed:false},gold:0,trophies:{},belt:{hp:0,mp:0},shop:null,bagLv:0,salts:0,tips:{},ngp:0,
+     army:[],quest:{kills:0,rooms:0,clears:0,claimed:false},gold:0,trophies:{},belt:{hp:0,mp:0},shop:null,bagLv:0,salts:0,tips:{},ngp:0,firstRaise:1,
      mod:null,hist:[],story:{},life:Object.fromEntries(LIFE_KEYS.map(k=>[k,0])),build:{},dust:0,bounty:null,heat:{},heatMax:{},raids:[],raidLog:[],rift:{best:0}};
 }
-const OPEN_HELP={on:false};   // a brand-new game opens on How to play
+const OPEN_HELP={on:false};   // a brand-new game opens on the Gates tab, with a link to How to play at the top
 function newGame(){
   S=freshState(); OPEN_HELP.on=true;
   S.player.hp=pMax(); S.player.mana=pMana();
@@ -1239,6 +1257,7 @@ function normalizeSave(src){
   const tr={}; if(obj(g.trophies)) for(const k in g.trophies){ const n=Math.floor(num(g.trophies[k],0)); if(TROPHY[k]&&n>0) tr[k]=n; } g.trophies=tr;
   const b=obj(g.belt)?g.belt:{}; g.belt={hp:clamp(Math.floor(num(b.hp,0)),0,BELT_MAX),mp:clamp(Math.floor(num(b.mp,0)),0,BELT_MAX)};
   g.tips=obj(g.tips)?g.tips:{}; g.ngp=Math.max(0,Math.floor(num(g.ngp,0)));
+  g.firstRaise=('firstRaise' in g)?(g.firstRaise?1:0):(g.army.length||g.raids.length||(obj(g.ti)&&g.ti.raised)||g.runs||(Array.isArray(g.hist)&&g.hist.length)||(obj(g.life)&&g.life.runs)||g.day>1||P.lvl>1||g.ngp?0:1);   // saves from before the sure first raise: any army, history or progress counts as having raised already
   g.bagLv=clamp(Math.floor(num(g.bagLv,0)),0,BAG_COST.length); g.salts=clamp(Math.floor(num(g.salts,0)),0,SALT_MAX);
   g.shop=(obj(g.shop)&&typeof g.shop.day==='number'&&Array.isArray(g.shop.stock)&&g.shop.stock.every(s=>s&&ITEM[s.id]))?g.shop:null;
   const fixRo=it=>{ if(!it) return; if(Array.isArray(it.ro)) it.ro=it.ro.filter(r=>Array.isArray(r)&&ROLL_KEYS[r[0]]&&typeof r[1]==='number'&&isFinite(r[1])&&r[1]>0).slice(0,3).map(r=>[r[0],Math.round(r[1])]);
@@ -1506,6 +1525,7 @@ function endDay(){
   const P=S.player; P.debuff=false;
   if(!S.quest.claimed){
     if(questDone()) claimQuest();
+    else if(!everCleared()) notify('Day '+S.day+' closed with the daily quest unfinished. No penalty until you clear your first gate.');   // a new necromancer still learning the Rat Warren is not punished twice
     else{
       const loss=Math.round(need(P.lvl)*QUEST_LOSS);
       P.xp=Math.max(0,P.xp-loss); P.debuff=true;
@@ -1564,7 +1584,7 @@ function spawnRoom(){
   affixAll(list);
   r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null;
   log(boss?(list[0].secret?'The air turns wrong. This is not the master you came for.':'The air thickens. Something large waits ahead.'):'Room '+(room+1)+' of '+r.rooms+(r.roomKind==='elite'?', behind the bloodied arch. These foes are stronger.':'.'));
-  if(boss) bossSpeaks(list[0],'hi');
+  if(boss){ bossSpeaks(list[0],'hi'); fxe('boss',list[0]); }
   if(hasFlag('infernal')) infernalWard();
 }
 function startTower(f){
@@ -1597,7 +1617,7 @@ function hurtAlly(a,d){
   if(a.id==='p'&&xb('drp')) d=Math.max(1,Math.round(d*(1-xb('drp')/100)));
   if(a.id!=='p'&&hasMod('gravepact','b')) d=Math.max(1,Math.round(d*.9));
   if(a.id==='p'){ const s=Math.min(S.player.shield,d); S.player.shield-=s; d-=s; }
-  d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a.id,d,0); if(a.id==='p'&&d>0&&S.run) S.run.hurt=true;
+  d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a.id,d,0); if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p') fxe('death',a);
 }
 function healAlly(a,h){
   if(a.id==='p'&&xb('healp')) h=Math.max(0,Math.round(h*(1+xb('healp')/100)));   // faith changes the healing you receive
@@ -1627,7 +1647,7 @@ function checkDeaths(){
     killPowers();
     r.corpses.push(corpseOf(e));
     if(e.boss) bossSpeaks(e,'bye');
-    log(e.name+' falls.'); sfx('kill');
+    log(e.name+' falls.'); sfx('kill'); fxe('death',e);
     const page=e.secret?'secret':e.boss?(e.tw?'warden':'boss'):e.elite?'elite':null;   // who may carry a torn page
     if(page) findPage(page,r);
     if(e.secret) slaySecret(e,r);
@@ -1649,7 +1669,7 @@ function act(kind){
   if(kind==='strike'){
     let d=hit(pAtk()*dmgMul()*(1+.1*sk('edge'))), crit=Math.random()<.1+G('crit')/100+(hasMod('edge','a')?.1:0); if(crit){ d=Math.round(d*1.8); tally('crits'); } if(hasFlag('execute')&&t.hp<t.maxHp*.35) d=Math.round(d*1.5);
     hurtFoe(t,d); P.mana=Math.min(pMana(),P.mana+3); if(hasMod('edge','b')) healAlly(P,Math.round(d*.1));
-    log('You strike '+t.name+' for '+d+(crit?' (crit)':'')+'. +3 mana.');
+    log('You strike '+t.name+' for '+d+(crit?' (crit)':'')+'. +3 mana.'); fxe('strike',t,crit?{crit:1}:null);
     if(hasFlag('echo')&&t.hp>0&&Math.random()<.25){ const d2=hit(pAtk()*dmgMul()); hurtFoe(t,d2); log('Echo: the blade strikes again for '+d2+'.','ok'); }
     if(hasFlag('hellfire')){ for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.4)); }
     else if(hasFlag('cleave')){ const o=liveFoes().filter(x=>x!==t); if(o.length) hurtFoe(pick(o),Math.round(d*.6)); }
@@ -1658,11 +1678,11 @@ function act(kind){
     P.mana-=siphonCost(); const low=t.hp<t.maxHp*SIPHON_LOW; let d=hit(pSiph()*pierceMul(SIPHON_PIERCE)); if(low) d*=2; hurtFoe(t,d);   // pierces a quarter of armor; devours the weak
     if(hasFlag('chorus')) for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.5));
     const h=healAlly(P,Math.round(d*(hasFlag('lifedrain')?SIPHON_HEAL_LD:SIPHON_HEAL))); const got=gainSoul();
-    log('Soul Siphon '+(low?'devours ':'drains ')+t.name+' for '+d+(h?', you recover '+h:'')+(got?' and harvest a Soul ('+S.run.souls+'/'+SOUL_MAX+')':'')+'.');
+    log('Soul Siphon '+(low?'devours ':'drains ')+t.name+' for '+d+(h?', you recover '+h:'')+(got?' and harvest a Soul ('+S.run.souls+'/'+SOUL_MAX+')':'')+'.'); fxe('siphon',t);
   }else if(kind==='ward'){
     if(P.mana<6) return;
     P.mana-=6; const w=pWard(); P.shield=Math.min(Math.round(pMax()*.6),P.shield+w);
-    mark('p',0,0); log('Bone Ward raised. You hold '+P.shield+' ward.');
+    mark('p',0,0); log('Bone Ward raised. You hold '+P.shield+' ward.'); fxe('ward',P);
   }else if(kind.startsWith('sk:')){ if(!useSkill(kind.slice(3),t)) return; }
   else if(kind==='ult'){ if(!useUlt(t)) return; }
   else if(kind.startsWith('pot:')){ if(!drink(kind.slice(4))) return; }
@@ -1680,7 +1700,7 @@ function act(kind){
     }
     let tg=currentTarget(); if(!tg) break;
     let d=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*(m.role==='reaper'&&r.execute&&tg.hp<tg.maxHp*.4?2:1)*(hasTrait(m,'wrathful')&&m.hp<m.maxHp/2?1.4:1)); const crit=m.role==='striker'&&(r.focus||Math.random()<.25); if(crit){ d=Math.round(d*1.8); tally('crits'); }
-    hurtFoe(tg,d); let extra='';
+    hurtFoe(tg,d); fxe('mhit',tg); let extra='';
     if(crit&&r.focus&&tg.charging&&tg.hp>0) breakCharge(tg,m.nick+'\'s focused strike breaks '+theName(tg.name)+'\'s focus.');
     if(hasTrait(m,'venom')&&tg.hp>0){ addDot(tg,'poison',m.atk*.15*pierceMul(.5),3); tally('poisoned'); extra+=' and poisons it'; }
     if(m.role==='reaper'){ const o=liveFoes().filter(x=>x!==tg); if(o.length){ const o2=pick(o); const d2=Math.round(d*.5); hurtFoe(o2,d2); extra=' and cleaves '+o2.name+' for '+d2; } }
@@ -1706,7 +1726,7 @@ function act(kind){
     const weights=alive.map(a=>a.role==='vanguard'?5:2); let roll=Math.random()*weights.reduce((x,y)=>x+y,0), tg=alive[0];
     for(let i=0;i<alive.length;i++){ roll-=weights[i]; if(roll<=0){ tg=alive[i]; break; } }
     let d=hit(e.atk*enrage(e)*(hasAff(e,'enraged')&&e.hp<e.maxHp/2?1.6:1)); const crit=e.role==='striker'&&Math.random()<.25; if(crit) d=Math.round(d*1.8);
-    hurtAlly(tg,d); if(crit) addDot(tg,'bleed',e.atk*.3,2);   // a striker's crit opens a wound
+    hurtAlly(tg,d); fxe('hurt',tg,crit?{crit:1}:null); if(crit) addDot(tg,'bleed',e.atk*.3,2);   // a striker's crit opens a wound
     if(hasAff(e,'vampiric')){ const h=Math.min(e.maxHp-e.hp,Math.round(d*.4)); if(h>0){ e.hp+=h; mark(e.id,0,h); } }
     log(e.name+' hits '+(tg.id==='p'?'you':nameOf(tg))+' for '+d+(crit?' (crit'+(tg.hp>0&&tg.dots&&tg.dots.bleed?', bleeding':'')+')':'')+'.','bad');
     if(tg.id==='p'&&hasFlag('thorns')&&e.hp>0) hurtFoe(e,Math.max(1,Math.round(d*.2*(1-foeArmor()))));
@@ -1801,7 +1821,11 @@ function unequip(sl){ if(S.mode==='battle'||!S.equip[sl]) return; vitals(()=>{ S
 function discard(u){ S.inv=S.inv.filter(x=>x.u!==u||x.lk); }
 
 // ----- raising
+// The first raise of a save always answers (a new necromancer alone in room 1 failed ~44% of the time at ~34% a body). New Game+ keeps
+// its lifetime raise count, so it does not get this again.
+const firstRaise=()=>!!(S&&S.firstRaise)&&!T_('raised');
 function raiseChance(c){
+  if(firstRaise()) return 100;
   let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+(skMod('thrift')==='b'?3:0)+4*sk('mastery')+(hasMod('mastery','a')?6:0)+3*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*3-RK[c.rankI].pen;
   if(c.elite) ch-=10; if(c.boss) ch-=15; if(c.free) ch+=STRAGGLER_BONUS;
   return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
@@ -1810,7 +1834,7 @@ const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*(hasFlag('che
 function freeNick(){ const used=S.army.map(m=>m.nick); const f=NICKS.filter(n=>!used.includes(n)); return f.length?pick(f):pick(NICKS)+' II'; }
 const SALT_BONUS=20, SALT_MAX=3, saltPrice=()=>10+S.player.lvl*3;   // Grave Salts: bought at the market, +20% on one raise
 const RAISE_BASE=25, RAISE_WILL=1.8, RAISE_MIN=1, RAISE_MAX=85, SALT_CAP=95;   // salts may still reach 95%
-const saltChance=c=>clamp(raiseChance(c)+SALT_BONUS,RAISE_MIN,SALT_CAP);
+const saltChance=c=>firstRaise()?100:clamp(raiseChance(c)+SALT_BONUS,RAISE_MIN,SALT_CAP);
 function tryRaise(id,salt){
   if(S.mode!=='raise') return;
   const r=S.run, P=S.player, c=r.corpses.find(x=>x.id===id); if(!c||c.tried) return;
@@ -1826,9 +1850,9 @@ function tryRaise(id,salt){
     m.lvl0=m.lvl; m.stage=0; m.traits=[rollTrait([])]; if(c.boss) m.traits.push(rollTrait(m.traits));   // bosses rise with two traits
     if(c.aff&&c.aff.length){ const t=AFFIX[pick(c.aff)].trait; if(!m.traits.includes(t)) m.traits.push(t); }   // an elite keeps one of its affixes
     if(rollCommand(m)) tally('commanders');
-    syncMinion(m); m.hp=m.maxHp; S.army.push(m); r.raised++; S.ti=S.ti||{}; S.ti.raised=(S.ti.raised||0)+1; if(m.armed) S.ti.armed=(S.ti.armed||0)+1;
-    if(c.free) tally('straggler'); if(c.boss) tally('raisedBoss'); c.result='raised'; if(c.boss||c.elite) moment(m.nick+' rises: '+(c.boss?'a boss':'an elite')+' serves you','ok'); c.minion=m.nick+' ('+m.traits.map(t=>TRAITS[t].name).join(', ')+')'; sfx('raise');
-  }else{ c.result='failed'; sfx('fail'); }
+    syncMinion(m); m.hp=m.maxHp; S.army.push(m); r.raised++; S.firstRaise=0; S.ti=S.ti||{}; S.ti.raised=(S.ti.raised||0)+1; if(m.armed) S.ti.armed=(S.ti.armed||0)+1;
+    if(c.free) tally('straggler'); if(c.boss) tally('raisedBoss'); c.result='raised'; if(c.boss||c.elite) moment(m.nick+' rises: '+(c.boss?'a boss':'an elite')+' serves you','ok'); c.minion=m.nick+' ('+m.traits.map(t=>TRAITS[t].name).join(', ')+')'; sfx('raise'); fxe('raise',c);
+  }else{ c.result='failed'; sfx('fail'); fxe('rfail',c); }
 }
 // Quicker raising: try every untouched body, most valuable first (salts on bosses and elites), until mana or slots run out.
 const bodyValue=c=>(c.boss?1000:0)+(c.elite?300:0)+c.rankI*50+c.lvl+(c.free?500:0);
@@ -1896,17 +1920,17 @@ function useSkill(id,t){
   if(!canUse(id)) return false;
   const s=SKILL[id], rk=sk(id), r=S.run, P=S.player;
   P.mana-=s.cost; r.cd=r.cd||{}; r.cd[id]=s.cd+1; tally('sk_'+id);   // +1: the end-of-turn tick runs this same turn
-  if(id==='spear'){ const d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(hasMod('spear','a')?1:.5)); hurtFoe(t,d); log('Bone Spear impales '+t.name+' for '+d+'.');
+  if(id==='spear'){ const d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(hasMod('spear','a')?1:.5)); hurtFoe(t,d); log('Bone Spear impales '+t.name+' for '+d+'.'); fxe('spear',t);
     if(hasMod('spear','b')){ const o=liveFoes().filter(x=>x!==t); if(o.length){ const o2=pick(o), d2=Math.round(d*.5); hurtFoe(o2,d2); log('A splinter tears into '+o2.name+' for '+d2+'.'); } } }
-  else if(id==='blast'){ const c=freeCorpse(); c.tried=true; c.result='exploded'; const base=pSiph()*(.6+.2*rk)*pierceMul(1)*(hasMod('blast','a')?1.3:1); let tot=0; for(const o of liveFoes()){ const d=hit(base); hurtFoe(o,d); tot+=d; if(hasMod('blast','b')) addDot(o,'poison',pSiph()*.15,3); } log('The body of '+c.name+' bursts apart, dealing '+tot+' damage across the room.'); }
-  else if(id==='mend'){ let tot=0; const cured=allies().some(a=>a.dots); for(const m of S.army) if(m.hp>0) tot+=healAlly(m,Math.round(m.maxHp*(.15+.08*rk+(hasMod('mend','a')?.15:0)))); if(hasMod('mend','b')) tot+=healAlly(P,Math.round(pMax()*.15)); if(cured) tally('cures'); allies().forEach(clearDots); log('Dark Mending knits your army back together for '+tot+' HP'+(cured?' and cures every wound and burn':'')+'.','ok'); }
+  else if(id==='blast'){ const c=freeCorpse(); c.tried=true; c.result='exploded'; const base=pSiph()*(.6+.2*rk)*pierceMul(1)*(hasMod('blast','a')?1.3:1); let tot=0; for(const o of liveFoes()){ const d=hit(base); hurtFoe(o,d); fxe('burst',o); tot+=d; if(hasMod('blast','b')) addDot(o,'poison',pSiph()*.15,3); } log('The body of '+c.name+' bursts apart, dealing '+tot+' damage across the room.'); }
+  else if(id==='mend'){ let tot=0; const cured=allies().some(a=>a.dots); for(const m of S.army) if(m.hp>0) tot+=healAlly(m,Math.round(m.maxHp*(.15+.08*rk+(hasMod('mend','a')?.15:0)))); if(hasMod('mend','b')) tot+=healAlly(P,Math.round(pMax()*.15)); if(cured) tally('cures'); allies().forEach(clearDots); fxe('mend',P); log('Dark Mending knits your army back together for '+tot+' HP'+(cured?' and cures every wound and burn':'')+'.','ok'); }
   else if(id==='curse'){ const turns=hasMod('curse','a')?5:3, bonus=.15+.1*rk;
     if(hasMod('curse','b')){ for(const o of liveFoes()){ o.curse={mul:1+bonus*.8,t:turns}; mark(o.id,0,0); } log('Every foe is cursed and takes '+Math.round(bonus*80)+'% more damage.'); }
     else { t.curse={mul:1+bonus,t:turns}; mark(t.id,0,0); log(t.name+' is cursed and takes '+Math.round(bonus*100)+'% more damage.'); } }
-  else if(id==='chill'){ const d=hit(pSiph()*.5*dmgMul()); hurtFoe(t,d); const held=!t.boss||Math.random()*100<40+10*rk+(hasMod('chill','a')?20:0);
+  else if(id==='chill'){ const d=hit(pSiph()*.5*dmgMul()); hurtFoe(t,d); fxe('ward',t); const held=!t.boss||Math.random()*100<40+10*rk+(hasMod('chill','a')?20:0);
     if(held&&t.hp>0){ t.stun=rk>=3?2:1; tally('frozen'); log('Grave Chill hits '+t.name+' for '+d+' and freezes it solid.'); } else log('Grave Chill hits '+t.name+' for '+d+', but it shakes off the frost.'); }
   else if(id==='frenzy'){ r.frenzy=hasMod('frenzy','a')?5:3; r.frenzyMul=1+(.2+.15*rk); if(hasMod('frenzy','b')) for(const m of S.army) if(m.hp>0) healAlly(m,Math.round(m.maxHp*.15)); log('Unholy Frenzy: your army surges with '+Math.round((r.frenzyMul-1)*100)+'% more damage.','ok'); }
-  else if(id==='reap'){ const low=t.hp<t.maxHp*(hasMod('reap','a')?.5:.35); let d=hit(pSiph()*(1.2+.3*rk)*pierceMul(1)); if(low) d*=2; hurtFoe(t,d); if(t.hp<=0&&hasMod('reap','b')) P.mana=Math.min(pMana(),P.mana+10); log('You reap '+t.name+' for '+d+(low?' (harvest)':'')+'.'); }
+  else if(id==='reap'){ const low=t.hp<t.maxHp*(hasMod('reap','a')?.5:.35); let d=hit(pSiph()*(1.2+.3*rk)*pierceMul(1)); if(low) d*=2; hurtFoe(t,d); fxe('strike',t,{crit:1}); if(t.hp<=0&&hasMod('reap','b')) P.mana=Math.min(pMana(),P.mana+10); log('You reap '+t.name+' for '+d+(low?' (harvest)':'')+'.'); }
   return true;
 }
 function skillTick(){
@@ -2147,7 +2171,7 @@ function riftCleared(r){
 const TIPS=[
   {id:'stats',  t:'Spend your points', m:'Strength powers Strike, Constitution your HP, Intelligence your mana, Siphon and Ward, and Will your army size and raise odds. Press + next to a stat.', when:()=>S.mode==='town'&&S.player.pts>0&&S.player.lvl===1},
   {id:'battle', t:'How a fight works', m:'Pick a target and your army attacks it with you. Strike (1) refills mana, Soul Siphon (2) drains, heals and harvests a Soul, Bone Ward (3) shields you. Then every foe hits back.', when:()=>S.mode==='battle'},
-  {id:'raise',  t:'Raise the dead', m:'Every foe you kill leaves a body. Raising costs mana and can fail; the better your Will and level, the better your odds. Raised minions fight for you and grow with every room.', when:()=>S.mode==='raise'&&S.run&&S.run.corpses.length>0},
+  {id:'raise',  t:'Raise the dead', m:'Every foe you kill leaves a body. Raising costs mana and can fail, except the very first: that one always answers. The better your Will and level, the better your odds. Raised minions fight for you and grow with every room.', when:()=>S.mode==='raise'&&S.run&&S.run.corpses.length>0},
   {id:'skill',  t:'You have a skill point', m:'Open the Skills tab and learn Bone Spear. Active skills appear in battle on keys 4 and up. You get one point every level.', when:()=>S.mode==='town'&&S.player.sp>0},
   {id:'armor',  t:'These foes wear armor', m:'Armor blunts every hit you and your army land, so fights take longer. Bone Spear pierces half of it, and Corpse Explosion and Reap ignore it completely.', when:()=>S.mode==='battle'&&foeArmor()>=.5},
   {id:'boss',   t:'A boss is winding up', m:'Moves marked Charging land next turn. Raise Bone Ward to soak the hit, or freeze the boss with Grave Chill to break its focus and cancel the move.', when:()=>S.mode==='battle'&&S.run&&liveFoes().some(e=>e.charging)},
@@ -2215,14 +2239,14 @@ function summonAdd(e){
 function fireAbility(e,mv){
   mv=mv||e.abil; const r=S.run, P=S.player, A=BOSS_ABIL[mv], foes=liveFoes();
   if(mv==='swarm'){ const got=[summonAdd(e),summonAdd(e)].filter(Boolean); log(got.length?e.name+' uses '+A.name+': '+got.map(x=>x.name).join(' and ')+' join the fight.':e.name+' calls, but nothing more answers.','bad'); }
-  else if(mv==='bonewall'){ foes.forEach(f=>{ f.shield=Math.min(Math.round(f.maxHp*.4),(f.shield||0)+Math.round(f.maxHp*.2)); }); log(e.name+' raises a Bone Wall. Every foe is shielded.','bad'); }
-  else if(mv==='cinder'){ let tot=0; allies().filter(a=>a.hp>0).forEach(a=>{ const d=hit(e.atk*(e.secret?.45:.7)*enrage(e));   /* a secret master's wave is spread thinner: at full strength it wiped every army */ hurtAlly(a,d); addDot(a,'burn',e.atk*.15,2); tot+=d; if(a.hp<=0&&a.id!=='p') log(a.nick+' is down.','bad'); }); log(e.name+' unleashes a Cinder Wave for '+tot+' damage across your side.','bad'); }
+  else if(mv==='bonewall'){ foes.forEach(f=>{ f.shield=Math.min(Math.round(f.maxHp*.4),(f.shield||0)+Math.round(f.maxHp*.2)); fxe('ward',f); }); log(e.name+' raises a Bone Wall. Every foe is shielded.','bad'); }
+  else if(mv==='cinder'){ let tot=0; allies().filter(a=>a.hp>0).forEach(a=>{ const d=hit(e.atk*(e.secret?.45:.7)*enrage(e));   /* a secret master's wave is spread thinner: at full strength it wiped every army */ hurtAlly(a,d); fxe('hurt',a,{fire:1}); addDot(a,'burn',e.atk*.15,2); tot+=d; if(a.hp<=0&&a.id!=='p') log(a.nick+' is down.','bad'); }); log(e.name+' unleashes a Cinder Wave for '+tot+' damage across your side.','bad'); }
   else if(mv==='hymn'){ r.silence=3; foes.forEach(f=>{ f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*.1)); }); log(e.name+' sings the Hymn of Silence. Your skills are silenced for 2 turns and every foe mends.','bad'); }
   else if(mv==='seedfall'){ foes.forEach(f=>{ f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*.15)); }); const a=summonAdd(e); log(e.name+' scatters Seedfall. Every foe mends'+(a?' and '+a.name+' sprouts from the ground':'')+'.','bad'); }
-  else if(mv==='decree'){ const d=Math.round(pMax()*.45*enrage(e)); hurtAlly(P,d); log(e.name+' speaks a Royal Decree. It strikes you for '+d+'.','bad'); }
+  else if(mv==='decree'){ const d=Math.round(pMax()*.45*enrage(e)); hurtAlly(P,d); fxe('hurt',P,{crit:1}); log(e.name+' speaks a Royal Decree. It strikes you for '+d+'.','bad'); }
   else if(mv==='sunder'){ const v=r.taunt>0?S.army.filter(m=>m.role==='vanguard'&&m.hp>0):[];
-    if(v.length){ const t=pick(v), d=hit(e.atk*2.2*enrage(e)); hurtAlly(t,d); log(e.name+' brings down a Sundering Blow, but '+t.nick+' takes it for you: '+d+' damage.'+(t.hp<=0?' '+t.nick+' is down.':''),'bad'); }
-    else { const d=Math.round(pMax()*.35*enrage(e)); hurtAlly(P,d); log(e.name+' brings down a Sundering Blow on you for '+d+'.','bad'); } }
+    if(v.length){ const t=pick(v), d=hit(e.atk*2.2*enrage(e)); hurtAlly(t,d); fxe('hurt',t,{crit:1}); log(e.name+' brings down a Sundering Blow, but '+t.nick+' takes it for you: '+d+' damage.'+(t.hp<=0?' '+t.nick+' is down.':''),'bad'); }
+    else { const d=Math.round(pMax()*.35*enrage(e)); hurtAlly(P,d); fxe('hurt',P,{crit:1}); log(e.name+' brings down a Sundering Blow on you for '+d+'.','bad'); } }
   sfx('boss');
 }
 function playerFalls(){   // the player hit 0 HP: revive from gear if possible, otherwise the run is lost. True if defeated.
@@ -2248,7 +2272,7 @@ function tickDots(){
   let foeD=0, ourD=0;
   const tick=(u,hurt)=>{ if(!u.dots) return; for(const k of Object.keys(u.dots)){ const o=u.dots[k]; if(u.hp>0) hurt(u,o.d); if(--o.t<=0) delete u.dots[k]; } if(!Object.keys(u.dots).length) delete u.dots; };
   for(const e of S.run.enemies) tick(e,(u,d)=>{ const h=u.hp; hurtFoe(u,d); foeD+=h-u.hp; });
-  for(const a of allies()) tick(a,(u,d)=>{ const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u.id,n,0); if(u.id==='p') S.run.hurt=true; } ourD+=n; if(u.hp<=0&&u.id!=='p') log(u.nick+' succumbs.','bad'); });
+  for(const a of allies()) tick(a,(u,d)=>{ const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u.id,n,0); if(u.id==='p') S.run.hurt=true; } ourD+=n; if(u.hp<=0&&u.id!=='p'){ log(u.nick+' succumbs.','bad'); fxe('death',u); } });
   if(foeD) log('Poison eats '+foeD+' HP from your foes.','ok');
   if(ourD) log('Bleeding and burns cost your side '+ourD+' HP.','bad');
 }
@@ -2682,6 +2706,7 @@ function build(k){
 // New players meet the town economy gradually: the Town tab and bounty board open after the first gate clear (or level 4),
 // salvage and enchanting at level 6 (or once you hold bone dust). The functions work regardless; this only hides the buttons.
 const anyClear=()=>!!(S&&S.ti&&S.ti.clr&&Object.keys(S.ti.clr).length);
+const everCleared=()=>anyClear()||L_('clears')>0;   // a gate cleared on this save at any point, New Game+ included (it empties ti.clr)
 const townOpen=()=>!!S&&(S.player.lvl>=4||anyClear()||Object.keys(S.build||{}).length>0);
 const workOpen=()=>!!S&&(S.player.lvl>=6||(S.dust||0)>0);
 
@@ -2755,7 +2780,7 @@ function useUlt(t){
   else if(id==='rise'){ let n=0; for(const m of S.army){ if(m.hp<=0){ m.hp=m.maxHp; n++; } else healAlly(m,m.maxHp); } healAlly(P,Math.round(pMax()*.4)); r.frenzy=Math.max(r.frenzy||0,3); r.frenzyMul=Math.max(r.frenzyMul||1,1.5);
     log('Unholy Resurrection: '+(n?n+' of your fallen rise again, ':'')+'your army is whole and burns with fury.','ok'); }
   else { for(const o of liveFoes()){ o.stun=Math.max(o.stun||0,o.boss?1:2); o.curse={mul:1.3,t:3}; mark(o.id,0,0); } log('Soul Prison: every foe is locked in the Ledger\'s pages, frozen and laid bare.','ok'); }
-  moment(ULTS[id].name,'gold'); sfx('boss'); return true;
+  moment(ULTS[id].name,'gold'); sfx('boss'); fxe('ult',t,{id}); return true;
 }
 
 // ===== MINION FUSION =====
@@ -3261,6 +3286,224 @@ try{ const v=JSON.parse(localStorage.getItem('lotd-view')||'null'); if(v&&typeof
 const FOLD_NAME={equip:'Equipment',quest:'Daily quest',bounty:'Bounty board'};
 const foldBtn=k=>'<button class="fold" data-a="fold" data-k="'+k+'" aria-expanded="'+!VIEW.fold[k]+'" aria-label="'+(VIEW.fold[k]?'Show ':'Hide ')+FOLD_NAME[k]+'">'+(VIEW.fold[k]?'&#9662;':'&#9652;')+'</button>';
 const foldCls=k=>VIEW.fold[k]?' folded':'';
+// ===== BATTLE EFFECTS (PixiJS layer) =====
+// A transparent WebGL canvas over the battle cards that draws short strikes, sparks, wisps and ash. It only draws: no game
+// rules, no Math.random (it has its own generator, so seeded tests and the balance bot see the same numbers), nothing saved.
+// The library (lib/pixi.min.js, vendored) is loaded at runtime after the first render, and only while effects are allowed:
+// Effects not Light, Reduce motion off, and the OS not asking for reduced motion. Without it (missing file, no WebGL, init
+// error, or the Node test harness) every call below is a no-op and the game plays exactly as before.
+// Game code calls fxe(kind, unit, opts) where it already logs a hit; render() calls fxSync() last, which loads or drops the
+// layer and plays what this turn queued, placed on the cards by their data-u attribute (fxKey).
+const FXL={st:'off',   // off | loading | init | ready | failed
+  app:null,root:null,tex:null,live:[],pool:[],q:[],spy:null,tag:false,later:null,col:null,seed:0x2f6b1d,vis:false,
+  MAX:300,QMAX:80};
+const fxKey=u=>u==null?null:typeof u==='string'?u:u.id!=null?u.id:u.uid!=null?'m'+u.uid:null;   // minions have no id, only a uid
+const fxReduced=()=>{ try{ return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return true; } };
+const fxAllowed=()=>{ try{ return !VIEW.calm&&!fxLight()&&!fxReduced(); }catch(e){ return false; } };
+function fxRnd(){ let x=FXL.seed; x^=x<<13; x^=x>>>17; x^=x<<5; FXL.seed=x>>>0; return FXL.seed/4294967296; }   // xorshift32: never touches Math.random
+const fxR=(a,b)=>a+(b-a)*fxRnd();
+
+// Called by game code at each combat moment. Cheap when the layer is not running: one check and out.
+function fxe(kind,u,o){
+  if(FXL.spy) try{ FXL.spy(kind,fxKey(u),o||null); }catch(e){}
+  if(FXL.st!=='ready'||FXL.q.length>=FXL.QMAX) return;
+  const k=fxKey(u); if(k==null) return;
+  FXL.q.push({kind,k,o:o||null,r:fxRect(k)});   // the card's place now, in case the next render removes it (the last kill ends the battle screen)
+}
+function fxEl(k){ try{ return typeof app!=='undefined'&&app&&app.querySelector?app.querySelector('[data-u="'+k+'"]'):null; }catch(e){ return null; } }
+function fxBox(el){ if(!el||!el.getBoundingClientRect) return null; const b=el.getBoundingClientRect(); return b.width>0&&b.height>0?{x:b.left,y:b.top,w:b.width,h:b.height}:null; }
+const fxRect=k=>fxBox(fxEl(k));
+const fxAll=sel=>{ try{ return Array.from(app.querySelectorAll(sel)).map(fxBox).filter(Boolean); }catch(e){ return []; } };
+
+// After every render: start loading, shut the layer when effects are switched off, or play the queue.
+function fxSync(){
+  if(!fxAllowed()){ if(FXL.st==='ready'||FXL.st==='init') fxDrop(); else if(FXL.st==='loading') FXL.st='off'; FXL.q.length=0; return; }
+  if(FXL.st==='off') fxLoad();
+  else if(FXL.st==='ready') fxFlush();
+}
+function fxLoad(){
+  if(typeof document==='undefined'||typeof document.createElement!=='function') return;   // the Node harness has no DOM to draw in
+  if(window.PIXI){ fxInit(); return; }
+  const host=document.head||document.body; if(!host||typeof host.appendChild!=='function') return;
+  FXL.st='loading'; if(FXL.tag) return;   // the file is already on its way; its onload carries on
+  (FXL.later||setTimeout)(()=>{   // after the first paint, so startup never waits on a 900 KB file
+    if(FXL.st!=='loading'||FXL.tag) return;   // switched off meanwhile
+    try{
+      const s=document.createElement('script'); s.src='lib/pixi.min.js'; s.async=true;   // relative: works from the local server and from disk
+      s.onload=()=>{ if(FXL.st!=='loading') return; if(window.PIXI) fxInit(); else fxFail('PixiJS did not define PIXI'); };
+      s.onerror=()=>fxFail('lib/pixi.min.js could not be loaded');
+      FXL.tag=true; host.appendChild(s);
+    }catch(e){ fxFail(e&&e.message); }
+  },0);
+}
+function fxFail(why){ FXL.st='failed'; FXL.q.length=0; try{ console.info('Battle effects are off: '+(why||'unavailable')+'. The game plays the same without them.'); }catch(e){} }
+async function fxInit(){
+  FXL.st='init';
+  try{
+    if(typeof PIXI.isWebGLSupported==='function'&&!PIXI.isWebGLSupported()) return fxFail('WebGL is not available');
+    const a=new PIXI.Application();
+    await a.init({backgroundAlpha:0,antialias:false,resolution:Math.min(window.devicePixelRatio||1,2),autoDensity:true,resizeTo:window,
+      autoStart:false,sharedTicker:false,preference:'webgl',powerPreference:'low-power',hello:false});
+    if(FXL.st!=='init'||!fxAllowed()){ a.destroy({removeView:true},{children:true}); if(FXL.st==='init') FXL.st='off'; return; }   // switched off while it started
+    a.ticker.stop();
+    const cv=a.canvas; cv.id='fxl'; cv.setAttribute('aria-hidden','true'); cv.setAttribute('tabindex','-1');
+    (document.querySelector('.wrap')||document.body).appendChild(cv);   // inside .wrap: above the cards, below the banners and overlays (see #fxl in style.css)
+    FXL.app=a; FXL.root=new PIXI.Container(); a.stage.addChild(FXL.root);
+    FXL.tex=fxTextures(a.renderer); FXL.col=fxColours();
+    a.ticker.add(fxStep);
+    if(!FXL.vis){ FXL.vis=true; document.addEventListener('visibilitychange',()=>{ if(document.hidden) fxClear(); }); }
+    FXL.st='ready';
+  }catch(e){ fxFail(e&&e.message); }
+}
+function fxDrop(){   // effects switched off: take the canvas and the WebGL context away entirely
+  const a=FXL.app; fxClear(); FXL.st='off'; FXL.app=null; FXL.root=null; FXL.pool=[];
+  if(!a) return;
+  try{ for(const k in FXL.tex) FXL.tex[k].destroy(true); }catch(e){}
+  FXL.tex=null;
+  try{ a.ticker.remove(fxStep); a.destroy({removeView:true},{children:true}); }catch(e){}
+}
+function fxClear(){   // drop every live effect and stop the ticker (tab hidden, layer dropped)
+  FXL.q.length=0;
+  for(const p of FXL.live) fxFree(p); FXL.live.length=0;
+  const a=FXL.app; if(a) try{ a.render(); a.ticker.stop(); }catch(e){}
+}
+
+// ----- textures: drawn once with Graphics, no image files -----
+function fxTextures(rd){
+  const G=()=>new PIXI.Graphics(), T=g=>{ const t=rd.generateTexture({target:g,resolution:2}); g.destroy(); return t; };
+  const dot=G(); for(let i=8;i>=1;i--) dot.circle(0,0,16*i/8).fill({color:0xffffff,alpha:.13});   // soft round glow
+  const core=G().circle(0,0,4).fill(0xffffff);   // hard little ember
+  const chip=G().poly([0,0,6,1.5,8,6,3,8.5,-1.5,4.5]).fill(0xffffff);   // a bone chip
+  const streak=G().poly([0,6,40,0,96,4,100,6,96,8,40,12]).fill({color:0xffffff,alpha:.3}).poly([4,6,40,2.5,96,5.2,100,6,96,6.8,40,9.5]).fill(0xffffff);   // a tapered slash
+  const ring=G().circle(0,0,30).stroke({width:8,color:0xffffff,alpha:.18}).circle(0,0,30).stroke({width:2.5,color:0xffffff,alpha:.9});
+  return {dot:T(dot),core:T(core),chip:T(chip),streak:T(streak),ring:T(ring)};
+}
+function fxColours(){   // the page's own palette (CSS variables), never blue or purple
+  const hex=(v,d)=>{ v=String(v||'').trim(); return /^#[0-9a-f]{6}$/i.test(v)?parseInt(v.slice(1),16):d; };
+  let cs=null; try{ cs=getComputedStyle(document.documentElement); }catch(e){}
+  const g=(n,d)=>cs?hex(cs.getPropertyValue(n),d):d;
+  return {bone:g('--bone',0xe8dec6),ash:g('--mute',0x9a8f81),ember:g('--ember',0xe08a3c),soul:g('--soul',0x8fd46a),blood:g('--blood',0xb83a2a),gold:g('--gold',0xd3a64d),ward:g('--ward',0xddd3b8),soot:0x1c1410};
+}
+
+// ----- particles: pooled sprites, at most FXL.MAX alive (the oldest go first) -----
+function fxFree(p){ const s=p.s; s.visible=false; if(s.parent) s.parent.removeChild(s); FXL.pool.push(s); }
+function fxP(o){   // o: tex, x, y, tint, life (ms), and optionally delay, vx, vy (px/ms), g, a0, a1, sx0, sx1, sy0, sy1, rot, vr, add, fi, path
+  const L=FXL.live; if(L.length>=FXL.MAX) fxFree(L.shift());
+  const s=FXL.pool.pop()||new PIXI.Sprite(); s.texture=FXL.tex[o.tex]; s.anchor.set(.5); s.tint=o.tint; s.blendMode=o.add?'add':'normal'; s.visible=false; s.alpha=0;
+  FXL.root.addChild(s);
+  const sx0=o.sx0==null?1:o.sx0, sy0=o.sy0==null?sx0:o.sy0;
+  const p={s,x:o.x,y:o.y,vx:o.vx||0,vy:o.vy||0,g:o.g||0,age:-(o.delay||0),life:o.life,a0:o.a0==null?1:o.a0,a1:o.a1||0,sx0,sy0,sx1:o.sx1==null?sx0:o.sx1,sy1:o.sy1==null?(o.sx1==null?sy0:o.sx1*(sy0/sx0)):o.sy1,rot:o.rot||0,vr:o.vr||0,fi:o.fi||0,path:o.path||null};
+  L.push(p); return p;
+}
+function fxStep(tk){
+  const dt=Math.min(50,tk.deltaMS), L=FXL.live;
+  for(let i=L.length-1;i>=0;i--){
+    const p=L[i], s=p.s; p.age+=dt;
+    if(p.age<0) continue;
+    const k=p.age/p.life; if(k>=1){ fxFree(p); L.splice(i,1); continue; }
+    if(p.path){ const P=p.path, e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2, u=1-e; p.x=u*u*P[0]+2*u*e*P[2]+e*e*P[4]; p.y=u*u*P[1]+2*u*e*P[3]+e*e*P[5]; }
+    else { p.vy+=p.g*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; }
+    p.rot+=p.vr*dt; const eo=1-(1-k)*(1-k);
+    s.visible=true; s.x=p.x; s.y=p.y; s.rotation=p.rot;
+    s.scale.set(p.sx0+(p.sx1-p.sx0)*eo,p.sy0+(p.sy1-p.sy0)*eo);
+    s.alpha=(p.a0+(p.a1-p.a0)*k)*(p.fi&&k<p.fi?k/p.fi:1);
+  }
+  if(!L.length){ try{ FXL.app.render(); }catch(e){} FXL.app.ticker.stop(); }   // last frame drawn empty, then no more frames until the next effect
+}
+function fxGo(){ const a=FXL.app; if(a&&FXL.live.length&&!a.ticker.started) a.ticker.start(); }
+
+// ----- the effects (all short: about 250-700 ms) -----
+const fxC=r=>({x:r.x+r.w/2,y:r.y+r.h/2});
+function fxChips(c,n,t,col,big){   // bone and ash chips thrown out and falling
+  for(let i=0;i<n;i++){ const a=fxR(-Math.PI,0), v=fxR(.08,.22)*(big?1.4:1);
+    fxP({tex:'chip',x:c.x+fxR(-6,6),y:c.y+fxR(-6,6),vx:Math.cos(a)*v,vy:Math.sin(a)*v,g:.0009,life:fxR(380,620),delay:t,tint:i%3===0?col.ash:i%5===4&&big?col.gold:col.bone,sx0:fxR(.6,1.1)*(big?1.3:1),rot:fxR(0,6.3),vr:fxR(-.02,.02),a0:.9}); }
+}
+function fxSlash(r,t,col,crit){
+  const c=fxC(r), len=Math.min(r.w,r.h)*(crit?1.25:1)/100;
+  fxP({tex:'streak',x:c.x,y:c.y,rot:-.75,sx0:len*.25,sx1:len,sy0:crit?1.1:.8,sy1:crit?.7:.5,life:crit?320:260,delay:t,tint:col.bone,add:1,a0:.9});
+  if(crit){ fxP({tex:'streak',x:c.x,y:c.y,rot:.65,sx0:len*.2,sx1:len*.85,sy0:.9,sy1:.5,life:300,delay:t+50,tint:col.gold,add:1,a0:.8});
+    fxP({tex:'dot',x:c.x,y:c.y,sx0:r.w/40,sx1:r.w/22,life:320,delay:t,tint:col.gold,add:1,a0:.5}); }
+  fxChips(c,crit?9:5,t+30,col,crit);
+}
+function fxSpark(r,t,col,n){
+  const c=fxC(r), x=c.x+fxR(-r.w*.25,r.w*.25), y=c.y+fxR(-r.h*.2,r.h*.2);
+  fxP({tex:'dot',x,y,sx0:.5,sx1:.9,life:220,delay:t,tint:col.ember,add:1,a0:.45});
+  for(let i=0;i<n;i++){ const a=fxR(0,6.3), v=fxR(.06,.16); fxP({tex:'core',x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,g:.0004,life:fxR(200,320),delay:t,tint:i%2?col.bone:col.ember,add:1,sx0:fxR(.35,.6),sx1:.15,a0:.9}); }
+}
+function fxHurt(r,t,col,o){
+  const c=fxC(r), tint=o&&o.fire?col.ember:col.blood, big=o&&o.crit;
+  fxP({tex:'dot',x:c.x,y:c.y,sx0:r.w/50,sy0:r.h/50,sx1:r.w/34,sy1:r.h/34,life:big?420:320,delay:t,tint,add:o&&o.fire?1:0,a0:big?.55:.4});
+  for(let i=0;i<(big?7:4);i++){ const a=fxR(-2.6,-.5), v=fxR(.05,.14); fxP({tex:'core',x:c.x+fxR(-10,10),y:c.y+fxR(-8,8),vx:Math.cos(a)*v,vy:Math.sin(a)*v,g:.0008,life:fxR(350,500),delay:t,tint,sx0:fxR(.4,.75),sx1:.3,a0:.85}); }
+}
+function fxSiphon(from,to,t,col,n){
+  const a=fxC(from), b=fxC(to), dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1;
+  for(let i=0;i<n;i++){ const bend=fxR(-.45,.45)*d, mx=(a.x+b.x)/2-dy/d*bend, my=(a.y+b.y)/2+dx/d*bend, path=[a.x+fxR(-12,12),a.y+fxR(-10,10),mx,my,b.x,b.y], life=fxR(440,600), dl=t+i*28;
+    fxP({tex:'dot',x:a.x,y:a.y,path,life,delay:dl,tint:col.soul,add:1,sx0:.7,sx1:.35,a0:.5,a1:.15,fi:.2});
+    fxP({tex:'core',x:a.x,y:a.y,path,life,delay:dl,tint:col.soul,add:1,sx0:.7,sx1:.4,a0:.95,a1:.4,fi:.15}); }
+}
+function fxWard(r,t,col,strong){
+  const c=fxC(r);
+  fxP({tex:'ring',x:c.x,y:c.y,sx0:r.w/64,sy0:r.h/64,sx1:r.w/56,sy1:r.h/56,life:strong?600:460,delay:t,tint:col.ward,add:1,a0:strong?.75:.5});
+  for(let i=0;i<(strong?8:5);i++) fxP({tex:'core',x:r.x+fxR(.1,.9)*r.w,y:r.y+fxR(.2,.9)*r.h,vy:-fxR(.02,.05),life:fxR(350,520),delay:t+fxR(0,120),tint:col.ward,add:1,sx0:.45,sx1:.1,a0:.8,fi:.3});
+}
+function fxSpear(from,to,t,col){
+  const a=fxC(from), b=fxC(to), ang=Math.atan2(b.y-a.y,b.x-a.x), fly=220;
+  fxP({tex:'streak',x:a.x,y:a.y,path:[a.x,a.y,(a.x+b.x)/2,(a.y+b.y)/2,b.x,b.y],rot:ang,sx0:.9,sx1:1.1,sy0:.7,life:fly,delay:t,tint:col.bone,add:1,a0:.95,a1:.8});
+  fxSlash(to,t+fly-20,col,false);
+}
+function fxDeath(r,t,col,ember){
+  const c=fxC(r);
+  fxP({tex:'dot',x:c.x,y:c.y,sx0:r.w/60,sx1:r.w/30,life:600,delay:t,tint:ember?col.ember:col.soot,add:ember?1:0,a0:ember?.35:.55});
+  for(let i=0;i<14;i++) fxP({tex:i%3?'chip':'core',x:r.x+fxR(.15,.85)*r.w,y:r.y+fxR(.15,.6)*r.h,vx:fxR(-.03,.03),vy:fxR(-.06,.01),g:.0007,life:fxR(480,700),delay:t+fxR(0,80),tint:i%4===0?col.bone:ember&&i%2?col.ember:col.ash,sx0:fxR(.5,1),sx1:.4,rot:fxR(0,6.3),vr:fxR(-.012,.012),a0:.9});
+}
+function fxMotes(r,t,col,n,tint){
+  for(let i=0;i<n;i++) fxP({tex:i%2?'core':'dot',x:r.x+fxR(.15,.85)*r.w,y:r.y+fxR(.5,.95)*r.h,vx:fxR(-.012,.012),vy:-fxR(.05,.11),life:fxR(560,700),delay:t+fxR(0,160),tint:tint||col.soul,add:1,sx0:i%2?fxR(.5,.8):fxR(.35,.55),sx1:.15,a0:i%2?.9:.4,fi:.25});
+}
+function fxWisp(r,t,col){
+  const c=fxC(r);
+  for(let i=0;i<2;i++) fxP({tex:'dot',x:c.x+fxR(-8,8),y:c.y,vy:-fxR(.025,.04),vx:fxR(-.01,.01),life:650,delay:t+i*90,tint:col.ash,sx0:.25,sy0:.9,sx1:.35,sy1:1.6,a0:.35,fi:.3});
+}
+function fxBoss(r,t,col){
+  const c=fxC(r);
+  fxP({tex:'dot',x:c.x,y:c.y,sx0:r.w/40,sx1:r.w/14,life:700,delay:t,tint:col.soot,a0:.7});
+  fxP({tex:'ring',x:c.x,y:c.y,sx0:r.w/80,sx1:r.w/36,life:700,delay:t+60,tint:col.ember,add:1,a0:.35});
+  for(let i=0;i<10;i++) fxP({tex:'core',x:r.x+fxR(.1,.9)*r.w,y:r.y+r.h*fxR(.7,1),vx:fxR(-.015,.015),vy:-fxR(.04,.09),life:fxR(500,700),delay:t+fxR(80,260),tint:i%3?col.ember:col.gold,add:1,sx0:fxR(.35,.6),sx1:.1,a0:.9,fi:.2});
+}
+function fxUlt(e,r,col){   // one stronger version of the fitting effect, across the room
+  const id=e.o&&e.o.id, foes=fxAll('.unit.foe[data-u]'), ours=fxAll('.unit.ally[data-u]');
+  if(id==='toll') foes.forEach((f,i)=>{ fxSlash(f,i*40,col,true); fxDeath(f,i*40+120,col,true); });
+  else if(id==='rise') ours.forEach((f,i)=>fxMotes(f,i*35,col,i?6:12));
+  else (foes.length?foes:r?[r]:[]).forEach((f,i)=>fxWard(f,i*40,col,true));
+}
+
+// Plays the queued moments in order on a short clock, so a full army's turn reads as a flurry rather than one flash.
+function fxFlush(){
+  const q=FXL.q; FXL.q=[]; if(!q.length) return;
+  const col=FXL.col, me=()=>fxRect('p'), nM=q.filter(e=>e.kind==='mhit').length, sparks=nM>8?2:nM>4?3:4;
+  let t=0, prev=0;
+  for(const e of q){
+    if(t>1600) break;   // a very long turn: the rest would play long after the numbers changed
+    const r=fxRect(e.k)||e.r; if(!r&&e.kind!=='ult') continue;
+    let at=t;
+    switch(e.kind){
+      case 'strike': fxSlash(r,at,col,e.o&&e.o.crit); t+=120; break;
+      case 'mhit': fxSpark(r,at,col,sparks); t+=nM>8?35:55; break;
+      case 'hurt': fxHurt(r,at,col,e.o); t+=e.o&&e.o.fire?25:90; break;
+      case 'siphon': { const m=me(); if(m) fxSiphon(r,m,at,col,7); t+=200; break; }
+      case 'spear': { const m=me(); if(m) fxSpear(m,r,at,col); else fxSlash(r,at,col,false); t+=260; break; }
+      case 'ward': fxWard(r,at,col,false); t+=30; break;
+      case 'burst': fxDeath(r,at,col,true); t+=40; break;
+      case 'death': at=prev+60; fxDeath(r,at,col,false); break;
+      case 'raise': fxMotes(r,at,col,12); t+=110; break;
+      case 'rfail': fxWisp(r,at,col); t+=110; break;
+      case 'mend': fxMotes(r,at,col,8); break;
+      case 'boss': fxBoss(r,at,col); break;
+      case 'ult': fxUlt(e,r,col); t+=300; break;
+    }
+    prev=at;
+  }
+  fxGo();
+}
 // ===== LANGUAGE =====
 // English is written into the page; Turkish is laid over it after every render. Each text piece is looked up with its
 // numbers as # (so "Lv 12 · ATK 40" finds "Lv # · ATK #"), split on " · ", ", " and ": " when the whole is unknown,
@@ -3360,7 +3603,7 @@ const TR_DICT=new Map(Object.entries({
 "A cursed gate":"Lanetli bir kapı",
 "A cursed gate is not cursed at random. The Ledger has enemies among the dead it has not yet named, and they gather where you hunt, and they twist the stone against you. You won anyway. They will remember that too":"Lanetli bir kapı rastgele lanetlenmez. Defterin henüz adlandırmadığı ölüler arasında düşmanları var; avlandığın yerde toplanır ve taşı sana karşı bükerler. Yine de kazandın. Bunu da hatırlayacaklar",
 "A dark passage":"Karanlık bir geçit",
-"A day has # watches. Entering a gate or the Tower uses one; when the last is spent the day ends. The daily quest asks you to defeat # foes, clear # rooms (gate rooms or Tower floors) and clear # dungeon. Finish it for # stat point and #% of a level in XP. Leave it unfinished and dawn costs #% of a level in XP and #% of your max HP for a day":"Bir günün # nöbeti var. Bir kapıya ya da Kuleye girmek birini harcar; sonuncusu bitince gün biter. Günlük görev # düşman yenmeni, # oda temizlemeni (kapı odaları ya da Kule katları) ve # zindan temizlemeni ister. Bitirince # nitelik puanı ve bir seviyenin %#'i kadar TP. Bitirmezsen şafak bir seviyenin %#'i kadar TP'ye ve bir gün boyunca azami canının %#'ine mal olur",
+"A day has # watches. Entering a gate or the Tower uses one; when the last is spent the day ends. The daily quest asks you to defeat # foes, clear # rooms (gate rooms or Tower floors) and clear # dungeon. Finish it for # stat point and #% of a level in XP. Leave it unfinished and dawn costs #% of a level in XP and #% of your max HP for a day, once you have cleared your first gate":"Bir günün # nöbeti var. Bir kapıya ya da Kuleye girmek birini harcar; sonuncusu bitince gün biter. Günlük görev # düşman yenmeni, # oda temizlemeni (kapı odaları ya da Kule katları) ve # zindan temizlemeni ister. Bitirince # nitelik puanı ve bir seviyenin %#'i kadar TP. İlk kapını temizledikten sonra, bitirmezsen şafak bir seviyenin %#'i kadar TP'ye ve bir gün boyunca azami canının %#'ine mal olur",
 "A debt called in":"Tahsil edilen bir borç",
 "A defiled altar":"Kirletilmiş bir sunak",
 "A drowned family vault. The dead here still keep their posts":"Boğulmuş bir aile mezarı. Buradaki ölüler hâlâ nöbetlerini tutuyor",
@@ -3720,7 +3963,7 @@ const TR_DICT=new Map(Object.entries({
 "Every foe is shielded":"Her düşman kalkanlandı",
 "Every foe mends":"Her düşman onarılıyor",
 "Every foe takes #% of your Siphon, ignoring armor. Foes other than bosses left below #% HP die outright":"Her düşman Emmenin %#'i kadar hasar alır, zırhı yok sayar. Canı %#'in altında kalan boss dışı düşmanlar anında ölür",
-"Every foe you kill leaves a body. Raising costs mana and can fail; the better your Will and level, the better your odds. Raised minions fight for you and grow with every room":"Öldürdüğün her düşman bir ceset bırakır. Diriltme mana harcar ve başarısız olabilir; İraden ve seviyen ne kadar iyiyse şansın o kadar iyidir. Diriltilen hizmetkârlar senin için savaşır ve her odada büyür",
+"Every foe you kill leaves a body. Raising costs mana and can fail, except the very first: that one always answers. The better your Will and level, the better your odds. Raised minions fight for you and grow with every room":"Öldürdüğün her düşman bir ceset bırakır. Diriltme mana harcar ve başarısız olabilir, ilki hariç: o her zaman karşılık bulur. İraden ve seviyen ne kadar iyiyse şansın o kadar iyidir. Diriltilen hizmetkârlar senin için savaşır ve her odada büyür",
 "Every gate boss has a signature move it uses every few turns in place of attacking. Moves marked telegraphed are announced a turn ahead (Charging): soak them with Bone Ward, or freeze the boss with Grave Chill to cancel them. A boss calls at most # helpers a fight. Tower wardens borrow these moves, a turn sooner from floor #, and grow wrathful after turn #: every turn after that they hit #% harder (#% on floor #)":"Her kapı bossunun birkaç turda bir saldırmak yerine kullandığı imza bir hamlesi vardır. Önceden belli işaretli hamleler bir tur önceden duyurulur (Güç Topluyor): Kemik Kalkanı ile em ya da iptal etmek için bossu Mezar Soğuğu ile dondur. Bir boss dövüş başına en fazla # yardımcı çağırır. Kule muhafızları bu hamleleri ödünç alır, kat #'den itibaren bir tur erken, ve tur #'ten sonra gazaplanır: ondan sonra her tur %# daha sert vururlar (kat #'de %#)",
 "Every kill restores # mana":"Her öldürme # mana verir",
 "Every kill restores # mana and heals you for #% of your max HP":"Her öldürme # mana verir ve seni azami canının %#'i kadar iyileştirir",
@@ -3894,6 +4137,7 @@ const TR_DICT=new Map(Object.entries({
 "How a fight works":"Dövüş nasıl işler",
 "How it ends":"Nasıl biter",
 "How to play":"Nasıl oynanır",
+"first steps #/#":"ilk adımlar #/#",
 "Hurl # Bone Spears":"# Kemik Mızrak fırlat",
 "Hurl a lance of bone at your target for #% of your Strike plus Siphon. Pierces half of foe armor":"Hedefine Vuruş artı Emmenin %#'i kadar bir kemik mızrak fırlat. Düşman zırhının yarısını deler",
 "Immune to bleeding, burns and poison":"Kanamaya, yanığa ve zehre bağışık",
@@ -3947,8 +4191,9 @@ const TR_DICT=new Map(Object.entries({
 "Level #/#":"Seviye #/#",
 "Level up":"Seviye atladın",
 "Light":"Hafif",
-"Light uses simpler icon shading and still backgrounds, for phones. Auto picks it on small or slow devices (now: Full)":"Hafif, telefonlar için daha basit simge gölgelendirmesi ve durağan arka planlar kullanır. Otomatik, küçük ya da yavaş cihazlarda onu seçer (şimdi: Tam)",
-"Light uses simpler icon shading and still backgrounds, for phones. Auto picks it on small or slow devices (now: Light)":"Hafif, telefonlar için daha basit simge gölgelendirmesi ve durağan arka planlar kullanır. Otomatik, küçük ya da yavaş cihazlarda onu seçer (şimdi: Hafif)",
+"Light uses simpler icon shading and still backgrounds, for phones. Full also draws battle effects. Auto picks Light on small or slow devices (now: Full)":"Hafif, telefonlar için daha basit simge gölgelendirmesi ve durağan arka planlar kullanır. Tam, savaş efektlerini de çizer. Otomatik, küçük ya da yavaş cihazlarda Hafif'i seçer (şimdi: Tam)",
+"Light uses simpler icon shading and still backgrounds, for phones. Full also draws battle effects. Auto picks Light on small or slow devices (now: Light)":"Hafif, telefonlar için daha basit simge gölgelendirmesi ve durağan arka planlar kullanır. Tam, savaş efektlerini de çizer. Otomatik, küçük ya da yavaş cihazlarda Hafif'i seçer (şimdi: Hafif)",
+"Light uses simpler icon shading and still backgrounds, for phones. Full also draws battle effects. Auto picks Light on small or slow devices":"Hafif, telefonlar için daha basit simge gölgelendirmesi ve durağan arka planlar kullanır. Tam, savaş efektlerini de çizer. Otomatik, küçük ya da yavaş cihazlarda Hafif'i seçer",
 "Lingering":"Kalıcı",
 "Little moth. Come closer to the light":"Küçük güve. Işığa yaklaş",
 "Load":"Yükle",
@@ -4045,7 +4290,7 @@ const TR_DICT=new Map(Object.entries({
 "Old blood crusts a stone basin. Feed it, and it sharpens every blow for the rest of this gate":"Eski kan taş bir leğende kabuklanmış. Onu besle, bu kapının geri kalanında her darbeni keskinleştirir",
 "Omen today":"Bugünün kehaneti",
 "Omens":"Kehanetler",
-"On Normal, a gate far below you pays less: kill XP, gold and the clear bonus stay full up to # levels past its best level, then fall to #% at # levels past. A first clear, a cursed gate and every harder difficulty pay in full, and gear drops never shrink":"Normal'de senden çok aşağıda kalan bir kapı daha az öder: öldürme TP'si, altın ve temizleme bonusu kapının en iyi seviyesinin # seviye üstüne kadar tamdır, sonra azalarak %#'e iner (# seviye üstünde). İlk temizleme, lanetli bir kapı ve her zor seviye tam öder; teçhizat düşüşleri hiç azalmaz",
+"On Normal, a gate far below you pays less: kill XP, gold and the clear bonus stay full until you stand about # levels past its recommended level, then fall to #% at about # levels past; the gate card says when it applies. A first clear, a cursed gate and every harder difficulty pay in full, and gear drops never shrink":"Normal'de senden çok aşağıda kalan bir kapı daha az öder: öldürme TP'si, altın ve temizleme bonusu kapının önerilen seviyesinin yaklaşık # seviye üstüne kadar tamdır, sonra azalarak %#'e iner (yaklaşık # seviye üstünde); ne zaman geçerli olduğunu kapı kartı söyler. İlk temizleme, lanetli bir kapı ve her zor seviye tam öder; teçhizat düşüşleri hiç azalmaz",
 "Once per dungeon, a killing blow leaves you at #% HP":"Zindan başına bir kez, öldürücü darbe seni %# canla bırakır",
 "Once per gate run, a killing blow leaves you at #% HP instead (not in the Tower)":"Kapı koşusu başına bir kez, öldürücü darbe seni %# canla bırakır (Kulede değil)",
 "Once per room, each kind of minion in your army can be given one order. Orders are free and do not use your turn":"Oda başına bir kez, ordundaki her hizmetkâr türüne bir emir verilebilir. Emirler bedavadır ve turunu harcamaz",
@@ -4098,6 +4343,11 @@ const TR_DICT=new Map(Object.entries({
 "Pays":"Öder",
 "Pays a Legendary piece with bonus lines":"Ek satırlı bir Efsanevi parça öder",
 "Penalty if unfinished at dawn: lose #% of a level in XP and max HP -#% for a day":"Şafakta bitmemişse ceza: bir seviyenin %#'i kadar TP kaybı ve bir gün boyunca azami Can -%#",
+"No penalty if unfinished until you clear your first gate":"İlk kapını temizleyene kadar bitirmemenin cezası yok",
+"Day # closed with the daily quest unfinished":"Gün #, günlük görev bitmeden kapandı",
+"No penalty until you clear your first gate":"İlk kapını temizleyene kadar ceza yok",
+"Penalty: -# XP, and max HP is cut by #% today":"Ceza: -# TP ve bugün azami Can %# azaldı",
+"Defeat foes, clear rooms and clear a dungeon in one day for a stat point and XP. An unfinished quest costs a little at dawn, once you have cleared your first gate":"Bir günde düşman yen, oda temizle ve bir zindan temizle: bir nitelik puanı ve TP kazan. İlk kapını temizledikten sonra, bitmemiş bir görev şafakta biraz bedel ister",
 "Petrified":"Taşlaşmış",
 "Pick a door":"Bir kapı seç",
 "Pick a target and your army attacks it with you. Strike (#) refills mana, Soul Siphon (#) drains, heals and harvests a Soul, Bone Ward (#) shields you. Then every foe hits back":"Bir hedef seç, ordun seninle ona saldırır. Vuruş (#) mana doldurur, Ruh Emme (#) emer, iyileştirir ve bir Ruh toplar, Kemik Kalkanı (#) seni korur. Sonra her düşman karşılık verir",
@@ -4171,6 +4421,13 @@ const TR_DICT=new Map(Object.entries({
 "Recommended level #. Drops a unique":"Önerilen seviye #. Eşsiz eşya düşürür",
 "Recommended level #. The final warden. It drops three uniques and is the hardest thing in the game":"Önerilen seviye #. Son muhafız. Üç eşsiz düşürür ve oyundaki en zor şeydir",
 "Recommended level for floor #: #. Uses one watch":"Kat # için önerilen seviye: #. Bir nöbet harcar",
+"Recommended Lv #+":"Önerilen Sv #+",
+"Most necromancers clear this gate from this hero level":"Çoğu ölü çağıran bu kapıyı bu kahraman seviyesinden itibaren temizler",
+"Opens at level #, recommended from level #. Armor #%. Clear bonus # XP":"# seviyede açılır, önerilen seviye #. Zırh %#. Temizleme ödülü # TP",
+"Foes shrug off #% of every hit you and your minions land. Piercing skills such as Bone Spear ignore part of it":"Düşmanlar senin ve minyonlarının her vuruşunun %#'ini savuşturur. Kemik Mızrak gibi delici yetenekler bunun bir kısmını yok sayar",
+"What each body rises with at its gate's base foe level, before Will, Grave Pact, gear, traits and evolution":"Her cesedin kapısının temel düşman seviyesinde, İrade, Mezar Andı, teçhizat, özellikler ve evrimden önce dirildiği güç",
+"Every level adds #% HP and #% attack":"Her seviye %# can ve %# saldırı ekler",
+"A raised elite has x# HP and x# attack; a raised boss x# HP and x# attack":"Diriltilmiş bir seçkin x# can ve x# saldırıya, diriltilmiş bir boss x# can ve x# saldırıya sahiptir",
 "Records":"Rekorlar",
 "Reduce motion":"Hareketi azalt",
 "Reforge":"Yeniden döv",
@@ -4576,7 +4833,8 @@ const TR_DICT=new Map(Object.entries({
 "Win # rooms or floors":"# oda ya da kat kazan",
 "Win a raid led by a Commander":"Bir Komutanın önderlik ettiği akını kazan",
 "Win a room with #% of your HP or less":"Canının %#'i ya da daha azıyla bir oda kazan",
-"Win a room, then raise what fell. Raising costs mana and can fail; your army fights beside you and grows":"Bir oda kazan, sonra düşeni dirilt. Diriltme mana harcar ve başarısız olabilir; ordun yanında savaşır ve büyür",
+"Win a room, then raise what fell. Raising costs mana; your first raise always answers, later ones can fail. Your army fights beside you and grows":"Bir oda kazan, sonra düşeni dirilt. Diriltme mana harcar; ilk diriltmen her zaman karşılık bulur, sonrakiler başarısız olabilir. Ordun yanında savaşır ve büyür",
+"Your first raise always answers":"İlk diriltmen her zaman karşılık bulur",
 "With salts · #%":"Tuzla · %#",
 "Working on gear":"Teçhizat üzerinde çalışmak",
 "Workshop":"Atölye",
@@ -5393,7 +5651,7 @@ function questHTML(){
   const done=questDone();
   return '<section class="win'+foldCls('quest')+'" aria-labelledby="h-quest"><h2 class="win-h" id="h-quest">Daily quest &middot; Day '+S.day+'<span class="fold-sum">'+(q.claimed?'claimed':done?'ready to claim':rows.filter(r=>r[1]>=r[2]).length+'/3')+'</span>'+foldBtn('quest')+'</h2>'
    +rows.map(r=>'<div class="q-row"><span class="box'+(r[1]>=r[2]?' on':'')+'"></span><span>'+r[0]+'</span><span class="num">'+Math.min(r[1],r[2])+'/'+r[2]+'</span></div>').join('')
-   +(q.claimed?'<p class="q-note ok">Reward claimed for today.</p>':done?'<button class="btn primary" data-a="claim">Claim reward</button>':'<p class="q-note">Reward: +'+QUEST_PTS+' stat point'+(QUEST_PTS>1?'s':'')+' and bonus XP.<br><span class="bad">Penalty if unfinished at dawn: lose '+Math.round(QUEST_LOSS*100)+'% of a level in XP and max HP -'+Math.round(QUEST_DEBUFF*100)+'% for a day.</span></p>')
+   +(q.claimed?'<p class="q-note ok">Reward claimed for today.</p>':done?'<button class="btn primary" data-a="claim">Claim reward</button>':'<p class="q-note">Reward: +'+QUEST_PTS+' stat point'+(QUEST_PTS>1?'s':'')+' and bonus XP.<br>'+(everCleared()?'<span class="bad">Penalty if unfinished at dawn: lose '+Math.round(QUEST_LOSS*100)+'% of a level in XP and max HP -'+Math.round(QUEST_DEBUFF*100)+'% for a day.</span>':'<span class="ok">No penalty if unfinished until you clear your first gate.</span>')+'</p>')
    +'<p class="q-note">Each dungeon you enter uses a watch. When the third is spent, the day closes.</p></section>';
 }
 function bountyHTML(){
@@ -5410,13 +5668,17 @@ function notesHTML(){
   if(!S.notices.length) return '';
   return '<div class="notes">'+S.notices.map(n=>'<div class="note '+n.c+'"><span>'+n.m+'</span></div>').join('')+'<div><button class="linkbtn" data-a="dismiss">Dismiss</button></div></div>';
 }
+function armorTag(a){   // foe armor with its rule spelled out (pierceMul): hover text plus the same words for screen readers
+  const p=Math.round(a*100), t='Foes shrug off '+p+'% of every hit you and your minions land. Piercing skills such as Bone Spear ignore part of it';
+  return '<span class="armor-tag" title="'+t+'.">armor '+p+'%<span class="sr-only">. '+t+'.</span></span>';
+}
 function gateHTML(i){
-  const D=DUNGEONS[i], R=RK[i], P=S.player, locked=P.lvl<R.unlock, diff=P.lvl-SAFE[i];
+  const D=DUNGEONS[i], R=RK[i], P=S.player, locked=P.lvl<R.unlock, rec=gateRec(i), diff=P.lvl-rec;
   const danger=locked?'Locked':diff<-2?'Deadly':diff<0?'Hard':diff<=3?'Fair':'Easy';
   const GL=BOSS_LOOK[D.boss[0]]||['#1a1714','#5a4a3a'];
   return '<div class="gate'+(locked?' locked':'')+(gateMod(i)?' cursed':'')+'" style="--g1:'+GL[0]+';--g2:'+GL[1]+'"><svg class="gate-mark" viewBox="0 0 64 64" aria-hidden="true">'+(IC[D.boss[0]]||'')+'</svg><div class="badge r'+i+'">'+RANKS[i]+'</div><div><h3>'+D.name+'</h3><p>'+D.blurb+'</p>'
-   +'<div class="meta">'+(locked?'Opens at level '+R.unlock:'<span class="danger-'+danger.toLowerCase()+'">'+danger+' for you</span>')+' &middot; Lv '+SAFE[i]+'&ndash;'+(SAFE[i]+3)
-   +(DIFF.armor[i]?' &middot; <span title="Foes wear '+Math.round(DIFF.armor[i]*100)+'% armor">armor '+Math.round(DIFF.armor[i]*100)+'%</span>':'')+' &middot; Boss: <b>'+D.boss[0]+'</b>'
+   +'<div class="meta">'+(locked?'Opens at level '+R.unlock:'<span class="danger-'+danger.toLowerCase()+'">'+danger+' for you</span>')+' &middot; <span class="rec-lv" title="Most necromancers clear this gate from this hero level">Recommended Lv '+rec+'+</span>'
+   +(DIFF.armor[i]?' &middot; '+armorTag(DIFF.armor[i]):'')+' &middot; Boss: <b>'+D.boss[0]+'</b>'
    +(gateMod(i)?'<span class="curse-line">Cursed: <b>'+MODS[gateMod(i)].name+'</b>. '+MODS[gateMod(i)].desc+' '+MOD_REWARD+(S.ti&&S.ti.clr&&S.ti.clr[5]&&P.lvl-CURSE_GAP>RK[i].lv?' Foes about Lv '+(P.lvl-CURSE_GAP)+'.':'')+'</span>':'')
    +(S.mode==='town'&&raidGates().includes(i)&&bestSquad()&&!(S.raids||[]).length?(sq=>'<div class="raid-odds" title="'+sq[0].nick+' and '+(sq.length-1)+' of your strongest; set the squad on the War table">Raid odds '+Math.round(raidOdds(sq,i)*100)+'%</div>')(bestSquad()):'')
    +heatHTML(i)+(gateFarm(i)<1?'<div class="farm-line dim">Rewards here '+Math.round(gateFarm(i)*100)+'% on Normal at your level; Hard and up pay in full.</div>':'')+'</div></div>'
@@ -5587,11 +5849,11 @@ function tipHTML(){
 // First steps: a short guide that ticks itself off as you play. Every rule and number lives in the Codex.
 const FIRST_STEPS=[
   ['Spend your stat points',()=>S.player.pts===0||S.player.lvl>1,'Press + next to a stat. Constitution keeps you alive early; Will lets you raise more of the dead.'],
-  ['Raise your first minion',()=>T_('raised')>0,'Win a room, then raise what fell. Raising costs mana and can fail; your army fights beside you and grows.'],
+  ['Raise your first minion',()=>T_('raised')>0,'Win a room, then raise what fell. Raising costs mana; your first raise always answers, later ones can fail. Your army fights beside you and grows.'],
   ['Clear the Rat Warren',()=>!!(S.ti&&S.ti.clr&&S.ti.clr[0]),'Four rooms, the last holding the Rat King. Between rooms, pick a door: a fight, a stronger room with better loot, a rest or a vault.'],
   ['Learn a skill',()=>Object.keys(S.player.skills||{}).length>0,'You get a skill point each level. Bone Spear (Skills tab) is a strong first pick; active skills sit on keys 4 and up in battle.'],
   ['Stock up at the Market',()=>(S.belt.hp+S.belt.mp)>0||T_('drank')>0,'Healing Draughts (Q) and Mana Tonics (W) save runs. Sell trophies and spare gear there to pay for them.'],
-  ['Finish a daily quest',()=>T_('claims')>0,'Defeat foes, clear rooms and clear a dungeon in one day for a stat point and XP. An unfinished quest costs a little at dawn.'],
+  ['Finish a daily quest',()=>T_('claims')>0,'Defeat foes, clear rooms and clear a dungeon in one day for a stat point and XP. An unfinished quest costs a little at dawn, once you have cleared your first gate.'],
   ['Open the town',()=>townOpen(),'After your first clear (or level 4) a Town tab and a bounty board appear: buildings, fusion and daily contracts.'],
   ['Reach the Hell Tower',()=>S.player.lvl>=TW.unlock,'At level '+TW.unlock+' a separate climb opens: one fight per floor, a unique relic every tenth floor, checkpoints as you go.'],
   ['Break the Throne of Ash',()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]),'The last gate. Clearing it opens New Game+ in Settings and makes cursed gates rise to just below your level.']
@@ -5606,8 +5868,9 @@ const HELP_LATER=()=>[
   ['Cursed gates','Each day one cleared gate is cursed: harder, and pays more.',DUNGEONS.some((D,i)=>S.ti&&S.ti.clr&&S.ti.clr[i])],
   ['Ultimates','At level '+ULT_LV+' choose an ultimate on the Skills tab. Gather '+SOUL_MAX+' Souls in a run and press R.',S.player.lvl>=ULT_LV]
 ];
+const stepsDone=()=>FIRST_STEPS.filter(x=>{ try{ return x[1](); }catch(e){ return false; } }).length;
 function helpHTML(){
-  const done=FIRST_STEPS.filter(x=>{ try{ return x[1](); }catch(e){ return false; } }).length;
+  const done=stepsDone();
   return '<section class="win" aria-labelledby="h-help"><h2 class="win-h" id="h-help">How to play &middot; first steps '+done+'/'+FIRST_STEPS.length+'</h2><h3 class="win-title">Every name in this book answers to you.</h3>'
    +(done<=1&&S.day===1?'<div class="btns"><button class="btn primary" data-a="tab" data-k="gates">Begin: to the gates</button></div>':'')
    +'<p class="lede">Each day has '+WATCHES+' watches; a gate or the Tower uses one. These steps tick off as you play.</p>'
@@ -5636,7 +5899,7 @@ function saveTabHTML(){
    +[['Compact',-1],['Normal',0],['Large',1],['Larger',2]].map(([t,i])=>'<button class="btn small'+(VIEW.size===i?' primary':'')+'" data-a="view" data-k="size|'+i+'" aria-pressed="'+(VIEW.size===i)+'">'+t+'</button>').join('')+'</div></div>'
    +'<div class="tt-row'+(VIEW.calm?' on':'')+'"><div><h4>Reduce motion</h4><div class="u-sub">Stops embers, flames, pulses and shake.</div></div><button class="btn small'+(VIEW.calm?'':' primary')+'" data-a="view" data-k="calm" aria-pressed="'+VIEW.calm+'">'+(VIEW.calm?'Turn off':'Turn on')+'</button></div>'
    +'<div class="tt-row'+(VIEW.nobg?'':' on')+'"><div><h4>Backgrounds</h4><div class="u-sub">Painted scenes and boss arenas.</div></div><button class="btn small'+(VIEW.nobg?' primary':'')+'" data-a="view" data-k="nobg" aria-pressed="'+!VIEW.nobg+'">'+(VIEW.nobg?'Turn on':'Turn off')+'</button></div>'
-   +'<div class="tt-row"><div><h4>Effects</h4><div class="u-sub">Light uses simpler icon shading and still backgrounds, for phones. Auto picks it on small or slow devices'+(VIEW.fx==='auto'?' (now: '+(fxLight()?'Light':'Full')+')':'')+'.</div></div><div class="btns" style="margin:0">'
+   +'<div class="tt-row"><div><h4>Effects</h4><div class="u-sub">Light uses simpler icon shading and still backgrounds, for phones. Full also draws battle effects. Auto picks Light on small or slow devices'+(VIEW.fx==='auto'?' (now: '+(fxLight()?'Light':'Full')+')':'')+'.</div></div><div class="btns" style="margin:0">'
      +Object.keys(FX_MODES).map(k=>'<button class="btn small'+(VIEW.fx===k?' primary':'')+'" data-a="view" data-k="fx|'+k+'" aria-pressed="'+(VIEW.fx===k)+'">'+FX_MODES[k]+'</button>').join('')+'</div></div>'
    +'<div class="tt-row'+(VIEW.hc?' on':'')+'"><div><h4>High contrast</h4><div class="u-sub">Brighter text and bolder bars.</div></div><button class="btn small'+(VIEW.hc?'':' primary')+'" data-a="view" data-k="hc" aria-pressed="'+VIEW.hc+'">'+(VIEW.hc?'Turn off':'Turn on')+'</button></div></div>'
    +'<p class="group-h">Save &amp; load</p><p class="lede">Saves after every action. Slots keep a safe copy; a save code carries your game to another browser.</p><p class="lede">The game saves itself after every action (in a gate or the Tower, as if you had walked out). Slots are for keeping a safe copy before something risky, like a Tower warden. A save code lets you carry your progress to another browser or device.</p>';
@@ -5735,7 +5998,7 @@ const cxList=a=>'<div class="items">'+a.join('')+'</div>';
 const metName=n=>!!(S.kills&&S.kills[n]>0);
 function codexSection(k){
   const pct=v=>Math.round(v*100)+'%';
-  if(k==='basics') return cxP('A day has '+WATCHES+' watches. Entering a gate or the Tower uses one; when the last is spent the day ends. The daily quest asks you to defeat '+QUEST.kills+' foes, clear '+QUEST.rooms+' rooms (gate rooms or Tower floors) and clear '+QUEST.clears+' dungeon. Finish it for '+QUEST_PTS+' stat point'+(QUEST_PTS>1?'s':'')+' and '+pct(QUEST_XP)+' of a level in XP. Leave it unfinished and dawn costs '+pct(QUEST_LOSS)+' of a level in XP and '+pct(QUEST_DEBUFF)+' of your max HP for a day.')
+  if(k==='basics') return cxP('A day has '+WATCHES+' watches. Entering a gate or the Tower uses one; when the last is spent the day ends. The daily quest asks you to defeat '+QUEST.kills+' foes, clear '+QUEST.rooms+' rooms (gate rooms or Tower floors) and clear '+QUEST.clears+' dungeon. Finish it for '+QUEST_PTS+' stat point'+(QUEST_PTS>1?'s':'')+' and '+pct(QUEST_XP)+' of a level in XP. Leave it unfinished and dawn costs '+pct(QUEST_LOSS)+' of a level in XP and '+pct(QUEST_DEBUFF)+' of your max HP for a day, once you have cleared your first gate.')
     +cxP('Each level gives 3 stat points and 1 skill point. Falling in a fight loses that room\'s spoils and '+pct(DIFF.deathXp)+' of a level in XP. Going on to the next room heals '+pct(DIFF.heal)+' of your HP, restores '+pct(DIFF.mana)+' of your mana and heals your minions '+pct(DIFF.mheal)+'.')
     +'<p class="group-h">Stats</p>'+cxList([cxRow('Strength','Strike damage: 3 + 1.5 per point + your level + gear.'),cxRow('Constitution','Max HP: 24 + 6 per point + 4 per level + gear.'),
       cxRow('Intelligence','Mana (5 per point), Soul Siphon (2 per point) and Bone Ward (2 per point).'),cxRow('Will','Mana (3 per point), one army slot per 3 points, 2.2% raise chance per point, and 2% minion power per point.')])
@@ -5755,7 +6018,7 @@ function codexSection(k){
   if(k==='omens') return cxP('Once you have cleared a gate, about '+pct(OMEN_CHANCE)+' of dawns bring an omen. It lasts the whole day and touches every gate and the Tower. Today: '+(omen()?OMENS[omen()].name:'no omen')+'.')
     +cxList(Object.keys(OMENS).map(o=>cxRow(OMENS[o].name,OMENS[o].desc,omen()===o?'Today':'')));
   if(k==='roles') return cxP('Every creature, yours or the enemy\'s, has one of four roles.')+cxList(Object.keys(ROLES).map(r=>cxRow(ROLES[r].label,ROLES[r].text+' '+CDX_ROLE[r])));
-  if(k==='minions') return cxP('What each body rises with at its gate\'s Recommended level, before Will, Grave Pact, gear, traits and evolution. Every level adds 16% HP and 12% attack. A raised elite has x1.5 HP and x1.3 attack; a raised boss x3.2 HP and x1.4 attack.')
+  if(k==='minions') return cxP('What each body rises with at its gate\'s base foe level, before Will, Grave Pact, gear, traits and evolution. Every level adds 16% HP and 12% attack. A raised elite has x1.5 HP and x1.3 attack; a raised boss x3.2 HP and x1.4 attack.')
     +DUNGEONS.map((D,di)=>{ const lv=RK[di].lv, list=D.mobs.map(t=>({n:t[0],role:t[1],hf:t[2],af:t[3],boss:false})).concat([{n:D.boss[0],role:D.boss[1],hf:1,af:1,boss:true}]);
       return '<p class="group-h">'+D.name+' &middot; Lv '+lv+'</p>'+cxList(list.map(x=>{ const met=!!(S.kills&&S.kills[x.n]); if(!met) return cxRow('???','Not met yet.');
         const st=mobStats(di,lv,x.hf,x.af,x.boss,false); return cxRow(x.n,'HP '+st.hp+' &middot; ATK '+st.atk+(x.boss?' &middot; boss':''),ROLES[x.role].label); })); }).join('');
@@ -5784,9 +6047,9 @@ function codexSection(k){
   if(k==='orders') return cxP('Once per room, each kind of minion in your army can be given one order. Orders are free and do not use your turn.')+cxList(Object.keys(CMDS).map(r=>cxRow(CMDS[r].name,CMDS[r].desc,ROLES[r].label+'s')));
   if(k==='gates') return cxP('Six gates of four rooms each, the last holding the boss. Clearing a gate pays bonus XP and, the first time, a page of the story.')
     +cxP('A cleared gate can be entered on a harder difficulty, picked on its card: '+HEAT.slice(1).map(h=>h.name+' (foes x'+h.foe+'; XP x'+h.xp+', gold x'+h.gold+', gear x'+h.drop+')').join(', ')+'. Each opens after clearing the one below. On a cursed day the curse feeds on it: a further x'+DAMNED_FOE+' to foes, x'+DAMNED+' to rewards. A Nightmare clear marks the gate\'s card and earns that gate\'s Nightmare title.')
-    +cxP('On Normal, a gate far below you pays less: kill XP, gold and the clear bonus stay full up to '+DIFF.farmFrom+' levels past its best level, then fall to '+pct(DIFF.farmMin)+' at '+DIFF.farmTo+' levels past. A first clear, a cursed gate and every harder difficulty pay in full, and gear drops never shrink.')
+    +cxP('On Normal, a gate far below you pays less: kill XP, gold and the clear bonus stay full until you stand about '+DIFF.farmFrom+' levels past its recommended level, then fall to '+pct(DIFF.farmMin)+' at about '+DIFF.farmTo+' levels past; the gate card says when it applies. A first clear, a cursed gate and every harder difficulty pay in full, and gear drops never shrink.')
     +cxList(DUNGEONS.map((D,i)=>{ const mobs=D.mobs.map(m=>metName(m[0])?m[0]+' ('+ROLES[m[1]].label.toLowerCase()+(isArmed(m[0])?', gear-bearer':'')+')':'???').join(', ');
-      return cxRow(D.name,'Opens at level '+RK[i].unlock+', best at '+SAFE[i]+'&ndash;'+(SAFE[i]+3)+'. Armor '+pct(DIFF.armor[i])+'. Clear bonus '+RK[i].clear+' XP.<br><b>Foes:</b> '+mobs+'<br><b>Boss:</b> '+(metName(D.boss[0])?D.boss[0]+', '+BOSS_ABIL[GATE_ABIL[i]].name:'???')+(secretHinted(i)?'<br><i class="dim">'+SECRET[i].hint+'</i>':''),'Rank '+RANKS[i]); }));
+      return cxRow(D.name,'Opens at level '+RK[i].unlock+', recommended from level '+gateRec(i)+'. Armor '+pct(DIFF.armor[i])+'. Clear bonus '+RK[i].clear+' XP.<br><b>Foes:</b> '+mobs+'<br><b>Boss:</b> '+(metName(D.boss[0])?D.boss[0]+', '+BOSS_ABIL[GATE_ABIL[i]].name:'???')+(secretHinted(i)?'<br><i class="dim">'+SECRET[i].hint+'</i>':''),'Rank '+RANKS[i]); }));
   if(k==='tower') return cxP('Opens at level '+TW.unlock+'. One fight per floor and a warden every tenth floor, each carrying a unique: guaranteed the first time, '+pct(TW.repeat)+' after (as gold while you carry one). Floors you clear become checkpoints every ten floors. Past floor 100 the Abyss never ends, and each tenth floor pays gold and a legendary. Tower foes wear '+pct(TW.armor)+' armor.')
     +cxList(TW_BOSS.map((n,i)=>{ const f=(i+1)*10, seen=S.tower.best>=f-10; return cxRow(seen?n:'???','Floor '+f+' &middot; recommended level '+recLv(f)+(seen?' &middot; '+BOSS_ABIL[GATE_ABIL[i%GATE_ABIL.length]].name:''),S.tower.best>=f?'Defeated':''); }));
   if(k==='gear') return cxP('You wear a weapon, armor and a relic. Gear-bearer minions can wear them too. On a minion, attack, strength, crit, Siphon and intelligence add to its attack; HP, constitution, ward, mana and will add to its HP; minion power works as usual.')
@@ -5905,6 +6168,7 @@ function townHTML(){
   if(sub==='war') return h+raidHTML()+armyHTML();
   if(sub==='rift') return h+riftHTML()+armyHTML();
   h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'
+   +((n=>n<FIRST_STEPS.length&&!(S.tips&&S.tips.off)?'<p class="q-note guide-link"><button class="linkbtn" data-a="tab" data-k="help">How to play &middot; first steps '+n+'/'+FIRST_STEPS.length+'</button></p>':'')(stepsDone()))   /* for a new player; gone once every step is done or tips are switched off */
    +(omen()?'<div class="omen-line"><b>Omen today: '+OMENS[omen()].name+'.</b> '+OMENS[omen()].desc+' It touches every gate and the Tower until dawn.</div>':'')
    +'<div class="gates">'+DUNGEONS.map((d,i)=>gateHTML(i)).join('')+'</div>'
    +'<div class="btns"><button class="btn small" data-a="rest">Rest until dawn</button></div></section>';
@@ -5931,9 +6195,9 @@ function unitCard(u,side,mini){
   if(mini){   // a minion in battle: icon, name, level, attack, HP; the rest lives on the Army tab
     const m='<div class="u-head">'+ico(u.base||u.kind||u.name,u.rankI,u)+'<div class="u-id"><div class="u-name">'+nick(u)+'</div><div class="u-sub num">Lv '+u.lvl+' &middot; ATK '+u.atk+dots+'</div></div></div>'
       +'<div class="bar"><i class="fill hp" style="width:'+pct(u.hp,max)+'%"></i></div><div class="num u-hp">'+Math.max(0,u.hp)+'/'+max+'</div>';
-    return '<div class="unit ally mini'+(dead?' dead':'')+(u.elite?' elite':'')+(f.d?' hit':'')+'" title="'+mName(u)+', '+ROLES[u.role].label+'">'+fx+m+'</div>'; }
+    return '<div class="unit ally mini'+(dead?' dead':'')+(u.elite?' elite':'')+(f.d?' hit':'')+'" data-u="'+fxKey(u)+'" title="'+mName(u)+', '+ROLES[u.role].label+'">'+fx+m+'</div>'; }
   const cls='unit '+side+(dead?' dead':'')+(sel?' sel':'')+(u.elite?' elite':'')+(f.d?' hit':'');
-  return side==='foe'&&!dead?'<button class="'+cls+'" data-a="target" data-k="'+u.id+'" aria-pressed="'+sel+'">'+inner+'</button>':'<div class="'+cls+'">'+inner+'</div>';
+  return side==='foe'&&!dead?'<button class="'+cls+'" data-a="target" data-k="'+u.id+'" data-u="'+u.id+'" aria-pressed="'+sel+'">'+inner+'</button>':'<div class="'+cls+'" data-u="'+fxKey(u)+'">'+inner+'</div>';
 }
 const ORDER_KEYS={z:'vanguard',x:'striker',c:'mender',v:'reaper'}, ORDER_KEY=Object.fromEntries(Object.entries(ORDER_KEYS).map(([k,r])=>[r,k.toUpperCase()]));
 function ultHTML(){   // Souls and the ultimate, from level 20
@@ -5959,7 +6223,7 @@ function battleHTML(){
    +(r.mod?'<p class="q-note"><span class="curse-line" style="margin:0">Cursed: <b>'+MODS[r.mod].name+'</b>. '+MODS[r.mod].desc+'</span></p>':'')
    +(r.heat?'<p class="q-note bad">Difficulty: <b>'+HEAT[r.heat].name+'</b>'+(r.mod?', and the curse feeds on it':'')+'.</p>':'')
    +(r.bless?'<p class="q-note ok">Blood-blessed: you and your army hit 15% harder in this gate.</p>':'')
-   +'<p class="group-h">Foes'+(foeArmor()?' &middot; <span title="Blunts every hit you and your army land">armor '+Math.round(foeArmor()*100)+'%</span>':'')+'</p><div class="row">'+r.enemies.map(e=>unitCard(e,'foe')).join('')+'</div>'
+   +'<p class="group-h">Foes'+(foeArmor()?' &middot; '+armorTag(foeArmor()):'')+'</p><div class="row">'+r.enemies.map(e=>unitCard(e,'foe')).join('')+'</div>'
    +'<p class="group-h">Your side'+(r.frenzy>0?' &middot; <span class="ok">Frenzy '+r.frenzy+'</span>':'')+(r.silence>0?' &middot; <span class="bad">Silenced '+r.silence+'</span>':'')+(r.taunt>0?' &middot; <span class="ok">Taunting '+r.taunt+'</span>':'')+'</p><div class="row minis side">'+unitCard(S.player,'ally')+S.army.map(a=>unitCard(a,'ally',true)).join('')+'</div>'
    +'<div class="actbar">'+partyStrip()+'<div class="btns"><button class="btn primary" data-a="act" data-k="strike">Strike +3 mana<kbd>1</kbd></button>'
    +'<button class="btn" data-a="act" data-k="siphon"'+(P.mana<siphonCost()?' disabled':'')+'>Soul Siphon '+siphonCost()+'<kbd>2</kbd></button>'
@@ -6065,9 +6329,9 @@ function raiseHTML(){
     const ch=raiseChance(c), cost=raiseCost(c);
     let right;
     if(c.tried) right=c.result==='raised'?'<span class="ok num">Raised as '+c.minion+'</span>':c.result==='exploded'?'<span class="dim num">Burst apart</span>':'<span class="bad num">Crumbled</span>';
-    else right='<div class="btns" style="margin:0"><button class="btn primary small" data-a="raise" data-k="'+c.id+'"'+(P.mana<cost||full?' disabled':'')+'>Raise &middot; '+ch+'% &middot; '+cost+' mana</button>'
+    else right='<div class="btns" style="margin:0"><button class="btn primary small" data-a="raise" data-k="'+c.id+'"'+(P.mana<cost||full?' disabled':'')+(firstRaise()?' title="Your first raise always answers"':'')+'>Raise &middot; '+ch+'% &middot; '+cost+' mana</button>'
       +(S.salts>0?'<button class="btn small" data-a="raisesalt" data-k="'+c.id+'"'+(P.mana<cost||full?' disabled':'')+' title="Uses one Grave Salts ('+S.salts+' left)">With salts &middot; '+saltChance(c)+'%</button>':'')+'</div>';
-    return '<div class="corpse'+(c.tried?' done '+c.result:'')+'"><div><div class="u-head">'+ico(c.base,c.rankI,c)+'<div class="u-id"><div class="u-top"><span class="rk r'+c.rankI+'">'+RANKS[c.rankI]+'</span><span class="u-tag">'+ROLES[c.role].label+(c.armed?' &middot; Armed':'')+(c.boss?' &middot; Boss':'')+(c.elite?' &middot; Elite':'')+'</span></div>'
+    return '<div class="corpse'+(c.tried?' done '+c.result:'')+'" data-u="'+c.id+'"><div><div class="u-head">'+ico(c.base,c.rankI,c)+'<div class="u-id"><div class="u-top"><span class="rk r'+c.rankI+'">'+RANKS[c.rankI]+'</span><span class="u-tag">'+ROLES[c.role].label+(c.armed?' &middot; Armed':'')+(c.boss?' &middot; Boss':'')+(c.elite?' &middot; Elite':'')+'</span></div>'
      +'<div class="u-name" style="'+(c.elite?'color:var(--gold)':'')+'">'+c.name+'</div><div class="u-sub num">Lv '+c.lvl+(c.aff?' &middot; <span class="aff" title="A raised elite keeps one of these as a trait">'+c.aff.map(a=>AFFIX[a].name===TRAITS[AFFIX[a].trait].name?'keeps '+AFFIX[a].name:AFFIX[a].name+' &rarr; '+TRAITS[AFFIX[a].trait].name).join(', ')+'</span>':'')+(c.free?' &middot; <span class="free-t">Straggler: free, +'+STRAGGLER_BONUS+'%</span>':'')+'</div></div></div></div>'+right+'</div>';
   }).join('');
   const done=r.cleared, q=r.quiet&&DOORS[r.quiet];
@@ -6142,7 +6406,7 @@ function render(){
   ui.scr=scr;
   if(ui.shake&&!VIEW.calm){ ui.shake=false; const w=app.querySelector('.main > .win'); if(w) w.classList.add('shake'); }
   try{ bossBg(); }catch(e){} try{ scene(); }catch(e){} try{ srAnnounce(); }catch(e){}
-  try{ music(); }catch(e){}
+  try{ music(); }catch(e){} try{ fxSync(); }catch(e){}   // the battle effects layer (src/fx.js): loads, turns off, or plays what this turn queued
   save();   // every screen saves; outside town the snapshot is "as if you walked out now"
 }
 const ACTIONS={
@@ -6218,7 +6482,7 @@ const ACTIONS={
   loadcode:()=>{ if(ui.confirm!=='lc'){ ui.confirm='lc'; return; } ui.confirm=null; if(importCode(ui.imp)){ ui.imp=''; ui.exp=''; ui.msg={m:'Save code loaded.',c:'ok'}; } else ui.msg={m:'That code is not a valid save.',c:'bad'}; }, wear:k=>{ wearTitle(k); }, cxclear:()=>{ ui.cxq=''; }, cxq:()=>{},   /* the search box: typing is handled by the input listener; data-a only lets focus come back after a render */ ttf:k=>{ ui.ttf=(k in {all:1,got:1,locked:1,close:1}||/^r[0-5]$/.test(k))?k:'all'; }, tower:k=>startTower(+k), act:k=>act(k), target:k=>setTarget(k), flee:()=>flee(),
   raise:k=>tryRaise(k), descend:()=>descend(), town:()=>returnTown(), rest:()=>restDay(),
   release:k=>{ if(ui.confirm===+k){ release(+k); ui.confirm=null; } else ui.confirm=+k; },
-  newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); OPEN_HELP.on=false; ui.tab='help'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
+  newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); OPEN_HELP.on=false; ui.tab='gates'; ui.gsub='open'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
 };
 const CONFIRM_ACTS=['release','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier'];   // two-press actions: a click on these keeps the pending confirm
 document.addEventListener('click',e=>{
@@ -6293,5 +6557,5 @@ document.addEventListener('keydown',e=>{
   if(still) draw(0); else requestAnimationFrame(step);
 })();
 
-applyView(); loadGame(); if(OPEN_HELP.on){ ui.tab='help'; OPEN_HELP.on=false; } render();
+applyView(); loadGame(); if(OPEN_HELP.on){ ui.tab='gates'; OPEN_HELP.on=false; } render();
 </script>

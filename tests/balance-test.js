@@ -217,7 +217,8 @@
     const sec={met:res.reduce((a,r)=>a+(r.sec?r.sec.met:0),0),slain:res.reduce((a,r)=>a+(r.sec?r.sec.slain:0),0)};
     const raids={sent:res.reduce((a,r)=>a+(r.raids?r.raids.sent:0),0),won:res.reduce((a,r)=>a+(r.raids?r.raids.won:0),0)};
     const rift={best:avg(res.map(r=>r.rift||0)),open:res.filter(r=>r.rift>0).length+'/'+res.length,deepest:Math.max(0,...res.map(r=>r.rift||0))};
-    return {gates,heat,sec,lore,raids,rift,passives:avg(res.map(r=>r.passives||0)),runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
+    const byLvl=DUNGEONS.map((D,i)=>{ const g=all.filter(x=>x.gate===i&&!x.heat), o={}; for(const x of g){ const k=x.lvl; (o[k]=o[k]||[0,0])[0]++; if(x.cleared) o[k][1]++; } return RANKS[i]+': '+Object.keys(o).map(Number).sort((x,y)=>x-y).map(l=>'Lv'+l+' '+pc(o[l][1],o[l][0])+'/'+o[l][0]).join('  '); });   // Normal runs only: clear rate by hero level on entry (run-balance.js prints it with {"byLvl":true})
+    return {gates,heat,byLvl,sec,lore,raids,rift,passives:avg(res.map(r=>r.passives||0)),runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
   }
 
   function run(opts){

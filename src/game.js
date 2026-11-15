@@ -269,7 +269,7 @@ function spawnFloor(){
   else { const n=f<30?3:f<70?3+(Math.random()<.5?1:0):4; for(let i=0;i<n;i++) spawnTowerOne(list,f,0); }
   foeScale(list,TW.foeAtk); affixAll(list);
   r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0;
-  log(boss?'Floor '+f+'. The warden of this tier is waiting.':'Floor '+f+'.'); if(boss) bossSpeaks(list[0],'hi');
+  log(boss?'Floor '+f+'. The warden of this tier is waiting.':'Floor '+f+'.'); if(boss){ bossSpeaks(list[0],'hi'); fxe('boss',list[0]); }
   if(hasFlag('infernal')) infernalWard();
 }
 const towerStarts=()=>{ const a=[1]; for(let k=1;k*10<=S.tower.best;k++) a.push(k*10+1); return a; };   // a checkpoint after every tenth floor, endlessly past 100
@@ -312,18 +312,33 @@ const enrage=e=>(e.tw&&e.boss)?1+Math.max(0,S.run.turn-8)*(e.tw===100?.12:.07):1
 // gate[1] 1.5->1.65 and gate[5] 2.3->2.45 after the skill system (tests/balance-test.js): skill users now match the old no-skill death rates.
 // gate[0] .85->.68 and armor[1] .78->.74 in the early-game pass: a new player died in ~1 of 5 Rat Warren runs and a third of Sunken Crypt runs.
 const DIFF={hp:2.2,atk:2.0,gate:[0.68,1.65,2.2,1.9,1.7,2.45],xpBase:64,xpExp:1.85,heal:.15,mana:.25,mheal:.2,deathXp:.15};
-// Level at which a decent player wins most runs at each gate (measured with a test bot). Used for the Recommended and danger labels.
+// SAFE: the hero level the balance bot (tests/balance-test.js) starts entering each gate at, and the reference level of the farming falloff (farmK)
+// and of secret-master growth (SB_GROW). Rules and bot only: what the player is told is gateRec (below), which is measured and follows the tuning.
 const SAFE=[1,6,10,15,19,25];   // A and S were 22/28, which the XP from B could not reach (players stalled near level 20); they were balanced at 19/25
 // Foe armor: the share of damage living foes shrug off, per gate (TW.armor in the Tower). It makes fights last more turns without
 // inflating any numbers, and the extra turns are what make a room dangerous. Minions use the same stat formula as enemies, so
 // DIFF.hp/atk and DIFF.gate move both sides; armor and foeAtk affect living foes only. Tuned with tests/balance-test.js.
 // Target: a bot that learns skills, entering each gate at its Recommended level, clears ~80% of runs (A and S were tuned entering 3 levels early,
 // because the XP curve stalls the fair bot near level 20). The no-skill bot dies noticeably more often.
-DIFF.armor=[0.30,0.74,0.88,0.85,0.89,0.85]; DIFF.foeAtk=[1,1.1,1.0,2.1,1.38,0.8];   // retuned after boss abilities, altar, salts, and minion traits/evolution (D, A, S raised); xpBase 70->64 keeps the leveling pace (S first cleared ~day 64)   A 1.5->1.38 after status effects (bleeding from its strikers)   D 1.2->1.1 and C 1.2->1.0: the bots cleared C 69% (market) and D 71% (full), now about 80% and 76%
+DIFF.armor=[0.30,0.66,0.88,0.85,0.89,0.85]; DIFF.foeAtk=[1,1.3,1.0,2.1,1.38,0.8];   // retuned after boss abilities, altar, salts, and minion traits/evolution (D, A, S raised); xpBase 70->64 keeps the leveling pace (S first cleared ~day 64)   A 1.5->1.38 after status effects (bleeding from its strikers)   D 1.2->1.1 and C 1.2->1.0: the bots cleared C 69% (market) and D 71% (full), now about 80% and 76%   D armor .74->.66 with foeAtk 1.1->1.3: same danger, shorter rooms (bots: 7.5->5.8 turns per room market, 9.6->7.1 full)
 // Farming far below you on Normal pays less: kill XP, kill gold and the clear bonus are full up to FARM_FROM levels past a gate's SAFE level,
 // then ramp down to FARM_MIN at FARM_TO and beyond. Hard and up, cursed gates, a gate's first clear, drops, the Tower, the Rift, raids, bounties and quests pay in full.
 DIFF.farmFrom=8; DIFF.farmTo=20; DIFF.farmMin=.5;
 const farmK=(di,lvl)=>{ const t=clamp(((lvl-SAFE[di])-DIFF.farmFrom)/(DIFF.farmTo-DIFF.farmFrom),0,1); return 1-(1-DIFF.farmMin)*t; };
+// Recommended hero level per gate: the gate card's "Recommended Lv N+", its Easy/Fair/Hard/Deadly label and the Codex.
+// REC_BASE is measured: the lowest hero level at which the market bot clears the gate about 75% or more on Normal
+// (node tests/run-balance.js '{"byLvl":true}', once as is and once with "push":true for the levels below SAFE), at the tuning in REC_AT.
+// gateRec moves it with that gate's tuning: a room's danger goes with foe HP / (1 - armor) x foe attack, so a change in armor, foeAtk,
+// DIFF.gate or foe level RK.lv shifts the advice by the number of foe levels (LV_HP/LV_ATK growth) that changes that product as much.
+// A test fails once the shift passes REC_DRIFT levels: then re-measure and update REC_BASE and REC_AT together.
+const LV_HP=.16, LV_ATK=.12;   // foe and minion growth per level (mobStats)
+const REC_BASE=[1,7,11,16,20,25], REC_AT=[[.30,1,.68,1],[.66,1.3,1.65,4],[.88,1,2.2,8],[.85,2.1,1.9,12],[.89,1.38,1.7,17],[.85,.8,2.45,23]], REC_DRIFT=2;   // REC_AT per gate: [armor, foeAtk, gate, RK.lv]. Measured 2026-11-15 (market bot, seed 7700): the bot first reached ~75% at 1/7/11/16/20/25, one level above SAFE on D, C, B and A
+function recShift(di){
+  const a=REC_AT[di], k=(g,ar,fa)=>g*g*fa/(1-ar), grow=t=>(1+LV_HP*t)*(1+LV_ATK*t);   // t = foe level - 1
+  const R=k(DIFF.gate[di],DIFF.armor[di],DIFF.foeAtk[di])/k(a[2],a[0],a[1])*grow(RK[di].lv+1), A=LV_HP*LV_ATK, B=LV_HP+LV_ATK;   // mid-run foes stand 2 levels above RK.lv
+  return (-B+Math.sqrt(Math.max(0,B*B-4*A*(1-R))))/(2*A)-(a[3]+1);   // the foe level whose old-tuning strength matches the new tuning, minus the old one
+}
+const gateRec=di=>Math.max(1,Math.round(REC_BASE[di]+recShift(di)));
 const NGP_FOE=.3, NGP_REWARD=.25, ngpFoe=()=>1+NGP_FOE*((S&&S.ngp)||0), ngpReward=()=>1+NGP_REWARD*((S&&S.ngp)||0);   // New Game+: tougher foes, richer rewards
 function foeScale(list,a){ const n=ngpFoe(); for(const e of list){ if(n!==1){ e.maxHp=e.hp=Math.round(e.maxHp*n); } if(a*n!==1) e.atk=Math.max(1,Math.round(e.atk*a*n)); } }
 const foeArmor=()=>S.run?(S.run.tw?TW.armor:DIFF.armor[S.run.di]):0;
@@ -346,8 +361,8 @@ const pRankI = ()=>{const l=S.player.lvl;return l<4?0:l<8?1:l<12?2:l<17?3:l<23?4
 
 function mobStats(rankI,lvl,hf,af,boss,elite){
   const R=RK[rankI];
-  let hp=14*R.hp*hf*DIFF.hp*DIFF.gate[rankI]*(1+.16*(lvl-1));
-  let atk=3.2*R.atk*af*DIFF.atk*DIFF.gate[rankI]*(1+.12*(lvl-1));
+  let hp=14*R.hp*hf*DIFF.hp*DIFF.gate[rankI]*(1+LV_HP*(lvl-1));
+  let atk=3.2*R.atk*af*DIFF.atk*DIFF.gate[rankI]*(1+LV_ATK*(lvl-1));
   if(boss){hp*=3.2;atk*=1.4}
   if(elite){hp*=1.5;atk*=1.3}
   return {hp:Math.round(hp), atk:Math.max(1,Math.round(atk))};
@@ -379,10 +394,10 @@ function notify(m,c){ S.notices.unshift({m,c:c||'info'}); S.notices.length=Math.
 function freshState(){
   return {v:2,day:1,watches:WATCHES,uid:0,mode:'town',run:null,notices:[],runs:0,kills:{},tower:{best:0,got:{}},inv:[],equip:{weapon:null,armor:null,relic:null},
      player:{id:'p',name:'You',lvl:1,xp:0,pts:3,hp:0,mana:0,shield:0,debuff:false,stats:{strength:4,constitution:4,intelligence:4,will:4},sp:0,skills:{},skMod:{}},
-     army:[],quest:{kills:0,rooms:0,clears:0,claimed:false},gold:0,trophies:{},belt:{hp:0,mp:0},shop:null,bagLv:0,salts:0,tips:{},ngp:0,
+     army:[],quest:{kills:0,rooms:0,clears:0,claimed:false},gold:0,trophies:{},belt:{hp:0,mp:0},shop:null,bagLv:0,salts:0,tips:{},ngp:0,firstRaise:1,
      mod:null,hist:[],story:{},life:Object.fromEntries(LIFE_KEYS.map(k=>[k,0])),build:{},dust:0,bounty:null,heat:{},heatMax:{},raids:[],raidLog:[],rift:{best:0}};
 }
-const OPEN_HELP={on:false};   // a brand-new game opens on How to play
+const OPEN_HELP={on:false};   // a brand-new game opens on the Gates tab, with a link to How to play at the top
 function newGame(){
   S=freshState(); OPEN_HELP.on=true;
   S.player.hp=pMax(); S.player.mana=pMana();
@@ -467,6 +482,7 @@ function normalizeSave(src){
   const tr={}; if(obj(g.trophies)) for(const k in g.trophies){ const n=Math.floor(num(g.trophies[k],0)); if(TROPHY[k]&&n>0) tr[k]=n; } g.trophies=tr;
   const b=obj(g.belt)?g.belt:{}; g.belt={hp:clamp(Math.floor(num(b.hp,0)),0,BELT_MAX),mp:clamp(Math.floor(num(b.mp,0)),0,BELT_MAX)};
   g.tips=obj(g.tips)?g.tips:{}; g.ngp=Math.max(0,Math.floor(num(g.ngp,0)));
+  g.firstRaise=('firstRaise' in g)?(g.firstRaise?1:0):(g.army.length||g.raids.length||(obj(g.ti)&&g.ti.raised)||g.runs||(Array.isArray(g.hist)&&g.hist.length)||(obj(g.life)&&g.life.runs)||g.day>1||P.lvl>1||g.ngp?0:1);   // saves from before the sure first raise: any army, history or progress counts as having raised already
   g.bagLv=clamp(Math.floor(num(g.bagLv,0)),0,BAG_COST.length); g.salts=clamp(Math.floor(num(g.salts,0)),0,SALT_MAX);
   g.shop=(obj(g.shop)&&typeof g.shop.day==='number'&&Array.isArray(g.shop.stock)&&g.shop.stock.every(s=>s&&ITEM[s.id]))?g.shop:null;
   const fixRo=it=>{ if(!it) return; if(Array.isArray(it.ro)) it.ro=it.ro.filter(r=>Array.isArray(r)&&ROLL_KEYS[r[0]]&&typeof r[1]==='number'&&isFinite(r[1])&&r[1]>0).slice(0,3).map(r=>[r[0],Math.round(r[1])]);
@@ -734,6 +750,7 @@ function endDay(){
   const P=S.player; P.debuff=false;
   if(!S.quest.claimed){
     if(questDone()) claimQuest();
+    else if(!everCleared()) notify('Day '+S.day+' closed with the daily quest unfinished. No penalty until you clear your first gate.');   // a new necromancer still learning the Rat Warren is not punished twice
     else{
       const loss=Math.round(need(P.lvl)*QUEST_LOSS);
       P.xp=Math.max(0,P.xp-loss); P.debuff=true;
@@ -792,7 +809,7 @@ function spawnRoom(){
   affixAll(list);
   r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null;
   log(boss?(list[0].secret?'The air turns wrong. This is not the master you came for.':'The air thickens. Something large waits ahead.'):'Room '+(room+1)+' of '+r.rooms+(r.roomKind==='elite'?', behind the bloodied arch. These foes are stronger.':'.'));
-  if(boss) bossSpeaks(list[0],'hi');
+  if(boss){ bossSpeaks(list[0],'hi'); fxe('boss',list[0]); }
   if(hasFlag('infernal')) infernalWard();
 }
 function startTower(f){
@@ -825,7 +842,7 @@ function hurtAlly(a,d){
   if(a.id==='p'&&xb('drp')) d=Math.max(1,Math.round(d*(1-xb('drp')/100)));
   if(a.id!=='p'&&hasMod('gravepact','b')) d=Math.max(1,Math.round(d*.9));
   if(a.id==='p'){ const s=Math.min(S.player.shield,d); S.player.shield-=s; d-=s; }
-  d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a.id,d,0); if(a.id==='p'&&d>0&&S.run) S.run.hurt=true;
+  d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a.id,d,0); if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p') fxe('death',a);
 }
 function healAlly(a,h){
   if(a.id==='p'&&xb('healp')) h=Math.max(0,Math.round(h*(1+xb('healp')/100)));   // faith changes the healing you receive
@@ -855,7 +872,7 @@ function checkDeaths(){
     killPowers();
     r.corpses.push(corpseOf(e));
     if(e.boss) bossSpeaks(e,'bye');
-    log(e.name+' falls.'); sfx('kill');
+    log(e.name+' falls.'); sfx('kill'); fxe('death',e);
     const page=e.secret?'secret':e.boss?(e.tw?'warden':'boss'):e.elite?'elite':null;   // who may carry a torn page
     if(page) findPage(page,r);
     if(e.secret) slaySecret(e,r);
@@ -877,7 +894,7 @@ function act(kind){
   if(kind==='strike'){
     let d=hit(pAtk()*dmgMul()*(1+.1*sk('edge'))), crit=Math.random()<.1+G('crit')/100+(hasMod('edge','a')?.1:0); if(crit){ d=Math.round(d*1.8); tally('crits'); } if(hasFlag('execute')&&t.hp<t.maxHp*.35) d=Math.round(d*1.5);
     hurtFoe(t,d); P.mana=Math.min(pMana(),P.mana+3); if(hasMod('edge','b')) healAlly(P,Math.round(d*.1));
-    log('You strike '+t.name+' for '+d+(crit?' (crit)':'')+'. +3 mana.');
+    log('You strike '+t.name+' for '+d+(crit?' (crit)':'')+'. +3 mana.'); fxe('strike',t,crit?{crit:1}:null);
     if(hasFlag('echo')&&t.hp>0&&Math.random()<.25){ const d2=hit(pAtk()*dmgMul()); hurtFoe(t,d2); log('Echo: the blade strikes again for '+d2+'.','ok'); }
     if(hasFlag('hellfire')){ for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.4)); }
     else if(hasFlag('cleave')){ const o=liveFoes().filter(x=>x!==t); if(o.length) hurtFoe(pick(o),Math.round(d*.6)); }
@@ -886,11 +903,11 @@ function act(kind){
     P.mana-=siphonCost(); const low=t.hp<t.maxHp*SIPHON_LOW; let d=hit(pSiph()*pierceMul(SIPHON_PIERCE)); if(low) d*=2; hurtFoe(t,d);   // pierces a quarter of armor; devours the weak
     if(hasFlag('chorus')) for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.5));
     const h=healAlly(P,Math.round(d*(hasFlag('lifedrain')?SIPHON_HEAL_LD:SIPHON_HEAL))); const got=gainSoul();
-    log('Soul Siphon '+(low?'devours ':'drains ')+t.name+' for '+d+(h?', you recover '+h:'')+(got?' and harvest a Soul ('+S.run.souls+'/'+SOUL_MAX+')':'')+'.');
+    log('Soul Siphon '+(low?'devours ':'drains ')+t.name+' for '+d+(h?', you recover '+h:'')+(got?' and harvest a Soul ('+S.run.souls+'/'+SOUL_MAX+')':'')+'.'); fxe('siphon',t);
   }else if(kind==='ward'){
     if(P.mana<6) return;
     P.mana-=6; const w=pWard(); P.shield=Math.min(Math.round(pMax()*.6),P.shield+w);
-    mark('p',0,0); log('Bone Ward raised. You hold '+P.shield+' ward.');
+    mark('p',0,0); log('Bone Ward raised. You hold '+P.shield+' ward.'); fxe('ward',P);
   }else if(kind.startsWith('sk:')){ if(!useSkill(kind.slice(3),t)) return; }
   else if(kind==='ult'){ if(!useUlt(t)) return; }
   else if(kind.startsWith('pot:')){ if(!drink(kind.slice(4))) return; }
@@ -908,7 +925,7 @@ function act(kind){
     }
     let tg=currentTarget(); if(!tg) break;
     let d=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*(m.role==='reaper'&&r.execute&&tg.hp<tg.maxHp*.4?2:1)*(hasTrait(m,'wrathful')&&m.hp<m.maxHp/2?1.4:1)); const crit=m.role==='striker'&&(r.focus||Math.random()<.25); if(crit){ d=Math.round(d*1.8); tally('crits'); }
-    hurtFoe(tg,d); let extra='';
+    hurtFoe(tg,d); fxe('mhit',tg); let extra='';
     if(crit&&r.focus&&tg.charging&&tg.hp>0) breakCharge(tg,m.nick+'\'s focused strike breaks '+theName(tg.name)+'\'s focus.');
     if(hasTrait(m,'venom')&&tg.hp>0){ addDot(tg,'poison',m.atk*.15*pierceMul(.5),3); tally('poisoned'); extra+=' and poisons it'; }
     if(m.role==='reaper'){ const o=liveFoes().filter(x=>x!==tg); if(o.length){ const o2=pick(o); const d2=Math.round(d*.5); hurtFoe(o2,d2); extra=' and cleaves '+o2.name+' for '+d2; } }
@@ -934,7 +951,7 @@ function act(kind){
     const weights=alive.map(a=>a.role==='vanguard'?5:2); let roll=Math.random()*weights.reduce((x,y)=>x+y,0), tg=alive[0];
     for(let i=0;i<alive.length;i++){ roll-=weights[i]; if(roll<=0){ tg=alive[i]; break; } }
     let d=hit(e.atk*enrage(e)*(hasAff(e,'enraged')&&e.hp<e.maxHp/2?1.6:1)); const crit=e.role==='striker'&&Math.random()<.25; if(crit) d=Math.round(d*1.8);
-    hurtAlly(tg,d); if(crit) addDot(tg,'bleed',e.atk*.3,2);   // a striker's crit opens a wound
+    hurtAlly(tg,d); fxe('hurt',tg,crit?{crit:1}:null); if(crit) addDot(tg,'bleed',e.atk*.3,2);   // a striker's crit opens a wound
     if(hasAff(e,'vampiric')){ const h=Math.min(e.maxHp-e.hp,Math.round(d*.4)); if(h>0){ e.hp+=h; mark(e.id,0,h); } }
     log(e.name+' hits '+(tg.id==='p'?'you':nameOf(tg))+' for '+d+(crit?' (crit'+(tg.hp>0&&tg.dots&&tg.dots.bleed?', bleeding':'')+')':'')+'.','bad');
     if(tg.id==='p'&&hasFlag('thorns')&&e.hp>0) hurtFoe(e,Math.max(1,Math.round(d*.2*(1-foeArmor()))));
@@ -1029,7 +1046,11 @@ function unequip(sl){ if(S.mode==='battle'||!S.equip[sl]) return; vitals(()=>{ S
 function discard(u){ S.inv=S.inv.filter(x=>x.u!==u||x.lk); }
 
 // ----- raising
+// The first raise of a save always answers (a new necromancer alone in room 1 failed ~44% of the time at ~34% a body). New Game+ keeps
+// its lifetime raise count, so it does not get this again.
+const firstRaise=()=>!!(S&&S.firstRaise)&&!T_('raised');
 function raiseChance(c){
+  if(firstRaise()) return 100;
   let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+(skMod('thrift')==='b'?3:0)+4*sk('mastery')+(hasMod('mastery','a')?6:0)+3*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*3-RK[c.rankI].pen;
   if(c.elite) ch-=10; if(c.boss) ch-=15; if(c.free) ch+=STRAGGLER_BONUS;
   return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
@@ -1038,7 +1059,7 @@ const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*(hasFlag('che
 function freeNick(){ const used=S.army.map(m=>m.nick); const f=NICKS.filter(n=>!used.includes(n)); return f.length?pick(f):pick(NICKS)+' II'; }
 const SALT_BONUS=20, SALT_MAX=3, saltPrice=()=>10+S.player.lvl*3;   // Grave Salts: bought at the market, +20% on one raise
 const RAISE_BASE=25, RAISE_WILL=1.8, RAISE_MIN=1, RAISE_MAX=85, SALT_CAP=95;   // salts may still reach 95%
-const saltChance=c=>clamp(raiseChance(c)+SALT_BONUS,RAISE_MIN,SALT_CAP);
+const saltChance=c=>firstRaise()?100:clamp(raiseChance(c)+SALT_BONUS,RAISE_MIN,SALT_CAP);
 function tryRaise(id,salt){
   if(S.mode!=='raise') return;
   const r=S.run, P=S.player, c=r.corpses.find(x=>x.id===id); if(!c||c.tried) return;
@@ -1054,9 +1075,9 @@ function tryRaise(id,salt){
     m.lvl0=m.lvl; m.stage=0; m.traits=[rollTrait([])]; if(c.boss) m.traits.push(rollTrait(m.traits));   // bosses rise with two traits
     if(c.aff&&c.aff.length){ const t=AFFIX[pick(c.aff)].trait; if(!m.traits.includes(t)) m.traits.push(t); }   // an elite keeps one of its affixes
     if(rollCommand(m)) tally('commanders');
-    syncMinion(m); m.hp=m.maxHp; S.army.push(m); r.raised++; S.ti=S.ti||{}; S.ti.raised=(S.ti.raised||0)+1; if(m.armed) S.ti.armed=(S.ti.armed||0)+1;
-    if(c.free) tally('straggler'); if(c.boss) tally('raisedBoss'); c.result='raised'; if(c.boss||c.elite) moment(m.nick+' rises: '+(c.boss?'a boss':'an elite')+' serves you','ok'); c.minion=m.nick+' ('+m.traits.map(t=>TRAITS[t].name).join(', ')+')'; sfx('raise');
-  }else{ c.result='failed'; sfx('fail'); }
+    syncMinion(m); m.hp=m.maxHp; S.army.push(m); r.raised++; S.firstRaise=0; S.ti=S.ti||{}; S.ti.raised=(S.ti.raised||0)+1; if(m.armed) S.ti.armed=(S.ti.armed||0)+1;
+    if(c.free) tally('straggler'); if(c.boss) tally('raisedBoss'); c.result='raised'; if(c.boss||c.elite) moment(m.nick+' rises: '+(c.boss?'a boss':'an elite')+' serves you','ok'); c.minion=m.nick+' ('+m.traits.map(t=>TRAITS[t].name).join(', ')+')'; sfx('raise'); fxe('raise',c);
+  }else{ c.result='failed'; sfx('fail'); fxe('rfail',c); }
 }
 // Quicker raising: try every untouched body, most valuable first (salts on bosses and elites), until mana or slots run out.
 const bodyValue=c=>(c.boss?1000:0)+(c.elite?300:0)+c.rankI*50+c.lvl+(c.free?500:0);
@@ -1124,17 +1145,17 @@ function useSkill(id,t){
   if(!canUse(id)) return false;
   const s=SKILL[id], rk=sk(id), r=S.run, P=S.player;
   P.mana-=s.cost; r.cd=r.cd||{}; r.cd[id]=s.cd+1; tally('sk_'+id);   // +1: the end-of-turn tick runs this same turn
-  if(id==='spear'){ const d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(hasMod('spear','a')?1:.5)); hurtFoe(t,d); log('Bone Spear impales '+t.name+' for '+d+'.');
+  if(id==='spear'){ const d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(hasMod('spear','a')?1:.5)); hurtFoe(t,d); log('Bone Spear impales '+t.name+' for '+d+'.'); fxe('spear',t);
     if(hasMod('spear','b')){ const o=liveFoes().filter(x=>x!==t); if(o.length){ const o2=pick(o), d2=Math.round(d*.5); hurtFoe(o2,d2); log('A splinter tears into '+o2.name+' for '+d2+'.'); } } }
-  else if(id==='blast'){ const c=freeCorpse(); c.tried=true; c.result='exploded'; const base=pSiph()*(.6+.2*rk)*pierceMul(1)*(hasMod('blast','a')?1.3:1); let tot=0; for(const o of liveFoes()){ const d=hit(base); hurtFoe(o,d); tot+=d; if(hasMod('blast','b')) addDot(o,'poison',pSiph()*.15,3); } log('The body of '+c.name+' bursts apart, dealing '+tot+' damage across the room.'); }
-  else if(id==='mend'){ let tot=0; const cured=allies().some(a=>a.dots); for(const m of S.army) if(m.hp>0) tot+=healAlly(m,Math.round(m.maxHp*(.15+.08*rk+(hasMod('mend','a')?.15:0)))); if(hasMod('mend','b')) tot+=healAlly(P,Math.round(pMax()*.15)); if(cured) tally('cures'); allies().forEach(clearDots); log('Dark Mending knits your army back together for '+tot+' HP'+(cured?' and cures every wound and burn':'')+'.','ok'); }
+  else if(id==='blast'){ const c=freeCorpse(); c.tried=true; c.result='exploded'; const base=pSiph()*(.6+.2*rk)*pierceMul(1)*(hasMod('blast','a')?1.3:1); let tot=0; for(const o of liveFoes()){ const d=hit(base); hurtFoe(o,d); fxe('burst',o); tot+=d; if(hasMod('blast','b')) addDot(o,'poison',pSiph()*.15,3); } log('The body of '+c.name+' bursts apart, dealing '+tot+' damage across the room.'); }
+  else if(id==='mend'){ let tot=0; const cured=allies().some(a=>a.dots); for(const m of S.army) if(m.hp>0) tot+=healAlly(m,Math.round(m.maxHp*(.15+.08*rk+(hasMod('mend','a')?.15:0)))); if(hasMod('mend','b')) tot+=healAlly(P,Math.round(pMax()*.15)); if(cured) tally('cures'); allies().forEach(clearDots); fxe('mend',P); log('Dark Mending knits your army back together for '+tot+' HP'+(cured?' and cures every wound and burn':'')+'.','ok'); }
   else if(id==='curse'){ const turns=hasMod('curse','a')?5:3, bonus=.15+.1*rk;
     if(hasMod('curse','b')){ for(const o of liveFoes()){ o.curse={mul:1+bonus*.8,t:turns}; mark(o.id,0,0); } log('Every foe is cursed and takes '+Math.round(bonus*80)+'% more damage.'); }
     else { t.curse={mul:1+bonus,t:turns}; mark(t.id,0,0); log(t.name+' is cursed and takes '+Math.round(bonus*100)+'% more damage.'); } }
-  else if(id==='chill'){ const d=hit(pSiph()*.5*dmgMul()); hurtFoe(t,d); const held=!t.boss||Math.random()*100<40+10*rk+(hasMod('chill','a')?20:0);
+  else if(id==='chill'){ const d=hit(pSiph()*.5*dmgMul()); hurtFoe(t,d); fxe('ward',t); const held=!t.boss||Math.random()*100<40+10*rk+(hasMod('chill','a')?20:0);
     if(held&&t.hp>0){ t.stun=rk>=3?2:1; tally('frozen'); log('Grave Chill hits '+t.name+' for '+d+' and freezes it solid.'); } else log('Grave Chill hits '+t.name+' for '+d+', but it shakes off the frost.'); }
   else if(id==='frenzy'){ r.frenzy=hasMod('frenzy','a')?5:3; r.frenzyMul=1+(.2+.15*rk); if(hasMod('frenzy','b')) for(const m of S.army) if(m.hp>0) healAlly(m,Math.round(m.maxHp*.15)); log('Unholy Frenzy: your army surges with '+Math.round((r.frenzyMul-1)*100)+'% more damage.','ok'); }
-  else if(id==='reap'){ const low=t.hp<t.maxHp*(hasMod('reap','a')?.5:.35); let d=hit(pSiph()*(1.2+.3*rk)*pierceMul(1)); if(low) d*=2; hurtFoe(t,d); if(t.hp<=0&&hasMod('reap','b')) P.mana=Math.min(pMana(),P.mana+10); log('You reap '+t.name+' for '+d+(low?' (harvest)':'')+'.'); }
+  else if(id==='reap'){ const low=t.hp<t.maxHp*(hasMod('reap','a')?.5:.35); let d=hit(pSiph()*(1.2+.3*rk)*pierceMul(1)); if(low) d*=2; hurtFoe(t,d); fxe('strike',t,{crit:1}); if(t.hp<=0&&hasMod('reap','b')) P.mana=Math.min(pMana(),P.mana+10); log('You reap '+t.name+' for '+d+(low?' (harvest)':'')+'.'); }
   return true;
 }
 function skillTick(){
@@ -1375,7 +1396,7 @@ function riftCleared(r){
 const TIPS=[
   {id:'stats',  t:'Spend your points', m:'Strength powers Strike, Constitution your HP, Intelligence your mana, Siphon and Ward, and Will your army size and raise odds. Press + next to a stat.', when:()=>S.mode==='town'&&S.player.pts>0&&S.player.lvl===1},
   {id:'battle', t:'How a fight works', m:'Pick a target and your army attacks it with you. Strike (1) refills mana, Soul Siphon (2) drains, heals and harvests a Soul, Bone Ward (3) shields you. Then every foe hits back.', when:()=>S.mode==='battle'},
-  {id:'raise',  t:'Raise the dead', m:'Every foe you kill leaves a body. Raising costs mana and can fail; the better your Will and level, the better your odds. Raised minions fight for you and grow with every room.', when:()=>S.mode==='raise'&&S.run&&S.run.corpses.length>0},
+  {id:'raise',  t:'Raise the dead', m:'Every foe you kill leaves a body. Raising costs mana and can fail, except the very first: that one always answers. The better your Will and level, the better your odds. Raised minions fight for you and grow with every room.', when:()=>S.mode==='raise'&&S.run&&S.run.corpses.length>0},
   {id:'skill',  t:'You have a skill point', m:'Open the Skills tab and learn Bone Spear. Active skills appear in battle on keys 4 and up. You get one point every level.', when:()=>S.mode==='town'&&S.player.sp>0},
   {id:'armor',  t:'These foes wear armor', m:'Armor blunts every hit you and your army land, so fights take longer. Bone Spear pierces half of it, and Corpse Explosion and Reap ignore it completely.', when:()=>S.mode==='battle'&&foeArmor()>=.5},
   {id:'boss',   t:'A boss is winding up', m:'Moves marked Charging land next turn. Raise Bone Ward to soak the hit, or freeze the boss with Grave Chill to break its focus and cancel the move.', when:()=>S.mode==='battle'&&S.run&&liveFoes().some(e=>e.charging)},
@@ -1443,14 +1464,14 @@ function summonAdd(e){
 function fireAbility(e,mv){
   mv=mv||e.abil; const r=S.run, P=S.player, A=BOSS_ABIL[mv], foes=liveFoes();
   if(mv==='swarm'){ const got=[summonAdd(e),summonAdd(e)].filter(Boolean); log(got.length?e.name+' uses '+A.name+': '+got.map(x=>x.name).join(' and ')+' join the fight.':e.name+' calls, but nothing more answers.','bad'); }
-  else if(mv==='bonewall'){ foes.forEach(f=>{ f.shield=Math.min(Math.round(f.maxHp*.4),(f.shield||0)+Math.round(f.maxHp*.2)); }); log(e.name+' raises a Bone Wall. Every foe is shielded.','bad'); }
-  else if(mv==='cinder'){ let tot=0; allies().filter(a=>a.hp>0).forEach(a=>{ const d=hit(e.atk*(e.secret?.45:.7)*enrage(e));   /* a secret master's wave is spread thinner: at full strength it wiped every army */ hurtAlly(a,d); addDot(a,'burn',e.atk*.15,2); tot+=d; if(a.hp<=0&&a.id!=='p') log(a.nick+' is down.','bad'); }); log(e.name+' unleashes a Cinder Wave for '+tot+' damage across your side.','bad'); }
+  else if(mv==='bonewall'){ foes.forEach(f=>{ f.shield=Math.min(Math.round(f.maxHp*.4),(f.shield||0)+Math.round(f.maxHp*.2)); fxe('ward',f); }); log(e.name+' raises a Bone Wall. Every foe is shielded.','bad'); }
+  else if(mv==='cinder'){ let tot=0; allies().filter(a=>a.hp>0).forEach(a=>{ const d=hit(e.atk*(e.secret?.45:.7)*enrage(e));   /* a secret master's wave is spread thinner: at full strength it wiped every army */ hurtAlly(a,d); fxe('hurt',a,{fire:1}); addDot(a,'burn',e.atk*.15,2); tot+=d; if(a.hp<=0&&a.id!=='p') log(a.nick+' is down.','bad'); }); log(e.name+' unleashes a Cinder Wave for '+tot+' damage across your side.','bad'); }
   else if(mv==='hymn'){ r.silence=3; foes.forEach(f=>{ f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*.1)); }); log(e.name+' sings the Hymn of Silence. Your skills are silenced for 2 turns and every foe mends.','bad'); }
   else if(mv==='seedfall'){ foes.forEach(f=>{ f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*.15)); }); const a=summonAdd(e); log(e.name+' scatters Seedfall. Every foe mends'+(a?' and '+a.name+' sprouts from the ground':'')+'.','bad'); }
-  else if(mv==='decree'){ const d=Math.round(pMax()*.45*enrage(e)); hurtAlly(P,d); log(e.name+' speaks a Royal Decree. It strikes you for '+d+'.','bad'); }
+  else if(mv==='decree'){ const d=Math.round(pMax()*.45*enrage(e)); hurtAlly(P,d); fxe('hurt',P,{crit:1}); log(e.name+' speaks a Royal Decree. It strikes you for '+d+'.','bad'); }
   else if(mv==='sunder'){ const v=r.taunt>0?S.army.filter(m=>m.role==='vanguard'&&m.hp>0):[];
-    if(v.length){ const t=pick(v), d=hit(e.atk*2.2*enrage(e)); hurtAlly(t,d); log(e.name+' brings down a Sundering Blow, but '+t.nick+' takes it for you: '+d+' damage.'+(t.hp<=0?' '+t.nick+' is down.':''),'bad'); }
-    else { const d=Math.round(pMax()*.35*enrage(e)); hurtAlly(P,d); log(e.name+' brings down a Sundering Blow on you for '+d+'.','bad'); } }
+    if(v.length){ const t=pick(v), d=hit(e.atk*2.2*enrage(e)); hurtAlly(t,d); fxe('hurt',t,{crit:1}); log(e.name+' brings down a Sundering Blow, but '+t.nick+' takes it for you: '+d+' damage.'+(t.hp<=0?' '+t.nick+' is down.':''),'bad'); }
+    else { const d=Math.round(pMax()*.35*enrage(e)); hurtAlly(P,d); fxe('hurt',P,{crit:1}); log(e.name+' brings down a Sundering Blow on you for '+d+'.','bad'); } }
   sfx('boss');
 }
 function playerFalls(){   // the player hit 0 HP: revive from gear if possible, otherwise the run is lost. True if defeated.
@@ -1476,7 +1497,7 @@ function tickDots(){
   let foeD=0, ourD=0;
   const tick=(u,hurt)=>{ if(!u.dots) return; for(const k of Object.keys(u.dots)){ const o=u.dots[k]; if(u.hp>0) hurt(u,o.d); if(--o.t<=0) delete u.dots[k]; } if(!Object.keys(u.dots).length) delete u.dots; };
   for(const e of S.run.enemies) tick(e,(u,d)=>{ const h=u.hp; hurtFoe(u,d); foeD+=h-u.hp; });
-  for(const a of allies()) tick(a,(u,d)=>{ const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u.id,n,0); if(u.id==='p') S.run.hurt=true; } ourD+=n; if(u.hp<=0&&u.id!=='p') log(u.nick+' succumbs.','bad'); });
+  for(const a of allies()) tick(a,(u,d)=>{ const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u.id,n,0); if(u.id==='p') S.run.hurt=true; } ourD+=n; if(u.hp<=0&&u.id!=='p'){ log(u.nick+' succumbs.','bad'); fxe('death',u); } });
   if(foeD) log('Poison eats '+foeD+' HP from your foes.','ok');
   if(ourD) log('Bleeding and burns cost your side '+ourD+' HP.','bad');
 }
@@ -1910,6 +1931,7 @@ function build(k){
 // New players meet the town economy gradually: the Town tab and bounty board open after the first gate clear (or level 4),
 // salvage and enchanting at level 6 (or once you hold bone dust). The functions work regardless; this only hides the buttons.
 const anyClear=()=>!!(S&&S.ti&&S.ti.clr&&Object.keys(S.ti.clr).length);
+const everCleared=()=>anyClear()||L_('clears')>0;   // a gate cleared on this save at any point, New Game+ included (it empties ti.clr)
 const townOpen=()=>!!S&&(S.player.lvl>=4||anyClear()||Object.keys(S.build||{}).length>0);
 const workOpen=()=>!!S&&(S.player.lvl>=6||(S.dust||0)>0);
 
@@ -1983,7 +2005,7 @@ function useUlt(t){
   else if(id==='rise'){ let n=0; for(const m of S.army){ if(m.hp<=0){ m.hp=m.maxHp; n++; } else healAlly(m,m.maxHp); } healAlly(P,Math.round(pMax()*.4)); r.frenzy=Math.max(r.frenzy||0,3); r.frenzyMul=Math.max(r.frenzyMul||1,1.5);
     log('Unholy Resurrection: '+(n?n+' of your fallen rise again, ':'')+'your army is whole and burns with fury.','ok'); }
   else { for(const o of liveFoes()){ o.stun=Math.max(o.stun||0,o.boss?1:2); o.curse={mul:1.3,t:3}; mark(o.id,0,0); } log('Soul Prison: every foe is locked in the Ledger\'s pages, frozen and laid bare.','ok'); }
-  moment(ULTS[id].name,'gold'); sfx('boss'); return true;
+  moment(ULTS[id].name,'gold'); sfx('boss'); fxe('ult',t,{id}); return true;
 }
 
 // ===== MINION FUSION =====

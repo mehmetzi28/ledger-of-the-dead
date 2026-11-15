@@ -716,7 +716,7 @@ function questHTML(){
   const done=questDone();
   return '<section class="win'+foldCls('quest')+'" aria-labelledby="h-quest"><h2 class="win-h" id="h-quest">Daily quest &middot; Day '+S.day+'<span class="fold-sum">'+(q.claimed?'claimed':done?'ready to claim':rows.filter(r=>r[1]>=r[2]).length+'/3')+'</span>'+foldBtn('quest')+'</h2>'
    +rows.map(r=>'<div class="q-row"><span class="box'+(r[1]>=r[2]?' on':'')+'"></span><span>'+r[0]+'</span><span class="num">'+Math.min(r[1],r[2])+'/'+r[2]+'</span></div>').join('')
-   +(q.claimed?'<p class="q-note ok">Reward claimed for today.</p>':done?'<button class="btn primary" data-a="claim">Claim reward</button>':'<p class="q-note">Reward: +'+QUEST_PTS+' stat point'+(QUEST_PTS>1?'s':'')+' and bonus XP.<br><span class="bad">Penalty if unfinished at dawn: lose '+Math.round(QUEST_LOSS*100)+'% of a level in XP and max HP -'+Math.round(QUEST_DEBUFF*100)+'% for a day.</span></p>')
+   +(q.claimed?'<p class="q-note ok">Reward claimed for today.</p>':done?'<button class="btn primary" data-a="claim">Claim reward</button>':'<p class="q-note">Reward: +'+QUEST_PTS+' stat point'+(QUEST_PTS>1?'s':'')+' and bonus XP.<br>'+(everCleared()?'<span class="bad">Penalty if unfinished at dawn: lose '+Math.round(QUEST_LOSS*100)+'% of a level in XP and max HP -'+Math.round(QUEST_DEBUFF*100)+'% for a day.</span>':'<span class="ok">No penalty if unfinished until you clear your first gate.</span>')+'</p>')
    +'<p class="q-note">Each dungeon you enter uses a watch. When the third is spent, the day closes.</p></section>';
 }
 function bountyHTML(){
@@ -733,13 +733,17 @@ function notesHTML(){
   if(!S.notices.length) return '';
   return '<div class="notes">'+S.notices.map(n=>'<div class="note '+n.c+'"><span>'+n.m+'</span></div>').join('')+'<div><button class="linkbtn" data-a="dismiss">Dismiss</button></div></div>';
 }
+function armorTag(a){   // foe armor with its rule spelled out (pierceMul): hover text plus the same words for screen readers
+  const p=Math.round(a*100), t='Foes shrug off '+p+'% of every hit you and your minions land. Piercing skills such as Bone Spear ignore part of it';
+  return '<span class="armor-tag" title="'+t+'.">armor '+p+'%<span class="sr-only">. '+t+'.</span></span>';
+}
 function gateHTML(i){
-  const D=DUNGEONS[i], R=RK[i], P=S.player, locked=P.lvl<R.unlock, diff=P.lvl-SAFE[i];
+  const D=DUNGEONS[i], R=RK[i], P=S.player, locked=P.lvl<R.unlock, rec=gateRec(i), diff=P.lvl-rec;
   const danger=locked?'Locked':diff<-2?'Deadly':diff<0?'Hard':diff<=3?'Fair':'Easy';
   const GL=BOSS_LOOK[D.boss[0]]||['#1a1714','#5a4a3a'];
   return '<div class="gate'+(locked?' locked':'')+(gateMod(i)?' cursed':'')+'" style="--g1:'+GL[0]+';--g2:'+GL[1]+'"><svg class="gate-mark" viewBox="0 0 64 64" aria-hidden="true">'+(IC[D.boss[0]]||'')+'</svg><div class="badge r'+i+'">'+RANKS[i]+'</div><div><h3>'+D.name+'</h3><p>'+D.blurb+'</p>'
-   +'<div class="meta">'+(locked?'Opens at level '+R.unlock:'<span class="danger-'+danger.toLowerCase()+'">'+danger+' for you</span>')+' &middot; Lv '+SAFE[i]+'&ndash;'+(SAFE[i]+3)
-   +(DIFF.armor[i]?' &middot; <span title="Foes wear '+Math.round(DIFF.armor[i]*100)+'% armor">armor '+Math.round(DIFF.armor[i]*100)+'%</span>':'')+' &middot; Boss: <b>'+D.boss[0]+'</b>'
+   +'<div class="meta">'+(locked?'Opens at level '+R.unlock:'<span class="danger-'+danger.toLowerCase()+'">'+danger+' for you</span>')+' &middot; <span class="rec-lv" title="Most necromancers clear this gate from this hero level">Recommended Lv '+rec+'+</span>'
+   +(DIFF.armor[i]?' &middot; '+armorTag(DIFF.armor[i]):'')+' &middot; Boss: <b>'+D.boss[0]+'</b>'
    +(gateMod(i)?'<span class="curse-line">Cursed: <b>'+MODS[gateMod(i)].name+'</b>. '+MODS[gateMod(i)].desc+' '+MOD_REWARD+(S.ti&&S.ti.clr&&S.ti.clr[5]&&P.lvl-CURSE_GAP>RK[i].lv?' Foes about Lv '+(P.lvl-CURSE_GAP)+'.':'')+'</span>':'')
    +(S.mode==='town'&&raidGates().includes(i)&&bestSquad()&&!(S.raids||[]).length?(sq=>'<div class="raid-odds" title="'+sq[0].nick+' and '+(sq.length-1)+' of your strongest; set the squad on the War table">Raid odds '+Math.round(raidOdds(sq,i)*100)+'%</div>')(bestSquad()):'')
    +heatHTML(i)+(gateFarm(i)<1?'<div class="farm-line dim">Rewards here '+Math.round(gateFarm(i)*100)+'% on Normal at your level; Hard and up pay in full.</div>':'')+'</div></div>'
@@ -910,11 +914,11 @@ function tipHTML(){
 // First steps: a short guide that ticks itself off as you play. Every rule and number lives in the Codex.
 const FIRST_STEPS=[
   ['Spend your stat points',()=>S.player.pts===0||S.player.lvl>1,'Press + next to a stat. Constitution keeps you alive early; Will lets you raise more of the dead.'],
-  ['Raise your first minion',()=>T_('raised')>0,'Win a room, then raise what fell. Raising costs mana and can fail; your army fights beside you and grows.'],
+  ['Raise your first minion',()=>T_('raised')>0,'Win a room, then raise what fell. Raising costs mana; your first raise always answers, later ones can fail. Your army fights beside you and grows.'],
   ['Clear the Rat Warren',()=>!!(S.ti&&S.ti.clr&&S.ti.clr[0]),'Four rooms, the last holding the Rat King. Between rooms, pick a door: a fight, a stronger room with better loot, a rest or a vault.'],
   ['Learn a skill',()=>Object.keys(S.player.skills||{}).length>0,'You get a skill point each level. Bone Spear (Skills tab) is a strong first pick; active skills sit on keys 4 and up in battle.'],
   ['Stock up at the Market',()=>(S.belt.hp+S.belt.mp)>0||T_('drank')>0,'Healing Draughts (Q) and Mana Tonics (W) save runs. Sell trophies and spare gear there to pay for them.'],
-  ['Finish a daily quest',()=>T_('claims')>0,'Defeat foes, clear rooms and clear a dungeon in one day for a stat point and XP. An unfinished quest costs a little at dawn.'],
+  ['Finish a daily quest',()=>T_('claims')>0,'Defeat foes, clear rooms and clear a dungeon in one day for a stat point and XP. An unfinished quest costs a little at dawn, once you have cleared your first gate.'],
   ['Open the town',()=>townOpen(),'After your first clear (or level 4) a Town tab and a bounty board appear: buildings, fusion and daily contracts.'],
   ['Reach the Hell Tower',()=>S.player.lvl>=TW.unlock,'At level '+TW.unlock+' a separate climb opens: one fight per floor, a unique relic every tenth floor, checkpoints as you go.'],
   ['Break the Throne of Ash',()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]),'The last gate. Clearing it opens New Game+ in Settings and makes cursed gates rise to just below your level.']
@@ -929,8 +933,9 @@ const HELP_LATER=()=>[
   ['Cursed gates','Each day one cleared gate is cursed: harder, and pays more.',DUNGEONS.some((D,i)=>S.ti&&S.ti.clr&&S.ti.clr[i])],
   ['Ultimates','At level '+ULT_LV+' choose an ultimate on the Skills tab. Gather '+SOUL_MAX+' Souls in a run and press R.',S.player.lvl>=ULT_LV]
 ];
+const stepsDone=()=>FIRST_STEPS.filter(x=>{ try{ return x[1](); }catch(e){ return false; } }).length;
 function helpHTML(){
-  const done=FIRST_STEPS.filter(x=>{ try{ return x[1](); }catch(e){ return false; } }).length;
+  const done=stepsDone();
   return '<section class="win" aria-labelledby="h-help"><h2 class="win-h" id="h-help">How to play &middot; first steps '+done+'/'+FIRST_STEPS.length+'</h2><h3 class="win-title">Every name in this book answers to you.</h3>'
    +(done<=1&&S.day===1?'<div class="btns"><button class="btn primary" data-a="tab" data-k="gates">Begin: to the gates</button></div>':'')
    +'<p class="lede">Each day has '+WATCHES+' watches; a gate or the Tower uses one. These steps tick off as you play.</p>'
@@ -959,7 +964,7 @@ function saveTabHTML(){
    +[['Compact',-1],['Normal',0],['Large',1],['Larger',2]].map(([t,i])=>'<button class="btn small'+(VIEW.size===i?' primary':'')+'" data-a="view" data-k="size|'+i+'" aria-pressed="'+(VIEW.size===i)+'">'+t+'</button>').join('')+'</div></div>'
    +'<div class="tt-row'+(VIEW.calm?' on':'')+'"><div><h4>Reduce motion</h4><div class="u-sub">Stops embers, flames, pulses and shake.</div></div><button class="btn small'+(VIEW.calm?'':' primary')+'" data-a="view" data-k="calm" aria-pressed="'+VIEW.calm+'">'+(VIEW.calm?'Turn off':'Turn on')+'</button></div>'
    +'<div class="tt-row'+(VIEW.nobg?'':' on')+'"><div><h4>Backgrounds</h4><div class="u-sub">Painted scenes and boss arenas.</div></div><button class="btn small'+(VIEW.nobg?' primary':'')+'" data-a="view" data-k="nobg" aria-pressed="'+!VIEW.nobg+'">'+(VIEW.nobg?'Turn on':'Turn off')+'</button></div>'
-   +'<div class="tt-row"><div><h4>Effects</h4><div class="u-sub">Light uses simpler icon shading and still backgrounds, for phones. Auto picks it on small or slow devices'+(VIEW.fx==='auto'?' (now: '+(fxLight()?'Light':'Full')+')':'')+'.</div></div><div class="btns" style="margin:0">'
+   +'<div class="tt-row"><div><h4>Effects</h4><div class="u-sub">Light uses simpler icon shading and still backgrounds, for phones. Full also draws battle effects. Auto picks Light on small or slow devices'+(VIEW.fx==='auto'?' (now: '+(fxLight()?'Light':'Full')+')':'')+'.</div></div><div class="btns" style="margin:0">'
      +Object.keys(FX_MODES).map(k=>'<button class="btn small'+(VIEW.fx===k?' primary':'')+'" data-a="view" data-k="fx|'+k+'" aria-pressed="'+(VIEW.fx===k)+'">'+FX_MODES[k]+'</button>').join('')+'</div></div>'
    +'<div class="tt-row'+(VIEW.hc?' on':'')+'"><div><h4>High contrast</h4><div class="u-sub">Brighter text and bolder bars.</div></div><button class="btn small'+(VIEW.hc?'':' primary')+'" data-a="view" data-k="hc" aria-pressed="'+VIEW.hc+'">'+(VIEW.hc?'Turn off':'Turn on')+'</button></div></div>'
    +'<p class="group-h">Save &amp; load</p><p class="lede">Saves after every action. Slots keep a safe copy; a save code carries your game to another browser.</p><p class="lede">The game saves itself after every action (in a gate or the Tower, as if you had walked out). Slots are for keeping a safe copy before something risky, like a Tower warden. A save code lets you carry your progress to another browser or device.</p>';
@@ -1058,7 +1063,7 @@ const cxList=a=>'<div class="items">'+a.join('')+'</div>';
 const metName=n=>!!(S.kills&&S.kills[n]>0);
 function codexSection(k){
   const pct=v=>Math.round(v*100)+'%';
-  if(k==='basics') return cxP('A day has '+WATCHES+' watches. Entering a gate or the Tower uses one; when the last is spent the day ends. The daily quest asks you to defeat '+QUEST.kills+' foes, clear '+QUEST.rooms+' rooms (gate rooms or Tower floors) and clear '+QUEST.clears+' dungeon. Finish it for '+QUEST_PTS+' stat point'+(QUEST_PTS>1?'s':'')+' and '+pct(QUEST_XP)+' of a level in XP. Leave it unfinished and dawn costs '+pct(QUEST_LOSS)+' of a level in XP and '+pct(QUEST_DEBUFF)+' of your max HP for a day.')
+  if(k==='basics') return cxP('A day has '+WATCHES+' watches. Entering a gate or the Tower uses one; when the last is spent the day ends. The daily quest asks you to defeat '+QUEST.kills+' foes, clear '+QUEST.rooms+' rooms (gate rooms or Tower floors) and clear '+QUEST.clears+' dungeon. Finish it for '+QUEST_PTS+' stat point'+(QUEST_PTS>1?'s':'')+' and '+pct(QUEST_XP)+' of a level in XP. Leave it unfinished and dawn costs '+pct(QUEST_LOSS)+' of a level in XP and '+pct(QUEST_DEBUFF)+' of your max HP for a day, once you have cleared your first gate.')
     +cxP('Each level gives 3 stat points and 1 skill point. Falling in a fight loses that room\'s spoils and '+pct(DIFF.deathXp)+' of a level in XP. Going on to the next room heals '+pct(DIFF.heal)+' of your HP, restores '+pct(DIFF.mana)+' of your mana and heals your minions '+pct(DIFF.mheal)+'.')
     +'<p class="group-h">Stats</p>'+cxList([cxRow('Strength','Strike damage: 3 + 1.5 per point + your level + gear.'),cxRow('Constitution','Max HP: 24 + 6 per point + 4 per level + gear.'),
       cxRow('Intelligence','Mana (5 per point), Soul Siphon (2 per point) and Bone Ward (2 per point).'),cxRow('Will','Mana (3 per point), one army slot per 3 points, 2.2% raise chance per point, and 2% minion power per point.')])
@@ -1078,7 +1083,7 @@ function codexSection(k){
   if(k==='omens') return cxP('Once you have cleared a gate, about '+pct(OMEN_CHANCE)+' of dawns bring an omen. It lasts the whole day and touches every gate and the Tower. Today: '+(omen()?OMENS[omen()].name:'no omen')+'.')
     +cxList(Object.keys(OMENS).map(o=>cxRow(OMENS[o].name,OMENS[o].desc,omen()===o?'Today':'')));
   if(k==='roles') return cxP('Every creature, yours or the enemy\'s, has one of four roles.')+cxList(Object.keys(ROLES).map(r=>cxRow(ROLES[r].label,ROLES[r].text+' '+CDX_ROLE[r])));
-  if(k==='minions') return cxP('What each body rises with at its gate\'s Recommended level, before Will, Grave Pact, gear, traits and evolution. Every level adds 16% HP and 12% attack. A raised elite has x1.5 HP and x1.3 attack; a raised boss x3.2 HP and x1.4 attack.')
+  if(k==='minions') return cxP('What each body rises with at its gate\'s base foe level, before Will, Grave Pact, gear, traits and evolution. Every level adds 16% HP and 12% attack. A raised elite has x1.5 HP and x1.3 attack; a raised boss x3.2 HP and x1.4 attack.')
     +DUNGEONS.map((D,di)=>{ const lv=RK[di].lv, list=D.mobs.map(t=>({n:t[0],role:t[1],hf:t[2],af:t[3],boss:false})).concat([{n:D.boss[0],role:D.boss[1],hf:1,af:1,boss:true}]);
       return '<p class="group-h">'+D.name+' &middot; Lv '+lv+'</p>'+cxList(list.map(x=>{ const met=!!(S.kills&&S.kills[x.n]); if(!met) return cxRow('???','Not met yet.');
         const st=mobStats(di,lv,x.hf,x.af,x.boss,false); return cxRow(x.n,'HP '+st.hp+' &middot; ATK '+st.atk+(x.boss?' &middot; boss':''),ROLES[x.role].label); })); }).join('');
@@ -1107,9 +1112,9 @@ function codexSection(k){
   if(k==='orders') return cxP('Once per room, each kind of minion in your army can be given one order. Orders are free and do not use your turn.')+cxList(Object.keys(CMDS).map(r=>cxRow(CMDS[r].name,CMDS[r].desc,ROLES[r].label+'s')));
   if(k==='gates') return cxP('Six gates of four rooms each, the last holding the boss. Clearing a gate pays bonus XP and, the first time, a page of the story.')
     +cxP('A cleared gate can be entered on a harder difficulty, picked on its card: '+HEAT.slice(1).map(h=>h.name+' (foes x'+h.foe+'; XP x'+h.xp+', gold x'+h.gold+', gear x'+h.drop+')').join(', ')+'. Each opens after clearing the one below. On a cursed day the curse feeds on it: a further x'+DAMNED_FOE+' to foes, x'+DAMNED+' to rewards. A Nightmare clear marks the gate\'s card and earns that gate\'s Nightmare title.')
-    +cxP('On Normal, a gate far below you pays less: kill XP, gold and the clear bonus stay full up to '+DIFF.farmFrom+' levels past its best level, then fall to '+pct(DIFF.farmMin)+' at '+DIFF.farmTo+' levels past. A first clear, a cursed gate and every harder difficulty pay in full, and gear drops never shrink.')
+    +cxP('On Normal, a gate far below you pays less: kill XP, gold and the clear bonus stay full until you stand about '+DIFF.farmFrom+' levels past its recommended level, then fall to '+pct(DIFF.farmMin)+' at about '+DIFF.farmTo+' levels past; the gate card says when it applies. A first clear, a cursed gate and every harder difficulty pay in full, and gear drops never shrink.')
     +cxList(DUNGEONS.map((D,i)=>{ const mobs=D.mobs.map(m=>metName(m[0])?m[0]+' ('+ROLES[m[1]].label.toLowerCase()+(isArmed(m[0])?', gear-bearer':'')+')':'???').join(', ');
-      return cxRow(D.name,'Opens at level '+RK[i].unlock+', best at '+SAFE[i]+'&ndash;'+(SAFE[i]+3)+'. Armor '+pct(DIFF.armor[i])+'. Clear bonus '+RK[i].clear+' XP.<br><b>Foes:</b> '+mobs+'<br><b>Boss:</b> '+(metName(D.boss[0])?D.boss[0]+', '+BOSS_ABIL[GATE_ABIL[i]].name:'???')+(secretHinted(i)?'<br><i class="dim">'+SECRET[i].hint+'</i>':''),'Rank '+RANKS[i]); }));
+      return cxRow(D.name,'Opens at level '+RK[i].unlock+', recommended from level '+gateRec(i)+'. Armor '+pct(DIFF.armor[i])+'. Clear bonus '+RK[i].clear+' XP.<br><b>Foes:</b> '+mobs+'<br><b>Boss:</b> '+(metName(D.boss[0])?D.boss[0]+', '+BOSS_ABIL[GATE_ABIL[i]].name:'???')+(secretHinted(i)?'<br><i class="dim">'+SECRET[i].hint+'</i>':''),'Rank '+RANKS[i]); }));
   if(k==='tower') return cxP('Opens at level '+TW.unlock+'. One fight per floor and a warden every tenth floor, each carrying a unique: guaranteed the first time, '+pct(TW.repeat)+' after (as gold while you carry one). Floors you clear become checkpoints every ten floors. Past floor 100 the Abyss never ends, and each tenth floor pays gold and a legendary. Tower foes wear '+pct(TW.armor)+' armor.')
     +cxList(TW_BOSS.map((n,i)=>{ const f=(i+1)*10, seen=S.tower.best>=f-10; return cxRow(seen?n:'???','Floor '+f+' &middot; recommended level '+recLv(f)+(seen?' &middot; '+BOSS_ABIL[GATE_ABIL[i%GATE_ABIL.length]].name:''),S.tower.best>=f?'Defeated':''); }));
   if(k==='gear') return cxP('You wear a weapon, armor and a relic. Gear-bearer minions can wear them too. On a minion, attack, strength, crit, Siphon and intelligence add to its attack; HP, constitution, ward, mana and will add to its HP; minion power works as usual.')
@@ -1228,6 +1233,7 @@ function townHTML(){
   if(sub==='war') return h+raidHTML()+armyHTML();
   if(sub==='rift') return h+riftHTML()+armyHTML();
   h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'
+   +((n=>n<FIRST_STEPS.length&&!(S.tips&&S.tips.off)?'<p class="q-note guide-link"><button class="linkbtn" data-a="tab" data-k="help">How to play &middot; first steps '+n+'/'+FIRST_STEPS.length+'</button></p>':'')(stepsDone()))   /* for a new player; gone once every step is done or tips are switched off */
    +(omen()?'<div class="omen-line"><b>Omen today: '+OMENS[omen()].name+'.</b> '+OMENS[omen()].desc+' It touches every gate and the Tower until dawn.</div>':'')
    +'<div class="gates">'+DUNGEONS.map((d,i)=>gateHTML(i)).join('')+'</div>'
    +'<div class="btns"><button class="btn small" data-a="rest">Rest until dawn</button></div></section>';
@@ -1254,9 +1260,9 @@ function unitCard(u,side,mini){
   if(mini){   // a minion in battle: icon, name, level, attack, HP; the rest lives on the Army tab
     const m='<div class="u-head">'+ico(u.base||u.kind||u.name,u.rankI,u)+'<div class="u-id"><div class="u-name">'+nick(u)+'</div><div class="u-sub num">Lv '+u.lvl+' &middot; ATK '+u.atk+dots+'</div></div></div>'
       +'<div class="bar"><i class="fill hp" style="width:'+pct(u.hp,max)+'%"></i></div><div class="num u-hp">'+Math.max(0,u.hp)+'/'+max+'</div>';
-    return '<div class="unit ally mini'+(dead?' dead':'')+(u.elite?' elite':'')+(f.d?' hit':'')+'" title="'+mName(u)+', '+ROLES[u.role].label+'">'+fx+m+'</div>'; }
+    return '<div class="unit ally mini'+(dead?' dead':'')+(u.elite?' elite':'')+(f.d?' hit':'')+'" data-u="'+fxKey(u)+'" title="'+mName(u)+', '+ROLES[u.role].label+'">'+fx+m+'</div>'; }
   const cls='unit '+side+(dead?' dead':'')+(sel?' sel':'')+(u.elite?' elite':'')+(f.d?' hit':'');
-  return side==='foe'&&!dead?'<button class="'+cls+'" data-a="target" data-k="'+u.id+'" aria-pressed="'+sel+'">'+inner+'</button>':'<div class="'+cls+'">'+inner+'</div>';
+  return side==='foe'&&!dead?'<button class="'+cls+'" data-a="target" data-k="'+u.id+'" data-u="'+u.id+'" aria-pressed="'+sel+'">'+inner+'</button>':'<div class="'+cls+'" data-u="'+fxKey(u)+'">'+inner+'</div>';
 }
 const ORDER_KEYS={z:'vanguard',x:'striker',c:'mender',v:'reaper'}, ORDER_KEY=Object.fromEntries(Object.entries(ORDER_KEYS).map(([k,r])=>[r,k.toUpperCase()]));
 function ultHTML(){   // Souls and the ultimate, from level 20
@@ -1282,7 +1288,7 @@ function battleHTML(){
    +(r.mod?'<p class="q-note"><span class="curse-line" style="margin:0">Cursed: <b>'+MODS[r.mod].name+'</b>. '+MODS[r.mod].desc+'</span></p>':'')
    +(r.heat?'<p class="q-note bad">Difficulty: <b>'+HEAT[r.heat].name+'</b>'+(r.mod?', and the curse feeds on it':'')+'.</p>':'')
    +(r.bless?'<p class="q-note ok">Blood-blessed: you and your army hit 15% harder in this gate.</p>':'')
-   +'<p class="group-h">Foes'+(foeArmor()?' &middot; <span title="Blunts every hit you and your army land">armor '+Math.round(foeArmor()*100)+'%</span>':'')+'</p><div class="row">'+r.enemies.map(e=>unitCard(e,'foe')).join('')+'</div>'
+   +'<p class="group-h">Foes'+(foeArmor()?' &middot; '+armorTag(foeArmor()):'')+'</p><div class="row">'+r.enemies.map(e=>unitCard(e,'foe')).join('')+'</div>'
    +'<p class="group-h">Your side'+(r.frenzy>0?' &middot; <span class="ok">Frenzy '+r.frenzy+'</span>':'')+(r.silence>0?' &middot; <span class="bad">Silenced '+r.silence+'</span>':'')+(r.taunt>0?' &middot; <span class="ok">Taunting '+r.taunt+'</span>':'')+'</p><div class="row minis side">'+unitCard(S.player,'ally')+S.army.map(a=>unitCard(a,'ally',true)).join('')+'</div>'
    +'<div class="actbar">'+partyStrip()+'<div class="btns"><button class="btn primary" data-a="act" data-k="strike">Strike +3 mana<kbd>1</kbd></button>'
    +'<button class="btn" data-a="act" data-k="siphon"'+(P.mana<siphonCost()?' disabled':'')+'>Soul Siphon '+siphonCost()+'<kbd>2</kbd></button>'
@@ -1388,9 +1394,9 @@ function raiseHTML(){
     const ch=raiseChance(c), cost=raiseCost(c);
     let right;
     if(c.tried) right=c.result==='raised'?'<span class="ok num">Raised as '+c.minion+'</span>':c.result==='exploded'?'<span class="dim num">Burst apart</span>':'<span class="bad num">Crumbled</span>';
-    else right='<div class="btns" style="margin:0"><button class="btn primary small" data-a="raise" data-k="'+c.id+'"'+(P.mana<cost||full?' disabled':'')+'>Raise &middot; '+ch+'% &middot; '+cost+' mana</button>'
+    else right='<div class="btns" style="margin:0"><button class="btn primary small" data-a="raise" data-k="'+c.id+'"'+(P.mana<cost||full?' disabled':'')+(firstRaise()?' title="Your first raise always answers"':'')+'>Raise &middot; '+ch+'% &middot; '+cost+' mana</button>'
       +(S.salts>0?'<button class="btn small" data-a="raisesalt" data-k="'+c.id+'"'+(P.mana<cost||full?' disabled':'')+' title="Uses one Grave Salts ('+S.salts+' left)">With salts &middot; '+saltChance(c)+'%</button>':'')+'</div>';
-    return '<div class="corpse'+(c.tried?' done '+c.result:'')+'"><div><div class="u-head">'+ico(c.base,c.rankI,c)+'<div class="u-id"><div class="u-top"><span class="rk r'+c.rankI+'">'+RANKS[c.rankI]+'</span><span class="u-tag">'+ROLES[c.role].label+(c.armed?' &middot; Armed':'')+(c.boss?' &middot; Boss':'')+(c.elite?' &middot; Elite':'')+'</span></div>'
+    return '<div class="corpse'+(c.tried?' done '+c.result:'')+'" data-u="'+c.id+'"><div><div class="u-head">'+ico(c.base,c.rankI,c)+'<div class="u-id"><div class="u-top"><span class="rk r'+c.rankI+'">'+RANKS[c.rankI]+'</span><span class="u-tag">'+ROLES[c.role].label+(c.armed?' &middot; Armed':'')+(c.boss?' &middot; Boss':'')+(c.elite?' &middot; Elite':'')+'</span></div>'
      +'<div class="u-name" style="'+(c.elite?'color:var(--gold)':'')+'">'+c.name+'</div><div class="u-sub num">Lv '+c.lvl+(c.aff?' &middot; <span class="aff" title="A raised elite keeps one of these as a trait">'+c.aff.map(a=>AFFIX[a].name===TRAITS[AFFIX[a].trait].name?'keeps '+AFFIX[a].name:AFFIX[a].name+' &rarr; '+TRAITS[AFFIX[a].trait].name).join(', ')+'</span>':'')+(c.free?' &middot; <span class="free-t">Straggler: free, +'+STRAGGLER_BONUS+'%</span>':'')+'</div></div></div></div>'+right+'</div>';
   }).join('');
   const done=r.cleared, q=r.quiet&&DOORS[r.quiet];
@@ -1465,7 +1471,7 @@ function render(){
   ui.scr=scr;
   if(ui.shake&&!VIEW.calm){ ui.shake=false; const w=app.querySelector('.main > .win'); if(w) w.classList.add('shake'); }
   try{ bossBg(); }catch(e){} try{ scene(); }catch(e){} try{ srAnnounce(); }catch(e){}
-  try{ music(); }catch(e){}
+  try{ music(); }catch(e){} try{ fxSync(); }catch(e){}   // the battle effects layer (src/fx.js): loads, turns off, or plays what this turn queued
   save();   // every screen saves; outside town the snapshot is "as if you walked out now"
 }
 const ACTIONS={
@@ -1541,7 +1547,7 @@ const ACTIONS={
   loadcode:()=>{ if(ui.confirm!=='lc'){ ui.confirm='lc'; return; } ui.confirm=null; if(importCode(ui.imp)){ ui.imp=''; ui.exp=''; ui.msg={m:'Save code loaded.',c:'ok'}; } else ui.msg={m:'That code is not a valid save.',c:'bad'}; }, wear:k=>{ wearTitle(k); }, cxclear:()=>{ ui.cxq=''; }, cxq:()=>{},   /* the search box: typing is handled by the input listener; data-a only lets focus come back after a render */ ttf:k=>{ ui.ttf=(k in {all:1,got:1,locked:1,close:1}||/^r[0-5]$/.test(k))?k:'all'; }, tower:k=>startTower(+k), act:k=>act(k), target:k=>setTarget(k), flee:()=>flee(),
   raise:k=>tryRaise(k), descend:()=>descend(), town:()=>returnTown(), rest:()=>restDay(),
   release:k=>{ if(ui.confirm===+k){ release(+k); ui.confirm=null; } else ui.confirm=+k; },
-  newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); OPEN_HELP.on=false; ui.tab='help'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
+  newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); OPEN_HELP.on=false; ui.tab='gates'; ui.gsub='open'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
 };
 const CONFIRM_ACTS=['release','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier'];   // two-press actions: a click on these keeps the pending confirm
 document.addEventListener('click',e=>{
@@ -1616,4 +1622,4 @@ document.addEventListener('keydown',e=>{
   if(still) draw(0); else requestAnimationFrame(step);
 })();
 
-applyView(); loadGame(); if(OPEN_HELP.on){ ui.tab='help'; OPEN_HELP.on=false; } render();
+applyView(); loadGame(); if(OPEN_HELP.on){ ui.tab='gates'; OPEN_HELP.on=false; } render();
