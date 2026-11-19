@@ -39,6 +39,15 @@ test('Screens: each compact army row starts with the minion icon, the same one i
   const h=minionRow(m,true); ok(h.startsWith('<div class="mrow">'+ico('Grave Ghoul',2,m)),'icon first'); ok(h.includes('<span class="ico r2'),'rank class');
   mkMinion({lvl:3}); eq((armyHTML().match(/class="mrow"><span class="ico /g)||[]).length,2,'every row'); VIEW.army='cards'; S.army=[];
 });
+test('Screens: a compact row keeps traits, evolution and Commander in the name title, one short marker, and named actions',()=>{
+  S.mode='town'; S.army=[]; const m=mkMinion({name:'Grave Ghoul',kind:'Grave Ghoul',rankI:2,role:'vanguard',elite:true,traits:['stalwart']}); VIEW.army='compact';
+  let h=minionRow(m,true); ok(!/mr-tags/.test(h),'no wrapped tag line'); ok(new RegExp('class="mr-name" title="'+m.nick+', the Grave Ghoul &middot; Vanguard &middot; '+TRAITS.stalwart.name).test(h),'traits in the title: '+h.slice(0,400));
+  ok(!/class="mr-mk"/.test(h),'no marker without a Commander');
+  m.traits.push('commander'); ok(isCommander(m),'an elite Commander'); h=minionRow(m,true); ok(/<span class="mr-mk" title="Commander: can lead raids">Cmdr<\/span>/.test(h),'Commander marker');
+  ok(/aria-label="Details: /.test(h)&&/aria-label="Rename: /.test(h)&&/aria-label="Release: /.test(h),'accessible names');
+  ui.confirm=m.uid; ok(/aria-label="Confirm release: [^"]+"[^>]*>Sure\?</.test(minionRow(m,true)),'two-press release'); ui.confirm=null;
+  eq(trText('Sure?'),'Emin misin?'); eq(trText('Info'),'Bilgi'); VIEW.army='cards'; S.army=[];
+});
 
 test('Screens: on phones the pinned action bar carries a thin HP tick per minion, none without an army',()=>{
   S.army=[]; arena([foe()]); let h=renderAll('no army'); ok(/class="actbar"/.test(h),'battle bar'); ok(!/class="pstrip"/.test(h),'absent with no army');

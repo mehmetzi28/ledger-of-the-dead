@@ -49,7 +49,7 @@ function firstDiff(a,b,p){ p=p||''; if(canon(a)===canon(b)) return null;
   if(!a||!b||typeof a!=='object'||typeof b!=='object') return p+': '+fmt(a)+' vs '+fmt(b);
   for(const k of new Set(Object.keys(a).concat(Object.keys(b)))){ const d=firstDiff(a[k],b[k],p+'.'+k); if(d) return d; } return p; }
 function renderAll(where){ render(); cleanHTML(app.innerHTML,where); return app.innerHTML.replace(/·/g,'&middot;').replace(/→/g,'&rarr;').replace(/−/g,'&minus;'); }   // a real browser turns entities into characters; tests match the entity form
-const TABS=['gates','gear','bes','skills','market','town','tower','titles','settings','help','hist','rec','lore','codex'];
+const TABS=['gates','gear','bes','skills','market','town','tower','titles','settings','help','hist','rec','mem','lore','codex'];
 function richState(){
   fresh(30); const P=S.player; P.sp=4; P.pts=2; SKILLS.forEach(s=>P.skills[s.id]=3);
   S.gold=99999; S.belt={hp:3,mp:3}; S.bagLv=BAG_COST.length; S.salts=SALT_MAX; S.ngp=2; S.day=40;
@@ -71,19 +71,31 @@ function richState(){
 }
 function invariants(where){
   const P=S.player, w=' ('+where+')';
-  ok(['town','battle','raise','defeat'].includes(S.mode),'unknown mode '+S.mode+w);
+  ok(['town','battle','raise','defeat','siege'].includes(S.mode),'unknown mode '+S.mode+w);
   finite(P.hp,'player hp'+w); finite(P.mana,'player mana'+w); finite(P.xp,'xp'+w); finite(S.gold,'gold'+w); finite(P.shield,'shield'+w);
   ok(P.hp<=pMax(),'player hp '+P.hp+' above max '+pMax()+w); ok(P.mana>=0&&P.mana<=pMana(),'mana '+P.mana+' outside 0..'+pMana()+w);
   ok(S.gold>=0,'gold below zero'+w); ok(S.watches>=0&&S.watches<=WATCHES,'watches '+S.watches+w); ok(P.xp>=0&&P.xp<need(P.lvl),'xp '+P.xp+' not rolled into a level'+w);
   ok(armyUsed()<=ARMY_CAP+bl('crypt'),'army larger than its cap'+w); finite(S.dust||0,'dust'+w); ok((S.dust||0)>=0,'dust below zero'+w);
-  for(const m of S.army){ finite(m.hp,'minion hp'+w); finite(m.maxHp,'minion maxHp'+w); finite(m.atk,'minion atk'+w); ok(m.hp<=m.maxHp,m.nick+' hp above max'+w); ok(m.lvl<=Math.max(P.lvl+2,m.lvl0),m.nick+' grew past the level cap'+w);
+  const own=S.army.concat(S.reserve||[],S.waiting||[]);   // the Reserve and the gate are checked like the army
+  ok((S.reserve||[]).every(m=>!S.army.includes(m))&&(S.waiting||[]).every(m=>!S.army.includes(m)&&!(S.reserve||[]).includes(m)),'a minion in two lists'+w);
+  for(const m of own){ finite(m.hp,'minion hp'+w); finite(m.maxHp,'minion maxHp'+w); finite(m.atk,'minion atk'+w); ok(m.hp<=m.maxHp,m.nick+' hp above max'+w); ok(m.lvl<=Math.max(P.lvl+2,m.lvl0),m.nick+' grew past the level cap'+w);
     const c=JSON.parse(JSON.stringify(m)); syncMinion(c); ok(c.maxHp===m.maxHp&&c.atk===m.atk,m.nick+' has stale stats ('+m.maxHp+'/'+m.atk+', should be '+c.maxHp+'/'+c.atk+')'+w); }
-  const seen=new Set(), all=S.inv.concat(Object.values(S.equip).filter(Boolean)); S.army.forEach(m=>m.eq&&Object.values(m.eq).forEach(x=>x&&all.push(x)));
+  const seen=new Set(), all=S.inv.concat(Object.values(S.equip).filter(Boolean)); own.forEach(m=>m.eq&&Object.values(m.eq).forEach(x=>x&&all.push(x)));
   for(const it of all){ ok(ITEM[it.id],'unknown item '+it.id+w); ok(!seen.has(it.u),'two items share id '+it.u+w); seen.add(it.u); ok(it.u<=S.uid,'item id above S.uid'+w); }
   for(const k in S.trophies) ok(TROPHY[k]&&S.trophies[k]>0,'bad trophy entry '+k+w);
   for(const k of ['hp','mp']) ok(S.belt[k]>=0&&S.belt[k]<=BELT_MAX,'belt '+k+' = '+S.belt[k]+w);
   if(S.run) for(const e of S.run.enemies){ finite(e.hp,'foe hp'+w); finite(e.atk,'foe atk'+w); ok(e.hp>=0&&e.hp<=e.maxHp,e.name+' hp '+e.hp+'/'+e.maxHp+w); }
-  if(S.mode==='town') ok(!S.run,'a run is left over in town'+w); else ok(S.run,'no run outside town'+w);
+  if(S.mode==='town'||S.mode==='siege') ok(!S.run,'a run is left over in '+S.mode+w); else ok(S.run,'no run outside town'+w);
+  const g=S.siege||{}; ok(g.next>=0&&Number.isInteger(g.next),'siege day '+g.next+w); ok(g.dmg==null||(BUILD[g.dmg]&&blRaw(g.dmg)>0),'a damaged building that is not built: '+g.dmg+w);   // sieges
+  if(S.mode==='siege') ok(g.pending&&siegeOpen(),'a siege screen with no siege pending'+w); if(S.run&&S.run.siege){ ok(g.pending||S.mode!=='battle','a siege fought that is not pending'+w); ok(S.run.room<SIEGE_WAVES,'siege wave '+S.run.room+w); }
+  ok(Array.isArray(S.memorial)&&S.memorial.length<=MEM_MAX&&S.memorial.every(e=>e&&typeof e.nick==='string'&&RANKS[e.rk]),'a bad Memorial'+w); ok(Array.isArray(S.loadouts)&&S.loadouts.length===LOADOUT_N,'loadouts'+w);   // the Memorial and loadouts
+  const R=S.rival; ok(R&&typeof R.name==='string'&&(!R.name||RIVAL_NAMES.includes(R.name)),'rival name'+w);   // the rival
+  if(R){ for(const k of ['met','enc','wins','losses','thefts','step','next','warned','done','steal']) ok(Number.isInteger(R[k])&&R[k]>=0,'rival '+k+' = '+R[k]+w); ok(R.enc===R.wins+R.losses,'rival record '+R.enc+' vs '+R.wins+'+'+R.losses+w);
+    ok(R.page===-1||(R.page>=0&&R.page<(S.pages||0)),'a borrowed page that is not owned: '+R.page+w); ok(R.gi===-1||!!RK[R.gi],'rival gate '+R.gi+w); if(!R.name) ok(!R.met&&!R.enc,'a rival met without a name'+w); }
+  const TR=S.trials; ok(TR&&Array.isArray(TR.log)&&TR.log.length<=TRIAL_LOG&&TR.log.every(x=>Number.isInteger(x.s)&&x.s>=0&&RK[x.di]),'trial records'+w);   // Trials
+  if(TR&&TR.best) ok(TR.log.every(x=>x.s>=TR.best.s),'a week better than the best ever'+w);
+  if(S.run&&S.run.trial){ ok(!S.run.doors&&!S.run.event,'a Trial with doors or an event'+w); if(S.mode==='raise') ok(!S.run.corpses.length,'bodies to raise in a Trial'+w); ok(S.run.rooms===TRIAL_ROOMS,'Trial rooms'+w); }
+  if(!(S.run&&S.run.siege)) ok(!S.army.some(m=>m.thrall),'a siege thrall outside a siege'+w); ok(S.army.filter(m=>m.thrall).length<SIEGE_WAVES,'too many thralls'+w);
 }
 
 // helpers shared by several test groups
@@ -97,7 +109,7 @@ const board=list=>{ S.bounty={day:S.day,list:list.map(b=>Object.assign({claimed:
 const cdx=k=>{ ui.tab='codex'; ACTIONS.cx(k); return renderAll('codex '+k); };
 
 // The test groups, in the order they run. Node (tests/run-tests.js) and the browser loader both use this list.
-const FILES=["01-data.js", "02-player-stats.js", "03-xp-and-levels.js", "04-days-and-quests.js", "05-enemies-and-rooms.js", "06-combat.js", "07-raising.js", "08-minions-traits-and-evolution.js", "09-gear-bearers.js", "10-items-and-drops.js", "11-skills.js", "12-gold-loot-and-the-market.js", "13-forge-and-brewing.js", "14-boss-abilities.js", "15-hell-tower.js", "16-unique-item-effects.js", "17-titles.js", "18-tips.js", "19-saves.js", "20-new-game.js", "21-ui.js", "22-sound.js", "24-gear-rolls.js", "25-events.js", "26-cursed-gates.js", "27-status-effects.js", "28-history.js", "29-bag-tools.js", "30-doors.js", "31-gear-sets.js", "32-skill-upgrades.js", "33-minion-commands.js", "34-story.js", "35-music-display-save-files.js", "36-town-buildings.js", "37-bounty-board.js", "38-elite-affixes.js", "39-boss-phases.js", "40-minion-fusion.js", "41-salvage-and-enchanting.js", "42-codex.js", "43-icons.js", "44-screens.js", "45-item-locks-and-army-care.js", "46-feel.js", "47-safety.js", "48-late-game-backups-previews.js", "49-play-test-fixes.js", "50-difficulty-and-secrets.js", "51-measured-tuning.js", "52-help-records-blessings.js", "53-omens-search-hints.js", "54-lore.js", "55-raids-rift-and-tuning.js", "56-first-hour.js", "57-battle-effects.js", "99-playthrough.js"];
+const FILES=["01-data.js", "02-player-stats.js", "03-xp-and-levels.js", "04-days-and-quests.js", "05-enemies-and-rooms.js", "06-combat.js", "07-raising.js", "08-minions-traits-and-evolution.js", "09-gear-bearers.js", "10-items-and-drops.js", "11-skills.js", "12-gold-loot-and-the-market.js", "13-forge-and-brewing.js", "14-boss-abilities.js", "15-hell-tower.js", "16-unique-item-effects.js", "17-titles.js", "18-tips.js", "19-saves.js", "20-new-game.js", "21-ui.js", "22-sound.js", "24-gear-rolls.js", "25-events.js", "26-cursed-gates.js", "27-status-effects.js", "28-history.js", "29-bag-tools.js", "30-doors.js", "31-gear-sets.js", "32-skill-upgrades.js", "33-minion-commands.js", "34-story.js", "35-music-display-save-files.js", "36-town-buildings.js", "37-bounty-board.js", "38-elite-affixes.js", "39-boss-phases.js", "40-minion-fusion.js", "41-salvage-and-enchanting.js", "42-codex.js", "43-icons.js", "44-screens.js", "45-item-locks-and-army-care.js", "46-feel.js", "47-safety.js", "48-late-game-backups-previews.js", "49-play-test-fixes.js", "50-difficulty-and-secrets.js", "51-measured-tuning.js", "52-help-records-blessings.js", "53-omens-search-hints.js", "54-lore.js", "55-raids-rift-and-tuning.js", "56-first-hour.js", "57-battle-effects.js", "58-bestiary-mastery.js", "59-reserve.js", "60-sieges.js", "61-memorial.js", "62-loadouts.js", "63-rival.js", "64-trials.js", "99-playthrough.js"];
 window.LOTD_T={test,ok,eq,near,finite,fmt,BAD_TEXT,cleanHTML,mulberry32,seed,fix,seq,H,fresh,setLvl,foe,arena,mkMinion,corpse,raiseScene,wear,give,canon,firstDiff,renderAll,TABS,richState,invariants,NODE,bossFight,earn,eventScene,cursedRun,wonRoom,master,board,cdx};
 
 // =====================================================================================================

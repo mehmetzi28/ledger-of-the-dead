@@ -1,10 +1,11 @@
 // ----- player-derived stats
 const pMax = ()=>Math.round((24+A('constitution')*6+S.player.lvl*4+G('hp'))*(S.player.debuff?1-QUEST_DEBUFF:1)*(1+.06*sk('bonearmor')+(hasMod('bonearmor','a')?.06:0))*(1+xb('hpp')/100));
-const pMana = ()=>Math.round((20+A('intelligence')*5+A('will')*3+G('mana'))*(1+xb('manap')/100)*(1+.05*bl('altar')));
+const pMana = ()=>Math.round((20+A('intelligence')*5+A('will')*3+G('mana'))*(1+xb('manap')/100)*(1+B_ALT_MANA*bl('altar')));
 const pAtk = ()=>Math.round(3+A('strength')*1.5+S.player.lvl+G('atk'));
 const pSiph = ()=>Math.round(6+A('intelligence')*2+S.player.lvl+G('siph'));
 const pWard = ()=>Math.round((10+A('intelligence')*2+S.player.lvl*1.5+G('ward'))*(hasMod('bonearmor','b')?1.3:1));
 const ARMY_CAP=12;
+const RESERVE_BASE=6, RESERVE_CRYPT=2;   // the Reserve: a bench of places beside the army, +2 per Crypt level
 const slots = ()=>Math.min(ARMY_CAP+bl('crypt'),1+Math.floor(A('will')*2/5)+Math.floor(S.player.lvl/4)+G('slot')+bl('crypt'));   // one per 2.5 Will and one per 4 levels
 const pRankI = ()=>{const l=S.player.lvl;return l<4?0:l<8?1:l<12?2:l<17?3:l<23?4:5};
 
@@ -29,11 +30,11 @@ function syncMinion(m){
   const s=m.tw?towerStats(m.tw,m.lvl,m.hf,m.af,m.boss,m.elite):mobStats(m.rankI,m.lvl,m.hf,m.af,m.boss,m.elite);
   const gg=gearBonus(m);
   const b=(1+.02*A('will'))*(1+(G('mpow')+gg.mpow+6*sk('gravepact')+(hasMod('gravepact','a')?6:0))/100);
-  const nh=Math.round((s.hp*b*stageMul(m,'hp')+gg.hp)*(hasTrait(m,'thick')?1.25:1)), na=Math.round((s.atk*b*stageMul(m,'atk')+gg.atk)*(hasTrait(m,'vicious')?1.2:1));
+  const nh=Math.round((s.hp*b*stageMul(m,'hp')+gg.hp)*(hasTrait(m,'thick')?1.25:1)*siegeHpMul(m)*(remembered()?1+MEM_HP:1)), na=Math.round((s.atk*b*stageMul(m,'atk')+gg.atk)*(hasTrait(m,'vicious')?1.2:1));
   if(m.maxHp!=null && nh>m.maxHp) m.hp+=nh-m.maxHp;
   m.maxHp=nh; m.atk=na; m.hp=Math.min(m.hp,m.maxHp);
 }
-const syncArmy = ()=>S.army.forEach(syncMinion);
+const syncArmy = ()=>{ S.army.forEach(syncMinion); (S.reserve||[]).forEach(syncMinion); (S.waiting||[]).forEach(syncMinion); };   // benched and waiting minions keep up with Will and gear too
 
 const MOMENTS=[];   // banners for big moments; render() shows them once, then clears them
 function moment(t,c){ MOMENTS.push({t,c:c||'ok'}); if(MOMENTS.length>3) MOMENTS.shift(); }
@@ -44,7 +45,8 @@ function freshState(){
   return {v:2,day:1,watches:WATCHES,uid:0,mode:'town',run:null,notices:[],runs:0,kills:{},tower:{best:0,got:{}},inv:[],equip:{weapon:null,armor:null,relic:null},
      player:{id:'p',name:'You',lvl:1,xp:0,pts:3,hp:0,mana:0,shield:0,debuff:false,stats:{strength:4,constitution:4,intelligence:4,will:4},sp:0,skills:{},skMod:{}},
      army:[],quest:{kills:0,rooms:0,clears:0,claimed:false},gold:0,trophies:{},belt:{hp:0,mp:0},shop:null,bagLv:0,salts:0,tips:{},ngp:0,firstRaise:1,
-     mod:null,hist:[],story:{},life:Object.fromEntries(LIFE_KEYS.map(k=>[k,0])),build:{},dust:0,bounty:null,heat:{},heatMax:{},raids:[],raidLog:[],rift:{best:0}};
+     mod:null,hist:[],story:{},life:Object.fromEntries(LIFE_KEYS.map(k=>[k,0])),build:{},dust:0,bounty:null,heat:{},heatMax:{},raids:[],raidOrders:[],raidLog:[],rift:{best:0},siege:{next:0,pending:false,dmg:null,warned:0},reserve:[],waiting:[],
+     memorial:[],honor:null,loadouts:[{n:'',s:null},{n:'',s:null},{n:'',s:null}],rival:rivalDef(),trials:trialDef()};
 }
 const OPEN_HELP={on:false};   // a brand-new game opens on the Gates tab, with a link to How to play at the top
 function newGame(){
@@ -57,7 +59,7 @@ const canNGP=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]);
 const ownedUniques=()=>[...new Set(S.inv.concat(Object.values(S.equip)).filter(it=>it&&ITEM[it.id]&&ITEM[it.id].uq).map(it=>it.id))];
 function startNGP(carry){
   if(S.mode!=='town'||!canNGP()) return false;
-  const own=ownedUniques(), keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},ngp:(S.ngp||0)+1};   // lifetime totals carry over too
+  const own=ownedUniques(), keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1};   // lifetime totals carry over too
   newGame(); Object.assign(S,keep); S.ti.clr={};   // titles stay earned; New Game+ again needs another Throne of Ash clear
   S.notices=[]; if(carry&&own.includes(carry)) addItem(carry,null); unlockStory('ngp');
   notify('New Game+ '+S.ngp+' begins. Foes have '+Math.round(NGP_FOE*S.ngp*100)+'% more HP and attack, and pay '+Math.round(NGP_REWARD*S.ngp*100)+'% more XP and gold.'+(carry&&own.includes(carry)?' '+ITEM[carry].name+' is in your bag.':''),'ok');
@@ -68,8 +70,8 @@ function startNGP(carry){
 function snapshot(){
   if(S.mode==='town') return S;
   const c=JSON.parse(JSON.stringify(S));
-  if(S.run) recordRun(c,S.run,runResult(S.run));
-  c.mode='town'; c.run=null; c.player.hp=pMax(); c.player.mana=pMana(); c.player.shield=0; delete c.player.dots; c.army.forEach(m=>{ m.hp=m.maxHp; delete m.dots; });
+  if(S.run&&!S.run.siege) recordRun(c,S.run,runResult(S.run));   // a siege in progress is not a run: it stays pending and starts again
+  c.army=c.army.filter(m=>!m.thrall); c.mode='town'; c.run=null; c.player.hp=pMax(); c.player.mana=pMana(); c.player.shield=0; delete c.player.dots; c.army.forEach(m=>{ m.hp=m.maxHp; delete m.dots; });
   return c;
 }
 // TAB guards against two open tabs overwriting each other: when another tab saves, this one stops saving until you reload.
@@ -115,15 +117,19 @@ function normalizeSave(src){
   for(const sl of GEAR_SLOTS) if(!okItem(g.equip[sl])) g.equip[sl]=null;
   const RA=Array.isArray(g.raids)?g.raids.filter(x=>obj(x)&&RK[x.di]&&Array.isArray(x.units)):[];   // squads out raiding: repaired with the army, then split back out
   RA.forEach((x,i)=>x.units.forEach(m=>{ if(obj(m)){ m._raid=i; g.army.push(m); } }));
-  g.army=g.army.filter(m=>m&&typeof m==='object'&&ROLES[m.role]&&typeof m.lvl==='number'&&(m.tw||RK[m.rankI]));
+  for(const k of ['reserve','waiting']) (Array.isArray(g[k])?g[k]:[]).forEach(m=>{ if(obj(m)){ m._raid=k; g.army.push(m); } });   // the Reserve and minions waiting at the gate: repaired the same way, never trimmed
+  g.army=g.army.filter(m=>m&&typeof m==='object'&&!m.thrall&&ROLES[m.role]&&typeof m.lvl==='number'&&(m.tw||RK[m.rankI]));
   for(const m of g.army){ m.hf=num(m.hf,1); m.af=num(m.af,1); m.xp=num(m.xp,0); m.hp=num(m.hp,1); m.nick=cleanNick(m.nick)||'Nameless'; if('fused' in m) m.fused=clamp(Math.floor(num(+m.fused,0)),0,FUSE_MAX); m.kind=m.kind||m.name;
     m.traits=Array.isArray(m.traits)?m.traits.filter(t=>TRAITS[t]&&(t!=='commander'||canLead(m))):[]; m.stage=clamp(Math.floor(num(m.stage,0)),0,STAGE_MAX); m.lvl0=num(m.lvl0,m.lvl);   // minions from before traits keep no trait
     if(m.armed){ m.eq=obj(m.eq)?m.eq:{}; for(const sl of GEAR_SLOTS) if(!okItem(m.eq[sl])) m.eq[sl]=null; } }
   let top=num(g.uid,0);   // next id must stay above every id in use, or two items/minions would share one
   g.inv.concat(Object.values(g.equip),...g.army.map(m=>m.eq?Object.values(m.eq):[])).forEach(it=>{ if(it) top=Math.max(top,it.u); });
   g.army.forEach(m=>{ top=Math.max(top,num(m.uid,0)); }); g.army.forEach(m=>{ if(typeof m.uid!=='number') m.uid=++top; });
-  g.raids=RA.map((x,i)=>({di:x.di,day:Math.floor(num(x.day,g.day)),units:g.army.filter(m=>m._raid===i)})).filter(x=>x.units.length);
-  g.army=g.army.filter(m=>m._raid==null); g.raids.forEach(x=>x.units.forEach(m=>{ delete m._raid; }));
+  g.raids=RA.map((x,i)=>Object.assign({di:x.di,day:Math.floor(num(x.day,g.day)),units:g.army.filter(m=>m._raid===i)},Array.isArray(x.res)?{res:x.res.filter(u=>typeof u==='number')}:{},typeof x.odds==='number'&&isFinite(x.odds)?{odds:clamp(x.odds,RAID_MIN,RAID_MAX)}:{})).filter(x=>x.units.length);
+  for(const k of ['reserve','waiting']) g[k]=g.army.filter(m=>m._raid===k);
+  g.army=g.army.filter(m=>m._raid==null); g.raids.forEach(x=>x.units.forEach(m=>{ delete m._raid; })); g.reserve.concat(g.waiting).forEach(m=>{ delete m._raid; });
+  const pint=v=>typeof v==='number'&&isFinite(v);   // tonight's raid orders: uids only (the squad stays in the army until nightfall)
+  g.raidOrders=Array.isArray(g.raidOrders)?g.raidOrders.filter(o=>obj(o)&&RK[o.di]&&pint(o.cu)&&Array.isArray(o.uids)).map(o=>({di:o.di,day:Math.floor(num(o.day,g.day)),cu:o.cu,uids:o.uids.filter(pint).slice(0,12)})):[];
   g.raidLog=Array.isArray(g.raidLog)?g.raidLog.filter(x=>obj(x)&&RK[x.di]&&typeof x.nick==='string').slice(0,RAID_LOG).map(x=>({day:Math.floor(num(x.day,1)),di:x.di,won:!!x.won,nick:cleanNick(x.nick)||'Nameless',lost:Math.max(0,Math.floor(num(x.lost,0)))})):[];
   g.rift=obj(g.rift)?{best:Math.max(0,Math.floor(num(g.rift.best,0)))}:{best:0};
   g.uid=top; g.mode='town'; g.run=null;
@@ -131,12 +137,12 @@ function normalizeSave(src){
   const tr={}; if(obj(g.trophies)) for(const k in g.trophies){ const n=Math.floor(num(g.trophies[k],0)); if(TROPHY[k]&&n>0) tr[k]=n; } g.trophies=tr;
   const b=obj(g.belt)?g.belt:{}; g.belt={hp:clamp(Math.floor(num(b.hp,0)),0,BELT_MAX),mp:clamp(Math.floor(num(b.mp,0)),0,BELT_MAX)};
   g.tips=obj(g.tips)?g.tips:{}; g.ngp=Math.max(0,Math.floor(num(g.ngp,0)));
-  g.firstRaise=('firstRaise' in g)?(g.firstRaise?1:0):(g.army.length||g.raids.length||(obj(g.ti)&&g.ti.raised)||g.runs||(Array.isArray(g.hist)&&g.hist.length)||(obj(g.life)&&g.life.runs)||g.day>1||P.lvl>1||g.ngp?0:1);   // saves from before the sure first raise: any army, history or progress counts as having raised already
+  g.firstRaise=('firstRaise' in g)?(g.firstRaise?1:0):(g.army.length||g.raids.length||g.reserve.length||(obj(g.ti)&&g.ti.raised)||g.runs||(Array.isArray(g.hist)&&g.hist.length)||(obj(g.life)&&g.life.runs)||g.day>1||P.lvl>1||g.ngp?0:1);   // saves from before the sure first raise: any army, history or progress counts as having raised already
   g.bagLv=clamp(Math.floor(num(g.bagLv,0)),0,BAG_COST.length); g.salts=clamp(Math.floor(num(g.salts,0)),0,SALT_MAX);
   g.shop=(obj(g.shop)&&typeof g.shop.day==='number'&&Array.isArray(g.shop.stock)&&g.shop.stock.every(s=>s&&ITEM[s.id]))?g.shop:null;
   const fixRo=it=>{ if(!it) return; if(Array.isArray(it.ro)) it.ro=it.ro.filter(r=>Array.isArray(r)&&ROLL_KEYS[r[0]]&&typeof r[1]==='number'&&isFinite(r[1])&&r[1]>0).slice(0,3).map(r=>[r[0],Math.round(r[1])]);
     if(!Array.isArray(it.ro)||!it.ro.length||ITEM[it.id].uq) delete it.ro; if(it.lk!==true) delete it.lk; };
-  g.inv.concat(Object.values(g.equip),...g.army.map(m=>m.eq?Object.values(m.eq):[]),g.shop?g.shop.stock:[]).forEach(fixRo);
+  g.inv.concat(Object.values(g.equip),...g.army.concat(g.reserve,g.waiting,...g.raids.map(x=>x.units)).map(m=>m.eq?Object.values(m.eq):[]),g.shop?g.shop.stock:[]).forEach(fixRo);
   delete P.dots; g.army.forEach(m=>{ delete m.dots; });   // status effects only live inside a fight
   g.mod=(obj(g.mod)&&typeof g.mod.day==='number'&&typeof g.mod.gi==='number'&&(g.mod.gi<0||(MODS[g.mod.id]&&RK[g.mod.gi])))?{day:g.mod.day,gi:g.mod.gi,id:g.mod.gi<0?null:g.mod.id}:null;
   const so=obj(g.story)?g.story:{}; g.story={}; for(const k in so) if(STORY_BY[k]&&typeof so[k]==='number') g.story[k]=so[k];
@@ -155,8 +161,10 @@ function normalizeSave(src){
   if(g.omen!==undefined&&!(obj(g.omen)&&typeof g.omen.day==='number'&&(g.omen.id===null||OMENS[g.omen.id]))) delete g.omen;
   if(g.sbPity!==undefined){ if(!obj(g.sbPity)) delete g.sbPity; else for(const di of Object.keys(g.sbPity)){ const v=g.sbPity[di]; if(!RK[di]||typeof v!=='number'||!(v>=0)) delete g.sbPity[di]; else g.sbPity[di]=Math.min(1000,Math.floor(v)); } }
   for(const k of ['heat','heatMax']){ if(!obj(g[k])) g[k]={}; for(const di of Object.keys(g[k])){ const v=g[k][di]; if(!RK[di]||typeof v!=='number'||!(v>=0)) delete g[k][di]; else g[k][di]=Math.min(HEAT.length-1,Math.floor(v)); } }
+  { const q=obj(g.siege)?g.siege:{}; g.siege={next:Math.max(0,Math.floor(num(q.next,0))),pending:!!q.pending,dmg:BUILD[q.dmg]&&g.build[q.dmg]>=1?q.dmg:null,warned:Math.max(0,Math.floor(num(q.warned,0)))}; }   // sieges: old saves get a first one scheduled on load (siegeTick)
   const okB=b=>obj(b)&&BOUNTIES[b.id]&&typeof b.n==='number'&&typeof b.base==='number'&&obj(b.rw)&&typeof b.claimed==='boolean';
   g.bounty=(obj(g.bounty)&&typeof g.bounty.day==='number'&&Array.isArray(g.bounty.list)&&g.bounty.list.every(okB))?g.bounty:null;
+  memorialFix(g); loadoutsFix(g); rivalFix(g); trialsFix(g);
   return g;
 }
 function validSave(g){ return !!normalizeSave(g); }
@@ -164,9 +172,10 @@ function validSave(g){ return !!normalizeSave(g); }
 function applyLoaded(g){
   S=g; syncArmy();
   const P=S.player; P.hp=P.hp>0?Math.min(P.hp,pMax()):pMax(); P.mana=clamp(P.mana,0,pMana());
-  S.army.forEach(m=>{ m.hp=clamp(m.hp,1,m.maxHp); });
-  if(!isFinite(pMax())||S.army.some(m=>!isFinite(m.maxHp)||!isFinite(m.atk))) throw new Error('bad numbers');
-  if(S.watches<=0) endDay();   // closed the tab after spending the last watch: the day ends as it would on leaving
+  S.army.forEach(m=>{ m.hp=clamp(m.hp,1,m.maxHp); }); benched().forEach(m=>{ m.hp=m.maxHp; });   // benched minions rest at full health
+  if(!isFinite(pMax())||S.army.concat(benched()).some(m=>!isFinite(m.maxHp)||!isFinite(m.atk))) throw new Error('bad numbers');
+  if(S.watches<=0) endDay();   // closed the tab after spending the last watch: the day ends as it would on leaving (a pending siege starts again)
+  else siegeTick();   /* the rival's schedule waits for dawn or a clear: loading never changes the game */
 }
 function slotRead(i){ try{ const r=localStorage.getItem(slotKey(i)); if(!r) return null; const g=JSON.parse(r); return validSave(g.data)?g:null; }catch(e){ return null; } }
 function slotWrite(i){ if(S.mode!=='town') return false; try{ S.savedAt=Date.now(); localStorage.setItem(slotKey(i),JSON.stringify({t:Date.now(),data:S})); return true; }catch(e){ return false; } }
@@ -330,6 +339,12 @@ TITLES.forEach(t=>{ if(!t.b) t.b=TITLE_BUFF[t.id]||{}; });
 const TBUFF_L={healp:['Healing received','%'],hpp:['Max HP','%'],manap:['Max mana','%'],dmgp:['Damage dealt','%'],drp:['Damage taken','%',-1],goldp:['Gold from kills','%'],xpp:['XP from kills','%']};
 const buffTxt=b=>Object.keys(b||{}).map(k=>{ const L=TBUFF_L[k]||STATL[k], neg=(b[k]<0)!==((L[2]||1)<0); return (neg?'&minus;':'+')+Math.abs(b[k])+L[1]+' '+L[0]; }).join(', ');   // a negative value (a debuff) reads with a minus
 const titleB=k=>{ const id=S&&S.ti&&S.ti.sel, t=id&&S.ti.got&&S.ti.got[id]&&TITLE[id]; return (t&&t.b[k])||0; };
+// The collection bonus: +1% gold from kills per TCOL_STEP titles earned, at most TCOL_MAX. Deliberately not combat power.
+// Read from the earned-titles record (S.ti.got), so it needs no save field and survives New Game+ with the titles.
+const TCOL_STEP=10, TCOL_MAX=10;
+const titlesGot=()=>S&&S.ti&&S.ti.got?TITLES.reduce((n,t)=>n+(S.ti.got[t.id]?1:0),0):0;
+const titleColB=n=>Math.min(TCOL_MAX,Math.floor((n==null?titlesGot():n)/TCOL_STEP));
+const titleColTxt=n=>{ const b=titleColB(n); return 'Collection: '+n+'/'+TITLES.length+' titles &middot; +'+b+'% gold from kills &middot; '+(b<TCOL_MAX?'next at '+(b+1)*TCOL_STEP:'full bonus'); };
 function wearTitle(id){   // wear or take off a title; HP and mana follow the change like gear
   const T=S.ti; if(S.mode==='battle'||!T||!T.got||!T.got[id]) return false;
   const P=S.player; vitals(()=>{ T.sel=T.sel===id?null:id; }); P.hp=Math.min(P.hp,pMax()); P.mana=Math.min(P.mana,pMana()); return true;
@@ -395,7 +410,12 @@ function claimQuest(){
   S.quest.claimed=true; S.player.pts+=QUEST_PTS; addXp(xp); S.ti=S.ti||{}; S.ti.claims=(S.ti.claims||0)+1;
   notify('Daily quest complete: +'+QUEST_PTS+' stat point'+(QUEST_PTS>1?'s':'')+' and +'+xp+' XP.','ok');
 }
-function endDay(){
+function endDay(){   // nightfall: tonight's raids march, then a siege if one is due, then the day closes at dawn
+  if(S.mode==='siege') return;
+  marchRaids(); if(siegeOpen()&&(sg().pending||siegeTonight())){ startSiege(); return; }
+  closeDay();
+}
+function closeDay(){
   const P=S.player; P.debuff=false;
   if(!S.quest.claimed){
     if(questDone()) claimQuest();
@@ -406,11 +426,13 @@ function endDay(){
       notify('Day '+S.day+' closed with the daily quest unfinished. Penalty: -'+loss+' XP, and max HP is cut by '+Math.round(QUEST_DEBUFF*100)+'% today.','bad');
     }
   }
-  S.day++; S.watches=WATCHES; S.quest={kills:0,rooms:0,clears:0,claimed:false};
-  const rr=resolveRaids();
+  const hon=remembered(); S.day++; S.watches=WATCHES; if(hon) syncArmy();   /* the Remembered buff ends at dawn */
+  S.quest={kills:0,rooms:0,clears:0,claimed:false};
+  const rr=resolveRaids(); placeWaiting();
   P.hp=pMax(); P.mana=pMana(); P.shield=0;
   S.army.forEach(m=>m.hp=m.maxHp);
   notify('Day '+S.day+' begins. You have '+WATCHES+' watches.'+raidDayLine(rr));
+  siegeTick(); rivalTick();
 }
 function restDay(){ if(S.mode!=='town') return; S.watches=0; endDay(); }
 

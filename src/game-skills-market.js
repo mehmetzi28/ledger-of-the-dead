@@ -100,7 +100,7 @@ const TROPHY={};                             // key -> {name, value, ico, rankI}
 const trophyKey=e=>e.boss?'b:'+e.base:(e.tw?'t:':'')+e.base;
 function killLoot(e,r){   // called once per kill, from checkDeaths
   const cursed=runMod()?MOD_GOLD:1;
-  const coin=Math.max(1,Math.round((1+e.lvl*.5)*(1+e.rankI*.5)*(e.boss?5:1)*(e.secret?SB_REWARD:1)*(e.elite?2:1)*rnd(.7,1.3)*ngpReward()*cursed*heatK('gold')*(roomKind()==='elite'?ELITE_GOLD:1)*(1+xb('goldp')/100)));
+  const coin=Math.max(1,Math.round((1+e.lvl*.5)*(1+e.rankI*.5)*(e.boss?5:1)*(e.secret?SB_REWARD:1)*(e.rival?RIVAL_GOLD:1)*(e.elite?2:1)*rnd(.7,1.3)*ngpReward()*cursed*heatK('gold')*(roomKind()==='elite'?ELITE_GOLD:1)*(1+xb('goldp')/100)));
   r.gold=(r.gold||0)+coin;
   const key=trophyKey(e); if(!TROPHY[key]) return;
   const n=(e.boss?1:e.elite?2:(Math.random()<.6?1:0))*cursed;
@@ -147,9 +147,9 @@ function buyStock(i){
 function sellTrophy(k,all){ const n=S.trophies[k]||0; if(!n||!TROPHY[k]||S.mode!=='town') return 0; const q=all?n:1; S.trophies[k]-=q; if(!S.trophies[k]) delete S.trophies[k]; const g=q*TROPHY[k].value; S.gold+=g; tally('soldTro',q); sfx('coin'); return g; }
 function sellAllTrophies(){ let g=0; for(const k of Object.keys(S.trophies)) g+=sellTrophy(k,true); return g; }
 // Gold sinks: the Bone Altar levels a minion up (never past the usual cap of your level + 2), bag upgrades add space, salts help raising.
-const empowerCost=m=>Math.round(mneed(m.lvl)*.6*(1-.1*bl('altar')));
+const empowerCost=m=>Math.round(mneed(m.lvl)*.6*(1-B_ALT_COST*bl('altar')));
 function empower(uid){
-  const m=S.army.find(x=>x.uid===uid); if(!m||S.mode!=='town'||m.lvl>=S.player.lvl+2) return false;
+  const m=findMinion(uid); if(!m||S.mode!=='town'||m.lvl>=S.player.lvl+2) return false;
   const c=empowerCost(m); if(S.gold<c) return false;
   S.gold-=c; m.lvl++; m.xp=0; tally('emp'); checkEvolve(m); syncMinion(m); m.hp=m.maxHp; sfx('raise'); return true;
 }
@@ -220,45 +220,70 @@ function checkEvolve(m){
 }
 
 // ===== COMMANDER RAIDS =====
-// A Commander (a raised elite or boss with that trait) leads a squad against a gate you have cleared, on Normal, while you
-// hunt elsewhere. The squad is away until dawn: it still fills its slots. Win: gold, up to three pieces of gear (never a
-// unique) and XP for every member. Loss: each follower may fall (Grave-bound never do); the Commander always comes home.
-const RAID_SQUAD=2, RAID_K=.6, RAID_MIN=.05, RAID_MAX=.95, RAID_GOLD=3, RAID_XP=.5, RAID_LOSS=.3, RAID_LOG=6;
+// A Commander (a raised elite or boss with that trait) leads a squad against a gate you have cleared, on Normal. A raid
+// ordered on the War table is a standing order for tonight: the squad fights the rest of the day's runs with you and marches
+// when the day ends (last watch or Rest until dawn); odds are taken then, from the squad as it is. Survivors are home at dawn.
+// Win: gold, up to three pieces of gear (never a unique) and XP for every member. Loss: each follower may fall (Grave-bound
+// never do); the Commander always comes home. An order can be cancelled any time before nightfall, at no cost.
+// Raid pay, measured 2026-11-15 (full bot, raids on vs off, seeds 7700 and 9100): at 3x gold and half a level of minion XP raids cost
+// ~1.1 hero levels by day 100 while the squad left at once (it missed the day's last run and filled its slots). With the Reserve
+// (no slots then) it still cost ~0.8: the missed runs. Since raids march at nightfall that cost is gone; see RAID_GOLD/RAID_XP below.
+// Marching at nightfall, measured 2026-11-19 (full, raids on vs off at day 100): seed 7700 58.6 vs 59.1, seed 9100 58.9 vs 58.5, gates
+// within 4 points either way: even, inside the noise. Raids pay no hero XP, so pulling the pay back would only make them a loss; it stays.
+// 2026-11-19: with sieges the full bot on Normal (heat:0) reached 92-93% against a 91% guard rail. Lower siege pay alone left 92%;
+// raid pay back to 3x gold and half a level of XP brought it to 91% (default full 87%, gates 77-91%, sieges held 83%).
+const RAID_SQUAD=2, RAID_K=.6, RAID_MIN=.05, RAID_MAX=.95, RAID_GOLD=3, RAID_XP=.5, RAID_ITEM3=.5, RAID_LOSS=.3, RAID_LOG=6;
 const isCommander=m=>hasTrait(m,'commander')&&canLead(m);
 const raidN=()=>((S&&S.raids)||[]).reduce((a,x)=>a+x.units.length,0);
-const armyUsed=()=>S.army.length+raidN();
+const raidHeld=res=>((S&&S.raids)||[]).reduce((a,x)=>a+(Array.isArray(x.res)?x.units.filter(m=>x.res.includes(m.uid)===res).length:0),0);   // places marched raiders keep overnight: army places, or Reserve places (res)
+const armyUsed=()=>S.army.filter(m=>!m.thrall).length+raidHeld(false);   /* a siege thrall holds no slot */   // raiders march at nightfall and keep their places overnight, so a siege raise cannot fill them; at dawn they step back in
+const raidPool=()=>S.army.concat(S.reserve||[]);   // a squad may be picked from the army and the Reserve
 const squadMax=m=>1+RAID_SQUAD+(m.stage||0)+(m.boss?1:0);   // the Commander and its followers
 const raidGates=()=>DUNGEONS.map((D,i)=>i).filter(i=>S.ti&&S.ti.clr&&S.ti.clr[i]);
 function gateThreat(di){ const lv=RK[di].lv+2, f=mobStats(di,lv,1,1,false,false), b=mobStats(di,lv+2,1,1,true,false); return {hp:f.hp*13+b.hp,atk:f.atk*3+b.atk*.5}; }
-function bestSquad(){ const c=S.army.filter(isCommander).sort((a,b)=>b.atk*b.maxHp-a.atk*a.maxHp)[0]; if(!c) return null;
-  return [c].concat(S.army.filter(m=>m!==c).sort((a,b)=>b.atk*b.maxHp-a.atk*a.maxHp).slice(0,squadMax(c)-1)); }   // what a gate card's raid odds assume
+function bestSquad(){ const P=raidPool(), c=P.filter(isCommander).sort((a,b)=>b.atk*b.maxHp-a.atk*a.maxHp)[0]; if(!c) return null;
+  return [c].concat(P.filter(m=>m!==c).sort((a,b)=>b.atk*b.maxHp-a.atk*a.maxHp).slice(0,squadMax(c)-1)); }   // what a gate card's raid odds assume
 function raidOdds(units,di){
   if(!units.length||!RK[di]) return 0; const T=gateThreat(di); let atk=0,hp=0; for(const m of units){ atk+=m.atk; hp+=m.maxHp; }
   const c=units.find(isCommander), lead=c?1+.1*(c.stage||0)+(c.boss?.15:0):1, x=Math.sqrt(atk*hp/(T.hp*T.atk))*lead/RAID_K;   // the squad's strength against the gate's, like for like
   return clamp(x/(1+x),RAID_MIN,RAID_MAX);
 }
-function sendRaid(cu,di,uids){
-  if(S.mode!=='town') return false; const c=S.army.find(m=>m.uid===cu); if(!isCommander(c)||!raidGates().includes(di)) return false;
-  const fol=[...new Set(uids||[])].map(u=>S.army.find(m=>m.uid===u&&m!==c)); if(fol.some(m=>!m)||!fol.length||fol.length>squadMax(c)-1) return false;   // a Commander never marches alone
-  const units=[c].concat(fol); S.army=S.army.filter(m=>!units.includes(m)); S.raids=S.raids||[]; S.raids.push({di,day:S.day,units}); tally('raidsSent'); sfx('raise'); return true;
+const raidOrders=()=>(S&&S.raidOrders)||[];
+const inOrder=m=>raidOrders().some(o=>o.cu===m.uid||o.uids.includes(m.uid));   // already promised to tonight's march
+const orderSquad=o=>{ const P=raidPool(), c=P.find(m=>m.uid===o.cu); return c?[c].concat(o.uids.map(u=>P.find(m=>m.uid===u&&m!==c)).filter(Boolean)):[]; };   // who would march now: the shattered and released are simply gone
+function sendRaid(cu,di,uids){   // order a raid for tonight: nobody leaves until the day ends
+  if(S.mode!=='town') return false; const P=raidPool(), c=P.find(m=>m.uid===cu); if(!isCommander(c)||!raidGates().includes(di)||inOrder(c)) return false;
+  const fol=[...new Set(uids||[])].map(u=>P.find(m=>m.uid===u&&m!==c)); if(fol.some(m=>!m||inOrder(m))||!fol.length||fol.length>squadMax(c)-1) return false;   // a Commander never marches alone
+  S.raidOrders=raidOrders().concat([{di,day:S.day,cu:c.uid,uids:fol.map(m=>m.uid)}]); tally('raidsSent'); sfx('raise'); return true;
 }
-function recallRaid(i){ if(S.mode!=='town'||!S.raids||!S.raids[i]) return false; const x=S.raids.splice(i,1)[0]; x.units.forEach(syncMinion); S.army.push(...x.units); return true; }   // stats catch up with gear and Will changed while they were away
+function recallRaid(i){ if(S.mode!=='town'||!S.raidOrders||!S.raidOrders[i]) return false; S.raidOrders.splice(i,1); return true; }   // cancel tonight's order: free, any time before nightfall
+function marchRaids(){   // nightfall: every standing order marches with the squad as it now is
+  const os=raidOrders(); S.raidOrders=[];
+  for(const o of os){ const units=orderSquad(o), c=units[0];
+    if(!c||!isCommander(c)||!raidGates().includes(o.di)){ notify('Tonight\'s raid on the '+DUNGEONS[o.di].name+' lapses: its Commander is gone.','bad'); continue; }
+    if(units.length<2){ notify('Tonight\'s raid on the '+DUNGEONS[o.di].name+' lapses: '+c.nick+' has no one left to lead.','bad'); continue; }
+    const res=units.filter(m=>inReserve(m)).map(m=>m.uid);   // where each marched from: its place waits for it
+    S.army=S.army.filter(m=>!units.includes(m)); if(S.reserve) S.reserve=S.reserve.filter(m=>!units.includes(m)); units.forEach(m=>{ m.hp=m.maxHp; delete m.dots; });
+    S.raids=(S.raids||[]).concat([{di:o.di,day:S.day,units,res,odds:raidOdds(units,o.di)}]); }
+}
 function resolveRaid(x){
-  const D=DUNGEONS[x.di], lead=x.units[0], won=Math.random()<raidOdds(x.units,x.di); let msg, lost=[];
+  const D=DUNGEONS[x.di], lead=x.units[0], won=Math.random()<(typeof x.odds==='number'?x.odds:raidOdds(x.units,x.di));   /* odds as they marched */ let msg, lost=[];
   if(won){
     const g=Math.round((15+S.player.lvl*4)*(1+x.di)*RAID_GOLD*ngpReward()); S.gold+=g; let items=0, full=0;
-    for(let i=0;i<3;i++){ if(i===2&&Math.random()<.5) break; const id=pickNorm(tableFor(x.di,'vanguard',i===0,false).filter(r=>!ITEM[r.id].uq)); if(addItem(id)) items++; else full++; }
+    for(let i=0;i<3;i++){ if(i===2&&Math.random()>=RAID_ITEM3) break; const id=pickNorm(tableFor(x.di,'vanguard',i===0,false).filter(r=>!ITEM[r.id].uq)); if(addItem(id)) items++; else full++; }
     x.units.forEach(m=>minionXp(m,Math.round(mneed(m.lvl)*RAID_XP))); tally('raidWins');
     msg=lead.nick+' is back from the '+D.name+' in triumph: +'+g+' gold'+(items?', '+items+' piece'+(items>1?'s':'')+' of gear':'')+(full?' ('+full+' left behind: your bag is full)':'')+'.';
   } else {
-    x.units.forEach((m,i)=>{ if(i>0&&!hasTrait(m,'gravebound')&&Math.random()<RAID_LOSS){ lost.push(m); returnGear(m); } });
+    x.units.forEach((m,i)=>{ if(i>0&&!hasTrait(m,'gravebound')&&Math.random()<RAID_LOSS){ lost.push(m); returnGear(m); memorialize(m,{raid:x.di}); } });
     x.units=x.units.filter(m=>!lost.includes(m)); x.units.forEach(m=>minionXp(m,Math.round(mneed(m.lvl)*RAID_XP*.25)));
     msg=lead.nick+'\'s raid on the '+D.name+' was thrown back'+(lost.length?'. Fallen: '+lost.map(m=>m.nick).join(', '):'. Everyone made it home')+'.';
   }
-  x.units.forEach(syncMinion); S.army.push(...x.units); notify(msg,won?'ok':'bad');
+  msg+=homeLine(x.units.map(m=>placeMinion(m,Array.isArray(x.res)&&x.res.includes(m.uid)))); /* back to the place each left */ notify(msg,won?'ok':'bad');
   S.raidLog=[{day:S.day,di:x.di,won,nick:lead.nick,lost:lost.length}].concat(S.raidLog||[]).slice(0,RAID_LOG);
   return {won,lost:lost.length};
 }
+const homeLine=w=>{ const r=w.filter(x=>x==='reserve').length, g=w.filter(x=>x==='gate').length;   // where homecomers went when the army was full
+  return (r?' '+r+' went to the Reserve: your army is full.':'')+(g?' '+g+' wait at the gate: your army and Reserve are full.':''); };
 function resolveRaids(){ const out=S.raids||[]; S.raids=[]; return out.map(resolveRaid); }
 function raidDayLine(rr){ if(!rr||!rr.length) return ''; const w=rr.filter(x=>x.won).length, b=rr.length-w, f=rr.reduce((a,x)=>a+x.lost,0);   // one line for the new-day message
   return ' Raids: '+[w?w+' won':'',b?b+' thrown back':'',f?f+' fallen':''].filter(Boolean).join(', ')+'.'; }
@@ -319,9 +344,11 @@ const TIPS=[
   {id:'bounty', t:'A bounty is done', m:'You finished a contract on the bounty board in the side panel. Claim it in town before dawn.', when:()=>S.mode==='town'&&S.bounty&&S.bounty.day===S.day&&S.bounty.list.some(b=>!b.claimed&&bountyDone(b))},
   {id:'salvage',t:'Salvage and enchant', m:'Gear you will not wear can be salvaged into bone dust on the Gear tab. Dust enchants gear (add or re-roll a bonus line) and builds the higher levels of town buildings.', when:()=>S.mode==='town'&&ui.tab==='gear'&&S.inv.length>=6&&workOpen()},
   {id:'townopen',t:'The town opens', m:'A Town tab has appeared: build up the necropolis and fuse minions in the Flesh Pit. A bounty board in the side panel now posts three contracts every dawn.', when:()=>S.mode==='town'&&townOpen()},
+  {id:'reserve',t:'The Reserve', m:'Your army list now has a Reserve below it: a bench for minions you want to keep but not take along. Benched minions do not fight or grow. Moving one in or out is free, in town. When your army is full, a raised body can go straight to the Reserve.', when:()=>S.mode==='town'&&reserveOpen()},
   {id:'faith',  t:'The Old Shrine', m:'At level 8 the Old Shrine on the Town tab takes an oath: Honored One or Dishonored One. Each path gives a bonus and takes something in return.', when:()=>S.mode==='town'&&townOpen()&&S.player.lvl>=FAITH_LV&&!faithOf()},
   {id:'ult',    t:'Your ultimate awaits', m:'At level 20 you can choose an ultimate on the Skills tab. Soul Siphon, elites and bosses give Souls; with five, press R in battle to unleash it.', when:()=>S.mode==='town'&&S.player.lvl>=ULT_LV&&!S.player.ult},
-  {id:'raid',   t:'A Commander', m:'One of your minions can lead. Open the War table under the Gates tab to send it and a squad against a gate you have cleared. They come back at dawn.', when:()=>S.mode==='town'&&S.army.some(isCommander)},
+  {id:'siege',  t:'A siege is coming', m:'The living march on the necropolis tomorrow at dusk. When the day ends you defend it in three waves. Each building lends a perk (Town tab), and a raid ordered for tonight marches before they come. Hold, and the town pays; fall, and a building burns until you repair it.', when:()=>S.mode==='town'&&siegeWarned()},
+  {id:'raid',   t:'A Commander', m:'One of your minions can lead. Open the War table under the Gates tab to order it and a squad against a gate you have cleared. They fight beside you until nightfall, march when the day ends and come back at dawn.', when:()=>S.mode==='town'&&raidPool().some(isCommander)},
   {id:'rift',   t:'The Rift', m:'The Rift is open, under the Gates tab. Every depth is harder than the last, and there is no bottom.', when:()=>S.mode==='town'&&riftOpen()},
   {id:'heat',   t:'Harder gates', m:'You have cleared a gate, so its card now offers Hard difficulty: stronger foes for more XP, gold and gear. Clear each level to open the next. On a cursed day the two stack.', when:()=>S.mode==='town'&&!T_('heat1')&&DUNGEONS.some((D,i)=>heatMax(i)>0)},
   {id:'bless',  t:'Full devotion', m:'You have kept your oath long enough: its blessing is now active. The Old Shrine on the Town tab shows what it does.', when:()=>S.mode==='town'&&!!faithOf()&&blessed(faithOf())},

@@ -14,14 +14,26 @@ test('Commanders: only elites and bosses lead; raises, evolutions, fusion and sa
   eq(g.army[0].traits.join(),'vicious'); eq(g.army[1].traits.join(),'commander');
 });
 
-test('Raids: a Commander takes followers to a cleared gate; they are away (still in their slots) until dawn',()=>{
+test('Raids: a Commander orders a raid for tonight; the squad fights on all day, marches at nightfall and keeps its places while away',()=>{
   setLvl(20); S.ti=S.ti||{}; S.ti.clr={0:1,1:1}; const c=cmdr(), a=mkMinion({lvl:12}), b=mkMinion({lvl:12}), d=mkMinion({lvl:12});
   ok(!sendRaid(c.uid,3,[a.uid]),'never an uncleared gate'); ok(!sendRaid(c.uid,1,[]),'never alone'); ok(!sendRaid(a.uid,1,[b.uid]),'only a Commander leads');
   ok(!sendRaid(c.uid,1,[a.uid,b.uid,d.uid]),'squad size: '+(squadMax(c)-1)+' followers for a base-form elite');
-  const used=armyUsed(); ok(sendRaid(c.uid,1,[a.uid,b.uid])); eq(S.army.length,1); eq(armyUsed(),used,'raiders keep their slots'); eq(raidN(),3);
-  ui.tab='gates'; ok(/data-k="war"/.test(renderAll('sub-tabs')),'War table sub-tab'); ok(!/h-raid/.test(renderAll('gates only')),'not on the gates list'); ACTIONS.gsub('war'); const h=renderAll('war table'); ok(/War table/.test(h)&&/back at dawn/.test(h)&&/raiding/.test(h)); ok(new RegExp(Math.round(raidOdds(S.raids[0].units,1)*100)+'% odds').test(h)&&!/ 0% odds/.test(h),'odds shown as a percent');
-  vitals(()=>{ S.player.stats.will+=20; }); ok(recallRaid(0)); eq(S.army.length,4); eq(raidN(),0); invariants('recalled after Will changed (bug found by the fuzzer)');
+  ok(sendRaid(c.uid,1,[a.uid,b.uid])); eq(S.army.length,4,'nobody leaves before nightfall'); eq(raidN(),0); eq(S.raidOrders.length,1);
+  ok(!sendRaid(c.uid,0,[d.uid]),'one squad per Commander'); const c2=cmdr(); ok(!sendRaid(c2.uid,0,[a.uid]),'a promised follower cannot march twice'); S.army=S.army.filter(m=>m!==c2);
+  ui.tab='gates'; ok(/data-k="war"/.test(renderAll('sub-tabs')),'War table sub-tab'); ok(!/h-raid/.test(renderAll('gates only')),'not on the gates list'); ACTIONS.gsub('war'); const h=renderAll('war table');
+  ok(/War table/.test(h)&&/tonight/.test(h)&&/marches at nightfall/.test(h)&&/data-a="recall"/.test(h)&&/Cancel/.test(h)); ok(new RegExp(Math.round(raidOdds(orderSquad(S.raidOrders[0]),1)*100)+'% odds now').test(h)&&!/ 0% odds/.test(h),'odds shown as a percent');
+  vitals(()=>{ S.player.stats.will+=20; }); ok(recallRaid(0)); eq(S.raidOrders.length,0); eq(S.army.length,4,'cancelled at no cost'); invariants('cancelled after Will changed');
+  ok(sendRaid(c.uid,1,[a.uid,b.uid])); const used=armyUsed(); marchRaids(); eq(S.army.length,1); eq(armyUsed(),used,'raiders keep their army places while away'); eq(raidN(),3); eq(S.raidOrders.length,0); ok(S.raids[0].odds>0,'odds taken as they march');
+  S.raids=[]; S.army.push(c,a,b);
+  ok(sendRaid(c.uid,1,[a.uid,b.uid])); release(a.uid); marchRaids(); eq(S.raids[0].units.length,2,'a released follower is simply not in the squad'); S.army.push(...S.raids[0].units); S.raids=[];
+  ok(sendRaid(c.uid,1,[b.uid])); S.army=S.army.filter(m=>m!==c); S.notices=[]; marchRaids(); eq(S.raids.length,0,'no Commander: the order lapses'); ok(/lapses/.test(S.notices[0].m)); ok(S.army.includes(b),'the follower stays home');
   const big=mkMinion({boss:true,traits:['commander'],stage:2,lvl:12}); eq(squadMax(big),1+RAID_SQUAD+2+1);
+});
+
+test('Raids: the squad fights the rest of the day; the day ending (last watch or Rest until dawn) sends it, and it is home at dawn',()=>{
+  setLvl(20); S.ti=S.ti||{}; S.ti.clr={0:1}; const c=cmdr({lvl:10,rankI:0}), a=mkMinion({lvl:10}); S.watches=1; ok(sendRaid(c.uid,0,[a.uid]));
+  startRun(0); ok(S.army.includes(c)&&S.army.includes(a),'still fighting with you'); fix(0); flee(); eq(S.day>1||S.raidLog.length>0,true); eq(S.raidLog.length,1,'marched when the last watch ended the day'); eq(S.raidOrders.length,0); ok(S.army.includes(c),'home at dawn');
+  ok(sendRaid(c.uid,0,[a.uid])); S.mode='town'; restDay(); eq(S.raidLog.length,2,'Rest until dawn marches it too');
 });
 
 test('Raids: odds grow with the squad and its Commander; a win pays gold, gear and XP, a loss can cost followers',()=>{
@@ -39,9 +51,21 @@ test('Raids: odds grow with the squad and its Commander; a win pays gold, gear a
   invariants('after raids');
 });
 
-test('Raids: squads survive a save and a reload; the War table shows the last raids',()=>{
+test('Raids: measured pay, 3x a gate\'s gold and half a level of XP, stated in the Codex',()=>{
+  eq([RAID_GOLD,RAID_XP,RAID_ITEM3,RAID_LOSS,RAID_K].join(),'3,0.5,0.5,0.3,0.6','rewards pulled back 2026-11-19 for the full heat:0 guard rail; odds and losses untouched');
+  setLvl(20); S.ti=S.ti||{}; S.ti.clr={2:1}; const c=cmdr(), f=mkMinion({lvl:12,rankI:2}); S.army=S.army.filter(m=>m!==c&&m!==f);
+  const need=mneed(f.lvl), xp0=f.xp, g0=S.gold, inv0=S.inv.length; fix(0); resolveRaid({di:2,day:S.day,units:[c,f]});
+  eq(S.gold-g0,Math.round((15+20*4)*3*RAID_GOLD*ngpReward())); eq(S.inv.length-inv0,3,'a roll under RAID_ITEM3 brings the third piece');
+  ok(f.lvl>12||f.xp-xp0===Math.round(need*RAID_XP),'half a level');
+  ok(/3x a gate's gold, two or three pieces of gear from its table \(never a unique\) and half of a level of XP/.test(cdx('raids')),'Codex');
+  eq(trText('3x a gate\'s gold, two or three pieces of gear from its table (never a unique) and half of a level of XP for each member.'),'Bir kapının altınının x3\'i, tablosundan iki ya da üç parça teçhizat (asla eşsiz değil) ve her üyeye yarım seviyelik TP.');
+});
+test('Raids: orders and marched squads survive a save and a reload; the War table shows the last raids',()=>{
   setLvl(20); S.ti=S.ti||{}; S.ti.clr={0:1}; const c=cmdr({lvl:10,rankI:0}), a=mkMinion({lvl:10}); ok(sendRaid(c.uid,0,[a.uid]));
-  const g=normalizeSave(JSON.parse(JSON.stringify(S))); eq(g.raids.length,1); eq(g.raids[0].units.length,2); eq(g.raids[0].units[0].nick,c.nick); eq(g.army.length,0);
+  const o=normalizeSave(JSON.parse(JSON.stringify(S))); eq(o.raidOrders.length,1); eq(o.raidOrders[0].cu,c.uid); eq(o.army.length,2,'an order keeps its squad in the army');
+  eq(normalizeSave(JSON.parse(JSON.stringify(Object.assign({},S,{raidOrders:[{di:99,cu:1,uids:[]},'x',{di:0}]})))).raidOrders.length,0,'bad orders dropped');
+  delete S.raidOrders; eq(normalizeSave(JSON.parse(JSON.stringify(S))).raidOrders.length,0,'old saves: no orders'); S.raidOrders=o.raidOrders; marchRaids();
+  const g=normalizeSave(JSON.parse(JSON.stringify(S))); eq(g.raids.length,1); eq(g.raids[0].units.length,2); eq(g.raids[0].units[0].nick,c.nick); eq(g.army.length,0); eq(g.raids[0].odds,S.raids[0].odds,'the odds they marched with');
   const ids=g.raids[0].units.map(m=>m.uid); ok(ids.every(u=>u<=g.uid),'ids stay below the counter');
   const bad=normalizeSave(JSON.parse(JSON.stringify(Object.assign({},S,{raids:[{di:99,units:[]},'x',{di:0,units:[{nope:1}]}]})))); eq(bad.raids.length,0);
   fix(0); endDay(); ui.tab='gates'; ui.gsub='war'; ok(/Last raids/.test(renderAll('raid log')));
@@ -106,6 +130,10 @@ test('Language: Turkish lays over the English text, numbers and names kept; unkn
   for(const t of TIERS) ok(/^Gizli bir /.test(trText('A hidden '+t.toLowerCase()+' title. Keep playing to discover it.')),'hidden '+t);
   eq(trText('When worn: −3% Damage taken'),'Giyilince: −%3 Alınan hasar','minus sign'); eq(trText('3: −5% Damage taken'),'3: −%5 Alınan hasar');
   eq(trText('costs −8% Damage dealt, −15% Gold from kills'),'bedeli: −%8 Verilen hasar, −%15 öldürmeden altın');
+  eq(trText('1 point to spend:'),'Harcanacak 1 puan:'); eq(trText('3 points to spend:'),'Harcanacak 3 puan:'); eq(trText('1 unspent point'),'1 harcanmamış puan'); eq(trText('4 unspent points'),'4 harcanmamış puan');
+  ok(trText('Equip it from your bag. Gear returns to the bag if it is released or shattered.')!=='Equip it from your bag. Gear returns to the bag if it is released or shattered.','gear-bearer hint');
+  eq(trText('Your devotion is complete.'),'Bağlılığın tamamlandı.'); eq(trText(' (3/3 worn) · '),' (3/3 giyili) · '); eq(trText('Ember Rite set (2/3 worn): '),'Ember Rite takımı (2/3 giyili): ');
+  eq(trText('devotion 3/3'),'bağlılık 3/3'); eq(trText('Renounce · '),'Vazgeç · '); eq(trText('Confirm: renounce for 120 gold'),'Onayla: 120 altına vazgeç');
   for(const [k,v] of TR_DICT) eq((k.match(/#/g)||[]).length,(v.match(/#/g)||[]).length,'numbers in '+k);
   ui.tab='settings'; const h=renderAll('settings'); ok(/data-k="lang\|tr"/.test(h)&&/Türkçe/.test(h)); ACTIONS.view('lang|tr'); eq(VIEW.lang,'tr'); ACTIONS.view('lang|xx'); eq(VIEW.lang,'tr'); ACTIONS.view('lang|en'); eq(VIEW.lang,'en');
 });

@@ -76,4 +76,22 @@ test('Titles: six rarities; rarer ones give bigger bonuses, and Epic and rarer s
   ui.tab='titles'; let h=renderAll('titles'); ok(!h.includes('Lord of the Abyss')&&!h.includes(TITLE.tw200.req),'hidden'); ok(/A hidden unique title/.test(h)); ok(h.includes('Ratcatcher'),'common ones show');
   S.ti.got.tw200=1; h=renderAll('earned'); ok(h.includes('Lord of the Abyss'),'revealed once earned'); ok(/t-rar t5">Unique/.test(h));
 });
+const earnN=n=>{ S.ti=S.ti||{}; S.ti.got={}; TITLES.slice(0,n).forEach(t=>S.ti.got[t.id]=1); S.ti.sel=null; };
+test('Titles collection: +1% gold from kills per 10 titles earned, capped at +10%, and nothing else',()=>{
+  eq(TITLES.length,122); const base=xb('goldp');
+  for(const [n,b] of [[0,0],[9,0],[10,1],[25,2],[99,9],[100,10],[122,10]]){ earnN(n); eq(titlesGot(),n); eq(titleColB(),b,n+' titles'); eq(xb('goldp'),base+b,'goldp at '+n); }
+  earnN(122); S.ti.got.nonsense=1; eq(titlesGot(),122,'unknown ids do not count'); for(const k of ['dmgp','hpp','drp','xpp','crit','mpow']) eq(xb(k),0,'no '+k);
+  earnN(0); eq(xb('dmgp'),0);
+});
+test('Titles collection: it adds to gold from a kill, survives New Game+, and the tab and Codex say so',()=>{
+  const coin=n=>{ earnN(n); arena([foe()]); const r=S.run; fix(.5); killLoot(foe({lvl:400,rankI:3}),r); return r.gold; };
+  const g0=coin(0), g10=coin(100); ok(g0>100,'a sizeable coin: '+g0); near(g10/g0,1.1,.01);
+  S.run=null; S.mode='town'; earnN(14); ui.tab='titles'; let h=renderAll('titles');
+  ok(h.includes('Collection: 14/122 titles &middot; +1% gold from kills &middot; next at 20'),'tab line'); ok(h.indexOf('tt-col')<h.indexOf('tt-filter'),'at the top');
+  earnN(122); ok(renderAll('all titles').includes('Collection: 122/122 titles &middot; +10% gold from kills &middot; full bonus'));
+  earnN(0); ok(renderAll('no titles').includes('Collection: 0/122 titles &middot; +0% gold from kills &middot; next at 10'));
+  earnN(25); ok(/Every 10 titles you have earned add 1% gold from kills, up to \+10%/.test(cdx('titles'))&&/Collection: 25\/122 titles &middot; \+2% gold from kills &middot; next at 30/.test(cdx('titles')),'Codex');
+  eq(trText('Collection: 14/122 titles · +1% gold from kills · next at 20'),'Koleksiyon: 14/122 unvan · +%1 öldürmeden altın · sonraki: 20'); ok(trText('full bonus')!=='full bonus');
+  S.ti.clr={5:1}; ok(startNGP()); eq(titlesGot(),25,'titles kept through New Game+'); eq(titleColB(),2);
+});
 })();

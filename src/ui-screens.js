@@ -1,4 +1,4 @@
-const LEDGER=[['lore','Lore'],['codex','Codex'],['bes','Bestiary'],['hist','History'],['rec','Records'],['help','How to play']];   // the Ledger tab's pages
+const LEDGER=[['lore','Lore'],['codex','Codex'],['bes','Bestiary'],['hist','History'],['rec','Records'],['mem','Memorial'],['help','How to play']];   // the Ledger tab's pages
 function spendStrip(){   // on narrow screens the stats sit far below: offer the + buttons up here while points are waiting
   const P=S.player; if(P.pts<=0&&!(P.sp>0)) return '';
   return '<div class="spend-strip">'+(P.pts>0?'<span>'+P.pts+' point'+(P.pts>1?'s':'')+' to spend:</span>'+[['strength','Strength'],['constitution','Constitution'],['intelligence','Intelligence'],['will','Will']].map(([k,n])=>'<button class="btn small" data-a="alloc" data-k="'+k+'" aria-label="Add a point to '+n+'">+ '+n+'</button>').join(''):'')
@@ -18,7 +18,7 @@ function townHTML(){
         +(t[0]==='ledger'?LEDGER.some(x=>x[0]===ui.tab):(ui.tab||'gates')===t[0])+'">'+t[1]+(i<9?'<kbd aria-hidden="true">'+(i+1)+'</kbd>':'')+'</button>').join('')
    +'<button class="tab keyhint" data-a="keys" aria-keyshortcuts="?" aria-label="Keyboard shortcuts" title="Keyboard shortcuts">?</button></div>';
   if(LEDGER.some(x=>x[0]===ui.tab)){ ui.ledger=ui.tab; h+='<div class="chips sub-nav" role="tablist">'+LEDGER.map(x=>'<button class="btn small'+(x[0]===ui.tab?' primary':'')+'" role="tab" data-a="tab" data-k="'+x[0]+'" aria-selected="'+(x[0]===ui.tab)+'">'+x[1]+'</button>').join('')+'</div>'; }
-  if(ui.tab==='gear') return h+bagHTML()+armyHTML();
+  if(ui.tab==='gear') return h+loadoutHTML()+bagHTML()+armyHTML();
   if(ui.tab==='bes') return h+bestiaryHTML();
   if(ui.tab==='skills') return h+skillsHTML();
   if(ui.tab==='market') return h+marketHTML();
@@ -29,27 +29,29 @@ function townHTML(){
   if(ui.tab==='help') return h+helpHTML();
   if(ui.tab==='hist') return h+histHTML();
   if(ui.tab==='rec') return h+recordsHTML();
+  if(ui.tab==='mem') return h+memorialHTML();
   if(ui.tab==='lore') return h+loreHTML();
   if(ui.tab==='codex') return h+codexHTML();
   const subs=gateSubs(), sub=subs.some(x=>x[0]===ui.gsub)?ui.gsub:'open';   // the Gates tab's own sub-tabs: the gates, the War table, the Rift
   if(subs.length>1) h+='<div class="chips sub-nav" role="tablist">'+subs.map(x=>'<button class="btn small'+(x[0]===sub?' primary':'')+'" role="tab" data-a="gsub" data-k="'+x[0]+'" aria-selected="'+(x[0]===sub)+'">'+x[1]+'</button>').join('')+'</div>';
   if(sub==='war') return h+raidHTML()+armyHTML();
   if(sub==='rift') return h+riftHTML()+armyHTML();
+  if(sub==='trial') return h+trialHTML()+armyHTML();
   h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'
    +((n=>n<FIRST_STEPS.length&&!(S.tips&&S.tips.off)?'<p class="q-note guide-link"><button class="linkbtn" data-a="tab" data-k="help">How to play &middot; first steps '+n+'/'+FIRST_STEPS.length+'</button></p>':'')(stepsDone()))   /* for a new player; gone once every step is done or tips are switched off */
-   +(omen()?'<div class="omen-line"><b>Omen today: '+OMENS[omen()].name+'.</b> '+OMENS[omen()].desc+' It touches every gate and the Tower until dawn.</div>':'')
+   +(omen()?'<div class="omen-line"><b>Omen today: '+OMENS[omen()].name+'.</b> '+OMENS[omen()].desc+' It touches every gate and the Tower until dawn.</div>':'')+rivalWarnHTML()
    +'<div class="gates">'+DUNGEONS.map((d,i)=>gateHTML(i)).join('')+'</div>'
    +'<div class="btns"><button class="btn small" data-a="rest">Rest until dawn</button></div></section>';
   return h+armyHTML();
 }
 function gateSubs(){
-  const out=S.raids||[], war=S.army.some(isCommander)||out.length||(S.raidLog||[]).length;
-  return [['open','Gates']].concat(war?[['war','War table'+(out.length?' &middot; '+out.length+' out':'')]]:[]).concat(S.ti&&S.ti.clr&&S.ti.clr[5]?[['rift','The Rift'+(riftOpen()?' &middot; next '+(riftBest()+1):' &middot; Lv '+RIFT_LV)]]:[]);
+  const out=raidOrders(), war=raidPool().some(isCommander)||out.length||(S.raidLog||[]).length;
+  return [['open','Gates']].concat(war?[['war','War table'+(out.length?' &middot; '+out.length+' tonight':'')]]:[]).concat(S.ti&&S.ti.clr&&S.ti.clr[5]?[['rift','The Rift'+(riftOpen()?' &middot; next '+(riftBest()+1):' &middot; Lv '+RIFT_LV)]]:[]).concat(trialOpen()?[['trial','Trial'+(tri().day===S.day?' &middot; tried today':'')]]:[]);
 }
 function nick(u){ return u.id==='p'?'You':u.nick||u.name; }
 function unitCard(u,side,mini){
   const r=S.run, isP=u.id==='p', max=isP?pMax():u.maxHp, f=r.fx[fxKey(u)]||{d:0,h:0}, dead=u.hp<=0;
-  const sel=side==='foe'&&r.target===u.id&&!dead;
+  const sel=side==='foe'&&r.target===u.id&&!dead, ch=side==='foe'&&!isP?chargeInfo(u):null;
   const tag=isP?'Necromancer':ROLES[u.role].label+(isArmed(u.base||u.name)?' &middot; Armed':'')+(u.boss?' &middot; Boss':'')
     +(u.elite?' &middot; Elite':'')+(u.abil&&!isP?' &middot; <span title="'+BOSS_ABIL[u.abil].desc+'">'+BOSS_ABIL[u.abil].name+'</span>':'')
     +(u.phase2&&!isP?' &middot; <span class="phase-t">Second phase</span>':'')
@@ -60,11 +62,11 @@ function unitCard(u,side,mini){
   const sub=side==='foe'?'Lv '+u.lvl+' &middot; ATK '+u.atk+(u.curse&&!dead?' &middot; <span class="bad">Cursed '+u.curse.t+'</span>':'')
     +(u.stun&&!dead?' &middot; <span class="ok">Frozen</span>':'')
     +(u.shield>0&&!dead?' &middot; <span class="sh-t">Shield '+u.shield+'</span>':'')
+    +(dead?'':masteryTag(u.base))
     +dots
-    +(u.charging&&!dead?'<span class="charge">Charging '+BOSS_ABIL[u.move||u.abil].name+'</span>':'')
     :(isP?'Lv '+u.lvl+' &middot; ATK '+pAtk():mName(u)+' &middot; Lv '+u.lvl+' &middot; ATK '+u.atk)
     +dots;
-  const inner=fx+'<div class="u-head">'+(isP?ico('Necromancer',pRankI(),{}):ico(u.base||u.kind||u.name,u.rankI,u))+'<div class="u-id"><div class="u-top">'+rk+'<span class="u-tag">'+tag+'</span></div>'
+  const inner=fx+(ch?'<div class="charge"><b>Charging: '+ch.name+'</b><span class="charge-h">'+ch.hint+'</span></div>':'')+'<div class="u-head">'+(isP?ico('Necromancer',pRankI(),{}):ico(u.base||u.kind||u.name,u.rankI,u))+'<div class="u-id"><div class="u-top">'+rk+'<span class="u-tag">'+tag+'</span></div>'
    +'<div class="u-name">'+(side==='foe'?u.name:nick(u))+'</div><div class="u-sub num">'+sub+'</div></div></div>'
    +'<div class="bar"><i class="fill hp" style="width:'+pct(u.hp,max)+'%"></i></div>'
    +'<div class="num u-hp">'+Math.max(0,u.hp)+'/'+max+(isP&&u.shield?' <span class="sh-t">+'+u.shield+' ward</span>':'')+'</div>'
@@ -73,7 +75,7 @@ function unitCard(u,side,mini){
     const m='<div class="u-head">'+ico(u.base||u.kind||u.name,u.rankI,u)+'<div class="u-id"><div class="u-name">'+nick(u)+'</div><div class="u-sub num">Lv '+u.lvl+' &middot; ATK '+u.atk+dots+'</div></div></div>'
       +'<div class="bar"><i class="fill hp" style="width:'+pct(u.hp,max)+'%"></i></div><div class="num u-hp">'+Math.max(0,u.hp)+'/'+max+'</div>';
     return '<div class="unit ally mini'+(dead?' dead':'')+(u.elite?' elite':'')+(f.d?' hit':'')+'" data-u="'+fxKey(u)+'" title="'+mName(u)+', '+ROLES[u.role].label+'">'+fx+m+'</div>'; }
-  const cls='unit '+side+(dead?' dead':'')+(sel?' sel':'')+(u.elite?' elite':'')+(f.d?' hit':'');
+  const cls='unit '+side+(dead?' dead':'')+(sel?' sel':'')+(ch?' charging':'')+(u.elite?' elite':'')+(f.d?' hit':'');
   return side==='foe'&&!dead?'<button class="'+cls+'" data-a="target" data-k="'+u.id+'" data-u="'+u.id+'" aria-pressed="'+sel+'">'+inner+'</button>':'<div class="'+cls+'" data-u="'+fxKey(u)+'">'+inner+'</div>';
 }
 const ORDER_KEYS={z:'vanguard',x:'striker',c:'mender',v:'reaper'}, ORDER_KEY=Object.fromEntries(Object.entries(ORDER_KEYS).map(([k,r])=>[r,k.toUpperCase()]));
@@ -83,38 +85,47 @@ function ultHTML(){   // Souls and the ultimate, from level 20
   return '<div class="btns ult-row"><span class="souls" aria-label="'+n+' of '+SOUL_MAX+' Souls">Souls '+pips+'</span>'
    +(U?'<button class="btn ult'+(canUlt()?' primary':'')+'" data-a="act" data-k="ult" title="'+U.desc+'"'+(canUlt()?'':' disabled')+'>'+U.name+'<kbd>R</kbd></button>':'<span class="u-sub">Choose an ultimate on the Skills tab.</span>')+'</div>';
 }
+const ANS_M='<span class="ans-m" aria-hidden="true" title="Answers the charge"></span>', ANS_S='<span class="sr-only">, answers the charge</span>';
+function chargeAns(){ const c=S.run&&S.mode==='battle'&&S.run.enemies.map(chargeInfo).find(Boolean); return c?c.ans:[]; }   // answer keys for the pending charge (none when nothing charges)
 function cmdHTML(){
-  const roles=Object.keys(CMDS).filter(k=>S.army.some(m=>m.role===k&&m.hp>0)); if(!roles.length) return '';
+  const roles=Object.keys(CMDS).filter(k=>S.army.some(m=>m.role===k&&m.hp>0)); if(!roles.length) return ''; const ans=chargeAns();
   return '<div class="btns cmds"><span class="cmd-l" title="Free, once a room">Orders:</span>'+roles.map(k=>{ const used=S.run.cmd&&S.run.cmd[k];
-    return '<button class="btn small" data-a="cmd" data-k="'+k+'" title="'+CMDS[k].desc+'"'+(used?' disabled':'')+'>'+CMDS[k].name+(used?' &middot; given':'')+'<kbd>'+ORDER_KEY[k]+'</kbd></button>'; }).join('')+'</div>';
+    const an=!used&&ans.includes(k);
+    return '<button class="btn small'+(an?' answer':'')+'" data-a="cmd" data-k="'+k+'" title="'+CMDS[k].desc+'"'+(used?' disabled':'')+'>'+(an?ANS_M:'')+CMDS[k].name+(used?' &middot; given':'')+(an?ANS_S:'')+'<kbd>'+ORDER_KEY[k]+'</kbd></button>'; }).join('')+'</div>';
 }
 function srAnnounce(){   // read out the newest battle line once (the log itself is rebuilt on every render, so it cannot be the live region)
   const el=document.getElementById('sr-live'); if(!el) return; const L=S.run&&S.mode!=='town'&&S.run.log, last=L&&L.length?L[L.length-1].m:'';
-  if(last&&last!==TAB.sr){ TAB.sr=last; el.textContent=last.replace(/<[^>]+>/g,''); } }
+  let say=last&&last!==TAB.sr?last.replace(/<[^>]+>/g,''):'';
+  if(last) TAB.sr=last;
+  const ch=S.run&&S.mode==='battle'?S.run.enemies.map(e=>[e,chargeInfo(e)]).find(x=>x[1]):null, ck=ch?ch[0].id+'|'+ch[1].mv:'';
+  if(ck&&ck!==TAB.srCh){ TAB.srCh=ck; say=(say?say+' ':'')+ch[0].name+'. Charging: '+ch[1].name+'. '+ch[1].hint+'.'; }   /* once per charge, with what answers it */
+  if(!ck) TAB.srCh='';
+  if(say) el.textContent=VIEW.lang==='tr'?trText(say):say; }
 function logHTML(){ return '<ol class="log">'+S.run.log.map(l=>'<li class="'+l.c+'">'+l.m+'</li>').join('')+'</ol>'; }
 function battleHTML(){
   currentTarget();
-  const r=S.run, D=DUNGEONS[r.di], P=S.player, boss=r.room===r.rooms-1;
+  const r=S.run, D=DUNGEONS[r.di], P=S.player, boss=r.room===r.rooms-1, ans=chargeAns();
   const mini='<div class="mini-hp" aria-hidden="true"><div><span>HP '+Math.max(0,P.hp)+'/'+pMax()+(P.shield?' +'+P.shield:'')+'</span><div class="bar"><i class="fill hp" style="width:'+pct(P.hp,pMax())+'%"></i></div></div><div><span>Mana '+P.mana+'/'+pMana()+'</span><div class="bar"><i class="fill mp" style="width:'+pct(P.mana,pMana())+'%"></i></div></div></div>';
-  return '<section class="win" aria-labelledby="h-battle">'+mini+'<h2 class="win-h" id="h-battle">'+(r.tw?'Hell Tower &middot; Floor '+r.tw+(r.tw%10===0?' &middot; Warden':'')+' &middot; Turn '+r.turn:(r.rift?'The Rift &middot; Depth '+r.rift+' &middot; ':'')+D.name+' &middot; Room '+(r.room+1)+'/'+r.rooms+(boss?' &middot; Boss':'')+' &middot; Turn '+r.turn)+'</h2>'
-   +(r.mod?'<p class="q-note"><span class="curse-line" style="margin:0">Cursed: <b>'+MODS[r.mod].name+'</b>. '+MODS[r.mod].desc+'</span></p>':'')
+  return '<section class="win" aria-labelledby="h-battle">'+mini+'<h2 class="win-h" id="h-battle">'+(r.tw?'Hell Tower &middot; Floor '+r.tw+(r.tw%10===0?' &middot; Warden':'')+' &middot; Turn '+r.turn:(r.siege?'Siege &middot; Wave '+(r.room+1)+'/'+r.rooms+' &middot; Turn '+r.turn:r.trial?'Trial &middot; Room '+(r.room+1)+'/'+r.rooms+' &middot; Turn '+((r.tt||0)+1):(r.rift?'The Rift &middot; Depth '+r.rift+' &middot; ':'')+D.name+' &middot; Room '+(r.room+1)+'/'+r.rooms+(boss?' &middot; Boss':'')+' &middot; Turn '+r.turn))+'</h2>'
+   +(r.mod?'<p class="q-note"><span class="curse-line" style="margin:0">Cursed: <b>'+MODS[r.mod].name+'</b>. '+MODS[r.mod].desc+'</span></p>':'')+(r.mod2&&MODS[r.mod2]?'<p class="q-note"><span class="curse-line" style="margin:0">Cursed: <b>'+MODS[r.mod2].name+'</b>. '+MODS[r.mod2].desc+'</span></p>':'')
    +(r.heat?'<p class="q-note bad">Difficulty: <b>'+HEAT[r.heat].name+'</b>'+(r.mod?', and the curse feeds on it':'')+'.</p>':'')
    +(r.bless?'<p class="q-note ok">Blood-blessed: you and your army hit 15% harder in this gate.</p>':'')
    +'<p class="group-h">Foes'+(foeArmor()?' &middot; '+armorTag(foeArmor()):'')+'</p><div class="row">'+r.enemies.map(e=>unitCard(e,'foe')).join('')+'</div>'
    +'<p class="group-h">Your side'+(r.frenzy>0?' &middot; <span class="ok">Frenzy '+r.frenzy+'</span>':'')+(r.silence>0?' &middot; <span class="bad">Silenced '+r.silence+'</span>':'')+(r.taunt>0?' &middot; <span class="ok">Taunting '+r.taunt+'</span>':'')+'</p><div class="row minis side">'+unitCard(S.player,'ally')+S.army.map(a=>unitCard(a,'ally',true)).join('')+'</div>'
    +'<div class="actbar">'+partyStrip()+'<div class="btns"><button class="btn primary" data-a="act" data-k="strike">Strike +3 mana<kbd>1</kbd></button>'
    +'<button class="btn" data-a="act" data-k="siphon"'+(P.mana<siphonCost()?' disabled':'')+'>Soul Siphon '+siphonCost()+'<kbd>2</kbd></button>'
-   +'<button class="btn" data-a="act" data-k="ward"'+(P.mana<6?' disabled':'')+'>Bone Ward 6<kbd>3</kbd></button>'
-   +'<button class="btn warn" data-a="flee">Flee</button></div>'
+   +'<button class="btn'+(ans.includes('ward')&&P.mana>=6?' answer':'')+'" data-a="act" data-k="ward"'+(P.mana<6?' disabled':'')+'>'+(ans.includes('ward')&&P.mana>=6?ANS_M:'')+'Bone Ward 6'+(ans.includes('ward')&&P.mana>=6?ANS_S:'')+'<kbd>3</kbd></button>'
+   +'<button class="btn warn" data-a="flee"'+(r.siege?' title="Fleeing a siege counts as a defeat"':'')+'>'+(r.siege?'Abandon the walls':'Flee')+'</button></div>'
    +((S.belt.hp||S.belt.mp)?'<div class="btns">'+Object.keys(POTIONS).filter(k=>S.belt[k]).map(k=>{ const p=POTIONS[k], full=k==='hp'?P.hp>=pMax()&&!P.dots:P.mana>=pMana();
       return '<button class="btn potion" data-a="act" data-k="pot:'+k+'"'+(full?' disabled title="Already full"':' title="'+p.desc+'"')+'>'+p.name+' &times;'+S.belt[k]+'<kbd>'+p.key+'</kbd></button>'; }).join('')+'</div>':'')
    +ultHTML()
    +cmdHTML()
    +(activeSkills().length?'<div class="btns">'+activeSkills().map((s,i)=>{ const cd=skCd(s.id), why=r.silence>0?'Silenced by the Hymn':cd>0?'Ready in '+cd+' turn'+(cd>1?'s':''):s.id==='blast'&&!freeCorpse()?'Needs a body that fell this room':s.id==='mend'&&!S.army.some(m=>m.hp>0&&m.hp<m.maxHp)?'No wounded minions':P.mana<s.cost?'Not enough mana':s.desc(sk(s.id));
-      return '<button class="btn" data-a="act" data-k="sk:'+s.id+'" title="'+why+'"'+(canUse(s.id)?'':' disabled')+'>'+s.name+' '+s.cost+(cd>0?' &middot; '+cd+'t':'')+(i<6?'<kbd>'+(i+4)+'</kbd>':'')+'</button>'; }).join('')+'</div>':'')
+      const an=ans.includes(s.id)&&canUse(s.id);
+      return '<button class="btn'+(an?' answer':'')+'" data-a="act" data-k="sk:'+s.id+'" title="'+why+'"'+(canUse(s.id)?'':' disabled')+'>'+(an?ANS_M:'')+s.name+' '+s.cost+(cd>0?' &middot; '+cd+'t':'')+(an?ANS_S:'')+(i<6?'<kbd>'+(i+4)+'</kbd>':'')+'</button>'; }).join('')+'</div>':'')
    +'</div>'+logHTML()+'</section>';
 }
-function slotsHTML(){ const n=slots(), u=armyUsed(); let s='<span class="slots" aria-label="'+u+' of '+n+' slots used">'; for(let i=0;i<n;i++) s+='<i class="slot'+(i<S.army.length?' on':i<u?' away':'')+'"></i>'; return s+'</span>'; }
+function slotsHTML(){ const n=slots(), u=armyUsed(); let s='<span class="slots" aria-label="'+u+' of '+n+' slots used">'; for(let i=0;i<n;i++) s+='<i class="slot'+(i<u?' on':'')+'"></i>'; return s+'</span>'; }
 function minionDetail(m){   // everything about one minion, readable without hovering
   const stage=m.stage||0, next=evoNext(m), g=gearBonus(m), base=m.tw?towerStats(m.tw,m.lvl,m.hf,m.af,m.boss,m.elite):mobStats(m.rankI,m.lvl,m.hf,m.af,m.boss,m.elite);
   const rows=[['Kind',(m.tw?'Hell Tower ':'')+mName(m)+(m.boss?', a raised boss':m.elite?', a raised elite':'')],['Role',ROLES[m.role].label+': '+ROLES[m.role].text],
@@ -125,7 +136,19 @@ function minionDetail(m){   // everything about one minion, readable without hov
   return '<div class="m-det">'+rows.map(r=>'<div><b>'+r[0]+'</b><span>'+r[1]+'</span></div>').join('')
     +(m.traits||[]).map(t=>'<div><b>'+TRAITS[t].name+'</b><span>'+TRAITS[t].desc+'</span></div>').join('')+'</div>';
 }
-function minionCard(m,canRelease){
+// The Reserve's controls on a minion: To reserve on an army minion, To army and Swap on a benched one (town only; a move loses nothing, so one press).
+function moveActs(m,where,row){
+  if(S.mode!=='town'||!reserveOpen()) return '';
+  const b=(a,k,t,lab,dis,why)=>'<button class="btn small" data-a="'+a+'" data-k="'+k+'" aria-label="'+lab+': '+m.nick+'"'+(dis?' disabled title="'+why+'"':' title="'+lab+'"')+'>'+t+'</button>';
+  if(where==='res') return b('toarmy',m.uid,row?'Army':'To army','To army',!armyRoom(),'Your army is full')
+    +b('swapo',m.uid,row?'Swap':'Swap&hellip;','Swap with an army minion',!S.army.length,'Your army is empty');
+  return b('tores',m.uid,row?'Bench':'To reserve','To reserve',!reserveRoom(),'The Reserve is full');
+}
+function swapPick(m){   // a benched minion's Swap: one press on an army minion trades their places
+  return '<div class="swap-pick"><span class="u-tag">Swap '+m.nick+' with</span><div class="chips">'+S.army.map(a=>'<button class="btn small" data-a="swap" data-k="'+a.uid+'|'+m.uid+'" aria-label="Swap '+m.nick+' with '+a.nick+'">'+a.nick+' &middot; Lv '+a.lvl+'</button>').join('')
+    +'<button class="btn small" data-a="swapo" data-k="'+m.uid+'">Cancel</button></div></div>';
+}
+function minionCard(m,canRelease,where){
   const nx=mneed(m.lvl), capped=m.lvl>=S.player.lvl+2;
   const conf=ui.confirm===m.uid;
   return '<div class="minion"><div><div class="u-head">'+ico(m.kind||m.name,m.rankI,m)+'<div class="u-id"><div class="u-top"><span class="rk r'+m.rankI+'">'+RANKS[m.rankI]+'</span><span class="u-tag">'+ROLES[m.role].label+(m.armed?' &middot; Armed':'')+(m.boss?' &middot; Boss':'')+(m.elite?' &middot; Elite':'')+'</span></div>'
@@ -136,21 +159,25 @@ function minionCard(m,canRelease){
    +(ui.mdet===m.uid?minionDetail(m):'')+'</div></div>'
    +'<div class="bars"><div class="meter"><div class="m-top"><span>HP</span><span class="num">'+m.hp+'/'+m.maxHp+'</span></div><div class="bar"><i class="fill hp" style="width:'+pct(m.hp,m.maxHp)+'%"></i></div></div>'
    +'<div class="meter"><div class="m-top"><span>Lv '+m.lvl+' &middot; ATK '+m.atk+'</span><span class="num">'+(capped?'cap':m.xp+'/'+nx)+'</span></div><div class="bar"><i class="fill xp" style="width:'+(capped?100:pct(m.xp,nx))+'%"></i></div></div></div></div>'
-   +(canRelease?'<button class="btn small warn" data-a="release" data-k="'+m.uid+'">'+(conf?'Confirm release':'Release')+'</button>':'<span></span>')
+   +(canRelease?'<div class="m-acts">'+moveActs(m,where)+'<button class="btn small warn" data-a="release" data-k="'+m.uid+'">'+(conf?'Confirm release':'Release')+'</button></div>':'<span></span>')
+   +(where==='res'&&ui.swap===m.uid&&S.mode==='town'?swapPick(m):'')
    +(m.armed?gearRowHTML(m,canRelease):'')+'</div>';
 }
 function partyStrip(){   // phones: the pinned action bar hides your side, so one thin HP tick per minion sits above the buttons (CSS shows it only at phone width)
   if(!S.army.length) return '';
   return '<div class="pstrip" role="group" aria-label="Army health">'+S.army.map(m=>{ const lab=m.nick+': '+(m.hp>0?m.hp+'/'+m.maxHp:'down'); return '<i class="pt'+(m.hp<=0?' down':m.hp<m.maxHp*.3?' low':'')+'" role="img" title="'+lab+'" aria-label="'+lab+'"><b style="width:'+pct(Math.max(0,m.hp),m.maxHp)+'%"></b></i>'; }).join('')+'</div>';
 }
-function minionRow(m,canRelease){   // the compact army list: one row per minion, same actions as the card
-  const low=m.hp>0&&m.hp<m.maxHp*.3, tags=(m.traits||[]).map(t=>TRAITS[t].name), next=evoNext(m);
+function minionRow(m,canRelease,where){   // the compact army list: one line per minion (two on a phone), same actions as the card; traits and the rest in the name's title
+  const low=m.hp>0&&m.hp<m.maxHp*.3, tags=(m.traits||[]).map(t=>TRAITS[t].name), next=evoNext(m), cmd=isCommander(m);
   if(next!=null) tags.push('Evolves at Lv '+next); else if((m.stage||0)===STAGE_MAX) tags.push('Eternal');
-  return '<div class="mrow">'+ico(m.kind||m.name,m.rankI,m)+'<span class="rk r'+m.rankI+'">'+RANKS[m.rankI]+'</span><span class="mr-name"><b style="'+(m.elite?'color:var(--gold)':'')+'">'+m.nick+'</b> <span class="dim">'+theName(mName(m))+'</span></span>'
-   +'<span class="u-tag">'+ROLES[m.role].label+(m.armed?' &middot; Armed':'')+'</span><span class="num mr-st">Lv '+m.lvl+' &middot; ATK '+m.atk+'</span>'
+  if(m.armed) tags.push('Gear-bearer');
+  const tip=m.nick+', '+theName(mName(m))+' &middot; '+ROLES[m.role].label+(tags.length?' &middot; '+tags.join(', '):''), conf=ui.confirm===m.uid;
+  return '<div class="mrow">'+ico(m.kind||m.name,m.rankI,m)+'<span class="rk r'+m.rankI+'">'+RANKS[m.rankI]+'</span>'
+   +'<span class="mr-name" title="'+tip+'"><b style="'+(m.elite?'color:var(--gold)':'')+'">'+m.nick+'</b>'+(cmd?' <span class="mr-mk" title="Commander: can lead raids">Cmdr</span>':'')+' <span class="dim">'+theName(mName(m))+'</span></span>'
+   +'<span class="u-tag mr-role">'+ROLES[m.role].label+(m.armed?' &middot; Armed':'')+'</span><span class="num mr-st">Lv '+m.lvl+' &middot; ATK '+m.atk+'</span>'
    +'<span class="mr-hp'+(low?' low':'')+'"><span class="bar"><i class="fill hp" style="width:'+pct(m.hp,m.maxHp)+'%"></i></span><span class="num">'+m.hp+'/'+m.maxHp+'</span></span>'
-   +(tags.length?'<span class="mr-tags dim">'+tags.join(', ')+'</span>':'')
-   +'<span class="mr-acts"><button class="btn small" data-a="mdet" data-k="'+m.uid+'" aria-expanded="false">Details</button>'+(canRelease?'<button class="btn small" data-a="renameo" data-k="'+m.uid+'">Rename</button><button class="btn small warn" data-a="release" data-k="'+m.uid+'">'+(ui.confirm===m.uid?'Confirm release':'Release')+'</button>':'')+'</span></div>';
+   +'<span class="mr-acts"><button class="btn small" data-a="mdet" data-k="'+m.uid+'" aria-expanded="false" aria-label="Details: '+m.nick+'" title="Details">Info</button>'
+   +(canRelease?(where==='res'?'':'<button class="btn small" data-a="renameo" data-k="'+m.uid+'" aria-label="Rename: '+m.nick+'" title="Rename">Name</button>')+moveActs(m,where,true)+'<button class="btn small warn" data-a="release" data-k="'+m.uid+'" aria-label="'+(conf?'Confirm release':'Release')+': '+m.nick+'" title="'+(conf?'Press again to release':'Release')+'">'+(conf?'Sure?':'Release')+'</button>':'')+'</span></div>';
 }
 function gearRowHTML(m,can){
   const g=gearBonus(m), pk=ui.pick&&ui.pick.uid===m.uid?ui.pick.slot:null;
@@ -177,18 +204,20 @@ function riftHTML(){
    +'<div class="btns"><button class="btn primary" data-a="rift" data-k="'+n+'"'+(S.watches<=0?' disabled':'')+'>Enter the Rift</button></div></section>';
 }
 function raidHTML(){
-  if(S.mode!=='town') return ''; const cmds=S.army.filter(isCommander), out=S.raids||[], logs=S.raidLog||[];
+  if(S.mode!=='town') return ''; const pool=raidPool(), cmds=pool.filter(isCommander).filter(m=>!inOrder(m)), out=raidOrders(), logs=S.raidLog||[];
   if(!cmds.length&&!out.length&&!logs.length) return '';
-  let h='<section class="win" aria-labelledby="h-raid"><h2 class="win-h" id="h-raid">War table'+(out.length?' &middot; '+out.length+' out':'')+'</h2>';
-  out.forEach((x,i)=>{ h+='<div class="raid-row"><div><b>'+x.units[0].nick+'</b> leads '+x.units.length+' to the '+DUNGEONS[x.di].name+'<div class="u-sub">'+Math.round(raidOdds(x.units,x.di)*100)+'% odds &middot; back at dawn</div></div><button class="btn small warn" data-a="recall" data-k="'+i+'">Recall</button></div>'; });
+  let h='<section class="win" aria-labelledby="h-raid"><h2 class="win-h" id="h-raid">War table'+(out.length?' &middot; '+out.length+' tonight':'')+'</h2>';
+  out.forEach((x,i)=>{ const u=orderSquad(x); if(!u.length) return; h+='<div class="raid-row"><div><b>'+u[0].nick+'</b> leads '+u.length+' to the '+DUNGEONS[x.di].name+' tonight<div class="u-sub">'+Math.round(raidOdds(u,x.di)*100)+'% odds now &middot; marches at nightfall, back at dawn</div></div><button class="btn small warn" data-a="recall" data-k="'+i+'">Cancel</button></div>'; });
   const gates=raidGates();
   if(cmds.length&&gates.length){
     const c=cmds.find(m=>m.uid===ui.rc)||cmds[0], di=gates.includes(ui.rg)?ui.rg:gates[gates.length-1], max=squadMax(c)-1;
-    const sel=(ui.rsq||[]).filter(u=>S.army.some(m=>m.uid===u&&m!==c)).slice(0,max), units=[c].concat(sel.map(u=>S.army.find(m=>m.uid===u)));
-    h+=(cmds.length>1?'<p class="group-h">Commander</p><div class="chips">'+cmds.map(m=>'<button class="btn small'+(m===c?' primary':'')+'" data-a="rcmd" data-k="'+m.uid+'" aria-pressed="'+(m===c)+'">'+m.nick+'</button>').join('')+'</div>':'<p class="u-sub">Commander: <b>'+c.nick+'</b>, '+theName(mName(c))+'</p>')
+    const sel=(ui.rsq||[]).filter(u=>pool.some(m=>m.uid===u&&m!==c&&!inOrder(m))).slice(0,max), units=[c].concat(sel.map(u=>pool.find(m=>m.uid===u)));
+    const rtag=m=>inReserve(m)?' &middot; Reserve':'';
+    h+=(cmds.length>1?'<p class="group-h">Commander</p><div class="chips">'+cmds.map(m=>'<button class="btn small'+(m===c?' primary':'')+'" data-a="rcmd" data-k="'+m.uid+'" aria-pressed="'+(m===c)+'">'+m.nick+rtag(m)+'</button>').join('')+'</div>':'<p class="u-sub">Commander: <b>'+c.nick+'</b>, '+theName(mName(c))+rtag(c)+'</p>')
      +'<p class="group-h">Target</p><div class="chips">'+gates.map(i=>'<button class="btn small'+(i===di?' primary':'')+'" data-a="rgate" data-k="'+i+'" aria-pressed="'+(i===di)+'">'+DUNGEONS[i].name+'</button>').join('')+'</div>'
-     +'<p class="group-h">Squad &middot; '+sel.length+'/'+max+'</p><div class="chips">'+S.army.filter(m=>m!==c).map(m=>{ const on=sel.includes(m.uid); return '<button class="btn small'+(on?' primary':'')+'" data-a="rsq" data-k="'+m.uid+'" aria-pressed="'+on+'"'+(!on&&sel.length>=max?' disabled':'')+'>'+m.nick+' &middot; Lv '+m.lvl+'</button>'; }).join('')+'</div>'
-     +'<div class="btns"><button class="btn primary" data-a="raid"'+(sel.length?'':' disabled title="Pick at least one follower"')+'>Send the raid &middot; '+Math.round(raidOdds(units,di)*100)+'% odds</button></div>';
+     +'<p class="group-h">Squad &middot; '+sel.length+'/'+max+'</p><div class="chips">'+pool.filter(m=>m!==c&&!inOrder(m)).map(m=>{ const on=sel.includes(m.uid); return '<button class="btn small'+(on?' primary':'')+'" data-a="rsq" data-k="'+m.uid+'" aria-pressed="'+on+'"'+(!on&&sel.length>=max?' disabled':'')+'>'+m.nick+' &middot; Lv '+m.lvl+rtag(m)+'</button>'; }).join('')+'</div>'
+     +'<p class="u-sub war-note">A raid is an order for tonight: the squad fights the rest of today\'s runs with you and marches when the day ends. Odds are taken then, from whoever is left. Cancel any time before nightfall. Reserve minions can march too. Away overnight, each keeps its place in the army or the Reserve.</p>'+siegeWarNote()
+     +'<div class="btns"><button class="btn primary" data-a="raid"'+(sel.length?'':' disabled title="Pick at least one follower"')+'>Order the raid for tonight &middot; '+Math.round(raidOdds(units,di)*100)+'% odds</button></div>';
   } else if(cmds.length) h+='<p class="lede">Clear a gate first.</p>';
   if(logs.length) h+='<p class="group-h">Last raids</p><ul class="raid-log">'+logs.slice(0,3).map(x=>'<li class="'+(x.won?'ok':'bad')+'">Day '+x.day+': '+x.nick+', '+DUNGEONS[x.di].name+' &middot; '+(x.won?'won':'lost'+(x.lost?' ('+x.lost+' fell)':''))+'</li>').join('')+'</ul>';
   return h+'</section>';
@@ -202,32 +231,50 @@ function armyHTML(){
      +[['cards','Cards'],['compact','Compact']].map(x=>'<button class="linkbtn'+(VIEW.army===x[0]?' on':'')+'" data-a="view" data-k="army|'+x[0]
        +'" aria-pressed="'+(VIEW.army===x[0])+'">'+x[1]+'</button>').join('')
      +'</span></div>':'')
-   +(S.army.length?'<div class="army'+(compact?' compact':'')+'">'+S.army.map(m=>compact&&ui.mdet!==m.uid&&ui.rename!==m.uid?minionRow(m,canRel):minionCard(m,canRel)).join('')+'</div>':'<p class="lede">No one answers you yet. Win a room, then raise what fell.</p>')+'</section>';
+   +(S.army.length?'<div class="army'+(compact?' compact':'')+'">'+S.army.map(m=>compact&&ui.mdet!==m.uid&&ui.rename!==m.uid?minionRow(m,canRel):minionCard(m,canRel)).join('')+'</div>':'<p class="lede">No one answers you yet. Win a room, then raise what fell.</p>')
+   +gateWaitHTML()+reserveHTML()+'</section>';
+}
+function reserveHTML(){   // the bench under the army, in town once the Town tab is open; same cards and rows, its own Order links
+  if(S.mode!=='town'||!reserveOpen()) return ''; const R=S.reserve||[], compact=VIEW.army==='compact'&&R.length>1;
+  return '<div class="reserve" role="region" aria-labelledby="h-res"><h3 class="res-h" id="h-res">Reserve '+R.length+'/'+reserveMax()+'</h3>'
+   +(R.length>1?'<div class="bag-tools">Order: '+Object.keys(ARMY_SORTS).map(k=>'<button class="linkbtn" data-a="rsort" data-k="'+k+'" aria-label="Order the Reserve: '+ARMY_SORTS[k]+'">'+ARMY_SORTS[k]+'</button>').join('')+'</div>':'')
+   +(R.length?'<div class="army'+(compact?' compact':'')+'">'+R.map(m=>compact&&ui.mdet!==m.uid&&ui.rename!==m.uid&&ui.swap!==m.uid?minionRow(m,true,'res'):minionCard(m,true,'res')).join('')+'</div>'
+     :'<p class="u-sub">A bench for minions you keep but do not take along. They do not fight, take damage or earn XP, and keep their gear. Moving one in or out is free, in town.</p>')+'</div>';
+}
+function gateWaitHTML(){   // raiders home when both the army and the Reserve were full: nobody is lost, they wait here
+  const W=S.waiting||[]; if(S.mode!=='town'||!W.length) return '';
+  return '<div class="note bad gate-wait"><i>Waiting</i><span>Back from a raid, with no room in your army or the Reserve. Make room, or let one go.</span></div><div class="army">'
+   +W.map(m=>{ const conf=ui.confirm===m.uid; return '<div class="mrow wait-row">'+ico(m.kind||m.name,m.rankI,m)+'<span class="rk r'+m.rankI+'">'+RANKS[m.rankI]+'</span><span class="mr-name"><b>'+m.nick+'</b> <span class="dim">'+theName(mName(m))+'</span></span><span class="num mr-st">Lv '+m.lvl+' &middot; ATK '+m.atk+'</span>'
+     +'<span class="mr-acts"><button class="btn small" data-a="gatearmy" data-k="'+m.uid+'" aria-label="To army: '+m.nick+'"'+(armyRoom()?'':' disabled title="Your army is full"')+'>Army</button>'
+     +'<button class="btn small" data-a="gateres" data-k="'+m.uid+'" aria-label="To reserve: '+m.nick+'"'+(reserveRoom()?'':' disabled title="The Reserve is full"')+'>Bench</button>'
+     +'<button class="btn small warn" data-a="release" data-k="'+m.uid+'" aria-label="'+(conf?'Confirm release':'Release')+': '+m.nick+'">'+(conf?'Sure?':'Release')+'</button></span></div>'; }).join('')+'</div>';
 }
 function raiseHTML(){
   const r=S.run, P=S.player, D=DUNGEONS[r.di];
-  const full=armyUsed()>=slots();
+  const full=armyUsed()>=slots(), bench=full&&reserveRoom();   // a full army may raise straight into the Reserve
   const corpses=r.corpses.map(c=>{
     const ch=raiseChance(c), cost=raiseCost(c);
     let right;
-    if(c.tried) right=c.result==='raised'?'<span class="ok num">Raised as '+c.minion+'</span>':c.result==='exploded'?'<span class="dim num">Burst apart</span>':'<span class="bad num">Crumbled</span>';
+    if(c.tried) right=c.result==='raised'?'<span class="ok num">'+(c.res?'Raised to the Reserve as ':'Raised as ')+c.minion+'</span>':c.result==='exploded'?'<span class="dim num">Burst apart</span>':c.result==='taken'?'<span class="dim num rival-took">Taken by '+c.taken+'</span>':'<span class="bad num">Crumbled</span>';
+    else if(bench) right='<div class="btns" style="margin:0"><button class="btn primary small res-raise" data-a="raiseres" data-k="'+c.id+'"'+(P.mana<cost?' disabled':'')+' title="Your army is full: the minion goes to the Reserve">Raise to the Reserve &middot; '+ch+'% &middot; '+cost+' mana</button>'
+      +(S.salts>0?'<button class="btn small" data-a="raiseressalt" data-k="'+c.id+'"'+(P.mana<cost?' disabled':'')+' title="Uses one Grave Salts ('+S.salts+' left)">With salts &middot; '+saltChance(c)+'%</button>':'')+'</div>';
     else right='<div class="btns" style="margin:0"><button class="btn primary small" data-a="raise" data-k="'+c.id+'"'+(P.mana<cost||full?' disabled':'')+(firstRaise()?' title="Your first raise always answers"':'')+'>Raise &middot; '+ch+'% &middot; '+cost+' mana</button>'
       +(S.salts>0?'<button class="btn small" data-a="raisesalt" data-k="'+c.id+'"'+(P.mana<cost||full?' disabled':'')+' title="Uses one Grave Salts ('+S.salts+' left)">With salts &middot; '+saltChance(c)+'%</button>':'')+'</div>';
     return '<div class="corpse'+(c.tried?' done '+c.result:'')+'" data-u="'+c.id+'"><div><div class="u-head">'+ico(c.base,c.rankI,c)+'<div class="u-id"><div class="u-top"><span class="rk r'+c.rankI+'">'+RANKS[c.rankI]+'</span><span class="u-tag">'+ROLES[c.role].label+(c.armed?' &middot; Armed':'')+(c.boss?' &middot; Boss':'')+(c.elite?' &middot; Elite':'')+'</span></div>'
-     +'<div class="u-name" style="'+(c.elite?'color:var(--gold)':'')+'">'+c.name+'</div><div class="u-sub num">Lv '+c.lvl
+     +'<div class="u-name" style="'+(c.elite?'color:var(--gold)':'')+'">'+c.name+'</div><div class="u-sub num">Lv '+c.lvl+masteryTag(c.base)
        +(c.aff?' &middot; <span class="aff" title="A raised elite keeps one of these as a trait">'
          +c.aff.map(a=>AFFIX[a].name===TRAITS[AFFIX[a].trait].name?'keeps '+AFFIX[a].name:AFFIX[a].name+' &rarr; '+TRAITS[AFFIX[a].trait].name).join(', ')+'</span>':'')
        +(c.free?' &middot; <span class="free-t">Straggler: free, +'+STRAGGLER_BONUS+'%</span>':'')+'</div></div></div></div>'+right+'</div>';
   }).join('');
   const done=r.cleared, q=r.quiet&&DOORS[r.quiet];
-  return '<section class="win" aria-labelledby="h-raise"><h2 class="win-h" id="h-raise">'+(r.tw?'Hell Tower &middot; Floor '+r.tw+(done?' &middot; Conquered':' cleared'):(r.rift?'The Rift '+r.rift+' &middot; ':'')+D.name+' &middot; '+(done?'Cleared':'Room '+(r.room+1)+(q?'':' cleared')))+'</h2>'
-   +'<h3 class="win-title">'+(r.tw?(done?'Abaddon is dead. The Tower is yours.':'The floor is still.'):(done?'The gate falls silent.':q?q.name:'The room is still.'))+'</h3>'
+  return '<section class="win" aria-labelledby="h-raise"><h2 class="win-h" id="h-raise">'+(r.trial?'Trial &middot; '+D.name+' &middot; '+(done?'Complete':'Room '+(r.room+1)+'/'+r.rooms+' cleared'):r.siege?'Siege &middot; The necropolis holds':r.tw?'Hell Tower &middot; Floor '+r.tw+(done?' &middot; Conquered':' cleared'):(r.rift?'The Rift '+r.rift+' &middot; ':'')+D.name+' &middot; '+(done?'Cleared':'Room '+(r.room+1)+(q?'':' cleared')))+'</h2>'
+   +'<h3 class="win-title">'+(r.trial?(done?'The Trial is over.':'No bodies rise in a Trial. On to the next room.'):r.siege?'The living break and run. Their dead are yours.':r.tw?(done?'Abaddon is dead. The Tower is yours.':'The floor is still.'):(done?'The gate falls silent.':q?q.name:'The room is still.'))+'</h3>'
    +(q?'<p class="lede">No fight here &middot; Mana '+P.mana+'/'+pMana()+'</p>':'<p class="lede">+'+r.lastXp+' XP'+(r.ups?' &middot; level up':'')+' &middot; Mana '+P.mana+'/'+pMana()+' &middot; <span title="Whatever you do not raise is gone when you move on">unraised bodies are lost</span></p>')
    +(r.events.length?'<div class="notes">'+r.events.map(e=>'<div class="note '+e.c+'"><i>Log</i><span>'+e.m+'</span></div>').join('')+'</div>':'')
-   +(full&&r.corpses.some(c=>!c.tried)?(w=>'<div class="note bad"><i>Full</i><span>Your army is full. Release someone to make room.</span>'+(w?'<button class="btn small warn" data-a="release" data-k="'+w.uid+'">'+(ui.confirm===w.uid?'Confirm: release '+w.nick:'Release your weakest, '+w.nick+' (Lv '+w.lvl+' '+ROLES[w.role].label.toLowerCase()+')')+'</button>':'')+'</div>')(weakest()):'')
+   +(full&&r.corpses.some(c=>!c.tried)?(w=>'<div class="note bad"><i>Full</i><span>'+(bench?'Your army is full. The Reserve has '+(reserveMax()-S.reserve.length)+' free place'+(reserveMax()-S.reserve.length>1?'s':'')+': raise into it, or release someone.':'Your army is full. Release someone to make room.')+'</span>'+(w?'<button class="btn small warn" data-a="release" data-k="'+w.uid+'">'+(ui.confirm===w.uid?'Confirm: release '+w.nick:'Release your weakest, '+w.nick+' (Lv '+w.lvl+' '+ROLES[w.role].label.toLowerCase()+')')+'</button>':'')+'</div>')(weakest()):'')
    +(!full&&r.corpses.filter(c=>!c.tried).length>=2?'<div class="btns"><button class="btn small primary" data-a="raisebest" title="Tries every body, most valuable first; uses salts on bosses and elites" aria-keyshortcuts="Space">Raise the best<kbd>Space</kbd></button></div>':'')
-   +eventHTML()+spoilsHTML()+(q&&!r.corpses.length?'':'<p class="group-h">The fallen</p><div class="corpses">'+(corpses||'<p class="lede">Nothing left to raise.</p>')+'</div>')
-   +(r.doors&&!done?doorsHTML():'<div class="btns">'+(done?'<button class="btn primary" data-a="town">Return to the gate</button>':'<button class="btn primary" data-a="descend">'+(r.tw?'Ascend to floor '+(r.tw+1)+' (heal ':'Descend (heal ')+Math.round(DIFF.heal*100)+'%, mana +'+Math.round(DIFF.mana*100)+'%)</button><button class="btn" data-a="town">'+(r.tw?'Descend with spoils':'Leave with spoils')+'</button>')+'</div>')+'</section>'
+   +(r.trial?trialResultHTML(r):'')+eventHTML()+spoilsHTML()+((q||r.trial)&&!r.corpses.length?'':'<p class="group-h">The fallen</p><div class="corpses">'+(corpses||'<p class="lede">Nothing left to raise.</p>')+'</div>')
+   +(r.doors&&!done?doorsHTML():'<div class="btns">'+(done?'<button class="btn primary" data-a="town">'+(r.siege?'Back to the necropolis &middot; dawn':'Return to the gate')+'</button>':'<button class="btn primary" data-a="descend">'+(r.tw?'Ascend to floor '+(r.tw+1)+' (heal ':'Descend (heal ')+Math.round(DIFF.heal*100)+'%, mana +'+Math.round(DIFF.mana*100)+'%)</button><button class="btn" data-a="town">'+(r.tw?'Descend with spoils':r.trial?'Leave the Trial':'Leave with spoils')+'</button>')+'</div>')+'</section>'
    +armyHTML();
 }
 function doorsHTML(){
@@ -257,6 +304,9 @@ function spoilsHTML(){
 }
 function defeatHTML(){
   const r=S.run;
+  if(r.siege) return '<section class="win siege-lost" aria-labelledby="h-def"><h2 class="win-h" id="h-def">Siege &middot; The walls fell</h2><h3 class="win-title">'+(r.fled?'You left the walls to the living.':'The living broke through on wave '+(r.room+1)+'.')+'</h3>'
+   +'<p class="lede">'+(r.siegeLoss||'')+' You lose no XP, and none of your dead were lost: they dragged themselves back into the crypts before dawn.</p>'
+   +'<div class="btns"><button class="btn primary" data-a="town">Wait for dawn</button></div>'+logHTML()+'</section>';
   return '<section class="win" aria-labelledby="h-def"><h2 class="win-h" id="h-def">Fallen</h2><h3 class="win-title">'+(r.tw?'You fell on floor '+r.tw+' of the Hell Tower.':'You went down in room '+(r.room+1)+'.')+'</h3>'
    +'<p class="lede">Loot from rooms already cleared is kept. This room\'s spoils are lost and you lose some XP. Your army carried you out and bound itself back together.</p>'
    +'<div class="btns"><button class="btn primary" data-a="town">Return to the gate</button></div>'+logHTML()+'</section>';
@@ -270,4 +320,28 @@ function keysHTML(){   // every shortcut in one list; ? opens it, Esc closes it
    +Object.keys(CMDS).filter(k=>ORDER_KEY[k]).map(k=>row(ORDER_KEY[k],CMDS[k].name)).join('')
    +Object.keys(POTIONS).map(k=>row(POTIONS[k].key,POTIONS[k].name)).join('')
    +row('?','Show or hide this list')+'</div></div>';
+}
+// ----- sieges: the War table note, the Town tab's banner and repair row, the intro screen
+function siegeWarNote(){ return siegeTonight()?'<p class="u-sub siege-note bad">The living march on the necropolis tonight. Raids march first: whoever you send will not be on the walls.</p>':''; }
+function siegeTownHTML(){   // the Town tab: a warning banner (only once warned: the exact day stays hidden before), the damaged building
+  if(!siegeOpen()) return ''; const g=sg(); let h='';
+  if(siegeWarned()){ const now=siegeTonight();
+    h+='<div class="siege-warn" role="status"><b>'+(now?'The living march on the necropolis tonight, when the day ends.':'The living march on the necropolis tomorrow at dusk.')+'</b> '
+     +'Three waves, the last led by an Inquisitor Captain. Your buildings lend their strength; raids march before them. <button class="linkbtn" data-a="cxgo" data-k="sieges">Read about sieges</button></div>'
+     +'<p class="u-sub siege-line">Siege: '+(now?'tonight':'in 1 day')+'</p>'; }
+  if(g.dmg){ const c=repairCost(), conf=ui.confirm==='repair';
+    h+='<div class="tt-row siege-dmg bad"><div><h4>'+BUILD[g.dmg].name+' &middot; damaged</h4><div class="u-sub">Burned in the last siege. Its effects, siege perk included, are lost until it is repaired. Repairs cost gold only.</div></div>'
+     +'<button class="btn small '+(conf?'warn':'primary')+'" data-a="repair"'+(S.gold<c?' disabled':'')+'>'+(conf?'Confirm: repair for '+c+' gold':'Repair &middot; '+gold(c))+'</button></div>'; }
+  return h;
+}
+function siegeHTML(){   // nightfall on a siege day: the intro screen
+  const di=siegeGate(), P=S.player, pk=siegePerks(), away=raidN(), g=sg();
+  return '<section class="win siege-intro" aria-labelledby="h-siege"><h2 class="win-h" id="h-siege">Siege &middot; Night of day '+S.day+'</h2><h3 class="win-title">The living are at the walls</h3>'
+   +'<p class="lede">Torches on the hill road. The town has sent its militia, its crossbows and its chaplains, and the Inquisition has sent a captain to lead them. '
+   +'They come in '+SIEGE_WAVES+' waves, at level '+siegeLvl()+', as hard as the '+DUNGEONS[di].name+'. Between waves you heal as between rooms; nothing can be raised until the last wave falls. On home ground your downed minions never shatter. Fleeing counts as a defeat.</p>'
+   +'<p class="group-h">Your buildings</p>'+(pk.length?'<ul class="siege-perks">'+pk.map(x=>'<li><b>'+x.name+'</b>: '+x.t+'</li>').join('')+'</ul>':'<p class="q-note">No building lends you its strength tonight.</p>')
+   +(g.dmg?'<p class="q-note bad">The '+BUILD[g.dmg].name+' still lies in ruins and gives nothing.</p>':'')
+   +(away?'<p class="q-note">'+away+' of your dead marched on a raid tonight and are not on the walls.</p>':'')
+   +'<p class="q-note">Hold, and the town pays: gold, bone dust and a piece of gear. Fall, and they burn one of your buildings until you repair it.</p>'
+   +'<div class="btns"><button class="btn primary" data-a="siegego">Man the walls</button></div></section>'+armyHTML();
 }

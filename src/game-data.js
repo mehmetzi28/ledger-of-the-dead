@@ -177,10 +177,10 @@ function tableFor(di,role,boss,elite,sig){
 const dropChances=(boss,elite)=>boss?[1,.6]:[elite?.65:.28];
 function pickRow(rows){ let x=Math.random(),acc=0; for(const r of rows){ acc+=r.p; if(x<acc) return r.id; } return rows[rows.length-1].id; }
 function pickNorm(rows){ const tot=rows.reduce((a,r)=>a+r.p,0); let x=Math.random()*tot,acc=0; for(const r of rows){ acc+=r.p; if(x<acc) return r.id; } return rows[rows.length-1].id; }
-const ownsItem=id=>!!S&&(S.inv.some(it=>it.id===id)||GEAR_SLOTS.some(sl=>S.equip[sl]&&S.equip[sl].id===id)||S.army.concat(...(S.raids||[]).map(x=>x.units)).some(m=>m.eq&&GEAR_SLOTS.some(sl=>m.eq[sl]&&m.eq[sl].id===id)));
+const ownsItem=id=>!!S&&(S.inv.some(it=>it.id===id)||GEAR_SLOTS.some(sl=>S.equip[sl]&&S.equip[sl].id===id)||S.army.concat(S.reserve||[],S.waiting||[],...(S.raids||[]).map(x=>x.units)).some(m=>m.eq&&GEAR_SLOTS.some(sl=>m.eq[sl]&&m.eq[sl].id===id)));
 function rollDrops(e){
   const out=[], rows=e.tw?towerTable(e.tw,e.role,e.boss,e.elite):tableFor(e.rankI,e.role,e.boss,e.elite,SIG[e.base]);
-  const more=((!e.tw&&runMod())?MOD_DROP:1)*(roomKind()==='elite'?ELITE_DROP:1)*heatK('drop')*(S.run&&S.run.rift?Math.min(RIFT_DROP_MAX,1+RIFT_DROP*S.run.rift):1);
+  const more=(S.run&&S.run.siege?SIEGE_DROP:1)*((!e.tw&&runMod())?MOD_DROP:1)*(roomKind()==='elite'?ELITE_DROP:1)*heatK('drop')*(S.run&&S.run.rift?Math.min(RIFT_DROP_MAX,1+RIFT_DROP*S.run.rift):1);
   for(const c of dropChances(e.boss,e.elite)) if(Math.random()<c*more){ let id=pickRow(rows);
     if(ITEM[id].uq&&(ownsItem(id)||out.includes(id))) id=pickNorm(rows.filter(r=>!ITEM[r.id].uq));   // a unique you already carry becomes ordinary gear instead
     out.push(id); }
@@ -190,6 +190,27 @@ function rollDrops(e){
 const BAG_MAX=30, BAG_STEP=5, BAG_COST=[250,600,1500,3500];   // bag upgrades: +5 slots each, bought at the market
 const bagMax=()=>BAG_MAX+BAG_STEP*((S&&S.bagLv)||0);
 const KNOW_AT=25;   // kills of one enemy type needed to study its drop table in the bestiary
+// Bestiary mastery: a ladder on S.kills only (no save fields; New Game+ keeps the bestiary, so mastery carries over).
+// at = kills for an ordinary foe, bossAt = for gate bosses, Tower wardens and secret masters (null: not a rung for them).
+// raise = raise chance on its bodies, dmg = % more damage from you and your minions, lv = levels higher on rising. Values are the tier's total.
+const MASTERY=[
+  {id:'studied', name:'Studied', at:KNOW_AT, bossAt:null, raise:0, dmg:0, lv:0},
+  {id:'known',   name:'Known',   at:60,      bossAt:3,    raise:4, dmg:0, lv:0},
+  {id:'mastered',name:'Mastered',at:150,     bossAt:8,    raise:8, dmg:5, lv:0},
+  {id:'ledgered',name:'Ledgered',at:400,     bossAt:20,   raise:8, dmg:5, lv:1}];
+let BOSS_KINDS=null;
+function bossKind(name){ if(!BOSS_KINDS){ BOSS_KINDS=new Set(); DUNGEONS.forEach(D=>BOSS_KINDS.add(D.boss[0])); SECRET.forEach(B=>BOSS_KINDS.add(B.name)); TW_BOSS.forEach(n=>BOSS_KINDS.add(n)); BOSS_KINDS.add(SIEGE_BOSS); BOSS_KINDS.add('Rival Necromancer'); } return BOSS_KINDS.has(name); }
+const masteryRungs=name=>MASTERY.map(t=>({t,at:bossKind(name)?t.bossAt:t.at})).filter(x=>x.at!=null);
+function masteryOf(name){ const k=(S&&S.kills&&S.kills[name])||0; let got=null; for(const x of masteryRungs(name)) if(k>=x.at) got=x.t; return got; }   // highest tier reached, or null
+function masteryNext(name){ const k=(S&&S.kills&&S.kills[name])||0; return masteryRungs(name).find(x=>k<x.at)||null; }   // {t,at} of the next tier, or null when complete
+const masteryRaise=name=>{ const t=masteryOf(name); return t?t.raise:0; };
+const masteryDmg=name=>{ const t=masteryOf(name); return t?t.dmg:0; };
+const masteryLv=name=>{ const t=masteryOf(name); return t?t.lv:0; };
+function masteryGives(t){   // what a tier gives, in plain words
+  if(!t) return 'Nothing yet';
+  if(t.id==='studied') return 'Its drop table is known';
+  return '+'+t.raise+'% raise chance on its bodies'+(t.dmg?', you and your minions deal +'+t.dmg+'% damage to it':'')+(t.lv?', and its bodies rise '+t.lv+' level higher':'');
+}
 // ----- random bonus lines ("rolls") on gear. Each piece you find, buy or forge can carry extra stat lines; rarer tiers carry more.
 // Stored on the item as ro:[[stat,value],...]. Uniques never roll; they are fixed.
 const ROLL_KEYS={atk:1.2,crit:.5,siph:1.2,hp:5,mana:4,ward:1.2,strength:.5,constitution:.5,intelligence:.5,will:.5,raise:.8,mpow:1.2};   // value per point of set multiplier
@@ -333,15 +354,23 @@ const farmK=(di,lvl)=>{ const t=clamp(((lvl-SAFE[di])-DIFF.farmFrom)/(DIFF.farmT
 // A test fails once the shift passes REC_DRIFT levels: then re-measure and update REC_BASE and REC_AT together.
 const LV_HP=.16, LV_ATK=.12;   // foe and minion growth per level (mobStats)
 const REC_BASE=[1,7,11,16,20,25], REC_AT=[[.30,1,.68,1],[.66,1.3,1.65,4],[.88,1,2.2,8],[.85,2.1,1.9,12],[.89,1.38,1.7,17],[.85,.8,2.45,23]], REC_DRIFT=2;   // REC_AT per gate: [armor, foeAtk, gate, RK.lv]. Measured 2026-11-15 (market bot, seed 7700): the bot first reached ~75% at 1/7/11/16/20/25, one level above SAFE on D, C, B and A
-function recShift(di){
+function recShift(di,f){   // f: a difficulty's foe multiplier (HEAT[h].foe); spawnRoom scales foe HP and attack by it alike, so danger goes by f squared
   const a=REC_AT[di], k=(g,ar,fa)=>g*g*fa/(1-ar), grow=t=>(1+LV_HP*t)*(1+LV_ATK*t);   // t = foe level - 1
-  const R=k(DIFF.gate[di],DIFF.armor[di],DIFF.foeAtk[di])/k(a[2],a[0],a[1])*grow(RK[di].lv+1), A=LV_HP*LV_ATK, B=LV_HP+LV_ATK;   // mid-run foes stand 2 levels above RK.lv
+  const R=k(DIFF.gate[di],DIFF.armor[di],DIFF.foeAtk[di])/k(a[2],a[0],a[1])*grow(RK[di].lv+1)*(f||1)*(f||1), A=LV_HP*LV_ATK, B=LV_HP+LV_ATK;   // mid-run foes stand 2 levels above RK.lv
   return (-B+Math.sqrt(Math.max(0,B*B-4*A*(1-R))))/(2*A)-(a[3]+1);   // the foe level whose old-tuning strength matches the new tuning, minus the old one
 }
 const gateRec=di=>Math.max(1,Math.round(REC_BASE[di]+recShift(di)));
+// Per difficulty (HEAT): the same model with the tier's foe multiplier on foe HP and attack, times REC_TIER, the share of that modeled
+// shift the market bot really needs (gear, army and skills outgrow the multiplier; the raw model asked 4/12/35 levels too many).
+// Measured 2026-11-15 (node tests/run-balance.js '{"tiers":{"gates":[0,1,2,3,4,5],"every":3}}', seed 7700): the bot first clears ~75%
+// on Hard/Brutal/Nightmare at D 8/9/11, C 12/14/25, B 20/26/38, A 25/31/46, S 34/42/~57; a least-squares fit gave .53/.44/.38.
+// REC_TIER_F holds HEAT's foe values at that measurement: a test fails once a HEAT change moves the advice past REC_DRIFT levels.
+const REC_TIER=[1,.55,.45,.4], REC_TIER_F=[1,1.4,2,3.6];
+const tierRaw=(di,h,f)=>REC_BASE[di]+recShift(di)+(REC_TIER[h]||1)*(recShift(di,f)-recShift(di));
+const tierRec=(di,h)=>{ let r=gateRec(di); for(let t=1;t<=(h||0)&&t<HEAT.length;t++) r=Math.max(r+1,Math.round(tierRaw(di,t,HEAT[t].foe))); return r; };   // each tier at least a level above the one below
 const NGP_FOE=.3, NGP_REWARD=.25, ngpFoe=()=>1+NGP_FOE*((S&&S.ngp)||0), ngpReward=()=>1+NGP_REWARD*((S&&S.ngp)||0);   // New Game+: tougher foes, richer rewards
 function foeScale(list,a){ const n=ngpFoe(); for(const e of list){ if(n!==1){ e.maxHp=e.hp=Math.round(e.maxHp*n); } if(a*n!==1) e.atk=Math.max(1,Math.round(e.atk*a*n)); } }
-const foeArmor=()=>S.run?(S.run.tw?TW.armor:DIFF.armor[S.run.di]):0;
+const foeArmor=()=>S.run?(S.run.tw?TW.armor:DIFF.armor[S.run.di]*(S.run.siege?siegeArmorK():1)):0;
 let S = null;
 const rnd = (a,b)=>a+Math.random()*(b-a);
 const pick = a=>a[Math.floor(Math.random()*a.length)];

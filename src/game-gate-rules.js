@@ -19,8 +19,14 @@ function bossTurn(e){   // true if the boss spent its turn on its ability (or on
   if(e.charging){ const mv=e.move||e.abil; e.charging=false; e.move=null; e.abilT=gap(mv); fireAbility(e,mv); return true; }
   if(--e.abilT>0) return false;
   const mv=e.phase2&&e.alt?'sunder':e.abil, A=BOSS_ABIL[mv]; if(e.phase2) e.alt=!e.alt;   // the second phase alternates with Sundering Blow
-  if(A.warn||e.phase2){ e.charging=true; e.move=mv; log(e.name+' gathers itself for '+A.name+'! '+A.desc,'bad'); sfx('warn'); return true; }
+  if(A.warn||e.phase2){ e.charging=true; e.move=mv; log(e.name+' gathers itself for '+A.name+'! '+A.desc,'bad'); sfx('warn'); fxe('charge',e); return true; }
   e.abilT=gap(mv); fireAbility(e,mv); return true;
+}
+function chargeInfo(e){   // a charging boss: the move it lands next turn, what answers it (from the rules here and in fireAbility), and the answer keys the action bar marks
+  if(!e||!e.charging||e.hp<=0) return null; const mv=e.move||e.abil, A=BOSS_ABIL[mv]; if(!A) return null;
+  if(mv==='sunder') return {mv,name:A.name,hint:'Taunt it onto a vanguard, or freeze it',ans:['vanguard','chill','striker']};   /* Taunt sends the blow at a vanguard */
+  if(mv==='cinder'||mv==='decree') return {mv,name:A.name,hint:'Ward or freeze it',ans:['ward','chill','striker']};   /* a blow: a ward soaks it */
+  return {mv,name:A.name,hint:'Freeze it or Focus-crit it',ans:['chill','striker']};   /* no damage to soak: only breaking the focus stops it */
 }
 function summonAdd(e){
   if(e.summoned>=SUMMON_CAP||liveFoes().length>=5) return null;
@@ -142,16 +148,17 @@ const OMENS={
 };
 const OMEN_CHANCE=.25, OMEN_RAISE=10, OMEN_BOSS_XP=1.25;
 function dayOmen(){ if(!S.omen||S.omen.day!==S.day) S.omen={day:S.day,id:anyClear()&&Math.random()<OMEN_CHANCE?pick(Object.keys(OMENS)):null}; return S.omen; }
-const omen=()=>(S&&S.player)?dayOmen().id:null;
+const omen=()=>(S&&S.player&&!(S.run&&(S.run.siege||S.run.trial)))?dayOmen().id:null;   // omens do not reach a siege or a Trial
 const eliteChance=()=>.1*(omen()==='bloodmoon'?2:1);
 const gateMod=di=>{ const m=dayMod(); return m.gi===di?m.id:null; };
 const runMod=()=>(S.run&&!S.run.tw&&S.run.mod)||null;
+const hasRunMod=id=>{ const r=S.run; return !!r&&!r.tw&&(r.mod===id||r.mod2===id); };   // a Trial can carry a second curse (r.mod2)
 // Once the Throne of Ash has fallen, a cursed gate's foes rise to just below your level: cursed days stay a real fight, and
 // pay for it (XP and gold already follow foe level).
 const CURSE_GAP=5;
 const curseRise=di=>(runMod()&&S.ti&&S.ti.clr&&S.ti.clr[5])?Math.max(0,S.player.lvl-CURSE_GAP-RK[di].lv):0;
-const foeAtkMul=di=>DIFF.foeAtk[di]*(runMod()==='fury'?1.25:1);
-const bulwark=list=>{ if(runMod()==='bulwark') for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*1.3); } };
+const foeAtkMul=di=>DIFF.foeAtk[di]*(hasRunMod('fury')?1.25:1);
+const bulwark=list=>{ if(hasRunMod('bulwark')) for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*1.3); } };
 function volatileBurst(e){   // Volatile dead: a dying foe bursts on you
   const P=S.player; let d=Math.round(e.atk*.5); const s=Math.min(P.shield,d); P.shield-=s; d=Math.max(0,Math.min(d-s,P.hp-1)); P.hp-=d; if(d){ mark('p',d,0); S.run.hurt=true; }
   log(e.name+' bursts'+(d?' and burns you for '+d:', but your ward takes it')+'.','bad');
@@ -168,14 +175,14 @@ const heatOf=di=>Math.min((S.heat&&S.heat[di])||0,heatMax(di));
 function setHeat(di,lv){ if(S.mode!=='town'||!RK[di]||!(lv>=0&&lv<=heatMax(di))) return false; S.heat=S.heat||{}; if(lv) S.heat[di]=lv; else delete S.heat[di]; return true; }
 const runHeat=()=>(S.run&&!S.run.tw&&S.run.heat)||0;
 const gateFarm=di=>(heatOf(di)||gateMod(di)||!(S.ti&&S.ti.clr&&S.ti.clr[di]))?1:farmK(di,S.player.lvl);   // what a Normal run of this gate would pay now (the gate card)
-const runFarm=()=>{ const r=S.run; if(!r||r.tw||r.rift||r.heat||runMod()||!(S.ti&&S.ti.clr&&S.ti.clr[r.di])) return 1; return farmK(r.di,S.player.lvl); };
+const runFarm=()=>{ const r=S.run; if(!r||r.tw||r.rift||r.siege||r.heat||runMod()||!(S.ti&&S.ti.clr&&S.ti.clr[r.di])) return 1; return farmK(r.di,S.player.lvl); };
 const heatK=k=>{ const h=runHeat(); if(!h) return (k==='xp'||k==='gold')?runFarm():1; return (k==='foe'?foeHeat():HEAT[h][k]*(runMod()?DAMNED:1)); };   // the cursed and the hard together
 
 // ===== RUN HISTORY =====
 const HIST_N=20, LIFE_KEYS=['runs','clears','deaths','fled','rooms','kills','xp','gold','items','raised'];
 const runResult=r=>r.cleared?'cleared':S.mode==='defeat'?'fell':r.fled?'fled':'left';
 function recordRun(target,r,res){
-  const h={d:S.day,g:r.tw?-1:r.di,f0:r.tw0||0,f1:r.tw||0,rooms:r.won||0,kills:r.kills||0,xp:r.gained||0,gold:r.goldTot||0,items:r.items||0,raised:r.raised||0,mod:r.mod||null,res}; if(r.heat) h.heat=r.heat; if(r.secret) h.sec=r.secret; if(r.rift) h.rift=r.rift; if(r.riftRec) h.rr=1;
+  const h={d:S.day,g:r.tw?-1:r.di,f0:r.tw0||0,f1:r.tw||0,rooms:r.won||0,kills:r.kills||0,xp:r.gained||0,gold:r.goldTot||0,items:r.items||0,raised:r.raised||0,mod:r.mod||null,res}; if(r.heat) h.heat=r.heat; if(r.secret) h.sec=r.secret; if(r.rift) h.rift=r.rift; if(r.riftRec) h.rr=1; if(r.siege) h.siege=1; if(r.trial) h.trial=r.trial;
   target.hist=(target.hist||[]).concat([h]).slice(-HIST_N);
   const L=target.life=target.life||{}; LIFE_KEYS.forEach(k=>{ L[k]=L[k]||0; });
   L.runs++; if(res==='cleared') L.clears++; if(res==='fell') L.deaths++; if(res==='fled') L.fled++;
@@ -189,7 +196,7 @@ function recFlash(k,txt){ const r=S.run; if(r){ r.recF=r.recF||{}; if(r.recF[k])
 function recBest(k,v){ if(!S||!(v>0)) return; S.rec=S.rec||{}; const o=S.rec[k]; if(!o||v>o.v){ S.rec[k]={v:Math.round(v),day:S.day}; if(o) recFlash(k,REC_NAME[k]+', '+Math.round(v).toLocaleString()); } }
 function recRun(r){   // at the end of every run
   if(!r) return; recBest('kills',r.kills||0); recBest('gold',r.goldTot||0);
-  if(!r.tw&&!r.rift&&r.cleared&&r.tt>0){ S.rec=S.rec||{}; const f=S.rec.fast=S.rec.fast||{}, o=f[r.di]; if(!o||r.tt<o.t){ f[r.di]={t:r.tt,day:S.day,heat:r.heat||0}; if(o) moment('New record: '+DUNGEONS[r.di].name+' in '+r.tt+' turns','gold'); } }
+  if(!r.tw&&!r.rift&&!r.trial&&r.cleared&&r.tt>0){ S.rec=S.rec||{}; const f=S.rec.fast=S.rec.fast||{}, o=f[r.di]; if(!o||r.tt<o.t){ f[r.di]={t:r.tt,day:S.day,heat:r.heat||0}; if(o) moment('New record: '+DUNGEONS[r.di].name+' in '+r.tt+' turns','gold'); } }
 }
 // ===== DOORS =====
 // After each gate room (not before the boss, not in the Tower) you pick the next room from two or three doors.

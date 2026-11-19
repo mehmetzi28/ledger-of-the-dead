@@ -22,6 +22,9 @@
 //              Blessings measured: Grace in the Tower as well was worth ~5 floors to the whole bot (~11 per Honored bot), at 10% HP
 //              still ~4; gates-only Grace with a 3-Soul Tithe lands at tower ~72-73 and 86% clears.
 //              opts.off (e.g. ['fuse','crypt']) switches parts off to measure each one.
+//              'reserve' off: the bot keeps no bench (raiders who come home to it take an army place if stronger, or are let go).
+//              'rival' off: no rival (no thefts, no challenges). The rival only plays in the 'full' mode, so 'market' numbers stay
+//              comparable with earlier runs; there the bot goes to a challenge's gate on its day and fights it like any boss room.
 //   The full bot now swears faith by default (Honored on even bots, Dishonored on odd) and climbs to Hard on cleared gates
 //   (opts.heat:1); pass faith/heat to override, heat:0 for the old behaviour. Every run also reports secret masters met/slain.
 //   opts.faith ('hon'|'dis') swears an oath at level 8; opts.ult ('toll'|'rise'|'prison') picks the ultimate; opts.heat (1-3) lets
@@ -83,6 +86,7 @@
       // Bone Altar: strongest minions first, keeping enough gold to refill potions next time
       const reserve=(POTIONS.hp.price()+POTIONS.mp.price())*BELT_MAX;
       if(B.full){
+        if(typeof repairBuilding==='function'&&S.siege&&S.siege.dmg) repairBuilding();   // a building burned in a siege: repair it first
         for(const k of ['crypt','ossuary','altar','forge']){ const c=buildCost(k); if(!B.off[k]&&c&&S.gold-c[0]>=reserve) build(k); }
         if(!B.off.enchant) for(const sl of GEAR_SLOTS){ const it=S.equip[sl]; if(it&&!ITEM[it.id].uq) while((it.ro||[]).length<lineMax(it)&&enchant(it.u,-1)); }
         if(!B.off.fuse&&S.army.length>=slots()){ const by={}; for(const m of S.army) (by[m.role]=by[m.role]||[]).push(m);
@@ -91,7 +95,17 @@
       }
       for(const m of S.army.slice().sort((a,b)=>cval(b)-cval(a))){ while(S.gold-empowerCost(m)>=reserve&&empower(m.uid)); }
     }
-    if(B.full&&!B.off.raid&&typeof sendRaid==='function'&&!(S.raids||[]).length&&S.army.length>=5&&S.watches===1){   // before the day's last run (they are home at dawn either way), send a Commander and its two weakest companions at the deepest gate with fair odds
+    if(useRes(B)){   // the Reserve: whoever is stronger than the weakest army minion swaps in; a full bench lets its weakest go
+      for(let i=0;i<20;i++){ const R=S.reserve||[], r=R.slice().sort((a,b)=>cval(b)-cval(a))[0], w=S.army.slice().sort((a,b)=>cval(a)-cval(b))[0]; if(!r) break;
+        if(armyRoom()){ toArmy(r.uid); continue; } if(!w||cval(r)<=cval(w)) break; swapReserve(w.uid,r.uid); }
+      while((S.reserve||[]).length>=reserveMax()) release(S.reserve.slice().sort((a,b)=>cval(a)-cval(b))[0].uid);
+      for(const m of (S.waiting||[]).slice()) release(m.uid);
+    } else if(B.full&&typeof reserveOpen==='function'&&reserveOpen()){   // "off":["reserve"]: keep no bench; raiders who came home to it take an army place if they are stronger, or go
+      for(const r of benched().sort((a,b)=>cval(b)-cval(a))){ const w=S.army.slice().sort((a,b)=>cval(a)-cval(b))[0];
+        if(!armyRoom()&&w&&cval(r)>cval(w)) release(w.uid);
+        if(armyRoom()&&S.reserve.includes(r)) toArmy(r.uid); else if(armyRoom()&&S.waiting.includes(r)) fromGate(r.uid,'army'); else release(r.uid); }
+    }
+    if(B.full&&!B.off.raid&&typeof sendRaid==='function'&&!(S.raidOrders||[]).length&&S.army.length>=5&&S.watches===1){   // before the day's last run, order a Commander and its two weakest companions at the deepest gate with fair odds
       const c=S.army.filter(isCommander).sort((a,b)=>cval(b)-cval(a))[0];
       if(c){ const fol=S.army.filter(m=>m!==c).sort((a,b)=>cval(a)-cval(b)).slice(0,Math.min(2,squadMax(c)-1)), units=[c].concat(fol);
         const g=raidGates().slice().reverse().find(di=>raidOdds(units,di)>=.55); if(g!=null) sendRaid(c.uid,g,fol.map(m=>m.uid)); }
@@ -137,29 +151,32 @@
     if(P.mana>=8+res&&pSiph()>=pAtk()) return 'siphon';
     return 'strike';
   }
-  function raisePhase(){
+  const useRes=B=>B&&B.full&&!B.off.reserve&&typeof reserveOpen==='function'&&reserveOpen();   // the Reserve, switchable with "off":["reserve"]
+  function raisePhase(B){
     const r=S.run, P=S.player;
     for(const c of r.corpses.filter(c=>!c.tried).sort((a,b)=>cval(b)-cval(a))){
       if(P.mana<raiseCost(c)) continue;
       if(S.army.length>=slots()){
         const w=S.army.slice().sort((a,b)=>cval(a)-cval(b))[0];
-        if(!w||cval(w)>=cval(c)-3||raiseChance(c)<40) continue;
+        const better=w&&cval(w)<cval(c)-3&&raiseChance(c)>=40;   // worth an army place now
+        if(!better&&useRes(B)&&r.cleared&&reserveRoom()&&w&&cval(c)>cval(w)&&raiseChance(c)>=40){ tryRaise(c.id,S.salts>0&&(c.boss||c.elite),true); continue; }   // the gate is done, so mana is free: bench it, swap it in at the gate
+        if(!better) continue;
         release(w.uid);
       }
       tryRaise(c.id, typeof S.salts==='number'&&S.salts>0&&(c.boss||c.elite));   // salts on the bodies worth the most
     }
   }
   function playRun(B,rec){
-    const gi=pickGate(B), lvl=S.player.lvl;
+    const duel=typeof rivalToday==='function'&&rivalToday()&&S.player.lvl>=RK[rv().gi].unlock, gi=duel?rv().gi:pickGate(B), lvl=S.player.lvl;   // a rival's challenge today: go and meet it (rivalOpen is off outside 'full')
     if(B.heat&&B.hw&&B.hw[gi]!=null&&S.day-B.hwDay[gi]>=3) delete B.hw[gi];   // try again a few days later
     if(B.heat){ B.hw=B.hw||{}; setHeat(gi,Math.min(B.heat,heatMax(gi),B.hw[gi]==null?9:B.hw[gi])); }   // opts.heat: the highest difficulty the bot picks; it steps down a level after each death there
     startRun(gi);
     if(S.mode!=='battle'){ S.watches=0; endDay(); return; }
-    const run={gate:gi,lvl,diff:lvl-SAFE[gi],heat:S.run.heat||0,cleared:false,died:false,left:false,rooms:0,turns:0,hpEnd:[]}; let guard=0;
+    const run={gate:gi,lvl,diff:lvl-SAFE[gi],heat:S.run.heat||0,cleared:false,died:false,left:false,rooms:0,turns:0,hpEnd:[]}; if(duel) run.rival=1; let guard=0;   // a challenge run is left out of the gate table (reported on the rival line)
     for(;;){
       if(S.mode==='battle'){ if(++guard>400){ flee(); run.left=true; break; } act(decide(B)); run.turns++; continue; }
       if(S.mode==='raise'){
-        run.rooms++; run.hpEnd.push(S.player.hp/pMax()); raisePhase();
+        run.rooms++; run.hpEnd.push(S.player.hp/pMax()); raisePhase(B);
         if(S.run.cleared){ run.cleared=true; returnTown(); break; }
         const P=S.player, live=S.army.filter(m=>m.hp>0).length;
         if(P.hp+pMax()*DIFF.heal>=pMax()*.5||(P.hp>=pMax()*.3&&live>=2)) descend(); else { run.left=true; returnTown(); break; }
@@ -174,16 +191,41 @@
     S.watches=Math.max(1,S.watches); S.mode='town'; S.run=null; startTower(from||1); let guard=0;
     while(S.mode!=='town'&&guard++<6000){
       if(S.mode==='battle') act(decide(B));
-      else if(S.mode==='raise'){ raisePhase(); if(S.run.cleared) break; descend(); }
+      else if(S.mode==='raise'){ raisePhase(B); if(S.run.cleared) break; descend(); }
       else break;
     }
     return S.tower.best;
   }
+  function tierProbe(B,seed,out){   // opts.tiers: at dawn every few days, fight given gates once per difficulty from a copy of the bot (own random numbers), then go on as if nothing happened
+    const T=B.tiers, snap=JSON.stringify(S), rand=Math.random, lvl=S.player.lvl;
+    try{ for(const gi of T.gates) for(const h of (T.heats||[1,2,3])){
+      if(lvl<RK[gi].unlock||(T.near!=null&&Math.abs(lvl-tierRec(gi,h))>T.near)) continue;
+      S=JSON.parse(snap); Math.random=mulberry32(seed*7919+S.day*31+gi*5+h); S.mode='town'; S.run=null; S.watches=Math.max(1,S.watches);
+      if(gateMod(gi)) continue; S.ti=S.ti||{}; S.ti.clr=S.ti.clr||{}; S.ti.clr[gi]=1; S.heatMax=S.heatMax||{}; S.heatMax[gi]=HEAT.length; S.heat=S.heat||{}; S.heat[gi]=h;
+      startRun(gi); if(S.mode!=='battle') continue; const r={gate:gi,heat:h,lvl,cleared:false}; let guard=0;
+      for(;;){ if(S.mode==='battle'){ if(++guard>400) break; act(decide(B)); continue; }
+        if(S.mode==='raise'){ raisePhase(B); if(S.run.cleared){ r.cleared=true; break; } const P=S.player, live=S.army.filter(m=>m.hp>0).length;
+          if(P.hp+pMax()*DIFF.heal>=pMax()*.5||(P.hp>=pMax()*.3&&live>=2)) descend(); else break; continue; }
+        break; }
+      out.push(r); } }
+    finally{ S=JSON.parse(snap); Math.random=rand; }
+  }
+  function fightSiege(B){   // a siege is fought like rooms: the same decisions, raise the last wave's bodies, then dawn
+    if(!beginSiege()) return; let guard=0;
+    while(guard++<2000){
+      if(S.mode==='battle'){ act(decide(B)); continue; }
+      if(S.mode==='raise'){ raisePhase(B); returnTown(); break; }
+      if(S.mode==='defeat'){ returnTown(); break; }
+      break; }
+    if(S.mode!=='town') returnTown();
+  }
   function simBot(seed,B,days){
     Math.random=mulberry32(seed); newGame(); B.statI=0; B.hw={}; B.hwDay={};
-    const rec=[], lvAt={}, firstClear={}, loreAt={};
+    const rec=[], lvAt={}, firstClear={}, loreAt={}, tiers=[];
     while(S.day<=days){
-      town(B); const d=S.day; playRun(B,rec);
+      if(B.tiers&&S.watches===WATCHES&&S.day%(B.tiers.every||2)===0) tierProbe(B,seed,tiers);
+      if(S.mode==='siege') fightSiege(B);
+      town(B); const d=S.day; playRun(B,rec); if(S.mode==='siege') fightSiege(B);
       const last=rec[rec.length-1]; if(last&&last.cleared&&firstClear[last.gate]==null) firstClear[last.gate]=d;
       if(S.day!==d){ if(typeof loreCheck==='function') loreCheck(); lvAt[d]=S.player.lvl;   /* the game checks lore when it draws; bots never draw */ loreAt[d]=[Object.keys(S.story||{}).length,S.pages||0]; }
     }
@@ -192,11 +234,12 @@
     let riftDeaths=0;   // the Rift: keep going one depth deeper until it has killed the bot 3 times (at most 40 runs)
     if(typeof riftOpen==='function'&&riftOpen()&&!B.off.rift) for(let i=0;i<40&&riftDeaths<3;i++){
       S.mode='town'; S.run=null; S.watches=Math.max(1,S.watches); town(B); if(!startRift(riftBest()+1)) break; let guard=0;
-      while(S.mode!=='town'&&guard++<4000){ if(S.mode==='battle') act(decide(B)); else if(S.mode==='raise'){ raisePhase(); if(S.run.cleared) break; descend(); } else break; }
+      while(S.mode!=='town'&&guard++<4000){ if(S.mode==='battle') act(decide(B)); else if(S.mode==='raise'){ raisePhase(B); if(S.run.cleared) break; descend(); } else break; }
       if(S.mode==='defeat') riftDeaths++; returnTown(); }
-    const raids={sent:T_('raidsSent'),won:T_('raidWins')}, passives=['robber','scholar','calcify','sanguine','thrift','deathless'].reduce((a,id)=>a+sk(id),0);
+    const sieges={fought:T_('sieges'),won:T_('siegeWins')}, raids={sent:T_('raidsSent'),won:T_('raidWins')}, passives=['robber','scholar','calcify','sanguine','thrift','deathless'].reduce((a,id)=>a+sk(id),0);
     const sec={met:T_('secretMet'),slain:SECRET.reduce((a,B,i)=>a+T_('secret_'+i),0)};
-    return {rec,lvAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,rift:typeof riftBest==='function'?riftBest():0,passives};
+    const rival={met:T_('rivalMet'),wins:T_('rivalWins'),losses:T_('rivalLosses'),thefts:T_('rivalThefts'),day:(S.rival&&S.rival.met)||0};
+    return {rec,tiers,lvAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
   }
 
   // ----- reporting
@@ -204,7 +247,7 @@
   const avg=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length*10)/10:'-';
   function summarize(res,days){
     const gates=DUNGEONS.map((D,i)=>{
-      const g=[].concat(...res.map(r=>r.rec)).filter(x=>x.gate===i);
+      const g=[].concat(...res.map(r=>r.rec)).filter(x=>x.gate===i&&!x.rival);
       const fc=res.map(r=>r.firstClear[i]).filter(x=>x!=null), rooms=g.reduce((a,x)=>a+x.rooms,0)||1;
       return {gate:RANKS[i]+' '+D.name,runs:g.length,avgLvlVsSafe:avg(g.map(x=>x.diff)),clear:pc(g.filter(x=>x.cleared).length,g.length),death:pc(g.filter(x=>x.died).length,g.length),
         turnsPerRoom:Math.round(g.reduce((a,x)=>a+x.turns,0)/rooms*10)/10,hpAfterRoom:(h=>h.length?Math.round(h.reduce((a,b)=>a+b,0)/h.length*100)+'%':'-')([].concat(...g.map(x=>x.hpEnd))),
@@ -216,14 +259,20 @@
     const lore={}; [10,30,60,days].forEach(d=>{ const a=res.map(r=>r.loreAt&&r.loreAt[d]).filter(Boolean); if(a.length) lore['day'+d]=avg(a.map(x=>x[0]))+' passages, '+avg(a.map(x=>x[1]))+' pages'; });
     const sec={met:res.reduce((a,r)=>a+(r.sec?r.sec.met:0),0),slain:res.reduce((a,r)=>a+(r.sec?r.sec.slain:0),0)};
     const raids={sent:res.reduce((a,r)=>a+(r.raids?r.raids.sent:0),0),won:res.reduce((a,r)=>a+(r.raids?r.raids.won:0),0)};
+    const sieges={fought:res.reduce((a,r)=>a+(r.sieges?r.sieges.fought:0),0),won:res.reduce((a,r)=>a+(r.sieges?r.sieges.won:0),0)};
+    const rival={fights:res.reduce((a,r)=>a+(r.rival?r.rival.met:0),0),wins:res.reduce((a,r)=>a+(r.rival?r.rival.wins:0),0),losses:res.reduce((a,r)=>a+(r.rival?r.rival.losses:0),0),thefts:res.reduce((a,r)=>a+(r.rival?r.rival.thefts:0),0),metDay:avg(res.map(r=>r.rival&&r.rival.day).filter(x=>x>0))}; rival.winRate=pc(rival.wins,rival.wins+rival.losses);
     const rift={best:avg(res.map(r=>r.rift||0)),open:res.filter(r=>r.rift>0).length+'/'+res.length,deepest:Math.max(0,...res.map(r=>r.rift||0))};
     const byLvl=DUNGEONS.map((D,i)=>{ const g=all.filter(x=>x.gate===i&&!x.heat), o={}; for(const x of g){ const k=x.lvl; (o[k]=o[k]||[0,0])[0]++; if(x.cleared) o[k][1]++; } return RANKS[i]+': '+Object.keys(o).map(Number).sort((x,y)=>x-y).map(l=>'Lv'+l+' '+pc(o[l][1],o[l][0])+'/'+o[l][0]).join('  '); });   // Normal runs only: clear rate by hero level on entry (run-balance.js prints it with {"byLvl":true})
-    return {gates,heat,byLvl,sec,lore,raids,rift,passives:avg(res.map(r=>r.passives||0)),runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
+    const tp=[].concat(...res.map(r=>r.tiers||[])), tiers=[];   // opts.tiers: clear rate by hero level for each gate and difficulty (the model's advice in brackets)
+    for(const gi of [...new Set(tp.map(x=>x.gate))]) for(const h of [...new Set(tp.map(x=>x.heat))].sort()){ const g=tp.filter(x=>x.gate===gi&&x.heat===h), o={}; if(!g.length) continue;
+      for(const x of g){ const k=x.lvl-x.lvl%2; (o[k]=o[k]||[0,0])[0]++; if(x.cleared) o[k][1]++; }
+      tiers.push(RANKS[gi]+' '+HEAT[h].name+' [rec '+tierRec(gi,h)+']: '+Object.keys(o).map(Number).sort((x,y)=>x-y).map(l=>'Lv'+l+' '+pc(o[l][1],o[l][0])+'/'+o[l][0]).join('  ')); }
+    return {gates,heat,byLvl,tiers,sec,lore,raids,sieges,rival,rift,passives:avg(res.map(r=>r.passives||0)),runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
   }
 
   function run(opts){
     opts=Object.assign({bots:30,days:40,seed:1000,diff:null,tw:null,push:false,early:0,modes:['noSkills','skills']},opts||{});
-    const keep={S:JSON.stringify(S),rand:Math.random,save:save,DIFF:JSON.stringify(DIFF),TW:JSON.stringify(TW),SAFE:SAFE.slice()};
+    const keep={siegeOpen:typeof siegeOpen==='function'?siegeOpen:null,rivalOpen:typeof rivalOpen==='function'?rivalOpen:null,S:JSON.stringify(S),rand:Math.random,save:save,DIFF:JSON.stringify(DIFF),TW:JSON.stringify(TW),SAFE:SAFE.slice()};
     save=function(){};
     const sfxWas=typeof SFX!=='undefined'&&SFX.on; if(typeof SFX!=='undefined') SFX.on=false;   // no sound during simulations
     if(opts.early){ SAFE[4]-=opts.early; SAFE[5]-=opts.early; }   // let fair bots enter A and S early (the XP curve stalls them near level 20)
@@ -232,11 +281,13 @@
     const out={settings:{DIFF:JSON.parse(JSON.stringify(DIFF)),TW:Object.assign({},TW),bots:opts.bots,days:opts.days}}, t0=Date.now();
     try{
       for(const [name,skills,market,full] of [['noSkills',false,false,false],['skills',true,false,false],['market',true,true,false],['full',true,true,true]].filter(m=>opts.modes.includes(m[0]))){
-        const res=[]; for(let b=0;b<opts.bots;b++) res.push(simBot(opts.seed+b,{skills,market,full,push:opts.push,faith:opts.faith||(full?(b%2?'dis':'hon'):null),ult:opts.ult,heat:opts.heat!=null?opts.heat:(full?1:0),off:Object.fromEntries((opts.off||[]).map(k=>[k,1]))},opts.days));
+        if(keep.siegeOpen) siegeOpen=(opts.off||[]).includes('siege')?()=>false:keep.siegeOpen;   // "off":["siege"]: the living never come
+        if(keep.rivalOpen) rivalOpen=(!full||(opts.off||[]).includes('rival'))?()=>false:keep.rivalOpen;   // the rival plays only in 'full'; "off":["rival"] switches it off there
+        const res=[]; for(let b=0;b<opts.bots;b++) res.push(simBot(opts.seed+b,{skills,market,full,push:opts.push,faith:opts.faith||(full?(b%2?'dis':'hon'):null),ult:opts.ult,heat:opts.heat!=null?opts.heat:(full?1:0),tiers:opts.tiers,off:Object.fromEntries((opts.off||[]).map(k=>[k,1]))},opts.days));
         out[name]=summarize(res,opts.days);
       }
     } finally {
-      Math.random=keep.rand; save=keep.save; keep.SAFE.forEach((v,i)=>SAFE[i]=v); if(typeof SFX!=='undefined') SFX.on=sfxWas;
+      if(keep.siegeOpen) siegeOpen=keep.siegeOpen; if(keep.rivalOpen) rivalOpen=keep.rivalOpen; Math.random=keep.rand; save=keep.save; keep.SAFE.forEach((v,i)=>SAFE[i]=v); if(typeof SFX!=='undefined') SFX.on=sfxWas;
       Object.assign(DIFF,JSON.parse(keep.DIFF)); Object.assign(TW,JSON.parse(keep.TW));
       S=JSON.parse(keep.S);
     }

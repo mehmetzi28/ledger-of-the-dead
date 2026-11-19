@@ -7,7 +7,7 @@ function render(){
   let pips=''; for(let i=0;i<WATCHES;i++) pips+='<i class="pip'+(i<S.watches?' on':'')+'"></i>';
   const tabNote=TAB.blocked?'<div class="note bad tab-note"><span>This game was just saved from another tab. This tab has stopped saving so it cannot overwrite that progress. Close one of the tabs, or load the newer save here.</span><button class="btn small primary" data-a="tabsync">Load the newer save</button></div>':'';
   const mo=MOMENTS.length?'<div class="moments" role="status">'+MOMENTS.map(x=>'<div class="moment '+x.c+'">'+x.t+'</div>').join('')+'</div>':''; MOMENTS.length=0;
-  const main=S.mode==='battle'?battleHTML():S.mode==='raise'?raiseHTML():S.mode==='defeat'?defeatHTML():townHTML();
+  const main=S.mode==='battle'?battleHTML():S.mode==='raise'?raiseHTML():S.mode==='defeat'?defeatHTML():S.mode==='siege'?siegeHTML():townHTML();
   app.innerHTML='<header class="top"><div class="brand"><svg class="sigil" viewBox="0 0 64 64" width="54" height="54" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="32" cy="32" r="30"/><circle cx="32" cy="32" r="24" stroke-dasharray="1.5 3.5"/><rect x="16" y="16" width="32" height="32"/><rect x="16" y="16" width="32" height="32" transform="rotate(45 32 32)"/><circle cx="32" cy="32" r="6"/><circle cx="32" cy="32" r="2" fill="currentColor"/></g></svg><div><h1>Ledger of the Dead</h1><p class="tag">Every name in this book answers to you.</p></div></div><div class="top-meta">'+(S.ngp?'<span class="ngp-b" title="New Game+">NG+'+S.ngp+'</span>':'')+'<span>Day '+S.day+'</span><span title="Gold">'+gold(S.gold)+'</span><span>Watches<span class="pips" aria-label="'+S.watches+' of '+WATCHES+' watches left">'+pips+'</span></span></div>'
    +'<button class="gearbtn'+((ui.tab==='settings'&&S.mode==='town')?' on':'')+'" data-a="settings" aria-label="Settings" aria-pressed="'+(ui.tab==='settings'&&S.mode==='town')+'"'+(S.mode==='town'?' title="Settings: save, load, new game"':' disabled title="Settings open when you are back in town"')+'><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M10.3 2h3.4l.5 2.6c.6.2 1.2.5 1.7.9l2.5-.9 1.7 2.9-2 1.7c.1.6.1 1.3 0 1.9l2 1.7-1.7 2.9-2.5-.9c-.5.4-1.1.7-1.7.9l-.5 2.6h-3.4l-.5-2.6c-.6-.2-1.2-.5-1.7-.9l-2.5.9-1.7-2.9 2-1.7a6 6 0 0 1 0-1.9l-2-1.7 1.7-2.9 2.5.9c.5-.4 1.1-.7 1.7-.9zM12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z"/></svg></button></header>'
    +'<div class="layout"><div class="main">'+tabNote+mo+tipHTML()+main+'</div><aside class="rail">'+questHTML()+statusHTML()+equipHTML()+(townOpen()?bountyHTML():'')+'</aside></div>'+(ui.keys?keysHTML():'');
@@ -36,10 +36,12 @@ const ACTIONS={
   sellalltro:()=>{ const g=sellAllTrophies(); ui.msg=g?{mk:1,m:'Sold every trophy for '+g+' gold.',c:'ok'}:null; },
   buysalt:()=>{ const c=saltPrice(); ui.msg=buySalt()?{mk:1,m:'Bought Grave Salts for '+c+' gold.',c:'ok'}:null; },
   buybag:()=>{ const c=BAG_COST[S.bagLv||0]; ui.msg=buyBag()?{mk:1,m:'Your bag now holds '+bagMax()+' items. Paid '+c+' gold.',c:'ok'}:null; },
-  empower:k=>{ const m=S.army.find(x=>x.uid===+k), c=m&&empowerCost(m); ui.msg=empower(+k)?{mk:1,m:m.nick+' rises to level '+m.lvl+'. Paid '+c+' gold.',c:'ok'}:null; },
+  empower:k=>{ const m=findMinion(+k), c=m&&empowerCost(m); ui.msg=empower(+k)?{mk:1,m:m.nick+' rises to level '+m.lvl+'. Paid '+c+' gold.',c:'ok'}:null; },
   forge:k=>{ const a=k.split('|'), res=forgeGear(+a[0],a[1]); ui.msg=res?{mk:1,m:(res.master?'Masterwork! ':'')+'The forge gives you '+ITEM[res.it.id].name+'. It is in your bag.',c:'ok'}:null; },
   brew:k=>{ ui.msg=brew(k)?{mk:1,m:'You brew a '+POTIONS[k].name+' from four trophies.',c:'ok'}:null; },
-  raisesalt:k=>tryRaise(k,true), raisebest:()=>{ raiseBest(); },
+  raisesalt:k=>tryRaise(k,true), raisebest:()=>{ raiseBest(); }, raiseres:k=>tryRaise(k,false,true), raiseressalt:k=>tryRaise(k,true,true),
+  tores:k=>{ toReserve(+k); }, toarmy:k=>{ toArmy(+k); }, swapo:k=>{ ui.swap=ui.swap===+k?null:+k; }, swap:k=>{ const a=k.split('|'); if(swapReserve(+a[0],+a[1])) ui.swap=null; },
+  rsort:k=>{ sortReserve(k); }, gatearmy:k=>{ fromGate(+k,'army'); }, gateres:k=>{ fromGate(+k,'reserve'); },
   event:k=>{ resolveEvent(k); }, door:k=>{ descend(k); }, cmd:k=>{ command(k); },
   skmod:k=>{ const a=k.split('|'); chooseMod(a[0],a[1]); },
   build:k=>{ const c=buildCost(k); ui.msg=build(k)?{mk:1,m:BUILD[k].name+' raised to level '+bl(k)+' for '+c[0]+' gold'+(c[1]?' and '+c[1]+' bone dust':'')+'.',c:'ok'}:null; },
@@ -59,17 +61,22 @@ const ACTIONS={
   tabsync:()=>{ TAB.blocked=false; TAB.last=null; loadGame(); ui.tab='gates'; ui.msg=null; },
   lock:k=>{ lockItem(+k); }, asort:k=>{ sortArmy(k); }, mdet:k=>{ ui.mdet=ui.mdet===+k?null:+k; },
   keys:()=>{ ui.keys=!ui.keys; },
-  renameo:k=>{ ui.rename=+k; const m=S.army.find(x=>x.uid===+k); ui.rn=m?m.nick:''; }, renamex:()=>{ ui.rename=null; },
+  renameo:k=>{ ui.rename=+k; const m=findMinion(+k); ui.rn=m?m.nick:''; }, renamex:()=>{ ui.rename=null; },
   rename:k=>{ if(renameMinion(+k,ui.rn)) ui.rename=null; },
+  honour:k=>{ const e=(S.memorial||[])[+k]; if(e&&honour(+k)) notify(e.nick+' is honoured. Your army is Remembered until dawn.','ok'); }, memall:()=>{ ui.memAll=!ui.memAll; },
+  losave:k=>{ const i=+k, L=(S.loadouts||[])[i]; if(L&&L.s&&ui.confirm!=='lo'+i){ ui.confirm='lo'+i; return; } ui.confirm=null; if(saveLoadout(i)) notify('Saved to '+loadoutName(i)+'.','ok'); },
+  louse:k=>{ useLoadout(+k); }, loreno:k=>{ ui.lren=+k; ui.lrn=loadoutName(+k); }, lorenx:()=>{ ui.lren=null; }, loren:k=>{ if(renameLoadout(+k,ui.lrn)) ui.lren=null; },
   reforge:k=>{ const it=findItem(+k), c=it&&reforgeCost(it); ui.msg=reforge(+k)?{mk:1,m:'Reforged '+ITEM[it.id].name+' for '+c+' gold.',c:'ok'}:null; },
-  rift:k=>{ startRift(+k); }, gsub:k=>{ ui.gsub=['open','war','rift'].includes(k)?k:'open'; ui.msg=null; },
+  rift:k=>{ startRift(+k); }, gsub:k=>{ ui.gsub=['open','war','rift','trial'].includes(k)?k:'open'; ui.msg=null; }, trial:()=>{ startTrial(); },
   rdep:k=>{ const b=riftBest(); ui.rd=clamp((ui.rd||b+1)+(+k||0),1,b+1); },
   rcmd:k=>{ ui.rc=+k; ui.rsq=[]; }, rgate:k=>{ ui.rg=+k; },
   rsq:k=>{ const u=+k; ui.rsq=(ui.rsq||[]).includes(u)?ui.rsq.filter(x=>x!==u):(ui.rsq||[]).concat([u]); },
-  raid:()=>{ const cmds=S.army.filter(isCommander), gates=raidGates(); const c=cmds.find(m=>m.uid===ui.rc)||cmds[0]; if(!c||!gates.length) return;
-    const di=gates.includes(ui.rg)?ui.rg:gates[gates.length-1], sel=(ui.rsq||[]).filter(u=>S.army.some(m=>m.uid===u&&m!==c)).slice(0,squadMax(c)-1);
-    if(sendRaid(c.uid,di,sel)){ ui.msg={mk:1,m:c.nick+' marches on the '+DUNGEONS[di].name+' with '+sel.length+' at its back. They return at dawn.',c:'ok'}; ui.rsq=[]; ui.rc=null; } },
+  raid:()=>{ const pool=raidPool(), cmds=pool.filter(isCommander).filter(m=>!inOrder(m)), gates=raidGates(); const c=cmds.find(m=>m.uid===ui.rc)||cmds[0]; if(!c||!gates.length) return;
+    const di=gates.includes(ui.rg)?ui.rg:gates[gates.length-1], sel=(ui.rsq||[]).filter(u=>pool.some(m=>m.uid===u&&m!==c&&!inOrder(m))).slice(0,squadMax(c)-1);
+    if(sendRaid(c.uid,di,sel)){ ui.msg={mk:1,m:c.nick+' will march on the '+DUNGEONS[di].name+' tonight with '+sel.length+' at its back. They fight beside you until nightfall and return at dawn.',c:'ok'}; ui.rsq=[]; ui.rc=null; } },
   recall:k=>{ recallRaid(+k); },
+  siegego:()=>{ beginSiege(); }, cxgo:k=>{ ui.tab='codex'; ui.cx=k; ui.cxq=''; },
+  repair:()=>{ const g=sg(), k=g.dmg, c=repairCost(); if(!k) return; if(ui.confirm!=='repair'){ ui.confirm='repair'; return; } ui.confirm=null; ui.msg=repairBuilding()?{mk:1,m:'The '+BUILD[k].name+' is repaired for '+c+' gold. It works again.',c:'ok'}:null; },
   selltier:k=>{ const t=+k; if(ui.confirm!=='st'+t){ ui.confirm='st'+t; return; } ui.confirm=null; const r=sellTier(t); ui.msg=r&&r.n?{mk:1,m:'Sold '+r.n+' '+TIERS[t]+' piece'+(r.n>1?'s':'')+' for '+r.g+' gold.',c:'ok'}:null; },
   salvtier:k=>{ const t=+k; if(ui.confirm!=='sv'+t){ ui.confirm='sv'+t; return; } ui.confirm=null; const r=salvageTier(t); ui.msg=r&&r.n?{mk:1,m:'Salvaged '+r.n+' '+TIERS[t]+' piece'+(r.n>1?'s':'')+' into '+r.d+' bone dust.',c:'ok'}:null; },
   junk:()=>{ if(ui.confirm!=='junk'){ ui.confirm='junk'; return; } ui.confirm=null; const r=sellJunk(); ui.msg=r&&r.n?{mk:1,m:'Sold '+r.n+' piece'+(r.n>1?'s':'')+' of junk for '+r.g+' gold.',c:'ok'}:null; },
@@ -107,7 +114,7 @@ const ACTIONS={
   release:k=>{ if(ui.confirm===+k){ release(+k); ui.confirm=null; } else ui.confirm=+k; },
   newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); OPEN_HELP.on=false; ui.tab='gates'; ui.gsub='open'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
 };
-const CONFIRM_ACTS=['release','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier'];   // two-press actions: a click on these keeps the pending confirm
+const CONFIRM_ACTS=['release','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
 document.addEventListener('click',e=>{
   MUSIC.armed=true;
   const b=e.target.closest('[data-a]'); if(!b||b.disabled) return;
@@ -115,7 +122,7 @@ document.addEventListener('click',e=>{
   if(ui.confirm!==null && !CONFIRM_ACTS.includes(a)) ui.confirm=null;
   ACTIONS[a]&&ACTIONS[a](b.dataset.k); render();
 });
-document.addEventListener('input',e=>{ if(e.target&&e.target.id==='cxq'){ ui.cxq=e.target.value.slice(0,40); render(); return; } if(e.target&&e.target.id==='imp') ui.imp=e.target.value; if(e.target&&e.target.id==='rn') ui.rn=e.target.value; });
+document.addEventListener('input',e=>{ if(e.target&&e.target.id==='cxq'){ ui.cxq=e.target.value.slice(0,40); render(); return; } if(e.target&&e.target.id==='imp') ui.imp=e.target.value; if(e.target&&e.target.id==='rn') ui.rn=e.target.value; if(e.target&&e.target.id==='lrn') ui.lrn=e.target.value; });
 document.addEventListener('change',e=>{   // a dropdown with data-a works like a button whose data-k is the chosen value
   const sl=e.target&&e.target.tagName==='SELECT'&&e.target.dataset&&e.target.dataset.a; if(sl&&ACTIONS[sl]){ ACTIONS[sl](e.target.value); render(); return; }
   // a save file was picked: read it, then ask before loading
@@ -128,6 +135,7 @@ window.addEventListener('storage',e=>{   // another tab of this game saved: stop
 window.addEventListener('resize',()=>{ if(VIEW.fx==='auto') try{ applyView(); }catch(e){} });   // Auto effects follow the window size
 document.addEventListener('pointerdown',()=>{ if(!MUSIC.armed){ MUSIC.armed=true; music(); } },{once:true});
 document.addEventListener('keydown',e=>{
+  if(e.target&&e.target.id==='lrn'){ if(e.key==='Escape'){ e.preventDefault(); ui.lren=null; render(); return; } if(e.key==='Enter'&&ui.lren!=null){ e.preventDefault(); ACTIONS.loren(String(ui.lren)); render(); } return; }   // typing a loadout's new name
   if(e.target&&e.target.id==='rn'){ if(e.key==='Escape'){ e.preventDefault(); ui.rename=null; render(); return; } if(e.key==='Enter'&&ui.rename!=null){ e.preventDefault(); ACTIONS.rename(String(ui.rename)); render(); } return; }   // typing a minion's new name
   if(e.ctrlKey||e.metaKey||e.altKey) return;
   const typing=e.target&&/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);

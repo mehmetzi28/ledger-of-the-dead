@@ -11,7 +11,17 @@ test('Town: each building changes its numbers',()=>{
   const P=S.player; setLvl(60); P.stats.will=100; eq(slots(),ARMY_CAP); S.build.crypt=2; eq(slots(),ARMY_CAP+2,'Crypt lifts the cap');
   const it=give('3-wa'), r0=reforgeCost(it), e0=enchCost(it); S.build.forge=2; eq(reforgeCost(it),Math.round(buyPrice(ITEM['3-wa'])*REFORGE_COST*.7)); ok(enchCost(it)<e0&&reforgeCost(it)<r0);
   setLvl(1); P.stats.will=4; const c=corpse({}), ch=raiseChance(c); S.build.ossuary=1; eq(raiseChance(c),ch+3);
-  const m0=pMana(), mn=mkMinion({lvl:1}), ec=empowerCost(mn); S.build.altar=2; near(pMana(),m0*1.1,1); eq(empowerCost(mn),Math.round(mneed(1)*.6*.8)); ok(empowerCost(mn)<=ec);
+  const m0=pMana(), mn=mkMinion({lvl:1}), ec=empowerCost(mn); S.build.altar=2; near(pMana(),m0*1.1,1); eq(empowerCost(mn),Math.round(mneed(1)*.6*.76)); ok(empowerCost(mn)<=ec);
+});
+test('Town: measured building numbers, the cheaper Forge and Ossuary steps, and what each gives now on the Town tab',()=>{
+  eq([B_FORGE,B_OSS,B_ALT_MANA,B_ALT_COST].join(),'0.15,3,0.05,0.12','measured 2026-11-15 (Altar discount 10% to 12%)');
+  eq(JSON.stringify(buildCost('ossuary')),JSON.stringify(BUILD_COST[0])); S.build.ossuary=1; eq(JSON.stringify(buildCost('ossuary')),JSON.stringify(BUILD_COST[0]),'level 2 at the level-1 price'); S.build.ossuary=2; eq(JSON.stringify(buildCost('ossuary')),JSON.stringify(BUILD_COST[1])); S.build.ossuary=3; eq(buildCost('ossuary'),null);
+  S.build.forge=2; eq(JSON.stringify(buildCost('forge')),JSON.stringify(BUILD_COST[1])); S.build.crypt=1; eq(JSON.stringify(buildCost('crypt')),JSON.stringify(BUILD_COST[1]),'Crypt untouched'); S.build.altar=2; eq(JSON.stringify(buildCost('altar')),JSON.stringify(BUILD_COST[2]));
+  setLvl(6); ui.tab='town'; const h=renderAll('town now');
+  for(const s of ['Now: +1 army slot, +'+RESERVE_CRYPT+' Reserve places.','Now: reforging and enchanting 30% cheaper.','Now: +9% raise chance.','Now: +10% max mana, Bone Altar 24% cheaper.']) ok(h.includes(s),s);
+  S.build={}; ok(!/Now: /.test(renderAll('none')),'nothing built, no line');
+  eq(trText('Now: +9% raise chance.'),'Şu an: +%9 diriltme şansı.'); eq(trText('Now: +2 army slots'),'Şu an: +2 ordu yeri'); eq(trText('Now: +10% max mana, Bone Altar 24% cheaper'),'Şu an: +%10 azami mana, Kemik Sunağı %24 daha ucuz');
+  ok(/Forge and the Ossuary cost one step less/.test(cdx('town')),'Codex');
 });
 test('Town: building the Altar fills the new mana at once, like gear',()=>{ const P=S.player; S.gold=1e4; P.mana=pMana(); ok(build('altar')); eq(P.mana,pMana()); invariants('altar'); });
 test('Town: the Town tab shows the buildings; saves keep only valid buildings and dust',()=>{

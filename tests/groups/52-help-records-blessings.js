@@ -6,7 +6,7 @@ test('Help: How to play reads its numbers from the game and lists what opens lat
   ok(h.includes('last '+BAK_N+' days'),'backup days'); ok(h.includes('level '+ULT_LV)); ok(h.includes('level '+FAITH_LV)); ok(h.includes('level '+TW.unlock));
   ok(h.includes(Object.values(ORDER_KEYS).map(r=>CMDS[r].name).join(', ')),'order names in key order');
   ok(/saves itself after every action/.test(h)); ok(!/rise to your level/.test(h),'cursed gates rise to just below your level');
-  eq(HELP_LATER().length,7); setLvl(25); ok(HELP_LATER().find(x=>x[0]==='Ultimates')[2],'marked open');
+  eq(HELP_LATER().length,10); setLvl(25); ok(HELP_LATER().find(x=>x[0]==='Ultimates')[2],'marked open');
   ui.tab='settings'; const st=renderAll('settings'); ok(/after every action/.test(st)&&!/every time you are in town/.test(st)); ok(/each place and boss/.test(st),'music text is current');
 });
 test('Names: no skill upgrade, unique power, order, affix or basic action shares a name with another',()=>{

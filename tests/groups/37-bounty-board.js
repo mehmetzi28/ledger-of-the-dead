@@ -5,6 +5,11 @@ test('Bounties: three a day, all different, new every dawn, counted from when th
   S.kills={'Tunnel Rat':50}; const L=bounties(); eq(L.length,BOUNTY_N); eq(new Set(L.map(b=>b.id)).size,BOUNTY_N); L.forEach(b=>{ ok(BOUNTIES[b.id]); eq(bountyGot(b),0); ok(!b.claimed); });
   ok(bounties()===L,'same board all day'); endDay(); ok(bounties()!==L,'a new board at dawn'); eq(S.bounty.day,S.day);
 });
+test('Bounties: gold and bone dust grow with level and the deepest open gate; day-1 pay unchanged',()=>{
+  eq(BOUNTY_GATE,.3); setLvl(1); eq(topGate(),0); eq(bountyReward('gold').g,90,'day 1 as before'); eq(bountyReward('dust').dust,4); eq(bountyReward('salt').salt,1);
+  setLvl(RK[5].unlock); eq(topGate(),5); const lv=S.player.lvl; eq(bountyReward('gold').g,Math.round((60+lv*30)*2.5)); eq(bountyReward('dust').dust,Math.round((4+Math.floor(lv/4))*2.5));
+  ok(/grow with your level and your deepest open gate/.test(cdx('bounties')),'Codex');
+});
 test('Bounties: deeds count toward contracts, and a finished one pays once, in town',()=>{
   const L=board([{id:'kills',rw:{g:100}},{id:'elites',rw:{g:5,salt:1}},{id:'rooms',rw:{g:0,dust:7}}]);
   eq(claimBounty(0),null,'not done'); S.kills['Tunnel Rat']=(S.kills['Tunnel Rat']||0)+L[0].n; ok(bountyDone(L[0]));

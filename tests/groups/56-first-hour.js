@@ -30,6 +30,31 @@ test('Recommended level: the gate card states it apart from the label it drives,
   ok(/recommended from level 7\./.test(cdx('gates')),'Codex');
   eq(trText('Recommended Lv 7+'),'Önerilen Sv 7+'); eq(trText('Opens at level 4, recommended from level 7. Armor 66%. Clear bonus 90 XP.'),'4 seviyede açılır, önerilen seviye 7. Zırh %66. Temizleme ödülü 90 TP.');
 });
+test('Recommended level per difficulty: rises with the tier, measured shares, and not drifted from the measured HEAT',()=>{
+  eq(REC_TIER.join(),'1,0.55,0.45,0.4','measured with the tier probe; re-measure before changing'); eq(REC_TIER_F.join(),HEAT.map(h=>h.foe).join(),'HEAT foe values at the measurement');
+  for(let i=0;i<6;i++){ eq(tierRec(i,0),gateRec(i),RANKS[i]+' Normal is the gate advice');
+    for(let h=1;h<HEAT.length;h++){ ok(tierRec(i,h)>tierRec(i,h-1),RANKS[i]+' '+HEAT[h].name+' above '+HEAT[h-1].name);
+      ok(Math.abs(tierRaw(i,h,HEAT[h].foe)-tierRaw(i,h,REC_TIER_F[h]))<=REC_DRIFT,RANKS[i]+' '+HEAT[h].name+': HEAT moved the advice: re-measure with the tiers probe'); } }
+  eq([2,3,4,5].map(i=>[1,2,3].map(h=>tierRec(i,h)).join('/')).join(' '),'15/18/28 20/25/37 26/31/46 32/39/58','C to S as measured within ~3 levels');
+});
+test('Recommended level per difficulty: follows HEAT.foe, shows on each chip, and the label follows the picked tier',()=>{
+  const keep=HEAT[1].foe;
+  try{ const a=tierRec(3,1); HEAT[1].foe=1.8; ok(tierRec(3,1)>a,'harder Hard, higher advice'); HEAT[1].foe=1.1; ok(tierRec(3,1)<=a,'softer Hard, lower'); ok(tierRec(3,1)>gateRec(3),'still above Normal'); }
+  finally{ HEAT[1].foe=keep; }
+  fresh(12); ui.tab='gates'; ui.gsub='open'; S.ti=S.ti||{}; S.ti.clr={1:1}; S.heatMax={1:2}; S.mode='town';
+  const whole=n=>{ const h=renderAll(n), i=h.indexOf('<h3>Sunken Crypt</h3>'); return h.slice(i,h.indexOf('data-a="enter"',i)); };
+  let c=whole('chips');
+  for(let h=0;h<4;h++) ok(c.includes('>'+HEAT[h].name+' <span class="chip-lv" title="Recommended Lv '+tierRec(1,h)+'+">'+tierRec(1,h)+'+</span></button>'),HEAT[h].name+' chip');
+  const lab=()=>(card(renderAll('lab'),'Sunken Crypt').match(/danger-(\w+)/)||[])[1];
+  eq(lab(),'easy','Normal at 12'); ok(/Recommended Lv 7\+/.test(card(renderAll('n'),'Sunken Crypt')));
+  ok(setHeat(1,3)); eq(heatOf(1),3);
+  eq(lab(),'deadly','Nightmare at 12 (advice '+tierRec(1,3)+')'); c=whole('nm');
+  ok(c.includes('Recommended Lv '+tierRec(1,3)+'+'),'meta follows the tier'); ok(/clear this gate on Nightmare from/.test(c));
+  setHeat(1,1); eq(lab(),'fair','Hard at 12 (advice '+tierRec(1,1)+')');
+  ok(/Hard\/Brutal\/Nightmare: E \d+\/\d+\/\d+, D 10\/13\/20/.test(cdx('gates')),'Codex');
+  eq(trText('Most necromancers clear this gate on Hard from this hero level'),'Çoğu ölü çağıran bu kapıyı Zor\'da bu kahraman seviyesinden itibaren temizler');
+  ok(/^Her zorluk çipi/.test(trText('Each difficulty chip shows the hero level from which most necromancers clear the gate on it (Hard/Brutal/Nightmare: E 3/5/11, D 10/13/20, C 15/18/28, B 20/25/37, A 26/31/46, S 32/39/58).')));
+});
 test('Armor: the gate card and the battle screen say what it does, in words a screen reader gets too',()=>{
   const said=/title="Foes shrug off 66% of every hit you and your minions land\. Piercing skills such as Bone Spear ignore part of it\.">armor 66%<span class="sr-only">/;
   setLvl(7); ui.tab='gates'; ui.gsub='open'; ok(said.test(card(renderAll('card'),'Sunken Crypt')),'gate card');

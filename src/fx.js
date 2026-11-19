@@ -180,6 +180,13 @@ function fxBoss(r,t,col){
   fxP({tex:'ring',x:c.x,y:c.y,sx0:r.w/80,sx1:r.w/36,life:700,delay:t+60,tint:col.ember,add:1,a0:.35});
   for(let i=0;i<10;i++) fxP({tex:'core',x:r.x+fxR(.1,.9)*r.w,y:r.y+r.h*fxR(.7,1),vx:fxR(-.015,.015),vy:-fxR(.04,.09),life:fxR(500,700),delay:t+fxR(80,260),tint:i%3?col.ember:col.gold,add:1,sx0:fxR(.35,.6),sx1:.1,a0:.9,fi:.2});
 }
+function fxCharge(r,t,col){   // a boss gathers itself: embers drawn in from the card's edge and an ember ring closing on it, about 700 ms
+  const c=fxC(r), R=Math.max(r.w,r.h)*.62;
+  fxP({tex:'ring',x:c.x,y:c.y,sx0:r.w/34,sy0:r.h/34,sx1:r.w/90,sy1:r.h/90,life:700,delay:t,tint:col.ember,add:1,a0:.15,a1:.7,fi:.3});
+  fxP({tex:'dot',x:c.x,y:c.y,sx0:r.w/90,sx1:r.w/36,life:700,delay:t+250,tint:col.blood,a0:.1,a1:.5,fi:.4});
+  for(let i=0;i<14;i++){ const a=fxR(0,6.3), d=R*fxR(.85,1.15), x=c.x+Math.cos(a)*d, y=c.y+Math.sin(a)*d*.8, sw=fxR(-.35,.35);
+    fxP({tex:'core',x,y,path:[x,y,c.x+(x-c.x)*.4-(y-c.y)*sw,c.y+(y-c.y)*.4+(x-c.x)*sw,c.x+fxR(-4,4),c.y+fxR(-4,4)],life:fxR(520,680),delay:t+fxR(0,140),tint:i%3?col.ember:col.blood,add:1,sx0:fxR(.35,.6),sx1:.2,a0:.95,a1:.3,fi:.25}); }
+}
 function fxUlt(e,r,col){   // one stronger version of the fitting effect, across the room
   const id=e.o&&e.o.id, foes=fxAll('.unit.foe[data-u]'), ours=fxAll('.unit.ally[data-u]');
   if(id==='toll') foes.forEach((f,i)=>{ fxSlash(f,i*40,col,true); fxDeath(f,i*40+120,col,true); });
@@ -209,6 +216,7 @@ function fxFlush(){
       case 'rfail': fxWisp(r,at,col); t+=110; break;
       case 'mend': fxMotes(r,at,col,8); break;
       case 'boss': fxBoss(r,at,col); break;
+      case 'charge': fxCharge(r,at,col); t+=120; break;
       case 'ult': fxUlt(e,r,col); t+=300; break;
     }
     prev=at;

@@ -223,6 +223,14 @@ i,em{font-style:normal}
 .slot{width:10px;height:10px;border:1px solid var(--soul-dim);transform:rotate(45deg)}
 .slot.on{background:var(--soul);border-color:var(--soul);box-shadow:0 0 6px var(--soul)}
 @media (max-width:520px){.corpse,.minion{grid-template-columns:minmax(0,1fr)}.minion .bars{grid-template-columns:1fr}}
+/* The Reserve: a bench under the army, in the same cards and rows; muted so it reads as resting */
+.m-acts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;min-width:0}
+.reserve{margin-top:14px;padding-top:10px;border-top:1px dashed var(--line-2);display:flex;flex-direction:column;gap:8px;min-width:0}
+.res-h{display:flex;align-items:center;gap:12px;margin:0;font:600 11px/1.3 var(--font-head);letter-spacing:.2em;text-transform:uppercase;color:var(--mute)}
+.reserve .minion,.reserve .mrow{border-color:var(--line-2);filter:saturate(.7)}
+.swap-pick{grid-column:1/-1;display:grid;gap:6px;padding-top:8px;border-top:1px dashed var(--line-2)}
+.gate-wait{margin-top:10px}.wait-row{grid-template-columns:auto auto minmax(0,1fr) auto;grid-template-areas:"ico rk name st" "ico acts acts acts"}
+.war-note{margin:6px 0 0}
 @media (prefers-reduced-motion:reduce){.fx,.unit.hit,.sigil,h1,.corpse{animation:none}.fill{transition:none}}
 
 /* unit icons */
@@ -380,9 +388,17 @@ i,em{font-style:normal}
 .bes-extra{padding:6px 12px 2px 64px}.bes-extra b{color:var(--gold);font-weight:600}
 @media (max-width:540px){.bes-extra{padding-left:12px}}
 .help-p{margin:0 0 10px;max-width:72ch;line-height:1.6}
-.charge{display:block;margin-top:3px;font:600 10px/1.2 var(--font-head);letter-spacing:.14em;text-transform:uppercase;color:#ff8a6a;animation:chargePulse .9s ease-in-out infinite alternate}
-@keyframes chargePulse{from{opacity:.55}to{opacity:1;text-shadow:0 0 8px rgba(255,106,74,.7)}}
-@media (prefers-reduced-motion:reduce){.charge{animation:none}}
+/* a boss charging a move: ember-and-blood frame and a banner for the whole warning turn; static in Light, calm and reduced motion */
+.unit.charging,.unit.foe.charging,.unit.foe.charging:hover{border-color:var(--ember);box-shadow:inset 0 0 0 1px rgba(224,138,60,.55),0 0 0 1px var(--blood),0 0 18px -4px var(--blood)}
+.unit.foe.charging.sel{box-shadow:inset 0 0 0 2px var(--blood-text),0 0 0 1px var(--ember),0 0 18px -4px var(--blood)}
+.charge{display:block;margin:-2px -2px 8px;padding:5px 8px;text-align:left;background:linear-gradient(90deg,rgba(184,58,42,.42),rgba(184,58,42,.14));border-left:3px solid var(--ember);color:#ffd2b8;font:600 12px/1.3 var(--font-body)}
+.charge b{display:block;color:#ffb48a;font:700 11px/1.25 var(--font-head);letter-spacing:.12em;text-transform:uppercase}
+.charge-h{display:block;color:var(--bone)}
+body:not(.lite):not(.calm) .unit.charging{animation:chargeFrame 2.4s ease-in-out infinite alternate}
+@keyframes chargeFrame{from{box-shadow:inset 0 0 0 1px rgba(224,138,60,.4),0 0 0 1px var(--blood),0 0 10px -4px var(--blood)}to{box-shadow:inset 0 0 0 1px rgba(224,138,60,.8),0 0 0 1px var(--ember),0 0 24px -2px var(--blood)}}
+@media (prefers-reduced-motion:reduce){body .unit.charging{animation:none}}
+.btn.answer{border-color:var(--ember)}
+.ans-m{display:inline-block;width:7px;height:7px;margin-right:6px;vertical-align:middle;background:var(--ember);transform:rotate(45deg);box-shadow:0 0 0 1px var(--blood)}
 .gold-n{display:inline-flex;align-items:center;gap:5px;color:var(--gold);font-family:var(--font-data);font-weight:600;letter-spacing:0}
 .gold-n .coin{flex:none;filter:drop-shadow(0 0 4px rgba(211,166,77,.45))}
 .btn .gold-n{color:inherit}
@@ -479,7 +495,6 @@ kbd{border:0;background:rgba(0,0,0,.35);border-radius:3px;padding:1px 5px;opacit
 .u-tag,.i-tag{font:500 12px/1.2 var(--font-body)}
 .u-name{font-weight:600}
 .trait{border-radius:999px;font:500 11.5px/1.2 var(--font-body);padding:2px 8px}
-.charge{font:600 12px/1.2 var(--font-body)}
 .tt-row{background:var(--panel-2);border-color:transparent}
 .tt-row.on{background:rgba(211,166,77,.07);border-color:rgba(211,166,77,.35)}
 .unit{box-shadow:none}
@@ -502,16 +517,19 @@ kbd{border:0;background:rgba(0,0,0,.35);border-radius:3px;padding:1px 5px;opacit
 .pstrip{display:none}.pt{flex:1 1 0;max-width:44px;min-width:8px;background:rgba(0,0,0,.55);border:1px solid var(--line);overflow:hidden}.pt b{display:block;height:100%;background:var(--soul)}.pt.low b{background:var(--blood)}.pt.down{opacity:.3}
 .a-dens{display:inline-flex;gap:10px;margin-left:auto}.a-dens .linkbtn.on{color:var(--bone);text-decoration:none}
 .army.compact{gap:4px}
-.mrow{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:6px 10px;min-width:0;border:1px solid rgba(63,107,43,.5);background:var(--panel-2);font:500 13px/1.3 var(--font-body)}
-.mr-name{flex:1 1 150px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mr-hp{display:inline-flex;align-items:center;gap:6px;flex:0 1 140px;min-width:96px;font-size:12px}.mr-hp .bar{flex:1;height:5px;margin:0}
+.mrow{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto;grid-template-areas:"ico rk name role st" "ico hp hp hp acts";align-items:center;gap:3px 8px;padding:5px 8px;min-width:0;border:1px solid rgba(63,107,43,.5);background:var(--panel-2);font:500 13px/1.3 var(--font-body)}
+.mrow>.ico{grid-area:ico}.mrow>.rk{grid-area:rk}.mr-name{grid-area:name}.mr-role{grid-area:role;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mr-st{grid-area:st;white-space:nowrap}.mr-hp{grid-area:hp}.mr-acts{grid-area:acts}
+.mr-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mr-mk{display:inline-block;padding:0 4px;border:1px solid rgba(211,166,77,.55);color:var(--gold);font:600 10px/1.4 var(--font-head);letter-spacing:.08em;vertical-align:1px}
+.mr-hp{display:flex;align-items:center;gap:6px;min-width:0;font-size:12px;white-space:nowrap}.mr-hp .bar{flex:1;min-width:40px;height:5px;margin:0}
 .mr-hp.low .num{color:var(--blood-text)}
-.mr-tags{font-size:11px;min-width:0;overflow-wrap:anywhere}
-.mr-acts{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}.mr-acts .btn.small{min-height:28px;padding:6px 9px;font-size:10px}
+.mr-acts{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;min-width:0}.mr-acts .btn.small{min-height:26px;padding:4px 7px;font-size:10px}
+.army.compact{container-type:inline-size}
+@media (max-width:420px){.mrow{gap:3px 6px;padding:5px 6px}}
 .curse-line b{color:#ffb59c!important}
 .dot-t{color:#e58c6e}.dot-t.poison{color:#9fd47a}
 .free-t{color:var(--ok)}
-.aff{color:#ffb59c;cursor:help}.phase-t{color:#ff8a6a}
+.aff{color:#ffb59c;cursor:help}.mst{cursor:help;letter-spacing:.02em}.bes-mastery{margin-top:2px}.phase-t{color:#ff8a6a}
 .dust-n{font:600 13px/1 var(--font-data);color:var(--bone)}
 .b-row{display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)}
 .b-row:last-of-type{border-bottom:0}.b-row .u-sub{grid-column:1/-1}
@@ -534,6 +552,7 @@ kbd{border:0;background:rgba(0,0,0,.35);border-radius:3px;padding:1px 5px;opacit
 .chip-btn{background:var(--well);color:var(--bone);border:1px solid var(--line-2);border-radius:999px;padding:3px 10px;font:600 12px/1.2 var(--font-body);cursor:pointer}
 .chip-btn.on{border-color:#c8642c;color:#ffb38a;background:rgba(200,100,44,.12)}.chip-btn:disabled{opacity:.4;cursor:not-allowed}
 .heat-note{flex-basis:100%;font-size:12.5px}
+.chip-btn{white-space:nowrap}.b-now{color:var(--bone)}.chip-lv{font-weight:400;font-size:11px;opacity:.7;margin-left:1px}.chip-btn.on .chip-lv{opacity:.9}
 .omen-line{border:1px solid #6b2a1e;background:linear-gradient(90deg,rgba(120,30,20,.25),transparent);padding:8px 12px;border-radius:6px;margin:6px 0 10px;font:13px/1.4 var(--font-body)}
 /* ---- Titles: rarity, filters and progress ---- */
 .t-rar{font:600 11px/1 var(--font-body);color:var(--tc);border:1px solid var(--tc);border-radius:999px;padding:2px 7px;margin-left:6px;vertical-align:middle}
@@ -738,3 +757,44 @@ body.compact .unit.mini .ico{width:34px;height:34px}body.compact .unit.mini .ico
   .unit.mini .ico{width:36px;height:36px}.unit.mini .ico svg{width:31px;height:31px}
   .notes{padding:8px 10px}
 }
+/* compact army rows, sized by the list's own width (the town layout has a side column): two lines below 480px, one line above;
+   below 720px the role moves from a text column to the badge on the icon (it is also in the name's title) */
+.army.compact .mrow{grid-template-columns:auto auto minmax(0,1fr) auto;grid-template-areas:"ico rk name st" "ico hp hp acts"}
+.army .mrow .ico{position:relative;overflow:visible}.army .mrow .ico .rb{display:grid;width:14px;height:14px;right:-6px;bottom:-5px}.army.compact .mr-role{display:none}.mr-st{font-size:12px}
+@container (min-width:480px){.army.compact .mrow{grid-template-columns:28px 1.6em minmax(0,1fr) max-content minmax(84px,.6fr) auto;grid-template-areas:"ico rk name st hp acts"}}
+@container (min-width:720px){.army.compact .mrow{grid-template-columns:28px 1.6em minmax(0,1fr) minmax(0,9em) max-content minmax(90px,.6fr) auto;grid-template-areas:"ico rk name role st hp acts"}.army .mrow .ico .rb{display:none}.army.compact .mr-role{display:block}.mr-st{font-size:13px}}
+/* town buildings on a phone: name and level on one line, the description and "Now:" full width, the build button under them */
+@media (max-width:540px){.tt-row.bld{grid-template-columns:minmax(0,1fr);gap:8px}.tt-row.bld>.btn,.tt-row.bld>.u-tag{justify-self:start;max-width:100%;white-space:normal}}
+/* Sieges: the warning banner and the town's damaged building, worn and torch-lit, never bright */
+.siege-warn{border:1px solid #7a4a1e;background:linear-gradient(90deg,rgba(140,70,20,.22),rgba(40,20,10,.1) 70%,transparent);padding:9px 12px;border-radius:6px;margin:8px 0;font:13px/1.45 var(--font-body)}
+.siege-warn b{color:#e0a060}
+.siege-line{margin:0 0 8px;letter-spacing:.04em}
+.siege-dmg{border-left:3px solid #8a3a22;margin:6px 0 10px}
+.tt-row.b-dmg{opacity:.78;border-left:3px solid #8a3a22}
+.b-siege{color:#c8955a}
+.siege-note{margin:6px 0 0}
+.siege-perks{margin:4px 0 10px;padding-left:20px;font:14px/1.5 var(--font-body)}
+.siege-perks li{margin:2px 0}
+.siege-intro .win-title,.siege-lost .win-title{color:#d89a5a}
+.bes-living .badge{color:#c8955a}
+/* The Memorial: the fallen in a muted hand, newest first */
+.mem-list{display:flex;flex-direction:column;gap:6px;min-width:0}
+.mem-row{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;align-items:center;gap:4px 8px;padding:6px 8px;min-width:0;border:1px solid var(--line);background:var(--well);color:var(--mute);background-image:var(--grain)}
+.mem-row .ico{filter:grayscale(.85) brightness(.7)}.mem-row .rk{opacity:.7}.mem-row b{color:var(--ward);font-weight:600}
+.mem-t{min-width:0;overflow-wrap:anywhere}.mem-tr{opacity:.8}
+.mem-hon b{color:var(--bone)}.chip.mem-buff{border-color:var(--brass);color:var(--gold)}
+@media (max-width:520px){.mem-row{grid-template-columns:auto auto minmax(0,1fr)}.mem-row>.btn{grid-column:1/-1;justify-self:start}}
+/* Loadouts: three named setups on the Gear tab */
+.lo-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.lo-slot{display:flex;flex-direction:column;gap:4px;min-width:0;padding:8px;border:1px solid var(--line-2);background:var(--well);background-image:var(--grain)}
+.lo-slot.empty{border-style:dashed}.lo-n{overflow-wrap:anywhere}.lo-btns{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.lo-slot .rn-row{flex-wrap:wrap}.lo-slot .rn-in{min-width:0;width:100%}
+@media (max-width:620px){.lo-strip{grid-template-columns:minmax(0,1fr)}.lo-slot{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between}.lo-btns{margin-left:auto}}
+/* the Rival and Trials */
+.rival-line{border:1px solid #5c2a22;border-left:3px solid #b0402c;background:linear-gradient(90deg,rgba(92,42,34,.3),transparent);padding:8px 12px;border-radius:6px;margin:6px 0 10px;font:13px/1.4 var(--font-body)}
+.rival-line b{color:#e0806a}
+.rival-card{display:flex;gap:12px;align-items:center;margin:4px 0 8px}.rival-card .ico{width:56px;height:56px}.rival-name{margin:0;color:#e0806a;font:600 15px/1.2 var(--font-body)}
+.corpse.taken{opacity:.45;filter:grayscale(.9)}.corpse.taken .rival-took{color:#c8705a}
+.badge.rival-b{color:#e0806a}
+.chron.borrowed summary{color:var(--dim,#8a8070)}
+.trial-res .items{margin-bottom:6px}

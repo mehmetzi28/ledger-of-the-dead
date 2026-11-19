@@ -54,6 +54,15 @@ function equipHTML(){
    +(sets.length?sets.map(x=>'<p class="q-note ok">'+x.n+' set ('+x.c+'/3): '+buffTxt(SET_BONUS[x.i][2])+(x.c>=3?', '+buffTxt(SET_BONUS[x.i][3]):'')+'</p>').join(''):'')
    +USET.map((U,i)=>({U,c:usetCount(i)})).filter(x=>x.c>=2).map(x=>'<p class="q-note uset-on">'+x.U.name+' ('+x.c+'/3): '+buffTxt(x.U.b[2])+(x.c>=3?', '+buffTxt(x.U.b[3]):'')+'</p>').join('')+(locked?'<p class="q-note">Gear is locked while you fight.</p>':'')+'</section>';
 }
+function loadoutHTML(){   // three named setups on the Gear tab, in town once the Town tab is open: Use is one press, Save over a stored one is two
+  if(S.mode!=='town'||!townOpen()) return ''; const LS=Array.isArray(S.loadouts)?S.loadouts:[];
+  return '<section class="win lo-w" aria-labelledby="h-lo"><h2 class="win-h" id="h-lo">Loadouts</h2><div class="lo-strip">'+Array.from({length:LOADOUT_N},(x,i)=>{ const L=LS[i]||{}, s=L.s, conf=ui.confirm==='lo'+i;
+    return '<div class="lo-slot'+(s?'':' empty')+'">'+(ui.lren===i?'<div class="rn-row"><input id="lrn" class="rn-in" maxlength="'+NICK_MAX+'" value="'+cleanNick(ui.lrn==null?loadoutName(i):ui.lrn)+'" aria-label="New name for '+loadoutName(i)+'"><button class="btn small primary" data-a="loren" data-k="'+i+'">Save</button><button class="btn small" data-a="lorenx">Cancel</button></div>'
+       :'<b class="lo-n">'+loadoutName(i)+'</b>')
+     +'<span class="u-sub">'+(s?GEAR_SLOTS.filter(sl=>s.gear&&s.gear[sl]).length+' worn &middot; '+s.army.length+' in the army':'Empty')+'</span>'
+     +'<div class="lo-btns"><button class="btn small primary" data-a="louse" data-k="'+i+'"'+(s?'':' disabled')+'>Use</button><button class="btn small'+(conf?' warn':'')+'" data-a="losave" data-k="'+i+'">'+(conf?'Confirm':'Save here')+'</button>'
+     +(ui.lren===i?'':'<button class="linkbtn" data-a="loreno" data-k="'+i+'">Rename</button>')+'</div></div>'; }).join('')+'</div></section>';
+}
 const BAG_SORTS={tier:'Best first',slot:'By slot',new:'Newest'};
 function sortedBag(){
   const by=ui.sort||'tier', D=it=>ITEM[it.id], score=it=>D(it).tier*100+D(it).set*10+((it.ro&&it.ro.length)||0);
@@ -98,6 +107,15 @@ function besExtra(tkey,abil){   // trophy and boss move, shown on every opened b
   return '<div class="bes-extra">'+(t?'<div class="u-sub"><b>Trophy:</b> '+t.name+' &middot; '+gold(t.value)+' each'+(tkey.startsWith('b:')?' &middot; counts as 5 at the forge':'')+'</div>':'')
     +(A?'<div class="u-sub"><b>Signature move:</b> '+A.name+(A.warn?' (telegraphed)':'')+' &middot; '+A.desc+'</div>':'')+'</div>';
 }
+function masteryLine(name){   // the bestiary's mastery line: tier, kills, progress to the next tier and what the tier gives
+  const k=(S.kills&&S.kills[name])||0, t=masteryOf(name), nx=masteryNext(name);
+  return '<div class="u-sub bes-mastery">Mastery: '+(t?t.name:'None yet')+' &middot; '+k+' kills &middot; '+(nx?k+'/'+nx.at+' to '+nx.t.name:'Mastery complete')
+    +(t?'<br><span class="dim">'+masteryGives(t)+'.</span>':'')+'</div>';
+}
+function masteryTag(name){   // a small marker on foe cards and bodies of a kind you have Mastered or Ledgered
+  const t=masteryOf(name); if(!t||!t.dmg) return '';
+  return ' &middot; <span class="mst dim" title="'+t.name+' in your bestiary: '+masteryGives(t)+'">'+t.name+'</span>';
+}
 function bestiaryHTML(){
   const all=[]; DUNGEONS.forEach(D=>{ D.mobs.forEach(m=>all.push(m[0])); all.push(D.boss[0]); });
   const kn=n=>(S.kills&&S.kills[n])||0;
@@ -118,7 +136,7 @@ function bestiaryHTML(){
       const rolls=e.boss?'2 rolls (100% and 60%)':'28% per kill';
       h+='<button class="bes-row" data-a="bes" data-k="'+e.name+'" aria-expanded="'+open+'">'+ico(e.name,di,{boss:e.boss,role:e.role,secret:e.secret})
         +'<div><div class="u-name">'+e.name+'</div><div class="u-sub">'+ROLES[e.role].label+(isArmed(e.name)?' &middot; Gear-bearer':'')+' &middot; '
-        +(isStudied?rolls:'Kills '+k+'/'+KNOW_AT+' &middot; drops unknown')+'</div></div><span class="u-tag">'
+        +(isStudied?rolls:'Kills '+k+'/'+KNOW_AT+' &middot; drops unknown')+'</div>'+masteryLine(e.name)+'</div><span class="u-tag">'
         +(open?'Hide':(isStudied?'Drops':'Study'))+'</span></button>';
       if(!open) return;
       h+=besExtra(e.boss?'b:'+e.name:e.name, e.boss?GATE_ABIL[di]:null);
@@ -133,6 +151,7 @@ function bestiaryHTML(){
     });
     h+='</div>';
   });
+  h+=rivalBesHTML();
   // Hell Tower
   const twList=TW_MOBS.map(m=>({name:m[0],role:m[1],boss:false})).concat(TW_BOSS.map(n=>({name:n,role:'vanguard',boss:true})));
   h+='<div class="bes-gate"><div class="bes-h"><div class="badge" style="color:#ff8a6a">T</div><div><h3>The Hell Tower</h3><div class="tiers-line">Drops improve with every floor. Studied entries show the tier mix at several heights.</div></div></div>';
@@ -142,7 +161,7 @@ function bestiaryHTML(){
     h+='<button class="bes-row" data-a="bes" data-k="'+e.name+'" aria-expanded="'+open+'">'+ico(e.name,5,{boss:e.boss,role:e.boss?'reaper':e.role})
       +'<div><div class="u-name">'+e.name+'</div><div class="u-sub">'
       +(e.boss?'Warden':ROLES[e.role].label+(isArmed(e.name)?' &middot; Gear-bearer':''))+' &middot; '+(isStudied?'Studied':'Kills '+k+'/'+KNOW_AT)
-      +'</div></div><span class="u-tag">'+(open?'Hide':'Open')+'</span></button>';
+      +'</div>'+masteryLine(e.name)+'</div><span class="u-tag">'+(open?'Hide':'Open')+'</span></button>';
     if(!open) return;
     h+=besExtra(e.boss?'b:'+e.name:'t:'+e.name, e.boss?GATE_ABIL[TW_BOSS.indexOf(e.name)%GATE_ABIL.length]:null);
     if(isStudied){
@@ -154,6 +173,10 @@ function bestiaryHTML(){
     }
   });
   h+='</div>';
+  const liv=SIEGE_NAMES.filter(n=>kn(n)>0);   // the living who came in sieges: kills and mastery (their gear is the deepest gate's)
+  if(liv.length) h+='<div class="bes-gate bes-living"><div class="bes-h"><div class="badge">&#9876;</div><div><h3>The living</h3><div class="tiers-line">They come in sieges and carry the deepest open gate\'s gear, at reduced odds.</div></div></div>'
+    +liv.map(n=>{ const boss=n===SIEGE_BOSS, role=boss?'reaper':Object.keys(SIEGE_FOES).find(r=>SIEGE_FOES[r][0]===n);
+      return '<div class="bes-row">'+ico(n,siegeGate(),{boss,role})+'<div><div class="u-name">'+n+'</div><div class="u-sub">'+ROLES[role].label+' &middot; Kills '+kn(n)+'</div>'+masteryLine(n)+'</div></div>'; }).join('')+'</div>';
   return h+'</section>';
 }
 
@@ -173,6 +196,7 @@ function statusHTML(){
    +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(faithOf()?'<div class="faith-l '+faithOf()+'">'+FAITH[faithOf()].name+'</div>':'')+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+(P.debuff?' &middot; <span class="bad">Wounded dawn</span>':'')+'</div></div></div>'
    +meter('HP',P.hp,pMax(),'hp')+meter('Mana',P.mana,pMana(),'mp')+meter('XP',P.xp,need(P.lvl),'xp')
    +((P.pts>0||P.sp>0)?'<div class="chips">'+(P.pts>0?'<span class="chip">'+P.pts+' unspent point'+(P.pts>1?'s':'')+'</span>':'')+(P.sp>0?'<span class="chip">'+P.sp+' skill point'+(P.sp>1?'s':'')+'</span>':'')+'</div>':'')
+   +(remembered()?'<div class="chips"><span class="chip mem-buff" title="Honoured a fallen minion today">Remembered: +'+Math.round(MEM_HP*100)+'% minion max HP until dawn</span></div>':'')
    +'<div class="stats">'+rows.map(r=>'<div class="stat"><div><b>'+r[1]+'</b><small>'+r[2]+'</small>'+(canAlloc?'<small class="gain">Next point: '+statGain(r[0])+'</small>':'')+'</div><span class="val">'+st[r[0]]+(G(r[0])?'<small class="gb"> +'+G(r[0])+'</small>':'')+'</span>'
       +(canAlloc?'<button class="plus" data-a="alloc" data-k="'+r[0]+'" aria-label="Add a point to '+r[1]+'">+</button>':'<span class="plus-slot"></span>')+'</div>').join('')+'</div>'
    +'<div class="derived"><div><span>Strike</span><b>'+pAtk()+'</b></div><div><span>Siphon</span><b>'+pSiph()+'</b></div><div><span>Slots</span><b>'+slots()+'</b></div></div>'
@@ -205,27 +229,28 @@ function armorTag(a){   // foe armor with its rule spelled out (pierceMul): hove
   return '<span class="armor-tag" title="'+t+'.">armor '+p+'%<span class="sr-only">. '+t+'.</span></span>';
 }
 function gateHTML(i){
-  const D=DUNGEONS[i], R=RK[i], P=S.player, locked=P.lvl<R.unlock, rec=gateRec(i), diff=P.lvl-rec;
+  const D=DUNGEONS[i], R=RK[i], P=S.player, locked=P.lvl<R.unlock, rec=tierRec(i,locked?0:heatOf(i)), diff=P.lvl-rec;   // advice and label follow the difficulty picked on the card
   const danger=locked?'Locked':diff<-2?'Deadly':diff<0?'Hard':diff<=3?'Fair':'Easy';
   const GL=BOSS_LOOK[D.boss[0]]||['#1a1714','#5a4a3a'];
   return '<div class="gate'+(locked?' locked':'')+(gateMod(i)?' cursed':'')+'" style="--g1:'+GL[0]+';--g2:'+GL[1]+'"><svg class="gate-mark" viewBox="0 0 64 64" aria-hidden="true">'+(IC[D.boss[0]]||'')+'</svg><div class="badge r'+i+'">'+RANKS[i]+'</div><div><h3>'+D.name+'</h3><p>'+D.blurb+'</p>'
-   +'<div class="meta">'+(locked?'Opens at level '+R.unlock:'<span class="danger-'+danger.toLowerCase()+'">'+danger+' for you</span>')+' &middot; <span class="rec-lv" title="Most necromancers clear this gate from this hero level">Recommended Lv '+rec+'+</span>'
+   +'<div class="meta">'+(locked?'Opens at level '+R.unlock:'<span class="danger-'+danger.toLowerCase()+'">'+danger+' for you</span>')+' &middot; <span class="rec-lv" title="Most necromancers clear this gate'+(heatOf(i)&&!locked?' on '+HEAT[heatOf(i)].name:'')+' from this hero level">Recommended Lv '+rec+'+</span>'
    +(DIFF.armor[i]?' &middot; '+armorTag(DIFF.armor[i]):'')+' &middot; Boss: <b>'+D.boss[0]+'</b>'
    +(gateMod(i)?'<span class="curse-line">Cursed: <b>'+MODS[gateMod(i)].name+'</b>. '+MODS[gateMod(i)].desc+' '+MOD_REWARD+(S.ti&&S.ti.clr&&S.ti.clr[5]&&P.lvl-CURSE_GAP>RK[i].lv?' Foes about Lv '+(P.lvl-CURSE_GAP)+'.':'')+'</span>':'')
-   +(S.mode==='town'&&raidGates().includes(i)&&bestSquad()&&!(S.raids||[]).length?(sq=>'<div class="raid-odds" title="'+sq[0].nick+' and '+(sq.length-1)+' of your strongest; set the squad on the War table">Raid odds '+Math.round(raidOdds(sq,i)*100)+'%</div>')(bestSquad()):'')
+   +(S.mode==='town'&&raidGates().includes(i)&&bestSquad()&&!raidOrders().length?(sq=>'<div class="raid-odds" title="'+sq[0].nick+' and '+(sq.length-1)+' of your strongest; set the squad on the War table">Raid odds '+Math.round(raidOdds(sq,i)*100)+'%</div>')(bestSquad()):'')
    +heatHTML(i)+(gateFarm(i)<1?'<div class="farm-line dim">Rewards here '+Math.round(gateFarm(i)*100)+'% on Normal at your level; Hard and up pay in full.</div>':'')+'</div></div>'
    +'<button class="btn '+(locked?'':'primary')+'" data-a="enter" data-k="'+i+'"'+(locked?' disabled':'')+'>'+(locked?'Reach Lv '+R.unlock:'Enter'+(heatOf(i)?' &middot; '+HEAT[heatOf(i)].name:''))+'</button></div>';
 }
 function heatHTML(i){   // difficulty picker on a cleared gate's card
   const mx=heatMax(i); if(!mx) return '';
   const cur=heatOf(i), H=HEAT[cur], nm=T_('nm'+i);
-  return '<div class="heat" role="group" aria-label="Difficulty">'+HEAT.map((x,lv)=>'<button class="chip-btn'+(lv===cur?' on':'')+'" data-a="heat" data-k="'+i+'|'+lv+'"'+(lv>mx?' disabled title="Clear the gate on '+HEAT[lv-1].name+' first"':'')+' aria-pressed="'+(lv===cur)+'">'+x.name+'</button>').join('')
+  return '<div class="heat" role="group" aria-label="Difficulty">'+HEAT.map((x,lv)=>'<button class="chip-btn'+(lv===cur?' on':'')+'" data-a="heat" data-k="'+i+'|'+lv+'"'+(lv>mx?' disabled title="Clear the gate on '+HEAT[lv-1].name+' first"':'')+' aria-pressed="'+(lv===cur)+'">'+x.name+' <span class="chip-lv" title="Recommended Lv '+tierRec(i,lv)+'+">'+tierRec(i,lv)+'+</span></button>').join('')
    +(nm?'<span class="nm-mark" title="Cleared on Nightmare '+nm+' time'+(nm>1?'s':'')+'">&#9760; Nightmare'+(nm>1?' x'+nm:'')+'</span>':'')
    +(cur?'<div class="heat-note">Foes x'+H.foe+' &middot; XP x'+H.xp+' &middot; gold x'+H.gold+' &middot; gear x'+H.drop+(gateMod(i)?' <b class="bad">Cursed and '+H.name+': the curse feeds on it: foes x'+DAMNED_FOE+', rewards x'+DAMNED+'.</b>':'')+'</div>':'')+'</div>';
 }
 function titlesHTML(){
-  const T=S.ti||{got:{}}, n=Object.keys(T.got).length;
+  const T=S.ti||{got:{}}, n=titlesGot();
   let h='<section class="win" aria-labelledby="h-tt"><h2 class="win-h" id="h-tt">Titles &middot; '+n+'/'+TITLES.length+'</h2>'
+   +'<p class="q-note tt-col" title="+1% gold from kills for every '+TCOL_STEP+' titles earned, up to +'+TCOL_MAX+'%">'+titleColTxt(n)+'</p>'
    +'<p class="lede">Earned once, kept forever. Only the title you wear gives its bonus.</p>'
    +(titleName()?'<p class="q-note ok">Wearing <b>'+titleName()+'</b>: '+(buffTxt(TITLE[T.sel].b)||'no bonus')+'.</p>':'<p class="q-note">You wear no title, so no title bonus applies.</p>');
   const F=ui.ttf||'all', FL={all:'All',got:'Earned',locked:'Locked',close:'Close to earning'};
@@ -311,7 +336,7 @@ function marketHTML(){
   if(sec==='altar'){
   // bone altar
   h+='<p class="group-h">Bone Altar</p><p class="q-note">Pour gold on the altar to raise a minion one level at once. Minions still stop at your level + 2.</p>';
-  h+=S.army.length?'<div class="items">'+S.army.map(m=>{ const capped=m.lvl>=P.lvl+2, c=empowerCost(m);
+  h+=S.army.length+(S.reserve||[]).length?'<div class="items">'+S.army.concat(S.reserve||[]).map(m=>{ const capped=m.lvl>=P.lvl+2, c=empowerCost(m);
       return '<div class="tt-row trow">'+ico(m.kind||m.name,m.rankI,m)+'<div><h4>'+m.nick+' <span class="dim" style="font-size:13px">'+theName(mName(m))+'</span></h4><div class="u-sub">Lv '+m.lvl+' &middot; ATK '+m.atk+' &middot; HP '+m.maxHp+'</div></div>'
        +'<button class="btn small primary" data-a="empower" data-k="'+m.uid+'"'+(capped||S.gold<c?' disabled':'')+'>'+(capped?'At the cap':'Empower &middot; '+gold(c))+'</button></div>'; }).join('')+'</div>'
     :'<p class="lede">No minions yet. Raise the dead first.</p>';
@@ -392,13 +417,16 @@ const FIRST_STEPS=[
 ];
 // Later systems for the How to play page, read from the game's own unlock levels so the page cannot go stale.
 const HELP_LATER=()=>[
-  ['Town and bounties','At level 4 or after your first clear: buildings, the Flesh Pit and three daily contracts.',townOpen()],
+  ['Town and bounties','At level 4 or after your first clear: buildings, the Flesh Pit, the Reserve (a bench of '+RESERVE_BASE+' places for spare minions) and three daily contracts.',townOpen()],
   ['Salvage and enchanting','At level 6 or once you have bone dust: break spare gear into dust and add bonus lines.',workOpen()],
   ['Faith','At level '+FAITH_LV+' the Old Shrine (Town tab) takes an oath: Honored One or Dishonored One, each with a gift and a price.',S.player.lvl>=FAITH_LV],
   ['The Hell Tower','At level '+TW.unlock+': one fight per floor and a unique on every tenth floor.',S.player.lvl>=TW.unlock],
   ['Harder gates','A cleared gate offers Hard, then Brutal and Nightmare: stronger foes, bigger rewards.',DUNGEONS.some((D,i)=>heatMax(i)>0)],
   ['Cursed gates','Each day one cleared gate is cursed: harder, and pays more.',DUNGEONS.some((D,i)=>S.ti&&S.ti.clr&&S.ti.clr[i])],
-  ['Ultimates','At level '+ULT_LV+' choose an ultimate on the Skills tab. Gather '+SOUL_MAX+' Souls in a run and press R.',S.player.lvl>=ULT_LV]
+  ['Sieges','Once your buildings have '+SIEGE_BUILT+' levels, the living march on the necropolis every '+SIEGE_GAP[0]+' to '+SIEGE_GAP[1]+' days, at the end of a day you are warned about.',siegeOpen()],
+  ['Ultimates','At level '+ULT_LV+' choose an ultimate on the Skills tab. Gather '+SOUL_MAX+' Souls in a run and press R.',S.player.lvl>=ULT_LV],
+  ['The Rival','After '+RIVAL_AT+' different gate clears a rival necromancer steals bodies now and then and, about every two weeks, waits in one of your cleared gates.',rivalOpen()&&!!(S.rival&&S.rival.met)],
+  ['Trials','Once the Throne of Ash has fallen: one fixed four-room challenge each week, scored by turns, on the Gates tab.',trialOpen()]
 ];
 const stepsDone=()=>FIRST_STEPS.filter(x=>{ try{ return x[1](); }catch(e){ return false; } }).length;
 function helpHTML(){
@@ -474,7 +502,7 @@ function loreHTML(){
      +got.sort((x,y)=>S.story[x.id]-S.story[y.id]).map(st=>'<details class="chron"'+(st===last?' open':'')+'><summary>'+st.t+' <span class="dim">&middot; day '+S.story[st.id]+'</span></summary><p>'+st.m+'</p></details>').join('')
      +(got.length<all.length?'<p class="q-note">'+(all.length-got.length)+' more in this act.</p>':''); }
   h+='<p class="group-h">Torn pages &middot; '+np+'/'+LORE_PAGES.length+'</p>'
-   +LORE_PAGES.slice(0,np).map((P0,i)=>'<details class="chron"'+(i===np-1?' open':'')+'><summary>'+(i+1)+'. '+P0.t+'</summary><p>'+P0.m+'</p></details>').join('')
+   +LORE_PAGES.slice(0,np).map((P0,i)=>S.rival&&S.rival.page===i?'<details class="chron borrowed"><summary>'+(i+1)+'. Borrowed by '+S.rival.name+'</summary><p class="dim">The page is gone from the binding. Beat '+S.rival.name+' to bring it back.</p></details>':'<details class="chron"'+(i===np-1?' open':'')+'><summary>'+(i+1)+'. '+P0.t+'</summary><p>'+P0.m+'</p></details>').join('')
    +(np<LORE_PAGES.length?'<p class="q-note">Bosses, Tower wardens, elites and sealed coffers sometimes hold the next page'+(S.player.lvl<PAGE_LV(np)?', but page '+(np+1)+' waits until you reach level '+PAGE_LV(np):'')+'. Secret masters always carry one.</p>':'<p class="q-note ok">Every page is home.</p>');
   return h+'</section>';
 }
@@ -485,16 +513,33 @@ function recordsHTML(){
    +'<div class="items">'+row('Deepest Tower floor',Rc.floor?'<b>'+Rc.floor.v+'</b>'+(Rc.floor.v>100?' <span class="dim">(Abyss)</span>':'')+' <span class="dim">&middot; day '+Rc.floor.day+'</span>':'<span class="dim">not yet</span>')
    +row('Biggest single hit',on(Rc.hit))+row('Most foes slain in one run',on(Rc.kills))+row('Most gold from one run',on(Rc.gold))
    +row('Souls spent on ultimates','<b>'+n(T_('ults')*SOUL_MAX)+'</b> <span class="dim">&middot; '+n(T_('ults'))+' ultimate'+(T_('ults')===1?'':'s')+'</span>')
+   +row('Sieges fought / held','<b>'+n(T_('sieges'))+'</b> <span class="dim">&middot; '+n(T_('siegeWins'))+' held</span>')
    +row('Highest level','<b>'+S.player.lvl+'</b>'+(S.ngp?' <span class="dim">&middot; New Game+ '+S.ngp+'</span>':''))+'</div>'
    +'<p class="group-h">Fastest clears</p><p class="q-note">Fewest turns from the first room to the fallen boss, on any difficulty.</p><div class="items">'
    +DUNGEONS.map((D,i)=>{ const o=Rc.fast&&Rc.fast[i]; return row(D.name,o?'<b>'+o.t+' turns</b> <span class="dim">&middot; day '+o.day+(o.heat&&HEAT[o.heat]?' &middot; '+HEAT[o.heat].name:'')+'</span>':'<span class="dim">not yet</span>'); }).join('')+'</div>';
   const sl=SECRET.map((B,i)=>({B,i})).filter(x=>Rc.sec&&Rc.sec[x.i]);
   if(sl.length) h+='<p class="group-h">Secret masters</p><div class="items">'+sl.map(x=>row('<span class="sec-k">&#9760; '+x.B.name+'</span>','<span class="dim">first slain day '+Rc.sec[x.i]+'</span>')).join('')+'</div>';
+  return h+rivalCardHTML()+trialRecHTML()+'</section>';
+}
+const MEM_SHOW=30;
+function memorialHTML(){   // the fallen, newest first, in a muted hand; honouring one is a town action, once a day
+  const M=S.memorial||[], town=S.mode==='town', list=ui.memAll?M:M.slice(0,MEM_SHOW);
+  let h='<section class="win mem-w" aria-labelledby="h-mem"><h2 class="win-h" id="h-mem">Memorial'+(M.length?' &middot; '+M.length:'')+'</h2><h3 class="win-title">Every name in this book answered to you</h3>';
+  if(!M.length) return h+'<p class="lede">No name has been lost yet.</p></section>';
+  h+='<p class="q-note">The Ledger keeps the names of those lost for good, shattered after a fight or fallen on a raid. The released are not written here.</p>'
+   +(remembered()?'<p class="q-note ok mem-hon">Honoured today: <b>'+S.honor.nick+'</b>. Your army is Remembered until dawn.</p>'
+     :M.some(e=>e.st>=1)?'<p class="q-note">Once a day, in town, you may honour one of the Greater or older: the living army has +'+Math.round(MEM_HP*100)+'% max HP until dawn.</p>':'');
+  h+='<div class="mem-list">'+list.map((e,i)=>{ const c=honourCost(e);
+    return '<div class="mem-row">'+ico(e.kind,e.rk,{boss:e.boss,elite:e.elite,role:e.role})+'<span class="rk r'+e.rk+'">'+RANKS[e.rk]+'</span><div class="mem-t"><b>'+e.nick+'</b> <span class="dim">'+theName(mName({name:e.name,stage:e.st}))+'</span>'
+     +'<div class="u-sub"><span>'+memWhere(e)+'</span> &middot; <span>Day '+e.day+'</span> &middot; <span>Lv '+e.lvl+'</span></div>'
+     +(e.tr.length?'<div class="u-sub mem-tr">'+e.tr.map(t=>TRAITS[t].name).join(', ')+'</div>':'')+'</div>'
+     +(town&&e.st>=1&&!remembered()?'<button class="btn small" data-a="honour" data-k="'+i+'"'+(S.gold<c?' disabled title="Not enough gold"':'')+'>Honour &middot; '+c+' gold</button>':'')+'</div>'; }).join('')+'</div>';
+  if(M.length>MEM_SHOW) h+='<div class="btns"><button class="linkbtn" data-a="memall">'+(ui.memAll?'Show the newest '+MEM_SHOW:'Show all '+M.length)+'</button></div>';
   return h+'</section>';
 }
 function histHTML(){
   const L=S.life||{}, n=v=>(v||0).toLocaleString(), H=(S.hist||[]).slice().reverse();
-  const where=h=>h.g<0?'Hell Tower, floor'+(h.f1>h.f0?'s '+h.f0+'&ndash;'+h.f1:' '+h.f0):h.rift?'The Rift, depth '+h.rift+(h.rr?' &middot; new deepest':''):DUNGEONS[h.g].name;
+  const where=h=>h.trial&&DUNGEONS[h.g]?'Trial, week '+h.trial+' &middot; '+DUNGEONS[h.g].name:h.siege?'Siege on the necropolis':h.g<0?'Hell Tower, floor'+(h.f1>h.f0?'s '+h.f0+'&ndash;'+h.f1:' '+h.f0):h.rift?'The Rift, depth '+h.rift+(h.rr?' &middot; new deepest':''):DUNGEONS[h.g].name;
   const RES={cleared:'Cleared',fell:'Fell',fled:'Fled',left:'Walked out'};
   const seen=STORY.filter(st=>S.story&&S.story[st.id]);
   let h='<section class="win" aria-labelledby="h-hist"><h2 class="win-h" id="h-hist">History</h2><h3 class="win-title">The ledger keeps count</h3>'
@@ -508,7 +553,7 @@ function histHTML(){
   return h+'<div class="hist-wrap"><table class="hist"><thead><tr><th>Day</th><th>Where</th><th>Result</th><th class="num">Rooms</th><th class="num">Kills</th><th class="num">XP</th><th class="num">Gold</th><th class="num">Gear</th><th class="num">Raised</th></tr></thead><tbody>'
    +H.map(x=>'<tr><td class="num">'+x.d+'</td><td>'+where(x)+(x.mod&&MODS[x.mod]?' <span class="dim">('+MODS[x.mod].name+')</span>':'')
      +(x.heat&&HEAT[x.heat]?' <span class="dim">'+HEAT[x.heat].name+'</span>':'')+(x.sec?'<div class="sec-k">&#9760; '+x.sec+' slain</div>':'')
-     +'</td><td class="res-'+x.res+'">'+(RES[x.res]||x.res)+'</td><td class="num">'+x.rooms+'</td><td class="num">'+x.kills+'</td><td class="num">'
+     +'</td><td class="res-'+x.res+'">'+(x.siege&&x.res==='cleared'?'Held':RES[x.res]||x.res)+'</td><td class="num">'+x.rooms+'</td><td class="num">'+x.kills+'</td><td class="num">'
      +n(x.xp)+'</td><td class="num">'+n(x.gold)+'</td><td class="num">'+x.items+'</td><td class="num">'+x.raised+'</td></tr>').join('')
    +'</tbody></table></div></section>';
 }

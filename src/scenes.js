@@ -103,13 +103,13 @@ const BOSS_LOOK={
   'The Gate Hound':['#2a0a06','#a8241a','rays'],'Cinder Matron':['#3a1406','#e8782a','mist'],'The Iron Inquisitor':['#1a1a1a','#8a8a80','drip'],
   'Lord of Flies':['#1e2410','#8a9a2a','mist'],'The Bone Cantor':['#201c18','#c8b890','rings'],'Duke of Chains':['#1a1410','#7a6a50','drip'],
   'The Pale Executioner':['#200808','#b8b0a0','rays'],'Archdevil Vael':['#2a0606','#e83a1e','rays'],'The Hollow Seraph':['#24200e','#e8c860','rings'],
-  'Abaddon, King of Hell':['#140404','#ff3a1a','mist'],
+  'Abaddon, King of Hell':['#140404','#ff3a1a','mist'],'Inquisitor Captain':['#1e1206','#d8862a','rays'],
   'The Plague Matriarch':['#14180a','#7aa02a','mist'],'The Drowned Abbot':['#0e1a16','#3a8a6a','drip'],'The Cinder Wyrm':['#200a04','#ff6a1a','rays'],
   'The Choir Eternal':['#1a1814','#f0e6c8','rings'],'The Rootking':['#141a0a','#6a8a2a','drip'],'The Nameless Sovereign':['#0a0a0a','#e8564a','rings']
 };
 function bossBg(){
   const el=document.getElementById('bossbg'); if(!el) return; const b=liveBoss(), BL=b&&BOSS_LOOK[b.base];
-  const G=!BL&&S.mode!=='town'&&S.run&&!S.run.tw?BOSS_LOOK[DUNGEONS[S.run.di].boss[0]]:null, L=BL||G;   // a gate's own colours outside its boss fight
+  const G=!BL&&S.mode!=='town'&&S.run&&!S.run.tw?BOSS_LOOK[S.run.siege?SIEGE_BOSS:DUNGEONS[S.run.di].boss[0]]:null, L=BL||G;   /* a siege burns in torchlight throughout */   // a gate's own colours outside its boss fight
   document.body.classList.toggle('bossfight',!!BL); document.body.classList.toggle('gatefight',!!G); if(!L) return;
   el.className='bb-'+L[2]; el.style.setProperty('--bb1',L[0]); el.style.setProperty('--bb2',L[1]);
 }
@@ -482,7 +482,7 @@ function scAtmos(k){
   for(let i=0;i<3;i++) o+='<ellipse class="sc-fog'+(i%2?' d2':'')+'" cx="'+(300+i*500)+'" cy="'+(70+i*45)+'" rx="'+(420+r()*200).toFixed(0)+'" ry="34" fill="#000" opacity=".35" filter="url(#scB)"/>';
   return o+'<circle class="sc-pulse" cx="800" cy="440" r="320" fill="'+tint+'" opacity=".07" filter="url(#scB)"/><rect width="1600" height="900" fill="url(#atG)"/>';
 }
-function sceneKey(){ if(VIEW.nobg) return ''; if(S.mode==='town') return ui.tab==='tower'?'tower':'town'; const r=S.run; const b=liveBoss(); if(b&&ARENAS[b.base]) return 'b:'+b.base; if(!r) return ''; if(r.tw) return 'tower'; return r.rift?'rift':'g'+r.di; }
+function sceneKey(){ if(VIEW.nobg) return ''; if(S.mode==='town') return ui.tab==='tower'?'tower':'town'; if(S.mode==='siege'||(S.run&&S.run.siege)) return 'town'; const r=S.run; const b=liveBoss(); if(b&&ARENAS[b.base]) return 'b:'+b.base; if(!r) return ''; if(r.tw) return 'tower'; return r.rift?'rift':'g'+r.di; }
 function scene(){
   const el=document.getElementById('scene'); if(!el) return; const k=sceneKey();
   const boss=k.startsWith('b:'), build=boss?()=>scLift(ARENAS[k.slice(2)](scRand(k.length*97+k.charCodeAt(2))),1.22):()=>scLift(BACKDROPS[k]());

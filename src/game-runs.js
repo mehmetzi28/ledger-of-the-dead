@@ -31,17 +31,20 @@ function spawnOne(list,di,lvl){
 function spawnRoom(){
   if(S.run.tw) return spawnFloor();
   const r=S.run, di=r.di, room=r.room, boss=room===r.rooms-1;
-  const lvl=(r.rift?riftLvl(r.rift):RK[di].lv)+Math.floor(room/2)+(boss?2:0)+curseRise(di);
+  const lvl=r.trial?r.tlv+Math.floor(room/2)+(boss?2:0):(r.rift?riftLvl(r.rift):RK[di].lv)+Math.floor(room/2)+(boss?2:0)+curseRise(di);   // a Trial's foes stand at the level fixed for its week
   const list=[];
-  const extra=runMod()==='horde'?1:0;
-  if(boss){ list.push(secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true)); const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); }
-  else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
-  foeScale(list,foeAtkMul(di)); bulwark(list); riftScale(list);
-  { const f=foeHeat(); if(f!==1) for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*f); e.atk=Math.max(1,Math.round(e.atk*f)); } }
-  if(!boss&&r.roomKind==='elite') for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*ELITE_ROOM); e.atk=Math.max(1,Math.round(e.atk*ELITE_ROOM)); }
-  affixAll(list);
+  const extra=hasRunMod('horde')?1:0, R0=Math.random;
+  if(r.trial) Math.random=trialRng(r.tseed,room);   // a Trial: the same rooms and foes for every attempt this week (src/game-rival-trials.js)
+  try{
+    if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true)); const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
+    else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
+    foeScale(list,foeAtkMul(di)); bulwark(list); riftScale(list);
+    { const f=foeHeat(); if(f!==1) for(const e of list){ if(e.rival) continue; e.maxHp=e.hp=Math.round(e.maxHp*f); e.atk=Math.max(1,Math.round(e.atk*f)); } }   // the rival keeps their own measure
+    if(!boss&&r.roomKind==='elite') for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*ELITE_ROOM); e.atk=Math.max(1,Math.round(e.atk*ELITE_ROOM)); }
+    affixAll(list);
+  } finally { Math.random=R0; }
   r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null;
-  log(boss?(list[0].secret?'The air turns wrong. This is not the master you came for.':'The air thickens. Something large waits ahead.'):'Room '+(room+1)+' of '+r.rooms+(r.roomKind==='elite'?', behind the bloodied arch. These foes are stronger.':'.'));
+  log(boss?(list[0].rival?list[0].name+' stands where the master should be, with their own dead around them.':list[0].secret?'The air turns wrong. This is not the master you came for.':'The air thickens. Something large waits ahead.'):(r.trial?'Trial, room ':'Room ')+(room+1)+' of '+r.rooms+(r.roomKind==='elite'?', behind the bloodied arch. These foes are stronger.':'.'));
   if(boss){ bossSpeaks(list[0],'hi'); fxe('boss',list[0]); }
   if(hasFlag('infernal')) infernalWard();
 }
@@ -67,7 +70,7 @@ const liveFoes = ()=>S.run.enemies.filter(e=>e.hp>0);
 const fxKey=u=>u==null?null:typeof u==='string'?u:u.id!=null?u.id:u.uid!=null?'m'+u.uid:null;   // the key a unit's card answers to (data-u, r.fx): minions have no id, only a uid
 function mark(u,d,h){ const id=fxKey(u); if(id==null) return; const f=S.run.fx[id]||(S.run.fx[id]={d:0,h:0}); f.d+=d; f.h+=h; }
 function hit(b){ return Math.max(1,Math.round(b*rnd(.85,1.15))); }
-function hurtFoe(e,d){ if(e.curse) d=Math.round(d*e.curse.mul); if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25);
+function hurtFoe(e,d){ if(e.curse) d=Math.round(d*e.curse.mul); { const mk=masteryDmg(e.base); if(mk) d=Math.round(d*(1+mk/100)); }   /* bestiary mastery: every hit from you and your army, once */ if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25);
   if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e,0,0); return; } }   // Bone Wall shield soaks damage first
   recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e,d,0); }
 function hurtAlly(a,d){
@@ -83,10 +86,11 @@ function healAlly(a,h){
   const max=a.id==='p'?pMax():a.maxHp; h=Math.min(h,max-a.hp); if(h<=0) return 0;
   a.hp+=h; mark(a,0,h); return h;
 }
-function killXp(e){ return Math.round((4+e.lvl*2.5)*RK[e.rankI].xp*(e.boss?2.5*(omen()==='ashfall'?OMEN_BOSS_XP:1):1)*(e.elite?1.5:1)*(e.tw?1+e.tw/12:1)*(e.secret?SB_REWARD:1)*ngpReward()*(runMod()?MOD_XP:1)*heatK('xp')*(1+xb('xpp')/100)); }
+function killXp(e){ return Math.round((4+e.lvl*2.5)*RK[e.rankI].xp*(e.boss?2.5*(omen()==='ashfall'?OMEN_BOSS_XP:1):1)*(e.elite?1.5:1)*(e.tw?1+e.tw/12:1)*(e.secret?SB_REWARD:1)*(e.rival?RIVAL_GOLD:1)*ngpReward()*(runMod()?MOD_XP:1)*heatK('xp')*(1+xb('xpp')/100)*(e.living?SIEGE_XP:1)); }
 function studyFoe(name){   // count a kill toward studying this kind of foe (its drop table opens in the bestiary)
   const n=S.kills[name]=(S.kills[name]||0)+1;
   if(n===KNOW_AT) notify('Bestiary: you have studied '+name+'. Its drop table is now known.','ok');
+  for(const x of masteryRungs(name)) if(x.t.id!=='studied'&&n===x.at) notify('Mastery: '+name+' is now '+x.t.name+'. '+masteryGives(x.t)+'.','ok');
 }
 function killPowers(){   // unique powers that pay out on every kill
   const P=S.player;
@@ -104,13 +108,14 @@ function checkDeaths(){
     studyFoe(e.base);
     r.pending+=killXp(e); r.loot.push(...rollDrops(e)); killLoot(e,r);
     killPowers();
-    r.corpses.push(corpseOf(e));
+    if(!e.rival) r.corpses.push(corpseOf(e));   // the rival leaves no body: they retreat
     if(e.boss) bossSpeaks(e,'bye');
-    log(e.name+' falls.'); sfx('kill'); fxe('death',e);
+    log(e.rival?e.name+' is beaten.':e.name+' falls.'); sfx('kill'); fxe('death',e);
     const page=e.secret?'secret':e.boss?(e.tw?'warden':'boss'):e.elite?'elite':null;   // who may carry a torn page
-    if(page) findPage(page,r);
+    if(page&&!r.trial&&!e.rival) findPage(page,r);
     if(e.secret) slaySecret(e,r);
-    if(runMod()==='volatile') volatileBurst(e);
+    if(e.rival) rivalBeaten(e,r);
+    if(hasRunMod('volatile')) volatileBurst(e);
     if(hasAff(e,'splitting')) splitFoe(e);
   }
 }
@@ -195,7 +200,7 @@ function act(kind){
   tickDots(); if(P.hp<=0&&playerFalls()) return;
   if(P.hp<hpBefore){ sfx('hurt'); if(hpBefore-P.hp>=pMax()*.2) ui.shake=true; }   // a heavy turn shakes the screen
   checkDeaths(); if(!liveFoes().length){ roomWon(); return; }
-  r.turn++; if(runMod()!=='drought') P.mana=Math.min(pMana(),P.mana+1+G('regen')+sk('soulwell')+(hasMod('soulwell','a')?1:0)); skillTick();
+  r.turn++; if(!hasRunMod('drought')) P.mana=Math.min(pMana(),P.mana+1+G('regen')+sk('soulwell')+(hasMod('soulwell','a')?1:0)); skillTick();
   if(hasFlag('halo')) allies().forEach(a=>{ if(a.hp>0) healAlly(a,Math.round((a.id==='p'?pMax():a.maxHp)*.04)); });
   if(r.turn===9&&liveFoes().some(e=>e.tw&&e.boss)) log('Wrath: the warden is enraged and hits harder every turn.','bad');
 }
@@ -217,27 +222,33 @@ function roomWon(){
   const last=r.room===r.rooms-1;
   const share=Math.round(xp*.5), shatter=hasFlag('bonebank')?0:Math.max(5,25-A('will')*1.5);
   for(const m of S.army.slice()){
+    if(m.thrall) continue;   /* a siege thrall earns nothing and is gone at dawn */
+    if(m.hp<=0) r.downs=(r.downs||0)+1;   /* downed this room: a Trial's score counts them */
     if(m.hp>0){ if(minionXp(m,share)) r.events.push({m:m.nick+' reaches level '+m.lvl+'.',c:'ok'}); }
-    else if(!hasTrait(m,'gravebound')&&Math.random()*100<shatter){ returnGear(m); S.army=S.army.filter(x=>x!==m); r.events.push({m:m.nick+', '+theName(mName(m))+', shattered and is gone.',c:'bad'}); }
+    else if(!r.siege&&!hasTrait(m,'gravebound')&&Math.random()*100<shatter){   /* home ground: nothing shatters in a siege */ returnGear(m); S.army=S.army.filter(x=>x!==m); r.events.push({m:m.nick+', '+theName(mName(m))+', shattered and is gone.',c:'bad'}); memorialize(m,r.tw?{f:r.tw}:r.rift?{rd:r.rift}:{g:r.di}); }
     else{ m.hp=Math.ceil(m.maxHp*.4); r.events.push({m:m.nick+' was downed but binds back together.',c:''}); }
   }
   if(r.tw){
     const f=r.tw; S.tower.best=Math.max(S.tower.best,f); recBest('floor',f); for(const k of [10,25,40,50,60,75,90,100]) if(S.tower.best>=k) unlockStory('t'+k,r);
     if(f%10===0){ xp+=120*f; S.quest.clears++; towerBossLoot(f,r); }
     if(f===100) r.cleared=true;   // floor 100 ends the first climb; floor 101 onward is the endless abyss
-  } else if(last){ xp+=r.rift?riftCleared(r):gateCleared(r); }
+  } else if(last){ xp+=r.siege?siegeWon(r):r.rift?riftCleared(r):r.trial?trialCleared(r):gateCleared(r); if(!r.siege&&!r.rift&&!r.trial) rivalMeet(r); }
+  if(r.trial){ r.loot=[]; r.gold=0; r.troph={}; r.corpses=[]; }   /* a Trial pays only its first completion each week: no gear, gold, trophies or bodies */
   for(const id of r.loot){ const it=addItem(id); if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name); } r.loot=[];
   bankLoot(r); r.won=(r.won||0)+1; S.quest.rooms=(S.quest.rooms||0)+1; tally('rooms'); if(r.tw) tally('floors'); if(P.hp>0&&P.hp<=pMax()*.1) tally('lastBreath');
-  r.event=(!r.tw&&!last&&Math.random()<EVENT_CHANCE)?rollEvent():null;   // something waits between rooms
-  r.doors=(!r.tw&&!last)?rollDoors(r):null;   // which way next
+  r.event=(!r.tw&&!r.siege&&!r.trial&&!last&&Math.random()<EVENT_CHANCE)?rollEvent():null;   // something waits between rooms
+  r.doors=(!r.tw&&!r.siege&&!r.trial&&!last)?rollDoors(r):null;   // which way next
   r.gained+=xp; r.lastXp=xp;
   r.ups+=addXp(xp);
-  S.mode='raise';
+  if(r.siege&&!last){ nextWave(); return; }   // a siege goes straight on to its next wave
+  rivalTheft(r); S.mode='raise';
 }
 function defeat(){
   sfx('death');
-  const r=S.run; S.ti=S.ti||{}; S.ti.deaths=(S.ti.deaths||0)+1; r.pending=0; r.gold=0; r.troph={}; S.mode='defeat'; S.player.xp=Math.max(0,S.player.xp-Math.round(need(S.player.lvl)*DIFF.deathXp));
+  const r=S.run; if(r.siege){ r.pending=0; r.loot=[]; S.mode='defeat'; S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); }); siegeLost(false); return; }   // a lost siege costs no XP; the town pays instead
+  S.ti=S.ti||{}; S.ti.deaths=(S.ti.deaths||0)+1; r.pending=0; r.gold=0; r.troph={}; S.mode='defeat'; S.player.xp=Math.max(0,S.player.xp-Math.round(need(S.player.lvl)*DIFF.deathXp));
   S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); });
+  if(rivalStanding(r)) rivalLost(r);
   notify('You were dragged out of '+(r.tw?'the Hell Tower on floor '+r.tw:'the '+DUNGEONS[r.di].name)+'. That room\'s spoils are lost, and you lose '+Math.round(DIFF.deathXp*100)+'% of a level in XP.','bad');
 }
 function descend(kind){   // go on: through one of the doors in the gates (the first door by default), or up a floor in the Tower
@@ -251,6 +262,7 @@ function descend(kind){   // go on: through one of the doors in the gates (the f
   S.mode='battle'; spawnRoom(); return true;
 }
 function returnTown(){
+  if(S.run&&S.run.siege){ siegeEnd(); save(); return; }   // back from the walls: then dawn
   const P=S.player;
   if(S.run){ recordRun(S,S.run,runResult(S.run)); recRun(S.run); }
   P.hp=pMax(); P.mana=pMana(); P.shield=0; allies().forEach(clearDots); S.army.forEach(m=>m.hp=m.maxHp);
@@ -258,13 +270,14 @@ function returnTown(){
   if(S.watches<=0) endDay();
   save();
 }
-function flee(){ if(S.mode!=='battle') return; S.run.fled=true; notify('You fled the gate and left the room\'s spoils behind.','bad'); returnTown(); }
+function flee(){ if(S.mode!=='battle') return; if(S.run.siege){ S.run.fled=true; S.run.pending=0; S.run.loot=[]; S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); }); siegeLost(true); S.mode='defeat'; return; }   /* fleeing a siege counts as a defeat */
+  S.run.fled=true; if(rivalStanding(S.run)) rivalLost(S.run); notify('You fled the gate and left the room\'s spoils behind.','bad'); returnTown(); }
 
 
 // ----- items: bag and equipment
 function addItem(id,ro){ if(S.inv.length>=bagMax()&&!ITEM[id].uq) return null; const it={u:++S.uid,id}; const r=ro===undefined?rollItem(id):ro; if(r&&r.length) it.ro=r; S.inv.push(it); return it; }
 const findItem=u=>{ const i=S.inv.find(x=>x.u===u); if(i) return i; for(const sl of GEAR_SLOTS) if(S.equip[sl]&&S.equip[sl].u===u) return S.equip[sl]; return null; };
-const reforgeCost=it=>Math.round(buyPrice(ITEM[it.id])*REFORGE_COST*(1-.15*bl('forge')));
+const reforgeCost=it=>Math.round(buyPrice(ITEM[it.id])*REFORGE_COST*(1-B_FORGE*bl('forge')));
 function reforge(u){   // re-roll a piece's bonus lines for gold; always leaves at least one line
   const it=findItem(u); if(!it||S.mode!=='town') return false; const d=ITEM[it.id]; if(d.uq) return false;
   const c=reforgeCost(it); if(S.gold<c) return false;
@@ -285,20 +298,21 @@ function discard(u){ S.inv=S.inv.filter(x=>x.u!==u||x.lk); }
 const firstRaise=()=>!!(S&&S.firstRaise)&&!T_('raised');
 function raiseChance(c){
   if(firstRaise()) return 100;
-  let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+(skMod('thrift')==='b'?3:0)+4*sk('mastery')+(hasMod('mastery','a')?6:0)+3*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*3-RK[c.rankI].pen;
-  if(c.elite) ch-=10; if(c.boss) ch-=15; if(c.free) ch+=STRAGGLER_BONUS;
+  let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+(skMod('thrift')==='b'?3:0)+4*sk('mastery')+(hasMod('mastery','a')?6:0)+B_OSS*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*3-RK[c.rankI].pen;
+  if(c.elite) ch-=10; if(c.boss) ch-=15; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base);
   return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
 }
 const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*(hasFlag('cheapraise')?.5:1)*(hasMod('mastery','b')?.75:1)*(1-.06*sk('thrift')-(skMod('thrift')==='a'?.1:0)));
-function freeNick(){ const used=S.army.map(m=>m.nick); const f=NICKS.filter(n=>!used.includes(n)); return f.length?pick(f):pick(NICKS)+' II'; }
+function freeNick(){ const used=S.army.concat(benched(),...(S.raids||[]).map(x=>x.units)).map(m=>m.nick); const f=NICKS.filter(n=>!used.includes(n)); return f.length?pick(f):pick(NICKS)+' II'; }
 const SALT_BONUS=20, SALT_MAX=3, saltPrice=()=>10+S.player.lvl*3;   // Grave Salts: bought at the market, +20% on one raise
 const RAISE_BASE=25, RAISE_WILL=1.8, RAISE_MIN=1, RAISE_MAX=85, SALT_CAP=95;   // salts may still reach 95%
 const saltChance=c=>firstRaise()?100:clamp(raiseChance(c)+SALT_BONUS,RAISE_MIN,SALT_CAP);
-function tryRaise(id,salt){
+function tryRaise(id,salt,bench){   // bench: raise to the Reserve, only when the army is full and the Reserve has room
   if(S.mode!=='raise') return;
   const r=S.run, P=S.player, c=r.corpses.find(x=>x.id===id); if(!c||c.tried) return;
   r.events=[];
-  if(armyUsed()>=slots()){ r.events.push({m:'Your army is full. Release someone first.',c:'bad'}); return; }
+  const toRes=!!bench&&armyUsed()>=slots()&&reserveRoom();
+  if(armyUsed()>=slots()&&!toRes){ r.events.push({m:'Your army is full. Release someone first.',c:'bad'}); return; }
   const cost=raiseCost(c);
   if(P.mana<cost){ r.events.push({m:'Not enough mana. You need '+cost+'.',c:'bad'}); return; }
   const salted=!!(salt&&S.salts>0);
@@ -306,10 +320,11 @@ function tryRaise(id,salt){
   if(Math.random()*100<(salted?saltChance(c):raiseChance(c))){
     const m={uid:++S.uid,armed:!!c.armed,eq:c.armed?{weapon:null,armor:null,relic:null}:null,nick:freeNick(),name:c.name,kind:c.base,role:c.role,rankI:c.rankI,lvl:c.lvl,xp:0,boss:c.boss,elite:c.elite,hf:c.hf,af:c.af,tw:c.tw,hp:1,maxHp:null,atk:0};
     if(hasFlag('bindsouls')) m.lvl=Math.min(S.player.lvl+2,m.lvl+2);
+    { const ml=masteryLv(c.base); if(ml) m.lvl=Math.max(m.lvl,Math.min(S.player.lvl+2,m.lvl+ml)); }   // a Ledgered kind rises higher, never past your level + 2
     m.lvl0=m.lvl; m.stage=0; m.traits=[rollTrait([])]; if(c.boss) m.traits.push(rollTrait(m.traits));   // bosses rise with two traits
     if(c.aff&&c.aff.length){ const t=AFFIX[pick(c.aff)].trait; if(!m.traits.includes(t)) m.traits.push(t); }   // an elite keeps one of its affixes
     if(rollCommand(m)) tally('commanders');
-    syncMinion(m); m.hp=m.maxHp; S.army.push(m); r.raised++; S.firstRaise=0; S.ti=S.ti||{}; S.ti.raised=(S.ti.raised||0)+1; if(m.armed) S.ti.armed=(S.ti.armed||0)+1;
+    syncMinion(m); m.hp=m.maxHp; if(toRes){ S.reserve.push(m); c.res=1; } else S.army.push(m); r.raised++; S.firstRaise=0; S.ti=S.ti||{}; S.ti.raised=(S.ti.raised||0)+1; if(m.armed) S.ti.armed=(S.ti.armed||0)+1;
     if(c.free) tally('straggler'); if(c.boss) tally('raisedBoss'); c.result='raised'; if(c.boss||c.elite) moment(m.nick+' rises: '+(c.boss?'a boss':'an elite')+' serves you','ok'); c.minion=m.nick+' ('+m.traits.map(t=>TRAITS[t].name).join(', ')+')'; sfx('raise'); fxe('raise',c);
   }else{ c.result='failed'; sfx('fail'); fxe('rfail',c); }
 }
@@ -324,16 +339,17 @@ function raiseBest(){
 }
 const weakest=()=>S.army.slice().sort((a,b)=>mPower(a)-mPower(b))[0]||null;
 function returnGear(m){ if(!m.eq) return; for(const sl of GEAR_SLOTS){ if(m.eq[sl]){ S.inv.push(m.eq[sl]); m.eq[sl]=null; } } }
-function release(uid){ const m=S.army.find(x=>x.uid===uid); if(m) returnGear(m); S.army=S.army.filter(m=>m.uid!==uid); }
+function release(uid){ const m=S.army.concat(benched()).find(x=>x.uid===uid); if(m) returnGear(m); S.army=S.army.filter(m=>m.uid!==uid);   // the army, the Reserve or the gate: only the minion you pick
+  if(S.reserve) S.reserve=S.reserve.filter(m=>m.uid!==uid); if(S.waiting) S.waiting=S.waiting.filter(m=>m.uid!==uid); }
 function giveGear(uid,u){
   if(S.mode==='battle') return;
-  const m=S.army.find(x=>x.uid===uid), i=S.inv.findIndex(x=>x.u===u); if(!m||!m.armed||i<0) return;
+  const m=findMinion(uid), i=S.inv.findIndex(x=>x.u===u); if(!m||!m.armed||i<0) return;
   const it=S.inv[i], sl=ITEM[it.id].slot; m.eq=m.eq||{weapon:null,armor:null,relic:null};
   S.inv.splice(i,1); if(m.eq[sl]) S.inv.push(m.eq[sl]); m.eq[sl]=it; syncMinion(m); m.hp=Math.min(m.hp,m.maxHp);
 }
 function takeGear(uid,sl){
   if(S.mode==='battle') return;
-  const m=S.army.find(x=>x.uid===uid); if(!m||!m.eq||!m.eq[sl]) return;
+  const m=findMinion(uid); if(!m||!m.eq||!m.eq[sl]) return;
   const it=m.eq[sl]; if(S.inv.length>=bagMax()&&!ITEM[it.id].uq){ notify('Your bag is full. Make room first.','bad'); return; }
   S.inv.push(it); m.eq[sl]=null; syncMinion(m); m.hp=Math.min(m.hp,m.maxHp);
 }
