@@ -417,16 +417,18 @@ function riftCleared(r){
 
 // ===== FIRST-TIME TIPS =====
 // Each tip shows once, the first time its moment comes up. Seen tips are stored in S.tips; Settings can bring them back.
+// One guidance box at a time: the first tip in this order whose moment applies, so the first hour runs stats, fight, raise, traits;
+// in town a waiting story note stays hidden under it (notesHTML), and after a room whose log holds a story note the tip waits for the next screen.
 const TIPS=[
   {id:'stats',  t:'Spend your points', m:'Strength powers Strike and its crits, Constitution your HP and toughness, Intelligence your mana, Siphon, Ward and skills, and Will your army size and raise odds. Press + next to a stat.', when:()=>S.mode==='town'&&S.player.pts>0&&S.player.lvl===1},
   {id:'battle', t:'How a fight works', m:'Pick a target and your army attacks it with you. Strike (1) refills mana, Soul Siphon (2) drains, heals and harvests a Soul, Bone Ward (3) shields you. Then every foe hits back.', when:()=>S.mode==='battle'},
   {id:'raise',  t:'Raise the dead', m:'Every foe you kill leaves a body. Raising costs mana and can fail, except the very first: that one always answers. The better your Will and level, the better your odds. Raised minions fight for you and grow with every room.', when:()=>S.mode==='raise'&&S.run&&S.run.corpses.length>0},
+  {id:'trait',  t:'Minion traits', m:'Every raised minion carries a trait, like Vicious or Grave-bound. Minions evolve at 5 and 10 levels above the level they were raised at, growing stronger and gaining another trait.', when:()=>(S.mode==='town'||S.mode==='raise')&&S.army.some(m=>m.traits&&m.traits.length)},
   {id:'skill',  t:'You have a skill point', m:'Open the Skills tab and learn Bone Spear. Active skills appear in battle on keys 4 and up. You get one point every level.', when:()=>S.mode==='town'&&S.player.sp>0},
   {id:'armor',  t:'These foes wear armor', m:'Armor blunts every hit you and your army land, so fights take longer. Bone Spear pierces half of it, and Corpse Explosion and Reap ignore it completely.', when:()=>S.mode==='battle'&&foeArmor()>=.5},
   {id:'boss',   t:'A boss is winding up', m:'Moves marked Charging land next turn. Raise Bone Ward to soak the hit, or freeze the boss with Grave Chill to break its focus and cancel the move.', when:()=>S.mode==='battle'&&S.run&&liveFoes().some(e=>e.charging)},
   {id:'trophy', t:'Trophies', m:'Fallen foes drop trophies. Sell them at the Market, forge six from one gate into gear, or brew four into a potion.', when:()=>S.mode==='town'&&Object.keys(S.trophies).length>0},
   {id:'market', t:'The Bone Market', m:'Buy potions (drunk in battle with Q and W) and Grave Salts, buy or forge gear, empower minions at the Bone Altar, and sell what you do not need.', when:()=>S.mode==='town'&&ui.tab==='market'},
-  {id:'trait',  t:'Minion traits', m:'Every raised minion carries a trait, like Vicious or Grave-bound. Minions evolve at 5 and 10 levels above the level they were raised at, growing stronger and gaining another trait.', when:()=>S.army.some(m=>m.traits&&m.traits.length)},
   {id:'defeat', t:'You fell', m:'Falling costs that room\'s spoils and some XP, but you keep everything from rooms you already cleared. Come back stronger, or try an easier gate.', when:()=>S.mode==='defeat'},
   {id:'event',  t:'Something between rooms', m:'Sometimes a room leaves something behind: a blood shrine, a pedlar, a sealed coffer or a wounded straggler. Each offers a choice. Walking past is always safe.', when:()=>S.mode==='raise'&&S.run&&S.run.event&&!S.run.event.done},
   {id:'dots',   t:'Bleeding and burns', m:'Enemy strikers\' crits make you bleed, and Cinder Waves burn. These tick at the end of each turn and ignore your ward. A Healing Draught cures you; Dark Mending cures your whole side.', when:()=>S.mode==='battle'&&allies().some(a=>a.dots)},
@@ -453,6 +455,6 @@ const TIPS=[
   {id:'omen',   t:'An omen', m:'Some days carry an omen that touches every gate and the Tower. Today\'s is shown above the gates.', when:()=>S.mode==='town'&&!!omen()},
   {id:'tower',  t:'The Hell Tower is open', m:'A separate 100-floor climb, one fight per floor, with a unique relic on every tenth floor. Floors you clear become checkpoints.', when:()=>S.mode==='town'&&towerOpen()},
 ];
-const currentTip=()=>{ if(!S||(S.tips&&S.tips.off)) return null; try{ return TIPS.find(t=>!(S.tips&&S.tips[t.id])&&t.when())||null; }catch(e){ return null; } };
+const currentTip=()=>{ if(!S||(S.tips&&S.tips.off)) return null; if(S.mode==='raise'&&S.run&&(S.run.events||[]).some(e=>e.c==='story')) return null; try{ return TIPS.find(t=>!(S.tips&&S.tips[t.id])&&t.when())||null; }catch(e){ return null; } };
 function dismissTip(id){ S.tips=S.tips||{}; S.tips[id]=1; }
 

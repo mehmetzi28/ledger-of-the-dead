@@ -2805,16 +2805,18 @@ function riftCleared(r){
 
 // ===== FIRST-TIME TIPS =====
 // Each tip shows once, the first time its moment comes up. Seen tips are stored in S.tips; Settings can bring them back.
+// One guidance box at a time: the first tip in this order whose moment applies, so the first hour runs stats, fight, raise, traits;
+// in town a waiting story note stays hidden under it (notesHTML), and after a room whose log holds a story note the tip waits for the next screen.
 const TIPS=[
   {id:'stats',  t:'Spend your points', m:'Strength powers Strike and its crits, Constitution your HP and toughness, Intelligence your mana, Siphon, Ward and skills, and Will your army size and raise odds. Press + next to a stat.', when:()=>S.mode==='town'&&S.player.pts>0&&S.player.lvl===1},
   {id:'battle', t:'How a fight works', m:'Pick a target and your army attacks it with you. Strike (1) refills mana, Soul Siphon (2) drains, heals and harvests a Soul, Bone Ward (3) shields you. Then every foe hits back.', when:()=>S.mode==='battle'},
   {id:'raise',  t:'Raise the dead', m:'Every foe you kill leaves a body. Raising costs mana and can fail, except the very first: that one always answers. The better your Will and level, the better your odds. Raised minions fight for you and grow with every room.', when:()=>S.mode==='raise'&&S.run&&S.run.corpses.length>0},
+  {id:'trait',  t:'Minion traits', m:'Every raised minion carries a trait, like Vicious or Grave-bound. Minions evolve at 5 and 10 levels above the level they were raised at, growing stronger and gaining another trait.', when:()=>(S.mode==='town'||S.mode==='raise')&&S.army.some(m=>m.traits&&m.traits.length)},
   {id:'skill',  t:'You have a skill point', m:'Open the Skills tab and learn Bone Spear. Active skills appear in battle on keys 4 and up. You get one point every level.', when:()=>S.mode==='town'&&S.player.sp>0},
   {id:'armor',  t:'These foes wear armor', m:'Armor blunts every hit you and your army land, so fights take longer. Bone Spear pierces half of it, and Corpse Explosion and Reap ignore it completely.', when:()=>S.mode==='battle'&&foeArmor()>=.5},
   {id:'boss',   t:'A boss is winding up', m:'Moves marked Charging land next turn. Raise Bone Ward to soak the hit, or freeze the boss with Grave Chill to break its focus and cancel the move.', when:()=>S.mode==='battle'&&S.run&&liveFoes().some(e=>e.charging)},
   {id:'trophy', t:'Trophies', m:'Fallen foes drop trophies. Sell them at the Market, forge six from one gate into gear, or brew four into a potion.', when:()=>S.mode==='town'&&Object.keys(S.trophies).length>0},
   {id:'market', t:'The Bone Market', m:'Buy potions (drunk in battle with Q and W) and Grave Salts, buy or forge gear, empower minions at the Bone Altar, and sell what you do not need.', when:()=>S.mode==='town'&&ui.tab==='market'},
-  {id:'trait',  t:'Minion traits', m:'Every raised minion carries a trait, like Vicious or Grave-bound. Minions evolve at 5 and 10 levels above the level they were raised at, growing stronger and gaining another trait.', when:()=>S.army.some(m=>m.traits&&m.traits.length)},
   {id:'defeat', t:'You fell', m:'Falling costs that room\'s spoils and some XP, but you keep everything from rooms you already cleared. Come back stronger, or try an easier gate.', when:()=>S.mode==='defeat'},
   {id:'event',  t:'Something between rooms', m:'Sometimes a room leaves something behind: a blood shrine, a pedlar, a sealed coffer or a wounded straggler. Each offers a choice. Walking past is always safe.', when:()=>S.mode==='raise'&&S.run&&S.run.event&&!S.run.event.done},
   {id:'dots',   t:'Bleeding and burns', m:'Enemy strikers\' crits make you bleed, and Cinder Waves burn. These tick at the end of each turn and ignore your ward. A Healing Draught cures you; Dark Mending cures your whole side.', when:()=>S.mode==='battle'&&allies().some(a=>a.dots)},
@@ -2841,7 +2843,7 @@ const TIPS=[
   {id:'omen',   t:'An omen', m:'Some days carry an omen that touches every gate and the Tower. Today\'s is shown above the gates.', when:()=>S.mode==='town'&&!!omen()},
   {id:'tower',  t:'The Hell Tower is open', m:'A separate 100-floor climb, one fight per floor, with a unique relic on every tenth floor. Floors you clear become checkpoints.', when:()=>S.mode==='town'&&towerOpen()},
 ];
-const currentTip=()=>{ if(!S||(S.tips&&S.tips.off)) return null; try{ return TIPS.find(t=>!(S.tips&&S.tips[t.id])&&t.when())||null; }catch(e){ return null; } };
+const currentTip=()=>{ if(!S||(S.tips&&S.tips.off)) return null; if(S.mode==='raise'&&S.run&&(S.run.events||[]).some(e=>e.c==='story')) return null; try{ return TIPS.find(t=>!(S.tips&&S.tips[t.id])&&t.when())||null; }catch(e){ return null; } };
 function dismissTip(id){ S.tips=S.tips||{}; S.tips[id]=1; }
 
 // ===== BOSS ABILITIES =====
@@ -4159,6 +4161,16 @@ const RIVAL_STASH=6;                    // stolen bodies the rival keeps (the ol
 const RIVAL_FINE=.1;                    // a loss with no page to take: 10% of the gold you carry, at most one clear's worth
 const RIVAL_LINES={hi:'So you are the one the Ledger chose. I wrote my name in a book too. Mine remembers me.',bye:'Keep it, then. For now. I will find a page you cannot hold.',
   phase:'Enough courtesy. Let me show you what my book has kept.',win:'A page for my book. Come and take it back, if you can.'};
+const RIVAL_TAUNT={   // what they say into the Ledger: after a theft, the dawn before a challenge, when you beat them, when they beat you
+  theft:['Your dead were never yours. They only waited for a firmer hand.','I took the one you would have chosen. You choose so predictably.','Count your bodies, scribe. Then count mine.','A good body. It will know your face when it rises for me.'],
+  warn:['Tomorrow, then. Bring the dead you still have.','I have set a place for you. Do not keep me waiting.','Come and see what your stolen dead have learned.'],
+  beaten:['You bleed ink like the rest of us. I will remember where.','A win. Write it small. The book has many pages left.','I am not finished. Neither is my ledger.'],
+  won:[RIVAL_LINES.win,'Get up. I want you whole when I come for the rest.','Your dead looked at me before they looked at you. Remember that.']};
+const rivalTaunt=(k,salt)=>{ const L=RIVAL_TAUNT[k]; return rv().name+': "'+L[dayHash(S.day,salt,rv().enc,k.length,41)%L.length]+'"'; };   // a day hash, not Math.random: the bots' dice stay where they were
+function rivalWant(){   // the role your army leans on: the most minions, then the most levels between them; null with no army
+  const n={}; for(const m of S.army||[]) if(ROLES[m.role]) n[m.role]=(n[m.role]||0)+1000+(m.lvl||0);
+  let best=null; for(const k in n) if(!best||n[k]>n[best]) best=k; return best;
+}
 const rivalDef=()=>({name:'',met:0,enc:0,wins:0,losses:0,thefts:0,page:-1,step:0,next:0,gi:-1,warned:0,done:0,steal:0,stash:[]});
 const rv=()=>{ if(!S.rival) S.rival=rivalDef(); return S.rival; };
 const distinctClears=()=>Object.keys((S.ti&&S.ti.clr)||{}).filter(k=>S.ti.clr[k]).length;
@@ -4179,7 +4191,7 @@ function rivalTick(){   // dawn, load and every clear: the theft and challenge s
   if(!g.next||g.next<S.day||(g.done&&g.done>=g.next)){ g.next=S.day+rivalGap(1); g.gi=-1; g.warned=0; }   // first schedule, or a challenge missed or fought
   if(!g.steal) g.steal=Math.max(S.day+theftGap(),g.next-1);   // the first theft waits for the first challenge's warning: they show their face before they steal
   if(S.day>=g.next-1&&g.gi<0){ const gs=rivalGates(); if(gs.length) g.gi=gs[dayHash(g.next,S.ngp||0,g.enc,7)%gs.length]; }
-  if(S.day===g.next-1&&g.gi>=0&&g.warned!==S.day){ g.warned=S.day; tally('rivalWarned'); notify(g.name+' will wait for you in the boss room of the '+DUNGEONS[g.gi].name+' tomorrow. Your first visit there will meet them instead of its master.','bad'); }
+  if(S.day===g.next-1&&g.gi>=0&&g.warned!==S.day){ g.warned=S.day; tally('rivalWarned'); notify(rivalTaunt('warn',g.next),'bad'); notify(g.name+' will wait for you in the boss room of the '+DUNGEONS[g.gi].name+' tomorrow. Your first visit there will meet them instead of its master.','bad'); }
 }
 const rivalToday=()=>!!S&&rivalOpen()&&!!rv().name&&rv().next===S.day&&rv().gi>=0&&rv().done!==S.day&&!!(S.ti&&S.ti.clr&&S.ti.clr[rv().gi]);
 const rivalWarned=()=>rivalToday()||(!!S&&rivalOpen()&&!!rv().name&&rv().gi>=0&&S.day===rv().next-1);
@@ -4213,7 +4225,7 @@ function rivalBeaten(e,r){   // the rival falls: a legendary, the gold (in killL
   { const id=rivalLegend(), it=addItem(id,rollItem(id,true)); if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name); }   // in the bag at once: kept even if their followers win the room
   if(g.page>=0){ const P0=LORE_PAGES[g.page]; r.rivalPage=g.page; g.page=-1; log(g.name+' drops the page they took: "'+(P0?P0.t:'')+'". It is yours again.','ok'); }
   g.next=S.day+rivalGap(2)+RIVAL_PUSH; g.gi=-1; g.warned=0;
-  moment(g.name+' retreats','gold'); log(g.name+' retreats into the dark, and the Ledger writes the win in red.','story');
+  moment(g.name+' retreats','gold'); log(g.name+' retreats into the dark, and the Ledger writes the win in red.','story'); log(rivalTaunt('beaten',g.wins),'boss');
 }
 function rivalLost(r){   // you fell or fled with the rival standing: a page is borrowed (never deleted), or a little gold
   const g=rv(), di=r.di; g.losses++; g.enc++; tally('rivalLosses');
@@ -4221,17 +4233,17 @@ function rivalLost(r){   // you fell or fled with the rival standing: a page is 
   let m;
   if((S.pages||0)>0&&g.page<0){ g.page=dayHash(S.day,g.losses,S.pages,9)%S.pages; m=g.name+' takes a torn page from your Ledger: "'+LORE_PAGES[g.page].t+'". Beat them to get it back.'; }
   else { const f=Math.min(Math.round(S.gold*RIVAL_FINE),clearGold(di)); S.gold=Math.max(0,S.gold-f); m=g.name+' takes '+f+' gold from your purse.'; }
-  log(g.name+': "'+RIVAL_LINES.win+'"','boss'); notify(m,'bad'); r.rivalLost=true;
+  log(rivalTaunt('won',g.losses),'boss'); notify(m,'bad'); r.rivalLost=true;
 }
 const rivalStanding=r=>!!(r&&r.rival&&r.enemies.some(e=>e.rival&&e.hp>0));
-function rivalTheft(r){   // on a gate run, before you act on a room's bodies: the most valuable one, never a boss, never from fewer than two
+function rivalTheft(r){   // on a gate run, before you act on a room's bodies: the most valuable one of the role your army leans on (else any), never a boss, never from fewer than two
   if(!rivalOpen()||!r||r.tw||r.rift||r.siege||r.trial||r.room===0) return null; const g=rv(); if(!g.name||!g.met||!g.steal||S.day<g.steal) return null;
   const open=r.corpses.filter(c=>!c.tried); if(open.length<2) return null;
-  const c=open.filter(x=>!x.boss).sort((a,b)=>bodyValue(b)-bodyValue(a))[0]; if(!c) return null;
+  const w=rivalWant(), c=open.filter(x=>!x.boss).sort((a,b)=>(b.role===w)-(a.role===w)||bodyValue(b)-bodyValue(a))[0]; if(!c) return null;
   c.tried=true; c.result='taken'; c.taken=g.name; g.thefts++; tally('rivalThefts'); g.steal=S.day+theftGap();
   const b={base:c.base,name:c.name,role:c.role,rankI:c.rankI,hf:c.hf,af:c.af,elite:!!c.elite,di:r.di,day:S.day}; if(c.aff&&c.aff.length) b.aff=c.aff.slice(); if(c.cd) b.cd=c.cd;
   g.stash.push(b); g.stash=g.stash.slice(-RIVAL_STASH);
-  r.events.push({m:g.name+' was here before you: the body of '+c.name+' is taken. It will raise them against you.',c:'bad'}); return c;
+  r.events.push({m:g.name+' was here before you: the body of '+c.name+' is taken. It will raise them against you.',c:'bad'},{m:rivalTaunt('theft',g.thefts),c:'bad'}); return c;
 }
 function rivalReclaim(e,c){   // checkDeaths: a stolen body falls back into your hands with the condition it was stolen with
   if(c.cd) delete c.cd; if(e.scd) c.cd=e.scd;
@@ -6924,12 +6936,31 @@ const TR_DICT=new Map(Object.entries({
 "Keep it, then. For now. I will find a page you cannot hold":"Öyleyse sende kalsın. Şimdilik. Tutamayacağın bir sayfa bulacağım",
 "Enough courtesy. Let me show you what my book has kept":"Bu kadar nezaket yeter. Kitabımın neler sakladığını göstereyim",
 "A page for my book. Come and take it back, if you can":"Kitabım için bir sayfa. Gelip geri al, yapabilirsen",
+"Your dead were never yours. They only waited for a firmer hand":"Ölülerin hiç senin olmadı. Yalnızca daha sağlam bir eli beklediler",
+"I took the one you would have chosen. You choose so predictably":"Senin seçeceğini aldım. Öyle tahmin edilir seçiyorsun ki",
+"Count your bodies, scribe. Then count mine":"Cesetlerini say, kâtip. Sonra benimkileri say",
+"A good body. It will know your face when it rises for me":"İyi bir ceset. Benim için kalktığında yüzünü tanıyacak",
+"Tomorrow, then. Bring the dead you still have":"Yarın öyleyse. Hâlâ elinde kalan ölüleri getir",
+"I have set a place for you. Do not keep me waiting":"Sana bir yer ayırdım. Beni bekletme",
+"Come and see what your stolen dead have learned":"Gel de çalınan ölülerinin neler öğrendiğini gör",
+"You bleed ink like the rest of us. I will remember where":"Hepimiz gibi mürekkep kanıyorsun. Nereden kanadığını hatırlayacağım",
+"A win. Write it small. The book has many pages left":"Bir zafer. Küçük yaz. Kitabın daha çok sayfası var",
+"I am not finished. Neither is my ledger":"Daha bitmedim. Defterim de bitmedi",
+"Get up. I want you whole when I come for the rest":"Kalk. Gerisi için geldiğimde seni bütün istiyorum",
+"Your dead looked at me before they looked at you. Remember that":"Ölülerin sana bakmadan önce bana baktı. Bunu unutma",
+"Hunting":"Peşinde",
+"your vanguards":"öncülerin",
+"your strikers":"vurucuların",
+"your menders":"şifacıların",
+"your reapers":"biçicilerin",
+"the kind your army leans on":"ordunun dayandığı tür",
+"whatever lies freshest":"en taze ne varsa",
 "Once you have cleared # different gates, a rival necromancer opens a ledger of their own. Their name is written once and stays with the book, through New Game+":"# farklı kapı temizlediğinde rakip bir ölüçağıran kendi defterini açar. Adı bir kez yazılır ve Yeni Oyun+ boyunca kitapla kalır",
 "Theft":"Hırsızlık",
 "Challenge":"Meydan okuma",
 "Entry":"Giriş",
 "Reward":"Ödül",
-"On a gate run (never the Tower, the Rift, a siege or a Trial), every # to # days the rival takes the most valuable body from a room before you act: never from the first room, never a boss, never when fewer than # bodies are left. The first theft waits until their first challenge has been announced. Nothing you spent is lost":"Bir kapı seferinde (asla Kule, Yarık, kuşatma ya da Sınav değil) her # ile # günde bir rakip, sen davranmadan bir odadaki en değerli cesedi alır: asla ilk odadan, asla bir patronu, asla # cesetten azı kalmışken. İlk hırsızlık, ilk meydan okumaları duyurulana dek bekler. Harcadığın hiçbir şey kaybolmaz",
+"On a gate run (never the Tower, the Rift, a siege or a Trial), every # to # days the rival takes the most valuable body from a room before you act, of the role your army leans on most (the most minions, then the most levels) when there is one: never from the first room, never a boss, never when fewer than # bodies are left. The first theft waits until their first challenge has been announced. Nothing you spent is lost":"Bir kapı seferinde (asla Kule, Yarık, kuşatma ya da Sınav değil) her # ile # günde bir rakip, sen davranmadan bir odadaki en değerli cesedi, varsa ordunun en çok dayandığı rolden (en çok hizmetkâr, sonra en çok seviye), alır: asla ilk odadan, asla bir patronu, asla # cesetten azı kalmışken. İlk hırsızlık, ilk meydan okumaları duyurulana dek bekler. Harcadığın hiçbir şey kaybolmaz",
 "Every # to # days the rival waits in the boss room of a gate you have cleared, warned the day before (a notice and a line on the Gates tab). Your first visit there that day meets them instead of its master. Missed, the day passes and they choose another":"Her # ile # günde bir rakip temizlediğin bir kapının patron odasında bekler; bir gün önce uyarılırsın (bir bildirim ve Kapılar sekmesinde bir satır). O gün oraya ilk girişinde efendisi yerine onlarla karşılaşırsın. Kaçırırsan gün geçer ve başka bir gün seçerler",
 "The rival is a reaper boss at your level +# or more, as strong as the hardest gate open to you, with Royal Decree (warned a turn ahead) and a second phase at half HP. # to # raised followers of kinds you have met in that gate stand with them. Every win makes them #% stronger and brings one more follower every two wins":"Rakip, senin seviyen +# ya da üstünde, sana açık en zor kapı kadar güçlü bir biçici patrondur; Kraliyet Fermanı (bir tur önce uyarılır) ve yarı canda ikinci bir evresi vardır. O kapıda karşılaştığın türlerden # ile # diriltilmiş takipçi yanında durur. Her galibiyetin onu %# güçlendirir ve her iki galibiyette bir takipçi ekler",
 "A legendary from your deepest open gate's table, gold like a boss x#, a borrowed page back, and the next challenge # days later than usual. The rival leaves no body":"En derin açık kapının tablosundan bir efsanevi, bir patronun x# katı altın, ödünç alınan sayfanın geri dönüşü ve her zamankinden # gün sonra gelen bir sonraki meydan okuma. Rakip ceset bırakmaz",
@@ -8464,8 +8495,9 @@ function bountyHTML(){
    +'<p class="q-note">Up to '+BOUNTY_N+' contracts; a new one goes up each dawn while there is room. They never expire. Claim finished ones in town.</p></section>';
 }
 function notesHTML(){
-  if(!S.notices.length) return '';
-  return '<div class="notes">'+S.notices.map(n=>'<div class="note '+n.c+'"><span>'+n.m+'</span></div>').join('')+'<div><button class="linkbtn" data-a="dismiss">Dismiss</button></div></div>';
+  const tip=!!currentTip(), ns=S.notices.filter(n=>!(tip&&n.c==='story'));   // a story note waits under a tip: one guidance box at a time
+  if(!ns.length) return '';
+  return '<div class="notes">'+ns.map(n=>'<div class="note '+n.c+'"><span>'+n.m+'</span></div>').join('')+'<div><button class="linkbtn" data-a="dismiss">Dismiss</button></div></div>';
 }
 function armorTag(a){   // foe armor with its rule spelled out (pierceMul): hover text plus the same words for screen readers
   const p=Math.round(a*100), t='Foes shrug off '+p+'% of every hit you and your minions land. Piercing skills such as Bone Spear ignore part of it';
@@ -9250,6 +9282,7 @@ function rivalCardHTML(){   // Records: the rival's page in the Ledger
   const next=rivalWarned()?'<b>'+(rivalToday()?'today':'in 1 day')+'</b> <span class="dim">&middot; '+DUNGEONS[g.gi].name+'</span>':'<span class="dim">unknown until you are warned</span>';
   return '<p class="group-h">The Rival</p><div class="rival-card">'+ico(RIVAL_KIND,topGate(),{boss:true,role:'reaper'})+'<div><h4 class="rival-name">'+g.name+'</h4><div class="u-sub">Met on day '+g.met+'</div></div></div>'
    +'<div class="items">'+row('Encounters','<b>'+g.enc+'</b>')+row('Your wins','<b>'+g.wins+'</b>')+row('Your losses','<b>'+g.losses+'</b>')+row('Bodies taken','<b>'+g.thefts+'</b>')
+   +row('Hunting',(w=>w?'<b>your '+ROLES[w].label.toLowerCase()+'s</b> <span class="dim">&middot; the kind your army leans on</span>':'<span class="dim">whatever lies freshest</span>')(rivalWant()))
    +row('Borrowed page',g.page>=0&&LORE_PAGES[g.page]?'<b>'+LORE_PAGES[g.page].t+'</b>':'<span class="dim">none</span>')+row('Next challenge',next)+'</div>'
    +'<p class="group-h">Bodies it holds</p>'+((g.stash||[]).length?'<div class="items">'+g.stash.map(b=>row(b.name,'<span class="dim">'+DUNGEONS[b.di].name+(b.cd&&CORPSE_CONDS[b.cd]?' &middot; '+CORPSE_CONDS[b.cd].name:'')+'</span>')).join('')+'</div>':'<p class="q-note">None. Bodies they steal stand with them at their next challenge.</p>');
 }
@@ -9288,7 +9321,7 @@ function trialResultHTML(r){   // the raise screen after a Trial's last room
 function cxRivalHTML(){
   const pct=v=>Math.round(v*100)+'%', g=S.rival||{};
   return cxP('Once you have cleared '+RIVAL_AT+' different gates, a rival necromancer opens a ledger of their own. Their name is written once and stays with the book, through New Game+.')
-   +cxList([cxRow('Theft','On a gate run (never the Tower, the Rift, a siege or a Trial), every '+RIVAL_THEFT[0]+' to '+RIVAL_THEFT[1]+' days the rival takes the most valuable body from a room before you act: never from the first room, never a boss, never when fewer than 2 bodies are left. The first theft waits until their first challenge has been announced. Nothing you spent is lost.'),
+   +cxList([cxRow('Theft','On a gate run (never the Tower, the Rift, a siege or a Trial), every '+RIVAL_THEFT[0]+' to '+RIVAL_THEFT[1]+' days the rival takes the most valuable body from a room before you act, of the role your army leans on most (the most minions, then the most levels) when there is one: never from the first room, never a boss, never when fewer than 2 bodies are left. The first theft waits until their first challenge has been announced. Nothing you spent is lost.'),
      cxRow('Challenge','Every '+RIVAL_GAP[0]+' to '+RIVAL_GAP[1]+' days the rival waits in the boss room of a gate you have cleared, warned the day before (a notice and a line on the Gates tab). Your first visit there that day meets them instead of its master. Missed, the day passes and they choose another.'),
      cxRow('The fight','The rival is a reaper boss at your level +'+RIVAL_LV+' or more, as strong as the hardest gate open to you, with '+BOSS_ABIL[RIVAL_ABIL].name+' (warned a turn ahead) and a second phase at half HP. '+RIVAL_FOLLOW[0]+' to '+RIVAL_FOLLOW[1]+' raised followers of kinds you have met in that gate stand with them. Every win makes them '+pct(RIVAL_STEP)+' stronger and brings one more follower every two wins.'),
      cxRow('Stolen bodies','They keep the last '+RIVAL_STASH+' bodies they took and raise them as their followers, those from that gate first, at their own level; an elite keeps its affixes and a body its condition. Stolen bodies drop no gear or trophies. Kill one and its body is yours to raise, with the condition it had; fall or flee and they keep it.'),
@@ -9947,7 +9980,7 @@ const ACTIONS={
   selltier:k=>{ const t=+k; if(ui.confirm!=='st'+t){ ui.confirm='st'+t; return; } ui.confirm=null; const r=sellTier(t); ui.msg=r&&r.n?{mk:1,m:'Sold '+r.n+' '+TIERS[t]+' piece'+(r.n>1?'s':'')+' for '+r.g+' gold.',c:'ok'}:null; },
   salvtier:k=>{ const t=+k; if(ui.confirm!=='sv'+t){ ui.confirm='sv'+t; return; } ui.confirm=null; const r=salvageTier(t); ui.msg=r&&r.n?{mk:1,m:'Salvaged '+r.n+' '+TIERS[t]+' piece'+(r.n>1?'s':'')+' into '+r.d+' bone dust.',c:'ok'}:null; },
   junk:()=>{ if(ui.confirm!=='junk'){ ui.confirm='junk'; return; } ui.confirm=null; const r=sellJunk(); ui.msg=r&&r.n?{mk:1,m:'Sold '+r.n+' piece'+(r.n>1?'s':'')+' of junk for '+r.g+' gold.',c:'ok'}:null; },
-  sellitem:k=>{ if(ui.confirm!=='si'+k){ ui.confirm='si'+k; return; } ui.confirm=null; const it=S.inv.find(x=>x.u===+k), nm=it&&ITEM[it.id].name, g=sellItem(+k); ui.msg=g?{mk:1,m:'Sold '+nm+' for '+g+' gold.',c:'ok'}:null; }, skreset:()=>{ if(ui.confirm==='skreset'){ ui.confirm=null; resetSkills(); } else ui.confirm='skreset'; }, claim:()=>claimQuest(), dismiss:()=>{S.notices=[]},
+  sellitem:k=>{ if(ui.confirm!=='si'+k){ ui.confirm='si'+k; return; } ui.confirm=null; const it=S.inv.find(x=>x.u===+k), nm=it&&ITEM[it.id].name, g=sellItem(+k); ui.msg=g?{mk:1,m:'Sold '+nm+' for '+g+' gold.',c:'ok'}:null; }, skreset:()=>{ if(ui.confirm==='skreset'){ ui.confirm=null; resetSkills(); } else ui.confirm='skreset'; }, claim:()=>claimQuest(), dismiss:()=>{ S.notices=currentTip()?S.notices.filter(n=>n.c==='story'):[]; },   /* story notes hidden under a tip were not seen yet */
   enter:k=>startRun(+k),
   pick:k=>{ const a=k.split('|'); ui.pick=(ui.pick&&ui.pick.uid===+a[0]&&ui.pick.slot===a[1])?null:{uid:+a[0],slot:a[1]}; },
   give:k=>{ const a=k.split('|'); giveGear(+a[0],+a[1]); ui.pick=null; },

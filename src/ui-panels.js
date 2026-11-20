@@ -234,8 +234,9 @@ function bountyHTML(){
    +'<p class="q-note">Up to '+BOUNTY_N+' contracts; a new one goes up each dawn while there is room. They never expire. Claim finished ones in town.</p></section>';
 }
 function notesHTML(){
-  if(!S.notices.length) return '';
-  return '<div class="notes">'+S.notices.map(n=>'<div class="note '+n.c+'"><span>'+n.m+'</span></div>').join('')+'<div><button class="linkbtn" data-a="dismiss">Dismiss</button></div></div>';
+  const tip=!!currentTip(), ns=S.notices.filter(n=>!(tip&&n.c==='story'));   // a story note waits under a tip: one guidance box at a time
+  if(!ns.length) return '';
+  return '<div class="notes">'+ns.map(n=>'<div class="note '+n.c+'"><span>'+n.m+'</span></div>').join('')+'<div><button class="linkbtn" data-a="dismiss">Dismiss</button></div></div>';
 }
 function armorTag(a){   // foe armor with its rule spelled out (pierceMul): hover text plus the same words for screen readers
   const p=Math.round(a*100), t='Foes shrug off '+p+'% of every hit you and your minions land. Piercing skills such as Bone Spear ignore part of it';

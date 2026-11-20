@@ -1,6 +1,6 @@
 // The rival's stolen bodies (src/game-rival-trials.js rivalTheft, rivalRoom, rivalReclaim, rivalFix; checkDeaths in src/game-runs.js).
 (function(){
-const {test,ok,eq,fix,fresh,setLvl,foe,arena,corpse,renderAll,cdx,invariants,canon}=window.LOTD_T;
+const {test,ok,eq,fix,fresh,setLvl,foe,arena,corpse,mkMinion,renderAll,cdx,invariants,canon}=window.LOTD_T;
 const meet=()=>{ setLvl(30); S.ti=S.ti||{}; S.ti.clr={0:1,1:1,2:1,3:1}; S.kills['Tunnel Rat']=5; rivalTick(); return S.rival; };
 const steal=(body,di)=>{ const g=S.rival; g.steal=S.day; arena([foe({hp:0,dead:true})],di||0); S.run.room=1; S.run.corpses=[body,corpse({lvl:1})]; fix(.99); roomWon(); return S.run; };
 const bossRoom=di=>{ S.mode='town'; S.run=null; S.watches=WATCHES; startRun(di); S.run.room=S.run.rooms-1; spawnRoom(); return S.run; };
@@ -51,4 +51,24 @@ test('Rival bodies: save repair, record page, Codex and Turkish',()=>{
     ok(trText(s)!==s&&!/raise them against/.test(trText(s)),'Turkish for: '+s);
   ok(trText(g.name+' was here before you: the body of Grim Hound is taken. It will raise them against you.').includes('Grim Hound'),'names stay English');
 });
+test('Rival bodies: a theft prefers the role your army leans on, and the Rival page names it',()=>{
+  fresh(); const g=meet(); const D=DUNGEONS[0].mobs, a=D[0], b=D.find(m=>m[1]!==a[1]);
+  S.army=[mkMinion({role:b[1]}),mkMinion({role:b[1]}),mkMinion({role:a[1]})]; eq(rivalWant(),b[1],'the most minions');
+  const big=corpse({base:a[0],name:'Big',role:a[1],elite:true,lvl:9}), mine=corpse({base:b[0],name:'Mine',role:b[1],lvl:2});
+  g.steal=S.day; arena([foe({hp:0,dead:true})],0); S.run.room=1; S.run.corpses=[big,mine]; rivalTheft(S.run);
+  ok(mine.result==='taken'&&big.result!=='taken','the leaned-on role over a richer body');
+  S.army=[]; eq(rivalWant(),null); S.army=[mkMinion({role:a[1],lvl:9}),mkMinion({role:b[1],lvl:2})]; eq(rivalWant(),a[1],'a tie goes to the most levels');
+  S.mode='town'; ui.tab='rec'; const h=renderAll('rival page'); ok(new RegExp('Hunting.*your '+a[1]+'s').test(h),'the Rival page says what they are after');
+  ok(/role your army leans on most/.test(cdx('rival')||rivalCardHTML()+cxRivalHTML()),'the Codex says so');
+});
+
+test('Rival bodies: the rival speaks into the Ledger after a theft, the dawn before, after a win and after a loss; Turkish keeps the name',()=>{
+  fresh(); const g=meet(); const said=k=>RIVAL_TAUNT[k].map(x=>g.name+': "'+x+'"');
+  const r=steal(corpse({name:'Taunted',lvl:9}),0); ok(r.events.some(e=>said('theft').includes(e.m)),'after a theft');
+  S.mode='town'; S.run=null; S.day=g.next-1; g.warned=0; g.gi=-1; S.notices=[]; rivalTick(); ok(S.notices.some(n=>said('warn').includes(n.m)),'the dawn before a challenge');
+  const run=challenge(); rivalBeaten(run.enemies[0],run); ok(run.log.some(l=>said('beaten').includes(l.m)),'after you beat them');
+  run.log=[]; rivalLost(run); ok(run.log.some(l=>said('won').includes(l.m)),'after they beat you');
+  for(const k in RIVAL_TAUNT){ ok(RIVAL_TAUNT[k].length>=3,k+' pool'); for(const x of RIVAL_TAUNT[k]){ const t=trText(g.name+': "'+x+'"'); ok(t!==g.name+': "'+x+'"'&&t.startsWith(g.name+': "'),'Turkish: '+x); } }
+});
+
 })();

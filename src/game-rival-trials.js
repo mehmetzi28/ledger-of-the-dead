@@ -16,6 +16,16 @@ const RIVAL_STASH=6;                    // stolen bodies the rival keeps (the ol
 const RIVAL_FINE=.1;                    // a loss with no page to take: 10% of the gold you carry, at most one clear's worth
 const RIVAL_LINES={hi:'So you are the one the Ledger chose. I wrote my name in a book too. Mine remembers me.',bye:'Keep it, then. For now. I will find a page you cannot hold.',
   phase:'Enough courtesy. Let me show you what my book has kept.',win:'A page for my book. Come and take it back, if you can.'};
+const RIVAL_TAUNT={   // what they say into the Ledger: after a theft, the dawn before a challenge, when you beat them, when they beat you
+  theft:['Your dead were never yours. They only waited for a firmer hand.','I took the one you would have chosen. You choose so predictably.','Count your bodies, scribe. Then count mine.','A good body. It will know your face when it rises for me.'],
+  warn:['Tomorrow, then. Bring the dead you still have.','I have set a place for you. Do not keep me waiting.','Come and see what your stolen dead have learned.'],
+  beaten:['You bleed ink like the rest of us. I will remember where.','A win. Write it small. The book has many pages left.','I am not finished. Neither is my ledger.'],
+  won:[RIVAL_LINES.win,'Get up. I want you whole when I come for the rest.','Your dead looked at me before they looked at you. Remember that.']};
+const rivalTaunt=(k,salt)=>{ const L=RIVAL_TAUNT[k]; return rv().name+': "'+L[dayHash(S.day,salt,rv().enc,k.length,41)%L.length]+'"'; };   // a day hash, not Math.random: the bots' dice stay where they were
+function rivalWant(){   // the role your army leans on: the most minions, then the most levels between them; null with no army
+  const n={}; for(const m of S.army||[]) if(ROLES[m.role]) n[m.role]=(n[m.role]||0)+1000+(m.lvl||0);
+  let best=null; for(const k in n) if(!best||n[k]>n[best]) best=k; return best;
+}
 const rivalDef=()=>({name:'',met:0,enc:0,wins:0,losses:0,thefts:0,page:-1,step:0,next:0,gi:-1,warned:0,done:0,steal:0,stash:[]});
 const rv=()=>{ if(!S.rival) S.rival=rivalDef(); return S.rival; };
 const distinctClears=()=>Object.keys((S.ti&&S.ti.clr)||{}).filter(k=>S.ti.clr[k]).length;
@@ -36,7 +46,7 @@ function rivalTick(){   // dawn, load and every clear: the theft and challenge s
   if(!g.next||g.next<S.day||(g.done&&g.done>=g.next)){ g.next=S.day+rivalGap(1); g.gi=-1; g.warned=0; }   // first schedule, or a challenge missed or fought
   if(!g.steal) g.steal=Math.max(S.day+theftGap(),g.next-1);   // the first theft waits for the first challenge's warning: they show their face before they steal
   if(S.day>=g.next-1&&g.gi<0){ const gs=rivalGates(); if(gs.length) g.gi=gs[dayHash(g.next,S.ngp||0,g.enc,7)%gs.length]; }
-  if(S.day===g.next-1&&g.gi>=0&&g.warned!==S.day){ g.warned=S.day; tally('rivalWarned'); notify(g.name+' will wait for you in the boss room of the '+DUNGEONS[g.gi].name+' tomorrow. Your first visit there will meet them instead of its master.','bad'); }
+  if(S.day===g.next-1&&g.gi>=0&&g.warned!==S.day){ g.warned=S.day; tally('rivalWarned'); notify(rivalTaunt('warn',g.next),'bad'); notify(g.name+' will wait for you in the boss room of the '+DUNGEONS[g.gi].name+' tomorrow. Your first visit there will meet them instead of its master.','bad'); }
 }
 const rivalToday=()=>!!S&&rivalOpen()&&!!rv().name&&rv().next===S.day&&rv().gi>=0&&rv().done!==S.day&&!!(S.ti&&S.ti.clr&&S.ti.clr[rv().gi]);
 const rivalWarned=()=>rivalToday()||(!!S&&rivalOpen()&&!!rv().name&&rv().gi>=0&&S.day===rv().next-1);
@@ -70,7 +80,7 @@ function rivalBeaten(e,r){   // the rival falls: a legendary, the gold (in killL
   { const id=rivalLegend(), it=addItem(id,rollItem(id,true)); if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name); }   // in the bag at once: kept even if their followers win the room
   if(g.page>=0){ const P0=LORE_PAGES[g.page]; r.rivalPage=g.page; g.page=-1; log(g.name+' drops the page they took: "'+(P0?P0.t:'')+'". It is yours again.','ok'); }
   g.next=S.day+rivalGap(2)+RIVAL_PUSH; g.gi=-1; g.warned=0;
-  moment(g.name+' retreats','gold'); log(g.name+' retreats into the dark, and the Ledger writes the win in red.','story');
+  moment(g.name+' retreats','gold'); log(g.name+' retreats into the dark, and the Ledger writes the win in red.','story'); log(rivalTaunt('beaten',g.wins),'boss');
 }
 function rivalLost(r){   // you fell or fled with the rival standing: a page is borrowed (never deleted), or a little gold
   const g=rv(), di=r.di; g.losses++; g.enc++; tally('rivalLosses');
@@ -78,17 +88,17 @@ function rivalLost(r){   // you fell or fled with the rival standing: a page is 
   let m;
   if((S.pages||0)>0&&g.page<0){ g.page=dayHash(S.day,g.losses,S.pages,9)%S.pages; m=g.name+' takes a torn page from your Ledger: "'+LORE_PAGES[g.page].t+'". Beat them to get it back.'; }
   else { const f=Math.min(Math.round(S.gold*RIVAL_FINE),clearGold(di)); S.gold=Math.max(0,S.gold-f); m=g.name+' takes '+f+' gold from your purse.'; }
-  log(g.name+': "'+RIVAL_LINES.win+'"','boss'); notify(m,'bad'); r.rivalLost=true;
+  log(rivalTaunt('won',g.losses),'boss'); notify(m,'bad'); r.rivalLost=true;
 }
 const rivalStanding=r=>!!(r&&r.rival&&r.enemies.some(e=>e.rival&&e.hp>0));
-function rivalTheft(r){   // on a gate run, before you act on a room's bodies: the most valuable one, never a boss, never from fewer than two
+function rivalTheft(r){   // on a gate run, before you act on a room's bodies: the most valuable one of the role your army leans on (else any), never a boss, never from fewer than two
   if(!rivalOpen()||!r||r.tw||r.rift||r.siege||r.trial||r.room===0) return null; const g=rv(); if(!g.name||!g.met||!g.steal||S.day<g.steal) return null;
   const open=r.corpses.filter(c=>!c.tried); if(open.length<2) return null;
-  const c=open.filter(x=>!x.boss).sort((a,b)=>bodyValue(b)-bodyValue(a))[0]; if(!c) return null;
+  const w=rivalWant(), c=open.filter(x=>!x.boss).sort((a,b)=>(b.role===w)-(a.role===w)||bodyValue(b)-bodyValue(a))[0]; if(!c) return null;
   c.tried=true; c.result='taken'; c.taken=g.name; g.thefts++; tally('rivalThefts'); g.steal=S.day+theftGap();
   const b={base:c.base,name:c.name,role:c.role,rankI:c.rankI,hf:c.hf,af:c.af,elite:!!c.elite,di:r.di,day:S.day}; if(c.aff&&c.aff.length) b.aff=c.aff.slice(); if(c.cd) b.cd=c.cd;
   g.stash.push(b); g.stash=g.stash.slice(-RIVAL_STASH);
-  r.events.push({m:g.name+' was here before you: the body of '+c.name+' is taken. It will raise them against you.',c:'bad'}); return c;
+  r.events.push({m:g.name+' was here before you: the body of '+c.name+' is taken. It will raise them against you.',c:'bad'},{m:rivalTaunt('theft',g.thefts),c:'bad'}); return c;
 }
 function rivalReclaim(e,c){   // checkDeaths: a stolen body falls back into your hands with the condition it was stolen with
   if(c.cd) delete c.cd; if(e.scd) c.cd=e.scd;
