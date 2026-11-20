@@ -16,6 +16,12 @@ test('Safety: an unchanged game is not written again, but a cleared save is writ
   ok(a);
 });
 
+test('Safety: a pasted save code cannot put markup into the page (notices, memorial names)',()=>{
+  const g=JSON.parse(JSON.stringify(S)); g.notices=[{m:'<img src=x onerror=alert(1)>',c:'x" onclick='}];
+  g.memorial=[{nick:'Bob',name:'<svg onload=alert(2)>',kind:'Rat',rk:0,lvl:1,st:0,tr:[],role:'striker',day:1}];
+  ok(importCode('LOTD1:'+btoa(unescape(encodeURIComponent(JSON.stringify(g))))),'imports'); eq(S.notices[0].c,'info');
+  ok(!/<img/.test(notesHTML()),'notices'); ok(!/<svg onload/.test(memorialHTML()),'memorial');
+});
 test('Unique sets: six trios of one weapon, armor and relic; every unique belongs to exactly one',()=>{
   eq(USET.length,6); const all=Object.values(ITEM).filter(d=>d.uq).map(d=>d.id), used=USET.flatMap(u=>u.ids);
   eq(new Set(used).size,used.length,'no unique in two sets'); eq(used.slice().sort().join(),all.slice().sort().join(),'every unique is in a set');

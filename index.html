@@ -1470,6 +1470,7 @@ function normalizeSave(src){
   const sm=obj(P.skMod)?P.skMod:{}; P.skMod={}; for(const k in sm) if(SKILL_MODS[k]&&(sm[k]==='a'||sm[k]==='b')&&P.skills[k]>=SK_MAX) P.skMod[k]=sm[k];
   g.day=Math.max(1,num(g.day,1)); g.watches=clamp(num(g.watches,WATCHES),0,WATCHES); g.runs=num(g.runs,0);
   for(const k of ['notices','inv','army']) if(!Array.isArray(g[k])) g[k]=[];
+  g.notices=g.notices.filter(n=>obj(n)&&typeof n.m==='string').slice(0,6).map(n=>({m:n.m.replace(/[<>]/g,''),c:/^\w+$/.test(n.c)?n.c:'info'}));   // a pasted save code is untrusted: notices go into the page as HTML
   for(const k of ['kills','tower','equip','quest']) if(!obj(g[k])) g[k]=d[k];
   g.quest=Object.assign({},d.quest,g.quest); if('raises' in g.quest){ delete g.quest.raises; }   // the old "raise the dead" goal became "clear rooms"
   g.tower={best:num(g.tower.best,0),got:obj(g.tower.got)?g.tower.got:{}};
@@ -1480,7 +1481,7 @@ function normalizeSave(src){
   RA.forEach((x,i)=>x.units.forEach(m=>{ if(obj(m)){ m._raid=i; g.army.push(m); } }));
   for(const k of ['reserve','waiting']) (Array.isArray(g[k])?g[k]:[]).forEach(m=>{ if(obj(m)){ m._raid=k; g.army.push(m); } });   // the Reserve and minions waiting at the gate: repaired the same way, never trimmed
   g.army=g.army.filter(m=>m&&typeof m==='object'&&!m.thrall&&ROLES[m.role]&&typeof m.lvl==='number'&&(m.tw||RK[m.rankI]));
-  for(const m of g.army){ m.hf=num(m.hf,1); m.af=num(m.af,1); m.xp=num(m.xp,0); m.hp=num(m.hp,1); m.nick=cleanNick(m.nick)||'Nameless'; if('fused' in m) m.fused=clamp(Math.floor(num(+m.fused,0)),0,FUSE_MAX); m.kind=m.kind||m.name; if(m.row!=='f'&&m.row!=='b') delete m.row;
+  for(const m of g.army){ m.hf=num(m.hf,1); m.af=num(m.af,1); m.xp=num(m.xp,0); m.hp=num(m.hp,1); m.nick=cleanNick(m.nick)||'Nameless'; m.name=cleanText(m.name); m.kind=cleanText(m.kind); if('fused' in m) m.fused=clamp(Math.floor(num(+m.fused,0)),0,FUSE_MAX); m.kind=m.kind||m.name; if(m.row!=='f'&&m.row!=='b') delete m.row;
     m.traits=Array.isArray(m.traits)?m.traits.filter(t=>TRAITS[t]&&(t!=='commander'||canLead(m))):[]; m.stage=clamp(Math.floor(num(m.stage,0)),0,STAGE_MAX); m.lvl0=num(m.lvl0,m.lvl); if(m.cd&&!CORPSE_CONDS[m.cd]) delete m.cd; normMarks(m);   // minions from before traits keep no trait; cd: how its body died
     if(m.armed){ m.eq=obj(m.eq)?m.eq:{}; for(const sl of GEAR_SLOTS) if(!okItem(m.eq[sl])) m.eq[sl]=null; } }
   let top=num(g.uid,0);   // next id must stay above every id in use, or two items/minions would share one
@@ -1507,7 +1508,7 @@ function normalizeSave(src){
     if(!Array.isArray(it.ro)||!it.ro.length||ITEM[it.id].uq) delete it.ro; if(it.lk!==true) delete it.lk;
     if('tp' in it){ const t=Math.floor(num(+it.tp,0)); if(t>0&&!ITEM[it.id].uq) it.tp=Math.min(t,99); else delete it.tp; } };   // tp: times tempered
   g.inv.concat(Object.values(g.equip),...g.army.concat(g.reserve,g.waiting,...g.raids.map(x=>x.units)).map(m=>m.eq?Object.values(m.eq):[]),g.shop?g.shop.stock:[]).forEach(fixRo);
-  delete P.dots; delete P.st; g.army.forEach(m=>{ delete m.dots; delete m.st; });   // status effects only live inside a fight
+  delete P.dots; delete P.st; delete P.debuff; g.army.forEach(m=>{ delete m.dots; delete m.st; });   // status effects only live inside a fight
   g.mod=(obj(g.mod)&&typeof g.mod.day==='number'&&typeof g.mod.gi==='number'&&(g.mod.gi<0||(MODS[g.mod.id]&&RK[g.mod.gi])))?{day:g.mod.day,gi:g.mod.gi,id:g.mod.gi<0?null:g.mod.id}:null;
   const so=obj(g.story)?g.story:{}; g.story={}; for(const k in so) if(STORY_BY[k]&&typeof so[k]==='number') g.story[k]=so[k];
   g.hist=Array.isArray(g.hist)?g.hist.filter(h=>obj(h)&&typeof h.d==='number'&&typeof h.res==='string').slice(-HIST_N):[];
@@ -1817,7 +1818,7 @@ function endDay(){   // nightfall: tonight's raids march, then a siege if one is
   closeDay();
 }
 function closeDay(){
-  const P=S.player; delete P.debuff;   /* saves from before: the old dawn penalty's HP cut */
+  const P=S.player;
   if(!S.quest.claimed&&questDone()) claimQuest();   // an unfinished quest simply lapses
   const hon=remembered(); S.day++; S.watches=WATCHES-pactWatch(); if(hon) syncArmy();   /* the Remembered buff ends at dawn */
   S.quest={kills:0,rooms:0,clears:0,claimed:false};
@@ -3122,7 +3123,7 @@ const recV=k=>(S&&S.rec&&S.rec[k]&&S.rec[k].v)||0;
 function towerSplit(r){ r.twT=r.twT||[0]; r.twT.push(r.tt||0); const n=r.twT.length; if(n>TW_SPLIT) recLow('tw10',Math.max(1,r.twT[n-1]-r.twT[n-1-TW_SPLIT])); }   // turns over the last ten floors of this climb
 function riftFast(r){ const m=Math.floor(r.rift/RIFT_BAND)*RIFT_BAND; if(!(m>=RIFT_BAND)||!(r.tt>0)) return; S.rec=S.rec||{}; const F=S.rec.riftF=S.rec.riftF||{}, o=F[m]; if(!o||r.tt<o.t){ F[m]={t:r.tt,day:S.day,d:r.rift}; if(o) moment('New record: Rift depth '+m+'+ in '+r.tt+' turns','gold'); } }
 const riftFastBest=min=>{ const F=(S&&S.rec&&S.rec.riftF)||{}; let b=Infinity; for(const m in F) if(+m>=min&&F[m].t<b) b=F[m].t; return b; };   // fewest turns for a dive of depth min or deeper
-function recArmy(){ if(!S||!S.army) return; let lv=0; for(const m of S.army.concat(S.reserve||[])) if(m&&!m.thrall&&m.lvl>lv) lv=m.lvl; recBest('mlv',lv,true); recBest('held',S.gold,true); }   // quiet: checked on every render
+function recArmy(){ if(!S||!S.army) return; let lv=0; for(const m of S.army.concat(S.reserve||[])) if(m&&!m.thrall&&m.lvl>lv) lv=m.lvl; recBest('mlv',lv,true); recBest('held',S.gold,true); }   // quiet: checked after every action (checkTitles)
 function recRun(r,res){   // at the end of every run
   if(!r) return; recBest('kills',r.kills||0); recBest('gold',r.goldTot||0);
   if(res==null) res=runResult(r); if(res!=='fell') recBest('taken',r.dt||0); recBest('streak',(S.life&&S.life.stk)||0);
@@ -3685,7 +3686,7 @@ function honour(i){
 }
 function memorialFix(g){   // normalizeSave: keep well-formed entries only
   const num=(v,d)=>typeof v==='number'&&isFinite(v)?v:d, ok=e=>e&&typeof e==='object'&&typeof e.nick==='string'&&typeof e.name==='string';
-  g.memorial=Array.isArray(g.memorial)?g.memorial.filter(ok).slice(0,MEM_MAX).map(e=>{ const o={nick:cleanNick(e.nick)||'Nameless',kind:typeof e.kind==='string'?e.kind:e.name,name:e.name,rk:clamp(Math.floor(num(e.rk,0)),0,RANKS.length-1),
+  g.memorial=Array.isArray(g.memorial)?g.memorial.filter(ok).slice(0,MEM_MAX).map(e=>{ const o={nick:cleanNick(e.nick)||'Nameless',kind:cleanText(typeof e.kind==='string'?e.kind:e.name),name:cleanText(e.name),rk:clamp(Math.floor(num(e.rk,0)),0,RANKS.length-1),
     lvl:Math.max(1,Math.floor(num(e.lvl,1))),st:clamp(Math.floor(num(e.st,0)),0,STAGE_MAX),tr:Array.isArray(e.tr)?e.tr.filter(t=>TRAITS[t]):[],role:ROLES[e.role]?e.role:'striker',day:Math.max(1,Math.floor(num(e.day,1)))};
     if(e.boss) o.boss=1; if(e.elite) o.elite=1; for(const k of ['g','raid']) if(RK[e[k]]) o[k]=e[k]; for(const k of ['f','rd']) if(num(e[k],0)>0) o[k]=Math.floor(e[k]); if(typeof e.bd==='string'&&cleanNick(e.bd)) o.bd=cleanNick(e.bd); if(e.maus) o.maus=1; return o; }):[];
   g.honor=g.honor&&typeof g.honor==='object'&&typeof g.honor.day==='number'?{day:g.honor.day,nick:cleanNick(g.honor.nick)||'Nameless'}:null;
@@ -3839,6 +3840,7 @@ function fuse(ua,ub){
 function lockItem(u){ const it=findItem(u); if(!it) return false; if(it.lk) delete it.lk; else it.lk=true; return true; }
 const NICK_MAX=16;
 const cleanNick=t=>String(t==null?'':t).replace(/[^\p{L}\p{N} '\-]/gu,'').replace(/\s+/g,' ').trim().slice(0,NICK_MAX);   // letters, digits, spaces, ' and - only: names go straight into the page
+const cleanText=t=>String(t==null?'':t).replace(/[<>&"]/g,'');   // names from a save (or a pasted save code) go into the page: no markup
 function renameMinion(uid,name){ const m=findMinion(uid), n=cleanNick(name); if(!m||!n||S.mode==='battle') return false; m.nick=n; return true; }
 const ARMY_SORTS={power:'Strongest',role:'By role',level:'By level'};
 const mPower=m=>m.atk*2+m.maxHp/4;
@@ -8229,7 +8231,7 @@ function statusHTML(){
   const rows=[['strength','Strength','Strike damage, crit chance, armor piercing, minion attack'],['constitution','Constitution','Max HP, damage taken, healing received'],['intelligence','Intelligence','Mana, Siphon, Ward, skill damage, minion attack'],['will','Will','Mana, army slots, raise odds, minion bond']];
   const canAlloc=P.pts>0&&S.mode!=='battle';
   return '<section class="win" aria-labelledby="h-status"><h2 class="win-h" id="h-status">Status</h2>'
-   +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(faithOf()?'<div class="faith-l '+faithOf()+'">'+FAITH[faithOf()].name+'</div>':'')+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+(P.debuff?' &middot; <span class="bad">Wounded dawn</span>':'')+'</div></div></div>'
+   +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(faithOf()?'<div class="faith-l '+faithOf()+'">'+FAITH[faithOf()].name+'</div>':'')+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+'</div></div></div>'
    +meter('HP',P.hp,pMax(),'hp')+meter('Mana',P.mana,pMana(),'mp')+meter('XP',P.xp,need(P.lvl),'xp')
    +((P.pts>0||P.sp>0)?'<div class="chips">'+(P.pts>0?'<span class="chip">'+P.pts+' unspent point'+(P.pts>1?'s':'')+'</span>':'')+(P.sp>0?'<span class="chip">'+P.sp+' skill point'+(P.sp>1?'s':'')+'</span>':'')+'</div>':'')
    +(remembered()?'<div class="chips"><span class="chip mem-buff" title="Honoured a fallen minion today">Remembered: +'+Math.round(MEM_HP*100)+'% minion max HP until dawn</span></div>':'')

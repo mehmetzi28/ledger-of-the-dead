@@ -390,7 +390,7 @@ const recV=k=>(S&&S.rec&&S.rec[k]&&S.rec[k].v)||0;
 function towerSplit(r){ r.twT=r.twT||[0]; r.twT.push(r.tt||0); const n=r.twT.length; if(n>TW_SPLIT) recLow('tw10',Math.max(1,r.twT[n-1]-r.twT[n-1-TW_SPLIT])); }   // turns over the last ten floors of this climb
 function riftFast(r){ const m=Math.floor(r.rift/RIFT_BAND)*RIFT_BAND; if(!(m>=RIFT_BAND)||!(r.tt>0)) return; S.rec=S.rec||{}; const F=S.rec.riftF=S.rec.riftF||{}, o=F[m]; if(!o||r.tt<o.t){ F[m]={t:r.tt,day:S.day,d:r.rift}; if(o) moment('New record: Rift depth '+m+'+ in '+r.tt+' turns','gold'); } }
 const riftFastBest=min=>{ const F=(S&&S.rec&&S.rec.riftF)||{}; let b=Infinity; for(const m in F) if(+m>=min&&F[m].t<b) b=F[m].t; return b; };   // fewest turns for a dive of depth min or deeper
-function recArmy(){ if(!S||!S.army) return; let lv=0; for(const m of S.army.concat(S.reserve||[])) if(m&&!m.thrall&&m.lvl>lv) lv=m.lvl; recBest('mlv',lv,true); recBest('held',S.gold,true); }   // quiet: checked on every render
+function recArmy(){ if(!S||!S.army) return; let lv=0; for(const m of S.army.concat(S.reserve||[])) if(m&&!m.thrall&&m.lvl>lv) lv=m.lvl; recBest('mlv',lv,true); recBest('held',S.gold,true); }   // quiet: checked after every action (checkTitles)
 function recRun(r,res){   // at the end of every run
   if(!r) return; recBest('kills',r.kills||0); recBest('gold',r.goldTot||0);
   if(res==null) res=runResult(r); if(res!=='fell') recBest('taken',r.dt||0); recBest('streak',(S.life&&S.life.stk)||0);

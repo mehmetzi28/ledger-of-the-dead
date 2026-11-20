@@ -4,7 +4,7 @@ const {test,ok,eq,near,finite,fmt,BAD_TEXT,cleanHTML,mulberry32,seed,fix,seq,H,f
 test('Days: ending a day with the quest undone costs nothing, cleared gates or not',()=>{
   const P=S.player; S.ti={clr:{0:1}}; P.xp=40; endDay(); eq(S.day,2); eq(S.watches,WATCHES); eq(P.xp,40); ok(!P.debuff); eq(P.hp,pMax()); eq(pMax(),48);
 });
-test('Days: an old saved dawn debuff is dropped at the next dawn',()=>{ S.player.debuff=true; endDay(); ok(!('debuff' in S.player)); });
+test('Days: an old saved dawn debuff is dropped on load',()=>{ const g=JSON.parse(JSON.stringify(S)); g.player.debuff=true; ok(!('debuff' in normalizeSave(g).player)); });
 test('Days: a finished quest is claimed once for 1 point and 15% of a level',()=>{
   const P=S.player; S.quest={kills:8,rooms:4,clears:1,claimed:false}; ok(questDone());
   eq(QUEST_PTS,1); eq(QUEST_XP,.15); claimQuest(); eq(P.pts,3+QUEST_PTS); eq(P.xp,Math.round(need(1)*QUEST_XP)); eq(S.ti.claims,1); ok(S.quest.claimed); ok(/\+1 stat point and/.test(S.notices[0].m));

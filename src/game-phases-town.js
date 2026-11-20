@@ -146,7 +146,7 @@ function honour(i){
 }
 function memorialFix(g){   // normalizeSave: keep well-formed entries only
   const num=(v,d)=>typeof v==='number'&&isFinite(v)?v:d, ok=e=>e&&typeof e==='object'&&typeof e.nick==='string'&&typeof e.name==='string';
-  g.memorial=Array.isArray(g.memorial)?g.memorial.filter(ok).slice(0,MEM_MAX).map(e=>{ const o={nick:cleanNick(e.nick)||'Nameless',kind:typeof e.kind==='string'?e.kind:e.name,name:e.name,rk:clamp(Math.floor(num(e.rk,0)),0,RANKS.length-1),
+  g.memorial=Array.isArray(g.memorial)?g.memorial.filter(ok).slice(0,MEM_MAX).map(e=>{ const o={nick:cleanNick(e.nick)||'Nameless',kind:cleanText(typeof e.kind==='string'?e.kind:e.name),name:cleanText(e.name),rk:clamp(Math.floor(num(e.rk,0)),0,RANKS.length-1),
     lvl:Math.max(1,Math.floor(num(e.lvl,1))),st:clamp(Math.floor(num(e.st,0)),0,STAGE_MAX),tr:Array.isArray(e.tr)?e.tr.filter(t=>TRAITS[t]):[],role:ROLES[e.role]?e.role:'striker',day:Math.max(1,Math.floor(num(e.day,1)))};
     if(e.boss) o.boss=1; if(e.elite) o.elite=1; for(const k of ['g','raid']) if(RK[e[k]]) o[k]=e[k]; for(const k of ['f','rd']) if(num(e[k],0)>0) o[k]=Math.floor(e[k]); if(typeof e.bd==='string'&&cleanNick(e.bd)) o.bd=cleanNick(e.bd); if(e.maus) o.maus=1; return o; }):[];
   g.honor=g.honor&&typeof g.honor==='object'&&typeof g.honor.day==='number'?{day:g.honor.day,nick:cleanNick(g.honor.nick)||'Nameless'}:null;
@@ -300,6 +300,7 @@ function fuse(ua,ub){
 function lockItem(u){ const it=findItem(u); if(!it) return false; if(it.lk) delete it.lk; else it.lk=true; return true; }
 const NICK_MAX=16;
 const cleanNick=t=>String(t==null?'':t).replace(/[^\p{L}\p{N} '\-]/gu,'').replace(/\s+/g,' ').trim().slice(0,NICK_MAX);   // letters, digits, spaces, ' and - only: names go straight into the page
+const cleanText=t=>String(t==null?'':t).replace(/[<>&"]/g,'');   // names from a save (or a pasted save code) go into the page: no markup
 function renameMinion(uid,name){ const m=findMinion(uid), n=cleanNick(name); if(!m||!n||S.mode==='battle') return false; m.nick=n; return true; }
 const ARMY_SORTS={power:'Strongest',role:'By role',level:'By level'};
 const mPower=m=>m.atk*2+m.maxHp/4;
