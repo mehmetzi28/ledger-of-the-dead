@@ -5,16 +5,16 @@ const {test,ok,eq,fix,fresh,setLvl,foe,arena,mkMinion,renderAll,bossFight,cdx,NO
 const doomed=()=>{ const P=S.player; P.hp=1; P.shield=0; };
 
 test('Defeat recap: a foe blow names the attacker, and lists Taunt (vanguard standing) and Bone Ward (no ward)',()=>{
-  fresh(); const a=foe({name:'Grim Biter',hp:1e6,atk:50,role:'striker'}); arena([a]); mkMinion({role:'vanguard'}); fix(.99); doomed(); a.it={k:'atk',t:'p'};
+  fresh(); const a=foe({name:'Grim Biter',hp:1e6,atk:50,role:'striker'}); arena([a]); mkMinion({role:'vanguard'}); fix(.99); doomed(); a.it={k:'atk',t:'p'}; S.run.sb=S.run.room;   /* the Shield-bearer already spent */
   act('strike'); eq(S.mode,'defeat'); const b=S.run.felled; ok(b,'the blow is kept');
-  eq(b.n,'Grim Biter'); eq(b.k,'hit'); eq(String(b.c),'taunt,ward','only answers that apply: '+JSON.stringify(b));
-  const h=renderAll('defeat recap'); ok(h.includes('Felled by Grim Biter\'s blow.')&&h.includes('Taunt was not used. Bone Ward was down.'),'shown on the defeat screen');
+  eq(b.n,'Grim Biter'); eq(b.k,'hit'); eq(String(b.c),'taunt,ward,sbspent','only answers that apply: '+JSON.stringify(b));
+  const h=renderAll('defeat recap'); ok(h.includes('Felled by Grim Biter\'s blow.')&&h.includes('Taunt was not used. Bone Ward was down. Your Shield-bearer had already taken a blow this room.'),'shown on the defeat screen');
 });
 test('Defeat recap: Taunt in force or already given, a ward up, or no vanguard: none of them are listed',()=>{
   const run=prep=>{ fresh(); const a=foe({name:'Grim Biter',hp:1e6,atk:500,role:'striker'}); arena([a]); fix(.99); doomed(); a.it={k:'atk',t:'p'}; prep(a); act('strike'); return S.run.felled; };
   ok(!(run(()=>{}).c||[]).includes('taunt'),'no vanguard: no Taunt');
   const v=run(()=>{ mkMinion({role:'vanguard'}).hp=0; }); ok(!(v.c||[]).includes('taunt'),'a downed vanguard cannot take a Taunt');
-  const g=run(()=>{ mkMinion({role:'vanguard'}); S.run.cmd={vanguard:true}; }); ok(!(g.c||[]).includes('taunt'),'Taunt already given this room');
+  const g=run(()=>{ mkMinion({role:'vanguard'}); S.run.cmd={vanguard:true}; S.run.sb=S.run.room; }); ok(!(g.c||[]).includes('taunt'),'Taunt already given this room');
   const w=run(()=>{ S.player.shield=1; }); ok(!(w.c||[]).includes('ward'),'a ward was up');
   fresh(); const a=foe({hp:1e6,atk:5,role:'striker'}); arena([a]); S.player.skills.chill=1; fix(.99); doomed(); a.it={k:'atk',t:'p'}; act('strike'); ok(S.run.felled.c.includes('chill'),'Grave Chill learned and ready');
   fresh(); const c=foe({hp:1e6,atk:5,role:'striker'}); arena([c]); S.player.skills.chill=1; S.run.cd={chill:3}; fix(.99); doomed(); c.it={k:'atk',t:'p'}; act('strike'); ok(!S.run.felled.c.includes('chill'),'on cooldown: not listed');
@@ -74,5 +74,9 @@ test('Retry: R on the defeat screen, the shortcut sheet, the Codex and Turkish',
 test('Retry: a Stitched minion may rise again and a Warden ward from the fall is gone',()=>{
   fresh(10); arena([foe({hp:1e6,atk:30,role:'striker'})]); const m=mkMinion({role:'vanguard',traits:['stitched']}); snapRoom();
   m.sx=1; m.mw=50; S.player.hp=0; defeat(); ok(retryRoom()); ok(!m.sx,'Stitched unused, as the room began'); ok(!m.mw,'no leftover ward');
+});
+test('Retry: Grace and armor revives spent in the fall stay spent, like potions',()=>{
+  fresh(10); arena([foe({hp:1e6,atk:30,role:'striker'})]); snapRoom(); S.run.grace=true; S.run.revives=1; S.player.hp=0; defeat(); ok(retryRoom());
+  eq(S.run.grace,true,'Grace not given back'); eq(S.run.revives,1,'armor revive not given back');
 });
 })();

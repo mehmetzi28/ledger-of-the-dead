@@ -45,6 +45,10 @@ test('Status: Hasted units strike again for half at the end of the turn, on both
   const e=foe({hp:1e6,atk:50}); arena([e]); S.army=[]; S.player.stats.constitution=300; S.player.hp=pMax(); addSt(e,'hasted',3); act('strike'); ok(S.run.log.some(l=>/is hasted and strikes you again/.test(l.m)));
   e.stun=1; S.run.log=[]; act('strike'); ok(!S.run.log.some(l=>/hasted/.test(l.m)),'a frozen foe does not follow up');
 });
+test('Status: a Hasted strike carries Unholy Frenzy, like a normal minion hit',()=>{
+  const t=foe({hp:1e6,atk:1}); arena([t]); const m=mkMinion({}); m.atk=200; fix(.5); const blow=()=>{ addSt(m,'hasted',2); const h=t.hp; hasteStrikes(); return h-t.hp; };
+  const d0=blow(); S.run.frenzy=2; S.run.frenzyMul=1.5; const d1=blow(); ok(d0>0); near(d1/d0,1.5,.02);
+});
 test('Status: sources: vanguards and Crushing sunder, Necrotic blights, Hexing hexes, Swift hastes, Frenzy 3 hastes, Curse 3 hexes',()=>{
   const t=foe({hp:1e6}); arena([t]); const v=mkMinion({role:'vanguard'}); v.atk=50; fix(.05); act('strike'); ok(hasSt(t,'sundered'),'a vanguard hit 1 in 10');
   S.army=[]; delete t.st; const n=mkMinion({traits:['necrotic','hexing']}); n.atk=100; fix(.2); act('strike'); ok(t.dots&&t.dots.blight); ok(hasSt(t,'hexed'));

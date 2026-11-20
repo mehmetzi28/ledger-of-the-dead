@@ -435,7 +435,7 @@ function spoilsHTML(){
   return h;
 }
 const FELL_DOT={bleed:'bleeding',burn:'burns',poison:'poison',blight:'blight'};
-const FELL_C={taunt:'Taunt was not used.',ward:'Bone Ward was down.',chill:'Grave Chill was ready but not used.',focus:'Focus was not used to break it.'};
+const FELL_C={taunt:'Taunt was not used.',ward:'Bone Ward was down.',chill:'Grave Chill was ready but not used.',focus:'Focus was not used to break it.',sbspent:'Your Shield-bearer had already taken a blow this room.',sbrow:'No vanguard stood in the front row to take the blow for you.'};
 function felledHTML(b){   // the defeat recap: the blow that felled you and the answers you had for it (game-runs.js blowNote)
   if(!b||!b.k) return ''; const A=b.mv&&BOSS_ABIL[b.mv];
   const l1=b.k==='dot'?'Felled by '+(FELL_DOT[b.dot]||'a wound')+'.':'Felled by '+b.n+'\'s '+(A?A.name+(b.w?', telegraphed '+b.w+' turn'+(b.w>1?'s':'')+' ahead':''):b.k==='crit'?'critical hit':b.k==='haste'?'hasted strike':'blow')+'.';

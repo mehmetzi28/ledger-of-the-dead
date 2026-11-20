@@ -236,10 +236,11 @@ function act(kind){
       const hurt=r.enemies.find(x=>x.id===it.t);
       if(hurt){ const h=Math.min(Math.round(e.atk*.9*(1-foeArmor())*blightK(hurt)),hurt.maxHp-hurt.hp); /* scaled by armor like your damage, so menders can't stall a fight */ hurt.hp+=h; log(e.name+' mends '+hurt.name+'.'); continue; }
     }
-    const tg=alive.find(a=>fxKey(a)===it.t)||foeTarget(foeReach(e,alive));
+    let tg=alive.find(a=>fxKey(a)===it.t)||foeTarget(foeReach(e,alive));
     if(it.bw&&fxKey(tg)===it.t) log('Bulwark: '+tg.nick+' intercepts '+e.name+'\'s blow.','ok');   // planned with the intent, so the card already showed it
     if(omen()==='eclipse'&&Math.random()<ECLIPSE_MISS){ log(e.name+' misses '+(tg.id==='p'?'you':nameOf(tg))+' in the dark.','ok'); continue; }   // Black Eclipse
     let d=hit(e.atk*enrage(e)*(hasAff(e,'enraged')&&e.hp<e.maxHp/2?1.6:1)*hexK(e)); let crit=e.role==='striker'&&Math.random()<foeCrit(); if(crit&&hasSt(e,'hexed')){ crit=false; combo('fizzle',e,'Fizzle: the hex spoils '+e.name+'\'s killing blow.'); } if(crit&&tg.id==='p'&&hasMod('calcify','a')) crit=false;   /* Petrified: rolled, then refused */ if(crit) d=Math.round(d*1.8);
+    { const sb=shieldBearer(e,tg,d); if(sb){ tg=sb; d=Math.round(d*SB_TAKE); } }   // Shield-bearer (game-gate-rules.js ROWS)
     BLOW={n:e.name,k:crit?'crit':'hit'}; hurtAlly(tg,d); BLOW=null; fxe('hurt',tg,crit?{crit:1}:null); if(crit) addDot(tg,'bleed',e.atk*.3,2);   // a striker's crit opens a wound
     if(hasAff(e,'vampiric')){ const h=Math.min(e.maxHp-e.hp,Math.round(d*.4*blightK(e))); if(h>0){ e.hp+=h; mark(e,0,h); } }
     const ex=foeOnHit(e,tg);
@@ -312,7 +313,7 @@ function defeat(){
 // BLOW: the foe blow being dealt right now (set around each hurtAlly on you); ROOM0: the room as it began. ROOM0 lives outside the save:
 // after a reload the defeat screen simply has no Retry.
 let BLOW=null, ROOM0=null, KILL=null;   // KILL: what deals the blow to a foe right now ('reap', 'exec', a DoT kind; null: a hit), for the body's condition
-function blowNote(b){ const n=Object.assign({},b), c=blowCounters(b); if(c.length) n.c=c; return n; }   // the blow about to land, and the answers you had and did not use
+function blowNote(b){ const n=Object.assign({},b), c=blowCounters(b), s=sbWhy(b); if(s) c.push(s); if(c.length) n.c=c; return n; }   // the blow about to land, and the answers you had and did not use
 function blowCounters(b){   // the answers to a blow you have and have not used, only those that apply to it (the defeat recap and the bestiary's Ledgered hints)
   const r=S.run, c=[], up=role=>S.army.some(m=>m.role===role&&m.hp>0)&&!(r.cmd&&r.cmd[role]);   /* an order not yet given this room, with someone to give it to */
   if((b.k!=='sig'||b.mv==='sunder')&&!(r.taunt>0)&&up('vanguard')) c.push('taunt');   /* single-target blows only: Taunt moves no other boss move */
@@ -328,7 +329,7 @@ const canRetry=()=>S.mode==='defeat'&&!!ROOM0&&ROOM0.r===S.run&&!S.run.siege&&!S
 function retryRoom(){   // the room again as it began: same foes at full HP, you and your army as you entered; no watch, the XP loss stands, potions drunk stay drunk
   if(!canRetry()) return false;
   const r=S.run, o=JSON.parse(ROOM0.j), s=JSON.parse(ROOM0.s), P=S.player;
-  for(const k of ['kills','dt','dd','mh','hurt','soulT','tt','recF']) if(r[k]!==undefined) o[k]=r[k]; else delete o[k];   /* what happened in the fall still happened: run stats, records, turns */
+  for(const k of ['kills','dt','dd','mh','hurt','soulT','tt','recF','grace','revives']) if(r[k]!==undefined) o[k]=r[k]; else delete o[k];   /* what happened in the fall still happened: run stats, records, turns, Grace and armor revives spent */
   o.retries=(r.retries||0)+1; S.run=ROOM0.r=o;
   ['hp','mana','shield','st','dots'].forEach((k,i)=>{ if(s.p[i]==null) delete P[k]; else P[k]=s.p[i]; });
   for(const m of S.army){ delete m.sx; delete m.mw; const x=s.a.find(y=>y[0]===m.uid); if(!x) continue;   /* a room begins with Stitched unused and no Warden ward */ m.hp=Math.min(m.maxHp,x[1]); if(x[2]) m.st=x[2]; else delete m.st; if(x[3]) m.dots=x[3]; else delete m.dots; }
@@ -373,7 +374,8 @@ function equip(u){
   const i=S.inv.findIndex(x=>x.u===u); if(i<0) return;
   vitals(()=>{ const it=S.inv[i], sl=ITEM[it.id].slot, old=S.equip[sl]; S.inv.splice(i,1); if(old) S.inv.push(old); S.equip[sl]=it; });
 }
-function unequip(sl){ if(S.mode==='battle'||!S.equip[sl]) return; vitals(()=>{ S.inv.push(S.equip[sl]); S.equip[sl]=null; }); }
+function unequip(sl){ if(S.mode==='battle'||!S.equip[sl]) return; if(S.inv.length>=bagMax()&&!ITEM[S.equip[sl].id].uq){ notify('Your bag is full. Make room first.','bad'); return; }   /* as takeGear refuses */
+  vitals(()=>{ S.inv.push(S.equip[sl]); S.equip[sl]=null; }); }
 function discard(u){ S.inv=S.inv.filter(x=>x.u!==u||x.lk); }
 
 // ----- raising

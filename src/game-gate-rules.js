@@ -30,7 +30,7 @@ function chargeInfo(e){   // a charging boss: the move it lands next turn, what 
 }
 function summonAdd(e){
   if(e.summoned>=SUMMON_CAP||liveFoes().length>=5) return null;
-  const mk=()=>e.tw?makeTowerEnemy(e.tw,false,-1):makeEnemy(e.rankI,Math.max(1,e.lvl-2),false), hasMender=liveFoes().some(x=>x.role==='mender');
+  const mk=()=>e.tw?makeTowerEnemy(e.tw,false,-1):makeEnemy(S.run.rift?S.run.di:e.rankI,Math.max(1,e.lvl-2),false), hasMender=liveFoes().some(x=>x.role==='mender');
   let a=mk(); for(let i=0;i<30&&hasMender&&a.role==='mender';i++) a=mk(); if(hasMender&&a.role==='mender') return null;   // never a second mender (bug found in play-testing)
   if(e.tw) foeScale([a],TW.foeAtk); else { foeScale([a],foeAtkMul(S.run.di)); bulwark([a]); riftScale([a]); heatScale([a]); }   /* as buildRoom scales a room's foes */
   affixAll([a]); foeRise([a]); e.summoned++; S.run.enemies.push(a); return a;
@@ -108,6 +108,13 @@ const rowOf=u=>u.id==='p'?'b':u.id!=null?(u.boss||u.rival||MELEE[u.role]?'f':'b'
 const rowK=m=>MELEE[m.role]&&rowOf(m)==='b'?BACK_MELEE:1;   // a minion's damage factor from its row
 const frontOf=L=>L.filter(u=>u.hp>0&&rowOf(u)==='f');
 const foeReach=(e,alive)=>{ const t=tauntPool(alive); if(t!==alive||!MELEE[e.role]||e.boss) return t; const f=frontOf(alive); return f.length?f:alive; };   // whom a foe may strike: Taunt first, then the row rule
+// Shield-bearer: once per room, a foe's hit that would kill you lands on a living front-row vanguard instead, at SB_TAKE of its damage (it may die
+// of it). Plain and hasted hits only: telegraphed boss moves have their own answers. In sieges too (wall vanguards stand in front). r.sb: the room it was spent in.
+const SB_TAKE=1.5;
+const sbFront=()=>frontOf(S.army).filter(m=>m.role==='vanguard').sort((a,b)=>b.hp-a.hp)[0];
+function shieldBearer(e,tg,d){ const r=S.run, P=S.player; if(tg.id!=='p'||r.sb===r.room||allyDr(P,d)-(P.shield||0)<P.hp) return null;
+  const v=sbFront(); if(!v) return null; r.sb=r.room; log('Shield-bearer: '+v.nick+' steps in front of you and takes '+e.name+'\'s killing blow.','ok'); return v; }
+const sbWhy=b=>{ const r=S.run; if(b.k==='sig'||!r) return null; if(r.sb===r.room) return 'sbspent'; return !sbFront()&&S.army.some(m=>m.role==='vanguard'&&m.hp>0)?'sbrow':null; };   /* the defeat recap: why no vanguard stepped in */
 function minionTarget(m){ const t=currentTarget(); if(!t||!MELEE[m.role]||rowOf(t)==='f') return t; return frontOf(liveFoes()).sort((a,b)=>a.hp-b.hp)[0]||t; }   // a melee minion hits your target if it can reach it, else the weakest foe in front
 function setRow(uid){ if(S.mode==='battle') return; const m=S.army.concat(S.reserve||[]).find(x=>x.uid===uid); if(m&&!m.wall) m.row=rowOf(m)==='f'?'b':'f'; }   // out of battle only, so a fight's foe intents never shift under you
 // ===== FOE INTENTS =====
@@ -212,10 +219,10 @@ function foeOnHit(e,tg){   // what a foe's hit leaves behind: affixes and the Wh
 function hasteStrikes(){   // the end of the turn: every Hasted unit strikes once more for half damage
   const r=S.run;
   for(const m of S.army){ if(!(m.hp>0)||!hasSt(m,'hasted')) continue; const tg=minionTarget(m); if(!tg) break;
-    let d=hit(m.atk*dmgMul()*HASTE_MUL*hexK(m)*rowK(m)*breakK(m,tg)); const cr=blurCrit(m); if(cr) d=Math.round(d*1.8); hurtFoe(tg,d); fxe('mhit',tg); log(m.nick+' is hasted and strikes '+tg.name+' again for '+d+(cr?' (crit)':'')+'.'); const x=minionOnHit(m,tg); if(x) combo('swift',tg,'Swift Blow: '+tg.name+' is '+x.split(' and ').filter(Boolean).map(v=>({poisons:'poisoned',blights:'blighted',sunders:'sundered',hexes:'hexed',chills:'chilled',burns:'burning'})[v.split(' ')[0]]).join(', ')+'.'); checkDeaths(); }
+    let d=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*HASTE_MUL*hexK(m)*rowK(m)*breakK(m,tg)); const cr=blurCrit(m); if(cr) d=Math.round(d*1.8); hurtFoe(tg,d); fxe('mhit',tg); log(m.nick+' is hasted and strikes '+tg.name+' again for '+d+(cr?' (crit)':'')+'.'); const x=minionOnHit(m,tg); if(x) combo('swift',tg,'Swift Blow: '+tg.name+' is '+x.split(' and ').filter(Boolean).map(v=>({poisons:'poisoned',blights:'blighted',sunders:'sundered',hexes:'hexed',chills:'chilled',burns:'burning'})[v.split(' ')[0]]).join(', ')+'.'); checkDeaths(); }
   for(const e of liveFoes()){ if(!hasSt(e,'hasted')||e.froze===r.turn) continue; let alive=allies().filter(a=>a.hp>0); if(!alive.length) break;
     alive=foeReach(e,alive);   // Taunt and the row rule hold for the follow-up too
-    const tg=foeTarget(alive), d=hit(e.atk*HASTE_MUL*hexK(e)*enrage(e)); BLOW={n:e.name,k:'haste'}; hurtAlly(tg,d); BLOW=null; fxe('hurt',tg); log(e.name+' is hasted and strikes '+(tg.id==='p'?'you':nameOf(tg))+' again for '+d+'.','bad');
+    let tg=foeTarget(alive), d=hit(e.atk*HASTE_MUL*hexK(e)*enrage(e)); const sb=shieldBearer(e,tg,d); if(sb){ tg=sb; d=Math.round(d*SB_TAKE); } BLOW={n:e.name,k:'haste'}; hurtAlly(tg,d); BLOW=null; fxe('hurt',tg); log(e.name+' is hasted and strikes '+(tg.id==='p'?'you':nameOf(tg))+' again for '+d+'.','bad');
     if(tg.hp<=0&&tg.id!=='p') log(tg.nick+' is down.','bad'); if(S.player.hp<=0) return; }
 }
 function tickDots(){

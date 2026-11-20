@@ -279,7 +279,7 @@ function heatHTML(i){   // difficulty picker on a cleared gate's card
    +(cur?'<div class="heat-note">Foes x'+H.foe+' &middot; XP x'+H.xp+' &middot; gold x'+H.gold+' &middot; gear x'+H.drop+(gateMod(i)?' <b class="bad">Cursed and '+H.name+': the curse feeds on it: foes x'+DAMNED_FOE+', rewards x'+DAMNED+'.</b>':'')+'</div>':'')+'</div>';
 }
 function titlesHTML(){
-  const T=S.ti||{got:{}}, n=titlesGot();
+  const T=Object.assign({got:{}},S.ti), n=titlesGot();   /* S.ti can exist before checkTitles first adds got */
   let h='<section class="win" aria-labelledby="h-tt"><h2 class="win-h" id="h-tt">Titles &middot; '+n+'/'+TITLES.length+'</h2>'
    +'<p class="q-note tt-col" title="+1% gold from kills for every '+TCOL_STEP+' titles earned, up to +'+TCOL_MAX+'%">'+titleColTxt(n)+'</p>'
    +'<p class="lede">Earned once, kept forever. Only the title you wear gives its bonus.</p>'

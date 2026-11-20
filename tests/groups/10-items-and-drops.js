@@ -7,6 +7,7 @@ test('Items: equipping swaps slots and keeps HP/mana in step',()=>{
   equip(b.u); eq(S.equip.armor.u,b.u); ok(S.inv.some(x=>x.u===a.u)); unequip('armor'); eq(S.equip.armor,null); eq(P.hp,pMax()); eq(S.inv.length,2);
   discard(a.u); eq(S.inv.length,1);
 });
+test('Items: unequipping into a full bag is refused, as taking gear off a minion is',()=>{ const a=give('0-aa'); equip(a.u); for(let i=0;i<30;i++) ok(addItem('0-wa')); unequip('armor'); eq(S.equip.armor.u,a.u,'kept on'); eq(S.inv.length,30,'bag not over its limit'); ok(S.notices.some(x=>/bag is full/.test(x.m))); });
 test('Items: no equipping in battle',()=>{ const a=give('0-aa'); arena([foe()]); equip(a.u); eq(S.equip.armor,null); });
 test('Items: every drop table adds up to 100% and only lists real items',()=>{
   for(let di=0;di<6;di++) for(const role of Object.keys(ROLES)) for(const boss of [false,true]) for(const el of [false,true]){

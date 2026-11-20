@@ -106,5 +106,9 @@ test('Difficulty: adds a boss calls in are as strong as the room around them (Ha
   fresh(10); S.ti={clr:{0:1}}; S.heatMax={0:2}; S.mod={day:S.day,gi:-1,id:null}; setHeat(0,3); S.mode='town'; S.watches=WATCHES; fix(.5); startRun(0);
   const room=S.run.enemies[0], b=makeEnemy(0,room.lvl+2,true); S.run.enemies=[room,b]; const a=summonAdd(b);
   eq(a.base,room.base); eq(a.lvl,room.lvl); eq(a.maxHp,room.maxHp,'Nightmare scales the add like the room');
+  const same=(what)=>{ const room=S.run.enemies[0], b=makeEnemy(S.run.di,room.lvl+2,true); if(S.run.rift) riftScale([b]); S.run.enemies=[room,b]; const a=summonAdd(b);
+    eq(a.base,room.base,what+': the room\'s own roster'); eq(a.lvl,room.lvl,what); eq(a.maxHp,room.maxHp,what+' scales the add like the room'); eq(a.atk,room.atk,what); };
+  fresh(); setLvl(60); S.ti={clr:{0:1,5:1}}; S.mod={day:S.day,gi:0,id:'fury'}; S.watches=WATCHES; fix(.5); startRun(0); eq(S.run.mod,'fury'); ok(curseRise(0)>0); same('a cursed gate');
+  fresh(); setLvl(45); S.ti={clr:{5:1}}; S.rift={best:2}; S.watches=WATCHES; fix(.5); ok(startRift(3)); ok(S.run.di<5,'a Rift over a lower gate'); same('the Rift');
 });
 })();
