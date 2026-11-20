@@ -17,23 +17,27 @@ const TIER_MARK=TIERS.map((n,t)=>'<svg class="tmark" viewBox="0 0 '+(t>=5?8:t*5+
 function iico(d){ const set=!d.uq&&!d.tower&&RANKS[d.set]!=null, g=iglyph(d), M=IMAT[g]||['metal',ITEM_HUE[d.slot]||'#6a655c'];   // each gate's set has its own metal and its rank letter in the corner; each piece its own shape and material
   return '<span class="ico t'+d.tier+(set?' s'+d.set:'')+'" aria-hidden="true"><svg viewBox="0 0 64 64" class="mt-'+M[0]+'" style="color:'+M[1]+'"><g filter="url(#paint)">'+(IC[g]||IC._)+'</g>'+(d.tier>=4?GLINT:'')+'</svg>'+(set?'<span class="rb gl r'+d.set+'">'+RANKS[d.set]+'</span>':'')+(TIER_MARK[d.tier]||'')+'</span>'; }
 const statTxt=(k,v)=>(v>0?'+':'&minus;')+Math.abs(v)+STATL[k][1]+' '+STATL[k][0];
-function statsHTML(d,it){ return Object.keys(d.stats).filter(k=>d.stats[k]).map(k=>'<span>'+statTxt(k,d.stats[k])+'</span>').join('')
-  +((it&&it.ro)||[]).map(r=>'<span class="roll" title="Bonus line">'+statTxt(r[0],r[1])+'</span>').join(''); }
+function statsHTML(d,it){ return Object.keys(d.stats).filter(k=>d.stats[k]).map(k=>'<span>'+statG(k,d.stats[k])+'</span>').join('')
+  +((it&&it.ro)||[]).map(r=>'<span class="roll" title="Bonus line">'+statG(r[0],r[1])+'</span>').join(''); }
+// A fold for long text: a native <details>, so it opens from the keyboard; ui.det remembers it across renders (ui-input.js). With keep the summary
+// stays when open (a heading); without it the summary (a short line) gives way to the body, which holds the full text.
+const detl=(k,sum,body,cls,keep)=>'<details class="more'+(keep?' keep':'')+(cls?' '+cls:'')+'" data-det="'+k+'"'+(ui.det&&ui.det[k]?' open':'')+'><summary>'+(keep?sum:'<span class="more-1">'+sum+'</span>')+' <span class="more-l">Details</span><span class="more-h">Hide details</span></summary><div class="more-b">'+body+'</div></details>';
+function brief(k,t,cls){ const i=t.indexOf('. '), tg=cls==='u-sub'?'div':'p'; return i<0?'<'+tg+' class="'+(cls||'q-note')+'">'+t+'</'+tg+'>':detl(k,t.slice(0,i+1),t,cls||'q-note'); }   // the first sentence in view, the whole text one press away
 function cmpHTML(it){   // what wearing this would change, against what is in that slot now
   const d=ITEM[it.id], cur=S.equip[d.slot]; if(cur&&cur.u===it.u) return '';
   if(!cur) return '<div class="cmp">Your '+SLOTS[d.slot].toLowerCase()+' slot is empty.</div>';
   const a=itStats(it), b=itStats(cur), keys=[...new Set(Object.keys(a).concat(Object.keys(b)))].filter(k=>(a[k]||0)!==(b[k]||0));
-  return '<div class="cmp">vs '+ITEM[cur.id].name+': '+(keys.length?keys.map(k=>{ const v=(a[k]||0)-(b[k]||0); return '<span class="'+(v>0?'up':'down')+'">'+statTxt(k,v)+'</span>'; }).join(''):'<span>same stats</span>')+'</div>';
+  return '<div class="cmp">vs '+ITEM[cur.id].name+': '+(keys.length?keys.map(k=>{ const v=(a[k]||0)-(b[k]||0); return '<span class="'+(v>0?'up':'down')+'">'+statG(k,v)+'</span>'; }).join(''):'<span>same stats</span>')+'</div>';
 }
 function usetLine(d){ if(d.uset==null) return ''; const U=USET[d.uset], n=usetCount(d.uset), worn=id=>GEAR_SLOTS.some(sl=>S.equip[sl]&&S.equip[sl].id===id);
-  return '<div class="setl uset">Unique set: <b>'+U.name+'</b>'+(n?' ('+n+'/3 worn)':'')+' &middot; '+U.ids.map(id=>'<span class="'+(worn(id)?'on':'')+'">'+ITEM[id].name+'</span>').join(', ')
-   +'<br><span class="'+(n>=2?'on':'')+'">2: '+buffTxt(U.b[2])+'</span> &middot; <span class="'+(n>=3?'on':'')+'">3: '+buffTxt(U.b[3])+'</span></div>'; }
+  return detl('us'+d.uset,'Unique set: <b>'+U.name+'</b>'+(n?' ('+n+'/3 worn)':''),U.ids.map(id=>'<span class="'+(worn(id)?'on':'')+'">'+ITEM[id].name+'</span>').join(', ')
+   +'<br><span class="'+(n>=2?'on':'')+'">2: '+buffTxt(U.b[2])+'</span> &middot; <span class="'+(n>=3?'on':'')+'">3: '+buffTxt(U.b[3])+'</span>','setl uset',1); }
 function setLine(d){ if(d.tower||SET_NAMES[d.set]==null) return usetLine(d); const n=setCount(d.set), B=SET_BONUS[d.set];
-  return '<div class="setl">'+SET_NAMES[d.set]+' set'+(n?' ('+n+'/3 worn)':'')+': <span class="'+(n>=2?'on':'')+'">2: '+buffTxt(B[2])+'</span> &middot; <span class="'+(n>=3?'on':'')+'">3: '+buffTxt(B[3])+'</span></div>'+usetLine(d); }
+  return detl('gs'+d.set,SET_NAMES[d.set]+' set'+(n?' ('+n+'/3 worn)':''),'<span class="'+(n>=2?'on':'')+'">2: '+buffTxt(B[2])+'</span> &middot; <span class="'+(n>=3?'on':'')+'">3: '+buffTxt(B[3])+'</span>','setl',1)+usetLine(d); }
 function itemCard(it,acts,cmp){
   const d=ITEM[it.id];
   return '<div class="item t'+d.tier+'">'+iico(d)+'<div class="i-body"><div class="i-top"><span class="i-name">'+d.name+'</span><span class="i-tag">'+TIERS[d.tier]+' &middot; '+SLOTS[d.slot]+(!d.uq&&!d.tower&&RANKS[d.set]?'<span class="sr"> &middot; gate '+RANKS[d.set]+' set</span>':'')+(d.tower?' &middot; <span class="i-floor">Hell Tower '+d.floor+'</span>':'')+'</span></div>'
-   +'<div class="i-stats">'+statsHTML(d,it)+'</div>'+(d.flag?'<div class="i-fx">'+FLAGS[d.flag]+'</div>':'')+setLine(d)+(cmp?cmpHTML(it):'')+'</div><div class="i-acts">'+(acts||'')+'</div></div>';
+   +'<div class="i-stats">'+statsHTML(d,it)+'</div>'+(d.flag?detl('fx'+d.flag,FLAGS[d.flag].split(':')[0],FLAGS[d.flag],'i-fx'):'')+setLine(d)+(cmp?cmpHTML(it):'')+'</div><div class="i-acts">'+(acts||'')+'</div></div>';
 }
 const lockBtn=it=>'<button class="btn small lockb'+(it.lk?' on':'')+'" data-a="lock" data-k="'+it.u+'" aria-pressed="'+!!it.lk+'" title="'+(it.lk?'Locked: never sold, salvaged or discarded. Press to unlock.':'Lock it so it is never sold, salvaged or discarded')+'">'+(it.lk?'Locked':'Lock')+'</button>';
 const reforgeBtn=it=>ITEM[it.id].uq||S.mode!=='town'?'':'<button class="btn small" data-a="reforge" data-k="'+it.u+'"'+(S.gold<reforgeCost(it)?' disabled':'')+' title="Re-roll its bonus lines">Reforge &middot; '+gold(reforgeCost(it))+'</button>'+enchBtn(it);
@@ -191,18 +195,22 @@ function bestiaryHTML(){
 }
 
 // What one more point in a stat would change, worked out from the real formulas (shown next to each + button).
-function statGain(k){
+const GAIN_G={Strike:'atk','Max HP':'hp',Mana:'mana',Siphon:'siph',Ward:'ward',Slots:'slot',crit:'crit','armor pierce':'pierce','damage taken':'dr','healing received':'heal','skill damage':'skill','minion attack':'matk',raise:'raise',minions:'mpow'};
+const GAIN_W={Slots:'Army slots',crit:'Crit chance',raise:'Raise chance',minions:'Minion power'};   // the glyph's full word where the gain's own word is short
+function statGainList(k){   // [name, change, unit] for each thing one more point changes
   const P=S.player, f=()=>({Strike:pAtk(),'Max HP':pMax(),Mana:pMana(),Siphon:pSiph(),Ward:pWard(),Slots:slots()}),
     g=()=>({crit:strCrit(),'armor pierce':strPen()*100,'damage taken':-conDr(),'healing received':conHeal(),'skill damage':intSkill(),'minion attack':statMinion()});   // percent parts
   const a=f(), ga=g(); P.stats[k]++; const b=f(), gb=g(); P.stats[k]--;
-  const out=Object.keys(a).filter(x=>b[x]!==a[x]).map(x=>x+' +'+(b[x]-a[x]));
-  for(const x in ga){ const d=Math.round((gb[x]-ga[x])*100)/100; if(d) out.push(x+' '+(d>0?'+':'')+d+'%'); }
-  if(k==='will') out.push('raise +'+RAISE_WILL+'%','minions +2%');
-  return out.join(', ');
+  const out=Object.keys(a).filter(x=>b[x]!==a[x]).map(x=>[x,b[x]-a[x],'']);
+  for(const x in ga){ const d=Math.round((gb[x]-ga[x])*100)/100; if(d) out.push([x,d,'%']); }
+  if(k==='will') out.push(['raise',RAISE_WILL,'%'],['minions',2,'%']);
+  return out;
 }
+const statGain=k=>statGainList(k).map(([x,d,u])=>x+' '+(d>0?'+':'')+d+u).join(', ');
+const gainG=k=>statGainList(k).map(([x,d,u])=>'<span class="sv">'+sgl(GAIN_G[x],GAIN_W[x]||x[0].toUpperCase()+x.slice(1))+(d>0?'+':'')+d+u+'</span>').join(' ');
 function statusHTML(){
   const P=S.player, st=P.stats, ri=pRankI();
-  const rows=[['strength','Strength','Strike damage, crit chance, armor piercing, minion attack'],['constitution','Constitution','Max HP, damage taken, healing received'],['intelligence','Intelligence','Mana, Siphon, Ward, skill damage, minion attack'],['will','Will','Mana, army slots, raise odds, minion bond']];
+  const rows=[['strength','Strength','Strike damage, crit chance, armor piercing, minion attack',['atk','crit','pierce','matk']],['constitution','Constitution','Max HP, damage taken, healing received',['hp','dr','heal']],['intelligence','Intelligence','Mana, Siphon, Ward, skill damage, minion attack',['mana','siph','ward','skill','matk']],['will','Will','Mana, army slots, raise odds, minion bond',['mana','slot','raise','mpow']]];
   const canAlloc=P.pts>0&&S.mode!=='battle';
   return '<section class="win" aria-labelledby="h-status"><h2 class="win-h" id="h-status">Status</h2>'
    +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(faithOf()?'<div class="faith-l '+faithOf()+'">'+FAITH[faithOf()].name+'</div>':'')+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+'</div></div></div>'
@@ -210,9 +218,10 @@ function statusHTML(){
    +((P.pts>0||P.sp>0)?'<div class="chips">'+(P.pts>0?'<span class="chip">'+P.pts+' unspent point'+(P.pts>1?'s':'')+'</span>':'')+(P.sp>0?'<span class="chip">'+P.sp+' skill point'+(P.sp>1?'s':'')+'</span>':'')+'</div>':'')
    +(remembered()?'<div class="chips"><span class="chip mem-buff" title="Honoured a fallen minion today">Remembered: +'+Math.round(MEM_HP*100)+'% minion max HP until dawn</span></div>':'')
    +pactChipsHTML()
-   +'<div class="stats">'+rows.map(r=>'<div class="stat"><div><b>'+r[1]+'</b><small>'+r[2]+'</small>'+(canAlloc?'<small class="gain">Next point: '+statGain(r[0])+'</small>':'')+'</div><span class="val">'+st[r[0]]+(G(r[0])?'<small class="gb"> +'+G(r[0])+'</small>':'')+'</span>'
+   +'<div class="stats">'+rows.map(r=>'<div class="stat"><div>'+detl('st'+r[0],'<b>'+r[1]+'</b><span class="st-g">'+r[3].map(g=>sgl(g)).join('')+'</span>','<small>'+r[2]+'</small>'+(canAlloc?'<small>Next point: '+statGain(r[0])+'</small>':''),'sdesc',1)
+      +(canAlloc?'<small class="gain">Next: '+gainG(r[0])+'</small>':'')+'</div><span class="val">'+st[r[0]]+(G(r[0])?'<small class="gb"> +'+G(r[0])+'</small>':'')+'</span>'
       +(canAlloc?'<button class="plus" data-a="alloc" data-k="'+r[0]+'" aria-label="Add a point to '+r[1]+'">+</button>':'<span class="plus-slot"></span>')+'</div>').join('')+'</div>'
-   +'<div class="derived"><div><span>Strike</span><b>'+pAtk()+'</b></div><div><span>Siphon</span><b>'+pSiph()+'</b></div><div><span>Slots</span><b>'+slots()+'</b></div></div>'
+   +'<div class="derived"><div>'+sgl('atk')+'<b>'+pAtk()+'</b></div><div>'+sgl('siph')+'<b>'+pSiph()+'</b></div><div>'+sgl('slot')+'<b>'+slots()+'</b></div></div>'
    +'</section>';
 }
 function questHTML(){
@@ -221,7 +230,7 @@ function questHTML(){
   return '<section class="win'+foldCls('quest')+'" aria-labelledby="h-quest"><h2 class="win-h" id="h-quest">Daily quest &middot; Day '+S.day+'<span class="fold-sum">'+(q.claimed?'claimed':done?'ready to claim':rows.filter(r=>r[1]>=r[2]).length+'/3')+'</span>'+foldBtn('quest')+'</h2>'
    +rows.map(r=>'<div class="q-row"><span class="box'+(r[1]>=r[2]?' on':'')+'"></span><span>'+r[0]+'</span><span class="num">'+Math.min(r[1],r[2])+'/'+r[2]+'</span></div>').join('')
    +(q.claimed?'<p class="q-note ok">Reward claimed for today.</p>':done?'<button class="btn primary" data-a="claim">Claim reward</button>':'<p class="q-note">Reward: +'+QUEST_PTS+' stat point'+(QUEST_PTS>1?'s':'')+' and bonus XP.<br>Unfinished at dawn, it simply lapses.</p>')
-   +'<p class="q-note">Each dungeon you enter uses a watch. When the third is spent, the day closes.</p></section>';
+   +brief('watch','Each dungeon you enter uses a watch. When the third is spent, the day closes.','q-note')+'</section>';
 }
 function bountyHTML(){
   const list=bounties(), town=S.mode==='town';
@@ -231,12 +240,15 @@ function bountyHTML(){
      return '<div class="b-row'+(b.claimed?' claimed':done?' done':'')+'"><span>'+BOUNTIES[b.id].t(b.n)+'</span><span class="num">'+got+'/'+b.n+'</span>'
       +'<span class="u-sub">'+(b.claimed?'Claimed.':'Pays '+rw(b.rw))+'</span>'
       +(done&&!b.claimed&&town?'<button class="btn small primary" data-a="claimb" data-k="'+i+'"'+(b.rw.gear&&S.inv.length>=bagMax()?' disabled title="Your bag is full"':'')+'>Claim</button>':'')+'</div>'; }).join('')
-   +'<p class="q-note">Up to '+BOUNTY_N+' contracts; a new one goes up each dawn while there is room. They never expire. Claim finished ones in town.</p></section>';
+   +brief('bty','Up to '+BOUNTY_N+' contracts; a new one goes up each dawn while there is room. They never expire. Claim finished ones in town.','q-note')+'</section>';
 }
+const NOTE_N=2;
 function notesHTML(){
   const tip=!!currentTip(), ns=S.notices.filter(n=>!(tip&&n.c==='story'));   // a story note waits under a tip: one guidance box at a time
   if(!ns.length) return '';
-  return '<div class="notes">'+ns.map(n=>'<div class="note '+n.c+'"><span>'+n.m+'</span></div>').join('')+'<div><button class="linkbtn" data-a="dismiss">Dismiss</button></div></div>';
+  const all=ui.notesAll||ns.length<=NOTE_N;   // newest first: the newest two, the rest one press away
+  return '<div class="notes">'+(all?ns:ns.slice(0,NOTE_N)).map(n=>'<div class="note '+n.c+'"><span>'+n.m+'</span></div>').join('')
+   +'<div class="note-acts">'+(ns.length>NOTE_N?'<button class="linkbtn" data-a="notesall" aria-expanded="'+all+'">'+(all?'Show fewer':'Show all ('+ns.length+')')+'</button>':'')+'<button class="linkbtn" data-a="dismiss">Dismiss</button></div></div>';
 }
 function armorTag(a){   // foe armor with its rule spelled out (pierceMul): hover text plus the same words for screen readers
   const p=Math.round(a*100), t='Foes shrug off '+p+'% of every hit you and your minions land. Piercing skills such as Bone Spear ignore part of it';
@@ -307,7 +319,7 @@ function towerHTML(){
   const bosses=TW_BOSS.map((n,i)=>({f:(i+1)*10,name:n}));
   let h='<section class="win" aria-labelledby="h-tw"><h2 class="win-h" id="h-tw">The Hell Tower</h2>'
    +'<h3 class="win-title">One hundred floors. Every floor is harder than the last.</h3>'
-   +'<p class="lede">A separate climb from the gates. Each floor is a single fight; between floors you raise the dead and climb on. A warden waits on every tenth floor and carries a unique relic. The first time you break a warden its unique is guaranteed. After that it drops '+Math.round(TW.repeat*100)+'% of the time, as gold if you already carry it. Wardens grow wrathful if the fight drags on. A climb uses one watch, and floors you have cleared become checkpoints.'+(TW.armor?' Tower foes wear '+Math.round(TW.armor*100)+'% armor.':'')+'</p>'
+   +brief('tower','A separate climb from the gates. Each floor is a single fight; between floors you raise the dead and climb on. A warden waits on every tenth floor and carries a unique relic. The first time you break a warden its unique is guaranteed. After that it drops '+Math.round(TW.repeat*100)+'% of the time, as gold if you already carry it. Wardens grow wrathful if the fight drags on. A climb uses one watch, and floors you have cleared become checkpoints.'+(TW.armor?' Tower foes wear '+Math.round(TW.armor*100)+'% armor.':'')+'','lede')
    +'<div class="tw-hero"><b>Highest floor '+T.best+' / 100</b><div class="tw-prog"><i style="width:'+Math.min(100,T.best)+'%"></i></div>'
    +'<div class="u-sub">Uniques claimed '+Object.keys(T.got).length+' / '+TW_UNIQ.length+'</div></div>'
    +'<p class="group-h">Begin the climb from</p>';
@@ -337,7 +349,7 @@ function marketHTML(){
   const P=S.player, stock=shopStock(), tk=Object.keys(S.trophies).sort((a,b)=>TROPHY[b].value-TROPHY[a].value||TROPHY[a].name.localeCompare(TROPHY[b].name));
   const tTotal=tk.reduce((a,k)=>a+S.trophies[k]*TROPHY[k].value,0), bagFull=S.inv.length>=bagMax();
   let h='<section class="win" aria-labelledby="h-mk"><h2 class="win-h" id="h-mk">Bone Market</h2><h3 class="win-title">You have '+gold(S.gold)+'</h3>'
-   +'<p class="lede">The dead pay well for what the living leave behind. Sell trophies and spare gear here, and buy supplies before you go down. The merchant\'s wares change every dawn.</p>';
+   +brief('market','The dead pay well for what the living leave behind. Sell trophies and spare gear here, and buy supplies before you go down. The merchant\'s wares change every dawn.','lede');
   if(ui.msg&&ui.msg.mk) h+='<div class="note '+(ui.msg.c||'')+'"><i>Market</i><span>'+ui.msg.m+'</span></div>';
   const sec=MK_SECS.some(x=>x[0]===ui.mk)?ui.mk:'buy';
   h+='<div class="chips sub-nav" role="tablist">'+MK_SECS.map(x=>'<button class="btn small'+(x[0]===sec?' primary':'')+'" role="tab" data-a="mk" data-k="'+x[0]+'" aria-selected="'+(x[0]===sec)+'">'+x[1]+'</button>').join('')+'</div>';
@@ -359,7 +371,7 @@ function marketHTML(){
   if(sec==='forge'){
   // trophy forge
   const fg=DUNGEONS.map((D,i)=>i).filter(i=>forgePoints(i)>0);
-  h+='<p class="group-h">Trophy forge</p><p class="q-note">'+FORGE_N+' trophies from one gate (a boss heart counts as 5) and a little gold forge that gate\'s gear in the slot you pick. One in five comes out a masterwork from the next gate. Or brew a potion from any '+BREW_N+' trophies.</p>';
+  h+='<p class="group-h">Trophy forge</p>'+brief('forge',''+FORGE_N+' trophies from one gate (a boss heart counts as 5) and a little gold forge that gate\'s gear in the slot you pick. One in five comes out a masterwork from the next gate. Or brew a potion from any '+BREW_N+' trophies.','q-note');
   if(fg.length) h+='<div class="items">'+fg.map(i=>{ const pts=forgePoints(i), ok=pts>=FORGE_N&&S.gold>=forgeGold(i)&&!bagFull;
       return '<div class="tt-row"><div><h4>'+DUNGEONS[i].name+' forge <span class="u-tag">'+Math.min(pts,99)+'/'+FORGE_N+' trophies</span></h4><div class="u-sub">'+TIERS[SET_TIER[i]]+' gear &middot; costs '+gold(forgeGold(i))+'</div></div>'
        +'<div class="btns" style="margin:0">'+GEAR_SLOTS.map(sl=>'<button class="btn small'+(ok?' primary':'')+'" data-a="forge" data-k="'+i+'|'+sl+'"'+(ok?'':' disabled')+'>'+SLOTS[sl]+'</button>').join('')+'</div></div>'; }).join('')+'</div>';
@@ -368,9 +380,9 @@ function marketHTML(){
   }
   if(sec==='altar'){
   // bone altar
-  h+='<p class="group-h">Bone Altar</p><p class="q-note">Pour gold on the altar to raise a minion one level at once. Minions still stop at your level + 2.</p>';
+  h+='<p class="group-h">Bone Altar</p>'+brief('altar','Pour gold on the altar to raise a minion one level at once. Minions still stop at your level + 2.','q-note');
   h+=S.army.length+(S.reserve||[]).length?'<div class="items">'+S.army.concat(S.reserve||[]).map(m=>{ const capped=m.lvl>=P.lvl+2, c=empowerCost(m);
-      return '<div class="tt-row trow">'+ico(m.kind||m.name,m.rankI,m)+'<div><h4>'+m.nick+' <span class="dim" style="font-size:13px">'+theName(mName(m))+'</span></h4><div class="u-sub">Lv '+m.lvl+' &middot; ATK '+m.atk+' &middot; HP '+m.maxHp+'</div></div>'
+      return '<div class="tt-row trow">'+ico(m.kind||m.name,m.rankI,m)+'<div><h4>'+m.nick+' <span class="dim" style="font-size:13px">'+theName(mName(m))+'</span></h4><div class="u-sub">Lv '+m.lvl+' &middot; '+sgl('atk','ATK')+m.atk+' &middot; '+sgl('hp','HP')+m.maxHp+'</div></div>'
        +'<button class="btn small primary" data-a="empower" data-k="'+m.uid+'"'+(capped||S.gold<c?' disabled':'')+'>'+(capped?'At the cap':'Empower &middot; '+gold(c))+'</button></div>'; }).join('')+'</div>'
     :'<p class="lede">No minions yet. Raise the dead first.</p>';
   // bag upgrades
@@ -399,7 +411,7 @@ function marketHTML(){
 function skillsHTML(){
   const P=S.player, spent=Object.values(P.skills).reduce((a,b)=>a+b,0);
   let h='<section class="win" aria-labelledby="h-sk"><h2 class="win-h" id="h-sk">Skills &middot; '+P.sp+' point'+(P.sp===1?'':'s')+' to spend</h2>'
-   +'<p class="lede">You earn one skill point each level. Active skills appear as buttons in battle (keys 4 and up). They cost mana, and their cooldowns reset every room. Passive skills always apply. Each skill has '+SK_MAX+' ranks, and each rank needs '+SK_STEP+' more levels than the last.</p>';
+   +brief('skills','You earn one skill point each level. Active skills appear as buttons in battle (keys 4 and up). They cost mana, and their cooldowns reset every room. Passive skills always apply. Each skill has '+SK_MAX+' ranks, and each rank needs '+SK_STEP+' more levels than the last.','lede');
   [['active','Active'],['passive','Passive']].forEach(g=>{
     h+='<p class="group-h">'+g[1]+'</p><div class="items">'+SKILLS.filter(s=>s.type===g[0]).map(s=>{
       const rk=sk(s.id), next=rk+1, req=rk<SK_MAX?skReq(s,next):0, lockedLv=rk<SK_MAX&&P.lvl<req;
@@ -417,7 +429,7 @@ function skillsHTML(){
     }).join('')+'</div>';
   });
   h+=capHTML();   // mastery paths and capstones (src/ui-progression.js)
-  h+='<p class="group-h">Ultimate'+(P.lvl<ULT_LV?' &middot; opens at level '+ULT_LV:'')+'</p><p class="q-note">Soul Siphon harvests a Soul, and every elite or boss that falls gives one. With '+SOUL_MAX+' Souls, unleash your ultimate in battle (key R). Choose one here; you can switch for free in town.</p><div class="items">'
+  h+='<p class="group-h">Ultimate'+(P.lvl<ULT_LV?' &middot; opens at level '+ULT_LV:'')+'</p>'+brief('ult','Soul Siphon harvests a Soul, and every elite or boss that falls gives one. With '+SOUL_MAX+' Souls, unleash your ultimate in battle (key R). Choose one here; you can switch for free in town.','q-note')+'<div class="items">'
    +Object.keys(ULTS).map(id=>{ const U=ULTS[id], on=P.ult===id; return '<div class="tt-row'+(on?' on':'')+(P.lvl<ULT_LV?' off':'')+'"><div><h4>'+U.name+'</h4><div class="u-sub">'+U.desc+'</div></div>'
      +(on?'<span class="u-tag ok">Chosen</span>':'<button class="btn small primary" data-a="ult" data-k="'+id+'"'+(P.lvl<ULT_LV?' disabled':'')+'>Choose</button>')+'</div>'; }).join('')+'</div>';
   if(spent) h+='<div class="btns"><button class="btn small warn" data-a="skreset">'+(ui.confirm==='skreset'?'Press again to forget all skills':'Forget all skills ('+spent+' back)')+'</button></div>';
@@ -566,7 +578,7 @@ function memorialHTML(){   // the fallen, newest first, in a muted hand; honouri
   const M=S.memorial||[], town=S.mode==='town', list=ui.memAll?M:M.slice(0,MEM_SHOW);
   let h='<section class="win mem-w" aria-labelledby="h-mem"><h2 class="win-h" id="h-mem">Memorial'+(M.length?' &middot; '+M.length:'')+'</h2><h3 class="win-title">Every name in this book answered to you</h3>';
   if(!M.length) return h+'<p class="lede">No name has been lost yet.</p></section>';
-  h+='<p class="q-note">The Ledger keeps the names of those lost for good, shattered after a fight or fallen on a raid. The released are not written here.</p>'
+  h+=brief('mem','The Ledger keeps the names of those lost for good, shattered after a fight or fallen on a raid. The released are not written here.','q-note')
    +(remembered()?'<p class="q-note ok mem-hon">Honoured today: <b>'+S.honor.nick+'</b>. Your army is Remembered until dawn.</p>'
      :M.some(e=>e.st>=1)?'<p class="q-note">Once a day, in town, you may honour one of the Greater or older: the living army has +'+Math.round(MEM_HP*100)+'% max HP until dawn.</p>':'');
   h+=mausNote();

@@ -100,7 +100,7 @@ const ACTIONS={
   selltier:k=>{ const t=+k; if(ui.confirm!=='st'+t){ ui.confirm='st'+t; return; } ui.confirm=null; const r=sellTier(t); ui.msg=r&&r.n?{mk:1,m:'Sold '+r.n+' '+TIERS[t]+' piece'+(r.n>1?'s':'')+' for '+r.g+' gold.',c:'ok'}:null; },
   salvtier:k=>{ const t=+k; if(ui.confirm!=='sv'+t){ ui.confirm='sv'+t; return; } ui.confirm=null; const r=salvageTier(t); ui.msg=r&&r.n?{mk:1,m:'Salvaged '+r.n+' '+TIERS[t]+' piece'+(r.n>1?'s':'')+' into '+r.d+' bone dust.',c:'ok'}:null; },
   junk:()=>{ if(ui.confirm!=='junk'){ ui.confirm='junk'; return; } ui.confirm=null; const r=sellJunk(); ui.msg=r&&r.n?{mk:1,m:'Sold '+r.n+' piece'+(r.n>1?'s':'')+' of junk for '+r.g+' gold.',c:'ok'}:null; },
-  sellitem:k=>{ if(ui.confirm!=='si'+k){ ui.confirm='si'+k; return; } ui.confirm=null; const it=S.inv.find(x=>x.u===+k), nm=it&&ITEM[it.id].name, g=sellItem(+k); ui.msg=g?{mk:1,m:'Sold '+nm+' for '+g+' gold.',c:'ok'}:null; }, skreset:()=>{ if(ui.confirm==='skreset'){ ui.confirm=null; resetSkills(); } else ui.confirm='skreset'; }, claim:()=>claimQuest(), dismiss:()=>{ S.notices=currentTip()?S.notices.filter(n=>n.c==='story'):[]; },   /* story notes hidden under a tip were not seen yet */
+  sellitem:k=>{ if(ui.confirm!=='si'+k){ ui.confirm='si'+k; return; } ui.confirm=null; const it=S.inv.find(x=>x.u===+k), nm=it&&ITEM[it.id].name, g=sellItem(+k); ui.msg=g?{mk:1,m:'Sold '+nm+' for '+g+' gold.',c:'ok'}:null; }, skreset:()=>{ if(ui.confirm==='skreset'){ ui.confirm=null; resetSkills(); } else ui.confirm='skreset'; }, claim:()=>claimQuest(), notesall:()=>{ ui.notesAll=!ui.notesAll; }, dismiss:()=>{ S.notices=currentTip()?S.notices.filter(n=>n.c==='story'):[]; },   /* story notes hidden under a tip were not seen yet */
   enter:k=>startRun(+k),
   pick:k=>{ const a=k.split('|'); ui.pick=(ui.pick&&ui.pick.uid===+a[0]&&ui.pick.slot===a[1])?null:{uid:+a[0],slot:a[1]}; },
   give:k=>{ const a=k.split('|'); giveGear(+a[0],+a[1]); ui.pick=null; },
@@ -143,6 +143,7 @@ document.addEventListener('click',e=>{
   if(ui.confirm!==null && !CONFIRM_ACTS.includes(a)) ui.confirm=null;
   ACTIONS[a]&&ACTIONS[a](b.dataset.k); settled();
 });
+document.addEventListener('toggle',e=>{ const d=e.target; if(d&&d.dataset&&d.dataset.det){ ui.det=ui.det||{}; ui.det[d.dataset.det]=d.open; } },true);   // a folded Details stays open across renders
 document.addEventListener('input',e=>{ if(e.target&&e.target.id==='cxq'){ ui.cxq=e.target.value.slice(0,40); settled(); return; } if(e.target&&e.target.id==='imp') ui.imp=e.target.value; if(e.target&&e.target.id==='rn') ui.rn=e.target.value; if(e.target&&e.target.id==='lrn') ui.lrn=e.target.value; });
 document.addEventListener('change',e=>{   // a dropdown with data-a works like a button whose data-k is the chosen value
   const sl=e.target&&e.target.tagName==='SELECT'&&e.target.dataset&&e.target.dataset.a; if(sl&&ACTIONS[sl]){ ACTIONS[sl](e.target.value); settled(); return; }

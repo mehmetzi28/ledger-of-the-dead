@@ -739,3 +739,28 @@ Object.assign(GLYPH,{
  i_greatsword:'<path d="M16 0l4 22-4 3-4-3z"/><rect x="7" y="21" width="18" height="3.5" rx="1"/><rect x="14.5" y="24" width="3" height="6"/><path class="cs" d="M16 4v16"/>'
 });
 
+// Stat glyphs: a small worn mark per stat, so compact lines read as mark + number. The word stays in title and aria-label (trDom lays Turkish over both).
+const SG_PATH={
+ hp:'<path d="M5 9C1.5 6.5.5 4.6.9 3.1 1.4 1.3 3.6.9 5 2.6 6.4.9 8.6 1.3 9.1 3.1 9.5 4.6 8.5 6.5 5 9Z"/>',
+ atk:'<path d="M9.2.8L8.8 3.2 4.3 7.5 2.6 5.8 6.8 1.3Z"/><path d="M1.2 5.4l3.4 3.4-.8.8-3.4-3.4Z"/><path d="M1.6 7.6l.8.8-1.1 1.1-.8-.8Z"/><path class="k" d="M8.3 1.7L3.6 6.4"/>',
+ crit:'<path d="M5 .4l1 3.1 3.2-1.1-2 2.6 2.6 2-3.2.1L5 9.6 4.4 7.1l-3.2-.1 2.6-2-2-2.6 3.2 1.1Z"/><circle class="d" cx="5" cy="5" r="1"/>',
+ siph:'<path class="o" d="M8.4 2.6A4 4 0 1 0 8.6 7.3"/><path d="M9.4 8.2L8.9 5.6 6.6 7.2Z"/><path d="M5 3.2C4.2 4.4 3.6 5 3.6 5.8a1.4 1.4 0 0 0 2.8 0C6.4 5 5.8 4.4 5 3.2Z"/>',
+ mana:'<path d="M5 .8C3.4 3.3 2.2 4.7 2.2 6.2a2.8 2.8 0 0 0 5.6 0C7.8 4.7 6.6 3.3 5 .8Z"/><path class="k" d="M3.8 5.6c-.2.8.2 1.6 1 1.9"/>',
+ ward:'<path d="M5 .6L8.8 2v3.2C8.8 7.3 7.1 8.8 5 9.5 2.9 8.8 1.2 7.3 1.2 5.2V2Z"/><path class="k" d="M5 1.8v6.6M2.6 4.4h4.8"/>',
+ strength:'<path d="M2 3.4C2 2.6 2.6 2 3.4 2h3.4c.9 0 1.5.6 1.5 1.4v3.4c0 1.4-1 2.4-2.4 2.4H4C2.9 9.2 2 8.3 2 7.2Z"/><path class="k" d="M3.8 2.2v2.6M5.4 2.2v2.6M7 2.2v2.6M2.2 5.6h3.4"/>',
+ constitution:'<path class="o" d="M5 1v8.2M5 2.8C3.4 2.8 2.1 3.4 1.7 4.5M5 2.8c1.6 0 2.9.6 3.3 1.7M5 4.9C3.5 4.9 2.3 5.5 1.9 6.6M5 4.9c1.5 0 2.7.6 3.1 1.7M5 7C4 7 3.1 7.4 2.7 8.1M5 7c1 0 1.9.4 2.3 1.1"/>',
+ intelligence:'<path d="M5 2.4C3.6 1.5 2 1.4.6 1.8v6.4C2 7.8 3.6 7.9 5 8.8c1.4-.9 3-1 4.4-.6V1.8C8 1.4 6.4 1.5 5 2.4Z"/><path class="k" d="M5 2.6v6M1.8 3.4c.9-.1 1.8 0 2.4.4M1.8 5c.9-.1 1.8 0 2.4.4M5.8 3.8c.6-.4 1.5-.5 2.4-.4M5.8 5.4c.6-.4 1.5-.5 2.4-.4"/>',
+ will:'<path d="M5 .4C6.3 1.9 6.8 3 6.1 4.1 5.7 4.9 4.3 4.9 3.9 4.1 3.3 3 3.8 1.9 5 .4Z"/><rect x="3.6" y="5.2" width="2.8" height="4.2" rx=".4"/>',
+ raise:'<path d="M.6 8.4h8.8v1.2H.6Z"/><path d="M5 .8L8 4H6v3.8H4V4H2Z"/>',
+ mpow:'<path d="M5 .8C2.7.8 1.3 2.4 1.3 4.4c0 1.2.6 2.1 1.4 2.6v2.2h4.6V7c.8-.5 1.4-1.4 1.4-2.6C8.7 2.4 7.3.8 5 .8Z"/><circle class="d" cx="3.6" cy="4.6" r="1"/><circle class="d" cx="6.4" cy="4.6" r="1"/><path class="k" d="M4 7.6v1.4M5 7.6v1.4M6 7.6v1.4"/>',
+ matk:'<path class="o" d="M1.8 8.8L3.8 1.4M4.4 8.8L6.1 1.4M7 8.8L8.6 2.4"/>',
+ regen:'<path d="M4.4 1.2C3 3.4 2 4.6 2 5.9a2.4 2.4 0 0 0 4.8 0C6.8 4.6 5.8 3.4 4.4 1.2Z"/><path d="M7.6 5.6h.9v1.2h1.2v.9H8.5v1.2h-.9V7.7H6.4v-.9h1.2Z"/>',
+ slot:'<path d="M2 9.2V4C2 2.3 3.3 1 5 1s3 1.3 3 3v5.2Z"/><path class="k" d="M5 2.8v3.6M3.7 4h2.6"/>',
+ pierce:'<path class="o" d="M1.2 8.8L8.2 1.8M5.6 1.6h2.8v2.8M3 4.4l2.6 2.6"/>',
+ dr:'<path d="M5 .6L8.8 2v3.2C8.8 7.3 7.1 8.8 5 9.5 2.9 8.8 1.2 7.3 1.2 5.2V2Z"/><path class="k" d="M5.6 1.4L4.2 4.2l1.9 1.3-1.5 3.4"/>',
+ heal:'<path d="M3.8 1h2.4v2.8H9v2.4H6.2V9H3.8V6.2H1V3.8h2.8Z"/>',
+ skill:'<path class="o" d="M5 .8L7.5 9 1 3.9h8L2.5 9Z"/>'
+};
+const SG_WORD={pierce:'Armor pierce',dr:'Damage taken',heal:'Healing received',skill:'Skill damage',matk:'Minion attack'};
+const sgl=(k,lab)=>{ lab=lab||SG_WORD[k]||(STATL[k]&&STATL[k][0])||k; return '<span class="sg sg-'+k+'" role="img" title="'+lab+'" aria-label="'+lab+'"><svg viewBox="0 0 10 10" aria-hidden="true">'+(SG_PATH[k]||'')+'</svg></span>'; };
+const statG=(k,v)=>'<span class="sv">'+sgl(k)+(v>0?'+':'&minus;')+Math.abs(v)+STATL[k][1]+'</span>';   // item lines: mark and signed number

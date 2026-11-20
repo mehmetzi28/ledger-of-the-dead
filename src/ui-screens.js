@@ -196,8 +196,8 @@ function minionCard(m,canRelease,where){
    +traitChips(m)
    +'<div class="m-links"><button class="linkbtn" data-a="mdet" data-k="'+m.uid+'" aria-expanded="'+(ui.mdet===m.uid)+'">'+(ui.mdet===m.uid?'Hide details':'Details')+'</button>'+rowBtn(m,'linkbtn',f=>f?'Move to back':'Move to front')+(canRelease&&S.mode!=='battle'&&ui.rename!==m.uid?'<button class="linkbtn" data-a="renameo" data-k="'+m.uid+'">Rename</button>':'')+'</div>'
    +(ui.mdet===m.uid?minionDetail(m):'')+'</div></div>'
-   +'<div class="bars"><div class="meter"><div class="m-top"><span>HP</span><span class="num">'+m.hp+'/'+m.maxHp+'</span></div><div class="bar"><i class="fill hp" style="width:'+pct(m.hp,m.maxHp)+'%"></i></div></div>'
-   +'<div class="meter"><div class="m-top"><span>Lv '+m.lvl+' &middot; ATK '+m.atk+'</span><span class="num">'+(capped?'cap':m.xp+'/'+nx)+'</span></div><div class="bar"><i class="fill xp" style="width:'+(capped?100:pct(m.xp,nx))+'%"></i></div></div></div></div>'
+   +'<div class="bars"><div class="meter"><div class="m-top"><span>'+sgl('hp','HP')+'</span><span class="num">'+m.hp+'/'+m.maxHp+'</span></div><div class="bar"><i class="fill hp" style="width:'+pct(m.hp,m.maxHp)+'%"></i></div></div>'
+   +'<div class="meter"><div class="m-top"><span>Lv '+m.lvl+' &middot; '+sgl('atk','ATK')+m.atk+'</span><span class="num">'+(capped?'cap':m.xp+'/'+nx)+'</span></div><div class="bar"><i class="fill xp" style="width:'+(capped?100:pct(m.xp,nx))+'%"></i></div></div></div></div>'
    +(canRelease?'<div class="m-acts">'+moveActs(m,where)+'<button class="btn small warn" data-a="release" data-k="'+m.uid+'">'+(conf?'Confirm release':'Release')+'</button></div>':'<span></span>')
    +(where==='res'&&ui.swap===m.uid&&S.mode==='town'?swapPick(m):'')
    +(m.armed?gearRowHTML(m,canRelease):'')+'</div>';
@@ -213,14 +213,14 @@ function minionRow(m,canRelease,where){   // the compact army list: one line per
   const tip=m.nick+', '+theName(mName(m))+' &middot; '+ROLES[m.role].label+(tags.length?' &middot; '+tags.join(', '):''), conf=ui.confirm===m.uid;
   return '<div class="mrow">'+ico(m.kind||m.name,m.rankI,m)+'<span class="rk r'+m.rankI+'">'+RANKS[m.rankI]+'</span>'
    +'<span class="mr-name" title="'+tip+'"><b style="'+(m.elite?'color:var(--gold)':'')+'">'+m.nick+'</b>'+(cmd?' <span class="mr-mk" title="Commander: can lead raids">Cmdr</span>':'')+(m.wall?' <span class="mr-mk" title="On the wall: back to the Reserve after the siege">Wall</span>':'')+' <span class="dim">'+theName(mName(m))+'</span></span>'
-   +'<span class="u-tag mr-role">'+ROLES[m.role].label+(m.armed?' &middot; Armed':'')+'</span><span class="num mr-st">Lv '+m.lvl+' &middot; ATK '+m.atk+'</span>'
+   +'<span class="u-tag mr-role">'+ROLES[m.role].label+(m.armed?' &middot; Armed':'')+'</span><span class="num mr-st">Lv '+m.lvl+' &middot; '+sgl('atk','ATK')+m.atk+'</span>'
    +'<span class="mr-hp'+(low?' low':'')+'"><span class="bar"><i class="fill hp" style="width:'+pct(m.hp,m.maxHp)+'%"></i></span><span class="num">'+m.hp+'/'+m.maxHp+'</span></span>'
    +'<span class="mr-acts">'+rowBtn(m,'btn small',f=>f?'Front':'Back')+'<button class="btn small" data-a="mdet" data-k="'+m.uid+'" aria-expanded="false" aria-label="Details: '+m.nick+'" title="Details">Info</button>'
    +(canRelease?(where==='res'?'':'<button class="btn small" data-a="renameo" data-k="'+m.uid+'" aria-label="Rename: '+m.nick+'" title="Rename">Name</button>')+moveActs(m,where,true)+'<button class="btn small warn" data-a="release" data-k="'+m.uid+'" aria-label="'+(conf?'Confirm release':'Release')+': '+m.nick+'" title="'+(conf?'Press again to release':'Release')+'">'+(conf?'Sure?':'Release')+'</button>':'')+'</span></div>';
 }
 function gearRowHTML(m,can){
   const g=gearBonus(m), pk=ui.pick&&ui.pick.uid===m.uid?ui.pick.slot:null;
-  let h='<div class="gear-row"><div class="gear-h"><span class="u-tag">Gear-bearer</span><span class="u-sub">'+((g.atk||g.hp||g.mpow)?'Gear gives +'+g.atk+' ATK, +'+g.hp+' HP'+(g.mpow?', +'+g.mpow+'% power':''):'Equip it from your bag. Gear returns to the bag if it is released or shattered.')+'</span></div><div class="gear-slots">';
+  let h='<div class="gear-row"><div class="gear-h"><span class="u-tag">Gear-bearer</span><span class="u-sub">'+((g.atk||g.hp||g.mpow)?'Gear gives <span class="sv">'+sgl('atk','ATK')+'+'+g.atk+'</span> <span class="sv">'+sgl('hp','HP')+'+'+g.hp+'</span>'+(g.mpow?' '+statG('mpow',g.mpow):''):'Equip it from your bag. Gear returns to the bag if it is released or shattered.')+'</span></div><div class="gear-slots">';
   GEAR_SLOTS.forEach(sl=>{
     const it=m.eq&&m.eq[sl], d=it&&ITEM[it.id];
     h+=d?'<div class="gslot t'+d.tier+'">'+iico(d)+'<div class="gs-b"><b>'+d.name+'</b><small>'+SLOTS[sl]+'</small></div>'+(can?'<button class="btn small" data-a="take" data-k="'+m.uid+'|'+sl+'">Remove</button>':'')+'</div>'
@@ -278,12 +278,12 @@ function reserveHTML(view){   // the bench under the army, in town once the Town
   return '<div class="reserve" role="region" aria-labelledby="h-res"><h3 class="res-h" id="h-res">Reserve '+R0.length+'/'+reserveMax()+'</h3>'
    +(R0.length>1?'<div class="bag-tools">Order: '+Object.keys(ARMY_SORTS).map(k=>'<button class="linkbtn" data-a="rsort" data-k="'+k+'" aria-label="Order the Reserve: '+ARMY_SORTS[k]+'">'+ARMY_SORTS[k]+'</button>').join('')+'</div>':'')
    +(R.length?'<div class="army'+(compact?' compact':'')+'">'+R.map(m=>compact&&ui.mdet!==m.uid&&ui.rename!==m.uid&&ui.swap!==m.uid?minionRow(m,true,'res'):minionCard(m,true,'res')).join('')+'</div>'
-     :R0.length?'<p class="u-sub">No minion matches the filter.</p>':'<p class="u-sub">A bench for minions you keep but do not take along. They do not fight, take damage or earn XP, and keep their gear. Moving one in or out is free, in town.</p>')+'</div>';
+     :R0.length?'<p class="u-sub">No minion matches the filter.</p>':brief('res','A bench for minions you keep but do not take along. They do not fight, take damage or earn XP, and keep their gear. Moving one in or out is free, in town.','u-sub'))+'</div>';
 }
 function gateWaitHTML(){   // raiders home when both the army and the Reserve were full: nobody is lost, they wait here
   const W=S.waiting||[]; if(S.mode!=='town'||!W.length) return '';
   return '<div class="note bad gate-wait"><i>Waiting</i><span>Back from a raid, with no room in your army or the Reserve. Make room, or let one go.</span></div><div class="army">'
-   +W.map(m=>{ const conf=ui.confirm===m.uid; return '<div class="mrow wait-row">'+ico(m.kind||m.name,m.rankI,m)+'<span class="rk r'+m.rankI+'">'+RANKS[m.rankI]+'</span><span class="mr-name"><b>'+m.nick+'</b> <span class="dim">'+theName(mName(m))+'</span></span><span class="num mr-st">Lv '+m.lvl+' &middot; ATK '+m.atk+'</span>'
+   +W.map(m=>{ const conf=ui.confirm===m.uid; return '<div class="mrow wait-row">'+ico(m.kind||m.name,m.rankI,m)+'<span class="rk r'+m.rankI+'">'+RANKS[m.rankI]+'</span><span class="mr-name"><b>'+m.nick+'</b> <span class="dim">'+theName(mName(m))+'</span></span><span class="num mr-st">Lv '+m.lvl+' &middot; '+sgl('atk','ATK')+m.atk+'</span>'
      +'<span class="mr-acts"><button class="btn small" data-a="gatearmy" data-k="'+m.uid+'" aria-label="To army: '+m.nick+'"'+(armyRoom()?'':' disabled title="Your army is full"')+'>Army</button>'
      +'<button class="btn small" data-a="gateres" data-k="'+m.uid+'" aria-label="To reserve: '+m.nick+'"'+(reserveRoom()?'':' disabled title="The Reserve is full"')+'>Bench</button>'
      +'<button class="btn small warn" data-a="release" data-k="'+m.uid+'" aria-label="'+(conf?'Confirm release':'Release')+': '+m.nick+'">'+(conf?'Sure?':'Release')+'</button></span></div>'; }).join('')+'</div>';
@@ -334,7 +334,7 @@ function quickGearHTML(){   // the bag's best pieces for you or one gear-bearer,
    +avBtn('aqt','p','You',!who)+bearers.map(m=>avBtn('aqt',m.uid,m.nick,who===m)).join('')+'</div>';
   if(!S.inv.length) return h+'<p class="u-sub">Your bag is empty.</p></section>';
   const row=(it,cmp,act)=>{ const d=ITEM[it.id]; return '<div class="qg-row t'+d.tier+'">'+iico(d)+'<div class="qg-b"><span class="i-name">'+d.name+'</span> <span class="i-tag">'+TIERS[d.tier]+' &middot; '+SLOTS[d.slot]+'</span>'+cmp+'</div>'+act+'</div>'; };
-  const sgn=(v,l)=>'<span class="'+(v>0?'up':'down')+'">'+(v>0?'+':'&minus;')+Math.abs(v)+' '+l+'</span>';
+  const sgn=(v,l)=>'<span class="'+(v>0?'up':'down')+'"><span class="sv">'+sgl(l==='HP'?'hp':'atk',l)+(v>0?'+':'&minus;')+Math.abs(v)+'</span></span>';
   let rows;
   if(!who) rows=sortedBag().slice(0,QG_N).map(it=>row(it,cmpHTML(it),'<button class="btn small primary" data-a="equip" data-k="'+it.u+'">'+(S.equip[ITEM[it.id].slot]?'Swap':'Equip')+'</button>'));
   else rows=S.inv.map(it=>({it,d:gearDelta(who,it)})).sort((a,b)=>(b.d.atk*2+b.d.hp/4)-(a.d.atk*2+a.d.hp/4)).slice(0,QG_N).map(x=>{ const cur=who.eq&&who.eq[ITEM[x.it.id].slot], ch=[x.d.atk?sgn(x.d.atk,'ATK'):'',x.d.hp?sgn(x.d.hp,'HP'):''].join('');
@@ -346,7 +346,7 @@ function markPickHTML(){   // minions with a mark choice waiting: one press pick
   return '<section class="win" aria-labelledby="h-mark"><h2 class="win-h" id="h-mark">Marks</h2><div class="evo-list">'+L.map(m=>{ const c=m.marks||[];
     return '<div class="mark-row"><span class="mr-name"><b>'+m.nick+'</b> <span class="dim">'+theName(mName(m))+'</span></span><div class="chips">'+markOpts(m).map(k=>{ const emp=c.includes(k), x=MARK[k].v*(emp?2:1);
       return '<button class="btn small" data-a="mark" data-k="'+m.uid+'|'+k+'" title="'+MARK[k].desc(x)+'">'+(emp?'Empower '+MARK[k].name:c.length?'Take '+MARK[k].name:MARK[k].name)+'</button>'; }).join('')+'</div></div>'; }).join('')
-   +'</div><p class="u-sub">At Elder a minion takes one of two marks; at Eternal it empowers that mark (its numbers doubled) or takes the other.</p></section>';
+   +'</div>'+brief('marks','At Elder a minion takes one of two marks; at Eternal it empowers that mark (its numbers doubled) or takes the other.','u-sub')+'</section>';
 }
 function evoHTML(){   // how close each minion is to its next form, nearest first
   const L=raidPool().filter(m=>evoNext(m)!=null).sort((a,b)=>(evoNext(a)-a.lvl)-(evoNext(b)-b.lvl)); if(!L.length) return '';

@@ -153,6 +153,17 @@ kbd{font:500 10px var(--font-data);border:1px solid currentColor;padding:1px 4px
 .note.ok{border-left-color:var(--soul)} .note.ok i{color:var(--ok)}
 .note.bad{border-left-color:var(--blood)} .note.bad i{color:var(--blood-text)}
 .notes{display:flex;flex-direction:column;gap:8px}
+.note-acts{display:flex;flex-wrap:wrap;gap:4px 16px}
+/* folds (detl in ui-panels.js): one short line, the rest behind Details; keyboard opens it like any button */
+details.more>summary{cursor:pointer;list-style:none}details.more>summary::-webkit-details-marker{display:none}
+details.more>summary:focus-visible{outline:1px solid var(--trim-hi,#a8843f);outline-offset:2px}
+.more-l,.more-h{font:600 10.5px/1 var(--font-head);letter-spacing:.12em;text-transform:uppercase;color:var(--brass);margin-left:4px;white-space:nowrap}
+.more-h,details.more[open]>summary .more-l,details.more[open]:not(.keep)>summary .more-1{display:none}details.more[open]>summary .more-h{display:inline}
+.more-b{margin-top:3px}
+.sdesc>summary .more-l,.sdesc>summary .more-h{display:none!important}.sdesc>summary::after{content:'\25BE';color:var(--brass);font-size:11px;margin-left:5px}.sdesc[open]>summary::after{content:'\25B4'}
+.sdesc>summary b{display:inline}.st-g{margin-left:6px;white-space:nowrap}.st-g .sg{width:.95em;height:.95em}
+.sdesc .more-b small{display:block}
+.derived .sg{display:flex;width:16px;height:16px;margin-bottom:6px}
 
 /* gates */
 .gates{display:flex;flex-direction:column;gap:10px}
@@ -900,6 +911,14 @@ mark.cx-hit{background:rgba(211,166,77,.26);color:inherit;border-bottom:1px soli
 .ico svg.tmark{width:auto!important;height:7px!important;overflow:visible}
 .pg{width:.85em;height:.85em;margin-right:3px;vertical-align:-.08em;fill:currentColor;opacity:.92}
 .pg .pgs{fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+/* stat glyphs (sg in ui-icons.js): a worn mark in the stat's natural colour, the number after it */
+.sg{display:inline-flex;width:1.05em;height:1.05em;margin-right:2px;vertical-align:-.17em;color:var(--mute);filter:drop-shadow(0 1px 0 rgba(0,0,0,.7))}
+.sg svg{width:100%;height:100%;fill:currentColor;opacity:.9}
+.sg .k{fill:none;stroke:rgba(10,8,6,.62);stroke-width:.7;stroke-linecap:round}.sg .d{fill:rgba(10,8,6,.75)}
+.sg .o{fill:none;stroke:currentColor;stroke-width:1.25;stroke-linecap:round;stroke-linejoin:round}
+.sg-hp{color:#b8483a}.sg-atk,.sg-pierce,.sg-matk{color:#b9b0a0}.sg-crit{color:#d9a24c}.sg-siph{color:#a9c98a}.sg-mana,.sg-regen,.sg-raise,.sg-heal{color:#8fbf72}
+.sg-ward,.sg-constitution,.sg-mpow{color:#d6ccb2}.sg-strength{color:#c4825a}.sg-intelligence{color:#b9a27a}.sg-will{color:#e08a3c}.sg-slot,.sg-dr{color:#9a8f81}.sg-skill{color:#d3a64d}
+.sv{white-space:nowrap}
 @media (max-width:540px){.goal-list li{grid-template-columns:1fr}.goal-list .btn{justify-self:start}}
 .trait.bond{border-color:var(--gold);color:var(--gold)}.trait.mood-v{border-color:var(--blood);color:var(--blood-text)}.trait.mood-g{border-color:var(--line);color:var(--mute)}   /* bonds */
 /* front and back rows in battle: a small label over each row */
@@ -5245,6 +5264,28 @@ function fxFlush(){
 // numbers as # (so "Lv 12 · ATK 40" finds "Lv # · ATK #"), split on " · ", ", " and ": " when the whole is unknown,
 // and left in English when no piece is known. Names of places, foes and items stay as they are.
 const TR_DICT=new Map(Object.entries({
+"# army slot per level":"# ordu yeri, her seviye için",
+"# trophies from one gate (a boss heart counts as #) and a little gold forge that gate's gear in the slot you pick":"Bir kapıdan # ganimet (bir boss kalbi # sayılır) ve biraz altın, seçtiğin yuvada o kapının teçhizatını döver",
+"A bench for minions you keep but do not take along":"Tutup yanına almadığın hizmetkârlar için bir yedek sırası",
+"Armor pierce":"Zırh delme",
+"Build up the necropolis":"Nekropolü inşa et",
+"Each dungeon you enter uses a watch":"Girdiğin her zindan bir nöbet harcar",
+"Gear gives":"Teçhizattan",
+"Healing received":"Alınan iyileşme",
+"Minion attack":"Hizmetkâr saldırısı",
+"Skill damage":"Yetenek hasarı",
+"Next":"Sonraki",
+"Pour gold on the altar to raise a minion one level at once":"Bir hizmetkârı bir anda bir seviye yükseltmek için sunağa altın dök",
+"Show all (#)":"Tümünü göster (#)",
+"Show fewer":"Daha azını göster",
+"Soul Siphon harvests a Soul, and every elite or boss that falls gives one":"Ruh Emme bir Ruh toplar ve düşen her seçkin ya da boss bir tane verir",
+"Swear an oath":"Bir ant iç",
+"The dead pay well for what the living leave behind":"Ölüler, yaşayanların geride bıraktığına iyi para öder",
+"Two minions of the same role become one":"Aynı roldeki iki hizmetkâr bir olur",
+"Up to # contracts; a new one goes up each dawn while there is room":"En fazla # sözleşme; yer oldukça her şafak yenisi asılır",
+"You earn one skill point each level":"Her seviyede bir yetenek puanı kazanırsın",
+"The Ledger keeps the names of those lost for good, shattered after a fight or fallen on a raid":"Defter, sonsuza dek kaybedilenlerin, bir dövüşten sonra parçalananların ya da bir akında düşenlerin adlarını saklar",
+"A separate climb from the gates":"Kapılardan ayrı bir tırmanış",
 "Mastery":"Ustalık",
 "Studied":"İncelendi",
 "Known":"Tanındı",
@@ -5838,7 +5879,6 @@ const TR_DICT=new Map(Object.entries({
 "Gear":"Teçhizat",
 "Gear can roll extra stat lines, shown in green under its base stats. Each line raises the sell price. Reforge (Gear tab) re-rolls them for gold":"Teçhizatta temel niteliklerin altında yeşil gösterilen ek nitelik satırları çıkabilir. Her satır satış fiyatını artırır. Yeniden dövme (Teçhizat sekmesi) onları altınla yeniden belirler",
 "Gear found":"Bulunan teçhizat",
-"Gear gives +# ATK, +# HP":"Teçhizat +# SAL, +# Can verir",
 "Gear is locked while you fight":"Dövüşürken teçhizat kilitli",
 "Gear sells for a quarter of the merchant price, plus a quarter more per bonus line":"Teçhizat tüccar fiyatının dörtte birine satılır, ek satır başına dörtte bir daha",
 "Gear you will not wear can be salvaged into bone dust on the Gear tab. Dust enchants gear (add or re-roll a bonus line) and builds the higher levels of town buildings":"Giymeyeceğin teçhizat Teçhizat sekmesinde kemik tozuna parçalanabilir. Toz teçhizatı büyüler (ek satır ekler ya da yeniden belirler) ve kasaba binalarının yüksek seviyelerini inşa eder",
@@ -8375,6 +8415,31 @@ Object.assign(GLYPH,{
  i_greatsword:'<path d="M16 0l4 22-4 3-4-3z"/><rect x="7" y="21" width="18" height="3.5" rx="1"/><rect x="14.5" y="24" width="3" height="6"/><path class="cs" d="M16 4v16"/>'
 });
 
+// Stat glyphs: a small worn mark per stat, so compact lines read as mark + number. The word stays in title and aria-label (trDom lays Turkish over both).
+const SG_PATH={
+ hp:'<path d="M5 9C1.5 6.5.5 4.6.9 3.1 1.4 1.3 3.6.9 5 2.6 6.4.9 8.6 1.3 9.1 3.1 9.5 4.6 8.5 6.5 5 9Z"/>',
+ atk:'<path d="M9.2.8L8.8 3.2 4.3 7.5 2.6 5.8 6.8 1.3Z"/><path d="M1.2 5.4l3.4 3.4-.8.8-3.4-3.4Z"/><path d="M1.6 7.6l.8.8-1.1 1.1-.8-.8Z"/><path class="k" d="M8.3 1.7L3.6 6.4"/>',
+ crit:'<path d="M5 .4l1 3.1 3.2-1.1-2 2.6 2.6 2-3.2.1L5 9.6 4.4 7.1l-3.2-.1 2.6-2-2-2.6 3.2 1.1Z"/><circle class="d" cx="5" cy="5" r="1"/>',
+ siph:'<path class="o" d="M8.4 2.6A4 4 0 1 0 8.6 7.3"/><path d="M9.4 8.2L8.9 5.6 6.6 7.2Z"/><path d="M5 3.2C4.2 4.4 3.6 5 3.6 5.8a1.4 1.4 0 0 0 2.8 0C6.4 5 5.8 4.4 5 3.2Z"/>',
+ mana:'<path d="M5 .8C3.4 3.3 2.2 4.7 2.2 6.2a2.8 2.8 0 0 0 5.6 0C7.8 4.7 6.6 3.3 5 .8Z"/><path class="k" d="M3.8 5.6c-.2.8.2 1.6 1 1.9"/>',
+ ward:'<path d="M5 .6L8.8 2v3.2C8.8 7.3 7.1 8.8 5 9.5 2.9 8.8 1.2 7.3 1.2 5.2V2Z"/><path class="k" d="M5 1.8v6.6M2.6 4.4h4.8"/>',
+ strength:'<path d="M2 3.4C2 2.6 2.6 2 3.4 2h3.4c.9 0 1.5.6 1.5 1.4v3.4c0 1.4-1 2.4-2.4 2.4H4C2.9 9.2 2 8.3 2 7.2Z"/><path class="k" d="M3.8 2.2v2.6M5.4 2.2v2.6M7 2.2v2.6M2.2 5.6h3.4"/>',
+ constitution:'<path class="o" d="M5 1v8.2M5 2.8C3.4 2.8 2.1 3.4 1.7 4.5M5 2.8c1.6 0 2.9.6 3.3 1.7M5 4.9C3.5 4.9 2.3 5.5 1.9 6.6M5 4.9c1.5 0 2.7.6 3.1 1.7M5 7C4 7 3.1 7.4 2.7 8.1M5 7c1 0 1.9.4 2.3 1.1"/>',
+ intelligence:'<path d="M5 2.4C3.6 1.5 2 1.4.6 1.8v6.4C2 7.8 3.6 7.9 5 8.8c1.4-.9 3-1 4.4-.6V1.8C8 1.4 6.4 1.5 5 2.4Z"/><path class="k" d="M5 2.6v6M1.8 3.4c.9-.1 1.8 0 2.4.4M1.8 5c.9-.1 1.8 0 2.4.4M5.8 3.8c.6-.4 1.5-.5 2.4-.4M5.8 5.4c.6-.4 1.5-.5 2.4-.4"/>',
+ will:'<path d="M5 .4C6.3 1.9 6.8 3 6.1 4.1 5.7 4.9 4.3 4.9 3.9 4.1 3.3 3 3.8 1.9 5 .4Z"/><rect x="3.6" y="5.2" width="2.8" height="4.2" rx=".4"/>',
+ raise:'<path d="M.6 8.4h8.8v1.2H.6Z"/><path d="M5 .8L8 4H6v3.8H4V4H2Z"/>',
+ mpow:'<path d="M5 .8C2.7.8 1.3 2.4 1.3 4.4c0 1.2.6 2.1 1.4 2.6v2.2h4.6V7c.8-.5 1.4-1.4 1.4-2.6C8.7 2.4 7.3.8 5 .8Z"/><circle class="d" cx="3.6" cy="4.6" r="1"/><circle class="d" cx="6.4" cy="4.6" r="1"/><path class="k" d="M4 7.6v1.4M5 7.6v1.4M6 7.6v1.4"/>',
+ matk:'<path class="o" d="M1.8 8.8L3.8 1.4M4.4 8.8L6.1 1.4M7 8.8L8.6 2.4"/>',
+ regen:'<path d="M4.4 1.2C3 3.4 2 4.6 2 5.9a2.4 2.4 0 0 0 4.8 0C6.8 4.6 5.8 3.4 4.4 1.2Z"/><path d="M7.6 5.6h.9v1.2h1.2v.9H8.5v1.2h-.9V7.7H6.4v-.9h1.2Z"/>',
+ slot:'<path d="M2 9.2V4C2 2.3 3.3 1 5 1s3 1.3 3 3v5.2Z"/><path class="k" d="M5 2.8v3.6M3.7 4h2.6"/>',
+ pierce:'<path class="o" d="M1.2 8.8L8.2 1.8M5.6 1.6h2.8v2.8M3 4.4l2.6 2.6"/>',
+ dr:'<path d="M5 .6L8.8 2v3.2C8.8 7.3 7.1 8.8 5 9.5 2.9 8.8 1.2 7.3 1.2 5.2V2Z"/><path class="k" d="M5.6 1.4L4.2 4.2l1.9 1.3-1.5 3.4"/>',
+ heal:'<path d="M3.8 1h2.4v2.8H9v2.4H6.2V9H3.8V6.2H1V3.8h2.8Z"/>',
+ skill:'<path class="o" d="M5 .8L7.5 9 1 3.9h8L2.5 9Z"/>'
+};
+const SG_WORD={pierce:'Armor pierce',dr:'Damage taken',heal:'Healing received',skill:'Skill damage',matk:'Minion attack'};
+const sgl=(k,lab)=>{ lab=lab||SG_WORD[k]||(STATL[k]&&STATL[k][0])||k; return '<span class="sg sg-'+k+'" role="img" title="'+lab+'" aria-label="'+lab+'"><svg viewBox="0 0 10 10" aria-hidden="true">'+(SG_PATH[k]||'')+'</svg></span>'; };
+const statG=(k,v)=>'<span class="sv">'+sgl(k)+(v>0?'+':'&minus;')+Math.abs(v)+STATL[k][1]+'</span>';   // item lines: mark and signed number
 // ----- item icons + cards
 Object.assign(GLYPH,{
  i_wa:'<path d="M16 1l3.5 15-3.5 3-3.5-3z"/><rect x="9" y="17" width="14" height="3" rx="1"/><rect x="14.5" y="20" width="3" height="8"/><circle cx="16" cy="29.5" r="2"/>',
@@ -8394,23 +8459,27 @@ const TIER_MARK=TIERS.map((n,t)=>'<svg class="tmark" viewBox="0 0 '+(t>=5?8:t*5+
 function iico(d){ const set=!d.uq&&!d.tower&&RANKS[d.set]!=null, g=iglyph(d), M=IMAT[g]||['metal',ITEM_HUE[d.slot]||'#6a655c'];   // each gate's set has its own metal and its rank letter in the corner; each piece its own shape and material
   return '<span class="ico t'+d.tier+(set?' s'+d.set:'')+'" aria-hidden="true"><svg viewBox="0 0 64 64" class="mt-'+M[0]+'" style="color:'+M[1]+'"><g filter="url(#paint)">'+(IC[g]||IC._)+'</g>'+(d.tier>=4?GLINT:'')+'</svg>'+(set?'<span class="rb gl r'+d.set+'">'+RANKS[d.set]+'</span>':'')+(TIER_MARK[d.tier]||'')+'</span>'; }
 const statTxt=(k,v)=>(v>0?'+':'&minus;')+Math.abs(v)+STATL[k][1]+' '+STATL[k][0];
-function statsHTML(d,it){ return Object.keys(d.stats).filter(k=>d.stats[k]).map(k=>'<span>'+statTxt(k,d.stats[k])+'</span>').join('')
-  +((it&&it.ro)||[]).map(r=>'<span class="roll" title="Bonus line">'+statTxt(r[0],r[1])+'</span>').join(''); }
+function statsHTML(d,it){ return Object.keys(d.stats).filter(k=>d.stats[k]).map(k=>'<span>'+statG(k,d.stats[k])+'</span>').join('')
+  +((it&&it.ro)||[]).map(r=>'<span class="roll" title="Bonus line">'+statG(r[0],r[1])+'</span>').join(''); }
+// A fold for long text: a native <details>, so it opens from the keyboard; ui.det remembers it across renders (ui-input.js). With keep the summary
+// stays when open (a heading); without it the summary (a short line) gives way to the body, which holds the full text.
+const detl=(k,sum,body,cls,keep)=>'<details class="more'+(keep?' keep':'')+(cls?' '+cls:'')+'" data-det="'+k+'"'+(ui.det&&ui.det[k]?' open':'')+'><summary>'+(keep?sum:'<span class="more-1">'+sum+'</span>')+' <span class="more-l">Details</span><span class="more-h">Hide details</span></summary><div class="more-b">'+body+'</div></details>';
+function brief(k,t,cls){ const i=t.indexOf('. '), tg=cls==='u-sub'?'div':'p'; return i<0?'<'+tg+' class="'+(cls||'q-note')+'">'+t+'</'+tg+'>':detl(k,t.slice(0,i+1),t,cls||'q-note'); }   // the first sentence in view, the whole text one press away
 function cmpHTML(it){   // what wearing this would change, against what is in that slot now
   const d=ITEM[it.id], cur=S.equip[d.slot]; if(cur&&cur.u===it.u) return '';
   if(!cur) return '<div class="cmp">Your '+SLOTS[d.slot].toLowerCase()+' slot is empty.</div>';
   const a=itStats(it), b=itStats(cur), keys=[...new Set(Object.keys(a).concat(Object.keys(b)))].filter(k=>(a[k]||0)!==(b[k]||0));
-  return '<div class="cmp">vs '+ITEM[cur.id].name+': '+(keys.length?keys.map(k=>{ const v=(a[k]||0)-(b[k]||0); return '<span class="'+(v>0?'up':'down')+'">'+statTxt(k,v)+'</span>'; }).join(''):'<span>same stats</span>')+'</div>';
+  return '<div class="cmp">vs '+ITEM[cur.id].name+': '+(keys.length?keys.map(k=>{ const v=(a[k]||0)-(b[k]||0); return '<span class="'+(v>0?'up':'down')+'">'+statG(k,v)+'</span>'; }).join(''):'<span>same stats</span>')+'</div>';
 }
 function usetLine(d){ if(d.uset==null) return ''; const U=USET[d.uset], n=usetCount(d.uset), worn=id=>GEAR_SLOTS.some(sl=>S.equip[sl]&&S.equip[sl].id===id);
-  return '<div class="setl uset">Unique set: <b>'+U.name+'</b>'+(n?' ('+n+'/3 worn)':'')+' &middot; '+U.ids.map(id=>'<span class="'+(worn(id)?'on':'')+'">'+ITEM[id].name+'</span>').join(', ')
-   +'<br><span class="'+(n>=2?'on':'')+'">2: '+buffTxt(U.b[2])+'</span> &middot; <span class="'+(n>=3?'on':'')+'">3: '+buffTxt(U.b[3])+'</span></div>'; }
+  return detl('us'+d.uset,'Unique set: <b>'+U.name+'</b>'+(n?' ('+n+'/3 worn)':''),U.ids.map(id=>'<span class="'+(worn(id)?'on':'')+'">'+ITEM[id].name+'</span>').join(', ')
+   +'<br><span class="'+(n>=2?'on':'')+'">2: '+buffTxt(U.b[2])+'</span> &middot; <span class="'+(n>=3?'on':'')+'">3: '+buffTxt(U.b[3])+'</span>','setl uset',1); }
 function setLine(d){ if(d.tower||SET_NAMES[d.set]==null) return usetLine(d); const n=setCount(d.set), B=SET_BONUS[d.set];
-  return '<div class="setl">'+SET_NAMES[d.set]+' set'+(n?' ('+n+'/3 worn)':'')+': <span class="'+(n>=2?'on':'')+'">2: '+buffTxt(B[2])+'</span> &middot; <span class="'+(n>=3?'on':'')+'">3: '+buffTxt(B[3])+'</span></div>'+usetLine(d); }
+  return detl('gs'+d.set,SET_NAMES[d.set]+' set'+(n?' ('+n+'/3 worn)':''),'<span class="'+(n>=2?'on':'')+'">2: '+buffTxt(B[2])+'</span> &middot; <span class="'+(n>=3?'on':'')+'">3: '+buffTxt(B[3])+'</span>','setl',1)+usetLine(d); }
 function itemCard(it,acts,cmp){
   const d=ITEM[it.id];
   return '<div class="item t'+d.tier+'">'+iico(d)+'<div class="i-body"><div class="i-top"><span class="i-name">'+d.name+'</span><span class="i-tag">'+TIERS[d.tier]+' &middot; '+SLOTS[d.slot]+(!d.uq&&!d.tower&&RANKS[d.set]?'<span class="sr"> &middot; gate '+RANKS[d.set]+' set</span>':'')+(d.tower?' &middot; <span class="i-floor">Hell Tower '+d.floor+'</span>':'')+'</span></div>'
-   +'<div class="i-stats">'+statsHTML(d,it)+'</div>'+(d.flag?'<div class="i-fx">'+FLAGS[d.flag]+'</div>':'')+setLine(d)+(cmp?cmpHTML(it):'')+'</div><div class="i-acts">'+(acts||'')+'</div></div>';
+   +'<div class="i-stats">'+statsHTML(d,it)+'</div>'+(d.flag?detl('fx'+d.flag,FLAGS[d.flag].split(':')[0],FLAGS[d.flag],'i-fx'):'')+setLine(d)+(cmp?cmpHTML(it):'')+'</div><div class="i-acts">'+(acts||'')+'</div></div>';
 }
 const lockBtn=it=>'<button class="btn small lockb'+(it.lk?' on':'')+'" data-a="lock" data-k="'+it.u+'" aria-pressed="'+!!it.lk+'" title="'+(it.lk?'Locked: never sold, salvaged or discarded. Press to unlock.':'Lock it so it is never sold, salvaged or discarded')+'">'+(it.lk?'Locked':'Lock')+'</button>';
 const reforgeBtn=it=>ITEM[it.id].uq||S.mode!=='town'?'':'<button class="btn small" data-a="reforge" data-k="'+it.u+'"'+(S.gold<reforgeCost(it)?' disabled':'')+' title="Re-roll its bonus lines">Reforge &middot; '+gold(reforgeCost(it))+'</button>'+enchBtn(it);
@@ -8568,18 +8637,22 @@ function bestiaryHTML(){
 }
 
 // What one more point in a stat would change, worked out from the real formulas (shown next to each + button).
-function statGain(k){
+const GAIN_G={Strike:'atk','Max HP':'hp',Mana:'mana',Siphon:'siph',Ward:'ward',Slots:'slot',crit:'crit','armor pierce':'pierce','damage taken':'dr','healing received':'heal','skill damage':'skill','minion attack':'matk',raise:'raise',minions:'mpow'};
+const GAIN_W={Slots:'Army slots',crit:'Crit chance',raise:'Raise chance',minions:'Minion power'};   // the glyph's full word where the gain's own word is short
+function statGainList(k){   // [name, change, unit] for each thing one more point changes
   const P=S.player, f=()=>({Strike:pAtk(),'Max HP':pMax(),Mana:pMana(),Siphon:pSiph(),Ward:pWard(),Slots:slots()}),
     g=()=>({crit:strCrit(),'armor pierce':strPen()*100,'damage taken':-conDr(),'healing received':conHeal(),'skill damage':intSkill(),'minion attack':statMinion()});   // percent parts
   const a=f(), ga=g(); P.stats[k]++; const b=f(), gb=g(); P.stats[k]--;
-  const out=Object.keys(a).filter(x=>b[x]!==a[x]).map(x=>x+' +'+(b[x]-a[x]));
-  for(const x in ga){ const d=Math.round((gb[x]-ga[x])*100)/100; if(d) out.push(x+' '+(d>0?'+':'')+d+'%'); }
-  if(k==='will') out.push('raise +'+RAISE_WILL+'%','minions +2%');
-  return out.join(', ');
+  const out=Object.keys(a).filter(x=>b[x]!==a[x]).map(x=>[x,b[x]-a[x],'']);
+  for(const x in ga){ const d=Math.round((gb[x]-ga[x])*100)/100; if(d) out.push([x,d,'%']); }
+  if(k==='will') out.push(['raise',RAISE_WILL,'%'],['minions',2,'%']);
+  return out;
 }
+const statGain=k=>statGainList(k).map(([x,d,u])=>x+' '+(d>0?'+':'')+d+u).join(', ');
+const gainG=k=>statGainList(k).map(([x,d,u])=>'<span class="sv">'+sgl(GAIN_G[x],GAIN_W[x]||x[0].toUpperCase()+x.slice(1))+(d>0?'+':'')+d+u+'</span>').join(' ');
 function statusHTML(){
   const P=S.player, st=P.stats, ri=pRankI();
-  const rows=[['strength','Strength','Strike damage, crit chance, armor piercing, minion attack'],['constitution','Constitution','Max HP, damage taken, healing received'],['intelligence','Intelligence','Mana, Siphon, Ward, skill damage, minion attack'],['will','Will','Mana, army slots, raise odds, minion bond']];
+  const rows=[['strength','Strength','Strike damage, crit chance, armor piercing, minion attack',['atk','crit','pierce','matk']],['constitution','Constitution','Max HP, damage taken, healing received',['hp','dr','heal']],['intelligence','Intelligence','Mana, Siphon, Ward, skill damage, minion attack',['mana','siph','ward','skill','matk']],['will','Will','Mana, army slots, raise odds, minion bond',['mana','slot','raise','mpow']]];
   const canAlloc=P.pts>0&&S.mode!=='battle';
   return '<section class="win" aria-labelledby="h-status"><h2 class="win-h" id="h-status">Status</h2>'
    +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(faithOf()?'<div class="faith-l '+faithOf()+'">'+FAITH[faithOf()].name+'</div>':'')+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+'</div></div></div>'
@@ -8587,9 +8660,10 @@ function statusHTML(){
    +((P.pts>0||P.sp>0)?'<div class="chips">'+(P.pts>0?'<span class="chip">'+P.pts+' unspent point'+(P.pts>1?'s':'')+'</span>':'')+(P.sp>0?'<span class="chip">'+P.sp+' skill point'+(P.sp>1?'s':'')+'</span>':'')+'</div>':'')
    +(remembered()?'<div class="chips"><span class="chip mem-buff" title="Honoured a fallen minion today">Remembered: +'+Math.round(MEM_HP*100)+'% minion max HP until dawn</span></div>':'')
    +pactChipsHTML()
-   +'<div class="stats">'+rows.map(r=>'<div class="stat"><div><b>'+r[1]+'</b><small>'+r[2]+'</small>'+(canAlloc?'<small class="gain">Next point: '+statGain(r[0])+'</small>':'')+'</div><span class="val">'+st[r[0]]+(G(r[0])?'<small class="gb"> +'+G(r[0])+'</small>':'')+'</span>'
+   +'<div class="stats">'+rows.map(r=>'<div class="stat"><div>'+detl('st'+r[0],'<b>'+r[1]+'</b><span class="st-g">'+r[3].map(g=>sgl(g)).join('')+'</span>','<small>'+r[2]+'</small>'+(canAlloc?'<small>Next point: '+statGain(r[0])+'</small>':''),'sdesc',1)
+      +(canAlloc?'<small class="gain">Next: '+gainG(r[0])+'</small>':'')+'</div><span class="val">'+st[r[0]]+(G(r[0])?'<small class="gb"> +'+G(r[0])+'</small>':'')+'</span>'
       +(canAlloc?'<button class="plus" data-a="alloc" data-k="'+r[0]+'" aria-label="Add a point to '+r[1]+'">+</button>':'<span class="plus-slot"></span>')+'</div>').join('')+'</div>'
-   +'<div class="derived"><div><span>Strike</span><b>'+pAtk()+'</b></div><div><span>Siphon</span><b>'+pSiph()+'</b></div><div><span>Slots</span><b>'+slots()+'</b></div></div>'
+   +'<div class="derived"><div>'+sgl('atk')+'<b>'+pAtk()+'</b></div><div>'+sgl('siph')+'<b>'+pSiph()+'</b></div><div>'+sgl('slot')+'<b>'+slots()+'</b></div></div>'
    +'</section>';
 }
 function questHTML(){
@@ -8598,7 +8672,7 @@ function questHTML(){
   return '<section class="win'+foldCls('quest')+'" aria-labelledby="h-quest"><h2 class="win-h" id="h-quest">Daily quest &middot; Day '+S.day+'<span class="fold-sum">'+(q.claimed?'claimed':done?'ready to claim':rows.filter(r=>r[1]>=r[2]).length+'/3')+'</span>'+foldBtn('quest')+'</h2>'
    +rows.map(r=>'<div class="q-row"><span class="box'+(r[1]>=r[2]?' on':'')+'"></span><span>'+r[0]+'</span><span class="num">'+Math.min(r[1],r[2])+'/'+r[2]+'</span></div>').join('')
    +(q.claimed?'<p class="q-note ok">Reward claimed for today.</p>':done?'<button class="btn primary" data-a="claim">Claim reward</button>':'<p class="q-note">Reward: +'+QUEST_PTS+' stat point'+(QUEST_PTS>1?'s':'')+' and bonus XP.<br>Unfinished at dawn, it simply lapses.</p>')
-   +'<p class="q-note">Each dungeon you enter uses a watch. When the third is spent, the day closes.</p></section>';
+   +brief('watch','Each dungeon you enter uses a watch. When the third is spent, the day closes.','q-note')+'</section>';
 }
 function bountyHTML(){
   const list=bounties(), town=S.mode==='town';
@@ -8608,12 +8682,15 @@ function bountyHTML(){
      return '<div class="b-row'+(b.claimed?' claimed':done?' done':'')+'"><span>'+BOUNTIES[b.id].t(b.n)+'</span><span class="num">'+got+'/'+b.n+'</span>'
       +'<span class="u-sub">'+(b.claimed?'Claimed.':'Pays '+rw(b.rw))+'</span>'
       +(done&&!b.claimed&&town?'<button class="btn small primary" data-a="claimb" data-k="'+i+'"'+(b.rw.gear&&S.inv.length>=bagMax()?' disabled title="Your bag is full"':'')+'>Claim</button>':'')+'</div>'; }).join('')
-   +'<p class="q-note">Up to '+BOUNTY_N+' contracts; a new one goes up each dawn while there is room. They never expire. Claim finished ones in town.</p></section>';
+   +brief('bty','Up to '+BOUNTY_N+' contracts; a new one goes up each dawn while there is room. They never expire. Claim finished ones in town.','q-note')+'</section>';
 }
+const NOTE_N=2;
 function notesHTML(){
   const tip=!!currentTip(), ns=S.notices.filter(n=>!(tip&&n.c==='story'));   // a story note waits under a tip: one guidance box at a time
   if(!ns.length) return '';
-  return '<div class="notes">'+ns.map(n=>'<div class="note '+n.c+'"><span>'+n.m+'</span></div>').join('')+'<div><button class="linkbtn" data-a="dismiss">Dismiss</button></div></div>';
+  const all=ui.notesAll||ns.length<=NOTE_N;   // newest first: the newest two, the rest one press away
+  return '<div class="notes">'+(all?ns:ns.slice(0,NOTE_N)).map(n=>'<div class="note '+n.c+'"><span>'+n.m+'</span></div>').join('')
+   +'<div class="note-acts">'+(ns.length>NOTE_N?'<button class="linkbtn" data-a="notesall" aria-expanded="'+all+'">'+(all?'Show fewer':'Show all ('+ns.length+')')+'</button>':'')+'<button class="linkbtn" data-a="dismiss">Dismiss</button></div></div>';
 }
 function armorTag(a){   // foe armor with its rule spelled out (pierceMul): hover text plus the same words for screen readers
   const p=Math.round(a*100), t='Foes shrug off '+p+'% of every hit you and your minions land. Piercing skills such as Bone Spear ignore part of it';
@@ -8684,7 +8761,7 @@ function towerHTML(){
   const bosses=TW_BOSS.map((n,i)=>({f:(i+1)*10,name:n}));
   let h='<section class="win" aria-labelledby="h-tw"><h2 class="win-h" id="h-tw">The Hell Tower</h2>'
    +'<h3 class="win-title">One hundred floors. Every floor is harder than the last.</h3>'
-   +'<p class="lede">A separate climb from the gates. Each floor is a single fight; between floors you raise the dead and climb on. A warden waits on every tenth floor and carries a unique relic. The first time you break a warden its unique is guaranteed. After that it drops '+Math.round(TW.repeat*100)+'% of the time, as gold if you already carry it. Wardens grow wrathful if the fight drags on. A climb uses one watch, and floors you have cleared become checkpoints.'+(TW.armor?' Tower foes wear '+Math.round(TW.armor*100)+'% armor.':'')+'</p>'
+   +brief('tower','A separate climb from the gates. Each floor is a single fight; between floors you raise the dead and climb on. A warden waits on every tenth floor and carries a unique relic. The first time you break a warden its unique is guaranteed. After that it drops '+Math.round(TW.repeat*100)+'% of the time, as gold if you already carry it. Wardens grow wrathful if the fight drags on. A climb uses one watch, and floors you have cleared become checkpoints.'+(TW.armor?' Tower foes wear '+Math.round(TW.armor*100)+'% armor.':'')+'','lede')
    +'<div class="tw-hero"><b>Highest floor '+T.best+' / 100</b><div class="tw-prog"><i style="width:'+Math.min(100,T.best)+'%"></i></div>'
    +'<div class="u-sub">Uniques claimed '+Object.keys(T.got).length+' / '+TW_UNIQ.length+'</div></div>'
    +'<p class="group-h">Begin the climb from</p>';
@@ -8714,7 +8791,7 @@ function marketHTML(){
   const P=S.player, stock=shopStock(), tk=Object.keys(S.trophies).sort((a,b)=>TROPHY[b].value-TROPHY[a].value||TROPHY[a].name.localeCompare(TROPHY[b].name));
   const tTotal=tk.reduce((a,k)=>a+S.trophies[k]*TROPHY[k].value,0), bagFull=S.inv.length>=bagMax();
   let h='<section class="win" aria-labelledby="h-mk"><h2 class="win-h" id="h-mk">Bone Market</h2><h3 class="win-title">You have '+gold(S.gold)+'</h3>'
-   +'<p class="lede">The dead pay well for what the living leave behind. Sell trophies and spare gear here, and buy supplies before you go down. The merchant\'s wares change every dawn.</p>';
+   +brief('market','The dead pay well for what the living leave behind. Sell trophies and spare gear here, and buy supplies before you go down. The merchant\'s wares change every dawn.','lede');
   if(ui.msg&&ui.msg.mk) h+='<div class="note '+(ui.msg.c||'')+'"><i>Market</i><span>'+ui.msg.m+'</span></div>';
   const sec=MK_SECS.some(x=>x[0]===ui.mk)?ui.mk:'buy';
   h+='<div class="chips sub-nav" role="tablist">'+MK_SECS.map(x=>'<button class="btn small'+(x[0]===sec?' primary':'')+'" role="tab" data-a="mk" data-k="'+x[0]+'" aria-selected="'+(x[0]===sec)+'">'+x[1]+'</button>').join('')+'</div>';
@@ -8736,7 +8813,7 @@ function marketHTML(){
   if(sec==='forge'){
   // trophy forge
   const fg=DUNGEONS.map((D,i)=>i).filter(i=>forgePoints(i)>0);
-  h+='<p class="group-h">Trophy forge</p><p class="q-note">'+FORGE_N+' trophies from one gate (a boss heart counts as 5) and a little gold forge that gate\'s gear in the slot you pick. One in five comes out a masterwork from the next gate. Or brew a potion from any '+BREW_N+' trophies.</p>';
+  h+='<p class="group-h">Trophy forge</p>'+brief('forge',''+FORGE_N+' trophies from one gate (a boss heart counts as 5) and a little gold forge that gate\'s gear in the slot you pick. One in five comes out a masterwork from the next gate. Or brew a potion from any '+BREW_N+' trophies.','q-note');
   if(fg.length) h+='<div class="items">'+fg.map(i=>{ const pts=forgePoints(i), ok=pts>=FORGE_N&&S.gold>=forgeGold(i)&&!bagFull;
       return '<div class="tt-row"><div><h4>'+DUNGEONS[i].name+' forge <span class="u-tag">'+Math.min(pts,99)+'/'+FORGE_N+' trophies</span></h4><div class="u-sub">'+TIERS[SET_TIER[i]]+' gear &middot; costs '+gold(forgeGold(i))+'</div></div>'
        +'<div class="btns" style="margin:0">'+GEAR_SLOTS.map(sl=>'<button class="btn small'+(ok?' primary':'')+'" data-a="forge" data-k="'+i+'|'+sl+'"'+(ok?'':' disabled')+'>'+SLOTS[sl]+'</button>').join('')+'</div></div>'; }).join('')+'</div>';
@@ -8745,9 +8822,9 @@ function marketHTML(){
   }
   if(sec==='altar'){
   // bone altar
-  h+='<p class="group-h">Bone Altar</p><p class="q-note">Pour gold on the altar to raise a minion one level at once. Minions still stop at your level + 2.</p>';
+  h+='<p class="group-h">Bone Altar</p>'+brief('altar','Pour gold on the altar to raise a minion one level at once. Minions still stop at your level + 2.','q-note');
   h+=S.army.length+(S.reserve||[]).length?'<div class="items">'+S.army.concat(S.reserve||[]).map(m=>{ const capped=m.lvl>=P.lvl+2, c=empowerCost(m);
-      return '<div class="tt-row trow">'+ico(m.kind||m.name,m.rankI,m)+'<div><h4>'+m.nick+' <span class="dim" style="font-size:13px">'+theName(mName(m))+'</span></h4><div class="u-sub">Lv '+m.lvl+' &middot; ATK '+m.atk+' &middot; HP '+m.maxHp+'</div></div>'
+      return '<div class="tt-row trow">'+ico(m.kind||m.name,m.rankI,m)+'<div><h4>'+m.nick+' <span class="dim" style="font-size:13px">'+theName(mName(m))+'</span></h4><div class="u-sub">Lv '+m.lvl+' &middot; '+sgl('atk','ATK')+m.atk+' &middot; '+sgl('hp','HP')+m.maxHp+'</div></div>'
        +'<button class="btn small primary" data-a="empower" data-k="'+m.uid+'"'+(capped||S.gold<c?' disabled':'')+'>'+(capped?'At the cap':'Empower &middot; '+gold(c))+'</button></div>'; }).join('')+'</div>'
     :'<p class="lede">No minions yet. Raise the dead first.</p>';
   // bag upgrades
@@ -8776,7 +8853,7 @@ function marketHTML(){
 function skillsHTML(){
   const P=S.player, spent=Object.values(P.skills).reduce((a,b)=>a+b,0);
   let h='<section class="win" aria-labelledby="h-sk"><h2 class="win-h" id="h-sk">Skills &middot; '+P.sp+' point'+(P.sp===1?'':'s')+' to spend</h2>'
-   +'<p class="lede">You earn one skill point each level. Active skills appear as buttons in battle (keys 4 and up). They cost mana, and their cooldowns reset every room. Passive skills always apply. Each skill has '+SK_MAX+' ranks, and each rank needs '+SK_STEP+' more levels than the last.</p>';
+   +brief('skills','You earn one skill point each level. Active skills appear as buttons in battle (keys 4 and up). They cost mana, and their cooldowns reset every room. Passive skills always apply. Each skill has '+SK_MAX+' ranks, and each rank needs '+SK_STEP+' more levels than the last.','lede');
   [['active','Active'],['passive','Passive']].forEach(g=>{
     h+='<p class="group-h">'+g[1]+'</p><div class="items">'+SKILLS.filter(s=>s.type===g[0]).map(s=>{
       const rk=sk(s.id), next=rk+1, req=rk<SK_MAX?skReq(s,next):0, lockedLv=rk<SK_MAX&&P.lvl<req;
@@ -8794,7 +8871,7 @@ function skillsHTML(){
     }).join('')+'</div>';
   });
   h+=capHTML();   // mastery paths and capstones (src/ui-progression.js)
-  h+='<p class="group-h">Ultimate'+(P.lvl<ULT_LV?' &middot; opens at level '+ULT_LV:'')+'</p><p class="q-note">Soul Siphon harvests a Soul, and every elite or boss that falls gives one. With '+SOUL_MAX+' Souls, unleash your ultimate in battle (key R). Choose one here; you can switch for free in town.</p><div class="items">'
+  h+='<p class="group-h">Ultimate'+(P.lvl<ULT_LV?' &middot; opens at level '+ULT_LV:'')+'</p>'+brief('ult','Soul Siphon harvests a Soul, and every elite or boss that falls gives one. With '+SOUL_MAX+' Souls, unleash your ultimate in battle (key R). Choose one here; you can switch for free in town.','q-note')+'<div class="items">'
    +Object.keys(ULTS).map(id=>{ const U=ULTS[id], on=P.ult===id; return '<div class="tt-row'+(on?' on':'')+(P.lvl<ULT_LV?' off':'')+'"><div><h4>'+U.name+'</h4><div class="u-sub">'+U.desc+'</div></div>'
      +(on?'<span class="u-tag ok">Chosen</span>':'<button class="btn small primary" data-a="ult" data-k="'+id+'"'+(P.lvl<ULT_LV?' disabled':'')+'>Choose</button>')+'</div>'; }).join('')+'</div>';
   if(spent) h+='<div class="btns"><button class="btn small warn" data-a="skreset">'+(ui.confirm==='skreset'?'Press again to forget all skills':'Forget all skills ('+spent+' back)')+'</button></div>';
@@ -8943,7 +9020,7 @@ function memorialHTML(){   // the fallen, newest first, in a muted hand; honouri
   const M=S.memorial||[], town=S.mode==='town', list=ui.memAll?M:M.slice(0,MEM_SHOW);
   let h='<section class="win mem-w" aria-labelledby="h-mem"><h2 class="win-h" id="h-mem">Memorial'+(M.length?' &middot; '+M.length:'')+'</h2><h3 class="win-title">Every name in this book answered to you</h3>';
   if(!M.length) return h+'<p class="lede">No name has been lost yet.</p></section>';
-  h+='<p class="q-note">The Ledger keeps the names of those lost for good, shattered after a fight or fallen on a raid. The released are not written here.</p>'
+  h+=brief('mem','The Ledger keeps the names of those lost for good, shattered after a fight or fallen on a raid. The released are not written here.','q-note')
    +(remembered()?'<p class="q-note ok mem-hon">Honoured today: <b>'+S.honor.nick+'</b>. Your army is Remembered until dawn.</p>'
      :M.some(e=>e.st>=1)?'<p class="q-note">Once a day, in town, you may honour one of the Greater or older: the living army has +'+Math.round(MEM_HP*100)+'% max HP until dawn.</p>':'');
   h+=mausNote();
@@ -9244,23 +9321,23 @@ function faithHTML(){
       +'<div class="u-sub">'+'<div class="u-sub'+(blessed(id)?' ok':'')+'"><b>'+F.bless.name+'</b> (devotion 3): '+F.bless.desc+(blessed(id)?'':' Not yet.')+'</div>'+'<div class="u-sub">'+(nx!=null?'Keep the oath until day '+(S.faith.day+nx)+' for devotion '+(dv+2)+' (the gift grows x'+DEVOTION_MUL[dv+1]+').':'Your devotion is complete.')+'</div></div>'
       +'<button class="btn small warn" data-a="renounce"'+(S.gold<renounceCost()?' disabled':'')+'>'+(ui.confirm==='renounce'?'Confirm: renounce for '+renounceCost()+' gold':'Renounce &middot; '+gold(renounceCost()))+'</button></div></div>';
   }
-  return h+'<p class="q-note">Swear an oath. Each path gives and takes. Devotion grows with the days you keep it; renouncing costs gold and starts it over.</p><div class="items">'
+  return h+brief('faith','Swear an oath. Each path gives and takes. Devotion grows with the days you keep it; renouncing costs gold and starts it over.','q-note')+'<div class="items">'
    +Object.keys(FAITH).map(k=>{ const F=FAITH[k]; return '<div class="tt-row"><div><h4>'+F.name+'</h4><div class="u-sub">'+F.vow+'</div><div class="u-sub"><span class="ok">Gives '+buffTxt(F.buff)+'</span> &middot; <span class="bad">costs '+buffTxt(F.debuff)+'</span></div><div class="u-sub">At devotion 3: <b>'+F.bless.name+'</b>. '+F.bless.desc+'</div></div>'
      +'<button class="btn small primary" data-a="swear" data-k="'+k+'">'+(ui.confirm==='swear'+k?'Confirm the oath':'Swear')+'</button></div>'; }).join('')+'</div>';
 }
 function buildHTML(){
   const P=S.player;
   let h='<section class="win" aria-labelledby="h-bld"><h2 class="win-h" id="h-bld">The town</h2><h3 class="win-title">You have '+gold(S.gold)+' and '+dust(S.dust||0)+'</h3>'
-   +'<p class="lede">Build up the necropolis. Each building has '+BUILD_MAX+' levels and its bonus lasts for the rest of this game. The higher levels need bone dust, which you get by salvaging gear on the Gear tab.</p>';
+   +brief('town','Build up the necropolis. Each building has '+BUILD_MAX+' levels and its bonus lasts for the rest of this game. The higher levels need bone dust, which you get by salvaging gear on the Gear tab.','lede');
   if(ui.msg&&ui.msg.mk) h+='<div class="note '+(ui.msg.c||'')+'"><i>Town</i><span>'+ui.msg.m+'</span></div>';
   h+=siegeTownHTML();
   const so=siegeOpen();
   h+='<div class="items">'+Object.keys(BUILD).map(k=>{ const B=BUILD[k], lv=blRaw(k), dmg=sg().dmg===k, c=buildCost(k), can=c&&S.gold>=c[0]&&(S.dust||0)>=c[1];
-    return '<div class="tt-row bld'+(dmg?' b-dmg':'')+'"><div><h4>'+B.name+' <span class="u-tag">Level '+lv+'/'+BUILD_MAX+'</span>'+(dmg?' <span class="u-tag bad">Damaged</span>':'')+'</h4><div class="u-sub">'+B.desc+'</div>'+(lv?'<div class="u-sub b-now">Now: '+(dmg?'nothing until it is repaired':B.now(lv))+'.</div>'+(so&&SIEGE_PERK[k]?'<div class="u-sub b-siege">Siege: '+(dmg?'nothing until it is repaired':SIEGE_PERK[k].t(lv))+'.</div>':''):'')+'</div>'
+    return '<div class="tt-row bld'+(dmg?' b-dmg':'')+'"><div><h4>'+B.name+' <span class="u-tag">Level '+lv+'/'+BUILD_MAX+'</span>'+(dmg?' <span class="u-tag bad">Damaged</span>':'')+'</h4>'+brief('b'+k,B.desc,'u-sub')+''+(lv?'<div class="u-sub b-now">Now: '+(dmg?'nothing until it is repaired':B.now(lv))+'.</div>'+(so&&SIEGE_PERK[k]?'<div class="u-sub b-siege">Siege: '+(dmg?'nothing until it is repaired':SIEGE_PERK[k].t(lv))+'.</div>':''):'')+'</div>'
      +(dmg?'<span class="u-tag bad">Repair first</span>':c?'<button class="btn small primary" data-a="build" data-k="'+k+'"'+(can?'':' disabled')+'>'+(lv?'Upgrade':'Build')+' &middot; '+gold(c[0])+(c[1]?' + '+dust(c[1]):'')+'</button>':'<span class="u-tag ok">Complete</span>')+'</div>'; }).join('')+'</div>';
   h+=faithHTML();
   // flesh pit
-  h+='<p class="group-h">The Flesh Pit &middot; fuse two minions</p><p class="q-note">Two minions of the same role become one. The stronger survives, gains '+FUSE_LV+' level (never past your level + 2), keeps the higher evolution and takes the other\'s traits, up to '+FUSE_TRAITS+'. A minion can take part in at most '+FUSE_MAX+' fusions. The other\'s gear returns to your bag.</p>';
+  h+='<p class="group-h">The Flesh Pit &middot; fuse two minions</p>'+brief('pit','Two minions of the same role become one. The stronger survives, gains '+FUSE_LV+' level (never past your level + 2), keeps the higher evolution and takes the other\'s traits, up to '+FUSE_TRAITS+'. A minion can take part in at most '+FUSE_MAX+' fusions. The other\'s gear returns to your bag.','q-note');
   const all=S.army.concat(S.reserve||[]), a=ui.fuse!=null&&all.find(m=>m.uid===ui.fuse);   // the Reserve fuses too
   if(all.length<2) h+='<p class="lede">You need at least two minions.</p>';
   else if(!a) h+='<div class="items">'+all.map(m=>{ const pals=all.filter(x=>canFuse(m,x)).length;
@@ -9696,8 +9773,8 @@ function minionCard(m,canRelease,where){
    +traitChips(m)
    +'<div class="m-links"><button class="linkbtn" data-a="mdet" data-k="'+m.uid+'" aria-expanded="'+(ui.mdet===m.uid)+'">'+(ui.mdet===m.uid?'Hide details':'Details')+'</button>'+rowBtn(m,'linkbtn',f=>f?'Move to back':'Move to front')+(canRelease&&S.mode!=='battle'&&ui.rename!==m.uid?'<button class="linkbtn" data-a="renameo" data-k="'+m.uid+'">Rename</button>':'')+'</div>'
    +(ui.mdet===m.uid?minionDetail(m):'')+'</div></div>'
-   +'<div class="bars"><div class="meter"><div class="m-top"><span>HP</span><span class="num">'+m.hp+'/'+m.maxHp+'</span></div><div class="bar"><i class="fill hp" style="width:'+pct(m.hp,m.maxHp)+'%"></i></div></div>'
-   +'<div class="meter"><div class="m-top"><span>Lv '+m.lvl+' &middot; ATK '+m.atk+'</span><span class="num">'+(capped?'cap':m.xp+'/'+nx)+'</span></div><div class="bar"><i class="fill xp" style="width:'+(capped?100:pct(m.xp,nx))+'%"></i></div></div></div></div>'
+   +'<div class="bars"><div class="meter"><div class="m-top"><span>'+sgl('hp','HP')+'</span><span class="num">'+m.hp+'/'+m.maxHp+'</span></div><div class="bar"><i class="fill hp" style="width:'+pct(m.hp,m.maxHp)+'%"></i></div></div>'
+   +'<div class="meter"><div class="m-top"><span>Lv '+m.lvl+' &middot; '+sgl('atk','ATK')+m.atk+'</span><span class="num">'+(capped?'cap':m.xp+'/'+nx)+'</span></div><div class="bar"><i class="fill xp" style="width:'+(capped?100:pct(m.xp,nx))+'%"></i></div></div></div></div>'
    +(canRelease?'<div class="m-acts">'+moveActs(m,where)+'<button class="btn small warn" data-a="release" data-k="'+m.uid+'">'+(conf?'Confirm release':'Release')+'</button></div>':'<span></span>')
    +(where==='res'&&ui.swap===m.uid&&S.mode==='town'?swapPick(m):'')
    +(m.armed?gearRowHTML(m,canRelease):'')+'</div>';
@@ -9713,14 +9790,14 @@ function minionRow(m,canRelease,where){   // the compact army list: one line per
   const tip=m.nick+', '+theName(mName(m))+' &middot; '+ROLES[m.role].label+(tags.length?' &middot; '+tags.join(', '):''), conf=ui.confirm===m.uid;
   return '<div class="mrow">'+ico(m.kind||m.name,m.rankI,m)+'<span class="rk r'+m.rankI+'">'+RANKS[m.rankI]+'</span>'
    +'<span class="mr-name" title="'+tip+'"><b style="'+(m.elite?'color:var(--gold)':'')+'">'+m.nick+'</b>'+(cmd?' <span class="mr-mk" title="Commander: can lead raids">Cmdr</span>':'')+(m.wall?' <span class="mr-mk" title="On the wall: back to the Reserve after the siege">Wall</span>':'')+' <span class="dim">'+theName(mName(m))+'</span></span>'
-   +'<span class="u-tag mr-role">'+ROLES[m.role].label+(m.armed?' &middot; Armed':'')+'</span><span class="num mr-st">Lv '+m.lvl+' &middot; ATK '+m.atk+'</span>'
+   +'<span class="u-tag mr-role">'+ROLES[m.role].label+(m.armed?' &middot; Armed':'')+'</span><span class="num mr-st">Lv '+m.lvl+' &middot; '+sgl('atk','ATK')+m.atk+'</span>'
    +'<span class="mr-hp'+(low?' low':'')+'"><span class="bar"><i class="fill hp" style="width:'+pct(m.hp,m.maxHp)+'%"></i></span><span class="num">'+m.hp+'/'+m.maxHp+'</span></span>'
    +'<span class="mr-acts">'+rowBtn(m,'btn small',f=>f?'Front':'Back')+'<button class="btn small" data-a="mdet" data-k="'+m.uid+'" aria-expanded="false" aria-label="Details: '+m.nick+'" title="Details">Info</button>'
    +(canRelease?(where==='res'?'':'<button class="btn small" data-a="renameo" data-k="'+m.uid+'" aria-label="Rename: '+m.nick+'" title="Rename">Name</button>')+moveActs(m,where,true)+'<button class="btn small warn" data-a="release" data-k="'+m.uid+'" aria-label="'+(conf?'Confirm release':'Release')+': '+m.nick+'" title="'+(conf?'Press again to release':'Release')+'">'+(conf?'Sure?':'Release')+'</button>':'')+'</span></div>';
 }
 function gearRowHTML(m,can){
   const g=gearBonus(m), pk=ui.pick&&ui.pick.uid===m.uid?ui.pick.slot:null;
-  let h='<div class="gear-row"><div class="gear-h"><span class="u-tag">Gear-bearer</span><span class="u-sub">'+((g.atk||g.hp||g.mpow)?'Gear gives +'+g.atk+' ATK, +'+g.hp+' HP'+(g.mpow?', +'+g.mpow+'% power':''):'Equip it from your bag. Gear returns to the bag if it is released or shattered.')+'</span></div><div class="gear-slots">';
+  let h='<div class="gear-row"><div class="gear-h"><span class="u-tag">Gear-bearer</span><span class="u-sub">'+((g.atk||g.hp||g.mpow)?'Gear gives <span class="sv">'+sgl('atk','ATK')+'+'+g.atk+'</span> <span class="sv">'+sgl('hp','HP')+'+'+g.hp+'</span>'+(g.mpow?' '+statG('mpow',g.mpow):''):'Equip it from your bag. Gear returns to the bag if it is released or shattered.')+'</span></div><div class="gear-slots">';
   GEAR_SLOTS.forEach(sl=>{
     const it=m.eq&&m.eq[sl], d=it&&ITEM[it.id];
     h+=d?'<div class="gslot t'+d.tier+'">'+iico(d)+'<div class="gs-b"><b>'+d.name+'</b><small>'+SLOTS[sl]+'</small></div>'+(can?'<button class="btn small" data-a="take" data-k="'+m.uid+'|'+sl+'">Remove</button>':'')+'</div>'
@@ -9778,12 +9855,12 @@ function reserveHTML(view){   // the bench under the army, in town once the Town
   return '<div class="reserve" role="region" aria-labelledby="h-res"><h3 class="res-h" id="h-res">Reserve '+R0.length+'/'+reserveMax()+'</h3>'
    +(R0.length>1?'<div class="bag-tools">Order: '+Object.keys(ARMY_SORTS).map(k=>'<button class="linkbtn" data-a="rsort" data-k="'+k+'" aria-label="Order the Reserve: '+ARMY_SORTS[k]+'">'+ARMY_SORTS[k]+'</button>').join('')+'</div>':'')
    +(R.length?'<div class="army'+(compact?' compact':'')+'">'+R.map(m=>compact&&ui.mdet!==m.uid&&ui.rename!==m.uid&&ui.swap!==m.uid?minionRow(m,true,'res'):minionCard(m,true,'res')).join('')+'</div>'
-     :R0.length?'<p class="u-sub">No minion matches the filter.</p>':'<p class="u-sub">A bench for minions you keep but do not take along. They do not fight, take damage or earn XP, and keep their gear. Moving one in or out is free, in town.</p>')+'</div>';
+     :R0.length?'<p class="u-sub">No minion matches the filter.</p>':brief('res','A bench for minions you keep but do not take along. They do not fight, take damage or earn XP, and keep their gear. Moving one in or out is free, in town.','u-sub'))+'</div>';
 }
 function gateWaitHTML(){   // raiders home when both the army and the Reserve were full: nobody is lost, they wait here
   const W=S.waiting||[]; if(S.mode!=='town'||!W.length) return '';
   return '<div class="note bad gate-wait"><i>Waiting</i><span>Back from a raid, with no room in your army or the Reserve. Make room, or let one go.</span></div><div class="army">'
-   +W.map(m=>{ const conf=ui.confirm===m.uid; return '<div class="mrow wait-row">'+ico(m.kind||m.name,m.rankI,m)+'<span class="rk r'+m.rankI+'">'+RANKS[m.rankI]+'</span><span class="mr-name"><b>'+m.nick+'</b> <span class="dim">'+theName(mName(m))+'</span></span><span class="num mr-st">Lv '+m.lvl+' &middot; ATK '+m.atk+'</span>'
+   +W.map(m=>{ const conf=ui.confirm===m.uid; return '<div class="mrow wait-row">'+ico(m.kind||m.name,m.rankI,m)+'<span class="rk r'+m.rankI+'">'+RANKS[m.rankI]+'</span><span class="mr-name"><b>'+m.nick+'</b> <span class="dim">'+theName(mName(m))+'</span></span><span class="num mr-st">Lv '+m.lvl+' &middot; '+sgl('atk','ATK')+m.atk+'</span>'
      +'<span class="mr-acts"><button class="btn small" data-a="gatearmy" data-k="'+m.uid+'" aria-label="To army: '+m.nick+'"'+(armyRoom()?'':' disabled title="Your army is full"')+'>Army</button>'
      +'<button class="btn small" data-a="gateres" data-k="'+m.uid+'" aria-label="To reserve: '+m.nick+'"'+(reserveRoom()?'':' disabled title="The Reserve is full"')+'>Bench</button>'
      +'<button class="btn small warn" data-a="release" data-k="'+m.uid+'" aria-label="'+(conf?'Confirm release':'Release')+': '+m.nick+'">'+(conf?'Sure?':'Release')+'</button></span></div>'; }).join('')+'</div>';
@@ -9834,7 +9911,7 @@ function quickGearHTML(){   // the bag's best pieces for you or one gear-bearer,
    +avBtn('aqt','p','You',!who)+bearers.map(m=>avBtn('aqt',m.uid,m.nick,who===m)).join('')+'</div>';
   if(!S.inv.length) return h+'<p class="u-sub">Your bag is empty.</p></section>';
   const row=(it,cmp,act)=>{ const d=ITEM[it.id]; return '<div class="qg-row t'+d.tier+'">'+iico(d)+'<div class="qg-b"><span class="i-name">'+d.name+'</span> <span class="i-tag">'+TIERS[d.tier]+' &middot; '+SLOTS[d.slot]+'</span>'+cmp+'</div>'+act+'</div>'; };
-  const sgn=(v,l)=>'<span class="'+(v>0?'up':'down')+'">'+(v>0?'+':'&minus;')+Math.abs(v)+' '+l+'</span>';
+  const sgn=(v,l)=>'<span class="'+(v>0?'up':'down')+'"><span class="sv">'+sgl(l==='HP'?'hp':'atk',l)+(v>0?'+':'&minus;')+Math.abs(v)+'</span></span>';
   let rows;
   if(!who) rows=sortedBag().slice(0,QG_N).map(it=>row(it,cmpHTML(it),'<button class="btn small primary" data-a="equip" data-k="'+it.u+'">'+(S.equip[ITEM[it.id].slot]?'Swap':'Equip')+'</button>'));
   else rows=S.inv.map(it=>({it,d:gearDelta(who,it)})).sort((a,b)=>(b.d.atk*2+b.d.hp/4)-(a.d.atk*2+a.d.hp/4)).slice(0,QG_N).map(x=>{ const cur=who.eq&&who.eq[ITEM[x.it.id].slot], ch=[x.d.atk?sgn(x.d.atk,'ATK'):'',x.d.hp?sgn(x.d.hp,'HP'):''].join('');
@@ -9846,7 +9923,7 @@ function markPickHTML(){   // minions with a mark choice waiting: one press pick
   return '<section class="win" aria-labelledby="h-mark"><h2 class="win-h" id="h-mark">Marks</h2><div class="evo-list">'+L.map(m=>{ const c=m.marks||[];
     return '<div class="mark-row"><span class="mr-name"><b>'+m.nick+'</b> <span class="dim">'+theName(mName(m))+'</span></span><div class="chips">'+markOpts(m).map(k=>{ const emp=c.includes(k), x=MARK[k].v*(emp?2:1);
       return '<button class="btn small" data-a="mark" data-k="'+m.uid+'|'+k+'" title="'+MARK[k].desc(x)+'">'+(emp?'Empower '+MARK[k].name:c.length?'Take '+MARK[k].name:MARK[k].name)+'</button>'; }).join('')+'</div></div>'; }).join('')
-   +'</div><p class="u-sub">At Elder a minion takes one of two marks; at Eternal it empowers that mark (its numbers doubled) or takes the other.</p></section>';
+   +'</div>'+brief('marks','At Elder a minion takes one of two marks; at Eternal it empowers that mark (its numbers doubled) or takes the other.','u-sub')+'</section>';
 }
 function evoHTML(){   // how close each minion is to its next form, nearest first
   const L=raidPool().filter(m=>evoNext(m)!=null).sort((a,b)=>(evoNext(a)-a.lvl)-(evoNext(b)-b.lvl)); if(!L.length) return '';
@@ -10096,7 +10173,7 @@ const ACTIONS={
   selltier:k=>{ const t=+k; if(ui.confirm!=='st'+t){ ui.confirm='st'+t; return; } ui.confirm=null; const r=sellTier(t); ui.msg=r&&r.n?{mk:1,m:'Sold '+r.n+' '+TIERS[t]+' piece'+(r.n>1?'s':'')+' for '+r.g+' gold.',c:'ok'}:null; },
   salvtier:k=>{ const t=+k; if(ui.confirm!=='sv'+t){ ui.confirm='sv'+t; return; } ui.confirm=null; const r=salvageTier(t); ui.msg=r&&r.n?{mk:1,m:'Salvaged '+r.n+' '+TIERS[t]+' piece'+(r.n>1?'s':'')+' into '+r.d+' bone dust.',c:'ok'}:null; },
   junk:()=>{ if(ui.confirm!=='junk'){ ui.confirm='junk'; return; } ui.confirm=null; const r=sellJunk(); ui.msg=r&&r.n?{mk:1,m:'Sold '+r.n+' piece'+(r.n>1?'s':'')+' of junk for '+r.g+' gold.',c:'ok'}:null; },
-  sellitem:k=>{ if(ui.confirm!=='si'+k){ ui.confirm='si'+k; return; } ui.confirm=null; const it=S.inv.find(x=>x.u===+k), nm=it&&ITEM[it.id].name, g=sellItem(+k); ui.msg=g?{mk:1,m:'Sold '+nm+' for '+g+' gold.',c:'ok'}:null; }, skreset:()=>{ if(ui.confirm==='skreset'){ ui.confirm=null; resetSkills(); } else ui.confirm='skreset'; }, claim:()=>claimQuest(), dismiss:()=>{ S.notices=currentTip()?S.notices.filter(n=>n.c==='story'):[]; },   /* story notes hidden under a tip were not seen yet */
+  sellitem:k=>{ if(ui.confirm!=='si'+k){ ui.confirm='si'+k; return; } ui.confirm=null; const it=S.inv.find(x=>x.u===+k), nm=it&&ITEM[it.id].name, g=sellItem(+k); ui.msg=g?{mk:1,m:'Sold '+nm+' for '+g+' gold.',c:'ok'}:null; }, skreset:()=>{ if(ui.confirm==='skreset'){ ui.confirm=null; resetSkills(); } else ui.confirm='skreset'; }, claim:()=>claimQuest(), notesall:()=>{ ui.notesAll=!ui.notesAll; }, dismiss:()=>{ S.notices=currentTip()?S.notices.filter(n=>n.c==='story'):[]; },   /* story notes hidden under a tip were not seen yet */
   enter:k=>startRun(+k),
   pick:k=>{ const a=k.split('|'); ui.pick=(ui.pick&&ui.pick.uid===+a[0]&&ui.pick.slot===a[1])?null:{uid:+a[0],slot:a[1]}; },
   give:k=>{ const a=k.split('|'); giveGear(+a[0],+a[1]); ui.pick=null; },
@@ -10139,6 +10216,7 @@ document.addEventListener('click',e=>{
   if(ui.confirm!==null && !CONFIRM_ACTS.includes(a)) ui.confirm=null;
   ACTIONS[a]&&ACTIONS[a](b.dataset.k); settled();
 });
+document.addEventListener('toggle',e=>{ const d=e.target; if(d&&d.dataset&&d.dataset.det){ ui.det=ui.det||{}; ui.det[d.dataset.det]=d.open; } },true);   // a folded Details stays open across renders
 document.addEventListener('input',e=>{ if(e.target&&e.target.id==='cxq'){ ui.cxq=e.target.value.slice(0,40); settled(); return; } if(e.target&&e.target.id==='imp') ui.imp=e.target.value; if(e.target&&e.target.id==='rn') ui.rn=e.target.value; if(e.target&&e.target.id==='lrn') ui.lrn=e.target.value; });
 document.addEventListener('change',e=>{   // a dropdown with data-a works like a button whose data-k is the chosen value
   const sl=e.target&&e.target.tagName==='SELECT'&&e.target.dataset&&e.target.dataset.a; if(sl&&ACTIONS[sl]){ ACTIONS[sl](e.target.value); settled(); return; }

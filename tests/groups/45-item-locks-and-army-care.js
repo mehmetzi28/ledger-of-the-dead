@@ -42,7 +42,7 @@ test('Army: its own tab is a command view: power, roles, filters, army beside th
   ACTIONS.asv('level'); h=renderAll('by level'); ok(h.indexOf('data-a="release" data-k="'+b.uid+'"')<h.indexOf('data-a="release" data-k="'+c.uid+'"')&&h.indexOf('data-a="release" data-k="'+c.uid+'"')<h.indexOf('data-a="release" data-k="'+a.uid+'"'),'shown by level');
   eq(S.army.map(m=>m.uid).join(),[a.uid,b.uid,c.uid].join(),'the view order leaves the army order alone'); ACTIONS.asv('nonsense'); eq(ui.asv,'');
   const it=give('0-wa'), atk=b.atk; ACTIONS.aqt(String(b.uid)); h=renderAll('quick equip'); const d=gearDelta(b,it);
-  ok(d.atk>0&&b.atk===atk&&!b.eq.weapon,'a dry run: nothing changes'); ok(h.includes('data-a="give" data-k="'+b.uid+'|'+it.u+'"')&&h.includes('+'+d.atk+' ATK'),'what it would add, and Give');
+  ok(d.atk>0&&b.atk===atk&&!b.eq.weapon,'a dry run: nothing changes'); ok(h.includes('data-a="give" data-k="'+b.uid+'|'+it.u+'"')&&h.includes('aria-label="ATK"><svg viewBox="0 0 10 10" aria-hidden="true">'+SG_PATH.atk+'</svg></span>+'+d.atk),'what it would add, and Give');
   ACTIONS.give(b.uid+'|'+it.u); eq(b.atk,atk+d.atk,'the preview matched'); ACTIONS.aqt('p'); ok(/data-a="equip"/.test(renderAll('you'))||!S.inv.length);
   ok(/id="h-evo"/.test(h)&&h.includes('Greater at Lv 10'),'evolution progress');
   S.raidOrders=[{di:0,day:S.day,cu:b.uid,uids:[c.uid]}]; h=renderAll('raid'); ok(/Raid squads &middot; 1 tonight/.test(h)&&/leads 2 to the Rat Warren tonight/.test(h),'tonight\'s squad');

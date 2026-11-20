@@ -242,23 +242,23 @@ function faithHTML(){
       +'<div class="u-sub">'+'<div class="u-sub'+(blessed(id)?' ok':'')+'"><b>'+F.bless.name+'</b> (devotion 3): '+F.bless.desc+(blessed(id)?'':' Not yet.')+'</div>'+'<div class="u-sub">'+(nx!=null?'Keep the oath until day '+(S.faith.day+nx)+' for devotion '+(dv+2)+' (the gift grows x'+DEVOTION_MUL[dv+1]+').':'Your devotion is complete.')+'</div></div>'
       +'<button class="btn small warn" data-a="renounce"'+(S.gold<renounceCost()?' disabled':'')+'>'+(ui.confirm==='renounce'?'Confirm: renounce for '+renounceCost()+' gold':'Renounce &middot; '+gold(renounceCost()))+'</button></div></div>';
   }
-  return h+'<p class="q-note">Swear an oath. Each path gives and takes. Devotion grows with the days you keep it; renouncing costs gold and starts it over.</p><div class="items">'
+  return h+brief('faith','Swear an oath. Each path gives and takes. Devotion grows with the days you keep it; renouncing costs gold and starts it over.','q-note')+'<div class="items">'
    +Object.keys(FAITH).map(k=>{ const F=FAITH[k]; return '<div class="tt-row"><div><h4>'+F.name+'</h4><div class="u-sub">'+F.vow+'</div><div class="u-sub"><span class="ok">Gives '+buffTxt(F.buff)+'</span> &middot; <span class="bad">costs '+buffTxt(F.debuff)+'</span></div><div class="u-sub">At devotion 3: <b>'+F.bless.name+'</b>. '+F.bless.desc+'</div></div>'
      +'<button class="btn small primary" data-a="swear" data-k="'+k+'">'+(ui.confirm==='swear'+k?'Confirm the oath':'Swear')+'</button></div>'; }).join('')+'</div>';
 }
 function buildHTML(){
   const P=S.player;
   let h='<section class="win" aria-labelledby="h-bld"><h2 class="win-h" id="h-bld">The town</h2><h3 class="win-title">You have '+gold(S.gold)+' and '+dust(S.dust||0)+'</h3>'
-   +'<p class="lede">Build up the necropolis. Each building has '+BUILD_MAX+' levels and its bonus lasts for the rest of this game. The higher levels need bone dust, which you get by salvaging gear on the Gear tab.</p>';
+   +brief('town','Build up the necropolis. Each building has '+BUILD_MAX+' levels and its bonus lasts for the rest of this game. The higher levels need bone dust, which you get by salvaging gear on the Gear tab.','lede');
   if(ui.msg&&ui.msg.mk) h+='<div class="note '+(ui.msg.c||'')+'"><i>Town</i><span>'+ui.msg.m+'</span></div>';
   h+=siegeTownHTML();
   const so=siegeOpen();
   h+='<div class="items">'+Object.keys(BUILD).map(k=>{ const B=BUILD[k], lv=blRaw(k), dmg=sg().dmg===k, c=buildCost(k), can=c&&S.gold>=c[0]&&(S.dust||0)>=c[1];
-    return '<div class="tt-row bld'+(dmg?' b-dmg':'')+'"><div><h4>'+B.name+' <span class="u-tag">Level '+lv+'/'+BUILD_MAX+'</span>'+(dmg?' <span class="u-tag bad">Damaged</span>':'')+'</h4><div class="u-sub">'+B.desc+'</div>'+(lv?'<div class="u-sub b-now">Now: '+(dmg?'nothing until it is repaired':B.now(lv))+'.</div>'+(so&&SIEGE_PERK[k]?'<div class="u-sub b-siege">Siege: '+(dmg?'nothing until it is repaired':SIEGE_PERK[k].t(lv))+'.</div>':''):'')+'</div>'
+    return '<div class="tt-row bld'+(dmg?' b-dmg':'')+'"><div><h4>'+B.name+' <span class="u-tag">Level '+lv+'/'+BUILD_MAX+'</span>'+(dmg?' <span class="u-tag bad">Damaged</span>':'')+'</h4>'+brief('b'+k,B.desc,'u-sub')+''+(lv?'<div class="u-sub b-now">Now: '+(dmg?'nothing until it is repaired':B.now(lv))+'.</div>'+(so&&SIEGE_PERK[k]?'<div class="u-sub b-siege">Siege: '+(dmg?'nothing until it is repaired':SIEGE_PERK[k].t(lv))+'.</div>':''):'')+'</div>'
      +(dmg?'<span class="u-tag bad">Repair first</span>':c?'<button class="btn small primary" data-a="build" data-k="'+k+'"'+(can?'':' disabled')+'>'+(lv?'Upgrade':'Build')+' &middot; '+gold(c[0])+(c[1]?' + '+dust(c[1]):'')+'</button>':'<span class="u-tag ok">Complete</span>')+'</div>'; }).join('')+'</div>';
   h+=faithHTML();
   // flesh pit
-  h+='<p class="group-h">The Flesh Pit &middot; fuse two minions</p><p class="q-note">Two minions of the same role become one. The stronger survives, gains '+FUSE_LV+' level (never past your level + 2), keeps the higher evolution and takes the other\'s traits, up to '+FUSE_TRAITS+'. A minion can take part in at most '+FUSE_MAX+' fusions. The other\'s gear returns to your bag.</p>';
+  h+='<p class="group-h">The Flesh Pit &middot; fuse two minions</p>'+brief('pit','Two minions of the same role become one. The stronger survives, gains '+FUSE_LV+' level (never past your level + 2), keeps the higher evolution and takes the other\'s traits, up to '+FUSE_TRAITS+'. A minion can take part in at most '+FUSE_MAX+' fusions. The other\'s gear returns to your bag.','q-note');
   const all=S.army.concat(S.reserve||[]), a=ui.fuse!=null&&all.find(m=>m.uid===ui.fuse);   // the Reserve fuses too
   if(all.length<2) h+='<p class="lede">You need at least two minions.</p>';
   else if(!a) h+='<div class="items">'+all.map(m=>{ const pals=all.filter(x=>canFuse(m,x)).length;
