@@ -1030,18 +1030,46 @@ html:has(body.nobg)::after{display:none}
 @media (prefers-reduced-motion:reduce){.fx-dim{display:none}.unit.ally.crumble{animation:none}}
 .q-note.bad,.u-sub.bad{color:var(--blood-text)}   /* .q-note and .u-sub set their own grey after .bad, so a warning line read as plain text (siege intro, war table) */
 @media (max-width:520px){.corpse .btns{gap:6px}.corpse .btns .btn{padding-left:7px;padding-right:7px}}   /* a phone: Raise and With salts sit side by side when they fit */
-/* the battle stage (src/fx.js): a canvas over the painted arena while the effects layer runs; the cards fold into a compact strip (.win.staged) that keeps every name, HP, status and intent */
-.stage{position:relative;width:100%;min-height:120px;border:1px solid var(--line);border-radius:3px;overflow:hidden;touch-action:manipulation;
-  background:radial-gradient(ellipse 75% 60% at 50% 50%,rgba(24,18,13,.2),rgba(4,3,2,.72)),linear-gradient(180deg,rgba(60,16,10,.2),transparent 45%,transparent 55%,rgba(20,26,14,.16));box-shadow:inset 0 0 40px rgba(0,0,0,.85)}
+/* the battle stage (src/fx.js): a canvas standing on the painted backdrop (#scene, copied in as --stage-bg) while the effects layer runs; each side folds into one strip of chips */
+.stage{position:relative;width:100%;min-height:120px;border:1px solid var(--line);border-radius:3px;overflow:hidden;touch-action:manipulation;background-color:#0b0a09;
+  background-image:linear-gradient(180deg,rgba(8,6,5,.35),rgba(30,12,8,.12) 30%,rgba(8,6,5,.05) 50%,rgba(10,14,8,.12) 70%,rgba(8,6,5,.45)),var(--stage-bg,radial-gradient(ellipse 75% 60% at 50% 50%,rgba(40,30,22,.35),rgba(4,3,2,.8)));
+  background-size:cover;background-position:center 70%;box-shadow:inset 0 0 34px rgba(0,0,0,.75)}
 .stage canvas{display:block}
-.win.staged .row{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px}
-.win.staged .row.minis{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-top:0}
-.win.staged .row.side>.unit:not(.mini){grid-column:auto;grid-row:auto}
-.win.staged .unit{padding:5px 8px;gap:3px}
-.win.staged .unit .ico,.win.staged .unit>.fx{display:none}
-.win.staged .unit .u-top,.win.staged .unit .u-sub{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.win.staged .unit .u-name{font-size:14px;line-height:1.2}
-.win.staged .unit .bar{height:4px}.win.staged .unit .u-hp{font-size:11px;line-height:1.1}
+.strip{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.strip-l{font:600 10px/1 var(--font-head);letter-spacing:.14em;text-transform:uppercase;color:var(--mute);margin-right:4px}
+.strip-l span{letter-spacing:0;text-transform:none}
+.strip .unit.chip{flex-direction:row;flex-wrap:wrap;align-items:center;gap:2px 6px;width:auto;min-height:28px;padding:3px 8px;background:rgba(10,8,7,.62);background-image:none;box-shadow:none;border-radius:3px}
+.strip .c-n{font:600 13px/1.1 var(--font-head);color:var(--bone)}
+.strip .unit.elite .c-n{color:var(--gold)}
+.strip .c-hp,.strip .c-mp{font-size:11px;color:var(--mute)}
+.strip .c-i{flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.strip .c-i.i-atk{color:var(--blood-text)}.strip .c-i.i-heal{color:var(--ok)}.strip .c-i.i-abil{color:var(--gold)}.strip .c-i.i-frozen{color:var(--ward)}
+.strip .c-ch{flex-basis:100%;font:600 11px/1.25 var(--font-data);color:var(--ember)}.strip .c-ch span{color:var(--bone)}
+.strip .unit.chip.dead .c-n{text-decoration:line-through}
 .win.staged .log.short{min-height:0}
 .log-t{align-self:flex-start;margin-top:-6px}
-@media (max-width:540px){.win.staged .row,.win.staged .row.minis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* the battle's command book: rubrics over each group of commands, shown when the commands stand in their own column */
+.rub{display:none;margin:0 0 6px;font:600 10.5px/1 var(--font-head);letter-spacing:.2em;text-transform:uppercase;color:var(--gold);opacity:.85}
+.cgrp{display:flex;flex-direction:column;gap:10px}
+.bat,.bat-main,.bat-cmd{display:flex;flex-direction:column;gap:12px;min-width:0}
+@media (min-width:1280px){
+  body.fight .wrap{max-width:1400px}
+  .bat{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,300px);gap:16px;align-items:start}
+  .bat-cmd{position:sticky;top:10px}
+  .bat-cmd .actbar{gap:14px;padding:12px;border:1px solid var(--line-2);border-radius:3px;background:linear-gradient(180deg,rgba(28,22,17,.92),rgba(14,11,9,.95));box-shadow:inset 0 0 26px rgba(0,0,0,.7),0 4px 14px rgba(0,0,0,.45)}
+  .bat-cmd .rub{display:block;padding-bottom:5px;border-bottom:1px solid var(--line)}
+  .bat-cmd .cgrp{gap:6px}
+  .bat-cmd .btns{flex-direction:column;flex-wrap:nowrap;gap:5px}
+  .bat-cmd .btns .btn{width:100%;display:flex;align-items:center;justify-content:flex-start;text-align:left;padding:8px 10px}
+  .bat-cmd .btns .btn kbd{margin-left:auto;padding-left:5px}
+  .bat-cmd .cmd-l{display:none}
+  .bat-cmd .ult-row .souls{margin:0 0 2px}
+  .bat-cmd .log{min-height:0}
+}
+@media (max-width:540px){
+  .bat,.bat-main,.bat-cmd{display:contents}   /* the action bar stays pinned to the bottom of the whole battle window */
+  .actbar .cgrp{gap:6px}
+  .actbar .cgrp+.cgrp .btns{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}   /* as before: skills, orders and potions one swipeable row each */
+  .actbar .cgrp+.cgrp .btns::-webkit-scrollbar{display:none}
+  .actbar .cgrp+.cgrp .btns .btn{flex:0 0 auto;white-space:nowrap}
+}

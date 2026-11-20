@@ -86,7 +86,7 @@ test('Battle effects: Light, Reduce motion and the OS reduced-motion setting kee
 
 test('Battle effects: the Effects setting says Full draws them, in Turkish too',()=>{
   VIEW.fx='auto'; ui.tab='settings'; let h=renderAll('fx setting'); ok(/Full also draws battle effects/.test(h));
-  const en='Light uses simpler icon shading and still backgrounds, for phones. Full also draws battle effects. Auto picks Light on small or slow devices';
+  const en='Light uses simpler icon shading and still backgrounds, for phones. Full also draws battle effects. Auto picks Light shading on small or slow devices and keeps battle effects unless the device is slow';
   for(const t of [en+' (now: Full).',en+' (now: Light).',en+'.']) ok(/savaş efektlerini de çizer/.test(trText(t)),'Turkish: '+t);
   VIEW.fx='auto';
 });
@@ -123,10 +123,32 @@ test('Battle stage: with the stage on, the cards fold into a strip that keeps ta
     const h=battleHTML();
     ok(h.includes('<section class="win staged"'),'the strip'); ok(/<div class="stage" aria-hidden="true" style="height:\d+px"><\/div>/.test(h),'the stage host');
     for(const e of S.run.enemies) ok(h.includes('data-a="target" data-k="'+e.id+'"'),'a target button for '+e.id);
-    ok(h.includes('class="intent'),'intents stay'); ok(h.includes('data-u="p"'),'your card stays'); ok(h.includes('data-a="logall"'),'the short log');
+    eq((h.match(/<div class="strip" role="group"/g)||[]).length,2,'one strip per side'); ok(!h.includes('class="row'),'no card rows');
+    ok(/class="unit chip foe[^"]*" data-a="target"/.test(h),'foe chips are the target buttons'); ok(h.includes('<div class="sr-only">')&&h.includes('class="intent'),'the intent text stays for screen readers');
+    ok(h.includes('class="c-i i-'),'an intent glyph'); ok(h.includes('data-u="p"'),'your chip'); ok(h.includes('data-a="logall"'),'the short log');
   } finally { FXS.ok=ok0; FXL.st=st; VIEW.fx=fx; }
   ok(!battleHTML().includes('staged'),'and back to cards');
   const u=foe(); u.dots={poison:{d:3,t:2}}; u.st={hasted:1}; eq(fxStatus(u).length,2,'a colour per status'); u.hp=0; eq(fxStatus(u).length,0,'none on the dead');
+});
+test('Battle command book: every action keeps its data-a, key and order, grouped under Actions, Skills, Orders and Potions',()=>noLayer(()=>{
+  setLvl(30); S.army=[]; mkMinion({role:'vanguard',lvl:20}); mkMinion({role:'striker',lvl:20}); S.player.skills.spear=1; S.player.skills.reap=1; S.belt={hp:2,mp:1}; arena([foe(),foe()]);
+  const h=renderAll('command book');
+  ok(/<div class="bat"><div class="bat-main">[\s\S]*<\/div><div class="bat-cmd"><div class="actbar">/.test(h),'the stage column, then the command column');
+  const rub=[...h.matchAll(/<p class="rub">([^<]+)<\/p>/g)].map(m=>m[1]); eq(rub.join(),'Actions,Skills,Orders,Potions','rubrics in order');
+  const at=k=>h.indexOf('data-k="'+k+'"');
+  for(const [k,key] of [['strike','1'],['siphon','2'],['ward','3'],['sk:spear','4'],['sk:reap','5'],['pot:hp',POTIONS.hp.key],['pot:mp',POTIONS.mp.key],['vanguard','Z'],['striker','X'],['guard','G']]){
+    const i=at(k); ok(i>0,k+' is there'); ok(h.slice(i,h.indexOf('</button>',i)).includes('<kbd>'+key+'</kbd>'),k+' shows its key '+key); }
+  ok(h.includes('data-a="flee"'),'Flee'); ok(at('strike')<at('sk:spear')&&at('sk:spear')<at('vanguard')&&at('vanguard')<at('pot:hp'),'Actions, Skills, Orders, Potions');
+  ok(h.indexOf('class="log')>h.indexOf('class="bat-cmd"'),'the log sits under the commands');
+  for(const k of ['Actions','Skills','Orders','Potions']) ok(TR_DICT.has(k),'Turkish: '+k);
+  S.belt={hp:0,mp:0}; ok(!renderAll('no potions').includes('>Potions<'),'an empty group has no rubric');
+}));
+
+test('Battle stage: Auto keeps the effects (and the stage) on a phone, unless the device is weak or asks for less motion',()=>{
+  const w=window.innerWidth, fx=VIEW.fx; VIEW.fx='auto'; window.innerWidth=375;
+  try{ ok(fxLight(),'the icon shading still goes Light'); if(!fxWeak()&&!fxReduced()&&!VIEW.calm) ok(fxAllowed(),'battle effects stay on');
+    VIEW.fx='light'; ok(!fxAllowed(),'Light turns them off'); VIEW.fx='full'; if(!fxReduced()&&!VIEW.calm) ok(fxAllowed(),'Full keeps them'); }
+  finally{ window.innerWidth=w; VIEW.fx=fx; }
 });
 
 })();

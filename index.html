@@ -1041,21 +1041,49 @@ html:has(body.nobg)::after{display:none}
 @media (prefers-reduced-motion:reduce){.fx-dim{display:none}.unit.ally.crumble{animation:none}}
 .q-note.bad,.u-sub.bad{color:var(--blood-text)}   /* .q-note and .u-sub set their own grey after .bad, so a warning line read as plain text (siege intro, war table) */
 @media (max-width:520px){.corpse .btns{gap:6px}.corpse .btns .btn{padding-left:7px;padding-right:7px}}   /* a phone: Raise and With salts sit side by side when they fit */
-/* the battle stage (src/fx.js): a canvas over the painted arena while the effects layer runs; the cards fold into a compact strip (.win.staged) that keeps every name, HP, status and intent */
-.stage{position:relative;width:100%;min-height:120px;border:1px solid var(--line);border-radius:3px;overflow:hidden;touch-action:manipulation;
-  background:radial-gradient(ellipse 75% 60% at 50% 50%,rgba(24,18,13,.2),rgba(4,3,2,.72)),linear-gradient(180deg,rgba(60,16,10,.2),transparent 45%,transparent 55%,rgba(20,26,14,.16));box-shadow:inset 0 0 40px rgba(0,0,0,.85)}
+/* the battle stage (src/fx.js): a canvas standing on the painted backdrop (#scene, copied in as --stage-bg) while the effects layer runs; each side folds into one strip of chips */
+.stage{position:relative;width:100%;min-height:120px;border:1px solid var(--line);border-radius:3px;overflow:hidden;touch-action:manipulation;background-color:#0b0a09;
+  background-image:linear-gradient(180deg,rgba(8,6,5,.35),rgba(30,12,8,.12) 30%,rgba(8,6,5,.05) 50%,rgba(10,14,8,.12) 70%,rgba(8,6,5,.45)),var(--stage-bg,radial-gradient(ellipse 75% 60% at 50% 50%,rgba(40,30,22,.35),rgba(4,3,2,.8)));
+  background-size:cover;background-position:center 70%;box-shadow:inset 0 0 34px rgba(0,0,0,.75)}
 .stage canvas{display:block}
-.win.staged .row{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px}
-.win.staged .row.minis{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-top:0}
-.win.staged .row.side>.unit:not(.mini){grid-column:auto;grid-row:auto}
-.win.staged .unit{padding:5px 8px;gap:3px}
-.win.staged .unit .ico,.win.staged .unit>.fx{display:none}
-.win.staged .unit .u-top,.win.staged .unit .u-sub{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.win.staged .unit .u-name{font-size:14px;line-height:1.2}
-.win.staged .unit .bar{height:4px}.win.staged .unit .u-hp{font-size:11px;line-height:1.1}
+.strip{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.strip-l{font:600 10px/1 var(--font-head);letter-spacing:.14em;text-transform:uppercase;color:var(--mute);margin-right:4px}
+.strip-l span{letter-spacing:0;text-transform:none}
+.strip .unit.chip{flex-direction:row;flex-wrap:wrap;align-items:center;gap:2px 6px;width:auto;min-height:28px;padding:3px 8px;background:rgba(10,8,7,.62);background-image:none;box-shadow:none;border-radius:3px}
+.strip .c-n{font:600 13px/1.1 var(--font-head);color:var(--bone)}
+.strip .unit.elite .c-n{color:var(--gold)}
+.strip .c-hp,.strip .c-mp{font-size:11px;color:var(--mute)}
+.strip .c-i{flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.strip .c-i.i-atk{color:var(--blood-text)}.strip .c-i.i-heal{color:var(--ok)}.strip .c-i.i-abil{color:var(--gold)}.strip .c-i.i-frozen{color:var(--ward)}
+.strip .c-ch{flex-basis:100%;font:600 11px/1.25 var(--font-data);color:var(--ember)}.strip .c-ch span{color:var(--bone)}
+.strip .unit.chip.dead .c-n{text-decoration:line-through}
 .win.staged .log.short{min-height:0}
 .log-t{align-self:flex-start;margin-top:-6px}
-@media (max-width:540px){.win.staged .row,.win.staged .row.minis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* the battle's command book: rubrics over each group of commands, shown when the commands stand in their own column */
+.rub{display:none;margin:0 0 6px;font:600 10.5px/1 var(--font-head);letter-spacing:.2em;text-transform:uppercase;color:var(--gold);opacity:.85}
+.cgrp{display:flex;flex-direction:column;gap:10px}
+.bat,.bat-main,.bat-cmd{display:flex;flex-direction:column;gap:12px;min-width:0}
+@media (min-width:1280px){
+  body.fight .wrap{max-width:1400px}
+  .bat{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,300px);gap:16px;align-items:start}
+  .bat-cmd{position:sticky;top:10px}
+  .bat-cmd .actbar{gap:14px;padding:12px;border:1px solid var(--line-2);border-radius:3px;background:linear-gradient(180deg,rgba(28,22,17,.92),rgba(14,11,9,.95));box-shadow:inset 0 0 26px rgba(0,0,0,.7),0 4px 14px rgba(0,0,0,.45)}
+  .bat-cmd .rub{display:block;padding-bottom:5px;border-bottom:1px solid var(--line)}
+  .bat-cmd .cgrp{gap:6px}
+  .bat-cmd .btns{flex-direction:column;flex-wrap:nowrap;gap:5px}
+  .bat-cmd .btns .btn{width:100%;display:flex;align-items:center;justify-content:flex-start;text-align:left;padding:8px 10px}
+  .bat-cmd .btns .btn kbd{margin-left:auto;padding-left:5px}
+  .bat-cmd .cmd-l{display:none}
+  .bat-cmd .ult-row .souls{margin:0 0 2px}
+  .bat-cmd .log{min-height:0}
+}
+@media (max-width:540px){
+  .bat,.bat-main,.bat-cmd{display:contents}   /* the action bar stays pinned to the bottom of the whole battle window */
+  .actbar .cgrp{gap:6px}
+  .actbar .cgrp+.cgrp .btns{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}   /* as before: skills, orders and potions one swipeable row each */
+  .actbar .cgrp+.cgrp .btns::-webkit-scrollbar{display:none}
+  .actbar .cgrp+.cgrp .btns .btn{flex:0 0 auto;white-space:nowrap}
+}
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
@@ -5042,7 +5070,8 @@ const FXL={st:'off',   // off | loading | init | ready | failed
   app:null,root:null,tex:null,live:[],pool:[],q:[],spy:null,tag:false,later:null,col:null,seed:0x2f6b1d,vis:false,
   MAX:300,QMAX:80};
 const fxReduced=()=>{ try{ return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return true; } };
-const fxAllowed=()=>{ try{ return !VIEW.calm&&!fxLight()&&!fxReduced(); }catch(e){ return false; } };
+const fxWeak=()=>((typeof navigator!=='undefined'&&navigator.hardwareConcurrency)||8)<=4;
+const fxAllowed=()=>{ try{ return !VIEW.calm&&!fxReduced()&&VIEW.fx!=='light'&&!(VIEW.fx==='auto'&&fxWeak()); }catch(e){ return false; } };   // Auto keeps them on phones (only the icon shading goes Light there), off on weak machines
 function fxRnd(){ let x=FXL.seed; x^=x<<13; x^=x>>>17; x^=x<<5; FXL.seed=x>>>0; return FXL.seed/4294967296; }   // xorshift32: never touches Math.random
 const fxR=(a,b)=>a+(b-a)*fxRnd();
 
@@ -5318,7 +5347,8 @@ async function fxStageInit(){
   }catch(e){ FXS.ok=false; try{ console.info('Battle stage is off: '+(e&&e.message)+'. The cards show the fight instead.'); }catch(x){} }
 }
 function fxStageDrop(){   // the layer is going away: the stage too, and the cards come back
-  const a=FXS.app, was=FXS.ok; FXS.ok=false; FXS.app=null; FXS.root=null; FXS.floor=null; FXS.f.clear(); FXS.nums=[]; FXS.seen=null; FXS.W=0;
+  const a=FXS.app, was=FXS.ok; FXS.ok=false; FXS.app=null; FXS.root=null; FXS.floor=null; FXS.f.clear(); FXS.nums=[]; FXS.seen=null; FXS.W=0; FXS.lk=''; FXS.bgk=null;
+  try{ document.body.style.removeProperty('--stage-bg'); if(FXS.bgu) URL.revokeObjectURL(FXS.bgu); }catch(e){} FXS.bgu=null;
   if(a) try{ a.ticker.remove(fxStageStep); for(const k in FXS.tex) FXS.tex[k].destroy(true); FXS.ico.forEach(t=>{ if(t) t.destroy(true); }); a.destroy({removeView:true},{children:true}); }catch(e){}
   FXS.tex=null; FXS.ico.clear();
   if(was&&typeof app!=='undefined'&&app&&app.querySelector&&app.querySelector('.win.staged')) setTimeout(()=>render(),0);
@@ -5361,25 +5391,30 @@ function fxFighter(k,foe){
   FXS.root.addChild(c); FXS.f.set(k,F); return F;
 }
 const fxTr=t=>{ try{ return VIEW.lang==='tr'?trText(t):t; }catch(e){ return t; } };
-function fxFitText(T,s,w){ T.text=s; if(T.width<=w) return; let n=s.length; while(n>3&&T.width>w){ n--; T.text=s.slice(0,n)+'…'; } }
+function fxFitText(T,s,w,two){   // one line if it fits; else a size smaller; else (two) wrapped onto two lines; only then cut
+  const st=T.style, fs=st.fontSize; st.wordWrap=false; T.text=s; if(T.width<=w) return;
+  st.fontSize=fs-1; if(T.width<=w) return;
+  if(two){ st.wordWrap=true; st.breakWords=true; st.wordWrapWidth=w; st.align='center'; T.text=s; }
+  const lim=two?fs*2.6:fs*1.6; let n=s.length; while(n>3&&(T.width>w+1||T.height>lim)){ n--; T.text=s.slice(0,n)+'…'; }
+}
 function fxUpd(F,p,cell,tg,r){
   const u=p.u, s=p.s, dead=u.hp<=0, isP=u.id==='p', max=isP?pMax():u.maxHp;
   F.u=u; F.x=p.x; F.y=p.y; if(F.cx==null){ F.cx=p.x; F.cy=p.y; } if(F.dead===null) F.dead=dead;
   const html=isP?ico('Necromancer',pRankI(),{}):ico(u.base||u.kind||u.name,u.rankI,{boss:u.boss,secret:u.secret,elite:u.elite});
   if(F.html!==html){ F.html=html; F.spr.texture=fxIcoTex(html)||PIXI.Texture.EMPTY; F.s=0; }
-  if(F.s!==s){ F.s=s; fxFit(F); F.shadow.scale.set(s/34,s/120); F.glow.scale.set(s/26,s/76); F.ring.scale.set(s/52,s/150); F.bk.position.set(0,-s*.5); F.c.hitArea=new PIXI.Rectangle(-cell/2,-s-14,cell,s+44); }
+  if(F.s!==s){ F.s=s; fxFit(F); F.shadow.scale.set(s/34,s/120); F.glow.scale.set(s/26,s/76); F.ring.scale.set(s/52,s/150); F.bk.position.set(0,-s*.5); F.c.hitArea=new PIXI.Rectangle(-cell/2,-s-20,cell,s+64); }
   const nm=F.foe?u.name:(isP?'You':nick(u)), st=fxStatus(u), sel=F.foe&&!dead&&r.target===u.id, ch=F.foe&&!dead?chargeInfo(u):null, it=F.foe&&!dead&&!ch?intentInfo(u):null;
-  const lab=ch?'Charging: '+ch.name:it?it.txt:'', kind=ch?'abil':it?it.k:'', bw=Math.round(Math.max(40,Math.min(s*1.15,cell*.9)));
+  const kd=it&&it.k==='atk'?foeKnow(u).dmg:null, lab=ch?'Charging: '+ch.name:it?it.txt+(kd!=null?' · '+aboutN(kd):''):'', kind=ch?'abil':it?it.k:'', bw=Math.round(Math.max(s*1.2,cell*.94)), bb=Math.round(Math.min(bw*.9,s*1.15));   /* bw: the name's room, bb: the HP bar */
   const key=[nm,u.hp,max,s,bw,dead,st.join(','),sel,lab,kind,tg.has(F.k),VIEW.lang,isP?u.shield:0].join('|');
   if(key===F.key) return; F.key=key;
-  F.name.style.fill=u.boss||u.elite?FXS.col.gold:FXS.col.bone; F.name.style.fontSize=s<50?11:13; fxFitText(F.name,fxTr(nm),bw+16); F.name.y=6;
+  F.name.style.fill=u.boss||u.elite?FXS.col.gold:FXS.col.bone; F.name.style.fontSize=s<56?12:14; fxFitText(F.name,fxTr(nm),bw,true); F.name.y=6;
   const g=F.plate.clear(), by=F.name.y+F.name.height+2, w=Math.max(0,Math.min(1,u.hp/max));
-  g.rect(-bw/2-1,by-1,bw+2,7).fill({color:0x0a0806,alpha:.85}).rect(-bw/2,by,bw*w,5).fill(F.foe?0xb83a2a:0x6f9a4c);
-  if(isP&&u.shield>0) g.rect(-bw/2,by,bw*Math.min(1,u.shield/max),2).fill(FXS.col.ward);
-  st.slice(0,6).forEach((c,i,a)=>{ const x=(i-(a.length-1)/2)*8; g.poly([x,by+9,x+3,by+12,x,by+15,x-3,by+12]).fill(c).stroke({width:1,color:0x0a0806,alpha:.8}); });
+  g.rect(-bb/2-1,by-1,bb+2,8).fill({color:0x0a0806,alpha:.85}).rect(-bb/2,by,bb*w,6).fill(F.foe?0xb83a2a:0x6f9a4c);
+  if(isP&&u.shield>0) g.rect(-bb/2,by,bb*Math.min(1,u.shield/max),2).fill(FXS.col.ward);
+  st.slice(0,6).forEach((c,i,a)=>{ const x=(i-(a.length-1)/2)*8; g.poly([x,by+10,x+3,by+13,x,by+16,x-3,by+13]).fill(c).stroke({width:1,color:0x0a0806,alpha:.8}); });
   F.glow.visible=!!st.length; if(st.length){ F.glow.tint=st[0]; F.glow.alpha=.45; }
   F.ring.visible=sel; F.ring.tint=FXS.col.bone; F.chg.visible=!!ch;
-  if(F.foe){ F.tag.style.fill=INT_COL[kind]||FXS.col.bone; fxFitText(F.tag,fxTr(lab),Math.max(cell*.95,70)); F.tag.y=-s-4; }
+  if(F.foe){ F.tag.style.fill=INT_COL[kind]||FXS.col.bone; F.tag.style.fontSize=s<56?11:12; fxFitText(F.tag,fxTr(lab),Math.max(cell*.96,70)); F.tag.y=-s-4; }
   else { F.tag.clear(); if(tg.has(F.k)) F.tag.poly([-6,-s-12,6,-s-12,0,-s-4]).fill(0xc9402c).stroke({width:1.5,color:0x0a0806}); }   // a foe means to hit this one next
 }
 // After each render: place the fighters, sized to the stage's width (a phone gets smaller sprites, never fewer lanes).
@@ -5391,24 +5426,33 @@ function fxStage(){
   if(A.canvas.parentNode!==host) host.appendChild(A.canvas);
   const r=S.run, fresh=!FXS.f.size, W=Math.max(200,host.clientWidth|0), all=[S.player].concat(S.army);
   const L=[[r.enemies,'b',1],[r.enemies,'f',1],[all,'f',0],[all,'b',0]].map(([l,k,foe])=>({foe,u:l.filter(u=>rowOf(u)===k)})).filter(l=>l.u.length);
-  const fixed=18+L.reduce((a,l)=>a+(l.foe?26:16)+38,0), tall=L.reduce((a,l)=>a+(l.u.some(u=>u.boss)?1.3:1)*1.08,0), room=Math.max(300,(window.innerHeight||800)*.5);   // the stage keeps to about half the screen
-  const n=Math.max(3,...L.map(l=>l.u.length)), cell=W/n, s=Math.round(Math.max(34,Math.min(80,cell*.62,(room-fixed)/tall))), pos=new Map(), tg=new Set();
+  const n=Math.max(3,...L.map(l=>l.u.length)), cell=W/n, s=Math.round(Math.max(W<520?40:56,Math.min(96,cell*.72))), pos=new Map(), tg=new Set();   // the fighters fill the stage; a crowded row shrinks them
   for(const e of r.enemies){ const i=e.hp>0&&intentInfo(e); if(i&&i.k==='atk'&&i.tg) tg.add(fxKey(i.tg)); }
   let y=6, mid=0;
   for(const l of L){
     if(!l.foe&&!mid){ mid=y+4; y+=12; }
     const big=l.u.some(u=>u.boss)?1.3:1; y+=(l.foe?26:16)+s*big*1.08;
     l.u.forEach((u,i)=>pos.set(String(fxKey(u)),{u,foe:l.foe,x:Math.round((W-l.u.length*cell)/2+cell*(i+.5)),y:Math.round(y),s:Math.round(s*(u.boss?1.3:1))}));
-    y+=38;
+    l.y=Math.round(y); y+=52;   // the plate: up to two lines of name, the HP bar, status marks
   }
   const H=Math.round(y);
   host.style.height=H+'px';
-  if(H!==FXS.h||W!==FXS.W){ FXS.h=H; FXS.W=W; A.renderer.resize(W,H);
-    FXS.floor.clear(); if(mid) FXS.floor.rect(W*.08,mid,W*.84,1).fill({color:FXS.col.bone,alpha:.14}).rect(W*.2,mid+2,W*.6,1).fill({color:0,alpha:.5}); }
+  if(H!==FXS.h||W!==FXS.W){ FXS.h=H; FXS.W=W; A.renderer.resize(W,H); }
+  const lk=W+':'+L.map(l=>l.y).join(',');
+  if(lk!==FXS.lk){ FXS.lk=lk; FXS.floor.removeChildren().forEach(c=>c.destroy()); FXS.floor.clear();   // the ground each row stands on: a soft dark band, and a worn line between the sides
+    for(const l of L){ const b=new PIXI.Sprite(FXS.tex.dot); b.anchor.set(.5); b.tint=0; b.alpha=.5; b.position.set(W/2,l.y+2); b.scale.set(W/26,s/70); FXS.floor.addChild(b); }
+    if(mid) FXS.floor.rect(W*.08,mid,W*.84,1).fill({color:FXS.col.bone,alpha:.16}).rect(W*.2,mid+2,W*.6,1).fill({color:0,alpha:.5}); }
+  fxStageBg();
   for(const [k,p] of pos){ const F=FXS.f.get(k)||fxFighter(k,p.foe); fxUpd(F,p,cell,tg,r); F.c.zIndex=p.y; }
   for(const [k,F] of FXS.f) if(!pos.has(k)){ F.c.destroy({children:true}); FXS.f.delete(k); }
   if(fresh){ FXS.seen=r.fx; if(r.cmd&&r.cmd.guard) FXS.gcmd=r.cmd; }   // a stage just opened: show what stands, do not replay the last turn
   A.ticker.start();
+}
+function fxStageBg(){   // the painted backdrop (#scene, scenes.js) as the stage's own background, so the fighters stand in the place
+  const sc=document.getElementById('scene'), k=sc&&sc.dataset.k||'', sv=k&&sc.querySelector('svg'); if(k===FXS.bgk) return;
+  FXS.bgk=k; if(FXS.bgu) try{ URL.revokeObjectURL(FXS.bgu); }catch(e){} FXS.bgu=null;
+  try{ if(sv&&window.XMLSerializer){ FXS.bgu=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(sv)],{type:'image/svg+xml'})); document.body.style.setProperty('--stage-bg','url("'+FXS.bgu+'")'); }
+    else document.body.style.removeProperty('--stage-bg'); }catch(e){}
 }
 function fxAnim(F,k,t,d,dx,dy){ F.a.push({k,age:-t,d,dx:dx||0,dy:dy||0}); }
 function fxStageMove(e,at){   // from fxFlush, on the same clock as the overlay: the attacker lunges, the target recoils
@@ -6215,9 +6259,9 @@ const TR_DICT=new Map(Object.entries({
 "Level #/#":"Seviye #/#",
 "Level up":"Seviye atladın",
 "Light":"Hafif",
-"Light uses simpler icon shading and still backgrounds, for phones. Full also draws battle effects. Auto picks Light on small or slow devices (now: Full)":"Hafif, telefonlar için daha basit simge gölgelendirmesi ve durağan arka planlar kullanır. Tam, savaş efektlerini de çizer. Otomatik, küçük ya da yavaş cihazlarda Hafif'i seçer (şimdi: Tam)",
-"Light uses simpler icon shading and still backgrounds, for phones. Full also draws battle effects. Auto picks Light on small or slow devices (now: Light)":"Hafif, telefonlar için daha basit simge gölgelendirmesi ve durağan arka planlar kullanır. Tam, savaş efektlerini de çizer. Otomatik, küçük ya da yavaş cihazlarda Hafif'i seçer (şimdi: Hafif)",
-"Light uses simpler icon shading and still backgrounds, for phones. Full also draws battle effects. Auto picks Light on small or slow devices":"Hafif, telefonlar için daha basit simge gölgelendirmesi ve durağan arka planlar kullanır. Tam, savaş efektlerini de çizer. Otomatik, küçük ya da yavaş cihazlarda Hafif'i seçer",
+"Light uses simpler icon shading and still backgrounds, for phones. Full also draws battle effects. Auto picks Light shading on small or slow devices and keeps battle effects unless the device is slow (now: Full)":"Hafif, telefonlar için daha basit simge gölgelendirmesi ve durağan arka planlar kullanır. Tam, savaş efektlerini de çizer. Otomatik, küçük ya da yavaş cihazlarda Hafif gölgelendirmeyi seçer ve cihaz yavaş değilse savaş efektlerini korur (şimdi: Tam)",
+"Light uses simpler icon shading and still backgrounds, for phones. Full also draws battle effects. Auto picks Light shading on small or slow devices and keeps battle effects unless the device is slow (now: Light)":"Hafif, telefonlar için daha basit simge gölgelendirmesi ve durağan arka planlar kullanır. Tam, savaş efektlerini de çizer. Otomatik, küçük ya da yavaş cihazlarda Hafif gölgelendirmeyi seçer ve cihaz yavaş değilse savaş efektlerini korur (şimdi: Hafif)",
+"Light uses simpler icon shading and still backgrounds, for phones. Full also draws battle effects. Auto picks Light shading on small or slow devices and keeps battle effects unless the device is slow":"Hafif, telefonlar için daha basit simge gölgelendirmesi ve durağan arka planlar kullanır. Tam, savaş efektlerini de çizer. Otomatik, küçük ya da yavaş cihazlarda Hafif gölgelendirmeyi seçer ve cihaz yavaş değilse savaş efektlerini korur",
 "Lingering":"Kalıcı",
 "Little moth. Come closer to the light":"Küçük güve. Işığa yaklaş",
 "Load":"Yükle",
@@ -6229,6 +6273,8 @@ const TR_DICT=new Map(Object.entries({
 "Log":"Kayıt",
 "Show the full log":"Tüm kaydı göster",
 "Show fewer lines":"Daha az satır göster",
+"Actions":"Eylemler",
+"Potions":"İksirler",
 "Lore":"Hikâye",
 "Lore page":"Hikâye sayfası",
 "Loss":"Yenilgi",
@@ -9157,7 +9203,7 @@ function saveTabHTML(){
    +[['Compact',-1],['Normal',0],['Large',1],['Larger',2]].map(([t,i])=>'<button class="btn small'+(VIEW.size===i?' primary':'')+'" data-a="view" data-k="size|'+i+'" aria-pressed="'+(VIEW.size===i)+'">'+t+'</button>').join('')+'</div></div>'
    +'<div class="tt-row'+(VIEW.calm?' on':'')+'"><div><h4>Reduce motion</h4><div class="u-sub">Stops embers, flames, pulses and shake.</div></div><button class="btn small'+(VIEW.calm?'':' primary')+'" data-a="view" data-k="calm" aria-pressed="'+VIEW.calm+'">'+(VIEW.calm?'Turn off':'Turn on')+'</button></div>'
    +'<div class="tt-row'+(VIEW.nobg?'':' on')+'"><div><h4>Backgrounds</h4><div class="u-sub">Painted scenes and boss arenas.</div></div><button class="btn small'+(VIEW.nobg?' primary':'')+'" data-a="view" data-k="nobg" aria-pressed="'+!VIEW.nobg+'">'+(VIEW.nobg?'Turn on':'Turn off')+'</button></div>'
-   +'<div class="tt-row"><div><h4>Effects</h4><div class="u-sub">Light uses simpler icon shading and still backgrounds, for phones. Full also draws battle effects. Auto picks Light on small or slow devices'+(VIEW.fx==='auto'?' (now: '+(fxLight()?'Light':'Full')+')':'')+'.</div></div><div class="btns" style="margin:0">'
+   +'<div class="tt-row"><div><h4>Effects</h4><div class="u-sub">Light uses simpler icon shading and still backgrounds, for phones. Full also draws battle effects. Auto picks Light shading on small or slow devices and keeps battle effects unless the device is slow'+(VIEW.fx==='auto'?' (now: '+(fxLight()?'Light':'Full')+')':'')+'.</div></div><div class="btns" style="margin:0">'
      +Object.keys(FX_MODES).map(k=>'<button class="btn small'+(VIEW.fx===k?' primary':'')+'" data-a="view" data-k="fx|'+k+'" aria-pressed="'+(VIEW.fx===k)+'">'+FX_MODES[k]+'</button>').join('')+'</div></div>'
    +'<div class="tt-row'+(VIEW.hc?' on':'')+'"><div><h4>High contrast</h4><div class="u-sub">Brighter text and bolder bars.</div></div><button class="btn small'+(VIEW.hc?'':' primary')+'" data-a="view" data-k="hc" aria-pressed="'+VIEW.hc+'">'+(VIEW.hc?'Turn off':'Turn on')+'</button></div></div>'
    +'<p class="group-h">Save &amp; load</p><p class="lede">The game saves itself after every action (in a gate or the Tower, as if you had walked out). Slots are for keeping a safe copy before something risky, like a Tower warden. A save code lets you carry your progress to another browser or device.</p>';
@@ -9930,32 +9976,52 @@ function logHTML(short){   // short (the battle stage is on): the newest three l
   const L=S.run.log, cut=short&&L.length>3;
   return '<ol class="log'+(short?' short':'')+'">'+(cut&&!ui.logAll?L.slice(0,3):L).map(l=>'<li class="'+l.c+'">'+l.m+'</li>').join('')+'</ol>'
    +(cut?'<button class="linkbtn log-t" data-a="logall" aria-expanded="'+!!ui.logAll+'">'+(ui.logAll?'Show fewer lines':'Show the full log')+'</button>':''); }
+// With the battle stage on (fx.js), each side is one strip of small chips: name, HP, the intent glyph and a charge's answer. The stage
+// draws the rest; the card's full text (statuses, intent, bestiary figures) stays in each chip for screen readers.
+function chipHTML(u,side){
+  const r=S.run, isP=u.id==='p', max=isP?pMax():u.maxHp, dead=u.hp<=0, foe=side==='foe', ch=foe&&!dead?chargeInfo(u):null, i=foe&&!dead&&!ch?intentInfo(u):null, sel=foe&&!dead&&r.target===u.id;
+  const inner='<b class="c-n">'+(foe?u.name:nick(u))+'</b><span class="num c-hp">'+Math.max(0,u.hp)+'/'+max+(isP&&u.shield?' +'+u.shield:'')+'</span>'
+   +(isP?'<span class="num c-mp">Mana '+u.mana+'/'+pMana()+'</span>':'')
+   +(i?'<svg class="c-i i-'+i.k+'" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="'+INTENT_ICO[i.k]+'"/></svg>':'')
+   +(ch?'<span class="c-ch"><b>'+ch.name+'</b> <span>'+ch.hint+'</span></span>':'')
+   +'<div class="sr-only">'+stPills(u)+(foe?intentHTML(u):'')+'</div>';
+  const cls='unit chip '+(foe?'foe':'ally')+(dead?' dead':'')+(sel?' sel':'')+(ch?' charging':'');
+  return foe&&!dead?'<button class="'+cls+'" data-a="target" data-k="'+u.id+'" data-u="'+u.id+'" aria-pressed="'+sel+'">'+inner+'</button>':'<div class="'+cls+'" data-u="'+fxKey(u)+'">'+inner+'</div>';
+}
+function stripHTML(lab,list,side){ const L=list.filter(u=>rowOf(u)==='f').concat(list.filter(u=>rowOf(u)!=='f'));   // front row first, as the stage reads from the middle out
+  return '<div class="strip" role="group" aria-label="'+(side==='foe'?'Foes':'Your side')+'"><span class="strip-l">'+lab+'</span>'+L.map(u=>chipHTML(u,side)).join('')+'</div>'; }
+const grpHTML=(t,h)=>h?'<div class="cgrp"><p class="rub">'+t+'</p>'+h+'</div>':'';   // a rubric over a group of battle commands (shown in the wide command panel)
 function stageTap(k){   // a foe clicked on the battle stage (fx.js): the same action as its card's button
   if(S.mode!=='battle'||!S.run||!S.run.enemies.some(e=>e.id===k&&e.hp>0)) return false;
   if(ui.confirm!==null) ui.confirm=null; ACTIONS.target(k); settled(); return true; }
 function battleHTML(){
   currentTarget();
   const r=S.run, D=DUNGEONS[r.di], P=S.player, boss=r.room===r.rooms-1, ans=chargeAns(), st=stageOn();   /* st: the battle stage (fx.js) shows the fight; the cards fold into a strip */
+  const foeH='Foes'+(foeArmor()?' &middot; '+armorTag(foeArmor()):''), sideH='Your side'+(r.frenzy>0?' &middot; <span class="ok">Frenzy '+r.frenzy+'</span>':'')+(r.silence>0?' &middot; <span class="bad">Silenced '+r.silence+'</span>':'')+(r.taunt>0?' &middot; <span class="ok">Taunting '+r.taunt+'</span>':'');
   const mini='<div class="mini-hp" aria-hidden="true"><div><span>HP '+Math.max(0,P.hp)+'/'+pMax()+(P.shield?' +'+P.shield:'')+'</span><div class="bar"><i class="fill hp" style="width:'+pct(P.hp,pMax())+'%"></i></div></div><div><span>Mana '+P.mana+'/'+pMana()+'</span><div class="bar"><i class="fill mp" style="width:'+pct(P.mana,pMana())+'%"></i></div></div></div>';
   return '<section class="win'+(st?' staged':'')+'" aria-labelledby="h-battle">'+mini+'<h2 class="win-h" id="h-battle">'+(r.tw?'Hell Tower &middot; Floor '+r.tw+(r.tw%10===0?' &middot; Warden':'')+' &middot; Turn '+r.turn:(r.siege?'Siege &middot; Wave '+(r.room+1)+'/'+r.rooms+' &middot; Turn '+r.turn:r.trial?'Trial &middot; Room '+(r.room+1)+'/'+r.rooms+' &middot; Turn '+((r.tt||0)+1):(r.rift?'The Rift &middot; Depth '+r.rift+' &middot; ':'')+D.name+' &middot; Room '+(r.room+1)+'/'+r.rooms+(boss?' &middot; Boss':'')+' &middot; Turn '+r.turn))+'</h2>'
    +(r.mod?'<p class="q-note"><span class="curse-line" style="margin:0">Cursed: <b>'+MODS[r.mod].name+'</b>. '+MODS[r.mod].desc+'</span></p>':'')+(r.mod2&&MODS[r.mod2]?'<p class="q-note"><span class="curse-line" style="margin:0">Cursed: <b>'+MODS[r.mod2].name+'</b>. '+MODS[r.mod2].desc+'</span></p>':'')
    +(r.heat?'<p class="q-note bad">Difficulty: <b>'+HEAT[r.heat].name+'</b>'+(r.mod?', and the curse feeds on it':'')+'.</p>':'')
    +(r.bless?'<p class="q-note ok">Blood-blessed: you and your army hit 15% harder in this gate.</p>':'')
+   +'<div class="bat"><div class="bat-main">'
    +(st?'<div class="stage" aria-hidden="true" style="height:'+(FXS.h||300)+'px"></div>':'')
-   +'<p class="group-h">Foes'+(foeArmor()?' &middot; '+armorTag(foeArmor()):'')+'</p>'+rowsHTML(r.enemies,'row',e=>unitCard(e,'foe'))
-   +'<p class="group-h">Your side'+(r.frenzy>0?' &middot; <span class="ok">Frenzy '+r.frenzy+'</span>':'')+(r.silence>0?' &middot; <span class="bad">Silenced '+r.silence+'</span>':'')+(r.taunt>0?' &middot; <span class="ok">Taunting '+r.taunt+'</span>':'')+'</p>'+rowsHTML([S.player].concat(S.army),'row minis side',u=>u.id==='p'?unitCard(u,'ally'):unitCard(u,'ally',true))
-   +'<div class="actbar">'+partyStrip()+'<div class="btns"><button class="btn primary" data-a="act" data-k="strike">Strike +3 mana<kbd>1</kbd></button>'
+   +(st?stripHTML(foeH,r.enemies,'foe'):'<p class="group-h">'+foeH+'</p>'+rowsHTML(r.enemies,'row',e=>unitCard(e,'foe')))
+   +(st?stripHTML(sideH,[S.player].concat(S.army),'ally'):'<p class="group-h">'+sideH+'</p>'+rowsHTML([S.player].concat(S.army),'row minis side',u=>u.id==='p'?unitCard(u,'ally'):unitCard(u,'ally',true)))
+   +'</div><div class="bat-cmd">'
+   +'<div class="actbar">'+partyStrip()+'<div class="cgrp"><p class="rub">Actions</p><div class="btns acts-main"><button class="btn primary" data-a="act" data-k="strike">Strike +3 mana<kbd>1</kbd></button>'
    +'<button class="btn" data-a="act" data-k="siphon"'+(P.mana<siphonCost()?' disabled':'')+'>Soul Siphon '+siphonCost()+'<kbd>2</kbd></button>'
    +'<button class="btn'+(ans.includes('ward')&&P.mana>=6?' answer':'')+'" data-a="act" data-k="ward"'+(P.mana<6?' disabled':'')+'>'+(ans.includes('ward')&&P.mana>=6?ANS_M:'')+'Bone Ward 6'+(ans.includes('ward')&&P.mana>=6?ANS_S:'')+'<kbd>3</kbd></button>'
    +'<button class="btn warn" data-a="flee"'+(r.siege?' title="Fleeing a siege counts as a defeat"':'')+'>'+(r.siege?'Abandon the walls':'Flee')+'</button></div>'
-   +((S.belt.hp||S.belt.mp)?'<div class="btns">'+Object.keys(POTIONS).filter(k=>S.belt[k]&&!pactOn('dry')).map(k=>{ const p=POTIONS[k], full=k==='hp'?P.hp>=pMax()&&!P.dots:P.mana>=pMana();
-      return '<button class="btn potion" data-a="act" data-k="pot:'+k+'"'+(full?' disabled title="Already full"':' title="'+p.desc+'"')+'>'+p.name+' &times;'+S.belt[k]+'<kbd>'+p.key+'</kbd></button>'; }).join('')+'</div>':'')
-   +ultHTML()
-   +cmdHTML()
-   +(activeSkills().length?'<div class="btns">'+activeSkills().map((s,i)=>{ const cd=skCd(s.id), why=r.silence>0?'Silenced by the Hymn':cd>0?'Ready in '+cd+' turn'+(cd>1?'s':''):s.id==='blast'&&!freeCorpse()?'Needs a body that fell this room':s.id==='mend'&&!S.army.some(m=>m.hp>0&&m.hp<m.maxHp)?'No wounded minions':P.mana<s.cost?'Not enough mana':s.desc(sk(s.id));
+   +ultHTML()+'</div>'
+   +grpHTML('Skills',(activeSkills().length?'<div class="btns">'+activeSkills().map((s,i)=>{ const cd=skCd(s.id), why=r.silence>0?'Silenced by the Hymn':cd>0?'Ready in '+cd+' turn'+(cd>1?'s':''):s.id==='blast'&&!freeCorpse()?'Needs a body that fell this room':s.id==='mend'&&!S.army.some(m=>m.hp>0&&m.hp<m.maxHp)?'No wounded minions':P.mana<s.cost?'Not enough mana':s.desc(sk(s.id));
       const an=ans.includes(s.id)&&canUse(s.id);
       return '<button class="btn'+(an?' answer':'')+'" data-a="act" data-k="sk:'+s.id+'" title="'+why+'"'+(canUse(s.id)?'':' disabled')+'>'+(an?ANS_M:'')+s.name+' '+skCost(s)+(cd>0?' &middot; '+cd+'t':'')+(an?ANS_S:'')+(i<6?'<kbd>'+(i+4)+'</kbd>':'')+'</button>'; }).join('')+'</div>':'')
-   +'</div>'+logHTML(st)+'</section>';
+   )
+   +grpHTML('Orders',cmdHTML())
+   +grpHTML('Potions',((S.belt.hp||S.belt.mp)?'<div class="btns">'+Object.keys(POTIONS).filter(k=>S.belt[k]&&!pactOn('dry')).map(k=>{ const p=POTIONS[k], full=k==='hp'?P.hp>=pMax()&&!P.dots:P.mana>=pMana();
+      return '<button class="btn potion" data-a="act" data-k="pot:'+k+'"'+(full?' disabled title="Already full"':' title="'+p.desc+'"')+'>'+p.name+' &times;'+S.belt[k]+'<kbd>'+p.key+'</kbd></button>'; }).join('')+'</div>':'')
+   )
+   +'</div>'+logHTML(st)+'</div></div></section>';
 }
 function slotsHTML(){ const n=slots(), u=armyUsed(); let s='<span class="slots" aria-label="'+u+' of '+n+' slots used">'; for(let i=0;i<n;i++) s+='<i class="slot'+(i<u?' on':'')+'"></i>'; return s+'</span>'; }
 function minionDetail(m){   // everything about one minion, readable without hovering

@@ -10,7 +10,8 @@ const FXL={st:'off',   // off | loading | init | ready | failed
   app:null,root:null,tex:null,live:[],pool:[],q:[],spy:null,tag:false,later:null,col:null,seed:0x2f6b1d,vis:false,
   MAX:300,QMAX:80};
 const fxReduced=()=>{ try{ return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return true; } };
-const fxAllowed=()=>{ try{ return !VIEW.calm&&!fxLight()&&!fxReduced(); }catch(e){ return false; } };
+const fxWeak=()=>((typeof navigator!=='undefined'&&navigator.hardwareConcurrency)||8)<=4;
+const fxAllowed=()=>{ try{ return !VIEW.calm&&!fxReduced()&&VIEW.fx!=='light'&&!(VIEW.fx==='auto'&&fxWeak()); }catch(e){ return false; } };   // Auto keeps them on phones (only the icon shading goes Light there), off on weak machines
 function fxRnd(){ let x=FXL.seed; x^=x<<13; x^=x>>>17; x^=x<<5; FXL.seed=x>>>0; return FXL.seed/4294967296; }   // xorshift32: never touches Math.random
 const fxR=(a,b)=>a+(b-a)*fxRnd();
 
@@ -286,7 +287,8 @@ async function fxStageInit(){
   }catch(e){ FXS.ok=false; try{ console.info('Battle stage is off: '+(e&&e.message)+'. The cards show the fight instead.'); }catch(x){} }
 }
 function fxStageDrop(){   // the layer is going away: the stage too, and the cards come back
-  const a=FXS.app, was=FXS.ok; FXS.ok=false; FXS.app=null; FXS.root=null; FXS.floor=null; FXS.f.clear(); FXS.nums=[]; FXS.seen=null; FXS.W=0;
+  const a=FXS.app, was=FXS.ok; FXS.ok=false; FXS.app=null; FXS.root=null; FXS.floor=null; FXS.f.clear(); FXS.nums=[]; FXS.seen=null; FXS.W=0; FXS.lk=''; FXS.bgk=null;
+  try{ document.body.style.removeProperty('--stage-bg'); if(FXS.bgu) URL.revokeObjectURL(FXS.bgu); }catch(e){} FXS.bgu=null;
   if(a) try{ a.ticker.remove(fxStageStep); for(const k in FXS.tex) FXS.tex[k].destroy(true); FXS.ico.forEach(t=>{ if(t) t.destroy(true); }); a.destroy({removeView:true},{children:true}); }catch(e){}
   FXS.tex=null; FXS.ico.clear();
   if(was&&typeof app!=='undefined'&&app&&app.querySelector&&app.querySelector('.win.staged')) setTimeout(()=>render(),0);
@@ -329,25 +331,30 @@ function fxFighter(k,foe){
   FXS.root.addChild(c); FXS.f.set(k,F); return F;
 }
 const fxTr=t=>{ try{ return VIEW.lang==='tr'?trText(t):t; }catch(e){ return t; } };
-function fxFitText(T,s,w){ T.text=s; if(T.width<=w) return; let n=s.length; while(n>3&&T.width>w){ n--; T.text=s.slice(0,n)+'…'; } }
+function fxFitText(T,s,w,two){   // one line if it fits; else a size smaller; else (two) wrapped onto two lines; only then cut
+  const st=T.style, fs=st.fontSize; st.wordWrap=false; T.text=s; if(T.width<=w) return;
+  st.fontSize=fs-1; if(T.width<=w) return;
+  if(two){ st.wordWrap=true; st.breakWords=true; st.wordWrapWidth=w; st.align='center'; T.text=s; }
+  const lim=two?fs*2.6:fs*1.6; let n=s.length; while(n>3&&(T.width>w+1||T.height>lim)){ n--; T.text=s.slice(0,n)+'…'; }
+}
 function fxUpd(F,p,cell,tg,r){
   const u=p.u, s=p.s, dead=u.hp<=0, isP=u.id==='p', max=isP?pMax():u.maxHp;
   F.u=u; F.x=p.x; F.y=p.y; if(F.cx==null){ F.cx=p.x; F.cy=p.y; } if(F.dead===null) F.dead=dead;
   const html=isP?ico('Necromancer',pRankI(),{}):ico(u.base||u.kind||u.name,u.rankI,{boss:u.boss,secret:u.secret,elite:u.elite});
   if(F.html!==html){ F.html=html; F.spr.texture=fxIcoTex(html)||PIXI.Texture.EMPTY; F.s=0; }
-  if(F.s!==s){ F.s=s; fxFit(F); F.shadow.scale.set(s/34,s/120); F.glow.scale.set(s/26,s/76); F.ring.scale.set(s/52,s/150); F.bk.position.set(0,-s*.5); F.c.hitArea=new PIXI.Rectangle(-cell/2,-s-14,cell,s+44); }
+  if(F.s!==s){ F.s=s; fxFit(F); F.shadow.scale.set(s/34,s/120); F.glow.scale.set(s/26,s/76); F.ring.scale.set(s/52,s/150); F.bk.position.set(0,-s*.5); F.c.hitArea=new PIXI.Rectangle(-cell/2,-s-20,cell,s+64); }
   const nm=F.foe?u.name:(isP?'You':nick(u)), st=fxStatus(u), sel=F.foe&&!dead&&r.target===u.id, ch=F.foe&&!dead?chargeInfo(u):null, it=F.foe&&!dead&&!ch?intentInfo(u):null;
-  const lab=ch?'Charging: '+ch.name:it?it.txt:'', kind=ch?'abil':it?it.k:'', bw=Math.round(Math.max(40,Math.min(s*1.15,cell*.9)));
+  const kd=it&&it.k==='atk'?foeKnow(u).dmg:null, lab=ch?'Charging: '+ch.name:it?it.txt+(kd!=null?' · '+aboutN(kd):''):'', kind=ch?'abil':it?it.k:'', bw=Math.round(Math.max(s*1.2,cell*.94)), bb=Math.round(Math.min(bw*.9,s*1.15));   /* bw: the name's room, bb: the HP bar */
   const key=[nm,u.hp,max,s,bw,dead,st.join(','),sel,lab,kind,tg.has(F.k),VIEW.lang,isP?u.shield:0].join('|');
   if(key===F.key) return; F.key=key;
-  F.name.style.fill=u.boss||u.elite?FXS.col.gold:FXS.col.bone; F.name.style.fontSize=s<50?11:13; fxFitText(F.name,fxTr(nm),bw+16); F.name.y=6;
+  F.name.style.fill=u.boss||u.elite?FXS.col.gold:FXS.col.bone; F.name.style.fontSize=s<56?12:14; fxFitText(F.name,fxTr(nm),bw,true); F.name.y=6;
   const g=F.plate.clear(), by=F.name.y+F.name.height+2, w=Math.max(0,Math.min(1,u.hp/max));
-  g.rect(-bw/2-1,by-1,bw+2,7).fill({color:0x0a0806,alpha:.85}).rect(-bw/2,by,bw*w,5).fill(F.foe?0xb83a2a:0x6f9a4c);
-  if(isP&&u.shield>0) g.rect(-bw/2,by,bw*Math.min(1,u.shield/max),2).fill(FXS.col.ward);
-  st.slice(0,6).forEach((c,i,a)=>{ const x=(i-(a.length-1)/2)*8; g.poly([x,by+9,x+3,by+12,x,by+15,x-3,by+12]).fill(c).stroke({width:1,color:0x0a0806,alpha:.8}); });
+  g.rect(-bb/2-1,by-1,bb+2,8).fill({color:0x0a0806,alpha:.85}).rect(-bb/2,by,bb*w,6).fill(F.foe?0xb83a2a:0x6f9a4c);
+  if(isP&&u.shield>0) g.rect(-bb/2,by,bb*Math.min(1,u.shield/max),2).fill(FXS.col.ward);
+  st.slice(0,6).forEach((c,i,a)=>{ const x=(i-(a.length-1)/2)*8; g.poly([x,by+10,x+3,by+13,x,by+16,x-3,by+13]).fill(c).stroke({width:1,color:0x0a0806,alpha:.8}); });
   F.glow.visible=!!st.length; if(st.length){ F.glow.tint=st[0]; F.glow.alpha=.45; }
   F.ring.visible=sel; F.ring.tint=FXS.col.bone; F.chg.visible=!!ch;
-  if(F.foe){ F.tag.style.fill=INT_COL[kind]||FXS.col.bone; fxFitText(F.tag,fxTr(lab),Math.max(cell*.95,70)); F.tag.y=-s-4; }
+  if(F.foe){ F.tag.style.fill=INT_COL[kind]||FXS.col.bone; F.tag.style.fontSize=s<56?11:12; fxFitText(F.tag,fxTr(lab),Math.max(cell*.96,70)); F.tag.y=-s-4; }
   else { F.tag.clear(); if(tg.has(F.k)) F.tag.poly([-6,-s-12,6,-s-12,0,-s-4]).fill(0xc9402c).stroke({width:1.5,color:0x0a0806}); }   // a foe means to hit this one next
 }
 // After each render: place the fighters, sized to the stage's width (a phone gets smaller sprites, never fewer lanes).
@@ -359,24 +366,33 @@ function fxStage(){
   if(A.canvas.parentNode!==host) host.appendChild(A.canvas);
   const r=S.run, fresh=!FXS.f.size, W=Math.max(200,host.clientWidth|0), all=[S.player].concat(S.army);
   const L=[[r.enemies,'b',1],[r.enemies,'f',1],[all,'f',0],[all,'b',0]].map(([l,k,foe])=>({foe,u:l.filter(u=>rowOf(u)===k)})).filter(l=>l.u.length);
-  const fixed=18+L.reduce((a,l)=>a+(l.foe?26:16)+38,0), tall=L.reduce((a,l)=>a+(l.u.some(u=>u.boss)?1.3:1)*1.08,0), room=Math.max(300,(window.innerHeight||800)*.5);   // the stage keeps to about half the screen
-  const n=Math.max(3,...L.map(l=>l.u.length)), cell=W/n, s=Math.round(Math.max(34,Math.min(80,cell*.62,(room-fixed)/tall))), pos=new Map(), tg=new Set();
+  const n=Math.max(3,...L.map(l=>l.u.length)), cell=W/n, s=Math.round(Math.max(W<520?40:56,Math.min(96,cell*.72))), pos=new Map(), tg=new Set();   // the fighters fill the stage; a crowded row shrinks them
   for(const e of r.enemies){ const i=e.hp>0&&intentInfo(e); if(i&&i.k==='atk'&&i.tg) tg.add(fxKey(i.tg)); }
   let y=6, mid=0;
   for(const l of L){
     if(!l.foe&&!mid){ mid=y+4; y+=12; }
     const big=l.u.some(u=>u.boss)?1.3:1; y+=(l.foe?26:16)+s*big*1.08;
     l.u.forEach((u,i)=>pos.set(String(fxKey(u)),{u,foe:l.foe,x:Math.round((W-l.u.length*cell)/2+cell*(i+.5)),y:Math.round(y),s:Math.round(s*(u.boss?1.3:1))}));
-    y+=38;
+    l.y=Math.round(y); y+=52;   // the plate: up to two lines of name, the HP bar, status marks
   }
   const H=Math.round(y);
   host.style.height=H+'px';
-  if(H!==FXS.h||W!==FXS.W){ FXS.h=H; FXS.W=W; A.renderer.resize(W,H);
-    FXS.floor.clear(); if(mid) FXS.floor.rect(W*.08,mid,W*.84,1).fill({color:FXS.col.bone,alpha:.14}).rect(W*.2,mid+2,W*.6,1).fill({color:0,alpha:.5}); }
+  if(H!==FXS.h||W!==FXS.W){ FXS.h=H; FXS.W=W; A.renderer.resize(W,H); }
+  const lk=W+':'+L.map(l=>l.y).join(',');
+  if(lk!==FXS.lk){ FXS.lk=lk; FXS.floor.removeChildren().forEach(c=>c.destroy()); FXS.floor.clear();   // the ground each row stands on: a soft dark band, and a worn line between the sides
+    for(const l of L){ const b=new PIXI.Sprite(FXS.tex.dot); b.anchor.set(.5); b.tint=0; b.alpha=.5; b.position.set(W/2,l.y+2); b.scale.set(W/26,s/70); FXS.floor.addChild(b); }
+    if(mid) FXS.floor.rect(W*.08,mid,W*.84,1).fill({color:FXS.col.bone,alpha:.16}).rect(W*.2,mid+2,W*.6,1).fill({color:0,alpha:.5}); }
+  fxStageBg();
   for(const [k,p] of pos){ const F=FXS.f.get(k)||fxFighter(k,p.foe); fxUpd(F,p,cell,tg,r); F.c.zIndex=p.y; }
   for(const [k,F] of FXS.f) if(!pos.has(k)){ F.c.destroy({children:true}); FXS.f.delete(k); }
   if(fresh){ FXS.seen=r.fx; if(r.cmd&&r.cmd.guard) FXS.gcmd=r.cmd; }   // a stage just opened: show what stands, do not replay the last turn
   A.ticker.start();
+}
+function fxStageBg(){   // the painted backdrop (#scene, scenes.js) as the stage's own background, so the fighters stand in the place
+  const sc=document.getElementById('scene'), k=sc&&sc.dataset.k||'', sv=k&&sc.querySelector('svg'); if(k===FXS.bgk) return;
+  FXS.bgk=k; if(FXS.bgu) try{ URL.revokeObjectURL(FXS.bgu); }catch(e){} FXS.bgu=null;
+  try{ if(sv&&window.XMLSerializer){ FXS.bgu=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(sv)],{type:'image/svg+xml'})); document.body.style.setProperty('--stage-bg','url("'+FXS.bgu+'")'); }
+    else document.body.style.removeProperty('--stage-bg'); }catch(e){}
 }
 function fxAnim(F,k,t,d,dx,dy){ F.a.push({k,age:-t,d,dx:dx||0,dy:dy||0}); }
 function fxStageMove(e,at){   // from fxFlush, on the same clock as the overlay: the attacker lunges, the target recoils

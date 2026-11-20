@@ -144,32 +144,52 @@ function logHTML(short){   // short (the battle stage is on): the newest three l
   const L=S.run.log, cut=short&&L.length>3;
   return '<ol class="log'+(short?' short':'')+'">'+(cut&&!ui.logAll?L.slice(0,3):L).map(l=>'<li class="'+l.c+'">'+l.m+'</li>').join('')+'</ol>'
    +(cut?'<button class="linkbtn log-t" data-a="logall" aria-expanded="'+!!ui.logAll+'">'+(ui.logAll?'Show fewer lines':'Show the full log')+'</button>':''); }
+// With the battle stage on (fx.js), each side is one strip of small chips: name, HP, the intent glyph and a charge's answer. The stage
+// draws the rest; the card's full text (statuses, intent, bestiary figures) stays in each chip for screen readers.
+function chipHTML(u,side){
+  const r=S.run, isP=u.id==='p', max=isP?pMax():u.maxHp, dead=u.hp<=0, foe=side==='foe', ch=foe&&!dead?chargeInfo(u):null, i=foe&&!dead&&!ch?intentInfo(u):null, sel=foe&&!dead&&r.target===u.id;
+  const inner='<b class="c-n">'+(foe?u.name:nick(u))+'</b><span class="num c-hp">'+Math.max(0,u.hp)+'/'+max+(isP&&u.shield?' +'+u.shield:'')+'</span>'
+   +(isP?'<span class="num c-mp">Mana '+u.mana+'/'+pMana()+'</span>':'')
+   +(i?'<svg class="c-i i-'+i.k+'" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="'+INTENT_ICO[i.k]+'"/></svg>':'')
+   +(ch?'<span class="c-ch"><b>'+ch.name+'</b> <span>'+ch.hint+'</span></span>':'')
+   +'<div class="sr-only">'+stPills(u)+(foe?intentHTML(u):'')+'</div>';
+  const cls='unit chip '+(foe?'foe':'ally')+(dead?' dead':'')+(sel?' sel':'')+(ch?' charging':'');
+  return foe&&!dead?'<button class="'+cls+'" data-a="target" data-k="'+u.id+'" data-u="'+u.id+'" aria-pressed="'+sel+'">'+inner+'</button>':'<div class="'+cls+'" data-u="'+fxKey(u)+'">'+inner+'</div>';
+}
+function stripHTML(lab,list,side){ const L=list.filter(u=>rowOf(u)==='f').concat(list.filter(u=>rowOf(u)!=='f'));   // front row first, as the stage reads from the middle out
+  return '<div class="strip" role="group" aria-label="'+(side==='foe'?'Foes':'Your side')+'"><span class="strip-l">'+lab+'</span>'+L.map(u=>chipHTML(u,side)).join('')+'</div>'; }
+const grpHTML=(t,h)=>h?'<div class="cgrp"><p class="rub">'+t+'</p>'+h+'</div>':'';   // a rubric over a group of battle commands (shown in the wide command panel)
 function stageTap(k){   // a foe clicked on the battle stage (fx.js): the same action as its card's button
   if(S.mode!=='battle'||!S.run||!S.run.enemies.some(e=>e.id===k&&e.hp>0)) return false;
   if(ui.confirm!==null) ui.confirm=null; ACTIONS.target(k); settled(); return true; }
 function battleHTML(){
   currentTarget();
   const r=S.run, D=DUNGEONS[r.di], P=S.player, boss=r.room===r.rooms-1, ans=chargeAns(), st=stageOn();   /* st: the battle stage (fx.js) shows the fight; the cards fold into a strip */
+  const foeH='Foes'+(foeArmor()?' &middot; '+armorTag(foeArmor()):''), sideH='Your side'+(r.frenzy>0?' &middot; <span class="ok">Frenzy '+r.frenzy+'</span>':'')+(r.silence>0?' &middot; <span class="bad">Silenced '+r.silence+'</span>':'')+(r.taunt>0?' &middot; <span class="ok">Taunting '+r.taunt+'</span>':'');
   const mini='<div class="mini-hp" aria-hidden="true"><div><span>HP '+Math.max(0,P.hp)+'/'+pMax()+(P.shield?' +'+P.shield:'')+'</span><div class="bar"><i class="fill hp" style="width:'+pct(P.hp,pMax())+'%"></i></div></div><div><span>Mana '+P.mana+'/'+pMana()+'</span><div class="bar"><i class="fill mp" style="width:'+pct(P.mana,pMana())+'%"></i></div></div></div>';
   return '<section class="win'+(st?' staged':'')+'" aria-labelledby="h-battle">'+mini+'<h2 class="win-h" id="h-battle">'+(r.tw?'Hell Tower &middot; Floor '+r.tw+(r.tw%10===0?' &middot; Warden':'')+' &middot; Turn '+r.turn:(r.siege?'Siege &middot; Wave '+(r.room+1)+'/'+r.rooms+' &middot; Turn '+r.turn:r.trial?'Trial &middot; Room '+(r.room+1)+'/'+r.rooms+' &middot; Turn '+((r.tt||0)+1):(r.rift?'The Rift &middot; Depth '+r.rift+' &middot; ':'')+D.name+' &middot; Room '+(r.room+1)+'/'+r.rooms+(boss?' &middot; Boss':'')+' &middot; Turn '+r.turn))+'</h2>'
    +(r.mod?'<p class="q-note"><span class="curse-line" style="margin:0">Cursed: <b>'+MODS[r.mod].name+'</b>. '+MODS[r.mod].desc+'</span></p>':'')+(r.mod2&&MODS[r.mod2]?'<p class="q-note"><span class="curse-line" style="margin:0">Cursed: <b>'+MODS[r.mod2].name+'</b>. '+MODS[r.mod2].desc+'</span></p>':'')
    +(r.heat?'<p class="q-note bad">Difficulty: <b>'+HEAT[r.heat].name+'</b>'+(r.mod?', and the curse feeds on it':'')+'.</p>':'')
    +(r.bless?'<p class="q-note ok">Blood-blessed: you and your army hit 15% harder in this gate.</p>':'')
+   +'<div class="bat"><div class="bat-main">'
    +(st?'<div class="stage" aria-hidden="true" style="height:'+(FXS.h||300)+'px"></div>':'')
-   +'<p class="group-h">Foes'+(foeArmor()?' &middot; '+armorTag(foeArmor()):'')+'</p>'+rowsHTML(r.enemies,'row',e=>unitCard(e,'foe'))
-   +'<p class="group-h">Your side'+(r.frenzy>0?' &middot; <span class="ok">Frenzy '+r.frenzy+'</span>':'')+(r.silence>0?' &middot; <span class="bad">Silenced '+r.silence+'</span>':'')+(r.taunt>0?' &middot; <span class="ok">Taunting '+r.taunt+'</span>':'')+'</p>'+rowsHTML([S.player].concat(S.army),'row minis side',u=>u.id==='p'?unitCard(u,'ally'):unitCard(u,'ally',true))
-   +'<div class="actbar">'+partyStrip()+'<div class="btns"><button class="btn primary" data-a="act" data-k="strike">Strike +3 mana<kbd>1</kbd></button>'
+   +(st?stripHTML(foeH,r.enemies,'foe'):'<p class="group-h">'+foeH+'</p>'+rowsHTML(r.enemies,'row',e=>unitCard(e,'foe')))
+   +(st?stripHTML(sideH,[S.player].concat(S.army),'ally'):'<p class="group-h">'+sideH+'</p>'+rowsHTML([S.player].concat(S.army),'row minis side',u=>u.id==='p'?unitCard(u,'ally'):unitCard(u,'ally',true)))
+   +'</div><div class="bat-cmd">'
+   +'<div class="actbar">'+partyStrip()+'<div class="cgrp"><p class="rub">Actions</p><div class="btns acts-main"><button class="btn primary" data-a="act" data-k="strike">Strike +3 mana<kbd>1</kbd></button>'
    +'<button class="btn" data-a="act" data-k="siphon"'+(P.mana<siphonCost()?' disabled':'')+'>Soul Siphon '+siphonCost()+'<kbd>2</kbd></button>'
    +'<button class="btn'+(ans.includes('ward')&&P.mana>=6?' answer':'')+'" data-a="act" data-k="ward"'+(P.mana<6?' disabled':'')+'>'+(ans.includes('ward')&&P.mana>=6?ANS_M:'')+'Bone Ward 6'+(ans.includes('ward')&&P.mana>=6?ANS_S:'')+'<kbd>3</kbd></button>'
    +'<button class="btn warn" data-a="flee"'+(r.siege?' title="Fleeing a siege counts as a defeat"':'')+'>'+(r.siege?'Abandon the walls':'Flee')+'</button></div>'
-   +((S.belt.hp||S.belt.mp)?'<div class="btns">'+Object.keys(POTIONS).filter(k=>S.belt[k]&&!pactOn('dry')).map(k=>{ const p=POTIONS[k], full=k==='hp'?P.hp>=pMax()&&!P.dots:P.mana>=pMana();
-      return '<button class="btn potion" data-a="act" data-k="pot:'+k+'"'+(full?' disabled title="Already full"':' title="'+p.desc+'"')+'>'+p.name+' &times;'+S.belt[k]+'<kbd>'+p.key+'</kbd></button>'; }).join('')+'</div>':'')
-   +ultHTML()
-   +cmdHTML()
-   +(activeSkills().length?'<div class="btns">'+activeSkills().map((s,i)=>{ const cd=skCd(s.id), why=r.silence>0?'Silenced by the Hymn':cd>0?'Ready in '+cd+' turn'+(cd>1?'s':''):s.id==='blast'&&!freeCorpse()?'Needs a body that fell this room':s.id==='mend'&&!S.army.some(m=>m.hp>0&&m.hp<m.maxHp)?'No wounded minions':P.mana<s.cost?'Not enough mana':s.desc(sk(s.id));
+   +ultHTML()+'</div>'
+   +grpHTML('Skills',(activeSkills().length?'<div class="btns">'+activeSkills().map((s,i)=>{ const cd=skCd(s.id), why=r.silence>0?'Silenced by the Hymn':cd>0?'Ready in '+cd+' turn'+(cd>1?'s':''):s.id==='blast'&&!freeCorpse()?'Needs a body that fell this room':s.id==='mend'&&!S.army.some(m=>m.hp>0&&m.hp<m.maxHp)?'No wounded minions':P.mana<s.cost?'Not enough mana':s.desc(sk(s.id));
       const an=ans.includes(s.id)&&canUse(s.id);
       return '<button class="btn'+(an?' answer':'')+'" data-a="act" data-k="sk:'+s.id+'" title="'+why+'"'+(canUse(s.id)?'':' disabled')+'>'+(an?ANS_M:'')+s.name+' '+skCost(s)+(cd>0?' &middot; '+cd+'t':'')+(an?ANS_S:'')+(i<6?'<kbd>'+(i+4)+'</kbd>':'')+'</button>'; }).join('')+'</div>':'')
-   +'</div>'+logHTML(st)+'</section>';
+   )
+   +grpHTML('Orders',cmdHTML())
+   +grpHTML('Potions',((S.belt.hp||S.belt.mp)?'<div class="btns">'+Object.keys(POTIONS).filter(k=>S.belt[k]&&!pactOn('dry')).map(k=>{ const p=POTIONS[k], full=k==='hp'?P.hp>=pMax()&&!P.dots:P.mana>=pMana();
+      return '<button class="btn potion" data-a="act" data-k="pot:'+k+'"'+(full?' disabled title="Already full"':' title="'+p.desc+'"')+'>'+p.name+' &times;'+S.belt[k]+'<kbd>'+p.key+'</kbd></button>'; }).join('')+'</div>':'')
+   )
+   +'</div>'+logHTML(st)+'</div></div></section>';
 }
 function slotsHTML(){ const n=slots(), u=armyUsed(); let s='<span class="slots" aria-label="'+u+' of '+n+' slots used">'; for(let i=0;i<n;i++) s+='<i class="slot'+(i<u?' on':'')+'"></i>'; return s+'</span>'; }
 function minionDetail(m){   // everything about one minion, readable without hovering
