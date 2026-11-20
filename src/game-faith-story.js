@@ -345,4 +345,4 @@ const mausN=()=>S&&S.memorial?Math.min(MAUS_MAX,S.memorial.filter(e=>e.maus).len
 const mausCost=()=>MAUS_COST[mausN()]||0;
 const canMaus=e=>!!e&&!e.maus&&S.mode==='town'&&mausN()<MAUS_MAX&&S.gold>=mausCost();
 function raiseMaus(i){ const e=(S.memorial||[])[i]; if(!canMaus(e)) return false; S.gold-=mausCost(); e.maus=1; tally('maus'); syncArmy(); sfx('raise'); return true; }
-const extraMul=(m,k)=>(k==='atk'?bondMul(m):1)*(1+MAUS_K*mausN());   // syncMinion: bonds and moods (attack), mausoleums (both)
+const extraMul=(m,k)=>(k==='atk'?bondMul(m):1+headBonus())*(1+MAUS_K*mausN());   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)

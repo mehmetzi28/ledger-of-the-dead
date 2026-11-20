@@ -83,6 +83,7 @@ const ACTIONS={
   renameo:k=>{ ui.rename=+k; const m=findMinion(+k); ui.rn=m?m.nick:''; }, renamex:()=>{ ui.rename=null; },
   rename:k=>{ if(renameMinion(+k,ui.rn)) ui.rename=null; },
   honour:k=>{ const e=(S.memorial||[])[+k]; if(e&&honour(+k)) notify(e.nick+' is honoured. Your army is Remembered until dawn.','ok'); }, memall:()=>{ ui.memAll=!ui.memAll; }, maus:k=>{ const e=(S.memorial||[])[+k]; if(e&&raiseMaus(+k)) notify('A mausoleum rises over '+e.nick+'. Your minions have +'+Math.round(mausN()*MAUS_K*100)+'% max HP and attack for good.','ok'); },
+  head:k=>{ const e=(S.memorial||[])[+k]; if(e&&carveHead(+k)) notify('A headstone for '+e.nick+', tier '+e.hs+'. Your minions have +'+(headBonus()*100).toFixed(1)+'% max HP for good.','ok'); },
   losave:k=>{ const i=+k, L=(S.loadouts||[])[i]; if(L&&L.s&&ui.confirm!=='lo'+i){ ui.confirm='lo'+i; return; } ui.confirm=null; if(saveLoadout(i)) notify('Saved to '+loadoutName(i)+'.','ok'); },
   louse:k=>{ useLoadout(+k); }, loreno:k=>{ ui.lren=+k; ui.lrn=loadoutName(+k); }, lorenx:()=>{ ui.lren=null; }, loren:k=>{ if(renameLoadout(+k,ui.lrn)) ui.lren=null; },
   reforge:k=>{ const it=findItem(+k), c=it&&reforgeCost(it); ui.msg=reforge(+k)?{mk:1,m:'Reforged '+ITEM[it.id].name+' for '+c+' gold.',c:'ok'}:null; },

@@ -825,7 +825,8 @@ body.compact .unit.mini .ico{width:34px;height:34px}body.compact .unit.mini .ico
 .mem-row .ico{filter:grayscale(.85) brightness(.7)}.mem-row .rk{opacity:.7}.mem-row b{color:var(--ward);font-weight:600}
 .mem-t{min-width:0;overflow-wrap:anywhere}.mem-tr{opacity:.8}
 .mem-hon b{color:var(--bone)}.chip.mem-buff{border-color:var(--brass);color:var(--gold)}
-@media (max-width:520px){.mem-row{grid-template-columns:auto auto minmax(0,1fr)}.mem-row>.btn{grid-column:1/-1;justify-self:start}}
+.mem-b{display:flex;flex-direction:column;align-items:flex-end;gap:4px}.mem-b:empty{display:none}.mem-hs{color:var(--bone)}
+@media (max-width:520px){.mem-row{grid-template-columns:auto auto minmax(0,1fr)}.mem-row>.btn,.mem-row>.mem-b{grid-column:1/-1;justify-self:start}.mem-b{flex-direction:row;flex-wrap:wrap}}
 /* Loadouts: three named setups on the Gear tab */
 .lo-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .lo-slot{display:flex;flex-direction:column;gap:4px;min-width:0;padding:8px;border:1px solid var(--line-2);background:var(--well);background-image:var(--grain)}
@@ -3638,7 +3639,7 @@ const mausN=()=>S&&S.memorial?Math.min(MAUS_MAX,S.memorial.filter(e=>e.maus).len
 const mausCost=()=>MAUS_COST[mausN()]||0;
 const canMaus=e=>!!e&&!e.maus&&S.mode==='town'&&mausN()<MAUS_MAX&&S.gold>=mausCost();
 function raiseMaus(i){ const e=(S.memorial||[])[i]; if(!canMaus(e)) return false; S.gold-=mausCost(); e.maus=1; tally('maus'); syncArmy(); sfx('raise'); return true; }
-const extraMul=(m,k)=>(k==='atk'?bondMul(m):1)*(1+MAUS_K*mausN());   // syncMinion: bonds and moods (attack), mausoleums (both)
+const extraMul=(m,k)=>(k==='atk'?bondMul(m):1+headBonus())*(1+MAUS_K*mausN());   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
 // ===== BOSS PHASES =====
 // At half HP a boss (gate or Tower) enters its second phase: its moves come a turn sooner, every move is announced a turn
 // ahead, and it adds Sundering Blow. Taunt turns that blow onto a vanguard; a Focus crit or Grave Chill breaks any charging move.
@@ -3773,7 +3774,7 @@ function memorialize(m,at){
   if(!m||m.thrall) return null;
   const e=Object.assign({nick:m.nick,kind:m.kind||m.name,name:m.name,rk:m.rankI|0,lvl:m.lvl,st:m.stage||0,tr:(m.traits||[]).slice(),role:m.role,day:S.day},m.boss?{boss:1}:{},m.elite?{elite:1}:{},at||{});
   { const bd=bondFall(m,at); if(bd) e.bd=bd; }
-  S.memorial=[e].concat(S.memorial||[]); while(S.memorial.length>MEM_MAX){ const j=S.memorial.map(x=>!x.maus).lastIndexOf(true); S.memorial.splice(j<0?MEM_MAX:j,1); }   /* a mausoleum's name is never dropped */
+  S.memorial=[e].concat(S.memorial||[]); while(S.memorial.length>MEM_MAX){ const j=S.memorial.map(x=>!x.maus&&!x.hs).lastIndexOf(true); S.memorial.splice(j<0?MEM_MAX:j,1); }   /* a mausoleum's or headstone's name is never dropped */
   notify(m.nick+' '+theName(mName(m)).replace(/^The /,'the ')+' is written into the Memorial.','');
   return e;
 }
@@ -3785,11 +3786,20 @@ function honour(i){
   const e=(S.memorial||[])[i]; if(!canHonour(e)) return false;
   S.gold-=honourCost(e); S.honor={day:S.day,nick:e.nick}; syncArmy(); S.army.concat(S.reserve||[]).forEach(m=>{ m.hp=Math.min(m.hp,m.maxHp); }); sfx('raise'); return true;
 }
+// HEADSTONES: an uncapped late gold sink. In town, carve a headstone over any name in the Memorial (the released are never written
+// there) and raise it tier by tier; the next tier of a stone costs HEAD_GOLD*HEAD_GROW^(its tier). Each tier of every stone adds about
+// HEAD_K max HP to the living army, softly capped: the total is HEAD_CAP*(1-e^(-HEAD_K*tiers/HEAD_CAP)), near HEAD_CAP but never past it.
+const HEAD_GOLD=3000, HEAD_GROW=1.5, HEAD_K=.005, HEAD_CAP=.06, HEAD_TOP=60;   /* HEAD_TOP: a sanity limit per stone (its next tier costs ~10^14 gold) */
+const headTiers=()=>S&&S.memorial?S.memorial.reduce((t,e)=>t+(e.hs|0),0):0;
+const headBonus=()=>HEAD_CAP*(1-Math.exp(-HEAD_K*headTiers()/HEAD_CAP));   // extraMul (syncMinion): max HP
+const headCost=e=>Math.round(HEAD_GOLD*Math.pow(HEAD_GROW,e.hs|0));
+const canHead=e=>!!e&&S.mode==='town'&&(e.hs|0)<HEAD_TOP&&S.gold>=headCost(e);
+function carveHead(i){ const e=(S.memorial||[])[i]; if(!canHead(e)) return false; const c=headCost(e); S.gold-=c; e.hs=(e.hs|0)+1; tally('headG',c); syncArmy(); sfx('raise'); return true; }
 function memorialFix(g){   // normalizeSave: keep well-formed entries only
   const num=(v,d)=>typeof v==='number'&&isFinite(v)?v:d, ok=e=>e&&typeof e==='object'&&typeof e.nick==='string'&&typeof e.name==='string';
   g.memorial=Array.isArray(g.memorial)?g.memorial.filter(ok).slice(0,MEM_MAX).map(e=>{ const o={nick:cleanNick(e.nick)||'Nameless',kind:cleanText(typeof e.kind==='string'?e.kind:e.name),name:cleanText(e.name),rk:clamp(Math.floor(num(e.rk,0)),0,RANKS.length-1),
     lvl:Math.max(1,Math.floor(num(e.lvl,1))),st:clamp(Math.floor(num(e.st,0)),0,STAGE_MAX),tr:Array.isArray(e.tr)?e.tr.filter(t=>TRAITS[t]):[],role:ROLES[e.role]?e.role:'striker',day:Math.max(1,Math.floor(num(e.day,1)))};
-    if(e.boss) o.boss=1; if(e.elite) o.elite=1; for(const k of ['g','raid']) if(RK[e[k]]) o[k]=e[k]; for(const k of ['f','rd']) if(num(e[k],0)>0) o[k]=Math.floor(e[k]); if(typeof e.bd==='string'&&cleanNick(e.bd)) o.bd=cleanNick(e.bd); if(e.maus) o.maus=1; return o; }):[];
+    if(e.boss) o.boss=1; if(e.elite) o.elite=1; for(const k of ['g','raid']) if(RK[e[k]]) o[k]=e[k]; for(const k of ['f','rd']) if(num(e[k],0)>0) o[k]=Math.floor(e[k]); if(typeof e.bd==='string'&&cleanNick(e.bd)) o.bd=cleanNick(e.bd); if(e.maus) o.maus=1; if(num(e.hs,0)>=1) o.hs=Math.min(HEAD_TOP,Math.floor(e.hs)); return o; }):[];
   g.honor=g.honor&&typeof g.honor==='object'&&typeof g.honor.day==='number'?{day:g.honor.day,nick:cleanNick(g.honor.nick)||'Nameless'}:null;
 }
 
@@ -7284,6 +7294,10 @@ TR_RX.push([new RegExp("^The (.+) is within reach$"),"$1 artık erişilebilir"],
  ["Some meetings between rooms are remembered. What you choose is written in the Ledger, and # or more days later the chain comes back to you in a gate event, once, and ends there. Walking past a first meeting starts nothing; it may come again. A later meeting you walk past waits for another day","Odalar arasındaki bazı karşılaşmalar unutulmaz. Seçtiğin şey Deftere yazılır ve # ya da daha fazla gün sonra zincir bir kapı olayında bir kez sana geri döner ve orada biter. İlk karşılaşmayı geçip gitmek hiçbir şey başlatmaz; yeniden gelebilir. Geçip gittiğin sonraki bir karşılaşma başka bir günü bekler"],
  ["What comes back depends on what you chose. The Ledger does not say more","Geri dönen şey seçtiğine bağlıdır. Defter daha fazlasını söylemez"],
  ["Rests in a mausoleum","Bir anıt mezarda yatıyor"],["Mausoleum","Anıt mezar"],
+ ["Headstone, tier #","Mezar taşı, kademe #"],["Carve a headstone · # gold","Mezar taşı oy · # altın"],["Raise headstone · # gold","Mezar taşını yükselt · # altın"],
+ ["Headstones: # tiers carved. Your minions have +#% max HP for good, at most +#%","Mezar taşları: # kademe oyuldu. Hizmetkârların kalıcı olarak +%# azami cana sahip, en fazla +%#"],
+ ["In town you may carve a headstone over any name here and raise it with gold, tier by tier. Each tier gives your minions a little more max HP for good, at most +#% in all","Kasabada buradaki herhangi bir isme bir mezar taşı oyabilir ve onu altınla kademe kademe yükseltebilirsin. Her kademe hizmetkârlarına kalıcı olarak biraz daha azami can verir, toplamda en fazla +%#"],
+ ["In town you may also carve a headstone over any name there and raise it tier by tier with gold. The first tier costs # gold and each further tier of that stone costs # times the last. Every tier of every headstone gives your minions about +#% max HP for good, less and less the more you carve, never past +#% in all","Kasabada oradaki herhangi bir isme bir mezar taşı da oyabilir ve onu altınla kademe kademe yükseltebilirsin. İlk kademe # altın tutar ve o taşın her yeni kademesi bir öncekinin # katıdır. Her mezar taşının her kademesi hizmetkârlarına kalıcı olarak yaklaşık +%# azami can verir; oydukça azalır, toplamda asla +%# değerini geçmez"],
  ["Mausoleums: #/#. Your minions have +#% max HP and attack for good","Anıt mezarlar: #/#. Hizmetkârların kalıcı olarak +%# azami can ve saldırıya sahip"],
  ["In town you may raise a mausoleum over any name here, at most #. Each gives every minion +#% max HP and attack for good, kept through New Game+","Kasabada buradaki herhangi bir ismin üzerine bir anıt mezar dikebilirsin, en fazla #. Her biri tüm hizmetkârlara kalıcı olarak +%# azami can ve saldırı verir; Yeni Oyun+ boyunca korunur"],
  ["A wounded priest","Yaralı bir rahip"],["The priest returns","Rahip geri dönüyor"],["The grey brothers","Gri kardeşler"],["A sealed reliquary","Mühürlü bir emanet sandığı"],["The saint's curse","Azizin laneti"],["The saint's gift","Azizin armağanı"],
@@ -7319,7 +7333,8 @@ TR_RX.push([new RegExp("^The (.+) is within reach$"),"$1 artık erişilebilir"],
 TR_RX.push([new RegExp("^Bonded: (.+)$"),"Bağlı: $1"],[new RegExp("^Vengeful: (.+)$"),"İntikamcı: $1"],[new RegExp("^Grieving: (.+)$"),"Yaslı: $1"],[new RegExp("^Bonded to (.+)$"),"$1 ile bağlıydı"],
  [new RegExp("^(.+?) and (.+?) have fought (\\d+) rooms side by side\\. They are Bonded$"),"$1 ve $2 yan yana $3 odada savaştı. Artık Bağlılar"],
  [new RegExp("^(.+?) saw (.+?) fall and is Vengeful until dawn$"),"$1, $2 yoldaşının düştüğünü gördü ve şafağa dek İntikamcı"],[new RegExp("^(.+?) grieves for (.+)$"),"$1, $2 için yas tutuyor"],
- [new RegExp("^A mausoleum rises over (.+?)\\. Your minions have \\+(\\d+)% max HP and attack for good$"),"$1 için bir anıt mezar yükseliyor. Hizmetkârların kalıcı olarak +%$2 azami can ve saldırıya sahip"]);
+ [new RegExp("^A mausoleum rises over (.+?)\\. Your minions have \\+(\\d+)% max HP and attack for good$"),"$1 için bir anıt mezar yükseliyor. Hizmetkârların kalıcı olarak +%$2 azami can ve saldırıya sahip"],
+ [new RegExp("^A headstone for (.+?), tier (\\d+)\\. Your minions have \\+([\\d.]+)% max HP for good$"),"$1 için mezar taşı, kademe $2. Hizmetkârların kalıcı olarak +%$3 azami cana sahip"]);
 [ // front and back rows (game-gate-rules.js ROWS, battle, Army tab, Codex roles page)
  ["Front","Ön"],["Back","Arka"],["Front row","Ön sıra"],["Back row","Arka sıra"],["Move to back","Arkaya al"],["Move to front","Öne al"],["Rows","Sıralar"],["Melee","Yakın dövüş"],["Reach","Menzil"],["What ignores rows","Sıraları ne yok sayar"],
  ["Every fighter stands in the front row or the back row. Your vanguards and reapers start in front; strikers, menders and you stand at the back. Out of battle, move a minion forward or back on the Army tab. Among foes, bosses, vanguards and reapers stand in front","Her savaşçı ön sırada ya da arka sırada durur. Öncülerin ve biçicilerin önde başlar; vurucular, şifacılar ve sen arkada durursunuz. Savaş dışında bir hizmetkârı Ordu sekmesinden öne ya da arkaya al. Düşmanlarda bosslar, öncüler ve biçiciler önde durur"],
@@ -8696,11 +8711,14 @@ function memorialHTML(){   // the fallen, newest first, in a muted hand; honouri
    +(remembered()?'<p class="q-note ok mem-hon">Honoured today: <b>'+S.honor.nick+'</b>. Your army is Remembered until dawn.</p>'
      :M.some(e=>e.st>=1)?'<p class="q-note">Once a day, in town, you may honour one of the Greater or older: the living army has +'+Math.round(MEM_HP*100)+'% max HP until dawn.</p>':'');
   h+=mausNote();
+  { const t=headTiers(); h+='<p class="q-note mem-head-n">'+(t?'Headstones: '+t+' tiers carved. Your minions have +'+(headBonus()*100).toFixed(1)+'% max HP for good, at most +'+Math.round(HEAD_CAP*100)+'%.'
+    :'In town you may carve a headstone over any name here and raise it with gold, tier by tier. Each tier gives your minions a little more max HP for good, at most +'+Math.round(HEAD_CAP*100)+'% in all.')+'</p>'; }
   h+='<div class="mem-list">'+list.map((e,i)=>{ const c=honourCost(e);
     return '<div class="mem-row">'+ico(e.kind,e.rk,{boss:e.boss,elite:e.elite,role:e.role})+'<span class="rk r'+e.rk+'">'+RANKS[e.rk]+'</span><div class="mem-t"><b>'+e.nick+'</b> <span class="dim">'+theName(mName({name:e.name,stage:e.st}))+'</span>'
      +'<div class="u-sub"><span>'+memWhere(e)+'</span> &middot; <span>Day '+e.day+'</span> &middot; <span>Lv '+e.lvl+'</span></div>'
-     +(e.tr.length?'<div class="u-sub mem-tr">'+e.tr.map(t=>TRAITS[t].name).join(', ')+'</div>':'')+(e.bd?'<div class="u-sub mem-bd">Bonded to '+hEsc(e.bd)+'</div>':'')+(e.maus?'<div class="u-sub mem-maus">Rests in a mausoleum</div>':'')+'</div>'+mausBtn(e,i)
-     +(town&&e.st>=1&&!remembered()?'<button class="btn small" data-a="honour" data-k="'+i+'"'+(S.gold<c?' disabled title="Not enough gold"':'')+'>Honour &middot; '+c+' gold</button>':'')+'</div>'; }).join('')+'</div>';
+     +(e.tr.length?'<div class="u-sub mem-tr">'+e.tr.map(t=>TRAITS[t].name).join(', ')+'</div>':'')+(e.bd?'<div class="u-sub mem-bd">Bonded to '+hEsc(e.bd)+'</div>':'')+(e.maus?'<div class="u-sub mem-maus">Rests in a mausoleum</div>':'')+(e.hs?'<div class="u-sub mem-hs">Headstone, tier '+e.hs+'</div>':'')+'</div>'+(town?'<div class="mem-b">':'')+mausBtn(e,i)
+     +(town&&(e.hs|0)<HEAD_TOP?'<button class="btn small" data-a="head" data-k="'+i+'"'+(S.gold<headCost(e)?' disabled title="Not enough gold"':'')+'>'+(e.hs?'Raise headstone':'Carve a headstone')+' &middot; '+headCost(e)+' gold</button>':'')
+     +(town&&e.st>=1&&!remembered()?'<button class="btn small" data-a="honour" data-k="'+i+'"'+(S.gold<c?' disabled title="Not enough gold"':'')+'>Honour &middot; '+c+' gold</button>':'')+(town?'</div>':'')+'</div>'; }).join('')+'</div>';
   if(M.length>MEM_SHOW) h+='<div class="btns"><button class="linkbtn" data-a="memall">'+(ui.memAll?'Show the newest '+MEM_SHOW:'Show all '+M.length)+'</button></div>';
   return h+'</section>';
 }
@@ -8806,6 +8824,7 @@ function codexSection(k){
     +cxList(Object.keys(CORPSE_CONDS).map(k=>{ const K=CORPSE_CONDS[k], T=TRAITS[K.trait]; return cxRow(K.name,K.when+' Rises '+T.name+': '+T.desc,(K.raise>0?'+':'')+K.raise+'%'); }))
     +cxP('Minions keep the level they had, share half of each room\'s XP, and grow up to two levels above you. One downed in a fight shatters when the room ends '+SHATTER_BASE+'% of the time, '+SHATTER_WILL+'% less per Will point (never below '+SHATTER_MIN+'%); Grave-bound minions, the '+FLAGS.bonebank.split(':')[0]+' power and siege nights stop it. Otherwise it binds back together. Released or shattered gear-bearers return their gear to your bag.')
     +'<p class="group-h">Memorial</p>'+cxP('A minion that shatters or falls on a raid is written into the Memorial on the Ledger tab; the released are not. Once a day, in town, honour one of the Greater or older for about the gold of one Bone Altar level: the living army has +'+Math.round(MEM_HP*100)+'% max HP until dawn.')
+    +cxP('In town you may also carve a headstone over any name there and raise it tier by tier with gold. The first tier costs '+HEAD_GOLD+' gold and each further tier of that stone costs '+HEAD_GROW+' times the last. Every tier of every headstone gives your minions about +'+(HEAD_K*100)+'% max HP for good, less and less the more you carve, never past +'+Math.round(HEAD_CAP*100)+'% in all.')
     +cxList([cxRow('Army slots','1, plus one per 2.5 Will, one per 4 levels, gear and the Crypt. At most '+ARMY_CAP+', plus the Crypt\'s levels.'),cxRow('Gear-bearers','Armed foes (marked Armed) can wear a weapon, armor and relic from your bag once raised.'),cxRow('Bone Altar','Gold raises a minion one level at once, never past your level + 2.'),
       cxRow('Reserve','Opens with the Town tab: '+RESERVE_BASE+' places, +'+RESERVE_CRYPT+' per Crypt level. Benched minions do not fight, take damage or earn XP, and keep their gear. Moving one is free, in town; a full army can raise straight into it.')])
     +'<div class="btns"><button class="btn small" data-a="cx" data-k="army">Army</button><button class="btn small" data-a="cx" data-k="reserve">Reserve</button><button class="btn small" data-a="cx" data-k="fusion">Fusion</button></div>';
@@ -9819,6 +9838,7 @@ const ACTIONS={
   renameo:k=>{ ui.rename=+k; const m=findMinion(+k); ui.rn=m?m.nick:''; }, renamex:()=>{ ui.rename=null; },
   rename:k=>{ if(renameMinion(+k,ui.rn)) ui.rename=null; },
   honour:k=>{ const e=(S.memorial||[])[+k]; if(e&&honour(+k)) notify(e.nick+' is honoured. Your army is Remembered until dawn.','ok'); }, memall:()=>{ ui.memAll=!ui.memAll; }, maus:k=>{ const e=(S.memorial||[])[+k]; if(e&&raiseMaus(+k)) notify('A mausoleum rises over '+e.nick+'. Your minions have +'+Math.round(mausN()*MAUS_K*100)+'% max HP and attack for good.','ok'); },
+  head:k=>{ const e=(S.memorial||[])[+k]; if(e&&carveHead(+k)) notify('A headstone for '+e.nick+', tier '+e.hs+'. Your minions have +'+(headBonus()*100).toFixed(1)+'% max HP for good.','ok'); },
   losave:k=>{ const i=+k, L=(S.loadouts||[])[i]; if(L&&L.s&&ui.confirm!=='lo'+i){ ui.confirm='lo'+i; return; } ui.confirm=null; if(saveLoadout(i)) notify('Saved to '+loadoutName(i)+'.','ok'); },
   louse:k=>{ useLoadout(+k); }, loreno:k=>{ ui.lren=+k; ui.lrn=loadoutName(+k); }, lorenx:()=>{ ui.lren=null; }, loren:k=>{ if(renameLoadout(+k,ui.lrn)) ui.lren=null; },
   reforge:k=>{ const it=findItem(+k), c=it&&reforgeCost(it); ui.msg=reforge(+k)?{mk:1,m:'Reforged '+ITEM[it.id].name+' for '+c+' gold.',c:'ok'}:null; },

@@ -22,5 +22,7 @@ for(const m of ['noSkills','skills','market','full']){
   if(r.raids&&r.raids.sent) console.log('  raids: sent '+r.raids.sent+', won '+r.raids.won+' ('+Math.round(r.raids.won/r.raids.sent*100)+'%)');
   if(r.gold) console.log('  gold held (avg / median, lifetime earned / spent): '+Object.entries(r.gold).filter(([d])=>/^day/.test(d)).map(([d,g])=>d+' '+g.avg+' / '+g.median+' ('+g.earned+' / '+g.spent+')').join(' | ')+'  |  mausoleums '+r.gold.maus+', bonded pairs '+r.gold.bonds);
   if(r.rift) console.log('  rift: reached by '+r.rift.open+' bots, average deepest '+r.rift.best+', best '+r.rift.deepest+'  |  passive ranks learned: '+r.passives);
+  if(r.gold&&r.gold.headstones){ const h=r.gold.headstones; console.log('  headstones: spent avg '+h.spent+' / median '+h.medianSpent+' gold, '+h.tiers+' tiers, minion max HP +'+h.hpBonus); }
+  if(r.events&&r.events.met!=null) console.log('  events: '+r.events.perBot+' a bot, '+r.events.met+' plain and '+r.events.chainMet+' chain events met, '+r.events.chainsEnded+' chains ended; outcomes ok '+(r.events.ok||0)+', bad '+(r.events.bad||0)+'\n    '+Object.keys(r.events).filter(k=>k.includes(':')).sort().map(k=>k+' '+r.events[k]).join(', '));
 }
 console.log((out.ms/1000).toFixed(1)+' s');

@@ -814,7 +814,8 @@ body.compact .unit.mini .ico{width:34px;height:34px}body.compact .unit.mini .ico
 .mem-row .ico{filter:grayscale(.85) brightness(.7)}.mem-row .rk{opacity:.7}.mem-row b{color:var(--ward);font-weight:600}
 .mem-t{min-width:0;overflow-wrap:anywhere}.mem-tr{opacity:.8}
 .mem-hon b{color:var(--bone)}.chip.mem-buff{border-color:var(--brass);color:var(--gold)}
-@media (max-width:520px){.mem-row{grid-template-columns:auto auto minmax(0,1fr)}.mem-row>.btn{grid-column:1/-1;justify-self:start}}
+.mem-b{display:flex;flex-direction:column;align-items:flex-end;gap:4px}.mem-b:empty{display:none}.mem-hs{color:var(--bone)}
+@media (max-width:520px){.mem-row{grid-template-columns:auto auto minmax(0,1fr)}.mem-row>.btn,.mem-row>.mem-b{grid-column:1/-1;justify-self:start}.mem-b{flex-direction:row;flex-wrap:wrap}}
 /* Loadouts: three named setups on the Gear tab */
 .lo-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .lo-slot{display:flex;flex-direction:column;gap:4px;min-width:0;padding:8px;border:1px solid var(--line-2);background:var(--well);background-image:var(--grain)}

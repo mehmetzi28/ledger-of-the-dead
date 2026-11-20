@@ -20,6 +20,9 @@
 // The ~80% target is for the 'market' bot (skills + shopping + altar). The early option is no longer needed: SAFE for A and S
 // now matches where they are balanced. Current numbers, averaged over seeds 7700 and 9100 (results swing ~±7 points per seed set):
 // LOTD_BALANCE.run({bots:40, days:100, seed:7700, modes:['market']})   (one mode per call, ~15 s in a browser), or in Node: node tests/run-balance.js
+//   2026-11-20 headstones and events in 'full' (seed 7700): market 87% (unchanged); full 89%, tower 86; "off":["events"] 88%, tower 82;
+//   ~264 events a bot (243 chain meetings, 120 chains ended over 40 bots). Headstones: ~186k gold a bot (median 156k), 28 tiers, +5% max HP;
+//   full gold held day 100 avg/median 20k/19k with them, 39k/32k with "off":["head"].
 //   2026-11-20 later (rival stolen bodies, tempering, compounds, siege wall, pre-rolled doors; rival 15.4/6.4, TEMPER_GOLD 150): market 87/88%,
 //   tower 70/71, rift ~17/18; full 89/88%, tower 82/84, rift ~9/8; full heat:0 92%; sieges 87/85%; rival 68/68%; raids 78/78%; raises 19-20% / 32-33%;
 //   gold held day 100 avg/median market 35k/20k, 33k/15k; full 39k/22k, 34k/28k (tempering is capped by lines, not by cost).
@@ -120,6 +123,9 @@
       }
       for(const m of S.army.slice().sort((a,b)=>cval(b)-cval(a))){ while(S.gold-empowerCost(m)>=reserve&&empower(m.uid)); }
       if(B.full&&!B.off.maus&&typeof raiseMaus==='function') for(let i=0;i<MAUS_MAX;i++){ const j=(S.memorial||[]).findIndex(e=>!e.maus); if(j<0||S.gold-mausCost()<reserve||!raiseMaus(j)) break; }   // mausoleums: the late gold sink, with what the Altar leaves
+      if(B.full&&!B.off.head&&typeof carveHead==='function') for(let g=0;g<500;g++){   // headstones last: the cheapest next tier while 10000 gold stays in hand; "off":["head"] carves none
+        const M=S.memorial||[]; let j=-1; M.forEach((e,i)=>{ if((e.hs|0)<HEAD_TOP&&(j<0||headCost(e)<headCost(M[j]))) j=i; });
+        if(j<0||S.gold-headCost(M[j])<Math.max(10000,reserve)||!carveHead(j)) break; }
     }
     if(useRes(B)){   // the Reserve: whoever is stronger than the weakest army minion swaps in; a full bench lets its weakest go
       for(let i=0;i<20;i++){ const R=S.reserve||[], r=R.slice().sort((a,b)=>cval(b)-cval(a))[0], w=S.army.slice().sort((a,b)=>cval(a)-cval(b))[0]; if(!r) break;
@@ -194,6 +200,19 @@
     }
     for(const c of r.corpses) if(c.tried&&!c._z&&c.result){ c._z=1; RZ.t++; if(c.result==='raised') RZ.ok++; }   // raise attempts and successes (the report's raise rate)
   }
+  // between-room events and event chains ('full' only; "off":["events"] walks past them all, as the other modes do): what a careful player
+  // takes from what the screen shows (HP, gold, belt, army places), never from the hidden outcome of a chain
+  const EVT_PICK={
+    shrine:f=>f.hp>=.6?'bleed':'pass', pedlar:f=>'buy', coffer:f=>f.hp>=.5?'open':'pass', oldgods:f=>'pray', defiled:f=>f.hp>=.4?'take':'pass',
+    straggler:f=>f.room?'raise':'finish', priest:f=>f.hp>=.4?'spare':'pass', priest_back:f=>f.hp<.6?'bless':'warn',
+    priest_kin:f=>f.can('pay')?'pay':f.hp>=.5?'fight':'pass', reliquary:f=>f.can('offer')?'offer':'pass', relic_curse:f=>f.can('return')?'return':f.hp>=.5?'endure':'pass',
+    relic_gift:f=>'take', deserter:f=>f.can('pay')?'pay':'bread', deserter_true:f=>'take', deserter_false:f=>f.can('pay')?'pay':f.hp>=.5?'fight':'pass'};
+  function playEvent(B){
+    const r=S.run, ev=r&&r.event; if(!B.full||B.off.events||!ev||ev.done||!EVENTS[ev.id]) return;
+    const E=EVENTS[ev.id], f={hp:S.player.hp/pMax(),room:S.army.length<slots(),can:k=>!E.off||!E.off(k)}, ch=(EVT_PICK[ev.id]||(()=>'pass'))(f);
+    const got=resolveEvent(ch)?ch:resolveEvent('pass')?'pass':'none', last=r.events[r.events.length-1], k=(E.chain?'chain ':'')+ev.id+':'+got;   // a choice it cannot take falls back to walking past
+    B.ev=B.ev||{}; B.ev[k]=(B.ev[k]||0)+1; if(got!=='none'&&last.c) B.ev[last.c]=(B.ev[last.c]||0)+1;   // also counts outcomes the log marks good (ok) or bad
+  }
   function playRun(B,rec){
     const duel=typeof rivalToday==='function'&&rivalToday()&&S.player.lvl>=RK[rv().gi].unlock, gi=duel?rv().gi:pickGate(B), lvl=S.player.lvl;   // a rival's challenge today: go and meet it (rivalOpen is off outside 'full')
     if(B.heat&&B.hw&&B.hw[gi]!=null&&S.day-B.hwDay[gi]>=3) delete B.hw[gi];   // try again a few days later
@@ -204,7 +223,7 @@
     for(;;){
       if(S.mode==='battle'){ if(++guard>400){ flee(); run.left=true; break; } act(decide(B)); run.turns++; continue; }
       if(S.mode==='raise'){
-        run.rooms++; run.hpEnd.push(S.player.hp/pMax()); raisePhase(B);
+        run.rooms++; run.hpEnd.push(S.player.hp/pMax()); playEvent(B); raisePhase(B);
         if(S.run.cleared){ run.cleared=true; returnTown(); break; }
         const P=S.player, live=S.army.filter(m=>m.hp>0).length;
         if(P.hp+pMax()*DIFF.heal>=pMax()*.5||(P.hp>=pMax()*.3&&live>=2)) descend(); else { run.left=true; returnTown(); break; }
@@ -270,7 +289,8 @@
     const sieges={fought:T_('sieges'),won:T_('siegeWins')}, raids={sent:T_('raidsSent'),won:T_('raidWins')}, passives=['robber','scholar','calcify','sanguine','thrift','deathless'].reduce((a,id)=>a+sk(id),0);
     const sec={met:T_('secretMet'),slain:SECRET.reduce((a,B,i)=>a+T_('secret_'+i),0)};
     const rival={met:T_('rivalMet'),wins:T_('rivalWins'),losses:T_('rivalLosses'),thefts:T_('rivalThefts'),day:(S.rival&&S.rival.met)||0};
-    return {maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
+    const head=typeof headBonus==='function'?{g:T_('headG'),t:headTiers(),b:headBonus()}:null;
+    return {ev:B.ev||{},chainsEnded:T_('chains'),head,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
   }
 
   // ----- reporting
@@ -301,7 +321,11 @@
     const med=a=>{ if(!a.length) return '-'; const b=a.slice().sort((x,y)=>x-y), m=b.length>>1; return Math.round(b.length%2?b[m]:(b[m-1]+b[m])/2); };
     const gold={}; [30,60,100,days].forEach(d=>{ if(d>days) return; const a=res.map(r=>r.goldAt&&r.goldAt[d]).filter(Boolean); if(a.length) gold['day'+d]={avg:Math.round(avg(a.map(x=>x[0]))),median:med(a.map(x=>x[0])),earned:Math.round(avg(a.map(x=>x[1]))),spent:Math.round(avg(a.map(x=>x[2])))}; });   // gold held at dusk, and lifetime earned vs spent
     gold.maus=avg(res.map(r=>r.maus||0)); gold.bonds=avg(res.map(r=>r.bonds||0));   // mausoleums raised and bonded pairs at the end
-    return {gold,gates,heat,byLvl,tiers,sec,lore,raids,sieges,rival,rift,passives:avg(res.map(r=>r.passives||0)),raise:(z=>(RZ.t=RZ.ok=0,z))(RZ.t?pc(RZ.ok,RZ.t)+' of '+RZ.t:null),runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
+    { const h=res.map(r=>r.head).filter(Boolean); if(h.some(x=>x.g)) gold.headstones={spent:Math.round(avg(h.map(x=>x.g))),medianSpent:med(h.map(x=>x.g)),tiers:avg(h.map(x=>x.t)),hpBonus:avg(h.map(x=>x.b*100))+'%'}; }   // headstones ('full'): gold spent, tiers and the max HP bonus at the end, per bot
+    const events={}; for(const r of res) for(const k in r.ev||{}) events[k]=(events[k]||0)+r.ev[k];   // events met by id:choice (summed over bots), and ok/bad outcomes
+    if(Object.keys(events).length){ const n=k=>Object.keys(events).filter(x=>k(x)).reduce((a,x)=>a+events[x],0); events.perBot=avg(res.map(r=>Object.keys(r.ev||{}).filter(x=>x.includes(':')).reduce((a,x)=>a+r.ev[x],0)));
+      events.met=n(x=>x.includes(':')&&!x.startsWith('chain ')); events.chainMet=n(x=>x.startsWith('chain ')); events.chainsEnded=res.reduce((a,r)=>a+(r.chainsEnded||0),0); }
+    return {gold,events,gates,heat,byLvl,tiers,sec,lore,raids,sieges,rival,rift,passives:avg(res.map(r=>r.passives||0)),raise:(z=>(RZ.t=RZ.ok=0,z))(RZ.t?pc(RZ.ok,RZ.t)+' of '+RZ.t:null),runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
   }
 
   function run(opts){
