@@ -84,6 +84,13 @@ test('Screens: every stat glyph explains itself in a tooltip (name and what it d
   const g=sgl('atk'); ok(g.includes('data-k="atk"')&&g.includes('aria-label="Strike"'),'key and label'); ok(!/title=/.test(g),'no native title');
   ok(typeof sgTipShow==='function'&&typeof sgTipHide==='function','tooltip helpers');
 });
+test('Screens: a gear-bearer portrait shows its three gear slots, filled in the item rarity colour; others show none',()=>{
+  fresh(); const a=mkMinion({armed:true,eq:{weapon:{u:++S.uid,id:'0-wa'},armor:null,relic:null}}), b=mkMinion({});
+  const ha=mPortrait(a,false), hb=mPortrait(b,false);
+  ok(/class="sg mp-gear" data-k="gear" aria-label="Gear-bearer"/.test(ha),'marked'); eq((ha.match(/<span class="sg mp-gear"[^]*?<\/span>/)[0].match(/<i /g)||[]).length,3,'three slots');
+  ok(ha.includes('<i class="t'+ITEM['0-wa'].tier+'"></i><i class="empty"></i><i class="empty"></i>'),'weapon filled, armor and relic empty'); ok(!/mp-gear/.test(hb),'not a gear-bearer');
+  ok(trText('Carries a weapon, armor and a relic; open the card to change them')!=='Carries a weapon, armor and a relic; open the card to change them','Turkish');
+});
 test('Screens: battle buttons show their mana cost with the mana glyph, not a bare number',()=>{
   fresh(); arena([foe()]); S.player.skills.spear=1; const h=battleHTML(), m='aria-label="Mana cost"';
   ok(new RegExp('data-k="siphon"[^>]*>Soul Siphon <span class="mcost">[^]*?'+m+'[^]*?</span>'+siphonCost()+'</span>').test(h),'Soul Siphon');

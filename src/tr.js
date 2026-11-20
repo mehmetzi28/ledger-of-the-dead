@@ -624,6 +624,7 @@ const TR_DICT=new Map(Object.entries({
 "Gear you will not wear can be salvaged into bone dust on the Gear tab. Dust enchants gear (add or re-roll a bonus line) and builds the higher levels of town buildings":"Giymeyeceğin teçhizat Teçhizat sekmesinde kemik tozuna parçalanabilir. Toz teçhizatı büyüler (ek satır ekler ya da yeniden belirler) ve kasaba binalarının yüksek seviyelerini inşa eder",
 "Gear · #":"Teçhizat · #",
 "Gear-bearer":"Teçhizat taşıyıcı",
+"Carries a weapon, armor and a relic; open the card to change them":"Bir silah, bir zırh ve bir emanet taşır; değiştirmek için kartını aç",
 "Gear-bearers":"Teçhizat taşıyıcılar",
 "Give":"Ver",
 "Give orders":"Emir ver",

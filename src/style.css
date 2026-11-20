@@ -279,6 +279,10 @@ i,em{font-style:normal}
 .mp-st i{width:6px;height:6px;transform:rotate(45deg);border:1px solid var(--trim);background:#0d0b0a}.mp-st i.on{background:var(--gold);border-color:#e9c877;box-shadow:0 0 4px rgba(211,166,77,.6)}
 .mp-nm{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 13px/1.25 var(--font-head);letter-spacing:.03em}
 .mport.elite .mp-nm{color:var(--gold)}
+.mp-gear{display:flex;gap:6px;width:auto;height:auto;margin:4px 0 1px;padding:2px 4px;vertical-align:0;filter:none}   /* a gear-bearer's three slots under its HP bar */
+.mp-gear i{display:block;flex:none;width:11px;height:11px;transform:rotate(45deg);border:1px solid #e9c877;background:var(--tc,#0d0b0a);box-shadow:0 0 6px -1px var(--tc,transparent)}
+.mp-gear i.empty{border:1px solid #b89a5e;background:#0d0b0a;box-shadow:inset 0 1px 2px #000}
+.mport:has(.mp-gear) .mp-btn{border-color:#6b5838}
 .mp-tr{display:flex;flex-wrap:wrap;justify-content:center;gap:3px;margin-top:4px;max-width:100%}
 .mp-tr .tg{display:inline-grid;place-items:center;width:17px;height:17px;margin:0;vertical-align:0;border:1px solid var(--trim);border-radius:2px;background:#120f0c;box-shadow:inset 0 1px 2px #000;font:600 10px/1 var(--font-head);color:var(--bone)}
 .mp-tr .tg.cmdr{color:var(--gold);border-color:#8c6f3d}.mp-tr .tg.mk{color:var(--ember);border-color:#6b4026}

@@ -290,6 +290,10 @@ i,em{font-style:normal}
 .mp-st i{width:6px;height:6px;transform:rotate(45deg);border:1px solid var(--trim);background:#0d0b0a}.mp-st i.on{background:var(--gold);border-color:#e9c877;box-shadow:0 0 4px rgba(211,166,77,.6)}
 .mp-nm{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 13px/1.25 var(--font-head);letter-spacing:.03em}
 .mport.elite .mp-nm{color:var(--gold)}
+.mp-gear{display:flex;gap:6px;width:auto;height:auto;margin:4px 0 1px;padding:2px 4px;vertical-align:0;filter:none}   /* a gear-bearer's three slots under its HP bar */
+.mp-gear i{display:block;flex:none;width:11px;height:11px;transform:rotate(45deg);border:1px solid #e9c877;background:var(--tc,#0d0b0a);box-shadow:0 0 6px -1px var(--tc,transparent)}
+.mp-gear i.empty{border:1px solid #b89a5e;background:#0d0b0a;box-shadow:inset 0 1px 2px #000}
+.mport:has(.mp-gear) .mp-btn{border-color:#6b5838}
 .mp-tr{display:flex;flex-wrap:wrap;justify-content:center;gap:3px;margin-top:4px;max-width:100%}
 .mp-tr .tg{display:inline-grid;place-items:center;width:17px;height:17px;margin:0;vertical-align:0;border:1px solid var(--trim);border-radius:2px;background:#120f0c;box-shadow:inset 0 1px 2px #000;font:600 10px/1 var(--font-head);color:var(--bone)}
 .mp-tr .tg.cmdr{color:var(--gold);border-color:#8c6f3d}.mp-tr .tg.mk{color:var(--ember);border-color:#6b4026}
@@ -6332,6 +6336,7 @@ const TR_DICT=new Map(Object.entries({
 "Gear you will not wear can be salvaged into bone dust on the Gear tab. Dust enchants gear (add or re-roll a bonus line) and builds the higher levels of town buildings":"Giymeyeceğin teçhizat Teçhizat sekmesinde kemik tozuna parçalanabilir. Toz teçhizatı büyüler (ek satır ekler ya da yeniden belirler) ve kasaba binalarının yüksek seviyelerini inşa eder",
 "Gear · #":"Teçhizat · #",
 "Gear-bearer":"Teçhizat taşıyıcı",
+"Carries a weapon, armor and a relic; open the card to change them":"Bir silah, bir zırh ve bir emanet taşır; değiştirmek için kartını aç",
 "Gear-bearers":"Teçhizat taşıyıcılar",
 "Give":"Ver",
 "Give orders":"Emir ver",
@@ -10392,7 +10397,9 @@ function mPortrait(m,on){   // one framed portrait: level, HP on the frame, role
   let pips=''; for(let i=1;i<=STAGE_MAX;i++) pips+='<i'+(i<=st?' class="on"':'')+'></i>';
   return '<div class="mport'+(on?' on':'')+(hp<=0?' down':low?' low':'')+(m.elite?' elite':'')+'"><button class="mp-btn" data-a="mdet" data-k="'+m.uid+'" aria-expanded="'+on+'" aria-label="'+lab+'">'
    +ico(m.kind||m.name,m.rankI,m)+'<span class="mp-lv num" aria-hidden="true">'+m.lvl+'</span><span class="mp-st" aria-hidden="true">'+pips+'</span>'
-   +'<span class="mp-hp" aria-hidden="true"><i style="width:'+pct(hp,m.maxHp)+'%"></i></span><span class="mp-nm" aria-hidden="true">'+m.nick+'</span></button>'
+   +'<span class="mp-hp" aria-hidden="true"><i style="width:'+pct(hp,m.maxHp)+'%"></i></span>'
+   +(m.armed?'<span class="sg mp-gear" data-k="gear" aria-label="Gear-bearer" data-h="Carries a weapon, armor and a relic; open the card to change them">'+GEAR_SLOTS.map(sl=>{ const it=m.eq&&m.eq[sl]; return '<i class="'+(it&&ITEM[it.id]?'t'+ITEM[it.id].tier:'empty')+'"></i>'; }).join('')+'</span>':'')   /* weapon, armor, relic: filled in the item's rarity colour */
+   +'<span class="mp-nm" aria-hidden="true">'+m.nick+'</span></button>'
    +(tg.length?'<span class="mp-tr" aria-hidden="true">'+tg.map(x=>'<span class="sg tg'+x[2]+'" data-k="trait" aria-label="'+x[0]+'" data-h="'+x[1]+'">'+x[0][0]+'</span>').join('')+'</span>':'')+'</div>';
 }
 function reserveHTML(view){   // the bench under the army, in town once the Town tab is open; same cards and rows, its own Order links

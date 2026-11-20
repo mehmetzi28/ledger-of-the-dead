@@ -315,7 +315,9 @@ function mPortrait(m,on){   // one framed portrait: level, HP on the frame, role
   let pips=''; for(let i=1;i<=STAGE_MAX;i++) pips+='<i'+(i<=st?' class="on"':'')+'></i>';
   return '<div class="mport'+(on?' on':'')+(hp<=0?' down':low?' low':'')+(m.elite?' elite':'')+'"><button class="mp-btn" data-a="mdet" data-k="'+m.uid+'" aria-expanded="'+on+'" aria-label="'+lab+'">'
    +ico(m.kind||m.name,m.rankI,m)+'<span class="mp-lv num" aria-hidden="true">'+m.lvl+'</span><span class="mp-st" aria-hidden="true">'+pips+'</span>'
-   +'<span class="mp-hp" aria-hidden="true"><i style="width:'+pct(hp,m.maxHp)+'%"></i></span><span class="mp-nm" aria-hidden="true">'+m.nick+'</span></button>'
+   +'<span class="mp-hp" aria-hidden="true"><i style="width:'+pct(hp,m.maxHp)+'%"></i></span>'
+   +(m.armed?'<span class="sg mp-gear" data-k="gear" aria-label="Gear-bearer" data-h="Carries a weapon, armor and a relic; open the card to change them">'+GEAR_SLOTS.map(sl=>{ const it=m.eq&&m.eq[sl]; return '<i class="'+(it&&ITEM[it.id]?'t'+ITEM[it.id].tier:'empty')+'"></i>'; }).join('')+'</span>':'')   /* weapon, armor, relic: filled in the item's rarity colour */
+   +'<span class="mp-nm" aria-hidden="true">'+m.nick+'</span></button>'
    +(tg.length?'<span class="mp-tr" aria-hidden="true">'+tg.map(x=>'<span class="sg tg'+x[2]+'" data-k="trait" aria-label="'+x[0]+'" data-h="'+x[1]+'">'+x[0][0]+'</span>').join('')+'</span>':'')+'</div>';
 }
 function reserveHTML(view){   // the bench under the army, in town once the Town tab is open; same cards and rows, its own Order links
