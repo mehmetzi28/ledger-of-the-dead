@@ -6,6 +6,7 @@ test('Tower: opens after three gate clears and level 10, from floor 1 or a check
   startTower(1); eq(S.mode,'battle'); eq(S.run.tw,1); eq(S.watches,WATCHES-1); eq(foeArmor(),TW.armor); eq(S.run.enemies.length,3);
 });
 test('Tower: checkpoints every ten floors, endlessly',()=>{ S.tower.best=35; eq(towerStarts().join(),'1,11,21,31'); S.tower.best=250; ok(towerStarts().includes(251)); eq(towerStarts().length,26); });
+test('Tower: the progress bar stays inside its frame past floor 100',()=>{ richState(); S.tower.best=150; ui.tab='tower'; const h=renderAll('tower 150'); ok(/tw-prog"><i style="width:100%"/.test(h),'capped at 100%'); });
 test('Tower: wardens every tenth floor, with more guards higher up',()=>{
   setLvl(60); S.tower.best=200; const r=S.run={tw:10,di:5,room:0,rooms:1,enemies:[],corpses:[],events:[],log:[],turn:1,fx:{},loot:[],spoils:[],lostLoot:[]}; S.mode='battle';
   spawnRoom(); ok(r.enemies[0].boss); eq(r.enemies[0].name,'The Gate Hound'); eq(r.enemies.length,3); eq(r.enemies[0].abil,'swarm');

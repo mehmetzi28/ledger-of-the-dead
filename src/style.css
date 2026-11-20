@@ -9,7 +9,7 @@
   --font-head:'EB Garamond',Georgia,'Times New Roman',serif;
   --font-lore:'EB Garamond',Georgia,'Times New Roman',serif;
   --font-body:'Alegreya Sans',system-ui,sans-serif;
-  --font-data:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --font-data:'Alegreya Sans',system-ui,sans-serif;   /* numbers and small labels: the body face with tabular figures, not a terminal font */
   --grain:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   color-scheme:dark;
 }
@@ -313,9 +313,9 @@ i,em{font-style:normal}
 .dbar i{display:block;height:100%;background:var(--tc)}
 .tiers-line{font:500 11px/1.5 var(--font-data);color:var(--mute);letter-spacing:.04em}
 .stat .val .gb{color:var(--soul);font-size:12px}
-@media (max-width:520px){.item{grid-template-columns:auto minmax(0,1fr)}.i-acts{grid-column:1/-1;flex-direction:row}}
+@media (max-width:520px){.item{grid-template-columns:auto minmax(0,1fr)}.i-acts{grid-column:1/-1;flex-direction:row;flex-wrap:wrap}}
 @media (prefers-reduced-motion:reduce){.item.t5 .i-name{animation:none}}
-.rail .item{grid-template-columns:auto minmax(0,1fr)}.rail .i-acts{grid-column:1/-1;flex-direction:row}
+.rail .item{grid-template-columns:auto minmax(0,1fr)}.rail .i-acts{grid-column:1/-1;flex-direction:row;flex-wrap:wrap}
 .ico.unk{color:var(--line-2);box-shadow:none;border-style:dashed}
 .bes-row.locked{cursor:default;opacity:.7;background:var(--well)}
 .bes-row.locked:hover{border-color:var(--line)}
@@ -902,3 +902,103 @@ mark.cx-hit{background:rgba(211,166,77,.26);color:inherit;border-bottom:1px soli
 .trait.mark{border-color:var(--brass);color:var(--bone)}.trait.mark-pend{border-color:var(--ok);color:var(--ok)}
 .mark-row{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:14px}.mark-row .chips{margin:0}
 @media (max-width:540px){.mark-row{flex-direction:column;align-items:flex-start}}
+/* ===== Genre pass: a dark-fantasy RPG's furniture instead of a web dashboard =====
+   Framed panels with cast corner pieces and a gold inner line, rubric headings between a diamond and a fading rule, book-face prose,
+   loot-style item cards (rarity frame and header band; the tier colour stays the cue), bronze plaque buttons with gold trim on the main
+   action, a framed tab ribbon. Small UI labels keep the sans face so dense numbers stay legible. No accent stripes, no pills, a still title. */
+:root{
+  --font-data:'Alegreya Sans',system-ui,sans-serif;
+  --trim:#5d4b34; --trim-hi:#a8843f;
+  --c-tl:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='22' height='22'><path d='M1 21V1h20' fill='none' stroke='%237a6038' stroke-width='2'/><path d='M5 17V5h12' fill='none' stroke='%237a6038' stroke-opacity='.45'/><path d='M5 1.5 8.5 5 5 8.5 1.5 5z' fill='%23c9a14f'/></svg>");
+  --c-tr:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='22' height='22'><g transform='matrix(-1 0 0 1 22 0)'><path d='M1 21V1h20' fill='none' stroke='%237a6038' stroke-width='2'/><path d='M5 17V5h12' fill='none' stroke='%237a6038' stroke-opacity='.45'/><path d='M5 1.5 8.5 5 5 8.5 1.5 5z' fill='%23c9a14f'/></g></svg>");
+  --c-bl:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='22' height='22'><g transform='matrix(1 0 0 -1 0 22)'><path d='M1 21V1h20' fill='none' stroke='%237a6038' stroke-width='2'/><path d='M5 17V5h12' fill='none' stroke='%237a6038' stroke-opacity='.45'/><path d='M5 1.5 8.5 5 5 8.5 1.5 5z' fill='%23c9a14f'/></g></svg>");
+  --c-br:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='22' height='22'><g transform='matrix(-1 0 0 -1 22 22)'><path d='M1 21V1h20' fill='none' stroke='%237a6038' stroke-width='2'/><path d='M5 17V5h12' fill='none' stroke='%237a6038' stroke-opacity='.45'/><path d='M5 1.5 8.5 5 5 8.5 1.5 5z' fill='%23c9a14f'/></g></svg>");
+}
+body{font-family:var(--font-lore);font-size:16px;font-variant-numeric:tabular-nums}
+h1{animation:none;text-shadow:0 2px 0 #000,0 0 1px #000}
+/* panels: a frame, not a card */
+.win{border:1px solid #3a3027;border-radius:0;
+  background:var(--c-tl) top left/22px no-repeat,var(--c-tr) top right/22px no-repeat,var(--c-bl) bottom left/22px no-repeat,var(--c-br) bottom right/22px no-repeat,
+    var(--grain),var(--grime),linear-gradient(180deg,rgba(226,216,194,.035),rgba(0,0,0,.2) 70%),color-mix(in srgb,var(--panel) 88%,transparent);
+  box-shadow:inset 0 0 0 1px #070605,inset 0 0 0 4px rgba(14,11,9,.9),inset 0 0 0 5px rgba(140,111,61,.22),inset 0 0 40px rgba(0,0,0,.55),0 10px 26px rgba(0,0,0,.6);
+  padding:22px 20px 20px}
+.win-h{font:600 15px/1.2 var(--font-head);font-variant:small-caps;letter-spacing:.08em;text-transform:none;color:#c8a565;gap:10px}
+.win-h::before{content:"";flex:none;width:6px;height:6px;transform:rotate(45deg);background:var(--trim-hi);box-shadow:0 0 0 2px #0b0907,0 0 0 3px var(--trim)}
+.win-h::after{display:block;content:"";flex:1;min-width:16px;height:1px;order:1;background:linear-gradient(90deg,var(--trim-hi),rgba(93,75,52,.4) 40%,transparent)}
+.win-h>button{order:2}
+.win-h{flex-wrap:wrap}   /* a long heading (Army and its slot pips, at the largest text size) wraps instead of spilling */
+.win-title{font:600 26px/1.15 var(--font-head);letter-spacing:.02em}
+/* tips and notes: a sealed slip, not a green banner */
+.tip{border:1px solid var(--trim);border-radius:0;background:var(--grain),linear-gradient(180deg,#1b1611,#100d0a);box-shadow:inset 0 0 0 1px #070605,inset 0 0 22px rgba(0,0,0,.6)}
+.tip-b b{color:#e4c98f}
+.note,.goal-list li,.kn-exe{border-left:0;padding-left:0}
+.next-obj,.gate-army,.felled,.rival-line,.curse-line,.siege-dmg,.tt-row.b-dmg,.charge{border-left:1px solid var(--line)}
+/* tabs: a framed ribbon */
+.tabs{gap:0 22px;padding:0 16px;border:1px solid #3a3027;border-bottom-color:var(--trim);background:var(--grain),linear-gradient(180deg,#18140f,#0d0b09);box-shadow:inset 0 0 0 1px #050403}
+.tabs .tab kbd{display:none}
+.tab{font:600 17px/1.1 var(--font-head);font-variant:small-caps;letter-spacing:.05em;padding:12px 2px 10px}
+.tab[aria-selected="true"]{color:#e4c98f;border-bottom-color:var(--gold);text-shadow:0 0 14px rgba(211,166,77,.3)}
+/* buttons: bronze plaques; the main action wears gold */
+.btn{border-radius:0;font:600 15px/1.1 var(--font-head);font-variant:small-caps;letter-spacing:.07em;text-transform:none;color:#e6d8b8;
+  background:linear-gradient(180deg,#30281f,#1b1612 55%,#120e0b);border:1px solid var(--trim);
+  box-shadow:inset 0 0 0 1px #0a0806,inset 0 1px 0 rgba(255,225,170,.13),0 1px 0 rgba(0,0,0,.8)}
+.btn.small{font-size:14px}
+.btn:hover:not(:disabled){color:#fff1d2;border-color:var(--trim-hi);background:linear-gradient(180deg,#3a3026,#211b16 55%,#16110d)}
+.btn.primary,.btn.ult.primary{color:#f0d79a;border-color:var(--trim-hi);background:linear-gradient(180deg,#3d2f18,#231a0e 55%,#170f08);
+  box-shadow:inset 0 0 0 1px #0a0703,inset 0 1px 0 rgba(255,215,140,.22),0 0 0 1px #000,0 0 12px -4px rgba(211,166,77,.5)}
+.btn.primary:hover:not(:disabled){color:#fff0c8;border-color:var(--gold);background:linear-gradient(180deg,#4a391d,#2b2011 55%,#1b130a)}
+/* loot cards: rarity frame and header band instead of a side stripe */
+.item{border:1px solid color-mix(in srgb,var(--tc) 42%,#0a0806);border-radius:0;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tc) 13%,transparent),transparent 46px),var(--grain),#110e0c;
+  box-shadow:inset 0 0 0 1px #050403,inset 0 0 20px rgba(0,0,0,.7)}
+.i-name{font:600 17px/1.2 var(--font-head);letter-spacing:.01em;text-shadow:0 1px 0 #000}
+.item.t5 .i-name{background:none;color:var(--t5);animation:none}   /* solid pale gold: a clipped shimmer goes hollow under the shadow */
+.i-stats{font-family:var(--font-data)}
+/* the character sheet: carved numbers */
+.stat b{font-variant:small-caps;letter-spacing:.05em}
+.stat .val,.derived b,.life b,.as-st b{font-family:var(--font-head);font-weight:600;color:#ecdcb6}
+/* square tags and bars */
+.chip,.trait,.chip-btn,.t-rar,.rival-line{border-radius:0}
+.bar,.fill{border-radius:0}
+.m-top,.gate .meta,.tiers-line,.tw-hero b,.tw-fl,.tw-got,.next-obj b,.cx-new,.gs-b small{letter-spacing:.08em}
+/* icons: the art is a share of its frame, so a layout that shrinks the frame (Town and Market rows, quick gear) shrinks the art with it */
+.ico>svg,.ico.boss>svg{width:84%;height:84%}
+.item{align-items:start}   /* a tall item card keeps its icon beside its name, like a tooltip */
+/* icons as framed portraits: black edge, dark bevel, an inner line in the rank or rarity colour, a deep vignette, the art casting a shadow */
+.ico{border:1px solid #050403;border-radius:0;
+  background:radial-gradient(circle at 50% 36%,color-mix(in srgb,currentColor 16%,transparent),rgba(0,0,0,.88) 72%),var(--grain),#0a0807;
+  box-shadow:inset 0 0 0 2px #1c1712,inset 0 0 0 3px color-mix(in srgb,currentColor 55%,#000),inset 0 0 0 4px rgba(0,0,0,.85),inset 0 -10px 16px rgba(0,0,0,.7),0 0 0 1px #3a3027,0 2px 5px rgba(0,0,0,.7)}
+.ico>svg{filter:drop-shadow(0 2px 1.5px rgba(0,0,0,.85))}
+.ico.boss{border-width:1px;box-shadow:inset 0 0 0 2px #1c1712,inset 0 0 0 3px var(--trim-hi),inset 0 0 0 5px #0a0806,inset 0 0 0 6px color-mix(in srgb,currentColor 55%,#000),inset 0 -12px 18px rgba(0,0,0,.7),0 0 0 1px var(--trim),0 0 14px -4px rgba(211,166,77,.45)}
+/* the role mark: a small cast diamond on the frame's corner */
+.rb{border-radius:0;transform:rotate(45deg);background:#0d0b09;border:1px solid var(--trim-hi);box-shadow:0 0 0 1px #000}
+.rb svg{transform:rotate(-45deg)}
+body.lite .ico>svg{filter:none}
+/* icon detail: creatures stand on a lit patch of ground under a dim stone arch; items rest on woven cloth; fine scratches on the backing, behind the art */
+.ico{isolation:isolate}
+.ico.r0,.ico.r1,.ico.r2,.ico.r3,.ico.r4,.ico.r5{background:
+  radial-gradient(46% 12% at 50% 88%,rgba(0,0,0,.8),transparent 75%),
+  radial-gradient(75% 34% at 50% 100%,color-mix(in srgb,currentColor 20%,transparent),transparent 75%),
+  url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path d='M10 64V30a22 22 0 0 1 44 0v34' fill='none' stroke='%23e8dcc0' stroke-opacity='.07' stroke-width='3'/><path d='M14 64V31a18 18 0 0 1 36 0v33' fill='none' stroke='%23000' stroke-opacity='.35'/><path d='M18 13l3 4M44 13l-3 4M32 8v4' stroke='%23e8dcc0' stroke-opacity='.06'/></svg>") center/100% 100% no-repeat,
+  radial-gradient(circle at 50% 34%,color-mix(in srgb,currentColor 14%,transparent),rgba(0,0,0,.9) 72%),var(--grain),#0a0807}
+.ico.t0,.ico.t1,.ico.t2,.ico.t3,.ico.t4,.ico.t5{background:
+  radial-gradient(circle at 50% 40%,color-mix(in srgb,currentColor 18%,transparent),rgba(0,0,0,.86) 74%),
+  repeating-linear-gradient(45deg,rgba(255,240,210,.035) 0 1px,transparent 1px 4px),
+  repeating-linear-gradient(-45deg,rgba(0,0,0,.35) 0 1px,transparent 1px 4px),var(--grain),#13100d}
+.ico::after{content:"";position:absolute;inset:3px;z-index:-1;pointer-events:none;opacity:.55;
+  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g stroke='%23f2e6cc' stroke-opacity='.18' stroke-width='.5' fill='none'><path d='M4 9l13 5M46 4l11 9M52 50l8-3M6 52l9 6M30 60l12-2M58 24l3 10'/><path d='M8 30l5-1M48 36l6 2' stroke-opacity='.1'/></g></svg>") center/100% 100% no-repeat}
+/* backgrounds: shafts of grey light and a heavier vignette between the painted scene and the page, and low fog that drifts */
+body::before{z-index:1;background:
+  linear-gradient(103deg,transparent 18%,rgba(232,222,198,.035) 22%,transparent 27%),
+  linear-gradient(98deg,transparent 52%,rgba(232,222,198,.03) 55%,transparent 61%),
+  linear-gradient(106deg,transparent 70%,rgba(232,222,198,.025) 72%,transparent 76%),
+  radial-gradient(ellipse at 50% 42%,transparent 42%,rgba(0,0,0,.78) 100%)}
+html::after{content:"";position:fixed;left:-50%;bottom:-4vh;width:200%;height:46vh;z-index:0;pointer-events:none;opacity:.55;
+  background:radial-gradient(28% 40% at 18% 70%,rgba(150,160,140,.10),transparent 70%),radial-gradient(30% 36% at 46% 80%,rgba(150,160,140,.09),transparent 70%),
+    radial-gradient(26% 42% at 72% 72%,rgba(150,160,140,.10),transparent 70%),radial-gradient(34% 30% at 92% 85%,rgba(150,160,140,.08),transparent 70%);
+  animation:fogdrift 120s linear infinite alternate}
+@keyframes fogdrift{to{transform:translateX(25%)}}
+html:has(body.hell)::after{opacity:.25}   /* thinner fog over the Tower fires */
+html:has(body.nobg)::after{display:none}
+@media (prefers-reduced-motion:reduce){html::after{animation:none}}
+@media (max-width:520px){.tt-row>.btns{grid-column:1/-1}}   /* a row with several buttons (the forge slots) puts them under its text on a phone */
