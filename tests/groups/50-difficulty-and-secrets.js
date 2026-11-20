@@ -81,6 +81,9 @@ test('Gates: a card shows clears by difficulty, the best run, study and rewards,
   ok(!bossMet(1)&&/Boss: <b>\?\?\?<\/b>/.test(gateHTML(1)),'another gate stays hidden');
   ui.tab='gates'; let h=renderAll('cards'); ok(!/class="g-det"/.test(h)); ACTIONS.gdet('0'); h=renderAll('details'); ok(/class="g-det"/.test(h)&&/data-a="gdet" data-k="0" aria-expanded="true"/.test(h)); ACTIONS.gdet('0'); eq(ui.gdet,null);
   S.mod={day:S.day,gi:0,id:'volatile'}; ok(/class="curse-line">Cursed: /.test(gateHTML(0)),'curse banner');
+  ok(/class="g-head gs-g0" aria-hidden="true">/.test(g)&&/g-por gate-mark/.test(g),'a tile: the painted place and the boss portrait, hidden from screen readers');
+  ok(/g-por unknown/.test(gateHTML(1))&&!/g-seal/.test(gateHTML(1)),'an open gate with its boss unmet: the hooded shape'); setLvl(1); ok(/g-seal/.test(gateHTML(5))&&gateHTML(5).includes('Sealed &middot; Lv '+RK[5].unlock)&&/data-a="enter" data-k="5" disabled/.test(gateHTML(5)),'a sealed gate: chains, its level, Enter disabled'); setLvl(10);
+  eq((heatHTML(0).match(/<i class="hm h(\d)"/g)||[]).length,HEAT.length,'a skull mark on every difficulty chip'); ok(heatHTML(0).includes('<i class="hm h3" aria-hidden="true">'+HEAT_SKULL.repeat(4)+'</i>'),'four on Nightmare');
   eq(trText('Best 14 turns'),'En iyi 14 tur'); eq(trText('1/4 foes'),'1/4 düşman'); eq(trText('Met, not yet beaten'),'Karşılaşıldı, henüz yenilmedi');
 });
 test('Difficulty rules: Hard doubles elites (stacking with the Blood Moon); the extra elites carry the unique at ordinary odds',()=>{

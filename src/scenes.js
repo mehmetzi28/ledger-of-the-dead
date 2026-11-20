@@ -568,6 +568,42 @@ function scene(){
   document.body.classList.toggle('towerscene',k==='tower'); document.body.classList.toggle('scened',!!k);   // a scene brings its own vignette
   el.classList.toggle('on',!!k);
 }
+// ----- small paintings: each gate's backdrop on its Gates tile and the village strip on the Town tab. Drawn once into a stylesheet as
+// SVG images (classes gs-g0..gs-g5, gs-vil), so a render only names a class; as images they hold still and cost nothing to redraw.
+function scVillage(){   // the strip behind the Town tab's buildings: dusk, far cottages, the Old Shrine and a churchyard fence; the ground line sits at y 330 of 400
+  const r=scRand(31);
+  let o='<defs>'+scSky('skV','#0e0d0a','#2a2218','#433322')+'</defs><rect width="1600" height="400" fill="url(#skV)"/>'+scStars(r,46,200)
+    +scGlow(1330,90,110,'#e0d6b8',.2)+'<circle cx="1330" cy="90" r="34" fill="#d8cfb2" opacity=".66"/><circle cx="1320" cy="82" r="7" fill="#b0a68a" opacity=".45"/>'
+    +scRidge(scRand(131),268,90,80,'#1e1913',.9)+scRuin(160,300,70,100,'#1a1511')
+    +'<path d="M0 300Q300 270 640 290T1240 284T1600 276V400H0Z" fill="#251f17"/>';
+  for(const [x,w,h,l] of [[40,56,38,.8],[110,44,30,0],[330,50,34,.6],[600,42,28,0],[905,54,36,.9],[1130,46,32,0],[1460,58,40,.7],[1530,42,28,0]]) o+=scHouse(x,312,w,h,'#14110d',l,r);
+  o+='<g fill="#100d0a"><path d="M1236 316V262L1262 240L1288 262V316Z"/><path d="M1252 246V210L1262 192L1272 210V246Z"/><path d="M1260 192V178H1264V192ZM1255 184H1269V187H1255Z"/></g>'+scWin(1257,276,10,18,.8)   // the Old Shrine's chapel
+    +scTree(r,1390,330,150,'#0c0a08')+scTree(r,520,330,110,'#0d0b09')+scCrow(1400,214,1)
+    +'<path d="M0 330H1600" stroke="#0e0c09" stroke-width="4"/><g stroke="#0e0c09" stroke-width="2.5">'+Array.from({length:80},(_,i)=>'<path d="M'+(i*20+6)+' 330V'+(318+(i%3)*2)+'"/>').join('')+'</g>'
+    +'<path d="M0 330H1600V400H0Z" fill="#14110d"/>'+scFog(338,.22,'#b8ac90')+scMist('mV',250,110,'#8a7a5c',.12);
+  return o;
+}
+let scThumbsOn=false;
+function scThumbs(){
+  if(scThumbsOn) return; scThumbsOn=true;
+  try{ const img=(b,h)=>'url("data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 '+h+'" preserveAspectRatio="xMidYMid slice"><defs><filter id="scB" x="-30%" y="-200%" width="160%" height="500%"><feGaussianBlur stdDeviation="34"/></filter><filter id="scB2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter></defs>'+scLift(b.replace(/ class="sc-[^"]*"/g,''))+'</svg>')+'")';
+    let css='.gs-vil{background-image:'+img(scVillage(),400)+'}'; for(let i=0;i<DUNGEONS.length;i++) if(BACKDROPS['g'+i]) css+='.gs-g'+i+'{background-image:'+img(BACKDROPS['g'+i](),900)+'}';
+    const st=document.createElement('style'); st.id='sc-thumbs'; st.textContent=css; document.head.appendChild(st); }catch(e){}   // no document head (the tests' fake browser): the tiles keep their plain gradient
+}
+// The Town tab's buildings, one painted silhouette each on a 100x90 ground (ground line y 86): lit windows and fire once built, a dashed outline over rubble while not.
+const VB_SHAPE={
+  crypt:{d:'M8 86V80H16V46H12L50 22L88 46H84V80H92V86ZM48 22V9H52V22ZM43 13H57V16.5H43Z',lit:'M42 80V64A8 8 0 0 1 58 64V80Z',dim:'M24 50V78M34 50V78M66 50V78M76 50V78'},
+  forge:{d:'M6 86V52L38 34L62 47V12H74V54L74 86ZM78 86V82H82V78H75V73H95V78H88V82H92V86Z',lit:'M22 86V64H46V86Z',dim:'M10 60H58M10 72H18M50 72H58'},
+  ossuary:{d:'M14 86V56H18A32 30 0 0 1 82 56H86V86ZM48 26V14H52V26Z',lit:'M28 86V70A6 6 0 0 1 40 70V86ZM60 86V70A6 6 0 0 1 72 70V86Z',dim:'M50 44m-7 0a7 7 0 1 0 14 0a7 7 0 1 0-14 0M18 62H82M18 66H82'},
+  altar:{d:'M12 86V78H88V86ZM20 78V70H80V78ZM28 70V58H72V70ZM43 58V30L50 20L57 30V58ZM32 58V47H36V58ZM64 58V47H68V58Z',lit:'M48 34L50 30L52 34L50 48Z',dim:'M28 64H72M20 74H80'}
+};
+function vbIcon(k,lv){   // lv 0: ruin; the altar's rune glows mana blue
+  const V=VB_SHAPE[k]; if(!V) return '';
+  if(!lv) return '<svg viewBox="0 0 100 90" aria-hidden="true" class="vb-svg ruin"><path d="'+V.d+'" fill="#0c0a08" fill-opacity=".55" stroke="#8a7a62" stroke-opacity=".55" stroke-width="1.4" stroke-dasharray="4 3"/><path d="M14 86L20 80L28 84L36 79L44 86ZM60 86L66 81L74 83L80 78L88 86Z" fill="#2a241c"/></svg>';
+  const fire=k==='altar'?'#7ab8ff':'#ffae52';
+  return '<svg viewBox="0 0 100 90" aria-hidden="true" class="vb-svg"><ellipse cx="50" cy="70" rx="'+(30+lv*6)+'" ry="22" fill="'+fire+'" opacity="'+(.06+lv*.04).toFixed(2)+'"/><path d="'+V.d+'" fill="#17130f" stroke="#000" stroke-width="1"/><path d="'+V.dim+'" stroke="#3a3127" stroke-width="2" fill="none"/>'
+    +'<path class="vb-lit" d="'+V.lit+'" fill="'+fire+'" opacity="'+(.45+lv*.15).toFixed(2)+'"/>'+(k==='forge'?'<path d="M68 10C62 2 74-2 68-8" stroke="#a89c84" stroke-opacity=".35" stroke-width="4" fill="none" stroke-linecap="round"/>':'')+'</svg>';
+}
 // ----- display settings (per browser, not in the save): text size, reduced motion, high contrast
 const LANGS={en:'English',tr:'Türkçe'};   // see LANGUAGE below
 const VIEW={size:0,calm:false,hc:false,nobg:false,lang:'en',fx:'auto',army:'grid',fold:{}};

@@ -78,7 +78,7 @@ const ACTIONS={
   tabsync:()=>{ TAB.blocked=false; TAB.last=null; loadGame(); ui.tab='gates'; ui.msg=null; },
   lock:k=>{ lockItem(+k); }, asort:k=>{ sortArmy(k); }, mdet:k=>{ ui.mdet=ui.mdet===+k?null:+k; }, mrow:k=>{ setRow(+k); },
   afr:k=>{ ui.afr=ui.afr===k||!ROLES[k]?'':k; }, agb:()=>{ ui.agb=!ui.agb; }, asv:k=>{ ui.asv=AV_SORTS[k]!=null?k:''; }, aqt:k=>{ ui.aqt=k; },   // the Army tab's filters, view order and Quick equip target
-  war:()=>{ ui.tab='gates'; ui.gsub='war'; ui.msg=null; }, gdet:k=>{ ui.gdet=ui.gdet===+k?null:+k; },   // gdet: a gate card's Details
+  war:()=>{ ui.tab='gates'; ui.gsub='war'; ui.msg=null; }, gdet:k=>{ ui.gdet=ui.gdet===+k?null:+k; }, bsel:k=>{ if(k==='list') ui.tlist=!ui.tlist; else if(BUILD[k]){ ui.bsel=k; ui.tlist=false; } },   // bsel: a building in the Town tab's village, or the list of them all   // gdet: a gate card's Details
   keys:()=>{ ui.keys=!ui.keys; },
   renameo:k=>{ ui.rename=+k; const m=findMinion(+k); ui.rn=m?m.nick:''; }, renamex:()=>{ ui.rename=null; },
   rename:k=>{ if(renameMinion(+k,ui.rn)) ui.rename=null; },

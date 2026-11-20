@@ -166,18 +166,29 @@ details.more>summary:focus-visible{outline:1px solid var(--trim-hi,#a8843f);outl
 .derived .sg{display:flex;width:16px;height:16px;margin-bottom:6px}
 
 /* gates */
-.gates{display:flex;flex-direction:column;gap:10px}
-.gate{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px;border:1px solid var(--line);background:linear-gradient(90deg,rgba(0,0,0,.35),transparent),var(--panel-2)}
+.gates{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:12px;align-items:start}
+.gate{display:flex;flex-direction:column;padding:0;border:1px solid var(--line);background:linear-gradient(90deg,rgba(0,0,0,.35),transparent),var(--panel-2)}
 .gate:not(.locked):hover{border-color:var(--brass)}
-.gate{position:relative;overflow:hidden;border-left:3px solid var(--g2,var(--line));background:linear-gradient(100deg,color-mix(in srgb,var(--g1,#000) 70%,transparent),transparent 65%),var(--panel-2)}
-.gate>*{position:relative}.gate>.gate-mark{position:absolute;right:96px;top:50%;width:120px;height:120px;transform:translateY(-50%);opacity:.07;pointer-events:none;color:var(--g2)}
+.gate{position:relative;overflow:hidden;background:linear-gradient(180deg,color-mix(in srgb,var(--g1,#000) 70%,transparent),transparent 60%),var(--panel-2)}
+.gate>*{position:relative}
+/* a gate tile: the painted place on top (its backdrop, small), the boss portrait framed in its corner, the rank badge over it */
+.g-head{height:104px;margin:0;background:linear-gradient(160deg,var(--g1,#1a1714),#080706);background-size:cover;background-position:center 62%;border-bottom:2px solid color-mix(in srgb,var(--g2,#5a4a3a) 55%,#000);box-shadow:inset 0 -26px 26px -12px rgba(0,0,0,.75),inset 0 0 30px rgba(0,0,0,.55)}
+.gate>.badge{position:absolute;left:10px;top:10px;width:40px;height:40px;font-size:21px;background:rgba(8,7,6,.78)}
+.g-por{position:absolute;right:10px;bottom:-1px;width:74px;height:74px;display:grid;place-items:center;border:1px solid var(--line-2);border-bottom:0;background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--g2,#5a4a3a) 35%,#0b0a09),#070605 70%);box-shadow:0 0 14px -4px var(--g2,#000)}
+.g-por .ico{width:66px;height:66px;border:0;background:none;box-shadow:none}
+.g-por.unknown svg{position:absolute;inset:4px;width:66px;height:66px}.g-por.unknown b{position:relative;margin-top:14px;font:600 24px/1 var(--font-head);color:#6a604c}
+.g-seal{position:absolute;inset:0;width:100%;height:100%}.g-lock{position:absolute;left:50%;top:50%;width:32px;height:37px;transform:translate(-50%,-66%);filter:drop-shadow(0 2px 4px #000)}
+.g-sealtxt{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);padding:2px 8px;background:rgba(5,4,3,.85);border:1px solid var(--line);font:500 11px/1.3 var(--font-data);letter-spacing:.08em;text-transform:uppercase;color:var(--bone);white-space:nowrap}
+.gate.locked .g-head{box-shadow:inset 0 0 0 200px rgba(6,5,4,.6)}.gate.locked .g-por{display:none}
+.g-body{padding:10px 12px 4px;min-width:0}
+.gate>.btn{margin:6px 12px 12px}
 .gate.cursed{border-color:#7a2a1c;box-shadow:0 0 18px -6px rgba(232,86,74,.55)}
-@media (max-width:540px){.gate>.gate-mark{right:8px;width:90px;height:90px}}
-.gate.locked{opacity:.45;filter:grayscale(.8)}
+.gate.locked{opacity:.6}.gate.locked .g-body{filter:grayscale(.8)}
 .gate h3{margin:0 0 3px;font:700 19px/1.15 var(--font-head);letter-spacing:.05em}
 .gate p{margin:0;color:var(--mute);font:400 15px/1.4 var(--font-lore)}
 .gate .meta{margin-top:7px;font:500 11px/1.4 var(--font-data);letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
-@media (max-width:540px){.gate{grid-template-columns:auto minmax(0,1fr)}.gate .btn{grid-column:1/-1}}
+.hm{display:inline-flex;gap:1px;margin-right:4px;vertical-align:-1px}.hm svg{width:9px;height:9px;fill:#b8ac90}.hm.h1 svg{fill:#d89a4a}.hm.h2 svg{fill:#d8643a}.hm.h3 svg{fill:#e8564a}
+.chip-btn:not(.on) .hm svg{opacity:.7}
 
 /* combat */
 .row{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
@@ -731,7 +742,7 @@ body.compact .ico{width:44px;height:44px}body.compact .ico svg{width:38px;height
 body.compact .ico.boss{width:52px;height:52px}body.compact .ico.boss svg{width:46px;height:46px}
 body.compact .item .ico{width:40px;height:40px}body.compact .item .ico svg{width:34px;height:34px}
 body.compact .trow .ico{width:34px;height:34px}body.compact .trow .ico svg{width:28px;height:28px}
-body.compact .gate{padding:10px;gap:10px}body.compact .gate p{display:none}
+body.compact .g-head{height:64px}body.compact .g-por{width:52px;height:52px}body.compact .g-por .ico,body.compact .g-por.unknown svg{width:46px;height:46px}body.compact .gate p{display:none}
 body.compact .minion,body.compact .corpse{padding:8px 10px;gap:8px}
 body.compact .row{gap:6px}
 body.compact .unit{padding:7px;gap:4px}
@@ -855,6 +866,22 @@ body.compact .unit.mini .ico{width:34px;height:34px}body.compact .unit.mini .ico
 @container (min-width:720px){.army.compact .mrow{grid-template-columns:28px 1.6em minmax(0,1fr) minmax(0,9em) max-content minmax(90px,.6fr) auto;grid-template-areas:"ico rk name role st hp acts"}.army .mrow .ico .rb{display:none}.army.compact .mr-role{display:block}.mr-st{font-size:13px}}
 /* town buildings on a phone: name and level on one line, the description and "Now:" full width, the build button under them */
 @media (max-width:540px){.tt-row.bld{grid-template-columns:minmax(0,1fr);gap:8px}.tt-row.bld>.btn,.tt-row.bld>.u-tag{justify-self:start;max-width:100%;white-space:normal}}
+/* the village: a painted dusk strip (scVillage), each building a button standing on its ground line; built ones lit, unbuilt ones a dashed ruin */
+.village{display:flex;gap:6px;align-items:flex-end;margin:10px 0 4px;padding:56px 10px 8px;min-height:190px;border:1px solid var(--line);background:#14110d;background-size:cover;background-position:center bottom;overflow-x:auto;overscroll-behavior-x:contain;box-shadow:inset 0 0 40px rgba(0,0,0,.6)}
+.vb{flex:1 0 112px;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 4px 6px;border:1px solid transparent;border-radius:3px;background:none;color:var(--bone);font:13px/1.25 var(--font-body);cursor:pointer;text-align:center}
+.vb:hover{background:rgba(0,0,0,.35);border-color:var(--line)}
+.vb[aria-pressed="true"]{background:linear-gradient(180deg,transparent,rgba(0,0,0,.6));border-color:var(--brass)}
+.vb-svg{width:92px;height:83px;margin-bottom:2px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.8))}
+.vb:not(.built) .vb-svg{opacity:.8}
+.vb-n{font:600 15px/1.2 var(--font-head);letter-spacing:.04em;text-shadow:0 1px 3px #000}
+.vb-lv{font:500 11px/1.3 var(--font-data);letter-spacing:.06em;color:var(--mute);text-shadow:0 1px 2px #000}
+.vb-st{min-height:1.3em;font:500 11px/1.3 var(--font-data);text-shadow:0 1px 2px #000}
+.vb.can .vb-svg{filter:drop-shadow(0 0 6px rgba(216,170,90,.45))}
+.vb-tog{margin:0 0 8px;text-align:right}
+.village.listed .vb{opacity:.92}
+@media (prefers-reduced-motion:no-preference){body:not(.calm) .vb.built .vb-lit{animation:vbFlk 3.6s ease-in-out infinite}}
+@keyframes vbFlk{0%,100%{opacity:.85}45%{opacity:.6}70%{opacity:.95}}
+@media (max-width:540px){.village{display:grid;grid-template-columns:1fr 1fr;padding-top:30px;overflow:visible}.vb-svg{width:76px;height:68px}}   /* a phone: the four buildings as a two-by-two grid on the same painting */
 /* Sieges: the warning banner and the town's damaged building, worn and torch-lit, never bright */
 .siege-warn{border:1px solid #7a4a1e;background:linear-gradient(90deg,rgba(140,70,20,.22),rgba(40,20,10,.1) 70%,transparent);padding:9px 12px;border-radius:6px;margin:8px 0;font:13px/1.45 var(--font-body)}
 .siege-warn b{color:#e0a060}
@@ -5080,6 +5107,42 @@ function scene(){
   document.body.classList.toggle('towerscene',k==='tower'); document.body.classList.toggle('scened',!!k);   // a scene brings its own vignette
   el.classList.toggle('on',!!k);
 }
+// ----- small paintings: each gate's backdrop on its Gates tile and the village strip on the Town tab. Drawn once into a stylesheet as
+// SVG images (classes gs-g0..gs-g5, gs-vil), so a render only names a class; as images they hold still and cost nothing to redraw.
+function scVillage(){   // the strip behind the Town tab's buildings: dusk, far cottages, the Old Shrine and a churchyard fence; the ground line sits at y 330 of 400
+  const r=scRand(31);
+  let o='<defs>'+scSky('skV','#0e0d0a','#2a2218','#433322')+'</defs><rect width="1600" height="400" fill="url(#skV)"/>'+scStars(r,46,200)
+    +scGlow(1330,90,110,'#e0d6b8',.2)+'<circle cx="1330" cy="90" r="34" fill="#d8cfb2" opacity=".66"/><circle cx="1320" cy="82" r="7" fill="#b0a68a" opacity=".45"/>'
+    +scRidge(scRand(131),268,90,80,'#1e1913',.9)+scRuin(160,300,70,100,'#1a1511')
+    +'<path d="M0 300Q300 270 640 290T1240 284T1600 276V400H0Z" fill="#251f17"/>';
+  for(const [x,w,h,l] of [[40,56,38,.8],[110,44,30,0],[330,50,34,.6],[600,42,28,0],[905,54,36,.9],[1130,46,32,0],[1460,58,40,.7],[1530,42,28,0]]) o+=scHouse(x,312,w,h,'#14110d',l,r);
+  o+='<g fill="#100d0a"><path d="M1236 316V262L1262 240L1288 262V316Z"/><path d="M1252 246V210L1262 192L1272 210V246Z"/><path d="M1260 192V178H1264V192ZM1255 184H1269V187H1255Z"/></g>'+scWin(1257,276,10,18,.8)   // the Old Shrine's chapel
+    +scTree(r,1390,330,150,'#0c0a08')+scTree(r,520,330,110,'#0d0b09')+scCrow(1400,214,1)
+    +'<path d="M0 330H1600" stroke="#0e0c09" stroke-width="4"/><g stroke="#0e0c09" stroke-width="2.5">'+Array.from({length:80},(_,i)=>'<path d="M'+(i*20+6)+' 330V'+(318+(i%3)*2)+'"/>').join('')+'</g>'
+    +'<path d="M0 330H1600V400H0Z" fill="#14110d"/>'+scFog(338,.22,'#b8ac90')+scMist('mV',250,110,'#8a7a5c',.12);
+  return o;
+}
+let scThumbsOn=false;
+function scThumbs(){
+  if(scThumbsOn) return; scThumbsOn=true;
+  try{ const img=(b,h)=>'url("data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 '+h+'" preserveAspectRatio="xMidYMid slice"><defs><filter id="scB" x="-30%" y="-200%" width="160%" height="500%"><feGaussianBlur stdDeviation="34"/></filter><filter id="scB2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter></defs>'+scLift(b.replace(/ class="sc-[^"]*"/g,''))+'</svg>')+'")';
+    let css='.gs-vil{background-image:'+img(scVillage(),400)+'}'; for(let i=0;i<DUNGEONS.length;i++) if(BACKDROPS['g'+i]) css+='.gs-g'+i+'{background-image:'+img(BACKDROPS['g'+i](),900)+'}';
+    const st=document.createElement('style'); st.id='sc-thumbs'; st.textContent=css; document.head.appendChild(st); }catch(e){}   // no document head (the tests' fake browser): the tiles keep their plain gradient
+}
+// The Town tab's buildings, one painted silhouette each on a 100x90 ground (ground line y 86): lit windows and fire once built, a dashed outline over rubble while not.
+const VB_SHAPE={
+  crypt:{d:'M8 86V80H16V46H12L50 22L88 46H84V80H92V86ZM48 22V9H52V22ZM43 13H57V16.5H43Z',lit:'M42 80V64A8 8 0 0 1 58 64V80Z',dim:'M24 50V78M34 50V78M66 50V78M76 50V78'},
+  forge:{d:'M6 86V52L38 34L62 47V12H74V54L74 86ZM78 86V82H82V78H75V73H95V78H88V82H92V86Z',lit:'M22 86V64H46V86Z',dim:'M10 60H58M10 72H18M50 72H58'},
+  ossuary:{d:'M14 86V56H18A32 30 0 0 1 82 56H86V86ZM48 26V14H52V26Z',lit:'M28 86V70A6 6 0 0 1 40 70V86ZM60 86V70A6 6 0 0 1 72 70V86Z',dim:'M50 44m-7 0a7 7 0 1 0 14 0a7 7 0 1 0-14 0M18 62H82M18 66H82'},
+  altar:{d:'M12 86V78H88V86ZM20 78V70H80V78ZM28 70V58H72V70ZM43 58V30L50 20L57 30V58ZM32 58V47H36V58ZM64 58V47H68V58Z',lit:'M48 34L50 30L52 34L50 48Z',dim:'M28 64H72M20 74H80'}
+};
+function vbIcon(k,lv){   // lv 0: ruin; the altar's rune glows mana blue
+  const V=VB_SHAPE[k]; if(!V) return '';
+  if(!lv) return '<svg viewBox="0 0 100 90" aria-hidden="true" class="vb-svg ruin"><path d="'+V.d+'" fill="#0c0a08" fill-opacity=".55" stroke="#8a7a62" stroke-opacity=".55" stroke-width="1.4" stroke-dasharray="4 3"/><path d="M14 86L20 80L28 84L36 79L44 86ZM60 86L66 81L74 83L80 78L88 86Z" fill="#2a241c"/></svg>';
+  const fire=k==='altar'?'#7ab8ff':'#ffae52';
+  return '<svg viewBox="0 0 100 90" aria-hidden="true" class="vb-svg"><ellipse cx="50" cy="70" rx="'+(30+lv*6)+'" ry="22" fill="'+fire+'" opacity="'+(.06+lv*.04).toFixed(2)+'"/><path d="'+V.d+'" fill="#17130f" stroke="#000" stroke-width="1"/><path d="'+V.dim+'" stroke="#3a3127" stroke-width="2" fill="none"/>'
+    +'<path class="vb-lit" d="'+V.lit+'" fill="'+fire+'" opacity="'+(.45+lv*.15).toFixed(2)+'"/>'+(k==='forge'?'<path d="M68 10C62 2 74-2 68-8" stroke="#a89c84" stroke-opacity=".35" stroke-width="4" fill="none" stroke-linecap="round"/>':'')+'</svg>';
+}
 // ----- display settings (per browser, not in the save): text size, reduced motion, high contrast
 const LANGS={en:'English',tr:'Türkçe'};   // see LANGUAGE below
 const VIEW={size:0,calm:false,hc:false,nobg:false,lang:'en',fx:'auto',army:'grid',fold:{}};
@@ -6435,6 +6498,7 @@ const TR_DICT=new Map(Object.entries({
 "Open the Titles tab":"Unvanlar sekmesini aç",
 "Open the town":"Kasabayı aç",
 "Opens at level #":"# seviyede açılır",
+"Sealed · Lv #":"Mühürlü · Sv #",
 "Opens at level # once the Throne of Ash has fallen. Each depth is a #-room run through a random gate's dead, at your level plus one per three depths, as strong as the deepest gate and #% harder per depth. Gear drops rise #% per depth (at most x#). Clearing your deepest depth opens the next and leaves an extra legendary. No curses, no difficulty levels":"Kül Tahtı düştükten sonra seviye #'de açılır. Her derinlik, rastgele bir kapının ölüleri arasından #-odalık bir koşudur; seviyende artı her üç derinlikte bir, en derin kapı kadar güçlü ve derinlik başına %# daha zor. Teçhizat düşüşleri derinlik başına %# artar (en fazla x#). En derin derinliğini temizlemek sonrakini açar ve ek bir efsanevi bırakır. Lanet yok, zorluk seviyesi yok",
 "Opens at level #, best at # #. Armor #%. Clear bonus # XP":"# seviyede açılır, en iyisi #–#. Zırh %#. Temizleme ödülü # TP",
 "Opens at level #. One fight per floor and a warden every tenth floor, each carrying a unique: guaranteed the first time, #% after (as gold while you carry one). Floors you clear become checkpoints every ten floors. Past floor # the Abyss never ends, and each tenth floor pays gold and a legendary. Tower foes wear #% armor":"Seviye #'de açılır. Kat başına bir dövüş ve her onuncu katta eşsiz taşıyan bir muhafız: ilk sefer garantili, sonra %# (birini taşırken altın olarak). Temizlediğin katlar her on katta bir kontrol noktası olur. Kat #'den sonra Uçurum hiç bitmez ve her onuncu kat altın ve bir efsanevi öder. Kule düşmanları %# zırh giyer",
@@ -7119,6 +7183,8 @@ const TR_DICT=new Map(Object.entries({
 "Damaged":"Hasarlı",
 "Repair":"Onar",
 "Repair first":"Önce onar",
+"Can build":"Yapılabilir",
+"Show every building as a list":"Tüm binaları liste olarak göster",
 "Confirm: repair for # gold":"Onayla: # altına onar",
 "Burned in the last siege. Its effects, siege perk included, are lost until it is repaired. Repairs cost gold only":"Son kuşatmada yandı. Kuşatma avantajı dahil etkileri onarılana dek yok. Onarım yalnızca altına mal olur",
 "nothing until it is repaired":"onarılana dek hiçbir şey",
@@ -9027,13 +9093,21 @@ function armorTag(a){   // foe armor with its rule spelled out (pierceMul): hove
   const p=Math.round(a*100), t='Foes shrug off '+p+'% of every hit you and your minions land. Piercing skills such as Bone Spear ignore part of it';
   return '<span class="armor-tag" title="'+t+'.">armor '+p+'%<span class="sr-only">. '+t+'.</span></span>';
 }
+// A gate tile's painted marks: a hooded shape for a boss not yet met, chains and a padlock over a sealed gate, skulls for each difficulty (one on Normal, four on Nightmare).
+const G_UNKNOWN='<svg viewBox="0 0 64 64"><path d="M32 7C21 7 15 16 15 27c0 7-3 11-7 15 5 3 7 9 7 18h34c0-9 2-15 7-18-4-4-7-8-7-15C49 16 43 7 32 7Z" fill="#050403"/><path d="M22 30c2-9 6-13 10-13s8 4 10 13c-3-2-6-3-10-3s-7 1-10 3Z" fill="#000"/></svg><b>?</b>';
+const G_SEAL='<svg class="g-seal" viewBox="0 0 200 100" preserveAspectRatio="none"><path d="M-10 6L210 94M-10 94L210 6" stroke="#0a0806" stroke-width="9" stroke-dasharray="14 5"/><path d="M-10 6L210 94M-10 94L210 6" stroke="#6a5a44" stroke-opacity=".5" stroke-width="2" stroke-dasharray="14 5" stroke-dashoffset="7"/></svg><svg class="g-lock" viewBox="0 0 24 28"><path d="M6 13V9a6 6 0 0 1 12 0v4" stroke="#3a3128" stroke-width="3" fill="none"/><rect x="3" y="13" width="18" height="14" rx="2" fill="#1a1612" stroke="#5a4a38"/><path d="M12 18v4" stroke="#000" stroke-width="2.4"/></svg>';
+const HEAT_SKULL='<svg viewBox="0 0 10 10"><path d="M5 .8C2.5.8 1 2.5 1 4.6c0 1.3.6 2.2 1.5 2.7V9.2h5V7.3C8.4 6.8 9 5.9 9 4.6 9 2.5 7.5.8 5 .8Z"/><circle cx="3.5" cy="4.9" r="1.1" fill="#0a0806"/><circle cx="6.5" cy="4.9" r="1.1" fill="#0a0806"/></svg>';
+const heatMarks=lv=>'<i class="hm h'+lv+'" aria-hidden="true">'+HEAT_SKULL.repeat(lv+1)+'</i>';
 const bossMet=i=>metName(DUNGEONS[i].boss[0])||!!(S.ti&&S.ti.clr&&S.ti.clr[i]);   // a gate's boss stays ??? on its card until you have met or beaten it
 const gateStars=i=>HEAT.map((x,lv)=>lv?!!(S.heatMax&&S.heatMax[i]>=lv):!!(S.ti&&S.ti.clr&&S.ti.clr[i]));   // cleared on Normal, Hard, Brutal, Nightmare
 function gateHTML(i){
   const D=DUNGEONS[i], R=RK[i], P=S.player, locked=P.lvl<R.unlock, rec=tierRec(i,locked?0:heatOf(i)), diff=P.lvl-rec;   // advice and label follow the difficulty picked on the card
   const danger=locked?'Locked':diff<-2?'Deadly':diff<0?'Hard':diff<=3?'Fair':'Easy', met=bossMet(i), stars=gateStars(i), best=S.rec&&S.rec.fast&&S.rec.fast[i], det=ui.gdet===i;
-  const GL=BOSS_LOOK[D.boss[0]]||['#1a1714','#5a4a3a'];
-  return '<div class="gate'+(locked?' locked':'')+(gateMod(i)?' cursed':'')+'" style="--g1:'+GL[0]+';--g2:'+GL[1]+'">'+(met?'<svg class="gate-mark" viewBox="0 0 64 64" aria-hidden="true">'+(IC[D.boss[0]]||'')+'</svg>':'')+'<div class="badge r'+i+'">'+RANKS[i]+'</div><div><h3>'+D.name+'</h3>'
+  const GL=BOSS_LOOK[D.boss[0]]||['#1a1714','#5a4a3a']; scThumbs();
+  return '<div class="gate'+(locked?' locked':'')+(gateMod(i)?' cursed':'')+'" style="--g1:'+GL[0]+';--g2:'+GL[1]+'">'
+   +'<div class="g-head gs-g'+i+'" aria-hidden="true">'+(locked?G_SEAL+'<span class="g-sealtxt">Sealed &middot; Lv '+R.unlock+'</span>':'')   /* the painted place, its boss once met; text here repeats the card, so screen readers skip it */
+   +(met?'<span class="g-por gate-mark">'+ico(D.boss[0],i,{boss:true})+'</span>':'<span class="g-por unknown">'+G_UNKNOWN+'</span>')+'</div>'
+   +'<div class="badge r'+i+'">'+RANKS[i]+'</div><div class="g-body"><h3>'+D.name+'</h3>'
    +(gateMod(i)?'<div role="note" class="curse-line">Cursed: <b>'+MODS[gateMod(i)].name+'</b>. '+MODS[gateMod(i)].desc+' '+MOD_REWARD+(S.ti&&S.ti.clr&&S.ti.clr[5]&&P.lvl-CURSE_GAP>RK[i].lv?' Foes about Lv '+(P.lvl-CURSE_GAP)+'.':'')+'</div>':'')
    +'<div class="g-stars" role="list" aria-label="Clears by difficulty">'+HEAT.map((x,lv)=>'<span role="listitem" class="g-star h'+lv+(stars[lv]?' on':'')+'" title="'+x.name+(stars[lv]?': cleared':': not cleared yet')+'">'+'<i aria-hidden="true">'+(stars[lv]?'&#9733;':'&#9734;')+'</i> '+x.name+'</span>').join('')
    +(best?'<span class="g-best" title="Your fastest clear of this gate, day '+best.day+(best.heat?', '+HEAT[best.heat].name:'')+'">Best '+best.t+' turns</span>':'')+'</div>'
@@ -9060,7 +9134,7 @@ function gateDetHTML(i){   // a gate card's Details: the boss (painted once met)
 function heatHTML(i){   // difficulty picker on a cleared gate's card
   const mx=heatMax(i); if(!mx) return '';
   const cur=heatOf(i), H=HEAT[cur], nm=T_('nm'+i);
-  return '<div class="heat" role="group" aria-label="Difficulty">'+HEAT.map((x,lv)=>'<button class="chip-btn'+(lv===cur?' on':'')+'" data-a="heat" data-k="'+i+'|'+lv+'"'+(lv>mx?' disabled title="Clear the gate on '+HEAT[lv-1].name+' first"':lv?' title="'+heatRules(lv).join(' ')+'"':'')+' aria-pressed="'+(lv===cur)+'">'+x.name+' <span class="chip-lv" title="Recommended Lv '+tierRec(i,lv)+'+">'+tierRec(i,lv)+'+</span></button>').join('')
+  return '<div class="heat" role="group" aria-label="Difficulty">'+HEAT.map((x,lv)=>'<button class="chip-btn'+(lv===cur?' on':'')+'" data-a="heat" data-k="'+i+'|'+lv+'"'+(lv>mx?' disabled title="Clear the gate on '+HEAT[lv-1].name+' first"':lv?' title="'+heatRules(lv).join(' ')+'"':'')+' aria-pressed="'+(lv===cur)+'">'+heatMarks(lv)+x.name+' <span class="chip-lv" title="Recommended Lv '+tierRec(i,lv)+'+">'+tierRec(i,lv)+'+</span></button>').join('')
    +(nm?'<span class="nm-mark" title="Cleared on Nightmare '+nm+' time'+(nm>1?'s':'')+'">&#9760; Nightmare'+(nm>1?' x'+nm:'')+'</span>':'')
    +(cur?'<div class="heat-note">Foes x'+H.foe+' &middot; XP x'+H.xp+' &middot; gold x'+H.gold+' &middot; gear x'+H.drop+(gateMod(i)?' <b class="bad">Cursed and '+H.name+': the curse feeds on it: foes x'+DAMNED_FOE+', rewards x'+DAMNED+'.</b>':'')+'</div>':'')+'</div>';
 }
@@ -9662,8 +9736,13 @@ function buildHTML(){
    +brief('town','Build up the necropolis. Each building has '+BUILD_MAX+' levels and its bonus lasts for the rest of this game. The higher levels need bone dust, which you get by salvaging gear on the Gear tab.','lede');
   if(ui.msg&&ui.msg.mk) h+='<div class="note '+(ui.msg.c||'')+'"><i>Town</i><span>'+ui.msg.m+'</span></div>';
   h+=siegeTownHTML();
-  const so=siegeOpen();
-  h+='<div class="items">'+Object.keys(BUILD).map(k=>{ const B=BUILD[k], lv=blRaw(k), dmg=sg().dmg===k, c=buildCost(k), can=c&&S.gold>=c[0]&&(S.dust||0)>=c[1];
+  const so=siegeOpen(), keys=Object.keys(BUILD), sel=keys.includes(ui.bsel)?ui.bsel:sg().dmg||keys[0], list=!!ui.tlist; scThumbs();
+  // the village: one painted building per BUILD entry, a button that opens that building's row below; List shows every row at once
+  h+='<div class="village gs-vil'+(list?' listed':'')+'" role="group" aria-label="Buildings">'+keys.map(k=>{ const lv=blRaw(k), dmg=sg().dmg===k, c=buildCost(k), can=c&&!dmg&&S.gold>=c[0]&&(S.dust||0)>=c[1];
+     return '<button class="vb'+(lv?' built':'')+(dmg?' dmg':'')+(can?' can':'')+'" data-a="bsel" data-k="'+k+'" aria-pressed="'+(!list&&k===sel)+'">'+vbIcon(k,dmg?0:lv)
+      +'<span class="vb-n">'+BUILD[k].name+'</span><span class="vb-lv">Level '+lv+'/'+BUILD_MAX+'</span>'+'<span class="vb-st'+(dmg?' bad">Damaged':can?' ok">Can build':'">')+'</span>'+'</button>'; }).join('')
+   +'</div><p class="vb-tog"><button class="linkbtn" data-a="bsel" data-k="list" aria-pressed="'+list+'">Show every building as a list</button></p>';
+  h+='<div class="items">'+keys.filter(k=>list||k===sel).map(k=>{ const B=BUILD[k], lv=blRaw(k), dmg=sg().dmg===k, c=buildCost(k), can=c&&S.gold>=c[0]&&(S.dust||0)>=c[1];
     return '<div class="tt-row bld'+(dmg?' b-dmg':'')+'"><div><h4>'+B.name+' <span class="u-tag">Level '+lv+'/'+BUILD_MAX+'</span>'+(dmg?' <span class="u-tag bad">Damaged</span>':'')+'</h4>'+brief('b'+k,B.desc,'u-sub')+''+(lv?'<div class="u-sub b-now">Now: '+(dmg?'nothing until it is repaired':B.now(lv))+'.</div>'+(so&&SIEGE_PERK[k]?'<div class="u-sub b-siege">Siege: '+(dmg?'nothing until it is repaired':SIEGE_PERK[k].t(lv))+'.</div>':''):'')+'</div>'
      +(dmg?'<span class="u-tag bad">Repair first</span>':c?'<button class="btn small primary" data-a="build" data-k="'+k+'"'+(can?'':' disabled')+'>'+(lv?'Upgrade':'Build')+' &middot; '+gold(c[0])+(c[1]?' + '+dust(c[1]):'')+'</button>':'<span class="u-tag ok">Complete</span>')+'</div>'; }).join('')+'</div>';
   h+=faithHTML();
@@ -10524,7 +10603,7 @@ const ACTIONS={
   tabsync:()=>{ TAB.blocked=false; TAB.last=null; loadGame(); ui.tab='gates'; ui.msg=null; },
   lock:k=>{ lockItem(+k); }, asort:k=>{ sortArmy(k); }, mdet:k=>{ ui.mdet=ui.mdet===+k?null:+k; }, mrow:k=>{ setRow(+k); },
   afr:k=>{ ui.afr=ui.afr===k||!ROLES[k]?'':k; }, agb:()=>{ ui.agb=!ui.agb; }, asv:k=>{ ui.asv=AV_SORTS[k]!=null?k:''; }, aqt:k=>{ ui.aqt=k; },   // the Army tab's filters, view order and Quick equip target
-  war:()=>{ ui.tab='gates'; ui.gsub='war'; ui.msg=null; }, gdet:k=>{ ui.gdet=ui.gdet===+k?null:+k; },   // gdet: a gate card's Details
+  war:()=>{ ui.tab='gates'; ui.gsub='war'; ui.msg=null; }, gdet:k=>{ ui.gdet=ui.gdet===+k?null:+k; }, bsel:k=>{ if(k==='list') ui.tlist=!ui.tlist; else if(BUILD[k]){ ui.bsel=k; ui.tlist=false; } },   // bsel: a building in the Town tab's village, or the list of them all   // gdet: a gate card's Details
   keys:()=>{ ui.keys=!ui.keys; },
   renameo:k=>{ ui.rename=+k; const m=findMinion(+k); ui.rn=m?m.nick:''; }, renamex:()=>{ ui.rename=null; },
   rename:k=>{ if(renameMinion(+k,ui.rn)) ui.rename=null; },

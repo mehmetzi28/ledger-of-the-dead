@@ -252,8 +252,13 @@ function buildHTML(){
    +brief('town','Build up the necropolis. Each building has '+BUILD_MAX+' levels and its bonus lasts for the rest of this game. The higher levels need bone dust, which you get by salvaging gear on the Gear tab.','lede');
   if(ui.msg&&ui.msg.mk) h+='<div class="note '+(ui.msg.c||'')+'"><i>Town</i><span>'+ui.msg.m+'</span></div>';
   h+=siegeTownHTML();
-  const so=siegeOpen();
-  h+='<div class="items">'+Object.keys(BUILD).map(k=>{ const B=BUILD[k], lv=blRaw(k), dmg=sg().dmg===k, c=buildCost(k), can=c&&S.gold>=c[0]&&(S.dust||0)>=c[1];
+  const so=siegeOpen(), keys=Object.keys(BUILD), sel=keys.includes(ui.bsel)?ui.bsel:sg().dmg||keys[0], list=!!ui.tlist; scThumbs();
+  // the village: one painted building per BUILD entry, a button that opens that building's row below; List shows every row at once
+  h+='<div class="village gs-vil'+(list?' listed':'')+'" role="group" aria-label="Buildings">'+keys.map(k=>{ const lv=blRaw(k), dmg=sg().dmg===k, c=buildCost(k), can=c&&!dmg&&S.gold>=c[0]&&(S.dust||0)>=c[1];
+     return '<button class="vb'+(lv?' built':'')+(dmg?' dmg':'')+(can?' can':'')+'" data-a="bsel" data-k="'+k+'" aria-pressed="'+(!list&&k===sel)+'">'+vbIcon(k,dmg?0:lv)
+      +'<span class="vb-n">'+BUILD[k].name+'</span><span class="vb-lv">Level '+lv+'/'+BUILD_MAX+'</span>'+'<span class="vb-st'+(dmg?' bad">Damaged':can?' ok">Can build':'">')+'</span>'+'</button>'; }).join('')
+   +'</div><p class="vb-tog"><button class="linkbtn" data-a="bsel" data-k="list" aria-pressed="'+list+'">Show every building as a list</button></p>';
+  h+='<div class="items">'+keys.filter(k=>list||k===sel).map(k=>{ const B=BUILD[k], lv=blRaw(k), dmg=sg().dmg===k, c=buildCost(k), can=c&&S.gold>=c[0]&&(S.dust||0)>=c[1];
     return '<div class="tt-row bld'+(dmg?' b-dmg':'')+'"><div><h4>'+B.name+' <span class="u-tag">Level '+lv+'/'+BUILD_MAX+'</span>'+(dmg?' <span class="u-tag bad">Damaged</span>':'')+'</h4>'+brief('b'+k,B.desc,'u-sub')+''+(lv?'<div class="u-sub b-now">Now: '+(dmg?'nothing until it is repaired':B.now(lv))+'.</div>'+(so&&SIEGE_PERK[k]?'<div class="u-sub b-siege">Siege: '+(dmg?'nothing until it is repaired':SIEGE_PERK[k].t(lv))+'.</div>':''):'')+'</div>'
      +(dmg?'<span class="u-tag bad">Repair first</span>':c?'<button class="btn small primary" data-a="build" data-k="'+k+'"'+(can?'':' disabled')+'>'+(lv?'Upgrade':'Build')+' &middot; '+gold(c[0])+(c[1]?' + '+dust(c[1]):'')+'</button>':'<span class="u-tag ok">Complete</span>')+'</div>'; }).join('')+'</div>';
   h+=faithHTML();

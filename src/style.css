@@ -155,18 +155,29 @@ details.more>summary:focus-visible{outline:1px solid var(--trim-hi,#a8843f);outl
 .derived .sg{display:flex;width:16px;height:16px;margin-bottom:6px}
 
 /* gates */
-.gates{display:flex;flex-direction:column;gap:10px}
-.gate{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px;border:1px solid var(--line);background:linear-gradient(90deg,rgba(0,0,0,.35),transparent),var(--panel-2)}
+.gates{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:12px;align-items:start}
+.gate{display:flex;flex-direction:column;padding:0;border:1px solid var(--line);background:linear-gradient(90deg,rgba(0,0,0,.35),transparent),var(--panel-2)}
 .gate:not(.locked):hover{border-color:var(--brass)}
-.gate{position:relative;overflow:hidden;border-left:3px solid var(--g2,var(--line));background:linear-gradient(100deg,color-mix(in srgb,var(--g1,#000) 70%,transparent),transparent 65%),var(--panel-2)}
-.gate>*{position:relative}.gate>.gate-mark{position:absolute;right:96px;top:50%;width:120px;height:120px;transform:translateY(-50%);opacity:.07;pointer-events:none;color:var(--g2)}
+.gate{position:relative;overflow:hidden;background:linear-gradient(180deg,color-mix(in srgb,var(--g1,#000) 70%,transparent),transparent 60%),var(--panel-2)}
+.gate>*{position:relative}
+/* a gate tile: the painted place on top (its backdrop, small), the boss portrait framed in its corner, the rank badge over it */
+.g-head{height:104px;margin:0;background:linear-gradient(160deg,var(--g1,#1a1714),#080706);background-size:cover;background-position:center 62%;border-bottom:2px solid color-mix(in srgb,var(--g2,#5a4a3a) 55%,#000);box-shadow:inset 0 -26px 26px -12px rgba(0,0,0,.75),inset 0 0 30px rgba(0,0,0,.55)}
+.gate>.badge{position:absolute;left:10px;top:10px;width:40px;height:40px;font-size:21px;background:rgba(8,7,6,.78)}
+.g-por{position:absolute;right:10px;bottom:-1px;width:74px;height:74px;display:grid;place-items:center;border:1px solid var(--line-2);border-bottom:0;background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--g2,#5a4a3a) 35%,#0b0a09),#070605 70%);box-shadow:0 0 14px -4px var(--g2,#000)}
+.g-por .ico{width:66px;height:66px;border:0;background:none;box-shadow:none}
+.g-por.unknown svg{position:absolute;inset:4px;width:66px;height:66px}.g-por.unknown b{position:relative;margin-top:14px;font:600 24px/1 var(--font-head);color:#6a604c}
+.g-seal{position:absolute;inset:0;width:100%;height:100%}.g-lock{position:absolute;left:50%;top:50%;width:32px;height:37px;transform:translate(-50%,-66%);filter:drop-shadow(0 2px 4px #000)}
+.g-sealtxt{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);padding:2px 8px;background:rgba(5,4,3,.85);border:1px solid var(--line);font:500 11px/1.3 var(--font-data);letter-spacing:.08em;text-transform:uppercase;color:var(--bone);white-space:nowrap}
+.gate.locked .g-head{box-shadow:inset 0 0 0 200px rgba(6,5,4,.6)}.gate.locked .g-por{display:none}
+.g-body{padding:10px 12px 4px;min-width:0}
+.gate>.btn{margin:6px 12px 12px}
 .gate.cursed{border-color:#7a2a1c;box-shadow:0 0 18px -6px rgba(232,86,74,.55)}
-@media (max-width:540px){.gate>.gate-mark{right:8px;width:90px;height:90px}}
-.gate.locked{opacity:.45;filter:grayscale(.8)}
+.gate.locked{opacity:.6}.gate.locked .g-body{filter:grayscale(.8)}
 .gate h3{margin:0 0 3px;font:700 19px/1.15 var(--font-head);letter-spacing:.05em}
 .gate p{margin:0;color:var(--mute);font:400 15px/1.4 var(--font-lore)}
 .gate .meta{margin-top:7px;font:500 11px/1.4 var(--font-data);letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
-@media (max-width:540px){.gate{grid-template-columns:auto minmax(0,1fr)}.gate .btn{grid-column:1/-1}}
+.hm{display:inline-flex;gap:1px;margin-right:4px;vertical-align:-1px}.hm svg{width:9px;height:9px;fill:#b8ac90}.hm.h1 svg{fill:#d89a4a}.hm.h2 svg{fill:#d8643a}.hm.h3 svg{fill:#e8564a}
+.chip-btn:not(.on) .hm svg{opacity:.7}
 
 /* combat */
 .row{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
@@ -720,7 +731,7 @@ body.compact .ico{width:44px;height:44px}body.compact .ico svg{width:38px;height
 body.compact .ico.boss{width:52px;height:52px}body.compact .ico.boss svg{width:46px;height:46px}
 body.compact .item .ico{width:40px;height:40px}body.compact .item .ico svg{width:34px;height:34px}
 body.compact .trow .ico{width:34px;height:34px}body.compact .trow .ico svg{width:28px;height:28px}
-body.compact .gate{padding:10px;gap:10px}body.compact .gate p{display:none}
+body.compact .g-head{height:64px}body.compact .g-por{width:52px;height:52px}body.compact .g-por .ico,body.compact .g-por.unknown svg{width:46px;height:46px}body.compact .gate p{display:none}
 body.compact .minion,body.compact .corpse{padding:8px 10px;gap:8px}
 body.compact .row{gap:6px}
 body.compact .unit{padding:7px;gap:4px}
@@ -844,6 +855,22 @@ body.compact .unit.mini .ico{width:34px;height:34px}body.compact .unit.mini .ico
 @container (min-width:720px){.army.compact .mrow{grid-template-columns:28px 1.6em minmax(0,1fr) minmax(0,9em) max-content minmax(90px,.6fr) auto;grid-template-areas:"ico rk name role st hp acts"}.army .mrow .ico .rb{display:none}.army.compact .mr-role{display:block}.mr-st{font-size:13px}}
 /* town buildings on a phone: name and level on one line, the description and "Now:" full width, the build button under them */
 @media (max-width:540px){.tt-row.bld{grid-template-columns:minmax(0,1fr);gap:8px}.tt-row.bld>.btn,.tt-row.bld>.u-tag{justify-self:start;max-width:100%;white-space:normal}}
+/* the village: a painted dusk strip (scVillage), each building a button standing on its ground line; built ones lit, unbuilt ones a dashed ruin */
+.village{display:flex;gap:6px;align-items:flex-end;margin:10px 0 4px;padding:56px 10px 8px;min-height:190px;border:1px solid var(--line);background:#14110d;background-size:cover;background-position:center bottom;overflow-x:auto;overscroll-behavior-x:contain;box-shadow:inset 0 0 40px rgba(0,0,0,.6)}
+.vb{flex:1 0 112px;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 4px 6px;border:1px solid transparent;border-radius:3px;background:none;color:var(--bone);font:13px/1.25 var(--font-body);cursor:pointer;text-align:center}
+.vb:hover{background:rgba(0,0,0,.35);border-color:var(--line)}
+.vb[aria-pressed="true"]{background:linear-gradient(180deg,transparent,rgba(0,0,0,.6));border-color:var(--brass)}
+.vb-svg{width:92px;height:83px;margin-bottom:2px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.8))}
+.vb:not(.built) .vb-svg{opacity:.8}
+.vb-n{font:600 15px/1.2 var(--font-head);letter-spacing:.04em;text-shadow:0 1px 3px #000}
+.vb-lv{font:500 11px/1.3 var(--font-data);letter-spacing:.06em;color:var(--mute);text-shadow:0 1px 2px #000}
+.vb-st{min-height:1.3em;font:500 11px/1.3 var(--font-data);text-shadow:0 1px 2px #000}
+.vb.can .vb-svg{filter:drop-shadow(0 0 6px rgba(216,170,90,.45))}
+.vb-tog{margin:0 0 8px;text-align:right}
+.village.listed .vb{opacity:.92}
+@media (prefers-reduced-motion:no-preference){body:not(.calm) .vb.built .vb-lit{animation:vbFlk 3.6s ease-in-out infinite}}
+@keyframes vbFlk{0%,100%{opacity:.85}45%{opacity:.6}70%{opacity:.95}}
+@media (max-width:540px){.village{display:grid;grid-template-columns:1fr 1fr;padding-top:30px;overflow:visible}.vb-svg{width:76px;height:68px}}   /* a phone: the four buildings as a two-by-two grid on the same painting */
 /* Sieges: the warning banner and the town's damaged building, worn and torch-lit, never bright */
 .siege-warn{border:1px solid #7a4a1e;background:linear-gradient(90deg,rgba(140,70,20,.22),rgba(40,20,10,.1) 70%,transparent);padding:9px 12px;border-radius:6px;margin:8px 0;font:13px/1.45 var(--font-body)}
 .siege-warn b{color:#e0a060}

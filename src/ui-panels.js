@@ -254,13 +254,21 @@ function armorTag(a){   // foe armor with its rule spelled out (pierceMul): hove
   const p=Math.round(a*100), t='Foes shrug off '+p+'% of every hit you and your minions land. Piercing skills such as Bone Spear ignore part of it';
   return '<span class="armor-tag" title="'+t+'.">armor '+p+'%<span class="sr-only">. '+t+'.</span></span>';
 }
+// A gate tile's painted marks: a hooded shape for a boss not yet met, chains and a padlock over a sealed gate, skulls for each difficulty (one on Normal, four on Nightmare).
+const G_UNKNOWN='<svg viewBox="0 0 64 64"><path d="M32 7C21 7 15 16 15 27c0 7-3 11-7 15 5 3 7 9 7 18h34c0-9 2-15 7-18-4-4-7-8-7-15C49 16 43 7 32 7Z" fill="#050403"/><path d="M22 30c2-9 6-13 10-13s8 4 10 13c-3-2-6-3-10-3s-7 1-10 3Z" fill="#000"/></svg><b>?</b>';
+const G_SEAL='<svg class="g-seal" viewBox="0 0 200 100" preserveAspectRatio="none"><path d="M-10 6L210 94M-10 94L210 6" stroke="#0a0806" stroke-width="9" stroke-dasharray="14 5"/><path d="M-10 6L210 94M-10 94L210 6" stroke="#6a5a44" stroke-opacity=".5" stroke-width="2" stroke-dasharray="14 5" stroke-dashoffset="7"/></svg><svg class="g-lock" viewBox="0 0 24 28"><path d="M6 13V9a6 6 0 0 1 12 0v4" stroke="#3a3128" stroke-width="3" fill="none"/><rect x="3" y="13" width="18" height="14" rx="2" fill="#1a1612" stroke="#5a4a38"/><path d="M12 18v4" stroke="#000" stroke-width="2.4"/></svg>';
+const HEAT_SKULL='<svg viewBox="0 0 10 10"><path d="M5 .8C2.5.8 1 2.5 1 4.6c0 1.3.6 2.2 1.5 2.7V9.2h5V7.3C8.4 6.8 9 5.9 9 4.6 9 2.5 7.5.8 5 .8Z"/><circle cx="3.5" cy="4.9" r="1.1" fill="#0a0806"/><circle cx="6.5" cy="4.9" r="1.1" fill="#0a0806"/></svg>';
+const heatMarks=lv=>'<i class="hm h'+lv+'" aria-hidden="true">'+HEAT_SKULL.repeat(lv+1)+'</i>';
 const bossMet=i=>metName(DUNGEONS[i].boss[0])||!!(S.ti&&S.ti.clr&&S.ti.clr[i]);   // a gate's boss stays ??? on its card until you have met or beaten it
 const gateStars=i=>HEAT.map((x,lv)=>lv?!!(S.heatMax&&S.heatMax[i]>=lv):!!(S.ti&&S.ti.clr&&S.ti.clr[i]));   // cleared on Normal, Hard, Brutal, Nightmare
 function gateHTML(i){
   const D=DUNGEONS[i], R=RK[i], P=S.player, locked=P.lvl<R.unlock, rec=tierRec(i,locked?0:heatOf(i)), diff=P.lvl-rec;   // advice and label follow the difficulty picked on the card
   const danger=locked?'Locked':diff<-2?'Deadly':diff<0?'Hard':diff<=3?'Fair':'Easy', met=bossMet(i), stars=gateStars(i), best=S.rec&&S.rec.fast&&S.rec.fast[i], det=ui.gdet===i;
-  const GL=BOSS_LOOK[D.boss[0]]||['#1a1714','#5a4a3a'];
-  return '<div class="gate'+(locked?' locked':'')+(gateMod(i)?' cursed':'')+'" style="--g1:'+GL[0]+';--g2:'+GL[1]+'">'+(met?'<svg class="gate-mark" viewBox="0 0 64 64" aria-hidden="true">'+(IC[D.boss[0]]||'')+'</svg>':'')+'<div class="badge r'+i+'">'+RANKS[i]+'</div><div><h3>'+D.name+'</h3>'
+  const GL=BOSS_LOOK[D.boss[0]]||['#1a1714','#5a4a3a']; scThumbs();
+  return '<div class="gate'+(locked?' locked':'')+(gateMod(i)?' cursed':'')+'" style="--g1:'+GL[0]+';--g2:'+GL[1]+'">'
+   +'<div class="g-head gs-g'+i+'" aria-hidden="true">'+(locked?G_SEAL+'<span class="g-sealtxt">Sealed &middot; Lv '+R.unlock+'</span>':'')   /* the painted place, its boss once met; text here repeats the card, so screen readers skip it */
+   +(met?'<span class="g-por gate-mark">'+ico(D.boss[0],i,{boss:true})+'</span>':'<span class="g-por unknown">'+G_UNKNOWN+'</span>')+'</div>'
+   +'<div class="badge r'+i+'">'+RANKS[i]+'</div><div class="g-body"><h3>'+D.name+'</h3>'
    +(gateMod(i)?'<div role="note" class="curse-line">Cursed: <b>'+MODS[gateMod(i)].name+'</b>. '+MODS[gateMod(i)].desc+' '+MOD_REWARD+(S.ti&&S.ti.clr&&S.ti.clr[5]&&P.lvl-CURSE_GAP>RK[i].lv?' Foes about Lv '+(P.lvl-CURSE_GAP)+'.':'')+'</div>':'')
    +'<div class="g-stars" role="list" aria-label="Clears by difficulty">'+HEAT.map((x,lv)=>'<span role="listitem" class="g-star h'+lv+(stars[lv]?' on':'')+'" title="'+x.name+(stars[lv]?': cleared':': not cleared yet')+'">'+'<i aria-hidden="true">'+(stars[lv]?'&#9733;':'&#9734;')+'</i> '+x.name+'</span>').join('')
    +(best?'<span class="g-best" title="Your fastest clear of this gate, day '+best.day+(best.heat?', '+HEAT[best.heat].name:'')+'">Best '+best.t+' turns</span>':'')+'</div>'
@@ -287,7 +295,7 @@ function gateDetHTML(i){   // a gate card's Details: the boss (painted once met)
 function heatHTML(i){   // difficulty picker on a cleared gate's card
   const mx=heatMax(i); if(!mx) return '';
   const cur=heatOf(i), H=HEAT[cur], nm=T_('nm'+i);
-  return '<div class="heat" role="group" aria-label="Difficulty">'+HEAT.map((x,lv)=>'<button class="chip-btn'+(lv===cur?' on':'')+'" data-a="heat" data-k="'+i+'|'+lv+'"'+(lv>mx?' disabled title="Clear the gate on '+HEAT[lv-1].name+' first"':lv?' title="'+heatRules(lv).join(' ')+'"':'')+' aria-pressed="'+(lv===cur)+'">'+x.name+' <span class="chip-lv" title="Recommended Lv '+tierRec(i,lv)+'+">'+tierRec(i,lv)+'+</span></button>').join('')
+  return '<div class="heat" role="group" aria-label="Difficulty">'+HEAT.map((x,lv)=>'<button class="chip-btn'+(lv===cur?' on':'')+'" data-a="heat" data-k="'+i+'|'+lv+'"'+(lv>mx?' disabled title="Clear the gate on '+HEAT[lv-1].name+' first"':lv?' title="'+heatRules(lv).join(' ')+'"':'')+' aria-pressed="'+(lv===cur)+'">'+heatMarks(lv)+x.name+' <span class="chip-lv" title="Recommended Lv '+tierRec(i,lv)+'+">'+tierRec(i,lv)+'+</span></button>').join('')
    +(nm?'<span class="nm-mark" title="Cleared on Nightmare '+nm+' time'+(nm>1?'s':'')+'">&#9760; Nightmare'+(nm>1?' x'+nm:'')+'</span>':'')
    +(cur?'<div class="heat-note">Foes x'+H.foe+' &middot; XP x'+H.xp+' &middot; gold x'+H.gold+' &middot; gear x'+H.drop+(gateMod(i)?' <b class="bad">Cursed and '+H.name+': the curse feeds on it: foes x'+DAMNED_FOE+', rewards x'+DAMNED+'.</b>':'')+'</div>':'')+'</div>';
 }

@@ -17,9 +17,9 @@ test('Town: measured building numbers, the cheaper Forge and Ossuary steps, and 
   eq([B_FORGE,B_OSS,B_ALT_MANA,B_ALT_COST].join(),'0.15,3,0.05,0.12','measured 2026-11-15 (Altar discount 10% to 12%)');
   eq(JSON.stringify(buildCost('ossuary')),JSON.stringify(BUILD_COST[0])); S.build.ossuary=1; eq(JSON.stringify(buildCost('ossuary')),JSON.stringify(BUILD_COST[0]),'level 2 at the level-1 price'); S.build.ossuary=2; eq(JSON.stringify(buildCost('ossuary')),JSON.stringify(BUILD_COST[1])); S.build.ossuary=3; eq(buildCost('ossuary'),null);
   S.build.forge=2; eq(JSON.stringify(buildCost('forge')),JSON.stringify(BUILD_COST[1])); S.build.crypt=1; eq(JSON.stringify(buildCost('crypt')),JSON.stringify(BUILD_COST[1]),'Crypt untouched'); S.build.altar=2; eq(JSON.stringify(buildCost('altar')),JSON.stringify(BUILD_COST[2]));
-  setLvl(6); ui.tab='town'; const h=renderAll('town now');
+  setLvl(6); ui.tab='town'; ui.tlist=true; const h=renderAll('town now');   // List: every building's row at once
   for(const s of ['Now: +1 army slot, +'+RESERVE_CRYPT+' Reserve places.','Now: reforging and enchanting 30% cheaper.','Now: +9% raise chance.','Now: +10% max mana, Bone Altar 24% cheaper.']) ok(h.includes(s),s);
-  S.build={}; ok(!/Now: /.test(renderAll('none')),'nothing built, no line');
+  S.build={}; ok(!/Now: /.test(renderAll('none')),'nothing built, no line'); ui.tlist=false;
   eq(trText('Now: +9% raise chance.'),'Şu an: +%9 diriltme şansı.'); eq(trText('Now: +2 army slots'),'Şu an: +2 ordu yeri'); eq(trText('Now: +10% max mana, Bone Altar 24% cheaper'),'Şu an: +%10 azami mana, Kemik Sunağı %24 daha ucuz');
   ok(/Forge and the Ossuary cost one step less/.test(cdx('town')),'Codex');
 });
@@ -30,6 +30,16 @@ test('Town: the Town tab shows the buildings; saves keep only valid buildings an
   const g=normalizeSave({v:2,player:{lvl:1},build:{crypt:2,forge:9,fake:1,altar:'x',ossuary:0},dust:-5});
   eq(JSON.stringify(g.build),'{"crypt":2,"forge":3}'); eq(g.dust,0);
   const o=normalizeSave({v:2,player:{lvl:1}}); eq(JSON.stringify(o.build),'{}'); eq(o.dust,0); eq(o.bounty,null);
+});
+test('Town: the village shows one building per BUILD entry; pressing one opens its row, List shows them all',()=>{
+  setLvl(6); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1}}); S.build={forge:1}; S.gold=0; ui.tab='town'; ui.bsel=null; ui.tlist=false; let h=renderAll('village');
+  eq((h.match(/class="vb[^"]*" data-a="bsel"/g)||[]).length,Object.keys(BUILD).length,'a button per building'); ok(/class="vb built" data-a="bsel" data-k="forge" aria-pressed="false"/.test(h),'built is lit');
+  ok(/data-k="crypt" aria-pressed="true"/.test(h)&&/vb-svg ruin/.test(h),'the first is open; unbuilt ones are ruins'); eq((h.match(/data-a="build" data-k=/g)||[]).length,1,'only the open building\'s row');
+  ACTIONS.bsel('altar'); h=renderAll('altar'); ok(/data-a="build" data-k="altar"/.test(h)&&!/data-a="build" data-k="crypt"/.test(h),'pressing a building opens its row');
+  S.gold=1e4; ok(/data-k="forge" aria-pressed="false">[\s\S]*?Can build/.test(renderAll('can')),'affordable is marked');
+  ACTIONS.bsel('list'); h=renderAll('list'); eq((h.match(/data-a="build" data-k=/g)||[]).length,Object.keys(BUILD).length,'List: every row'); ok(!/class="vb[^"]*" data-a="bsel" data-k="\w+" aria-pressed="true"/.test(h),'no building picked in List');
+  ACTIONS.bsel('list'); ACTIONS.bsel('nope'); eq(ui.bsel,'altar','unknown keys are ignored'); ui.bsel=null;
+  VIEW.lang='tr'; ok(trText('Show every building as a list')!=='Show every building as a list'&&trText('Can build')!=='Can build'&&trText('Sealed · Lv 12')==='Mühürlü · Sv 12','Turkish'); VIEW.lang='en';
 });
 
 })();

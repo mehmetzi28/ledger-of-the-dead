@@ -74,7 +74,7 @@ test('Sieges: building perks: Crypt HP, Ossuary thralls, Altar mana, Forge armor
   const P=S.player; P.mana=0; fix(.99); killWave(); ok(S.army.some(x=>x.thrall),'Ossuary: a fallen attacker rises'); const t=S.army.find(x=>x.thrall); eq(t.lvl,19-SIEGE_OSS_GAP,'Ossuary 3: 2 levels below');
   ok(armyUsed()===S.army.length-1,'a thrall holds no slot'); ok(P.mana>=Math.round(pMana()*DIFF.mana)+Math.round(pMana()*.2)-1,'Altar 2: +20% mana at wave 2');
   invariants('thrall'); killWave(); killWave(); returnTown(); ok(!S.army.some(x=>x.thrall),'thralls are gone at dawn'); eq(m.maxHp,hp0,'HP back to normal'); invariants('after');
-  ui.tab='town'; const h=renderAll('town'); ok(/Siege: a fallen attacker rises for you at waves 2 and 3, at its level -2/.test(h));
+  ui.tab='town'; ui.bsel='ossuary'; const h=renderAll('town'); ui.bsel=null; ok(/Siege: a fallen attacker rises for you at waves 2 and 3, at its level -2/.test(h));
 });
 
 test('Sieges: victory pays gold, bone dust and gear with a bonus line, and is recorded',()=>{
