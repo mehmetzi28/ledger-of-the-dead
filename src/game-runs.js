@@ -236,11 +236,10 @@ function act(kind){
       const hurt=r.enemies.find(x=>x.id===it.t);
       if(hurt){ const h=Math.min(Math.round(e.atk*.9*(1-foeArmor())*blightK(hurt)),hurt.maxHp-hurt.hp); /* scaled by armor like your damage, so menders can't stall a fight */ hurt.hp+=h; log(e.name+' mends '+hurt.name+'.'); continue; }
     }
-    let tg=alive.find(a=>fxKey(a)===it.t)||foeTarget(foeReach(e,alive));
+    const tg=alive.find(a=>fxKey(a)===it.t)||foeTarget(foeReach(e,alive));
     if(it.bw&&fxKey(tg)===it.t) log('Bulwark: '+tg.nick+' intercepts '+e.name+'\'s blow.','ok');   // planned with the intent, so the card already showed it
     if(omen()==='eclipse'&&Math.random()<ECLIPSE_MISS){ log(e.name+' misses '+(tg.id==='p'?'you':nameOf(tg))+' in the dark.','ok'); continue; }   // Black Eclipse
     let d=hit(e.atk*enrage(e)*(hasAff(e,'enraged')&&e.hp<e.maxHp/2?1.6:1)*hexK(e)); let crit=e.role==='striker'&&Math.random()<foeCrit(); if(crit&&hasSt(e,'hexed')){ crit=false; combo('fizzle',e,'Fizzle: the hex spoils '+e.name+'\'s killing blow.'); } if(crit&&tg.id==='p'&&hasMod('calcify','a')) crit=false;   /* Petrified: rolled, then refused */ if(crit) d=Math.round(d*1.8);
-    { const sb=shieldBearer(e,tg,d); if(sb){ tg=sb; d=Math.round(d*SB_TAKE); } }   // Shield-bearer (game-gate-rules.js ROWS)
     BLOW={n:e.name,k:crit?'crit':'hit'}; hurtAlly(tg,d); BLOW=null; fxe('hurt',tg,crit?{crit:1}:null); if(crit) addDot(tg,'bleed',e.atk*.3,2);   // a striker's crit opens a wound
     if(hasAff(e,'vampiric')){ const h=Math.min(e.maxHp-e.hp,Math.round(d*.4*blightK(e))); if(h>0){ e.hp+=h; mark(e,0,h); } }
     const ex=foeOnHit(e,tg);
@@ -313,7 +312,7 @@ function defeat(){
 // BLOW: the foe blow being dealt right now (set around each hurtAlly on you); ROOM0: the room as it began. ROOM0 lives outside the save:
 // after a reload the defeat screen simply has no Retry.
 let BLOW=null, ROOM0=null, KILL=null;   // KILL: what deals the blow to a foe right now ('reap', 'exec', a DoT kind; null: a hit), for the body's condition
-function blowNote(b){ const n=Object.assign({},b), c=blowCounters(b), s=sbWhy(b); if(s) c.push(s); if(c.length) n.c=c; return n; }   // the blow about to land, and the answers you had and did not use
+function blowNote(b){ const n=Object.assign({},b), c=blowCounters(b); if(c.length) n.c=c; return n; }   // the blow about to land, and the answers you had and did not use
 function blowCounters(b){   // the answers to a blow you have and have not used, only those that apply to it (the defeat recap and the bestiary's Ledgered hints)
   const r=S.run, c=[], up=role=>S.army.some(m=>m.role===role&&m.hp>0)&&!(r.cmd&&r.cmd[role]);   /* an order not yet given this room, with someone to give it to */
   if((b.k!=='sig'||b.mv==='sunder')&&!(r.taunt>0)&&up('vanguard')) c.push('taunt');   /* single-target blows only: Taunt moves no other boss move */

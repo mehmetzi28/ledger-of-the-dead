@@ -1,7 +1,7 @@
 // Front and back rows: defaults, the melee reach rule both ways, Taunt, row switching and saves, the battle and Army tab display,
 // the Codex section and Turkish (src/game-gate-rules.js ROWS, src/game-runs.js act, src/ui-screens.js).
 (function(){
-const {test,ok,eq,near,fix,fresh,foe,arena,mkMinion,seed,renderAll,cdx}=window.LOTD_T;
+const {test,ok,eq,fresh,foe,arena,mkMinion,seed,renderAll,cdx}=window.LOTD_T;
 
 test('Rows: vanguards and reapers stand in front, strikers, menders and you at the back; bosses in front',()=>{
   fresh(); const m=r=>mkMinion({role:r});
@@ -53,23 +53,5 @@ test('Rows: battle shows Front and Back, the Army tab toggles them, the Codex ex
   try{ VIEW.lang='tr'; ['Front','Back','Front row','Back row','Move to back','Move to front','Rows','Melee','Reach','Back-row melee','What ignores rows'].forEach(t=>ok(trText(t)!==t,'untranslated: '+t));
     ok(trText('Vanguard · Front row')==='Öncü · Ön sıra','a card tag');
     const nodes=codexSection('roles').replace(/<[^>]+>/g,'|').split('|').map(x=>x.replace(/&#39;/g,"'")).filter(x=>/Rows|row|Taunt pulls/.test(x)); ok(nodes.length>=4); nodes.forEach(x=>ok(trText(x)!==x,'untranslated: '+x)); } finally { VIEW.lang='en'; }
-});
-test('Rows: Shield-bearer: once per room a front-row vanguard takes the hit that would kill you, at SB_TAKE of it',()=>{
-  fresh(); const a=foe({name:'Grim Biter',hp:1e6,atk:50,role:'striker'}); arena([a]); const v=mkMinion({role:'vanguard'}); v.maxHp=v.hp=1e6; const P=S.player; P.hp=1; P.shield=0; fix(.99);
-  a.it={k:'atk',t:'p'}; act('strike'); eq(S.mode,'battle','saved'); eq(P.hp,1); ok(v.hp<v.maxHp,'the vanguard took it'); eq(S.run.sb,S.run.room);
-  ok(S.run.log.some(l=>/^Shield-bearer: .+ steps in front of you and takes Grim Biter's killing blow\.$/.test(l.m)),'logged');
-  ok(trText('Shield-bearer: Bonehound steps in front of you and takes Grim Biter\'s killing blow.').startsWith('Kalkan taşıyıcı'),'Turkish');
-  const d=v.maxHp-v.hp; v.row='b'; P.stats.constitution=300; P.hp=pMax(); const h=P.hp; a.it={k:'atk',t:'p'}; act('strike'); near(d*(1-pDr()/100)/(h-P.hp),SB_TAKE,.05,'at SB_TAKE of the blow (yours after your damage reduction)');
-  v.row='f'; P.hp=1; a.it={k:'atk',t:'p'}; act('strike'); eq(S.mode,'defeat','only once per room'); ok(S.run.felled.c.includes('sbspent'),'the recap says why');
-  ok(cdx('roles').includes('Shield-bearer'),'the Codex rows section');
-});
-test('Rows: Shield-bearer needs a living front-row vanguard, lets survivable hits through, holds in sieges and comes back each room',()=>{
-  const run=prep=>{ fresh(); const a=foe({hp:1e6,atk:50,role:'striker'}); arena([a]); const v=mkMinion({role:'vanguard'}); v.maxHp=v.hp=1e6; S.player.hp=1; S.player.shield=0; fix(.99); a.it={k:'atk',t:'p'}; prep(v,a); act('strike'); return v; };
-  run(v=>{ v.row='b'; }); eq(S.mode,'defeat','a vanguard in the back row'); ok(S.run.felled.c.includes('sbrow'),'the recap says why');
-  run(v=>{ v.hp=0; }); eq(S.mode,'defeat','a downed vanguard'); ok(!(S.run.felled.c||[]).includes('sbrow'));
-  run(v=>{ v.role='reaper'; }); eq(S.mode,'defeat','only a vanguard');
-  const v=run((v,a)=>{ a.atk=2; S.player.hp=pMax(); }); eq(S.run.sb,undefined,'a hit you survive is not taken'); eq(v.hp,v.maxHp);
-  run(()=>{ S.run.siege=1; }); eq(S.mode,'battle','in a siege too: the wall is a front row as well');
-  run(()=>{ S.run.sb=S.run.room; S.run.room++; }); eq(S.mode,'battle','ready again in the next room');
 });
 })();
