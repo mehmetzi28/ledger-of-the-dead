@@ -41,7 +41,7 @@ function mkMinion(o){
   if(m.lvl0==null) m.lvl0=m.lvl; syncMinion(m); m.hp=m.maxHp; S.army.push(m); return m;
 }
 function corpse(o){ return Object.assign({id:'c'+(++S.uid),armed:false,name:'Tunnel Rat',base:'Tunnel Rat',role:'striker',rankI:0,lvl:1,hf:.85,af:1.1,boss:false,elite:false,tried:false,result:null,minion:null},o); }
-function raiseScene(list,lvl){ arena([foe()],0); if(lvl) setLvl(lvl); S.mode='raise'; S.run.corpses=list; return S.run; }
+function raiseScene(list,lvl){ arena([foe()],0); if(lvl) setLvl(lvl); S.mode='raise'; S.run.corpses=list; S.run.lastXp=0; return S.run; }
 const wear=id=>{ S.equip[ITEM[id].slot]={u:++S.uid,id}; };
 const give=id=>{ const it={u:++S.uid,id}; S.inv.push(it); return it; };
 const canon=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.keys(v).sort().reduce((a,x)=>(a[x]=v[x],a),{}):v);

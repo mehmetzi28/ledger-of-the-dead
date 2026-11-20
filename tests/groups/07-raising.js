@@ -30,7 +30,7 @@ test('Raising: only possible on the raise screen',()=>{ const c=corpse(); arena(
 test('Raising: "Raise the best" tries bodies most valuable first, salts the boss, and stops when the army is full',()=>{
   const low=corpse({lvl:1}), boss=corpse({boss:true,name:'The Rat King',base:'The Rat King',role:'reaper',lvl:3}), el=corpse({elite:true,lvl:2});
   raiseScene([low,boss,el],20); S.player.mana=999; S.salts=2; S.player.stats.will=4; const cap=slots(); fix(0);
-  ui.tab='gates'; S.run.lastXp=0; ok(/data-a="raisebest"/.test(renderAll('raise'))); 
+  ui.tab='gates'; const rh=renderAll('raise'); ok(/data-a="raisebest"/.test(rh)); ok(!/undefined/.test(rh),'no undefined on the raise screen');
   const n=raiseBest(); ok(n>=1); ok(boss.tried&&boss.result==='raised','the boss first'); eq(S.salts,cap>=2?0:1,'salts on the boss and elite');
   ok(S.army.length<=cap); if(cap<3) ok(!low.tried,'stops when full');
 });

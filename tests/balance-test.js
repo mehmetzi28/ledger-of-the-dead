@@ -25,6 +25,9 @@
 //   full gold held day 100 avg/median 20k/19k with them, 39k/32k with "off":["head"].
 //   2026-11-20 Guard (the full bot gives it only before a telegraphed move that would kill it; market never): market 87%, full 88%, tower 84.5.
 //   Guarding whenever the foe cards add up to a kill gave full 91% (market +4), so the bot stays strict.
+//   Later: it also guards under 25% HP when one plain blow on you (its card) would kill, and plays Rift events: market 87/86%, full 89/88% (seeds 7700/9100).
+//   Tier probe then (full, '{"tiers":{"gates":[0,1,2,3,4,5],"near":2}}', seeds 7700/9100) at each tier's Recommended level: Hard 82-100%, Brutal 82-97%,
+//   Nightmare 90-100%: the Nightmare advice (REC_TIER[3]) sits ~10-15 levels high; at equal levels Nightmare is ~0-5 points under Brutal on B/A, ~15-60 on C/D.
 //   2026-11-20 later (rival stolen bodies, tempering, compounds, siege wall, pre-rolled doors; rival 15.4/6.4, TEMPER_GOLD 150): market 87/88%,
 //   tower 70/71, rift ~17/18; full 89/88%, tower 82/84, rift ~9/8; full heat:0 92%; sieges 87/85%; rival 68/68%; raids 78/78%; raises 19-20% / 32-33%;
 //   gold held day 100 avg/median market 35k/20k, 33k/15k; full 39k/22k, 34k/28k (tempering is capped by lines, not by cost).
@@ -164,7 +167,7 @@
       if(B.skills&&charging.charging&&canUse('chill')&&P.mana>=SKILL.chill.cost){ setTarget(charging.id); return 'sk:chill'; }
       if((mv==='decree'||mv==='cinder'||mv==='sunder')&&charging.charging&&P.mana>=6&&P.shield<max*.3) return 'ward';
     }
-    if(B.full&&!B.off.guard&&typeof canGuard==='function'&&canGuard()&&foes.some(e=>{ if(!e.charging||e.stun>0) return false; const s=sigBlow(e,e.move||e.abil); return s&&s.you>=P.hp; })) return 'guard';   // Guard ('full' only; "off":["guard"]): a telegraphed move that would kill you
+    if(B.full&&!B.off.guard&&typeof canGuard==='function'&&canGuard()&&(foes.some(e=>{ if(!e.charging||e.stun>0) return false; const s=sigBlow(e,e.move||e.abil); return s&&s.you>=P.hp; })||P.hp<max*.25&&foes.some(e=>{ const i=e.stun>0?null:intentInfo(e); return i&&i.k==='atk'&&i.tg.id==='p'&&foeBlow(e,i.tg)>=P.hp; }))) return 'guard';   // Guard ('full' only; "off":["guard"]): a telegraphed move that would kill you, or under 25% HP a plain blow on you that would
     if(B.skills&&canUlt()){ const u=P.ult, down=S.army.filter(m=>m.hp<=0).length;
       if(u==='toll'&&foes.length>=2) return 'ult';
       if(u==='rise'&&(down>=2||P.hp<max*.4||(down>=1&&t.boss))) return 'ult';
@@ -241,7 +244,7 @@
     S.watches=Math.max(1,S.watches); S.mode='town'; S.run=null; startTower(from||1); let guard=0;
     while(S.mode!=='town'&&guard++<6000){
       if(S.mode==='battle') act(decide(B));
-      else if(S.mode==='raise'){ raisePhase(B); if(S.run.cleared) break; descend(); }
+      else if(S.mode==='raise'){ playEvent(B); raisePhase(B); if(S.run.cleared) break; descend(); }
       else break;
     }
     return S.tower.best;
@@ -287,7 +290,7 @@
     let riftDeaths=0;   // the Rift: keep going one depth deeper until it has killed the bot 3 times (at most 40 runs)
     if(typeof riftOpen==='function'&&riftOpen()&&!B.off.rift) for(let i=0;i<40&&riftDeaths<3;i++){
       S.mode='town'; S.run=null; S.watches=Math.max(1,S.watches); town(B); if(!startRift(riftBest()+1)) break; let guard=0;
-      while(S.mode!=='town'&&guard++<4000){ if(S.mode==='battle') act(decide(B)); else if(S.mode==='raise'){ raisePhase(B); if(S.run.cleared) break; descend(); } else break; }
+      while(S.mode!=='town'&&guard++<4000){ if(S.mode==='battle') act(decide(B)); else if(S.mode==='raise'){ playEvent(B); raisePhase(B); if(S.run.cleared) break; descend(); } else break; }
       if(S.mode==='defeat') riftDeaths++; returnTown(); }
     const sieges={fought:T_('sieges'),won:T_('siegeWins')}, raids={sent:T_('raidsSent'),won:T_('raidWins')}, passives=['robber','scholar','calcify','sanguine','thrift','deathless'].reduce((a,id)=>a+sk(id),0);
     const sec={met:T_('secretMet'),slain:SECRET.reduce((a,B,i)=>a+T_('secret_'+i),0)};
