@@ -332,6 +332,7 @@ const TR_DICT=new Map(Object.entries({
 "Cancel a boss's telegraphed move by freezing it":"Bir bossun önceden belli hamlesini dondurarak boz",
 "Cannot be sold":"Satılamaz",
 "Cards":"Kartlar",
+"Portraits":"Portreler",
 "Change target":"Hedef değiştir",
 "Charging":"Güç topluyor",
 "Choices":"Seçenekler",

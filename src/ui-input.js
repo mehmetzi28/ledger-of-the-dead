@@ -71,7 +71,7 @@ const ACTIONS={
   temper:k=>{ const a=k.split('|'), it=findItem(+a[0]); ui.msg=temper(+a[0],+a[1])?{mk:1,m:'Tempered a line on '+ITEM[it.id].name+'.',c:'ok'}:null; },
   enchline:k=>{ const a=k.split('|'), it=findItem(+a[0]); ui.msg=enchant(+a[0],+a[1])?{mk:1,m:'Re-rolled a line on '+ITEM[it.id].name+'.',c:'ok'}:null; },
   music:()=>{ MUSIC.on=!MUSIC.on; MUSIC.armed=true; try{ localStorage.setItem('lotd-music',MUSIC.on?'on':'off'); }catch(e){} },
-  view:k=>{ const a=k.split('|'); if(a[0]==='size') VIEW.size=clamp(+a[1]||0,-1,2); else if(a[0]==='calm'||a[0]==='hc'||a[0]==='nobg') VIEW[a[0]]=!VIEW[a[0]]; else if(a[0]==='lang'&&LANGS[a[1]]) VIEW.lang=a[1]; else if(a[0]==='fx'&&FX_MODES[a[1]]) VIEW.fx=a[1]; else if(a[0]==='army'&&(a[1]==='cards'||a[1]==='compact')) VIEW.army=a[1]; saveView(); applyView(); },
+  view:k=>{ const a=k.split('|'); if(a[0]==='size') VIEW.size=clamp(+a[1]||0,-1,2); else if(a[0]==='calm'||a[0]==='hc'||a[0]==='nobg') VIEW[a[0]]=!VIEW[a[0]]; else if(a[0]==='lang'&&LANGS[a[1]]) VIEW.lang=a[1]; else if(a[0]==='fx'&&FX_MODES[a[1]]) VIEW.fx=a[1]; else if(a[0]==='army'&&(a[1]==='grid'||a[1]==='compact')) VIEW.army=a[1]; saveView(); applyView(); },
   dlsave:()=>{ ui.msg=downloadSave()?{m:'Save file downloaded.',c:'ok'}:{m:'This browser would not create the file. Use a save code instead.',c:'bad'}; },
   loadfile:()=>{ if(!ui.file) return; if(ui.confirm!=='lf'){ ui.confirm='lf'; return; } ui.confirm=null; const ok=importText(ui.file.text); ui.msg=ok?{m:'Loaded '+ui.file.name+'.',c:'ok'}:{m:ui.file.name+' is not a valid save.',c:'bad'}; ui.file=null; ui.exp=''; },
   dropfile:()=>{ ui.file=null; }, goal:k=>goGoal(k), fold:k=>{ if(!['equip','quest','bounty','goal'].includes(k)) return; if(VIEW.fold[k]) delete VIEW.fold[k]; else VIEW.fold[k]=true; saveView(); }, sort:k=>{ ui.sort=BAG_SORTS[k]?k:'tier'; }, mk:k=>{ ui.mk=k; ui.msg=null; },
@@ -156,7 +156,7 @@ document.addEventListener('change',e=>{   // a dropdown with data-a works like a
 let sgTip=null, sgTimer=0;
 function sgTipShow(g){
   if(!sgTip){ sgTip=document.createElement('div'); sgTip.id='sgtip'; sgTip.setAttribute('role','tooltip'); document.body.appendChild(sgTip); }
-  const h=SG_HINT[g.dataset.k], b=document.createElement('b'); b.textContent=g.getAttribute('aria-label')||''; sgTip.replaceChildren(b);   /* the label is already in the page's language */
+  const h=g.dataset.h||SG_HINT[g.dataset.k], b=document.createElement('b'); b.textContent=g.getAttribute('aria-label')||''; sgTip.replaceChildren(b);   /* the label is already in the page's language */
   if(h){ const s=document.createElement('span'); s.textContent=VIEW.lang==='tr'?trText(h):h; sgTip.appendChild(s); }
   sgTip.hidden=false; const r=g.getBoundingClientRect(), w=sgTip.offsetWidth, th=sgTip.offsetHeight;
   sgTip.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+'px'; sgTip.style.top=(r.top-th-8<8?r.bottom+8:r.top-th-8)+'px';

@@ -570,7 +570,7 @@ function scene(){
 }
 // ----- display settings (per browser, not in the save): text size, reduced motion, high contrast
 const LANGS={en:'English',tr:'Türkçe'};   // see LANGUAGE below
-const VIEW={size:0,calm:false,hc:false,nobg:false,lang:'en',fx:'auto',army:'cards',fold:{}};
+const VIEW={size:0,calm:false,hc:false,nobg:false,lang:'en',fx:'auto',army:'grid',fold:{}};
 const FX_MODES={auto:'Auto',full:'Full',light:'Light'};
 const fxLight=()=>VIEW.fx==='light'||(VIEW.fx==='auto'&&((window.innerWidth||1200)<=540||((typeof navigator!=='undefined'&&navigator.hardwareConcurrency)||8)<=4));   // phones and weak machines get the cheap painting
 try{
@@ -582,7 +582,7 @@ try{
     VIEW.nobg=!!v.nobg;
     VIEW.lang=LANGS[v.lang]?v.lang:'en';
     VIEW.fx=FX_MODES[v.fx]?v.fx:'auto';
-    VIEW.army=v.army==='compact'?'compact':'cards';
+    VIEW.army=v.army==='compact'?'compact':'grid';   /* an old 'cards' choice opens as portraits: an opened portrait is that card */
     if(v.fold&&typeof v.fold==='object') for(const k of ['equip','quest','bounty','goal']) if(v.fold[k]) VIEW.fold[k]=true;
   }
   else { VIEW.calm=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches); if(window.innerWidth<=540) VIEW.fold={equip:true,bounty:true}; } }catch(e){}   // first visit on a phone: the side panel starts folded

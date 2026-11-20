@@ -289,22 +289,37 @@ function raidHTML(){
   return h+'</section>';
 }
 function armyHTML(view){   // view (the Army tab): filters and orders what is shown, and sets the army and the Reserve side by side
-  const canRel=S.mode==='town'||S.mode==='raise', compact=VIEW.army==='compact'&&S.army.length>1&&S.mode!=='battle';   // an open Details or Rename shows that minion's full card
-  const list=view?view(S.army):S.army, body=(S.army.length?(list.length?'<div class="army'+(compact?' compact':'')+'">'+list.map(m=>compact&&ui.mdet!==m.uid&&ui.rename!==m.uid?minionRow(m,canRel):minionCard(m,canRel)).join('')+'</div>':'<p class="u-sub">No minion matches the filter.</p>'):'<p class="lede">No one answers you yet. Win a room, then raise what fell.</p>');
+  const canRel=S.mode==='town'||S.mode==='raise', mode=S.mode==='battle'?'':VIEW.army==='compact'?(S.army.length>1?'compact':''):view&&VIEW.army==='grid'?'grid':'';   // portraits only on the Army tab; elsewhere the grid view shows cards
+  const list=view?view(S.army):S.army, body=(S.army.length?(list.length?armyList(list,canRel,'',mode):'<p class="u-sub">No minion matches the filter.</p>'):'<p class="lede">No one answers you yet. Win a room, then raise what fell.</p>');
   return '<section class="win" aria-labelledby="h-army"><h2 class="win-h" id="h-army">Army '+armyUsed()+'/'+slots()+(raidN()?' &middot; '+raidN()+' raiding':'')+slotsHTML()+'</h2>'
    +(S.army.length>1&&S.mode!=='battle'?'<div class="bag-tools">Order: '
      +Object.keys(ARMY_SORTS).map(k=>'<button class="linkbtn" data-a="asort" data-k="'+k+'">'+ARMY_SORTS[k]+'</button>').join('')
      +'<span class="a-dens" role="group" aria-label="Army view">View: '
-     +[['cards','Cards'],['compact','Compact']].map(x=>'<button class="linkbtn'+(VIEW.army===x[0]?' on':'')+'" data-a="view" data-k="army|'+x[0]
+     +[['grid','Portraits'],['compact','Compact']].map(x=>'<button class="linkbtn'+(VIEW.army===x[0]?' on':'')+'" data-a="view" data-k="army|'+x[0]
        +'" aria-pressed="'+(VIEW.army===x[0])+'">'+x[1]+'</button>').join('')
      +'</span></div>':'')
    +(view?'<div class="army-cols"><div class="army-col">'+body+gateWaitHTML()+'</div>'+reserveHTML(view)+'</div>':body+gateWaitHTML()+reserveHTML())+'</section>';
 }
+function armyList(L,can,where,mode){   // mode 'grid': portraits, an opened one (Details, Rename, Swap) followed by its full card; 'compact': rows (an opened one is a card); else cards
+  const open=m=>ui.mdet===m.uid||ui.rename===m.uid||ui.swap===m.uid;
+  return '<div class="army'+(mode==='grid'?' pgrid':mode?' '+mode:'')+'">'+L.map(m=>mode==='grid'?mPortrait(m,open(m))+(open(m)?'<div class="mp-card">'+minionCard(m,can,where)+'</div>':'')
+    :mode==='compact'&&!open(m)?minionRow(m,can,where):minionCard(m,can,where)).join('')+'</div>';
+}
+function mPortrait(m,on){   // one framed portrait: level, HP on the frame, role badge, evolution pips, trait and mark glyphs (their tooltips are the stat-glyph ones)
+  const hp=Math.max(0,m.hp), st=m.stage||0, low=hp>0&&hp<m.maxHp*.3;
+  const tg=(m.traits||[]).map(t=>[TRAITS[t].name,traitTip(m,t),t==='commander'?' cmdr':'']).concat([...new Set(m.marks||[])].map(k=>[MARK[k].name,markDesc(m,k),' mk']));
+  const lab=m.nick+', '+theName(mName(m))+', Rank '+RANKS[m.rankI]+', '+ROLES[m.role].label+', Lv '+m.lvl+', HP '+hp+'/'+m.maxHp+(st?', '+STAGES[st].trim():'')+(m.armed?', Armed':'')+(tg.length?', '+tg.map(x=>x[0]).join(', '):'');
+  let pips=''; for(let i=1;i<=STAGE_MAX;i++) pips+='<i'+(i<=st?' class="on"':'')+'></i>';
+  return '<div class="mport'+(on?' on':'')+(hp<=0?' down':low?' low':'')+(m.elite?' elite':'')+'"><button class="mp-btn" data-a="mdet" data-k="'+m.uid+'" aria-expanded="'+on+'" aria-label="'+lab+'">'
+   +ico(m.kind||m.name,m.rankI,m)+'<span class="mp-lv num" aria-hidden="true">'+m.lvl+'</span><span class="mp-st" aria-hidden="true">'+pips+'</span>'
+   +'<span class="mp-hp" aria-hidden="true"><i style="width:'+pct(hp,m.maxHp)+'%"></i></span><span class="mp-nm" aria-hidden="true">'+m.nick+'</span></button>'
+   +(tg.length?'<span class="mp-tr" aria-hidden="true">'+tg.map(x=>'<span class="sg tg'+x[2]+'" data-k="trait" aria-label="'+x[0]+'" data-h="'+x[1]+'">'+x[0][0]+'</span>').join('')+'</span>':'')+'</div>';
+}
 function reserveHTML(view){   // the bench under the army, in town once the Town tab is open; same cards and rows, its own Order links
-  if(S.mode!=='town'||!reserveOpen()) return ''; const R0=S.reserve||[], R=view?view(R0):R0, compact=VIEW.army==='compact'&&R0.length>1;
+  if(S.mode!=='town'||!reserveOpen()) return ''; const R0=S.reserve||[], R=view?view(R0):R0, mode=VIEW.army==='compact'?(R0.length>1?'compact':''):view&&VIEW.army==='grid'?'grid':'';
   return '<div class="reserve" role="region" aria-labelledby="h-res"><h3 class="res-h" id="h-res">Reserve '+R0.length+'/'+reserveMax()+'</h3>'
    +(R0.length>1?'<div class="bag-tools">Order: '+Object.keys(ARMY_SORTS).map(k=>'<button class="linkbtn" data-a="rsort" data-k="'+k+'" aria-label="Order the Reserve: '+ARMY_SORTS[k]+'">'+ARMY_SORTS[k]+'</button>').join('')+'</div>':'')
-   +(R.length?'<div class="army'+(compact?' compact':'')+'">'+R.map(m=>compact&&ui.mdet!==m.uid&&ui.rename!==m.uid&&ui.swap!==m.uid?minionRow(m,true,'res'):minionCard(m,true,'res')).join('')+'</div>'
+   +(R.length?armyList(R,true,'res',mode)
      :R0.length?'<p class="u-sub">No minion matches the filter.</p>':brief('res','A bench for minions you keep but do not take along. They do not fight, take damage or earn XP, and keep their gear. Moving one in or out is free, in town.','u-sub'))+'</div>';
 }
 function gateWaitHTML(){   // raiders home when both the army and the Reserve were full: nobody is lost, they wait here

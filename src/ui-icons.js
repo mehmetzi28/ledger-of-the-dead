@@ -685,6 +685,17 @@ function ico(key,rankI,o){ o=o||{}; const M=matOf(key); return '<span class="ico
 const app=document.getElementById('app');
 const ui={confirm:null};
 const pct=(v,m)=>Math.max(0,Math.min(100,m?v/m*100:0));
+// The Status panel's HP and mana: a painted flask whose liquid stands at the share left, the number on the glass (role="meter" carries it for screen readers).
+const VIAL_BODY='M16 15v6C7 25 4 33 4 41c0 11 8 17 18 17s18-6 18-17c0-8-3-16-12-20v-6z';
+function vial(label,v,m,cls){
+  v=Math.max(0,Math.round(v)); const f=m>0?Math.min(1,v/m):0, y=(58-f*38).toFixed(1);   /* the body runs from y 20 to 58 */
+  return '<div class="vial v-'+cls+'" role="meter" aria-label="'+label+'" aria-valuemin="0" aria-valuemax="'+m+'" aria-valuenow="'+v+'" aria-valuetext="'+v+' / '+m+'">'
+   +'<svg viewBox="0 0 44 60" aria-hidden="true"><defs><clipPath id="vc-'+cls+'"><path d="'+VIAL_BODY+'"/></clipPath></defs><g filter="url(#paint)">'
+   +'<rect x="15" y="1" width="14" height="6" rx="1.5" class="v-cork"/><path d="'+VIAL_BODY+'" class="v-glass"/>'
+   +'<g clip-path="url(#vc-'+cls+')"><rect x="0" y="'+y+'" width="44" height="60" class="v-liq"/><ellipse cx="22" cy="'+y+'" rx="20" ry="1.6" class="v-top"/></g>'
+   +'<path d="'+VIAL_BODY+'" class="v-rim"/><path d="M10 34c-2 4-2 10 1 14" class="v-shine"/><rect x="14" y="13" width="16" height="3" rx="1" class="v-lip"/></g></svg>'
+   +'<span class="v-num num">'+v+'</span><span class="v-cap"><b>'+label+'</b><span class="num">/ '+m+'</span></span></div>';
+}
 const meter=(label,v,m,cls)=>'<div class="meter"><div class="m-top"><span>'+label+'</span><span class="num">'+Math.max(0,Math.round(v))+' / '+m+'</span></div><div class="bar"><i class="fill '+cls+'" style="width:'+pct(v,m)+'%"></i></div></div>';
 
 
