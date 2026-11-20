@@ -63,7 +63,7 @@ test('Sieges: three waves with the between-room heal, no doors, events or raisin
 
 test('Sieges: downed minions never shatter, and a kill counts for the quest, the bestiary and mastery',()=>{
   town(); const m=mkMinion({lvl:12}); dueTonight(); beginSiege(); m.hp=0; const q=S.quest.kills; fix(0); killWave(); ok(S.army.includes(m),'home ground'); ok(m.hp>0);
-  ok(S.quest.kills>q,'daily quest'); ok(S.kills['Militia Spearman']>=2,'bestiary'); ok(masteryRungs(SIEGE_BOSS)[0].at===3,'the captain counts as a boss kind');
+  ok(S.quest.kills>q,'daily quest'); ok(S.kills['Militia Spearman']>=2,'bestiary'); ok(masteryRungs(SIEGE_BOSS)[0].at===MASTERY[1].bossAt,'the captain counts as a boss kind');
   ui.tab='bes'; ok(/The living/.test(renderAll('bestiary'))&&/Militia Spearman/.test(renderAll('bes')));
 });
 
@@ -102,6 +102,10 @@ test('Sieges: a defeat while a building is damaged costs 10% of your gold (cappe
   S.gold=1e7; dueTonight(); beginSiege(); S.player.hp=0; playerFalls(); ok(1e7-S.gold<=Math.round(siegeGoldPay()*SIEGE_FINE_MAX/SIEGE_GOLD),'capped'); invariants('fined');
 });
 
+test('Sieges: the fine is a whole number of gold even when the cap is the smaller side',()=>{
+  town(10,{crypt:1,forge:1,ossuary:1}); S.ngp=1; S.siege.dmg='forge'; const cap=siegeGoldPay()*SIEGE_FINE_MAX/SIEGE_GOLD; ok(cap%1,'a cap that does not divide evenly: '+cap);
+  S.gold=1e6; const g0=S.gold; dueTonight(); beginSiege(); flee(); ok(Number.isInteger(S.gold),'gold '+S.gold); eq(g0-S.gold,Math.round(cap)); invariants('fine');
+});
 test('Sieges: closing the tab mid-siege starts it again from wave 1 on load; old saves get a first siege; New Game+ resets it',()=>{
   town(20,{ossuary:2}); mkMinion({lvl:12}); dueTonight(); beginSiege(); fix(.99); killWave(); ok(S.army.some(m=>m.thrall));
   const snap=JSON.parse(JSON.stringify(snapshot())); ok(snap.siege.pending,'kept pending'); ok(!snap.army.some(m=>m.thrall),'thralls never saved'); eq(snap.watches,0);

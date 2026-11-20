@@ -19,7 +19,7 @@ const ROLES = {
 };
 const ELITE = ['Gravetouched','Ashen','Hollowed','Bone-sworn','Pale'];
 const NICKS = ['Vesk','Moth','Cairn','Ossa','Pike','Wren','Tallow','Brine','Hollis','Dusk','Marrow','Sable','Rook','Thimble','Ash','Gaunt','Lorn','Nettle','Bram','Cinder','Fenn','Grist','Harrow','Ivo','Juniper','Kest','Lull','Mire','Nox','Orrin','Pall','Quill','Rue','Sorrel','Thane','Umber','Vale','Wick','Yarrow','Zed'];
-const QUEST = {kills:8, rooms:4, clears:1}, QUEST_LOSS=.15, QUEST_DEBUFF=.1, QUEST_PTS=1, QUEST_XP=.15;   // the dawn penalty for an unfinished quest
+const QUEST = {kills:8, rooms:4, clears:1}, QUEST_PTS=1, QUEST_XP=.15;   // an unfinished quest costs nothing at dawn
 const WATCHES = 3;
 // mobs: [name, role, hp factor, atk factor]
 const DUNGEONS = [
@@ -114,11 +114,11 @@ NAMES.forEach((names,set)=>KINDS.forEach((k,i)=>{ const id=set+'-'+k; ITEM[id]={
 // Uniques: one per boss, very powerful, each with a special effect.
 const UNIQ=[
  {name:'Crown of Gnawed Bones',slot:'relic',glyph:'i_u0',stats:{slot:2,mpow:20,will:4,mana:40},flag:'bonebank'},
- {name:"Warden's Key-Blade",slot:'weapon',glyph:'i_wa',stats:{atk:26,crit:12,strength:5},flag:'echo'},
- {name:"Ember Knight's Cinderplate",slot:'armor',glyph:'i_aa',stats:{hp:130,constitution:6,ward:14,strength:3},flag:'undying'},
- {name:"Bishop's Tithe-Staff",slot:'weapon',glyph:'i_wb',stats:{atk:14,siph:42,intelligence:7,mana:50},flag:'lifedrain'},
+ {name:"Warden's Key-Blade",slot:'weapon',glyph:'i_keyblade',stats:{atk:26,crit:12,strength:5},flag:'echo'},
+ {name:"Ember Knight's Cinderplate",slot:'armor',glyph:'i_cinderplate',stats:{hp:130,constitution:6,ward:14,strength:3},flag:'undying'},
+ {name:"Bishop's Tithe-Staff",slot:'weapon',glyph:'i_tithestaff',stats:{atk:14,siph:42,intelligence:7,mana:50},flag:'lifedrain'},
  {name:"Mother's Seedheart",slot:'relic',glyph:'i_u4',stats:{mana:90,regen:2,raise:14,will:5},flag:'soulharvest'},
- {name:'Funeral Shroud of the Pale Sovereign',slot:'armor',glyph:'i_ab',stats:{hp:100,mpow:28,will:8,intelligence:6,raise:10},flag:'cheapraise'}
+ {name:'Funeral Shroud of the Pale Sovereign',slot:'armor',glyph:'i_paleshroud',stats:{hp:100,mpow:28,will:8,intelligence:6,raise:10},flag:'cheapraise'}
 ];
 UNIQ.forEach((u,i)=>{ ITEM['u'+i]=Object.assign({id:'u'+i,set:i,tier:5,uq:true,kind:'u'},u); });
 const FLAGS={
@@ -146,8 +146,8 @@ const STATL={atk:['Strike',''],crit:['Crit chance','%'],siph:['Siphon',''],hp:['
 // ===== DROP TABLES =====
 // Share of each tier in a gate's drops [common, uncommon, rare, epic, legendary]. Each gate leans on its own tier and sometimes the next.
 const TIER_W=[[78,19,3,0,0],[8,68,22,2,0],[0,10,68,20,2],[0,0,10,68,22],[0,0,0,12,88],[0,0,0,0,100]];
-// Share of a boss's drops that is its unique (per drop). Ordinary enemies of the gate drop it at 1/20 of this.
-const UQ=[2,1.75,1.5,1.25,1,.75];   // halved: a gate's unique should be a chase, not a day-3 find
+// Share of a boss's drops that is its unique (per drop). Ordinary enemies of the gate drop it at UQ_MOB (1/100) of this.
+const UQ=[1,.85,.75,.6,.5,.35];   // halved twice: a gate's unique should be a long chase, not a day-3 find
 // Signature item of each ordinary enemy (4x as likely as its siblings).
 const SIG={'Tunnel Rat':'0-ta','Grave Beetle':'0-aa','Marrow Mite':'0-tc','Skeleton Guard':'1-wa','Crypt Ghoul':'1-ab','Drowned Priest':'1-wb','Ash Husk':'2-aa','Barrow Wight':'2-wa','Pyre Witch':'2-wb','Stone Gargoyle':'3-aa','Nave Stalker':'3-wa','Hollow Chorister':'3-wb','Thorn Troll':'4-aa','Rust Knight':'4-wa','Sap Weaver':'4-tb','Throne Guard':'5-aa','Ash Revenant':'5-wa','Whisper Choir':'5-tb'};
 Object.assign(SIG,{'Warren Bandit':'0-wa','Crypt Legionnaire':'1-aa','Barrow Champion':'2-wa','Cathedral Templar':'3-aa','Orchard Marshal':'4-aa','Ash Praetorian':'5-aa',
@@ -158,13 +158,13 @@ Object.assign(SIG,{'Warren Bandit':'0-wa','Crypt Legionnaire':'1-aa','Barrow Cha
  'Iron Scarecrow':'4-ab','Fruit Reaver':'4-tc','Grove Shepherd':'4-wb',
  'Ember Herald':'5-tc','Crownless Duelist':'5-ta','Pallbearer':'5-ab'});
 const ROLE_BIAS={vanguard:{armor:1.8},striker:{weapon:1.8},mender:{relic:1.8},reaper:{weapon:1.3,armor:1.3}};
-const tcache={}, UQ_MOB=.02;   // ordinary foes carry a gate's unique at 2% of a boss's odds (elites twice that)
-function tableFor(di,role,boss,elite,sig){
-  const key=[di,role,boss?1:0,elite?1:0,sig||''].join('|'); if(tcache[key]) return tcache[key];
+const tcache={}, UQ_MOB=.01;   // ordinary foes carry a gate's unique at 1% of a boss's odds (elites twice that)
+function tableFor(di,role,boss,elite,sig,mob){   // mob: an elite of the difficulty rules, with an ordinary foe's unique odds
+  const key=[di,role,boss?1:0,elite?1:0,sig||'',mob?1:0].join('|'); if(tcache[key]) return tcache[key];
   const nx=Math.min(5,di+1);
   const tw=TIER_W[di].map((w,t)=>(boss||elite)?(w*2+TIER_W[nx][t])/3:w);   // bosses and elites lean one tier higher
   const bias=ROLE_BIAS[role]||{};
-  const uqp=UQ[di]*(boss?1:UQ_MOB)*(elite?2:1), scale=(100-uqp)/100, rows=[];
+  const uqp=UQ[di]*(boss?1:UQ_MOB)*(elite&&!mob?2:1), scale=(100-uqp)/100, rows=[];
   for(let t=0;t<5;t++){
     if(!tw[t]) continue;
     const el=Object.values(ITEM).filter(d=>!d.uq&&d.tier===t);
@@ -179,8 +179,8 @@ function pickRow(rows){ let x=Math.random(),acc=0; for(const r of rows){ acc+=r.
 function pickNorm(rows){ const tot=rows.reduce((a,r)=>a+r.p,0); let x=Math.random()*tot,acc=0; for(const r of rows){ acc+=r.p; if(x<acc) return r.id; } return rows[rows.length-1].id; }
 const ownsItem=id=>!!S&&(S.inv.some(it=>it.id===id)||GEAR_SLOTS.some(sl=>S.equip[sl]&&S.equip[sl].id===id)||S.army.concat(S.reserve||[],S.waiting||[],...(S.raids||[]).map(x=>x.units)).some(m=>m.eq&&GEAR_SLOTS.some(sl=>m.eq[sl]&&m.eq[sl].id===id)));
 function rollDrops(e){
-  const out=[], rows=e.tw?towerTable(e.tw,e.role,e.boss,e.elite):tableFor(e.rankI,e.role,e.boss,e.elite,SIG[e.base]);
-  const more=(S.run&&S.run.siege?SIEGE_DROP:1)*((!e.tw&&runMod())?MOD_DROP:1)*(roomKind()==='elite'?ELITE_DROP:1)*heatK('drop')*(S.run&&S.run.rift?Math.min(RIFT_DROP_MAX,1+RIFT_DROP*S.run.rift):1);
+  const out=[], rows=e.tw?towerTable(e.tw,e.role,e.boss,e.elite):tableFor(e.rankI,e.role,e.boss,e.elite,SIG[e.base],e.hx);
+  const more=(S.run&&S.run.siege?SIEGE_DROP:1)*((!e.tw&&runMod())?MOD_DROP:1)*(roomKind()==='elite'?ELITE_DROP:1)*heatK('drop')*(S.run&&S.run.rift?Math.min(RIFT_DROP_MAX,1+RIFT_DROP*S.run.rift):1)*(omen()==='ironrain'?IRON_DROP:1)*(hasMod('robber','b')?KEEN_DROP:1)*pactDrop();   // Iron Rain, Keen Eye and New Game+ pacts
   for(const c of dropChances(e.boss,e.elite)) if(Math.random()<c*more){ let id=pickRow(rows);
     if(ITEM[id].uq&&(ownsItem(id)||out.includes(id))) id=pickNorm(rows.filter(r=>!ITEM[r.id].uq));   // a unique you already carry becomes ordinary gear instead
     out.push(id); }
@@ -195,9 +195,9 @@ const KNOW_AT=25;   // kills of one enemy type needed to study its drop table in
 // raise = raise chance on its bodies, dmg = % more damage from you and your minions, lv = levels higher on rising. Values are the tier's total.
 const MASTERY=[
   {id:'studied', name:'Studied', at:KNOW_AT, bossAt:null, raise:0, dmg:0, lv:0},
-  {id:'known',   name:'Known',   at:60,      bossAt:3,    raise:4, dmg:0, lv:0},
-  {id:'mastered',name:'Mastered',at:150,     bossAt:8,    raise:8, dmg:5, lv:0},
-  {id:'ledgered',name:'Ledgered',at:400,     bossAt:20,   raise:8, dmg:5, lv:1}];
+  {id:'known',   name:'Known',   at:75,      bossAt:6,    raise:2, dmg:0, lv:0},
+  {id:'mastered',name:'Mastered',at:180,     bossAt:15,   raise:4, dmg:3, lv:0},
+  {id:'ledgered',name:'Ledgered',at:450,     bossAt:35,   raise:5, dmg:4, lv:1}];
 let BOSS_KINDS=null;
 function bossKind(name){ if(!BOSS_KINDS){ BOSS_KINDS=new Set(); DUNGEONS.forEach(D=>BOSS_KINDS.add(D.boss[0])); SECRET.forEach(B=>BOSS_KINDS.add(B.name)); TW_BOSS.forEach(n=>BOSS_KINDS.add(n)); BOSS_KINDS.add(SIEGE_BOSS); BOSS_KINDS.add('Rival Necromancer'); } return BOSS_KINDS.has(name); }
 const masteryRungs=name=>MASTERY.map(t=>({t,at:bossKind(name)?t.bossAt:t.at})).filter(x=>x.at!=null);
@@ -218,7 +218,8 @@ const ROLL_LINES=[[1,.35],[1,.6],[2,.55],[2,.7],[3,.65]];   // per tier: [max li
 const REFORGE_COST=.4;   // share of the merchant price
 function rollItem(id,atLeast){
   const d=ITEM[id]; if(!d||d.uq) return null;
-  const [max,ch]=ROLL_LINES[d.tier]||[0,0], m=TM[d.set], out=[];
+  const up=(S&&S.run&&omen()==='ironrain')?1:0;   // Iron Rain: gear found in a run rolls its lines as if one tier higher
+  const [max,ch]=ROLL_LINES[Math.min(ROLL_LINES.length-1,d.tier+up)]||[0,0], m=TM[d.set], out=[];
   for(let tries=0;tries<20&&!out.length;tries++){
     for(let i=0;i<max;i++) if(Math.random()<ch){ const left=Object.keys(ROLL_KEYS).filter(k=>!out.some(r=>r[0]===k)); const k=pick(left); out.push([k,Math.max(1,Math.round(ROLL_KEYS[k]*m*rnd(.5,1)))]); }
     if(!atLeast) break;
@@ -230,28 +231,31 @@ const itStats=it=>{ const o=Object.assign({},ITEM[it.id].stats); if(it.ro) for(c
 const G=k=>{ let n=0; if(S&&S.equip) for(const sl in S.equip){ const it=S.equip[sl]; if(it&&ITEM[it.id]) n+=itStat(it,k); } return n+xb(k); };   // gear plus the worn title
 const A=k=>S.player.stats[k]+G(k);
 const sk=id=>(S&&S.player&&S.player.skills&&S.player.skills[id])||0;   // learned rank of a skill (0 = not learned)
-const hasFlag=f=>!!(S&&S.equip)&&Object.values(S.equip).some(it=>it&&ITEM[it.id]&&ITEM[it.id].flag===f);
+const hasFlag=f=>(!!(S&&S.equip)&&Object.values(S.equip).some(it=>it&&ITEM[it.id]&&ITEM[it.id].flag===f))||(f==='thorns'&&capOn('bone2'));   // Barbed Ossuary grants Thorns (src/game-progression.js)
 
 // ===== HELL TOWER =====
 // A separate 100-floor climb. Each floor is one fight; every tenth floor is a warden. Enemies grow every single floor.
-const TW={unlock:10,hp0:4.7,hpG:.025,atk0:3.9,atkG:.021,repeat:.06,armor:.85,foeAtk:1.4};   // armor/foeAtk: enemy-only, see DIFF.armor
+// 2026-11-19 after the stat rebalance the bots reached floor ~90 (market) / ~99 (full); hpG .025->.037 and atkG .021->.024 (health grows faster
+// than attack: that spread market and full the way they were) bring them back to ~72 / ~83, near the 71 / 82 before the stat rework.
+// The same day the new systems lifted them to ~73 / ~91; hpG .037->.042 brings them to ~71 / ~83 (seeds 7700/9100).
+const TW={unlock:10,hp0:4.7,hpG:.042,atk0:3.9,atkG:.024,repeat:.06,armor:.85,foeAtk:1.4};   // armor/foeAtk: enemy-only, see DIFF.armor
 const TW_MOBS=[['Imp','striker',.95,1.3],['Hellhound','striker',.95,1.3],['Chain Devil','vanguard',1.4,.9],['Pit Warden','vanguard',1.4,.9],['Soul Tender','mender',.8,.8],['Brimstone Chanter','mender',.8,.8]];
 TW_MOBS.push(['Hell Legionary','vanguard',1.4,.9],['Infernal Duelist','striker',.95,1.3]);
 const TW_BOSS=['The Gate Hound','Cinder Matron','The Iron Inquisitor','Lord of Flies','The Bone Cantor','Duke of Chains','The Pale Executioner','Archdevil Vael','The Hollow Seraph','Abaddon, King of Hell'];
 // 12 uniques: one per warden, and the final warden drops three. They get stronger every ten floors and the last three are the strongest items in the game.
 const TW_UNIQ=[
- {f:10,name:'Hound-Fang Dagger',slot:'weapon',glyph:'i_wa',stats:{atk:34,crit:15,strength:6},flag:'execute'},
- {f:20,name:"Matron's Ember Mantle",slot:'armor',glyph:'i_ab',stats:{hp:190,constitution:8,ward:22,mpow:5},flag:'thorns'},
+ {f:10,name:'Hound-Fang Dagger',slot:'weapon',glyph:'i_houndfang',stats:{atk:34,crit:15,strength:6},flag:'execute'},
+ {f:20,name:"Matron's Ember Mantle",slot:'armor',glyph:'i_embermantle',stats:{hp:190,constitution:8,ward:22,mpow:5},flag:'thorns'},
  {f:30,name:"Inquisitor's Censer",slot:'relic',glyph:'i_censer',stats:{mana:130,intelligence:9,regen:2,will:5},flag:'censer'},
- {f:40,name:'Chitin of the Fly-Lord',slot:'armor',glyph:'i_aa',stats:{hp:260,constitution:10,mpow:18,will:7},flag:'swarmguard'},
- {f:50,name:"Cantor's Rib-Staff",slot:'weapon',glyph:'i_wb',stats:{atk:40,siph:70,intelligence:12,mana:90},flag:'chorus'},
- {f:60,name:"Chain-Duke's Collar",slot:'relic',glyph:'i_tb',stats:{mana:170,will:12,raise:18,slot:1,mpow:20},flag:'bindsouls'},
+ {f:40,name:'Chitin of the Fly-Lord',slot:'armor',glyph:'i_flychitin',stats:{hp:260,constitution:10,mpow:18,will:7},flag:'swarmguard'},
+ {f:50,name:"Cantor's Rib-Staff",slot:'weapon',glyph:'i_ribstaff',stats:{atk:40,siph:70,intelligence:12,mana:90},flag:'chorus'},
+ {f:60,name:"Chain-Duke's Collar",slot:'relic',glyph:'i_collar',stats:{mana:170,will:12,raise:18,slot:1,mpow:20},flag:'bindsouls'},
  {f:70,name:"Executioner's Axe",slot:'weapon',glyph:'i_axe',stats:{atk:78,crit:22,strength:12},flag:'cleave'},
- {f:80,name:"Vael's Hellplate",slot:'armor',glyph:'i_aa',stats:{hp:400,constitution:14,ward:40,strength:8},flag:'infernal'},
+ {f:80,name:"Vael's Hellplate",slot:'armor',glyph:'i_hellplate',stats:{hp:400,constitution:14,ward:40,strength:8},flag:'infernal'},
  {f:90,name:"Seraph's Broken Halo",slot:'relic',glyph:'i_halo',stats:{mana:220,intelligence:14,will:12,regen:3,raise:20},flag:'halo'},
- {f:100,name:'Crown of Ruin',slot:'relic',glyph:'i_u0',stats:{mana:300,intelligence:20,will:20,mpow:40,regen:5,slot:2,raise:25},flag:'ruin'},
+ {f:100,name:'Crown of Ruin',slot:'relic',glyph:'i_ruincrown',stats:{mana:300,intelligence:20,will:20,mpow:40,regen:5,slot:2,raise:25},flag:'ruin'},
  {f:100,name:'Hellmaw, the Last Blade',slot:'weapon',glyph:'i_greatsword',stats:{atk:120,crit:30,strength:20,siph:60},flag:'hellfire'},
- {f:100,name:'Mantle of the Last Sovereign',slot:'armor',glyph:'i_ab',stats:{hp:650,constitution:24,ward:70,strength:10,mpow:20},flag:'deathless'}
+ {f:100,name:'Mantle of the Last Sovereign',slot:'armor',glyph:'i_lastmantle',stats:{hp:650,constitution:24,ward:70,strength:10,mpow:20},flag:'deathless'}
 ];
 const TW_IDS={};
 TW_UNIQ.forEach((u,i)=>{ const id='w'+(i+1); ITEM[id]=Object.assign({id,set:6,tier:5,uq:true,kind:'u',tower:true,floor:u.f},u); (TW_IDS[u.f]=TW_IDS[u.f]||[]).push(id); });
@@ -289,9 +293,10 @@ function spawnFloor(){
   if(boss){ list.push(makeTowerEnemy(f,true)); const adds=f===100?4:f>=50?3:2; for(let i=0;i<adds;i++) spawnTowerOne(list,f,-1); }
   else { const n=f<30?3:f<70?3+(Math.random()<.5?1:0):4; for(let i=0;i<n;i++) spawnTowerOne(list,f,0); }
   foeScale(list,TW.foeAtk); affixAll(list);
-  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0;
+  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; roomStart(list);
   log(boss?'Floor '+f+'. The warden of this tier is waiting.':'Floor '+f+'.'); if(boss){ bossSpeaks(list[0],'hi'); fxe('boss',list[0]); }
   if(hasFlag('infernal')) infernalWard();
+  snapRoom();
 }
 const towerStarts=()=>{ const a=[1]; for(let k=1;k*10<=S.tower.best;k++) a.push(k*10+1); return a; };   // a checkpoint after every tenth floor, endlessly past 100
 function towerBossLoot(f,r){
@@ -332,7 +337,9 @@ const enrage=e=>(e.tw&&e.boss)?1+Math.max(0,S.run.turn-8)*(e.tw===100?.12:.07):1
 // ===== DIFFICULTY (tune here) =====
 // gate[1] 1.5->1.65 and gate[5] 2.3->2.45 after the skill system (tests/balance-test.js): skill users now match the old no-skill death rates.
 // gate[0] .85->.68 and armor[1] .78->.74 in the early-game pass: a new player died in ~1 of 5 Rat Warren runs and a third of Sunken Crypt runs.
-const DIFF={hp:2.2,atk:2.0,gate:[0.68,1.65,2.2,1.9,1.7,2.45],xpBase:64,xpExp:1.85,heal:.15,mana:.25,mheal:.2,deathXp:.15};
+// 2026-11-19, after the lower raise chance, smaller mastery and stronger stat scaling (market bot cleared D 62%, B/A/S 91-95%): gate[1] 1.65->1.5,
+// foeAtk D 1.3->.85, B 2.1->2.8, A 1.38->2.2, S .8->1.55. Later the same day, after the stat rebalance (market B 73-78%, A 74-81%): foeAtk B 2.8->2.6, A 2.2->2.1.
+const DIFF={hp:2.2,atk:2.0,gate:[0.68,1.5,2.2,1.9,1.7,2.45],xpBase:64,xpExp:1.85,heal:.15,mana:.25,mheal:.2,deathXp:.15};
 // SAFE: the hero level the balance bot (tests/balance-test.js) starts entering each gate at, and the reference level of the farming falloff (farmK)
 // and of secret-master growth (SB_GROW). Rules and bot only: what the player is told is gateRec (below), which is measured and follows the tuning.
 const SAFE=[1,6,10,15,19,25];   // A and S were 22/28, which the XP from B could not reach (players stalled near level 20); they were balanced at 19/25
@@ -341,7 +348,7 @@ const SAFE=[1,6,10,15,19,25];   // A and S were 22/28, which the XP from B could
 // DIFF.hp/atk and DIFF.gate move both sides; armor and foeAtk affect living foes only. Tuned with tests/balance-test.js.
 // Target: a bot that learns skills, entering each gate at its Recommended level, clears ~80% of runs (A and S were tuned entering 3 levels early,
 // because the XP curve stalls the fair bot near level 20). The no-skill bot dies noticeably more often.
-DIFF.armor=[0.30,0.66,0.88,0.85,0.89,0.85]; DIFF.foeAtk=[1,1.3,1.0,2.1,1.38,0.8];   // retuned after boss abilities, altar, salts, and minion traits/evolution (D, A, S raised); xpBase 70->64 keeps the leveling pace (S first cleared ~day 64)   A 1.5->1.38 after status effects (bleeding from its strikers)   D 1.2->1.1 and C 1.2->1.0: the bots cleared C 69% (market) and D 71% (full), now about 80% and 76%   D armor .74->.66 with foeAtk 1.1->1.3: same danger, shorter rooms (bots: 7.5->5.8 turns per room market, 9.6->7.1 full)
+DIFF.armor=[0.30,0.66,0.88,0.85,0.89,0.85]; DIFF.foeAtk=[1,0.85,1.0,2.6,2.1,1.55];   // retuned after boss abilities, altar, salts, and minion traits/evolution (D, A, S raised); xpBase 70->64 keeps the leveling pace (S first cleared ~day 64)   A 1.5->1.38 after status effects (bleeding from its strikers)   D 1.2->1.1 and C 1.2->1.0: the bots cleared C 69% (market) and D 71% (full), now about 80% and 76%   D armor .74->.66 with foeAtk 1.1->1.3: same danger, shorter rooms (bots: 7.5->5.8 turns per room market, 9.6->7.1 full)
 // Farming far below you on Normal pays less: kill XP, kill gold and the clear bonus are full up to FARM_FROM levels past a gate's SAFE level,
 // then ramp down to FARM_MIN at FARM_TO and beyond. Hard and up, cursed gates, a gate's first clear, drops, the Tower, the Rift, raids, bounties and quests pay in full.
 DIFF.farmFrom=8; DIFF.farmTo=20; DIFF.farmMin=.5;
@@ -353,7 +360,7 @@ const farmK=(di,lvl)=>{ const t=clamp(((lvl-SAFE[di])-DIFF.farmFrom)/(DIFF.farmT
 // DIFF.gate or foe level RK.lv shifts the advice by the number of foe levels (LV_HP/LV_ATK growth) that changes that product as much.
 // A test fails once the shift passes REC_DRIFT levels: then re-measure and update REC_BASE and REC_AT together.
 const LV_HP=.16, LV_ATK=.12;   // foe and minion growth per level (mobStats)
-const REC_BASE=[1,7,11,16,20,25], REC_AT=[[.30,1,.68,1],[.66,1.3,1.65,4],[.88,1,2.2,8],[.85,2.1,1.9,12],[.89,1.38,1.7,17],[.85,.8,2.45,23]], REC_DRIFT=2;   // REC_AT per gate: [armor, foeAtk, gate, RK.lv]. Measured 2026-11-15 (market bot, seed 7700): the bot first reached ~75% at 1/7/11/16/20/25, one level above SAFE on D, C, B and A
+const REC_BASE=[1,5,9,16,19,27], REC_AT=[[.30,1,.68,1],[.66,.85,1.5,4],[.88,1,2.2,8],[.85,2.6,1.9,12],[.89,2.1,1.7,17],[.85,1.55,2.45,23]], REC_DRIFT=2;   // REC_AT per gate: [armor, foeAtk, gate, RK.lv]. Re-measured 2026-11-19 after the retune (market bot, seed 7700, byLvl and push): the bot first reached ~75% at 1/5/9/15/19/27 (1/7/11/16/20/25 on 2026-11-15); again after the stat rebalance the same day: 1/5/9/16/19/27
 function recShift(di,f){   // f: a difficulty's foe multiplier (HEAT[h].foe); spawnRoom scales foe HP and attack by it alike, so danger goes by f squared
   const a=REC_AT[di], k=(g,ar,fa)=>g*g*fa/(1-ar), grow=t=>(1+LV_HP*t)*(1+LV_ATK*t);   // t = foe level - 1
   const R=k(DIFF.gate[di],DIFF.armor[di],DIFF.foeAtk[di])/k(a[2],a[0],a[1])*grow(RK[di].lv+1)*(f||1)*(f||1), A=LV_HP*LV_ATK, B=LV_HP+LV_ATK;   // mid-run foes stand 2 levels above RK.lv
@@ -364,13 +371,16 @@ const gateRec=di=>Math.max(1,Math.round(REC_BASE[di]+recShift(di)));
 // shift the market bot really needs (gear, army and skills outgrow the multiplier; the raw model asked 4/12/35 levels too many).
 // Measured 2026-11-15 (node tests/run-balance.js '{"tiers":{"gates":[0,1,2,3,4,5],"every":3}}', seed 7700): the bot first clears ~75%
 // on Hard/Brutal/Nightmare at D 8/9/11, C 12/14/25, B 20/26/38, A 25/31/46, S 34/42/~57; a least-squares fit gave .53/.44/.38.
+// Re-checked 2026-11-19 after the retune (same probe): D 7/8/10, C 12/14/21, B 18/26/39, A 24/33/49, S 37/46/>52; the same shares still fit within a few levels.
+// Hard 1.4 -> 1.8 and Brutal 2 -> 2.5 later that day (the full bot farmed Hard ~91%; Brutal stays a clear step up). Re-measured (same probe,
+// heats [1] and [2]): Hard D 8, C 14, B 24, A 28, S 36; Brutal D 10, C 16, B 26, A 34, S 40; shares .55/.45 -> .4/.32.
 // REC_TIER_F holds HEAT's foe values at that measurement: a test fails once a HEAT change moves the advice past REC_DRIFT levels.
-const REC_TIER=[1,.55,.45,.4], REC_TIER_F=[1,1.4,2,3.6];
+const REC_TIER=[1,.4,.32,.4], REC_TIER_F=[1,1.8,2.5,3.6];
 const tierRaw=(di,h,f)=>REC_BASE[di]+recShift(di)+(REC_TIER[h]||1)*(recShift(di,f)-recShift(di));
 const tierRec=(di,h)=>{ let r=gateRec(di); for(let t=1;t<=(h||0)&&t<HEAT.length;t++) r=Math.max(r+1,Math.round(tierRaw(di,t,HEAT[t].foe))); return r; };   // each tier at least a level above the one below
-const NGP_FOE=.3, NGP_REWARD=.25, ngpFoe=()=>1+NGP_FOE*((S&&S.ngp)||0), ngpReward=()=>1+NGP_REWARD*((S&&S.ngp)||0);   // New Game+: tougher foes, richer rewards
+const NGP_FOE=.3, NGP_REWARD=.25, ngpFoe=()=>1+NGP_FOE*((S&&S.ngp)||0), ngpReward=()=>(1+NGP_REWARD*((S&&S.ngp)||0))*pactReward();   // New Game+: tougher foes, richer rewards
 function foeScale(list,a){ const n=ngpFoe(); for(const e of list){ if(n!==1){ e.maxHp=e.hp=Math.round(e.maxHp*n); } if(a*n!==1) e.atk=Math.max(1,Math.round(e.atk*a*n)); } }
-const foeArmor=()=>S.run?(S.run.tw?TW.armor:DIFF.armor[S.run.di]*(S.run.siege?siegeArmorK():1)):0;
+const foeArmor=()=>{ if(!S.run) return 0; const a=S.run.tw?TW.armor:DIFF.armor[S.run.di]*(S.run.siege?siegeArmorK():1); return omen()==='ironrain'?1-(1-a)/IRON_ARMOR:a; };   // Iron Rain: foes 25% tougher to hurt
 let S = null;
 const rnd = (a,b)=>a+Math.random()*(b-a);
 const pick = a=>a[Math.floor(Math.random()*a.length)];

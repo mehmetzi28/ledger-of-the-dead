@@ -25,7 +25,7 @@ test('Town: measured building numbers, the cheaper Forge and Ossuary steps, and 
 });
 test('Town: building the Altar fills the new mana at once, like gear',()=>{ const P=S.player; S.gold=1e4; P.mana=pMana(); ok(build('altar')); eq(P.mana,pMana()); invariants('altar'); });
 test('Town: the Town tab shows the buildings; saves keep only valid buildings and dust',()=>{
-  setLvl(6); ui.tab='town'; const h=renderAll('town'); ok(/data-a="build" data-k="crypt"/.test(h)&&/Flesh Pit/.test(h));
+  setLvl(6); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1}}); ui.tab='town'; const h=renderAll('town'); ok(/data-a="build" data-k="crypt"/.test(h)&&/Flesh Pit/.test(h));
   S.gold=1e4; ACTIONS.build('ossuary'); eq(bl('ossuary'),1); ok(ui.msg&&/Ossuary raised to level 1/.test(ui.msg.m));
   const g=normalizeSave({v:2,player:{lvl:1},build:{crypt:2,forge:9,fake:1,altar:'x',ossuary:0},dust:-5});
   eq(JSON.stringify(g.build),'{"crypt":2,"forge":3}'); eq(g.dust,0);

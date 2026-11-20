@@ -18,7 +18,7 @@ test('Fusion: a minion takes part in at most two fusions',()=>{
   const d=mkMinion({role:'striker',lvl:10}), e=mkMinion({role:'striker',lvl:9}); e.fused=1; ok(fuse(d.uid,e.uid)); eq(d.fused,2,'fusions carry over'); ok(!canFuse(d,c));
 });
 test('Fusion: the Flesh Pit on the Town tab asks before it consumes a minion',()=>{
-  setLvl(20); S.gold=1e4; const a=mkMinion({role:'mender',lvl:8}), b=mkMinion({role:'mender',lvl:9}); mkMinion({role:'reaper'}); ui.tab='town';
+  setLvl(20); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1}}); S.gold=1e4; const a=mkMinion({role:'mender',lvl:8}), b=mkMinion({role:'mender',lvl:9}); mkMinion({role:'reaper'}); ui.tab='town';
   let h=renderAll('pit'); ok(new RegExp('data-a="fusepick" data-k="'+a.uid+'"').test(h)); ACTIONS.fusepick(String(a.uid)); h=renderAll('picked'); ok(new RegExp('data-a="fuse" data-k="'+b.uid+'"').test(h));
   ACTIONS.fuse(String(b.uid)); eq(S.army.length,3,'asks first'); ok(/Confirm/.test(renderAll('confirm'))); ACTIONS.fuse(String(b.uid)); eq(S.army.length,2); ok(ui.msg&&ui.msg.c==='ok'); eq(ui.fuse,null);
 });

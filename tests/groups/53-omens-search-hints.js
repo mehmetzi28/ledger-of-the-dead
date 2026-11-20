@@ -1,6 +1,6 @@
 // Omen days, Codex search, secret-master hints, new-record flashes and the newest tips.
 (function(){
-const {test,ok,eq,fix,setLvl,foe,arena,renderAll,wonRoom}=window.LOTD_T;
+const {test,ok,eq,near,seed,seq,fix,setLvl,foe,arena,renderAll,wonRoom,cdx}=window.LOTD_T;
 test('Omens: none before a first clear; a quarter of dawns after; each one does what it says',()=>{
   S.omen=undefined; delete S.omen; S.ti=S.ti||{}; S.ti.clr={}; fix(0); eq(omen(),null,'no omens before a clear');
   S.omen=undefined; delete S.omen; S.ti.clr={0:1}; fix(.9); eq(omen(),null); S.day++; fix(.1); ok(OMENS[omen()],'an omen'); const id=omen(); fix(.99); eq(omen(),id,'it lasts the day');
@@ -37,6 +37,36 @@ test('Tips: full devotion, Records, Nightmare and omens',()=>{
   S.runs=9; ok(!tip('records').when()); S.runs=10; ok(tip('records').when());
   S.ti=S.ti||{}; S.ti.clr={0:1}; S.heatMax={}; ok(!tip('nightmare').when()); S.heatMax={0:2}; ok(tip('nightmare').when());
   S.omen={day:S.day,id:null}; ok(!tip('omen').when()); S.omen.id='ashfall'; ok(tip('omen').when());
-  setLvl(30); S.gold=1e6; delete S.faith; ok(!tip('bless').when()); swear('dis'); ok(!tip('bless').when()); S.faith.day=S.day-DEVOTION[2]; ok(tip('bless').when());
+  setLvl(30); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1,2:1}}); S.gold=1e6; delete S.faith; ok(!tip('bless').when()); swear('dis'); ok(!tip('bless').when()); S.faith.day=S.day-DEVOTION[2]; ok(tip('bless').when());
 });
+test('Omens: seven in all, the old three kept; new ids load, bogus ones are dropped',()=>{
+  ['bloodmoon','paletide','ashfall','eclipse','boneharvest','ironrain','soulstorm'].forEach(k=>ok(OMENS[k]&&OMENS[k].name&&OMENS[k].desc,k)); eq(Object.keys(OMENS).length,7);
+  eq(normalizeSave({v:2,player:{lvl:5},omen:{day:3,id:'soulstorm'}}).omen.id,'soulstorm'); eq(normalizeSave({v:2,player:{lvl:5},omen:{day:3,id:'paletide'}}).omen.id,'paletide');
+  S.ti=S.ti||{}; S.ti.clr={0:1}; const seen=new Set(); for(let i=0;i<200;i++){ S.day++; seed(i); const o=omen(); if(o) seen.add(o); } eq(seen.size,7,'every omen comes up');
+  S.omen={day:S.day,id:null}; const h=cdx('omens'); Object.values(OMENS).forEach(O=>{ ok(h.includes(O.name),O.name); ok(trText(O.name)!==O.name&&trText(O.desc)!==O.desc,'Turkish '+O.name); });
+});
+test('Omens: Black Eclipse feeds Siphon and shadow, blunts foe crits and makes them miss',()=>{
+  const t=foe({hp:1e6}); arena([t]); const P=S.player; P.mana=99; fix(.5); act('siphon'); const d0=1e6-t.hp; S.omen.id='eclipse'; t.hp=1e6; P.mana=99; act('siphon'); near(1e6-t.hp,d0*ECLIPSE_SHADOW,2);
+  eq(foeCrit(),.25-ECLIPSE_CRIT); eq(shadowK(),ECLIPSE_SHADOW);
+  const e=foe({atk:50,hp:1e6}); arena([e]); P.hp=pMax(); seq([.5,.5,.5,.05],.5); act('strike'); eq(P.hp,pMax(),'the blow misses'); ok(S.run.log.some(l=>/misses you in the dark/.test(l.m)));
+  S.omen.id=null; eq(foeCrit(),.25); eq(shadowK(),1);
+});
+test('Omens: Bone Harvest pays more trophies, elites one more, and bone dust',()=>{
+  arena([foe()]); const r=S.run; S.omen.id='boneharvest'; r.troph={}; r.bdust=0; fix(.7); killLoot(foe({lvl:3}),r); eq(r.troph['Tunnel Rat'],1,'a trophy at 70%'); eq(r.bdust||0,0,'no dust at 70%');
+  fix(.1); killLoot(foe({elite:true,lvl:3}),r); eq(r.troph['Tunnel Rat'],1+3,'an elite drops one more'); eq(r.bdust,1);
+  const d0=S.dust||0; r.events=[]; bankLoot(r); eq(S.dust,d0+1,'banked with the room'); eq(r.bdust,0); ok(r.events.some(x=>/Bone Harvest: \+1 bone dust/.test(x.m))); eq(trText('Bone Harvest: +1 bone dust.'),'Kemik Hasadı: +1 kemik tozu.');
+  S.omen.id=null; r.troph={}; fix(.7); killLoot(foe({lvl:3}),r); eq(r.troph['Tunnel Rat'],undefined);
+});
+test('Omens: Iron Rain drops more gear with richer lines, and foes wear heavier armor',()=>{
+  arena([foe()],1); const a0=foeArmor(); S.omen.id='ironrain'; near(1-foeArmor(),(1-a0)/IRON_ARMOR,1e-9); ok(foeArmor()<1);
+  fix(0); const it=rollItem('1-wa'); eq(it.length,ROLL_LINES[2][0],'an uncommon rolls like a rare'); S.omen.id=null; eq(rollItem('1-wa').length,ROLL_LINES[1][0]);
+  fix(.3); S.omen.id='ironrain'; eq(rollDrops(foe({lvl:3})).length,1,'a drop at 30%: only under the rain'); fix(.3); S.omen.id=null; eq(rollDrops(foe({lvl:3})).length,0);
+});
+test('Omens: Soul Storm starts each room with a Soul and more mana, and foes hit 25% harder',()=>{
+  S.ti=S.ti||{}; S.ti.clr={0:1}; S.omen={day:S.day,id:'soulstorm'}; S.mod={day:S.day,gi:-1,id:null}; setLvl(5); S.watches=3; startRun(0); eq(S.run.souls,1);
+  const e=foe({atk:100}); foeRise([e]); eq(e.atk,Math.round(100*STORM_ATK));
+  const t=foe({hp:1e6}); arena([t]); const P=S.player; S.run.souls=0; P.mana=0; S.army=[]; fix(.5); let got=0; for(let i=0;i<5;i++){ const m0=P.mana; act('strike'); got+=P.mana-m0-3; } const base=1+G('regen')+sk('soulwell'); eq(got,Math.floor(base*5*(1+STORM_REGEN)+1e-9),'+20% regen, fractions carried');
+  S.omen.id=null; flee();
+});
+
 })();

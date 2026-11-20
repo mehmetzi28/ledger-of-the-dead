@@ -1,9 +1,24 @@
 // ----- player-derived stats
-const pMax = ()=>Math.round((24+A('constitution')*6+S.player.lvl*4+G('hp'))*(S.player.debuff?1-QUEST_DEBUFF:1)*(1+.06*sk('bonearmor')+(hasMod('bonearmor','a')?.06:0))*(1+xb('hpp')/100));
-const pMana = ()=>Math.round((20+A('intelligence')*5+A('will')*3+G('mana'))*(1+xb('manap')/100)*(1+B_ALT_MANA*bl('altar')));
-const pAtk = ()=>Math.round(3+A('strength')*1.5+S.player.lvl+G('atk'));
-const pSiph = ()=>Math.round(6+A('intelligence')*2+S.player.lvl+G('siph'));
-const pWard = ()=>Math.round((10+A('intelligence')*2+S.player.lvl*1.5+G('ward'))*(hasMod('bonearmor','b')?1.3:1));
+const pMax = ()=>Math.round((24+A('constitution')*CON_HP+S.player.lvl*4+G('hp'))*(1+.06*sk('bonearmor'))*(1+xb('hpp')/100));
+const pMana = ()=>Math.round((20+A('intelligence')*6+A('will')*3+G('mana'))*(1+xb('manap')/100)*(1+B_ALT_MANA*bl('altar')));
+const pAtk = ()=>Math.round(3+A('strength')*2.2+S.player.lvl+G('atk'));
+const pSiph = ()=>Math.round(6+A('intelligence')*2.8+S.player.lvl+G('siph'));
+const pWard = ()=>Math.round((10+A('intelligence')*3+S.player.lvl*1.5+G('ward'))*(hasMod('bonearmor','b')?MARROW:1));
+// What each stat point gives beyond those formulas. Strength: crit chance and armor piercing on Strike, and minion attack. Constitution: less damage taken
+// and more healing received. Intelligence: skill damage (Bone Spear, Corpse Explosion, Grave Chill, Reap) and minion attack. Each Strength and Constitution part is capped.
+// 2026-11-19 stat rebalance (market bot, all points in Will plus one other stat): Will+Constitution cleared 93%, Will alone 72%, Will+Intelligence 65%,
+// Will+Strength 58%. Constitution HP 9->5, DR .4->.25 per point (cap 12->8), healing capped at 20%; Intelligence skill damage 1->2%; Strength and
+// Intelligence now also raise minion attack (1.3% / 1.2% per point). Now about 87 / 78 / 83 / 81%.
+const CON_HP=5, STR_CRIT=.5, STR_CRIT_CAP=15, STR_PEN=2, STR_PEN_CAP=25, STR_MINION=1.3, CON_DR=.25, CON_DR_CAP=8, CON_HEAL=1.5, CON_HEAL_CAP=20, INT_SKILL=2, INT_MINION=1.2, DR_CAP=75;   // % per point; STR_PEN = Strength points per 1% piercing; DR_CAP caps all damage reduction together
+const strCrit = ()=>Math.min(STR_CRIT_CAP,Math.max(0,A('strength'))*STR_CRIT);   // % crit chance
+const strPen = ()=>Math.min(STR_PEN_CAP,Math.floor(Math.max(0,A('strength'))/STR_PEN))/100;   // share of foe armor Strike ignores
+const conDr = ()=>Math.min(CON_DR_CAP,Math.max(0,A('constitution'))*CON_DR);   // % less damage taken
+const conHeal = ()=>Math.min(CON_HEAL_CAP,Math.max(0,A('constitution'))*CON_HEAL);   // % more healing received
+const intSkill = ()=>Math.max(0,A('intelligence'))*INT_SKILL;   // % more skill damage
+const statMinion = ()=>Math.max(0,A('strength'))*STR_MINION+Math.max(0,A('intelligence'))*INT_MINION;   // % more minion attack from Strength and Intelligence
+const skMul = ()=>(1+intSkill()/100)*(S.run?hexK(S.player):1);   // Hexed: your skills hit 20% softer too
+const pDr = ()=>Math.min(DR_CAP,xb('drp')+conDr());   // all your damage reduction: titles, sets, faith, Calcified Hide and Constitution
+const critChance = ()=>.1+(G('crit')+strCrit()+(hasMod('edge','a')?RENDING:0))/100;   // Strike's crit chance
 const ARMY_CAP=12;
 const RESERVE_BASE=6, RESERVE_CRYPT=2;   // the Reserve: a bench of places beside the army, +2 per Crypt level
 const slots = ()=>Math.min(ARMY_CAP+bl('crypt'),1+Math.floor(A('will')*2/5)+Math.floor(S.player.lvl/4)+G('slot')+bl('crypt'));   // one per 2.5 Will and one per 4 levels
@@ -29,8 +44,8 @@ function gearBonus(m){
 function syncMinion(m){
   const s=m.tw?towerStats(m.tw,m.lvl,m.hf,m.af,m.boss,m.elite):mobStats(m.rankI,m.lvl,m.hf,m.af,m.boss,m.elite);
   const gg=gearBonus(m);
-  const b=(1+.02*A('will'))*(1+(G('mpow')+gg.mpow+6*sk('gravepact')+(hasMod('gravepact','a')?6:0))/100);
-  const nh=Math.round((s.hp*b*stageMul(m,'hp')+gg.hp)*(hasTrait(m,'thick')?1.25:1)*siegeHpMul(m)*(remembered()?1+MEM_HP:1)), na=Math.round((s.atk*b*stageMul(m,'atk')+gg.atk)*(hasTrait(m,'vicious')?1.2:1));
+  const b=(1+.02*A('will'))*(1+(G('mpow')+gg.mpow+6*sk('gravepact'))/100);
+  const nh=Math.round((s.hp*b*stageMul(m,'hp')+gg.hp)*(hasTrait(m,'thick')?1.25:1)*(hasTrait(m,'unmarred')?1+UNMARRED_K:1)*(hasTrait(m,'stitched')?STITCH_MAX:1)*siegeHpMul(m)*(remembered()?1+MEM_HP:1)*extraMul(m,'hp')), na=Math.round((s.atk*b*stageMul(m,'atk')+gg.atk)*(hasTrait(m,'vicious')?1.2:1)*(hasTrait(m,'unmarred')?1+UNMARRED_K:1)*(1+statMinion()/100)*extraMul(m,'atk'));
   if(m.maxHp!=null && nh>m.maxHp) m.hp+=nh-m.maxHp;
   m.maxHp=nh; m.atk=na; m.hp=Math.min(m.hp,m.maxHp);
 }
@@ -43,10 +58,10 @@ function notify(m,c){ S.notices.unshift({m,c:c||'info'}); S.notices.length=Math.
 // ----- game lifecycle
 function freshState(){
   return {v:2,day:1,watches:WATCHES,uid:0,mode:'town',run:null,notices:[],runs:0,kills:{},tower:{best:0,got:{}},inv:[],equip:{weapon:null,armor:null,relic:null},
-     player:{id:'p',name:'You',lvl:1,xp:0,pts:3,hp:0,mana:0,shield:0,debuff:false,stats:{strength:4,constitution:4,intelligence:4,will:4},sp:0,skills:{},skMod:{}},
+     player:{id:'p',name:'You',lvl:1,xp:0,pts:3,hp:0,mana:0,shield:0,stats:{strength:4,constitution:4,intelligence:4,will:4},sp:0,skills:{},skMod:{}},
      army:[],quest:{kills:0,rooms:0,clears:0,claimed:false},gold:0,trophies:{},belt:{hp:0,mp:0},shop:null,bagLv:0,salts:0,tips:{},ngp:0,firstRaise:1,
      mod:null,hist:[],story:{},life:Object.fromEntries(LIFE_KEYS.map(k=>[k,0])),build:{},dust:0,bounty:null,heat:{},heatMax:{},raids:[],raidOrders:[],raidLog:[],rift:{best:0},siege:{next:0,pending:false,dmg:null,warned:0},reserve:[],waiting:[],
-     memorial:[],honor:null,loadouts:[{n:'',s:null},{n:'',s:null},{n:'',s:null}],rival:rivalDef(),trials:trialDef()};
+     memorial:[],honor:null,loadouts:[{n:'',s:null},{n:'',s:null},{n:'',s:null}],rival:rivalDef(),trials:trialDef(),pacts:[]};
 }
 const OPEN_HELP={on:false};   // a brand-new game opens on the Gates tab, with a link to How to play at the top
 function newGame(){
@@ -57,11 +72,11 @@ function newGame(){
 // New Game+: after clearing the Throne of Ash, start over at level 1 keeping titles, bestiary, tips and one unique.
 const canNGP=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]);
 const ownedUniques=()=>[...new Set(S.inv.concat(Object.values(S.equip)).filter(it=>it&&ITEM[it.id]&&ITEM[it.id].uq).map(it=>it.id))];
-function startNGP(carry){
+function startNGP(carry,pacts){
   if(S.mode!=='town'||!canNGP()) return false;
-  const own=ownedUniques(), keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1};   // lifetime totals carry over too
+  const own=ownedUniques(), keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts)};   // lifetime totals carry over too
   newGame(); Object.assign(S,keep); S.ti.clr={};   // titles stay earned; New Game+ again needs another Throne of Ash clear
-  S.notices=[]; if(carry&&own.includes(carry)) addItem(carry,null); unlockStory('ngp');
+  S.watches=WATCHES-pactWatch(); S.notices=[]; if(carry&&own.includes(carry)) addItem(carry,null); unlockStory('ngp');
   notify('New Game+ '+S.ngp+' begins. Foes have '+Math.round(NGP_FOE*S.ngp*100)+'% more HP and attack, and pay '+Math.round(NGP_REWARD*S.ngp*100)+'% more XP and gold.'+(carry&&own.includes(carry)?' '+ITEM[carry].name+' is in your bag.':''),'ok');
   return true;
 }
@@ -71,7 +86,7 @@ function snapshot(){
   if(S.mode==='town') return S;
   const c=JSON.parse(JSON.stringify(S));
   if(S.run&&!S.run.siege) recordRun(c,S.run,runResult(S.run));   // a siege in progress is not a run: it stays pending and starts again
-  c.army=c.army.filter(m=>!m.thrall); c.mode='town'; c.run=null; c.player.hp=pMax(); c.player.mana=pMana(); c.player.shield=0; delete c.player.dots; c.army.forEach(m=>{ m.hp=m.maxHp; delete m.dots; });
+  const w=c.army.filter(m=>m.wall); c.army=c.army.filter(m=>!m.thrall&&!m.wall); wallHome(c,w); c.mode='town'; c.run=null; c.player.hp=pMax(); c.player.mana=pMana(); c.player.shield=0; delete c.player.dots; delete c.player.st; c.army.forEach(m=>{ m.hp=m.maxHp; delete m.dots; delete m.st; });
   return c;
 }
 // TAB guards against two open tabs overwriting each other: when another tab saves, this one stops saving until you reload.
@@ -119,8 +134,8 @@ function normalizeSave(src){
   RA.forEach((x,i)=>x.units.forEach(m=>{ if(obj(m)){ m._raid=i; g.army.push(m); } }));
   for(const k of ['reserve','waiting']) (Array.isArray(g[k])?g[k]:[]).forEach(m=>{ if(obj(m)){ m._raid=k; g.army.push(m); } });   // the Reserve and minions waiting at the gate: repaired the same way, never trimmed
   g.army=g.army.filter(m=>m&&typeof m==='object'&&!m.thrall&&ROLES[m.role]&&typeof m.lvl==='number'&&(m.tw||RK[m.rankI]));
-  for(const m of g.army){ m.hf=num(m.hf,1); m.af=num(m.af,1); m.xp=num(m.xp,0); m.hp=num(m.hp,1); m.nick=cleanNick(m.nick)||'Nameless'; if('fused' in m) m.fused=clamp(Math.floor(num(+m.fused,0)),0,FUSE_MAX); m.kind=m.kind||m.name;
-    m.traits=Array.isArray(m.traits)?m.traits.filter(t=>TRAITS[t]&&(t!=='commander'||canLead(m))):[]; m.stage=clamp(Math.floor(num(m.stage,0)),0,STAGE_MAX); m.lvl0=num(m.lvl0,m.lvl);   // minions from before traits keep no trait
+  for(const m of g.army){ m.hf=num(m.hf,1); m.af=num(m.af,1); m.xp=num(m.xp,0); m.hp=num(m.hp,1); m.nick=cleanNick(m.nick)||'Nameless'; if('fused' in m) m.fused=clamp(Math.floor(num(+m.fused,0)),0,FUSE_MAX); m.kind=m.kind||m.name; if(m.row!=='f'&&m.row!=='b') delete m.row;
+    m.traits=Array.isArray(m.traits)?m.traits.filter(t=>TRAITS[t]&&(t!=='commander'||canLead(m))):[]; m.stage=clamp(Math.floor(num(m.stage,0)),0,STAGE_MAX); m.lvl0=num(m.lvl0,m.lvl); if(m.cd&&!CORPSE_CONDS[m.cd]) delete m.cd; normMarks(m);   // minions from before traits keep no trait; cd: how its body died
     if(m.armed){ m.eq=obj(m.eq)?m.eq:{}; for(const sl of GEAR_SLOTS) if(!okItem(m.eq[sl])) m.eq[sl]=null; } }
   let top=num(g.uid,0);   // next id must stay above every id in use, or two items/minions would share one
   g.inv.concat(Object.values(g.equip),...g.army.map(m=>m.eq?Object.values(m.eq):[])).forEach(it=>{ if(it) top=Math.max(top,it.u); });
@@ -136,35 +151,41 @@ function normalizeSave(src){
   g.gold=Math.max(0,Math.floor(num(g.gold,0)));
   const tr={}; if(obj(g.trophies)) for(const k in g.trophies){ const n=Math.floor(num(g.trophies[k],0)); if(TROPHY[k]&&n>0) tr[k]=n; } g.trophies=tr;
   const b=obj(g.belt)?g.belt:{}; g.belt={hp:clamp(Math.floor(num(b.hp,0)),0,BELT_MAX),mp:clamp(Math.floor(num(b.mp,0)),0,BELT_MAX)};
+  if(obj(g.ti)&&'compounds' in g.ti) g.ti.compounds=Array.isArray(g.ti.compounds)?g.ti.compounds.filter((c,i,a)=>COMPOUND[c]&&a.indexOf(c)===i):[];   // fusion compounds found
   g.tips=obj(g.tips)?g.tips:{}; g.ngp=Math.max(0,Math.floor(num(g.ngp,0)));
+  g.pacts=g.ngp?cleanPacts(g.pacts):[]; if(!PATHS[P.capPath]) delete P.capPath;   // New Game+ pacts and the chosen capstone path (src/game-progression.js)
   g.firstRaise=('firstRaise' in g)?(g.firstRaise?1:0):(g.army.length||g.raids.length||g.reserve.length||(obj(g.ti)&&g.ti.raised)||g.runs||(Array.isArray(g.hist)&&g.hist.length)||(obj(g.life)&&g.life.runs)||g.day>1||P.lvl>1||g.ngp?0:1);   // saves from before the sure first raise: any army, history or progress counts as having raised already
   g.bagLv=clamp(Math.floor(num(g.bagLv,0)),0,BAG_COST.length); g.salts=clamp(Math.floor(num(g.salts,0)),0,SALT_MAX);
   g.shop=(obj(g.shop)&&typeof g.shop.day==='number'&&Array.isArray(g.shop.stock)&&g.shop.stock.every(s=>s&&ITEM[s.id]))?g.shop:null;
   const fixRo=it=>{ if(!it) return; if(Array.isArray(it.ro)) it.ro=it.ro.filter(r=>Array.isArray(r)&&ROLL_KEYS[r[0]]&&typeof r[1]==='number'&&isFinite(r[1])&&r[1]>0).slice(0,3).map(r=>[r[0],Math.round(r[1])]);
-    if(!Array.isArray(it.ro)||!it.ro.length||ITEM[it.id].uq) delete it.ro; if(it.lk!==true) delete it.lk; };
+    if(!Array.isArray(it.ro)||!it.ro.length||ITEM[it.id].uq) delete it.ro; if(it.lk!==true) delete it.lk;
+    if('tp' in it){ const t=Math.floor(num(+it.tp,0)); if(t>0&&!ITEM[it.id].uq) it.tp=Math.min(t,99); else delete it.tp; } };   // tp: times tempered
   g.inv.concat(Object.values(g.equip),...g.army.concat(g.reserve,g.waiting,...g.raids.map(x=>x.units)).map(m=>m.eq?Object.values(m.eq):[]),g.shop?g.shop.stock:[]).forEach(fixRo);
-  delete P.dots; g.army.forEach(m=>{ delete m.dots; });   // status effects only live inside a fight
+  delete P.dots; delete P.st; g.army.forEach(m=>{ delete m.dots; delete m.st; });   // status effects only live inside a fight
   g.mod=(obj(g.mod)&&typeof g.mod.day==='number'&&typeof g.mod.gi==='number'&&(g.mod.gi<0||(MODS[g.mod.id]&&RK[g.mod.gi])))?{day:g.mod.day,gi:g.mod.gi,id:g.mod.gi<0?null:g.mod.id}:null;
   const so=obj(g.story)?g.story:{}; g.story={}; for(const k in so) if(STORY_BY[k]&&typeof so[k]==='number') g.story[k]=so[k];
   g.hist=Array.isArray(g.hist)?g.hist.filter(h=>obj(h)&&typeof h.d==='number'&&typeof h.res==='string').slice(-HIST_N):[];
   g.hist.forEach(h=>{ if('sec' in h&&secretOf(h.sec)<0) delete h.sec; if('heat' in h&&!HEAT[h.heat]) delete h.heat; });
+  g.hist.forEach(h=>{ for(const k of ['bo','mvp']) if(k in h&&!(Array.isArray(h[k])&&typeof h[k][0]==='string')) delete h[k]; for(const k of ['om','m2']) if(k in h&&typeof h[k]!=='string') delete h[k]; for(const k of ['tt','lv','dd','mh','dt']) if(k in h&&!(typeof h[k]==='number'&&h[k]>=0)) delete h[k]; if('fb' in h&&!(obj(h.fb)&&typeof h.fb.k==='string')) delete h.fb; });   // the details of newer runs; older runs simply lack them
   const L=obj(g.life)?g.life:{}; g.life={}; for(const k of LIFE_KEYS) g.life[k]=Math.max(0,num(L[k],0));
   if(!obj(g.build)) g.build={}; for(const k of Object.keys(g.build)){ const v=g.build[k]; if(!BUILD[k]||typeof v!=='number'||!(v>=1)) delete g.build[k]; else g.build[k]=Math.min(BUILD_MAX,Math.floor(v)); }
   g.dust=Math.max(0,Math.floor(num(g.dust,0)));
   if(g.faith!==undefined&&!(obj(g.faith)&&FAITH[g.faith.id]&&typeof g.faith.day==='number')) delete g.faith;
   if(g.rec!==undefined){ if(!obj(g.rec)) delete g.rec; else { const R0=g.rec, okv=o=>obj(o)&&typeof o.v==='number'&&o.v>0&&typeof o.day==='number';
-    for(const k of ['hit','kills','gold','floor']) if(k in R0&&!okv(R0[k])) delete R0[k];
+    for(const k of REC_NUM) if(k in R0&&!okv(R0[k])) delete R0[k];
+    if('riftF' in R0){ if(!obj(R0.riftF)) delete R0.riftF; else for(const m of Object.keys(R0.riftF)){ const o=R0.riftF[m]; if(!(+m>=1)||!obj(o)||!(o.t>0)||typeof o.day!=='number'||!(o.d>=+m)) delete R0.riftF[m]; } }
     if('fast' in R0){ if(!obj(R0.fast)) delete R0.fast; else for(const di of Object.keys(R0.fast)){ const o=R0.fast[di]; if(!RK[di]||!obj(o)||!(o.t>0)||typeof o.day!=='number') delete R0.fast[di]; } }
     if('sec' in R0){ if(!obj(R0.sec)) delete R0.sec; else for(const i of Object.keys(R0.sec)) if(!SECRET[i]||typeof R0.sec[i]!=='number') delete R0.sec[i]; }
-    for(const k of Object.keys(R0)) if(!['hit','kills','gold','floor','fast','sec'].includes(k)) delete R0[k]; } }
+    for(const k of Object.keys(R0)) if(!REC_NUM.includes(k)&&!['fast','sec','riftF'].includes(k)) delete R0[k]; } }
   if(g.pages!==undefined) g.pages=Math.max(0,Math.min(LORE_PAGES.length,Math.floor(num(g.pages,0))));
   if(g.omen!==undefined&&!(obj(g.omen)&&typeof g.omen.day==='number'&&(g.omen.id===null||OMENS[g.omen.id]))) delete g.omen;
   if(g.sbPity!==undefined){ if(!obj(g.sbPity)) delete g.sbPity; else for(const di of Object.keys(g.sbPity)){ const v=g.sbPity[di]; if(!RK[di]||typeof v!=='number'||!(v>=0)) delete g.sbPity[di]; else g.sbPity[di]=Math.min(1000,Math.floor(v)); } }
   for(const k of ['heat','heatMax']){ if(!obj(g[k])) g[k]={}; for(const di of Object.keys(g[k])){ const v=g[k][di]; if(!RK[di]||typeof v!=='number'||!(v>=0)) delete g[k][di]; else g[k][di]=Math.min(HEAT.length-1,Math.floor(v)); } }
-  { const q=obj(g.siege)?g.siege:{}; g.siege={next:Math.max(0,Math.floor(num(q.next,0))),pending:!!q.pending,dmg:BUILD[q.dmg]&&g.build[q.dmg]>=1?q.dmg:null,warned:Math.max(0,Math.floor(num(q.warned,0)))}; }   // sieges: old saves get a first one scheduled on load (siegeTick)
+  { const q=obj(g.siege)?g.siege:{}; g.siege={next:Math.max(0,Math.floor(num(q.next,0))),pending:!!q.pending,dmg:BUILD[q.dmg]&&g.build[q.dmg]>=1?q.dmg:null,warned:Math.max(0,Math.floor(num(q.warned,0)))};
+    if(g.siege.pending){ if(BUILD[q.guard]&&g.build[q.guard]>=1) g.siege.guard=q.guard; if(Array.isArray(q.wall)) g.siege.wall=q.wall.filter(u=>Number.isInteger(u)).slice(0,SIEGE_WALL); } }   // tonight's guard and wall survive a reload   // sieges: old saves get a first one scheduled on load (siegeTick)
   const okB=b=>obj(b)&&BOUNTIES[b.id]&&typeof b.n==='number'&&typeof b.base==='number'&&obj(b.rw)&&typeof b.claimed==='boolean';
   g.bounty=(obj(g.bounty)&&typeof g.bounty.day==='number'&&Array.isArray(g.bounty.list)&&g.bounty.list.every(okB))?g.bounty:null;
-  memorialFix(g); loadoutsFix(g); rivalFix(g); trialsFix(g);
+  memorialFix(g); loadoutsFix(g); rivalFix(g); trialsFix(g); bondsFix(g); chainsFix(g);
   return g;
 }
 function validSave(g){ return !!normalizeSave(g); }
@@ -325,6 +346,38 @@ const roll3=()=>S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&!
  ['e_rooms1000','Deeds','Thousand Rooms','Win 1,000 rooms.',()=>L_('rooms')>=1000,{hpp:4}],
  ['e_lv75','Deeds','Deathless Sage','Reach level 75.',()=>S.player.lvl>=75,{hpp:5,manap:5}],
 ].forEach(a=>TITLES.push({id:a[0],grp:a[1],name:a[2],req:a[3],ok:a[4],b:a[5]}));
+// 24 more: gates, the Tower and the Rift, the army and fusion, omens, bestiary mastery and collection milestones.
+// Records (S.rec) and deed counters (S.ti) both survive New Game+, so these do too. Omens are read by id at check time,
+// so the omen titles follow whatever omens exist.
+const recFast=n=>Object.values((S.rec&&S.rec.fast)||{}).some(o=>o&&o.t<=n);
+const masteredN=ids=>allNames().filter(n=>{ const t=masteryOf(n); return !!t&&ids.includes(t.id); }).length;
+[
+ ['x_clr100','Gates','Gatewarden','Clear 100 gates.',()=>L_('clears')>=100,{goldp:4}],
+ ['x_allgates','Gates','Walker of Every Gate','Clear every gate 10 times.',()=>Math.min(...DUNGEONS.map((D,i)=>T_('clrN'+i)))>=10,{xpp:3}],
+ ['x_swift','Gates','Swift Reaper','Clear a gate in 16 turns or fewer.',()=>recFast(16),{crit:2}],
+ ['x_flaw10','Gates','Untouchable','Clear 10 gates or Rift dives without losing any HP.',()=>T_('flawless')>=10,{drp:3}],
+ ['x_streak10','Gates','Unbroken Chain','Win 10 runs in a row.',()=>recV('streak')>=10,{dmgp:3}],
+ ['x_tw10','Hell Tower','Stairs of Cinders','Climb 10 Tower floors in one run within 75 turns.',()=>{ const o=S.rec&&S.rec.tw10; return !!o&&o.v<=75; },{hpp:3}],
+ ['x_floors500','Hell Tower','Stair-Worn','Clear 500 Tower floors.',()=>T_('floors')>=500,{ward:4}],
+ ['x_abyss','Hell Tower','Abyssal Sovereign','Reach floor 150 of the Hell Tower and depth 30 of the Rift.',()=>S.tower.best>=150&&riftBest()>=30,{dmgp:3,drp:2}],
+ ['x_rift25','Deeds','Sky-Torn','Dive into the Rift 25 times.',()=>T_('riftRuns')>=25,{manap:4}],
+ ['x_rift50','Deeds','Warden of the Tear','Clear 50 Rift dives.',()=>T_('rifts')>=50,{hpp:3}],
+ ['x_riftfast','Deeds','Rift-Runner','Clear a Rift dive of depth 10 or deeper in 25 turns or fewer.',()=>riftFastBest(10)<=25,{dmgp:3}],
+ ['x_fuse10','Deeds','Flesh-Weaver','Fuse minions 10 times.',()=>T_('fused')>=10,{mpow:3}],
+ ['x_ftr','Deeds','Architect of Bones','Fuse a minion that carries 3 traits.',()=>{ return recV('ftr')>=FUSE_TRAITS; },{mpow:4}],
+ ['x_mlv50','Deeds','Bonelord Ascendant','Raise a minion to level 50.',()=>recV('mlv')>=50,{mpow:4}],
+ ['x_omen1','Curses and events','Omen-Born','Survive a run under an omen.',()=>T_('omenRuns')>=1,{xpp:2}],
+ ['x_omen25','Curses and events','Omen-Reader','Win 25 runs under an omen.',()=>T_('omenWins')>=25,{drp:2}],
+ ['x_omenall','Curses and events','Herald of Every Sign','Survive a run under every kind of omen.',()=>{ return Object.keys(OMENS).every(id=>T_('om_'+id)>=1); },{goldp:4}],
+ ['x_eclipse','Curses and events','Lord of the Eclipse','Win 15 runs under an omen.',()=>{ return OMENS.eclipse?T_('omw_eclipse')>=5:T_('omenWins')>=15; },{dmgp:2,mpow:2}],
+ ['x_mastered25','Deeds','Ledger-Scholar','Bring 25 kinds of foe to Mastered or better in the bestiary.',()=>masteredN(['mastered','ledgered'])>=25,{xpp:3}],
+ ['x_ledger10','Deeds','Master of the Bestiary','Bring 10 kinds of foe to Ledgered in the bestiary.',()=>masteredN(['ledgered'])>=10,{dmgp:3}],
+ ['x_relics','Deeds','Collector of Relics','Hold 6 different unique items at once.',()=>ownedUniques().length>=6,{goldp:4}],
+ ['x_hoard','Deeds','Gilded Ossuary','Hold 25,000 gold at once.',()=>recV('held')>=25000,{goldp:4}],
+ ['x_titles50','Deeds','Keeper of Names','Earn 50 titles.',()=>titlesGot()>=50,{goldp:3}],
+ ['x_titles100','Deeds','Grand Ledger-Keeper','Earn 100 titles.',()=>titlesGot()>=100,{xpp:5}],
+].forEach(a=>TITLES.push({id:a[0],grp:a[1],name:a[2],req:a[3],ok:a[4],b:a[5]}));
+{ const t=TITLES.find(x=>x.id==='x_eclipse'), u=TITLES.find(x=>x.id==='x_ftr'); Object.defineProperty(t,'req',{enumerable:true,get:()=>OMENS.eclipse?'Win 5 runs under the Eclipse.':'Win 15 runs under an omen.'}); Object.defineProperty(u,'req',{enumerable:true,get:()=>'Fuse a minion that carries '+FUSE_TRAITS+' traits.'}); }   // read when shown: OMENS and FUSE_TRAITS are defined further on
 // ----- title bonuses. Small, and only the title you wear counts. Stat keys add like gear; the rest are percentages.
 const TITLE_BUFF={
  g0:{hp:10},g1:{mana:10},g2:{hpp:3},g3:{dmgp:3},g4:{mpow:5},g5:{dmgp:5,hpp:3},
@@ -354,6 +407,7 @@ function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // d
 // rarer ones stay hidden ("???") until earned. Rarity follows how hard a title is: bot runs measured the reachable ones,
 // and deeds the bots skip (events, forging) were judged by hand.
 const TITLE_RARITY={hd1:1,hd2:2,nm0:3,nm1:3,nm2:3,nm3:4,nm4:4,nm5:5,dm3:5,sb0:5,sb1:5,sb2:5,sb3:5,sb4:5,sb5:5,g0:0,g1:0,d_raise1:0,d_kill100:0,d_death:0,d_armed1:0,d_lv10:0,d_study:0,s_venom:0,f_crit:0,d_tower1:0,d_quest7:0,d_army:0,g2:1,t10:1,t20:1,d_raise50:1,d_cancel:1,d_evolve:1,d_uq:1,d_gold:1,m0:1,m1:1,c_drought:1,c_fury:1,c_bulwark:1,c_horde:1,c_volatile:1,p_25:1,k_spear:1,k_blast:1,k_chill:1,g_items:1,g_sold:1,f_flawless:1,f_last:1,a_boss:1,e_strag:1,e_pedlar:1,e_trap:1,d_death10:1,g3:2,g4:2,t30:2,t40:2,t50:2,d_kill1000:2,d_lv25:2,d_raise200:2,d_tower50:2,d_cancel10:2,d_trophy500:2,d_altar:2,d_elder:2,m2:2,m3:2,d_armed3:2,d_master:2,d_bag:2,c_25:2,e_shrine:2,e_coffer:2,s_poison:2,s_cure:2,k_reap:2,k_master3:2,k_all:2,f_boss25:2,f_elite100:2,g_gold:2,g_roll3:2,a_traits:2,a_elders:2,e_day100:2,e_runs100:2,g_reforge:2,g5:3,t60:3,t70:3,m4:3,m5:3,tw75:3,d_lv50:3,p_100:3,f_crit1000:3,e_rooms1000:3,twruns:3,d_ngp:3,d_tower110:3,t80:4,t90:4,t100:4,d_kill5000:4,d_all:4,d_tower150:4,a_raise500:4,e_lv75:4,tw200:5,d_ngp3:5,d_tuq:5,a_ancient:3,a_eternal:4,a_raid1:1,a_raid25:3,r_5:3,r_15:4,r_30:5};
+Object.assign(TITLE_RARITY,{x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
 const RARITY_MUL=[1,1,1.25,1.5,2,3], HIDDEN_FROM=3;
 TITLES.forEach(t=>{ t.r=TITLE_RARITY[t.id]!=null?TITLE_RARITY[t.id]:1; const m=RARITY_MUL[t.r]; for(const k in t.b) t.b[k]=Math.max(t.b[k],Math.round(t.b[k]*m)); });
 const titleHidden=t=>t.r>=HIDDEN_FROM&&!(S&&S.ti&&S.ti.got&&S.ti.got[t.id]);
@@ -370,6 +424,7 @@ function checkTitles(){
   const T=S.ti=S.ti||{}; T.got=T.got||{}; T.clr=T.clr||{}; T.raised=T.raised||0; T.deaths=T.deaths||0; T.claims=T.claims||0;
   if(S.army.some(m=>m.armed&&m.eq&&GEAR_SLOTS.every(sl=>m.eq[sl]))) T.fullGear=true;
   if(!T.hasUq&&(S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&ITEM[it.id].uq))) T.hasUq=true;
+  recArmy();   // records for the highest minion level and the most gold held
   const sel0=T.sel, valid=T.sel&&T.got[T.sel]&&TITLE[T.sel];
   let next=valid?T.sel:null; const won=[];
   for(const t of TITLES){
@@ -401,7 +456,7 @@ function minionXp(m,n){
 function alloc(k){
   const P=S.player; if(P.pts<=0||S.mode==='battle') return;
   if(!(k in P.stats)) return;
-  vitals(()=>{ P.stats[k]++; P.pts--; });   // HP and mana rise by exactly what their max rose by (titles, sets, Bone Armor and the wounded dawn scale it)
+  vitals(()=>{ P.stats[k]++; P.pts--; });   // HP and mana rise by exactly what their max rose by (titles, sets and Bone Armor scale it)
 }
 const questDone = ()=>S.quest.kills>=QUEST.kills&&S.quest.rooms>=QUEST.rooms&&S.quest.clears>=QUEST.clears;
 function claimQuest(){
@@ -416,22 +471,14 @@ function endDay(){   // nightfall: tonight's raids march, then a siege if one is
   closeDay();
 }
 function closeDay(){
-  const P=S.player; P.debuff=false;
-  if(!S.quest.claimed){
-    if(questDone()) claimQuest();
-    else if(!everCleared()) notify('Day '+S.day+' closed with the daily quest unfinished. No penalty until you clear your first gate.');   // a new necromancer still learning the Rat Warren is not punished twice
-    else{
-      const loss=Math.round(need(P.lvl)*QUEST_LOSS);
-      P.xp=Math.max(0,P.xp-loss); P.debuff=true;
-      notify('Day '+S.day+' closed with the daily quest unfinished. Penalty: -'+loss+' XP, and max HP is cut by '+Math.round(QUEST_DEBUFF*100)+'% today.','bad');
-    }
-  }
-  const hon=remembered(); S.day++; S.watches=WATCHES; if(hon) syncArmy();   /* the Remembered buff ends at dawn */
+  const P=S.player; delete P.debuff;   /* saves from before: the old dawn penalty's HP cut */
+  if(!S.quest.claimed&&questDone()) claimQuest();   // an unfinished quest simply lapses
+  const hon=remembered(); S.day++; S.watches=WATCHES-pactWatch(); if(hon) syncArmy();   /* the Remembered buff ends at dawn */
   S.quest={kills:0,rooms:0,clears:0,claimed:false};
-  const rr=resolveRaids(); placeWaiting();
+  const rr=resolveRaids(); placeWaiting(); bondsDawn();
   P.hp=pMax(); P.mana=pMana(); P.shield=0;
   S.army.forEach(m=>m.hp=m.maxHp);
-  notify('Day '+S.day+' begins. You have '+WATCHES+' watches.'+raidDayLine(rr));
+  notify('Day '+S.day+' begins. You have '+S.watches+' watches.'+raidDayLine(rr));
   siegeTick(); rivalTick();
 }
 function restDay(){ if(S.mode!=='town') return; S.watches=0; endDay(); }

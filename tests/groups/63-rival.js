@@ -2,22 +2,22 @@
 (function(){
 const {test,ok,eq,near,fix,seed,fresh,setLvl,foe,arena,corpse,mkMinion,renderAll,cdx,invariants,canon}=window.LOTD_T;
 const noRand=fn=>{ const r=Math.random; Math.random=()=>{ throw new Error('the rival must not use Math.random here'); }; try{ return fn(); } finally { Math.random=r; } };
-const meet=lv=>{ setLvl(lv||25); S.ti=S.ti||{}; S.ti.clr={0:1,1:1,2:1}; S.kills['Tunnel Rat']=5; S.kills['Grave Beetle']=5; noRand(()=>rivalTick()); return S.rival; };
+const meet=lv=>{ setLvl(lv||25); S.ti=S.ti||{}; S.ti.clr={0:1,1:1,2:1,3:1}; S.kills['Tunnel Rat']=5; S.kills['Grave Beetle']=5; noRand(()=>rivalTick()); return S.rival; };
 const theftRoom=(bodies,room,o)=>{ const g=meet(); g.steal=S.day; arena([foe({hp:0,dead:true})],0); Object.assign(S.run,o||{}); S.run.room=room==null?1:room; S.run.corpses=bodies; fix(.99); roomWon(); return S.run; };
 const warnDay=()=>{ const g=meet(30); S.day=g.next-1; S.notices=[]; noRand(()=>rivalTick()); return g; };
 const bossRoom=di=>{ S.mode='town'; S.run=null; S.watches=WATCHES; startRun(di); S.run.room=S.run.rooms-1; spawnRoom(); return S.run; };
 
-test('Rival: appears after the third distinct gate clear, with a name from the list, a passage, a notice and a tip; no Math.random',()=>{
-  setLvl(25); S.ti=S.ti||{}; S.ti.clr={0:1,1:1}; rivalTick(); ok(!rivalOpen()&&!S.rival.name,'two clears are not enough');
-  eq([RIVAL_AT,RIVAL_GAP.join('-'),RIVAL_THEFT.join('-'),RIVAL_PUSH,RIVAL_GOLD].join(),'3,12-16,2-6,7,2');
+test('Rival: appears after the fourth distinct gate clear, with a name from the list, a passage, a notice and a tip; no Math.random',()=>{
+  setLvl(25); S.ti=S.ti||{}; S.ti.clr={0:1,1:1,2:1}; rivalTick(); ok(!rivalOpen()&&!S.rival.name,'three clears are not enough');
+  eq([RIVAL_AT,RIVAL_GAP.join('-'),RIVAL_THEFT.join('-'),RIVAL_PUSH,RIVAL_GOLD].join(),'4,12-16,2-6,7,2');
   const g=meet(); ok(RIVAL_NAMES.includes(g.name),'a name from the list: '+g.name); eq(g.met,S.day); ok(S.story.rival0,'the introduction passage');
   ok(S.notices.some(n=>new RegExp('A rival necromancer, '+g.name+', has opened a ledger').test(n.m)),'a notice names them');
   ok(TIPS.find(t=>t.id==='rival').when(),'the one-time tip'); ok(g.next>=S.day+RIVAL_GAP[0]&&g.next<=S.day+RIVAL_GAP[1],'first challenge scheduled'); ok(g.steal>S.day,'first theft scheduled');
   invariants('met');
 });
 
-test('Rival: the third clear in a run introduces them on the raise screen',()=>{
-  setLvl(25); S.ti=S.ti||{}; S.ti.clr={0:1,1:1}; arena([foe({hp:0,dead:true})],2); S.run.room=3; fix(.99); roomWon();
+test('Rival: the fourth clear in a run introduces them on the raise screen',()=>{
+  setLvl(25); S.ti=S.ti||{}; S.ti.clr={0:1,1:1,2:1}; arena([foe({hp:0,dead:true})],3); S.run.room=S.run.rooms-1; fix(.99); roomWon();
   ok(S.run.cleared&&S.rival.name,'met at the clear'); ok(S.run.events.some(e=>/A rival necromancer, .+, has opened a ledger/.test(e.m)),'told in the room\'s events');
 });
 
@@ -113,7 +113,7 @@ test('Rival: a loss costs only the normal fall, borrows a page (shown on the Lor
 test('Rival: New Game+ keeps the name and the record, resets strength and dates; no new intro until three clears again',()=>{
   const g=meet(); g.wins=3; g.losses=2; g.enc=5; g.step=3; g.thefts=4; const name=g.name;
   S.ti.clr[5]=1; S.mode='town'; ok(startNGP()); const n=S.rival; eq(n.name,name); eq([n.wins,n.losses,n.enc,n.thefts].join(),'3,2,5,4'); eq(n.step,0); eq(n.next,0); eq(n.steal,0); eq(n.gi,-1);
-  ok(!rivalOpen(),'needs three clears again'); S.notices=[]; S.ti.clr={0:1,1:1,2:1}; rivalTick(); ok(!S.notices.some(x=>/opened a ledger/.test(x.m)),'no second introduction'); ok(n.next>S.day,'scheduled again');
+  ok(!rivalOpen(),'needs three clears again (met before)'); S.notices=[]; S.ti.clr={0:1,1:1,2:1}; rivalTick(); ok(!S.notices.some(x=>/opened a ledger/.test(x.m)),'no second introduction'); ok(n.next>S.day,'scheduled again');
 });
 
 test('Rival: Records card, Codex page, How to play line, Turkish; seeded systems and other runs are untouched',()=>{
@@ -122,7 +122,7 @@ test('Rival: Records card, Codex page, How to play line, Turkish; seeded systems
   for(const s of ['A rival necromancer, '+g.name+', has opened a ledger of their own. They will take bodies from your gates, and some days they will wait for you in one.','Taken by '+g.name,g.name+' waits today in the Rat Warren.','3. Borrowed by '+g.name,g.name+' takes 40 gold from your purse.','Your wins','Next challenge',RIVAL_LINES.win,RIVAL_LINES.hi])
     ok(trText(s)!==s,'Turkish for: '+s);
   ok(trText('A rival necromancer, '+g.name+', has opened a ledger of their own. They will take bodies from your gates, and some days they will wait for you in one.').includes(g.name),'the name stays English');
-  fresh(); setLvl(25); S.ti={clr:{0:1,1:1,2:1}}; S.kills['Tunnel Rat']=5; S.kills['Grave Beetle']=5; seed(77); startRun(1); const a=JSON.stringify(S.run.enemies.map(e=>[e.base,e.hp]));   // the rival never touches the room generation of other days
+  fresh(); setLvl(25); S.ti={clr:{0:1,1:1,2:1,3:1}}; S.kills['Tunnel Rat']=5; S.kills['Grave Beetle']=5; seed(77); startRun(1); const a=JSON.stringify(S.run.enemies.map(e=>[e.base,e.hp]));   // the rival never touches the room generation of other days
   fresh(); meet(25); seed(77); startRun(1); eq(JSON.stringify(S.run.enemies.map(e=>[e.base,e.hp])),a,'a met rival changes nothing on an ordinary day');
 });
 })();

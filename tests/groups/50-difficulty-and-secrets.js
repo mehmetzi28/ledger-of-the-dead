@@ -49,16 +49,16 @@ test("Ultimates: Death's Toll finishes the weak, Resurrection raises the fallen,
   flee(); chooseUlt('prison'); const f1=foe({hp:1e6}), f2=foe({hp:1e6,boss:true,charging:true,abil:'decree',move:'decree'}); arena([f1,f2]); S.run.souls=SOUL_MAX; useUlt(); eq(f1.stun,2); eq(f2.stun,1); eq(f1.curse.mul,1.3);
 });
 test('Faith: an oath from level 8, each path gives and takes, and the gift grows with devotion',()=>{
-  ok(!swear('hon'),'too low'); setLvl(8); const P=S.player, hp=pMax(), dm=dmgMul(); ok(swear('hon')); eq(faithOf(),'hon'); ok(!swear('dis'),'one oath at a time');
-  eq(pMax(),Math.round(hp*1.1)||pMax()); ok(Math.abs(pMax()-hp*1.1)<=2,'+10% max HP'); arena([foe()]); ok(dmgMul()<dm,'deals less'); P.stats.constitution=300; P.hp=10; const h=healAlly(P,100); eq(h,125,'heals 25% more'); flee();
+  ok(!swear('hon'),'too low'); setLvl(8); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1}}); ok(!swear('hon'),'two clears'); S.ti.clr[2]=1; const P=S.player, hp=pMax(), dm=dmgMul(); ok(swear('hon')); eq(faithOf(),'hon'); ok(!swear('dis'),'one oath at a time');
+  eq(pMax(),Math.round(hp*1.1)||pMax()); ok(Math.abs(pMax()-hp*1.1)<=2,'+10% max HP'); arena([foe()]); ok(dmgMul()<dm,'deals less'); P.stats.constitution=300; P.hp=10; const h=healAlly(P,100); eq(h,Math.round(100*(1+(25+conHeal())/100)),'heals 25% more (on top of Constitution)'); flee();
   S.day+=10; eq(devotion(),1); eq(faithBuff('hon').healp,38); S.day+=15; eq(devotion(),2); eq(faithBuff('hon').hpp,20); eq(FAITH.hon.debuff.dmgp,-8,'the price stays');
   S.gold=0; ok(!renounce(),'costs gold'); S.gold=1e4; ok(renounce()); eq(faithOf(),null); eq(S.gold,1e4-renounceCost());
-  ok(swear('dis')); arena([foe()]); P.hp=10; eq(healAlly(P,100),75,'heals 25% less'); ok(P.hp<=pMax()); invariants('faith');
+  ok(swear('dis')); arena([foe()]); P.hp=10; eq(healAlly(P,100),Math.round(100*(1+(conHeal()-25)/100)),'heals 25% less (Constitution still adds)'); ok(P.hp<=pMax()); invariants('faith');
 });
 test('Faith: the shrine on the Town tab, debuffs read with a minus, saves keep only a real oath',()=>{
-  setLvl(8); ui.tab='town'; let h=renderAll('shrine'); ok(/Old Shrine/.test(h)&&/data-a="swear" data-k="dis"/.test(h)); ok(/costs &minus;8% Damage dealt/.test(h),'debuff text');
+  setLvl(8); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1,2:1}}); ui.tab='town'; let h=renderAll('shrine'); ok(/Old Shrine/.test(h)&&/data-a="swear" data-k="dis"/.test(h)); ok(/costs &minus;8% Damage dealt/.test(h),'debuff text');
   ACTIONS.swear('dis'); eq(faithOf(),null,'asks first'); ACTIONS.swear('dis'); eq(faithOf(),'dis'); h=renderAll('sworn'); ok(/Dishonored One/.test(h)&&/devotion 1\/3/.test(h)&&/faith-l dis/.test(h));
-  eq(buffTxt({drp:-3}),'+3% Damage taken'); eq(buffTxt({drp:3}),'&minus;3% Damage taken'); ok(TIPS.find(t=>t.id==='faith').m.includes('level '+FAITH_LV),'tip matches the level');
+  eq(buffTxt({drp:-3}),'+3% Damage taken'); eq(buffTxt({drp:3}),'&minus;3% Damage taken'); ok(TIPS.find(t=>t.id==='faith').m.includes('Old Shrine'),'tip names the shrine');
   const g=normalizeSave({v:2,player:{lvl:9},faith:{id:'nope',day:1}}); eq('faith' in g,false); eq(normalizeSave({v:2,player:{lvl:9},faith:{id:'hon',day:3}}).faith.id,'hon');
 });
 test('Music and looks: every boss (secret ones too) has its own theme and background, with no blue or purple',()=>{
@@ -69,5 +69,37 @@ test('Music and looks: every boss (secret ones too) has its own theme and backgr
   bosses.forEach(n=>BOSS_LOOK[n].slice(0,2).forEach(c=>{ const h=hue(c); ok(h<0||h<190||h>320,n+' colour '+c+' is blue or purple'); }));
   arena([foe()]); eq(musicScene(),'gate'); flee(); const b=bossFight(2); eq(musicScene(),'boss:The Ember Knight'); eq(sceneOf(musicScene()).mode,'hm'); b.hp=0; ok(/gate|boss/.test(musicScene()));
   Object.keys(SCENES).forEach(k=>ok(MODES[SCENES[k].mode],k)); MUSIC.on=false; music();
+});
+test('Gates: a card shows clears by difficulty, the best run, study and rewards, and keeps the boss hidden until met',()=>{
+  setLvl(10); S.mode='town'; S.kills={}; S.ti=S.ti||{}; S.ti.clr={}; S.heatMax={}; S.rec={};
+  let g=gateHTML(0); ok(/Boss: <b>\?\?\?<\/b>/.test(g)&&!g.includes('gate-mark')&&!g.includes('The Rat King'),'boss unknown: no name, no painting');
+  ok(/g-boss unknown/.test(gateDetHTML(0))&&!gateDetHTML(0).includes('The Rat King')); ok(!/Best \d+ turns/.test(g)); eq(gateStars(0).join(),'false,false,false,false');
+  S.kills['The Rat King']=1; g=gateHTML(0); ok(g.includes('gate-mark')&&g.includes('Boss: <b>The Rat King</b>'),'met'); ok(gateDetHTML(0).includes('Met, not yet beaten'));
+  S.ti.clr={0:1}; S.heatMax={0:2}; S.rec={fast:{0:{t:14,day:3,heat:1}}}; eq(gateStars(0).join(),'true,true,true,false'); g=gateHTML(0);
+  eq((g.match(/class="g-star h\d on"/g)||[]).length,3,'three of four stars'); ok(g.includes('Best 14 turns'),'best run'); ok(/Beaten/.test(gateDetHTML(0)));
+  ok(gateDetHTML(0).includes('0/'+(DUNGEONS[0].mobs.length+1)+' foes')&&/Tier mix unknown/.test(gateDetHTML(0))); S.kills['Tunnel Rat']=KNOW_AT; ok(gateDetHTML(0).includes('1/'+(DUNGEONS[0].mobs.length+1)+' foes')&&gateDetHTML(0).includes('Common 78%'),'studied foes reveal the tier mix');
+  ok(!bossMet(1)&&/Boss: <b>\?\?\?<\/b>/.test(gateHTML(1)),'another gate stays hidden');
+  ui.tab='gates'; let h=renderAll('cards'); ok(!/class="g-det"/.test(h)); ACTIONS.gdet('0'); h=renderAll('details'); ok(/class="g-det"/.test(h)&&/data-a="gdet" data-k="0" aria-expanded="true"/.test(h)); ACTIONS.gdet('0'); eq(ui.gdet,null);
+  S.mod={day:S.day,gi:0,id:'volatile'}; ok(/class="curse-line">Cursed: /.test(gateHTML(0)),'curse banner');
+  eq(trText('Best 14 turns'),'En iyi 14 tur'); eq(trText('1/4 foes'),'1/4 düşman'); eq(trText('Met, not yet beaten'),'Karşılaşıldı, henüz yenilmedi');
+});
+test('Difficulty rules: Hard doubles elites (stacking with the Blood Moon); the extra elites carry the unique at ordinary odds',()=>{
+  setLvl(30); S.ti=S.ti||{}; S.ti.clr={2:1}; S.heatMax={2:3}; arena([foe()],2);
+  near(eliteChance(),.1,1e-9); S.run.heat=1; near(eliteChance(),.2,1e-9); S.omen={day:S.day,id:'bloodmoon'}; near(eliteChance(),.4,1e-9); S.omen={day:S.day,id:null};
+  fix(.15); let e=makeEnemy(2,20,false); ok(e.elite&&e.hx,'an elite of the rule'); fix(.05); e=makeEnemy(2,20,false); ok(e.elite&&!e.hx,'an elite of the normal roll'); S.run.heat=0; fix(.15); ok(!makeEnemy(2,20,false).elite,'Normal: no elite');
+  const uq=t=>t.find(r=>r.id==='u2').p; near(uq(tableFor(2,'striker',false,true,null,true)),uq(tableFor(2,'striker',false,false)),1e-12,'ordinary unique odds'); ok(uq(tableFor(2,'striker',false,true))>uq(tableFor(2,'striker',false,true,null,true)),'a rolled elite keeps elite odds');
+});
+test('Difficulty rules: Brutal puts an affix on every front-row foe without elite stats and moves the second phase to 65%',()=>{
+  setLvl(30); S.ti=S.ti||{}; S.ti.clr={2:1}; S.heatMax={2:3}; ok(setHeat(2,2)); S.watches=3; seed(31); startRun(2);
+  S.run.enemies.forEach(e=>{ eq(!!(e.aff&&e.aff.length),e.elite||rowOf(e)==='f',e.name+' ('+e.role+')'); if(!e.elite&&e.aff) eq(e.aff.length,1); });
+  const b=bossFight(0); S.run.heat=1; b.hp=b.maxHp*.6; checkPhase(); ok(!b.phase2,'Hard: still 50%'); S.run.heat=2; checkPhase(); ok(b.phase2,'Brutal: 65%, the Rat King too');
+});
+test('Difficulty rules: Nightmare puts an elite in every room and starts bosses in their second phase; all of it is shown, in Turkish too',()=>{
+  setLvl(30); S.ti=S.ti||{}; S.ti.clr={2:1}; S.heatMax={2:3}; ok(setHeat(2,3)); S.watches=3; fix(.99); startRun(2);
+  const L=S.run.enemies.filter(e=>e.elite); eq(L.length,1,'one made elite'); ok(L[0].hx&&L[0].name!==L[0].base);
+  S.run.room=S.run.rooms-1; spawnRoom(); ok(S.run.enemies.find(e=>e.boss).phase2,'the boss starts in phase 2'); ok(S.run.enemies.some(e=>e.elite)); flee();
+  S.mode='town'; S.run=null; ui.tab='gates'; ui.gdet=2; const h=renderAll('rules'); ok(h.includes('title="'+heatRules(3).join(' ')+'"'),'chip tooltip'); ok(h.includes('class="g-rules"')&&h.includes(HEAT[3].rule),'Details');
+  const cx=codexSection('gates'); HEAT.slice(1).forEach(x=>ok(cx.includes(x.rule)));
+  HEAT.slice(1).map(x=>x.rule).concat(['Rules',heatRules(3).join(' '),'Each harder difficulty also adds a rule and keeps the rules below it. Elites the rules add drop as elites, but carry the gate\'s unique only at an ordinary foe\'s odds.']).forEach(t=>ok(trText(t)!==t,'untranslated: '+t));
 });
 })();

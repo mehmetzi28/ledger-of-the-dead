@@ -154,6 +154,24 @@ test('Backdrops: a painted scene for the town, every gate, the Rift and the Towe
   setLvl(45); S.ti=S.ti||{}; S.ti.clr={5:1}; S.watches=3; startRift(1); eq(sceneKey(),'rift');
 });
 
+test('Backdrops: layered depth stays modest and well formed; reduced motion draws them still',()=>{
+  const calm=VIEW.calm;
+  try{
+    VIEW.calm=false;
+    for(const k in BACKDROPS){ const h=BACKDROPS[k]();
+      ok(h.length<90000,k+' markup stays small ('+h.length+')');
+      eq((h.match(/<g[ >]/g)||[]).length,(h.match(/<\/g>/g)||[]).length,k+' groups are closed');
+      ok(!/<script|on\w+=/i.test(h),k+' is only shapes');
+      const ids=(h.match(/ id="[^"]+"/g)||[]).concat([' id="scB"',' id="scB2"',' id="scV"',' id="atR"',' id="atG"']); eq(new Set(ids).size,ids.length,k+' ids are unique in the page');
+      const anim=(h.match(/class="sc-/g)||[]).length; ok(anim>0&&anim<=60,k+' moves in a few groups ('+anim+')');
+      ok(/sc-par/.test(h),k+' has a drifting depth layer'); if(k!=='rift') ok(/sc-sway/.test(h),k+' has something hanging that stirs');
+      ok(/sc-amb/.test(h),k+' has motes or embers'); }
+    VIEW.calm=true;
+    for(const k in BACKDROPS){ const h=BACKDROPS[k](); ok(!/class="sc-|sc-amb/.test(h)&&h.length>500,k+' is still and drawn with motion reduced'); eq(BACKDROPS[k](),h); }
+    ok(!/class="sc-/.test(scCalm(scAtmos('town'))),'the shared atmosphere stands still too');
+  } finally{ VIEW.calm=calm; }
+});
+
 test('Boss arenas: every gate boss, Tower warden and secret master has its own, shown while it lives',()=>{
   const all=DUNGEONS.map(D=>D.boss[0]).concat(TW_BOSS,SECRET.map(B=>B.name)); eq(all.length,22);
   all.forEach(n=>{ ok(ARENAS[n],n+' has an arena'); const h=ARENAS[n](scRand(5)); ok(h.length>800&&!/NaN|undefined/.test(h),n+' draws cleanly'); });
@@ -181,10 +199,10 @@ test('Tuning: cursed foes x1.15 on Normal, x1.5 with a difficulty; Nightmare foe
   eq(HEAT[3].foe,3.6); eq(HEAT[3].gold,3); eq(HEAT[3].xp,2.3);
   setLvl(10); S.ti=S.ti||{}; S.ti.clr={0:1}; S.mod={day:S.day,gi:0,id:'drought'}; S.watches=3; startRun(0); near(foeHeat(),CURSE_FOE,1e-9); eq(heatK('gold'),1);
   S.mode='town'; S.run=null; S.heatMax={0:2}; setHeat(0,3); S.watches=3; startRun(0); near(foeHeat(),3.6*DAMNED_FOE,1e-9); near(heatK('xp'),2.3*DAMNED,1e-9);
-  eq(UQ_MOB,.02); eq(raiseCost(corpse({}))>0,true); eq(DUST_TIER.join(),'1,1,2,4,7');
+  eq(UQ_MOB,.01); eq(raiseCost(corpse({}))>0,true); eq(DUST_TIER.join(),'1,1,2,4,7');
 });
 test('Keys: town tabs carry number keys, ? opens the shortcut sheet, and the new-day line sums up raids',()=>{
-  S.mode='town'; ui.tab='gates'; let h=renderAll('tabs'); ok(/data-k="gates" aria-keyshortcuts="1"/.test(h)&&/data-a="keys"/.test(h),'tab keys and ? button'); ok(/Gear &middot; [0-9]+<kbd aria-hidden="true">3<\/kbd>/.test(h),'the tab hint stays out of the name');
+  S.mode='town'; ui.tab='gates'; let h=renderAll('tabs'); ok(/data-k="gates" aria-keyshortcuts="1"/.test(h)&&/data-a="keys"/.test(h),'tab keys and ? button'); ok(/Gear &middot; [0-9]+<kbd aria-hidden="true">2<\/kbd>/.test(h),'the tab hint stays out of the name, and the closed Tower tab is skipped');
   ACTIONS.keys(); h=renderAll('keys'); ok(/keys-ov/.test(h)&&/Switch tabs/.test(h)&&/Raise the best/.test(h),'sheet lists the keys'); ACTIONS.keys(); ok(!/keys-ov/.test(renderAll('closed')));
   eq(raidDayLine([]),''); eq(raidDayLine([{won:true,lost:0},{won:false,lost:2}]),' Raids: 1 won, 1 thrown back, 2 fallen.');
   ok(Array.isArray(resolveRaids()),'resolveRaids returns results');
@@ -204,5 +222,22 @@ test('Farming: a gate far below you pays less on Normal, ramping from 8 to 20 le
   ui.tab='gates'; ui.gsub='open'; S.heat={}; let h=renderAll('farm line'); ok(/Rewards here 50% on Normal at your level; Hard and up pay in full\./.test(h),'card line');
   setHeat(1,1); h=renderAll('hard'); ok(!/Rewards here/.test(h),'no line on Hard'); setHeat(1,0);
   setLvl(SAFE[1]+3); ok(!/Rewards here/.test(renderAll('fair')),'no line near the safe level');
+});
+test('Gates tab: a one-line army strip with health, the fallen and hurt, tonight\'s raid and raiders at the gate',()=>{
+  ui.tab='gates'; ui.gsub='open'; S.mode='town'; S.run=null; S.army=[]; S.waiting=[]; S.raidOrders=[];
+  ok(!/gate-army/.test(renderAll('no army')),'nothing with no army');
+  setLvl(20); const a=mkMinion({lvl:5}), b=mkMinion({lvl:5}), c=mkMinion({lvl:5}); b.hp=Math.ceil(b.maxHp/2); c.hp=0;
+  const hp=S.army.reduce((x,m)=>x+Math.max(0,m.hp),0), mx=S.army.reduce((x,m)=>x+m.maxHp,0);
+  let h=renderAll('strip'); const g=(h.match(/<div class="gate-army"[\s\S]*?<\/div>/)||[''])[0];
+  ok(g&&h.indexOf('gate-army')<h.indexOf('class="gates"'),'above the gate list');
+  ok(g.includes('>'+armyUsed()+'/'+slots()+'<'),'army count and slots'); ok(g.includes(Math.round(hp/mx*100)+'%')&&g.includes(hp+'/'+mx),'health now and max');
+  ok(/>1 down</.test(g)&&/>1 wounded</.test(g),'one down, one wounded'); ok(/data-a="tab" data-k="army"/.test(g),'links to the Army tab'); ok(!/waiting|Raid tonight/.test(g));
+  a.hp=a.maxHp; b.hp=b.maxHp; c.hp=c.maxHp; ok(/All whole/.test(renderAll('whole')));
+  S.ti=S.ti||{}; S.ti.clr=Object.assign({},S.ti.clr,{0:1}); const k=cmdr(); ok(sendRaid(k.uid,0,[a.uid]),'raid ordered'); ok(/Raid tonight: /.test(renderAll('raid'))&&renderAll('raid').includes(DUNGEONS[0].name));
+  S.waiting=[Object.assign({},a,{uid:++S.uid}),Object.assign({},b,{uid:++S.uid})]; ok(/2 raiders waiting at the gate/.test(renderAll('waiting')));
+  ui.gsub='war'; ok(!/gate-army/.test(renderAll('war table')),'only on the gates list'); ui.gsub='open';
+  eq(trText('2 raiders waiting at the gate'),'Kapıda bekleyen 2 akıncı'); eq(trText('1 down'),'1 düştü'); eq(trText('Army tab'),'Ordu sekmesi');
+  ok(/^Bu gece akın: /.test(trText('Raid tonight: Mn1 to the '+DUNGEONS[0].name)),'Turkish');
+  S.waiting=[]; S.raidOrders=[];
 });
 })();

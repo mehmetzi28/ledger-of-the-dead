@@ -22,7 +22,11 @@ test('Saves: the first save of each day is kept as an earlier autosave (three at
 });
 test('Stats: each + button previews what the next point gives, from the real formulas',()=>{
   const P=S.player; P.pts=3; const h=renderAll('preview'); const a=pAtk(), m=pMax();
-  ok(/Next point: Strike \+[12]/.test(h)); ok(/Next point: Max HP \+6/.test(h)); ok(/raise \+2.2%/.test(h)); eq(pAtk(),a,'previewing changes nothing'); eq(pMax(),m);
+  ok(/Next point: Strike \+[23], crit \+0.5%/.test(h)); ok(/minion attack \+1.3%/.test(h),'Strength: minion attack'); ok(/Next point: Max HP \+5, damage taken -0.25%, healing received \+1.5%/.test(h)); ok(/Ward \+3, skill damage \+2%, minion attack \+1.2%/.test(h)); ok(/raise \+1.1%/.test(h),'Will follows RAISE_WILL');
+  P.stats.strength=4; ok(!/armor pierce/.test(statGain('strength')),'4 to 5: no new piercing'); P.stats.strength=5; ok(/armor pierce \+1%/.test(statGain('strength')),'5 to 6: +1% piercing'); P.stats.strength=4;
+  eq(trText('Next point: Strike +2, crit +0.5%, armor pierce +1%'),'Sonraki puan: Vuruş +2, kritik +%0.5, zırh delme +%1'); eq(trText('Next point: Max HP +5, damage taken -0.25%, healing received +1.5%'),'Sonraki puan: Azami Can +5, alınan hasar -%0.25, alınan iyileşme +%1.5'); eq(trText('minion attack +1.3%'),'hizmetkâr saldırısı +%1.3');
+  eq(trText('Next point: Mana +6, Siphon +3, Ward +3, skill damage +1%'),'Sonraki puan: Mana +6, Emme +3, Kalkan +3, yetenek hasarı +%1'); eq(trText('Next point: Mana +3, Slots +1, raise +1.1%, minions +2%'),'Sonraki puan: Mana +3, Ordu yeri +1, diriltme +%1.1, hizmetkârlar +%2');
+  eq(pAtk(),a,'previewing changes nothing'); eq(pMax(),m);
   P.pts=0; ok(!/Next point/.test(renderAll('no points')));
 });
 test('Accessibility: an item\'s gate set is spelled out for screen readers',()=>{ ok(/class="sr"> &middot; gate B set/.test(itemCard(give('3-wa'),''))); ok(!/class="sr"/.test(itemCard(give('u0'),''))); });

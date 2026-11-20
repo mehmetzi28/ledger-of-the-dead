@@ -24,4 +24,21 @@ test('History: lifetime totals survive New Game+, damaged history is cleaned',()
 });
 test('History: the History tab renders',()=>{ ui.tab='hist'; ok(/No runs yet/.test(renderAll('empty history'))); richState(); ui.tab='hist'; const h=renderAll('full history'); ok(/Hell Tower, floor/.test(h)&&/Drought/.test(h)); });
 
+test('History: a run keeps its turns, boss, best minion, level, damage, omen and curse; old runs render without them',()=>{
+  const P=S.player; P.stats.strength=400; P.stats.constitution=300; P.hp=pMax(); mkMinion({nick:'Gnaw',lvl:7,hf:40}); S.omen={day:S.day,id:'paletide'}; S.watches=3; startRun(0); let n=0;
+  while(n++<300&&!(S.mode==='raise'&&S.run.cleared)){ if(S.mode==='battle') act('strike'); else descend(); } const tt=S.run.tt; returnTown();
+  const h=S.hist[S.hist.length-1]; eq(h.res,'cleared'); eq(h.tt,tt); ok(h.tt>0); ok(h.bo[0].includes(DUNGEONS[0].boss[0]),h.bo[0]); eq(h.bo[1],1,'the boss fell'); eq(h.mvp[0],'Gnaw'); eq(h.lv,P.lvl); ok(h.dd>0&&h.mh>0&&h.mh<=h.dd); eq(h.om,'paletide');
+  const L=S.life; eq(L.wn,1); eq(L.wt,1); eq(L.stk,1); eq(L.cn,1); eq(L.ct,tt);
+  arena([foe()]); flee(); eq(S.life.stk,0,'a flight breaks the streak'); eq(S.life.wt,2);
+  S.hist.push({d:1,g:1,f0:0,f1:0,rooms:2,kills:3,xp:5,gold:6,items:0,raised:0,mod:'drought',res:'left'}); S.life.souls=4;
+  ui.tab='hist'; const html=renderAll('history details'); ok(html.includes('Lifetime analytics')&&html.includes('Win rate')&&html.includes('Souls harvested')&&html.includes('h-det'));
+  ok(html.includes('Favorite gate')&&html.includes(DUNGEONS[0].name)); eq(trText('Lifetime analytics')!=='Lifetime analytics',true);
+  const g=normalizeSave({v:2,player:{lvl:2},hist:[{d:1,res:'left',bo:'x',mvp:[3],om:5,tt:-1,dd:'a'},{d:2,res:'cleared',bo:['Rat King',1],tt:9}]}); eq(g.hist.length,2);
+  ok(!('bo' in g.hist[0])&&!('mvp' in g.hist[0])&&!('om' in g.hist[0])&&!('tt' in g.hist[0])&&!('dd' in g.hist[0]),'damaged details dropped'); eq(g.hist[1].tt,9); eq(g.hist[1].bo[0],'Rat King');
+  const old=normalizeSave({v:2,player:{lvl:2},life:{runs:5,clears:2}}); eq(old.life.wn,0); eq(old.life.souls,0);
+});
+test('History: souls harvested and a boss left standing are written down',()=>{
+  setLvl(20); const b=foe({boss:true,hp:1e6}); arena([b]); S.run.souls=0; gainSoul(); gainSoul(); flee(); const h=S.hist[S.hist.length-1]; eq(h.bo[1],0,'still standing'); eq(S.life.souls,2);
+});
+
 })();

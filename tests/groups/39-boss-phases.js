@@ -10,13 +10,13 @@ test('Phases: at half HP a boss enters its second phase once, and speaks',()=>{
 test('Phases: every second-phase move is announced, alternating with Sundering Blow',()=>{
   const b=bossFight(1), P=S.player; P.stats.constitution=900; P.hp=pMax(); b.hp=b.maxHp/2; checkPhase(); b.abilT=1;
   ok(bossTurn(b)); ok(b.charging); eq(b.move,'sunder'); eq(P.hp,pMax(),'warning only');
-  ok(bossTurn(b)); ok(!b.charging); eq(P.hp,pMax()-Math.round(pMax()*.35)); eq(b.abilT,2);
+  ok(bossTurn(b)); ok(!b.charging); eq(P.hp,pMax()-Math.round(Math.round(pMax()*.35)*(1-pDr()/100))); eq(b.abilT,2);
   eq(bossTurn(b),false); ok(bossTurn(b)); ok(b.charging); eq(b.move,'bonewall','its own move, now telegraphed'); ok(bossTurn(b)); ok(b.shield>0);
 });
 test('Phases: Taunt turns Sundering Blow onto a vanguard; Focus crits and Grave Chill break a charge',()=>{
   const b=bossFight(2), P=S.player; P.stats.constitution=900; P.hp=pMax(); const v=mkMinion({role:'vanguard'}); v.hp=v.maxHp=1e6; fix(.5);
   S.run.taunt=2; fireAbility(b,'sunder'); eq(P.hp,pMax()); eq(v.hp,1e6-H(b.atk*2.2));
-  S.run.taunt=0; fireAbility(b,'sunder'); eq(P.hp,pMax()-Math.round(pMax()*.35));
+  S.run.taunt=0; fireAbility(b,'sunder'); eq(P.hp,pMax()-Math.round(Math.round(pMax()*.35)*(1-pDr()/100)));
   P.hp=pMax(); mkMinion({role:'striker'}); b.charging=true; b.move='sunder'; ok(command('striker')); act('strike'); ok(!b.charging,'focus broke it'); ok(S.run.log.some(l=>/focused strike/.test(l.m)&&/Sundering Blow is lost/.test(l.m)));
   b.charging=true; b.move='sunder'; b.stun=1; S.run.cmd={}; act('strike'); ok(!b.charging); ok(S.run.log.some(l=>/frozen/.test(l.m)&&/Sundering Blow is lost/.test(l.m)));
 });

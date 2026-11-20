@@ -1,7 +1,7 @@
 // ===== BOSS PHASES =====
 // At half HP a boss (gate or Tower) enters its second phase: its moves come a turn sooner, every move is announced a turn
 // ahead, and it adds Sundering Blow. Taunt turns that blow onto a vanguard; a Focus crit or Grave Chill breaks any charging move.
-const PHASE_AT=.5;
+const PHASE_AT=.5, phaseAt=()=>runHeat()>=2?BRUTAL_PHASE:PHASE_AT;   // Brutal and up: sooner (HEAT)
 const PHASE_LINES={
   'The Rat King':'My court! To me, all of you, to me!',
   'The Crypt Warden':'Two hundred years. I will not be the one who fails.',
@@ -12,7 +12,7 @@ const PHASE_LINES={
 };
 function checkPhase(){
   if(!S.run) return;
-  for(const e of liveFoes()) if(e.boss&&e.abil&&!e.phase2&&(e.tw||e.rival||e.rankI>=1)&&e.hp<=e.maxHp*PHASE_AT){   // the Rat King, a new player's first boss, keeps one phase
+  for(const e of liveFoes()) if(e.boss&&e.abil&&!e.phase2&&(e.tw||e.rival||e.rankI>=1||runHeat()>=2)&&e.hp<=e.maxHp*phaseAt()){   // the Rat King, a new player's first boss, keeps one phase
     e.phase2=true; e.fast=(e.fast||0)+1; e.alt=true; e.abilT=Math.min(e.abilT,2);   // Sundering Blow comes first
     const l=PHASE_LINES[e.base]; log(e.name+(l?': "'+l+'"':' rises in fury.'),'boss');
     log(e.name+' enters its second phase. It moves faster, warns before every move, and adds Sundering Blow.','bad'); sfx('warn'); tally('phases'); moment(e.name+' enters its second phase','bad');
@@ -28,7 +28,11 @@ const AFFIX={
   splitting:{name:'Splitting',desc:'Splits into two lesser copies when it dies.',               trait:'gravebound'},
   vampiric: {name:'Vampiric', desc:'Heals for 40% of the damage it deals.',                     trait:'leech'},
   enraged:  {name:'Enraged',  desc:'Hits 60% harder below half HP.',                            trait:'wrathful'},
-  warded:   {name:'Warded',   desc:'Immune to bleeding, burns and poison.',                     trait:'warded'}
+  warded:   {name:'Warded',   desc:'Immune to bleeding, burns, poison and blight.',             trait:'warded'},
+  plague:   {name:'Plaguebearer',desc:'Its hits blight the target for 2 turns: shadow damage each turn, and half the healing received.', trait:'necrotic'},
+  sundering:{name:'Sundering', desc:'Its hits sunder the target 1 time in 3: 25% more damage taken for 2 turns.', trait:'crushing'},
+  hexing:   {name:'Hexing',    desc:'Its hits hex the target 1 time in 3: 20% less damage dealt for 2 turns.', trait:'hexing'},
+  swift:    {name:'Swift',     desc:'Hasted for the first 3 turns of a fight: strikes again for 50% at the end of each turn.', trait:'swift'}
 };
 const AFFIX_IDS=Object.keys(AFFIX), SPLIT_MAX=6;
 const hasAff=(e,a)=>!!(e&&e.aff&&e.aff.includes(a));
@@ -37,7 +41,7 @@ function giveAffixes(e,n){
   e.aff=[]; for(let i=0;i<n;i++){ const left=AFFIX_IDS.filter(a=>!e.aff.includes(a)); if(left.length) e.aff.push(pick(left)); }
   if(e.aff.includes('shielded')) e.shield=Math.round(e.maxHp*.3);
 }
-function affixAll(list){ for(const e of list) if(e.elite&&!e.aff) giveAffixes(e,affixN()); }   // after scaling, so the shield matches the final HP
+function affixAll(list){ for(const e of list) if(e.stash&&hasAff(e,'shielded')&&!e.shield) e.shield=Math.round(e.maxHp*.3); else if(!e.aff&&(e.elite||(runHeat()>=2&&!e.boss&&!e.rival&&rowOf(e)==='f'))) giveAffixes(e,e.elite?affixN():1); }   // Brutal and up: one affix on every front-row foe, without elite stats   // after scaling, so the shield matches the final HP
 function splitFoe(e){
   const out=[];
   for(let i=0;i<2;i++){ if(liveFoes().length>=SPLIT_MAX) break;
@@ -68,11 +72,15 @@ function build(k){
 }
 
 // ===== WHAT IS OPEN YET =====
-// New players meet the town economy gradually: the Town tab and bounty board open after the first gate clear (or level 4),
-// salvage and enchanting at level 6 (or once you hold bone dust). The functions work regardless; this only hides the buttons.
+// New players meet the game gradually, counted from gate clears (S.ti.clr, no stored flags): the Town tab, bounty board and sieges after
+// the 2nd clear, the Old Shrine and the Hell Tower after the 3rd, the Rival after the 4th (RIVAL_AT). A save that already used a feature
+// keeps it (buildings, the Reserve, an oath, a Tower floor). Salvage and enchanting at level 6 (or once you hold bone dust).
+// The functions work regardless; this only hides the buttons.
+const OPEN_AT={town:2,faith:3,tower:3};
 const anyClear=()=>!!(S&&S.ti&&S.ti.clr&&Object.keys(S.ti.clr).length);
-const everCleared=()=>anyClear()||L_('clears')>0;   // a gate cleared on this save at any point, New Game+ included (it empties ti.clr)
-const townOpen=()=>!!S&&(S.player.lvl>=4||anyClear()||Object.keys(S.build||{}).length>0);
+const townOpen=()=>!!S&&(distinctClears()>=OPEN_AT.town||Object.keys(S.build||{}).length>0||(S.reserve||[]).length>0||!!S.faith);
+const faithOpen=()=>!!S&&(!!S.faith||(distinctClears()>=OPEN_AT.faith&&S.player.lvl>=FAITH_LV));
+const towerOpen=()=>!!S&&((S.tower&&S.tower.best>0)||(distinctClears()>=OPEN_AT.tower&&S.player.lvl>=TW.unlock));
 
 // ===== THE RESERVE =====
 // A bench beside the army that opens with the Town tab: RESERVE_BASE places, +RESERVE_CRYPT per Crypt level. Benched minions do not
@@ -84,10 +92,10 @@ const reserveOpen=()=>townOpen();
 const reserveMax=()=>RESERVE_BASE+RESERVE_CRYPT*bl('crypt');
 const benched=()=>(S.reserve||[]).concat(S.waiting||[]);
 const armyRoom=()=>armyUsed()<slots();
-const reserveRoom=()=>reserveOpen()&&(S.reserve||[]).length+raidHeld(true)<reserveMax();
+const reserveRoom=()=>reserveOpen()&&(S.reserve||[]).length+S.army.filter(m=>m.wall).length+raidHeld(true)<reserveMax();   // the wall's minions keep their Reserve places
 const findMinion=uid=>S.army.find(m=>m.uid===uid)||(S.reserve||[]).find(m=>m.uid===uid)||null;
 const inReserve=m=>!!m&&(S.reserve||[]).includes(m);
-function benchRest(m){ delete m.dots; syncMinion(m); m.hp=m.maxHp; }
+function benchRest(m){ delete m.dots; delete m.st; syncMinion(m); m.hp=m.maxHp; }
 function toReserve(uid){
   if(S.mode!=='town'||!reserveRoom()) return false; const m=S.army.find(x=>x.uid===uid); if(!m) return false;
   S.army=S.army.filter(x=>x!==m); benchRest(m); (S.reserve=S.reserve||[]).push(m); return true;
@@ -123,7 +131,8 @@ const MEM_MAX=200, MEM_HP=.05, MEM_COST=.6;
 function memorialize(m,at){
   if(!m||m.thrall) return null;
   const e=Object.assign({nick:m.nick,kind:m.kind||m.name,name:m.name,rk:m.rankI|0,lvl:m.lvl,st:m.stage||0,tr:(m.traits||[]).slice(),role:m.role,day:S.day},m.boss?{boss:1}:{},m.elite?{elite:1}:{},at||{});
-  S.memorial=[e].concat(S.memorial||[]).slice(0,MEM_MAX);
+  { const bd=bondFall(m,at); if(bd) e.bd=bd; }
+  S.memorial=[e].concat(S.memorial||[]); while(S.memorial.length>MEM_MAX){ const j=S.memorial.map(x=>!x.maus).lastIndexOf(true); S.memorial.splice(j<0?MEM_MAX:j,1); }   /* a mausoleum's name is never dropped */
   notify(m.nick+' '+theName(mName(m)).replace(/^The /,'the ')+' is written into the Memorial.','');
   return e;
 }
@@ -139,7 +148,7 @@ function memorialFix(g){   // normalizeSave: keep well-formed entries only
   const num=(v,d)=>typeof v==='number'&&isFinite(v)?v:d, ok=e=>e&&typeof e==='object'&&typeof e.nick==='string'&&typeof e.name==='string';
   g.memorial=Array.isArray(g.memorial)?g.memorial.filter(ok).slice(0,MEM_MAX).map(e=>{ const o={nick:cleanNick(e.nick)||'Nameless',kind:typeof e.kind==='string'?e.kind:e.name,name:e.name,rk:clamp(Math.floor(num(e.rk,0)),0,RANKS.length-1),
     lvl:Math.max(1,Math.floor(num(e.lvl,1))),st:clamp(Math.floor(num(e.st,0)),0,STAGE_MAX),tr:Array.isArray(e.tr)?e.tr.filter(t=>TRAITS[t]):[],role:ROLES[e.role]?e.role:'striker',day:Math.max(1,Math.floor(num(e.day,1)))};
-    if(e.boss) o.boss=1; if(e.elite) o.elite=1; for(const k of ['g','raid']) if(RK[e[k]]) o[k]=e[k]; for(const k of ['f','rd']) if(num(e[k],0)>0) o[k]=Math.floor(e[k]); return o; }):[];
+    if(e.boss) o.boss=1; if(e.elite) o.elite=1; for(const k of ['g','raid']) if(RK[e[k]]) o[k]=e[k]; for(const k of ['f','rd']) if(num(e[k],0)>0) o[k]=Math.floor(e[k]); if(typeof e.bd==='string'&&cleanNick(e.bd)) o.bd=cleanNick(e.bd); if(e.maus) o.maus=1; return o; }):[];
   g.honor=g.honor&&typeof g.honor==='object'&&typeof g.honor.day==='number'?{day:g.honor.day,nick:cleanNick(g.honor.nick)||'Nameless'}:null;
 }
 
@@ -187,20 +196,20 @@ function loadoutsFix(g){   // normalizeSave: shape only; ids that no longer exis
 const workOpen=()=>!!S&&(S.player.lvl>=6||(S.dust||0)>0);
 
 // ===== BOUNTY BOARD =====
-// Three contracts a day. Progress counts from the moment the board goes up; finished contracts are claimed in town.
-// Unclaimed contracts simply lapse at dawn (no penalty).
+// The board banks up to BOUNTY_N contracts: it starts full, and each dawn one new contract is posted while fewer are up (claimed ones
+// leave at dawn). Contracts never expire and leaving one costs nothing. Progress counts from the moment a contract goes up; claim in town.
 const BOUNTY_N=3, BOUNTY_GATE=.3;   // bounty gold and bone dust x(1 + 0.3 per gate past the Rat Warren that your level opens): day-1 pay unchanged, x2.5 once the Throne of Ash opens
 const BOUNTIES={
-  kills:   {t:n=>'Defeat '+n+' foes in one day',       n:50,w:1, key:null},
+  kills:   {t:n=>'Defeat '+n+' foes',                   n:50,w:1, key:null},
   elites:  {t:n=>'Defeat '+n+' elites',                n:4, w:2, key:'elites'},
-  raise:   {t:n=>'Raise '+n+' of the dead in one day', n:6, w:1, key:'raised'},
+  raise:   {t:n=>'Raise '+n+' of the dead',             n:6, w:1, key:'raised'},
   rooms:   {t:n=>'Win '+n+' rooms or floors',          n:12, w:2, key:'rooms'},
   bosses:  {t:n=>'Defeat '+n+' bosses or wardens',     n:3, w:2, key:'bosses'},
   cursed:  {t:()=>'Clear today\'s cursed gate',        n:1, w:2, key:'cursed',  ok:()=>dayMod().gi>=0},
   flawless:{t:()=>'Clear a gate without losing HP',    n:1, w:1, key:'flawless',ok:()=>!!(S.ti&&S.ti.clr&&Object.keys(S.ti.clr).length)},
   arch:    {t:n=>'Go through '+n+' bloodied arches',   n:3, w:2, key:'archs'},
   orders:  {t:n=>'Give your army '+n+' orders',        n:8, w:1, key:'commands',ok:()=>S.army.length>0},
-  floors:  {t:n=>'Climb '+n+' floors of the Hell Tower',n:6,w:2, key:'floors',  ok:()=>S.player.lvl>=TW.unlock},
+  floors:  {t:n=>'Climb '+n+' floors of the Hell Tower',n:6,w:2, key:'floors',  ok:()=>towerOpen()},
   poison:  {t:n=>'Poison foes '+n+' times',            n:30,w:1, key:'poisoned',ok:()=>S.army.some(m=>hasTrait(m,'venom'))}
 };
 const BOUNTY_RW=['gold','gold','gold','salt','dust','dust','gear'];
@@ -212,16 +221,17 @@ function bountyReward(kind){
   if(kind==='gear') return {gear:1};
   return {g:g(60+lv*30)};
 }
-function makeBounties(){
-  let pool=Object.keys(BOUNTIES).filter(k=>!BOUNTIES[k].ok||BOUNTIES[k].ok()); const list=[];
-  while(list.length<BOUNTY_N&&pool.length){
+function makeBounties(add){   // add: post that many new contracts onto the banked ones (dawn); none: a fresh, full board
+  const list=add==null?[]:S.bounty.list.filter(b=>!b.claimed), max=add==null?BOUNTY_N:Math.min(BOUNTY_N,list.length+add);
+  let pool=Object.keys(BOUNTIES).filter(k=>(!BOUNTIES[k].ok||BOUNTIES[k].ok())&&!list.some(b=>b.id===k));
+  while(list.length<max&&pool.length){
     let x=Math.random()*pool.reduce((s,k)=>s+BOUNTIES[k].w,0), id=pool[0];
     for(const k of pool){ x-=BOUNTIES[k].w; if(x<=0){ id=k; break; } }
     pool=pool.filter(k=>k!==id); list.push({id,n:BOUNTIES[id].n,base:bountyVal(id),rw:bountyReward(pick(BOUNTY_RW)),claimed:false});
   }
   S.bounty={day:S.day,list};
 }
-function bounties(){ if(!S.bounty||S.bounty.day!==S.day) makeBounties(); return S.bounty.list; }
+function bounties(){ if(!S.bounty||!Array.isArray(S.bounty.list)) makeBounties(); else if(S.bounty.day!==S.day) makeBounties(Math.max(0,S.day-S.bounty.day)); return S.bounty.list; }
 const bountyGot=b=>Math.max(0,bountyVal(b.id)-b.base);
 const bountyDone=b=>bountyGot(b)>=b.n;
 const topGate=()=>{ let g=0; for(let i=0;i<RK.length;i++) if(S.player.lvl>=RK[i].unlock) g=i; return g; };
@@ -246,7 +256,9 @@ const ULTS={
   rise:  {name:'Unholy Resurrection',  desc:'Every downed minion rises at full HP and the rest heal fully; you heal 40% of your max HP, and your army deals 50% more damage for 3 turns.'},
   prison:{name:'Soul Prison',          desc:'Every foe is frozen for 2 turns (bosses 1), breaking any charging move, and takes 30% more damage for 3 turns.'}
 };
-function gainSoul(){ const r=S.run; if(!r) return false; r.souls=r.souls||0; if(r.souls>=SOUL_MAX) return false; r.souls++; return true; }
+function gainSoul(){ const r=S.run; if(!r) return false; r.souls=r.souls||0; if(r.souls>=SOUL_MAX) return false; r.souls++; r.soulT=(r.soulT||0)+1;   // soulT: souls harvested this run, for the lifetime count
+  if(hasMod('soulwell','a')) S.player.mana=Math.min(pMana(),S.player.mana+OVERFLOW_MANA);   // Overflow
+  return true; }
 const canUlt=()=>S.mode==='battle'&&!!S.run&&S.player.lvl>=ULT_LV&&!!ULTS[S.player.ult]&&(S.run.souls||0)>=SOUL_MAX;
 function chooseUlt(id){ if(S.mode!=='town'||!ULTS[id]||S.player.lvl<ULT_LV) return false; S.player.ult=id; return true; }
 function useUlt(t){
@@ -262,18 +274,25 @@ function useUlt(t){
 // ===== MINION FUSION =====
 // Two minions of the same role become one: the stronger survives, gains a level (never past your level + 2), keeps the
 // higher evolution stage and takes the other's traits (up to three). A minion can take at most two fusions in all. The other's gear goes back to your bag.
-const FUSE_LV=1, FUSE_TRAITS=3, FUSE_MAX=2;
-const fuseCost=(a,b)=>Math.round((a.lvl+b.lvl)*60);
+const FUSE_LV=1, FUSE_TRAITS=3, FUSE_MAX=2, FUSE_GOLD=60;   // FUSE_GOLD: gold per level of the two minions together
+const fuseCost=(a,b)=>Math.round((a.lvl+b.lvl)*FUSE_GOLD);
 const canFuse=(a,b)=>!!a&&!!b&&a!==b&&a.role===b.role&&(a.fused||0)+(b.fused||0)<FUSE_MAX;   // a minion takes at most two fusions in all
+const fuseOrder=(a,b)=>b.lvl>a.lvl||(b.lvl===a.lvl&&(b.stage||0)>(a.stage||0))?[b,a]:[a,b];   // [survivor, consumed]
+function fuseTraits(k,x){   // the survivor's traits, then the other's it lacks; recipe pairs become their compound; then the cap
+  const all=(k.traits||[]).slice(); for(const t of x.traits||[]) if(!all.includes(t)&&(t!=='commander'||canLead(k))) all.push(t);   // only an elite or boss keeps Commander
+  for(const [c,p,q] of COMPOUNDS){ const i=all.indexOf(p), j=all.indexOf(q); if(i<0||j<0||all.includes(c)) continue; all[Math.min(i,j)]=c; all.splice(Math.max(i,j),1); }
+  const tr=all.slice(0,Math.max(FUSE_TRAITS,(k.traits||[]).length));   // the survivor never loses a trait it had
+  return {tr,made:tr.filter(t=>COMPOUND[t]&&!(k.traits||[]).includes(t)&&!(x.traits||[]).includes(t))};
+}
+const compoundFound=c=>!!(S.ti&&Array.isArray(S.ti.compounds)&&S.ti.compounds.includes(c));
 function fuse(ua,ub){
   if(S.mode!=='town') return null;
   const a=findMinion(ua), b=findMinion(ub); if(!canFuse(a,b)) return null;   // army or Reserve
   const c=fuseCost(a,b); if(S.gold<c) return null;
-  const bFirst=b.lvl>a.lvl||(b.lvl===a.lvl&&(b.stage||0)>(a.stage||0)), k=bFirst?b:a, x=bFirst?a:b;
+  const [k,x]=fuseOrder(a,b), f=fuseTraits(k,x);
   S.gold-=c; returnGear(x);
-  const tr=(k.traits||[]).slice(); for(const t of x.traits||[]) if(!tr.includes(t)&&tr.length<FUSE_TRAITS&&(t!=='commander'||canLead(k))) tr.push(t);   // only an elite or boss keeps Commander
-  k.traits=tr; k.stage=Math.max(k.stage||0,x.stage||0); k.lvl=Math.min(S.player.lvl+2,Math.max(k.lvl,x.lvl)+FUSE_LV); k.xp=0; k.fused=(k.fused||0)+(x.fused||0)+1;
-  S.army=S.army.filter(m=>m!==x); if(S.reserve) S.reserve=S.reserve.filter(m=>m!==x); checkEvolve(k); syncMinion(k); k.hp=k.maxHp; tally('fused'); sfx('raise'); return k;
+  k.traits=f.tr; S.ti=S.ti||{}; const got=S.ti.compounds=S.ti.compounds||[]; for(const t of f.made) if(!got.includes(t)) got.push(t); k.stage=Math.max(k.stage||0,x.stage||0); k.lvl=Math.min(S.player.lvl+2,Math.max(k.lvl,x.lvl)+FUSE_LV); k.xp=0; k.fused=(k.fused||0)+(x.fused||0)+1;
+  S.army=S.army.filter(m=>m!==x); if(S.reserve) S.reserve=S.reserve.filter(m=>m!==x); bondsClean(); checkEvolve(k); syncMinion(k); k.hp=k.maxHp; tally('fused'); recBest('ftr',k.traits.length); recArmy(); sfx('raise'); return k;
 }
 
 // ===== ITEM LOCKS AND ARMY CARE =====
@@ -302,6 +321,17 @@ function salvageJunk(){ if(S.mode!=='town') return null; const list=S.inv.filter
 const lineMax=it=>(ROLL_LINES[ITEM[it.id].tier]||[0])[0];
 const enchCost=it=>Math.max(1,Math.round((3+ITEM[it.id].tier*4)*(1-B_FORGE*bl('forge'))));
 function rollLine(it,skip){ const d=ITEM[it.id], k=pick(Object.keys(ROLL_KEYS).filter(x=>!skip.includes(x))); return [k,Math.max(1,Math.round(ROLL_KEYS[k]*TM[d.set]*rnd(.5,1)))]; }
+// Tempering (same workshop): a bonus line moves TEMPER_STEP of the way to its highest roll (at least +1). Gold, growing x TEMPER_GROW for
+// every temper this piece has had (it.tp; re-rolls and reforges keep it). Uniques cannot be tempered.
+const TEMPER_GOLD=150, TEMPER_STEP=.25, TEMPER_GROW=1.5;   // TEMPER_GOLD 60->150 (2026-11-20): the full bot ran out of lines to temper with ~35k in hand; it is a capped sink (three slots, uniques excluded)
+const rollMax=(it,k)=>Math.max(1,Math.round(ROLL_KEYS[k]*TM[ITEM[it.id].set]));   // rollLine's best roll
+const temperCost=it=>{ const d=ITEM[it.id]; return Math.round(TEMPER_GOLD*(d.tier+1)*(1+.5*d.set)*Math.pow(TEMPER_GROW,it.tp||0)); };
+function temperTo(it,i){ const l=it&&!ITEM[it.id].uq&&it.ro&&it.ro[i]; if(!l) return null; const mx=rollMax(it,l[0]); return l[1]>=mx?null:Math.min(mx,l[1]+Math.max(1,Math.ceil((mx-l[1])*TEMPER_STEP))); }
+function temper(u,i){
+  const it=findItem(u); if(!it||S.mode!=='town'||!workOpen()) return false;
+  const v=temperTo(it,i), c=temperCost(it); if(v==null||S.gold<c) return false;
+  S.gold-=c; vitals(()=>{ const r=it.ro.slice(); r[i]=[r[i][0],v]; it.ro=r; }); it.tp=(it.tp||0)+1; tally('tempered'); sfx('level'); return true;
+}
 function enchant(u,line){   // line < 0 adds a line; otherwise re-rolls that line
   const it=findItem(u); if(!it||S.mode!=='town'||ITEM[it.id].uq) return false;
   const c=enchCost(it), ro=it.ro||[]; if((S.dust||0)<c) return false;
@@ -323,13 +353,19 @@ function enchant(u,line){   // line < 0 adds a line; otherwise re-rolls that lin
 // instead (at most SIEGE_FINE_MAX clears' worth). Nothing is ever deleted. A siege in progress is kept in the save as pending:
 // reloading starts it again from wave 1.
 // S.siege = {next: day the siege comes at dusk (0: not scheduled), pending: true from nightfall until it is fought, dmg: damaged
-// building key or null, warned: last day a warning was given}. Fought and won are tallies (S.ti.sieges, S.ti.siegeWins), kept through New Game+.
+// building key or null, warned: last day a warning was given, guard and wall: tonight's choices on the intro screen (see below)}.
+// Guard and wall (intro screen, that night only): one built building is guarded, so a defeat burns one of the others (none left: the fine);
+// up to SIEGE_WALL Reserve minions hold the wall. They fight this siege in the army's front row (m.wall: no army place, their Reserve
+// places stay theirs) and go back to the Reserve when it ends, or when the game is saved mid-siege. Fought and won are tallies (S.ti.sieges, S.ti.siegeWins), kept through New Game+.
 // Tuned 2026-11-19 (full bot, 40 bots x 100 days): at x1.0 foes the bot held 97% and gained 1.4 levels by day 100; at HP x1.5, attack x1.5
 // and 60% XP from the living it holds 83% (seed 7700) and 87% (9100), +0.5/+0.4 levels over "off":["siege"], gates within 2 points.
 // Pay lowered the same day for the full heat:0 guard rail: XP from the living 60% -> 40%, gold 2 -> 1.5 clears (held 85% heat:0, 83% default).
-const SIEGE_BUILT=2, SIEGE_GAP=[7,10], SIEGE_WAVES=3, SIEGE_LV=1, SIEGE_HP=1.5, SIEGE_ATK=1.5, SIEGE_XP=.4, SIEGE_BOSS_LV=1, SIEGE_MOVE='decree',
+// HP x1.5 -> x1.4 the same day after the gate retune (harder S foes): held 79-81% -> 84% (seed 7700) and 81% (9100).
+// HP x1.4 -> x1.7, attack x1.5 -> x1.8 the same day after the stat rebalance (minions hit harder): held 91% -> 85% on both seeds.
+// HP x1.7 -> x2.4, attack x1.8 -> x2.5 the same day after rows, foe intents, bonds and mausoleums: held 91% -> 86% (7700) and 84% (9100).
+const SIEGE_BUILT=2, SIEGE_GAP=[7,10], SIEGE_WAVES=3, SIEGE_LV=1, SIEGE_HP=2.4, SIEGE_ATK=2.5, SIEGE_XP=.4, SIEGE_BOSS_LV=1, SIEGE_MOVE='decree',
   SIEGE_GOLD=1.5, SIEGE_DUST=1, SIEGE_DROP=.5, SIEGE_REPAIR=.5, SIEGE_FINE=.1, SIEGE_FINE_MAX=1,
-  SIEGE_CRYPT=.05, SIEGE_OSS_GAP=2, SIEGE_ALT=.10, SIEGE_FORGE=.05;
+  SIEGE_CRYPT=.05, SIEGE_OSS_GAP=2, SIEGE_ALT=.10, SIEGE_FORGE=.05, SIEGE_WALL=2;
 const SIEGE_FOES={vanguard:['Militia Spearman',1.3,.85],striker:['Crossbowman',.9,1.25],mender:['Chaplain',.8,.8],reaper:['Witch-hunter',1.1,1.2]};   // [name, hp factor, atk factor]
 const SIEGE_BOSS='Inquisitor Captain';
 const SIEGE_WAVE=[['vanguard','vanguard','striker'],['vanguard','striker','mender','reaper'],['boss','vanguard','striker','mender']];   // the witch-hunter is always an elite
@@ -357,8 +393,17 @@ function siegeTick(){   // dawn, load and building: schedule the next siege, and
 function siegeHpMul(m){ return S&&S.run&&S.run.siege&&!m.thrall?1+SIEGE_CRYPT*bl('crypt'):1; }   // the Crypt's perk, for the length of the siege
 function siegeArmorK(){ return 1-SIEGE_FORGE*bl('forge'); }
 const siegePerks=()=>Object.keys(BUILD).filter(k=>SIEGE_PERK[k]&&bl(k)>0).map(k=>({k,name:BUILD[k].name,t:SIEGE_PERK[k].t(bl(k))}));
+const guardable=()=>Object.keys(BUILD).filter(k=>blRaw(k)>0&&sg().dmg!==k);
+const guardDefault=()=>guardable().reduce((a,k)=>a&&blRaw(a)>=blRaw(k)?a:k,null);   // the highest-level building standing
+const wallPool=()=>(S.reserve||[]).slice();   // raiders and minions waiting at the gate are not in the Reserve
+function siegeGuard(k){ if(S.mode!=='siege'||!guardable().includes(k)) return false; sg().guard=k; return true; }
+function siegeWallPick(uid){   // toggle a Reserve minion for the wall, at most SIEGE_WALL
+  if(S.mode!=='siege') return false; const g=sg(), w=g.wall=(g.wall||[]).filter(u=>wallPool().some(m=>m.uid===u));
+  if(w.includes(uid)){ g.wall=w.filter(u=>u!==uid); return true; }
+  if(w.length>=SIEGE_WALL||!wallPool().some(m=>m.uid===uid)) return false; w.push(uid); return true;
+}
 function startSiege(){   // nightfall on a siege day: the intro screen. Dawn waits until it is fought.
-  const g=sg(); g.pending=true; S.mode='siege'; S.run=null; S.notices=[]; sfx('warn');
+  const g=sg(); g.pending=true; if(!guardable().includes(g.guard)) g.guard=guardDefault(); if(!Array.isArray(g.wall)) g.wall=[]; S.mode='siege'; S.run=null; S.notices=[]; sfx('warn');
 }
 function siegeFoe(role,lvl,di,boss,elite){
   const t=boss?[SIEGE_BOSS,1,1]:SIEGE_FOES[role], s=mobStats(di,lvl,t[1],t[2],boss,elite);
@@ -374,11 +419,12 @@ function spawnSiege(){   // one wave of the living
   if(r.room&&bl('ossuary')&&r.fallen&&r.fallen.length){ const c=r.fallen.splice(Math.floor(Math.random()*r.fallen.length),1)[0], lv=Math.max(1,c.lvl-SIEGE_OSS_GAP*(BUILD_MAX+1-bl('ossuary')));
     const m={uid:++S.uid,armed:false,eq:null,nick:freeNick(),name:c.name,kind:c.base,role:c.role,rankI:c.rankI,lvl:lv,lvl0:lv,xp:0,boss:false,elite:false,hf:c.hf,af:c.af,hp:1,maxHp:null,atk:0,stage:0,traits:[],thrall:true};
     syncMinion(m); m.hp=m.maxHp; S.army.push(m); log('The Ossuary stirs: '+m.nick+', once '+withArticle(c.base)+', rises to fight for you tonight.','ok'); }
-  if(liveFoes().some(e=>e.boss)) fxe('boss',list[0]);
+  planFoes(); if(liveFoes().some(e=>e.boss)) fxe('boss',list[0]);
 }
 function beginSiege(){
   if(S.mode!=='siege') return false; const di=siegeGate();
   S.run={siege:1,di,room:0,rooms:SIEGE_WAVES,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:null,heat:0,fallen:[]};
+  const g=sg(), w=wallPool().filter(m=>(g.wall||[]).includes(m.uid)).slice(0,SIEGE_WALL); S.reserve=(S.reserve||[]).filter(m=>!w.includes(m)); w.forEach(m=>{ m.wall=true; S.army.push(m); });
   S.mode='battle'; syncArmy(); S.army.forEach(m=>{ m.hp=m.maxHp; }); titheSouls();
   spawnSiege(); return true;
 }
@@ -387,7 +433,7 @@ function nextWave(){   // between waves: the usual between-room heal, then the n
   r.fallen=(r.fallen||[]).concat(r.corpses.filter(c=>!c.boss)); r.corpses=[];
   P.hp=Math.min(pMax(),P.hp+Math.round(pMax()*DIFF.heal)); P.mana=Math.min(pMana(),P.mana+Math.round(pMana()*DIFF.mana)); P.shield=0;
   S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); m.hp=Math.min(m.maxHp,m.hp+Math.round(m.maxHp*DIFF.mheal)); });
-  r.cd={}; r.frenzy=0; r.silence=0; r.event=null; r.doors=null; allies().forEach(clearDots); r.room++; r.roomKind='fight';
+  r.cd={}; r.frenzy=0; r.silence=0; r.event=null; r.doors=null; allies().forEach(clearAll); r.room++; r.roomKind='fight';
   const ev=r.events; spawnSiege(); for(const x of ev) log(x.m,x.c==='bad'?'bad':'ok');
 }
 const siegeGoldPay=()=>{ const di=siegeGate(), lv=RK[di].lv+1; return Math.round(SIEGE_GOLD*20*(1+lv*.5)*(1+di*.5)*ngpReward()); };   // a clear is about 20 kills' worth of coin at the gate's level
@@ -398,24 +444,26 @@ function siegeWon(r){   // the last wave falls: pay, and the raise screen for it
   if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name);
   r.siegePay={g,d,item:it?ITEM[id].name:null};
   r.events.push({m:'The living break and run. The town will remember this night. +'+g+' gold, +'+d+' bone dust'+(it?' and '+withArticle(ITEM[id].name)+' from the dead':'')+'.',c:'ok'});
+  if(sg().guard&&BUILD[sg().guard]) r.events.push({m:'The '+BUILD[sg().guard].name+' stood under your guard all night.',c:'ok'});
   moment('The necropolis holds','gold'); return Math.round(RK[di].clear*SIEGE_XP);
 }
 function siegeLost(fled){   // fell or fled: the town pays. Nothing is deleted; a damaged building is repaired in town.
   const g=sg(), r=S.run; let m;
-  const ks=Object.keys(BUILD).filter(x=>blRaw(x)>0);
+  const gd=g.guard&&blRaw(g.guard)>0&&g.dmg!==g.guard?g.guard:null, ks=Object.keys(BUILD).filter(x=>blRaw(x)>0&&x!==gd), why=fled?'You left the walls to the living. ':'The living broke through. ';
   if(!g.dmg&&ks.length){ const k=pick(ks); vitals(()=>{ g.dmg=k; }); if(k==='crypt') siegeOverflow();
-    m=(fled?'You left the walls to the living. ':'The living broke through. ')+'They fired the '+BUILD[k].name+': its effects are lost until you repair it in town for '+repairCost()+' gold.'; }
-  else { const f=Math.min(Math.round(S.gold*SIEGE_FINE),siegeGoldPay()*SIEGE_FINE_MAX/SIEGE_GOLD); S.gold-=f;
-    m=(fled?'You left the walls to the living. ':'The living broke through. ')+'With the '+BUILD[g.dmg].name+' still in ruins they took what they could carry instead: '+f+' gold.'; }
+    m=why+'They fired the '+BUILD[k].name+': its effects are lost until you repair it in town for '+repairCost()+' gold.'+(gd?' The '+BUILD[gd].name+' you guarded was spared.':''); }
+  else { const f=Math.round(Math.min(S.gold*SIEGE_FINE,siegeGoldPay()*SIEGE_FINE_MAX/SIEGE_GOLD)); S.gold-=f;
+    m=why+(g.dmg?'With the '+BUILD[g.dmg].name+' still in ruins they took what they could carry instead: ':'With the '+BUILD[gd].name+' under guard they took what they could carry instead: ')+f+' gold.'; }
   tally('sieges'); tally('siegeLosses'); g.pending=false; g.next=0; if(r){ r.siegeLoss=m; r.lost=true; } return m;
 }
-function siegeOverflow(){ const n=S.army.filter(m=>!m.thrall).length-slots();   /* only those at home: raiders' places sort themselves out at dawn */ if(n<=0) return; const out=S.army.filter(m=>!m.thrall).slice(-n); S.army=S.army.filter(m=>!out.includes(m)); const w=homeLine(out.map(placeMinion)); if(w) notify(('The Crypt burned: '+w).trim(),'bad'); }
+function siegeOverflow(){ const n=S.army.filter(m=>!m.thrall&&!m.wall).length-slots();   /* only those at home: raiders' places sort themselves out at dawn */ if(n<=0) return; const out=S.army.filter(m=>!m.thrall&&!m.wall).slice(-n); S.army=S.army.filter(m=>!out.includes(m)); const w=homeLine(out.map(placeMinion)); if(w) notify(('The Crypt burned: '+w).trim(),'bad'); }
 function siegeEnd(){   // back from the walls (won, fell or fled): thralls crumble, the record is written, then dawn
-  const r=S.run, g=sg(); S.army=S.army.filter(m=>!m.thrall); S.mode='town';
-  if(r){ const res=r.cleared?'cleared':r.fled?'fled':'fell'; recordRun(S,r,res); recRun(r); }
-  S.run=null; g.pending=false; g.next=0; syncArmy();
-  const P=S.player; P.hp=pMax(); P.mana=pMana(); P.shield=0; allies().forEach(clearDots); S.army.forEach(m=>m.hp=m.maxHp);
+  const r=S.run, g=sg(), w=S.army.filter(m=>m.wall); S.army=S.army.filter(m=>!m.thrall&&!m.wall); S.mode='town';
+  if(r){ const res=r.cleared?'cleared':r.fled?'fled':'fell'; recordRun(S,r,res); recRun(r,res); }
+  S.run=null; g.pending=false; g.next=0; delete g.guard; delete g.wall; wallHome(S,w); syncArmy();
+  const P=S.player; P.hp=pMax(); P.mana=pMana(); P.shield=0; allies().forEach(clearAll); S.army.forEach(m=>m.hp=m.maxHp);
   closeDay(); if(r&&r.siegeLoss) notify(r.siegeLoss,'bad'); else if(r&&r.siegePay) notify('Last night the necropolis held against the living: +'+r.siegePay.g+' gold, +'+r.siegePay.d+' bone dust.','ok');
 }
+function wallHome(s,w){ for(const m of w){ delete m.wall; if(s===S) benchRest(m); else { delete m.dots; delete m.st; m.hp=m.maxHp; } (s.reserve=s.reserve||[]).push(m); } }   // the wall's minions back to the Reserve (s: the live game, or a save copy)
 const repairCost=()=>{ const k=sg().dmg; if(!k) return 0; const lv=blRaw(k); return Math.round(BUILD_COST[Math.max(0,lv-1-(BUILD[k].step||0))][0]*SIEGE_REPAIR); };
 function repairBuilding(){ const g=sg(), c=repairCost(); if(S.mode!=='town'||!g.dmg||S.gold<c) return false; S.gold-=c; vitals(()=>{ g.dmg=null; }); sfx('level'); return true; }

@@ -13,7 +13,7 @@ test('Affixes: Splitting, Vampiric, Enraged and Warded do what they say',()=>{
   const sp=foe({elite:true,aff:['splitting'],hp:100,atk:10}); arena([sp,foe()]); sp.hp=0; checkDeaths(); eq(S.run.enemies.length,4);
   const kids=S.run.enemies.slice(2); kids.forEach(k=>{ eq(k.maxHp,35); eq(k.atk,5); ok(k.split&&!k.elite); }); kids.forEach(k=>k.hp=0); checkDeaths(); eq(S.run.enemies.length,4,'copies do not split again'); eq(S.run.corpses.length,3);
   flee(); const v=foe({aff:['vampiric'],atk:100,hp:1e5}); arena([v]); v.hp=v.maxHp/2; fix(.5); act('strike'); eq(S.run.fx[v.id].h,40,'heals 40% of a 100 hit');
-  flee(); P.hp=pMax(); const en=foe({aff:['enraged'],atk:100,hp:1e5}); arena([en]); en.hp=en.maxHp*.4; const h=P.hp; act('strike'); eq(h-P.hp,160,'60% harder below half');
+  flee(); P.hp=pMax(); const en=foe({aff:['enraged'],atk:100,hp:1e5}); arena([en]); en.hp=en.maxHp*.4; const h=P.hp; act('strike'); eq(h-P.hp,Math.round(160*(1-pDr()/100)),'60% harder below half (less your damage reduction)');
   const w=foe({aff:['warded']}); addDot(w,'poison',10,3); eq(w.dots,undefined); const m=mkMinion({traits:['warded']}); addDot(m,'bleed',10,2); eq(m.dots,undefined); const o=foe(); addDot(o,'burn',10,2); ok(o.dots&&o.dots.burn);
 });
 test('Affixes: a Warded minion hit by a crit does not bleed, and the log does not claim it does',()=>{
@@ -29,6 +29,11 @@ test('Affixes: a raised elite keeps one of its affixes as a trait, and cards sho
   const m=S.army[0]; ok(m.traits.includes('leech')&&m.traits.includes('thick'),m.traits.join());
   returnTown(); arena([foe({elite:true,aff:['enraged','warded']})]); const h=renderAll('elite'); ok(/class="aff"[^>]*>Enraged/.test(h)&&/Warded/.test(h));
   eq(corpseOf(foe({aff:['warded']})).aff[0],'warded'); eq(corpseOf(foe()).aff,undefined);
+});
+
+test('Affixes: Plaguebearer, Sundering, Hexing and Swift; raised, each becomes its own trait',()=>{
+  ['plague','sundering','hexing','swift'].forEach(a=>{ ok(AFFIX_IDS.includes(a),a); ok(AFFIX_TRAITS.includes(AFFIX[a].trait),a); });
+  const c=corpse({elite:true,aff:['plague']}); raiseScene([c],20); fix(0); tryRaise(c.id); ok(hasTrait(S.army[S.army.length-1],'necrotic'));
 });
 
 })();

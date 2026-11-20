@@ -8,12 +8,12 @@ const fill=()=>{ while(S.army.length<slots()) mkMinion({lvl:2}); };
 test('Reserve: 6 places, +2 per Crypt level, and nothing before the Town tab opens',()=>{
   eq([RESERVE_BASE,RESERVE_CRYPT].join(),'6,2'); eq(reserveMax(),6); S.build={crypt:1}; eq(reserveMax(),8); S.build={crypt:BUILD_MAX}; eq(reserveMax(),12); S.build={};
   ok(!townOpen()&&!reserveOpen(),'level 1, nothing cleared'); const a=mkMinion({}); S.mode='town'; ok(!toReserve(a.uid),'locked'); eq(S.reserve.length,0);
-  ui.tab='gates'; let h=renderAll('locked'); ok(!/Reserve \d/.test(h)&&!/data-a="tores"/.test(h),'no Reserve on screen yet');
-  setLvl(4); ok(reserveOpen()); h=renderAll('open'); ok(/Reserve 0\/6/.test(h),'Reserve 0/6 under the army'); ok(h.includes('data-a="tores" data-k="'+a.uid+'"'),'To reserve on the army minion');
+  ui.tab='army'; let h=renderAll('locked'); ok(!/Reserve \d/.test(h)&&!/data-a="tores"/.test(h),'no Reserve on screen yet');
+  setLvl(4); ok(!reserveOpen(),'level alone opens nothing'); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1}}); ok(reserveOpen()); h=renderAll('open'); ok(/Reserve 0\/6/.test(h),'Reserve 0/6 under the army'); ok(h.includes('data-a="tores" data-k="'+a.uid+'"'),'To reserve on the army minion');
 });
 
 test('Reserve: moves and swaps are free and instant in town, refused in a run, and both limits hold',()=>{
-  setLvl(4); S.mode='town'; const a=mkMinion({lvl:3}), b=mkMinion({lvl:4}); const g=S.gold;
+  setLvl(4); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1}}); S.mode='town'; const a=mkMinion({lvl:3}), b=mkMinion({lvl:4}); const g=S.gold;
   ok(toReserve(a.uid)); eq(S.army.length,1); eq(S.reserve[0],a); eq(S.gold,g,'free');
   ok(toArmy(a.uid)); eq(S.reserve.length,0); ok(S.army.includes(a)); ok(toReserve(b.uid));
   ok(swapReserve(a.uid,b.uid),'one press'); ok(S.army.includes(b)&&S.reserve.includes(a)); ok(!swapReserve(a.uid,b.uid),'a is no longer in the army');
@@ -32,7 +32,7 @@ test('Reserve: benched minions take no part in a fight, take no damage, earn no 
 });
 
 test('Reserve: a full army may raise straight to the Reserve, with the real odds and mana cost',()=>{
-  setLvl(4); fill(); const c=raiseScene([corpse({}),corpse({})],4); c.lastXp=0; S.player.mana=100; const cost=raiseCost(c.corpses[0]);
+  setLvl(4); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1}}); fill(); const c=raiseScene([corpse({}),corpse({})],4); c.lastXp=0; S.player.mana=100; const cost=raiseCost(c.corpses[0]);
   let h=renderAll('raise full'); ok(/data-a="raiseres"/.test(h),'the option'); ok(h.includes('Raise to the Reserve &middot; '+raiseChance(c.corpses[0])+'% &middot; '+cost+' mana'),'odds and cost'); ok(/The Reserve has 6 free places/.test(h));
   tryRaise(c.corpses[0].id); eq(c.corpses[0].tried,false,'a plain raise is still refused');
   fix(0); const n=S.army.length, m0=S.player.mana; tryRaise(c.corpses[0].id,false,true); eq(S.army.length,n); eq(S.reserve.length,1); eq(S.player.mana,m0-cost); eq(S.reserve[0].hp,S.reserve[0].maxHp);
@@ -66,7 +66,7 @@ test('Reserve: raiders keep their places overnight; with no place left (an old s
   fix(0); endDay(); eq(S.reserve.length,3,'army full: home to the Reserve'); ok(S.notices.some(n=>/3 went to the Reserve: your army is full/.test(n.m)));
   S.reserve=[]; S.raids=[{di:1,day:S.day,units:sq}];
   while(S.reserve.length<reserveMax()) bench({}); fix(0); endDay(); eq((S.waiting||[]).length,3,'both full: they wait at the gate'); ok(S.notices.some(n=>/3 wait at the gate/.test(n.m)));
-  ui.tab='gates'; let h=renderAll('gate'); ok(/Waiting/.test(h)&&/data-a="gatearmy"/.test(h)&&/data-a="gateres"/.test(h),'release or move choices');
+  ui.tab='army'; let h=renderAll('gate'); ok(/Waiting/.test(h)&&/data-a="gatearmy"/.test(h)&&/data-a="gateres"/.test(h),'release or move choices');
   ok(!fromGate(sq[0].uid,'army'),'no room yet'); release(S.army[0].uid); ok(fromGate(sq[0].uid,'army')); ok(S.army.includes(sq[0]));
   ui.confirm=null; ACTIONS.release(String(sq[1].uid)); ok(S.waiting.includes(sq[1]),'two presses'); ACTIONS.release(String(sq[1].uid)); ok(!S.waiting.includes(sq[1]),'let go');
   S.reserve.pop(); fix(.5); endDay(); eq(S.waiting.length,0,'dawn places whoever still waits'); ok(S.reserve.includes(sq[2])); invariants('gate');
@@ -91,7 +91,7 @@ test('Reserve: saves keep it; old saves load with an empty one; an over-limit Re
 });
 
 test('Reserve: the screens, the Codex, How to play, the tip and Turkish',()=>{
-  setLvl(4); S.mode='town'; const a=mkMinion({lvl:3}), r=bench({lvl:2}); ui.tab='gates';
+  setLvl(4); S.mode='town'; const a=mkMinion({lvl:3}), r=bench({lvl:2}); ui.tab='army';
   let h=renderAll('cards'); ok(/class="reserve"/.test(h)&&/Reserve 1\/6/.test(h)); ok(h.includes('data-a="toarmy" data-k="'+r.uid+'"')&&h.includes('data-a="swapo" data-k="'+r.uid+'"')&&/aria-label="To army: /.test(h));
   ACTIONS.swapo(String(r.uid)); h=renderAll('swap'); ok(/class="swap-pick"/.test(h)&&h.includes('data-a="swap" data-k="'+a.uid+'|'+r.uid+'"'));
   ACTIONS.swap(a.uid+'|'+r.uid); ok(S.army.includes(r)&&S.reserve.includes(a)&&ui.swap==null);

@@ -24,6 +24,6 @@ test('Curses: cursed runs pay double gold and trophies, more XP and more gear',(
   fix(.5); killLoot(foe({elite:true}),r); eq(r.troph['Tunnel Rat'],4,'elite trophies doubled');
   seed(6); let n=0; for(let i=0;i<4000;i++) n+=rollDrops(foe({base:'Tunnel Rat',role:'striker'})).length; near(n/4000,.28*MOD_DROP,.03);
 });
-test('Curses: the Tower is never cursed',()=>{ setLvl(20); S.ti={clr:{0:1}}; S.mod={day:1,gi:5,id:'horde'}; startTower(1); eq(runMod(),null); eq(S.run.enemies.length,3); });
+test('Curses: the Tower is never cursed',()=>{ setLvl(20); S.ti={clr:{0:1}}; S.mod={day:1,gi:5,id:'horde'}; S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1,2:1}}); startTower(1); eq(runMod(),null); eq(S.run.enemies.length,3); });
 
 })();

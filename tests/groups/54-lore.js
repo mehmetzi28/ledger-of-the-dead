@@ -13,7 +13,7 @@ test('Lore: milestone passages unlock as you reach them, once, and go to the roo
   S.ti.raised=1; S.notices=[]; loreCheck(); ok(S.story.raise1); ok(S.notices.some(n=>n.c==='story'&&/first to answer/.test(n.m)));
   S.notices=[]; loreCheck(); eq(S.notices.length,0,'once');
   arena([foe({hp:0,dead:true})]); fix(.99); roomWon(); setLvl(5); loreCheck(); ok(S.story.lv5); ok(S.run.events.some(e=>e.c==='story'&&/Ink under the nails/.test(e.m)),'inside a run it goes to the room'); flee();
-  setLvl(30); S.mode='town'; S.gold=1e6; swear('dis'); loreCheck(); ok(S.story.oath_dis&&!S.story.oath_hon); ok(S.story.tower0&&S.story.ult1);
+  setLvl(30); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1,2:1}}); S.mode='town'; S.gold=1e6; swear('dis'); loreCheck(); ok(S.story.oath_dis&&!S.story.oath_hon); ok(S.story.tower0&&S.story.ult1);
   S.ti.secret_3=1; loreCheck(); ok(S.story.secret1&&!S.story.secret6);
 });
 test('Lore: more Tower milestones (10, 40, 60, 90) and the Abyss',()=>{

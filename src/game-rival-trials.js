@@ -2,22 +2,24 @@
 // After your third distinct gate clear a rival necromancer opens a ledger of their own. Now and then (about one day in four)
 // they take the most valuable body from a room before you can raise it, and about every two weeks they wait in the boss
 // room of a gate you have cleared, warned a day ahead. Every schedule is a hash of the day: Math.random is never touched.
-// S.rival = {name, met, enc, wins, losses, thefts, page, step, next, gi, warned, done, steal} (wins and losses are yours).
+// S.rival = {name, met, enc, wins, losses, thefts, page, step, next, gi, warned, done, steal, stash} (wins and losses are yours).
+// stash: the bodies they stole, {base,name,role,rankI,hf,af,elite,aff,cd,di,day}, at most RIVAL_STASH; they rise as their followers.
 // New Game+ keeps the name and the record (and a borrowed page); the strength (step) and every date start again.
 const RIVAL_NAMES=['Morwen Ashgrave','Corvin Hale','Isolde Vey','Silas Marrow','Edric Thorne','Agna Wexley'];
 const RIVAL_KIND='Rival Necromancer';
-const RIVAL_AT=3;                       // distinct gate clears before the rival appears
+const RIVAL_AT=4;                       // distinct gate clears before the rival appears (3 before: a rival met then stays)
 const RIVAL_GAP=[12,16], RIVAL_PUSH=7;  // days between challenges (about 14); a win pushes the next one back 7 more
 const RIVAL_THEFT=[2,6];                // days between thefts (about 4)
-const RIVAL_LV=1, RIVAL_HP=6, RIVAL_ATK=2.6, RIVAL_STEP=.1, RIVAL_GOLD=2, RIVAL_ABIL='decree';   // like a secret master: never weaker than you, as strong as the hardest gate open; +10% HP and attack per win (RIVAL_HP/ATK tuned on the full bot: about 68% of challenges won)
+const RIVAL_LV=1, RIVAL_HP=15.4, RIVAL_ATK=6.4, RIVAL_STEP=.1, RIVAL_GOLD=2, RIVAL_ABIL='decree';   // like a secret master: never weaker than you, as strong as the hardest gate open; +10% HP and attack per win (RIVAL_HP/ATK tuned on the full bot: about 68% of challenges won; 6/2.6 -> 6.5/2.8 on 2026-11-19 after the stat rework, -> 12/5.2 the same day after the stat rebalance: Strength and Intelligence now raise minion attack, and the bot won ~82%; -> 12.8/5.4 after rows, intents and bonds: 71%/70% -> 71%/62%; -> 14.8/6.2 on 2026-11-20 after the difficulty rules and evolution marks: 73%/75% -> 64%/71% (13.8/5.4 alone: 68%/78%); -> 15.4/6.4 the same day after the rival fields its stolen bodies: 73%/68% -> 68%/68%)
 const RIVAL_FOLLOW=[2,4];               // raised followers: 2, one more for every two wins, at most 4
+const RIVAL_STASH=6;                    // stolen bodies the rival keeps (the oldest is dropped)
 const RIVAL_FINE=.1;                    // a loss with no page to take: 10% of the gold you carry, at most one clear's worth
 const RIVAL_LINES={hi:'So you are the one the Ledger chose. I wrote my name in a book too. Mine remembers me.',bye:'Keep it, then. For now. I will find a page you cannot hold.',
   phase:'Enough courtesy. Let me show you what my book has kept.',win:'A page for my book. Come and take it back, if you can.'};
-const rivalDef=()=>({name:'',met:0,enc:0,wins:0,losses:0,thefts:0,page:-1,step:0,next:0,gi:-1,warned:0,done:0,steal:0});
+const rivalDef=()=>({name:'',met:0,enc:0,wins:0,losses:0,thefts:0,page:-1,step:0,next:0,gi:-1,warned:0,done:0,steal:0,stash:[]});
 const rv=()=>{ if(!S.rival) S.rival=rivalDef(); return S.rival; };
 const distinctClears=()=>Object.keys((S.ti&&S.ti.clr)||{}).filter(k=>S.ti.clr[k]).length;
-let rivalOpen=()=>!!S&&!!S.player&&distinctClears()>=RIVAL_AT;   // let: the balance bot switches the rival off with "off":["rival"]
+let rivalOpen=()=>!!S&&!!S.player&&(distinctClears()>=RIVAL_AT||(!!(S.rival&&S.rival.met)&&distinctClears()>=3));   // let: the balance bot switches the rival off with "off":["rival"]
 function dayHash(){ let a=0x9e3779b9; for(const x of arguments){ a=Math.imul(a^(x|0),2654435761)>>>0; a^=a>>>15; } a=Math.imul(a,2246822519)>>>0; return (a^(a>>>13))>>>0; }
 const rivalGap=salt=>RIVAL_GAP[0]+dayHash(S.day,salt,T_('rivalWins'),S.ngp||0,11)%(RIVAL_GAP[1]-RIVAL_GAP[0]+1);
 const theftGap=()=>RIVAL_THEFT[0]+dayHash(S.day,T_('rivalThefts'),S.ngp||0,23)%(RIVAL_THEFT[1]-RIVAL_THEFT[0]+1);
@@ -50,7 +52,11 @@ function makeRival(di,lvl){
 function rivalRoom(list,di,lvl){   // the boss room on a challenge day: the rival and raised followers of kinds you have met in this gate
   const g=rv(), riv=makeRival(di,lvl), D=DUNGEONS[di], sg=Math.max(di,topGate()); list.push(riv);
   const met=D.mobs.filter(m=>(S.kills[m[0]]||0)>0), pool=met.length?met:D.mobs;
-  for(let i=0;i<rivalFollowers();i++){
+  const bodies=g.stash.slice().reverse().sort((a,b)=>(b.di===di)-(a.di===di));   // this gate's first, newest first
+  for(const b of bodies){ if(list.length>rivalFollowers()) break; if(b.role==='mender'&&list.some(x=>x.role==='mender')) continue;
+    const s=mobStats(sg,riv.lvl,b.hf,b.af,false,b.elite), e={id:'e'+(++S.uid),name:b.name,base:b.base,role:b.role,rankI:b.rankI,lvl:riv.lvl,hf:b.hf,af:b.af,boss:false,elite:b.elite,follower:true,stash:1,sk:b.day+':'+b.di+':'+b.name,maxHp:s.hp,hp:s.hp,atk:s.atk,dead:false};
+    if(b.aff) e.aff=b.aff.slice(); if(b.cd) e.scd=b.cd; list.push(e); }   // scd: only a label; the death trait never acts on the foe side
+  for(let i=list.length-1;i<rivalFollowers();i++){
     let t=pool[dayHash(S.day,i,g.enc,3)%pool.length];
     if(t[1]==='mender'&&list.some(x=>x.role==='mender')){ const o=pool.filter(m=>m[1]!=='mender'), o2=o.length?o:D.mobs.filter(m=>m[1]!=='mender'); t=o2[i%o2.length]; }
     const s=mobStats(sg,riv.lvl,t[2],t[3],false,false);
@@ -80,7 +86,13 @@ function rivalTheft(r){   // on a gate run, before you act on a room's bodies: t
   const open=r.corpses.filter(c=>!c.tried); if(open.length<2) return null;
   const c=open.filter(x=>!x.boss).sort((a,b)=>bodyValue(b)-bodyValue(a))[0]; if(!c) return null;
   c.tried=true; c.result='taken'; c.taken=g.name; g.thefts++; tally('rivalThefts'); g.steal=S.day+theftGap();
-  r.events.push({m:g.name+' was here before you: the body of '+c.name+' is taken.',c:'bad'}); return c;
+  const b={base:c.base,name:c.name,role:c.role,rankI:c.rankI,hf:c.hf,af:c.af,elite:!!c.elite,di:r.di,day:S.day}; if(c.aff&&c.aff.length) b.aff=c.aff.slice(); if(c.cd) b.cd=c.cd;
+  g.stash.push(b); g.stash=g.stash.slice(-RIVAL_STASH);
+  r.events.push({m:g.name+' was here before you: the body of '+c.name+' is taken. It will raise them against you.',c:'bad'}); return c;
+}
+function rivalReclaim(e,c){   // checkDeaths: a stolen body falls back into your hands with the condition it was stolen with
+  if(c.cd) delete c.cd; if(e.scd) c.cd=e.scd;
+  const g=rv(), i=g.stash.findIndex(b=>b.day+':'+b.di+':'+b.name===e.sk); if(i>=0) g.stash.splice(i,1);
 }
 function rivalFix(g){   // normalizeSave
   const d=rivalDef(), o=g.rival&&typeof g.rival==='object'&&!Array.isArray(g.rival)?g.rival:{}, n=(v,def)=>typeof v==='number'&&isFinite(v)?Math.floor(v):def;
@@ -89,6 +101,9 @@ function rivalFix(g){   // normalizeSave
   out.page=n(o.page,-1); if(!(out.page>=0&&out.page<(g.pages||0))) out.page=-1;
   out.gi=n(o.gi,-1); if(!RK[out.gi]) out.gi=-1;
   if(!out.name) out.met=0;
+  const mob=b=>{ for(const D of DUNGEONS){ const m=D.mobs.find(x=>x[0]===b); if(m) return m; } return null; };
+  out.stash=(Array.isArray(o.stash)?o.stash:[]).filter(b=>b&&typeof b==='object'&&mob(b.base)).map(b=>{ const m=mob(b.base), x={base:m[0],name:typeof b.name==='string'&&b.name?b.name.slice(0,60):m[0],role:m[1],rankI:RK[n(b.rankI,-1)]?n(b.rankI,0):0,hf:m[2],af:m[3],elite:!!b.elite,di:0,day:Math.max(0,n(b.day,0))};
+    x.di=RK[n(b.di,-1)]?n(b.di,0):x.rankI; const a=Array.isArray(b.aff)?b.aff.filter(k=>AFFIX[k]):[]; if(a.length) x.aff=a; if(CORPSE_CONDS[b.cd]) x.cd=b.cd; return x; }).slice(-RIVAL_STASH);
   g.rival=out;
 }
 const rivalNgp=o=>Object.assign(rivalDef(),o?{name:o.name,met:o.met,enc:o.enc,wins:o.wins,losses:o.losses,thefts:o.thefts,page:o.page}:{});   // New Game+: the name and record stay

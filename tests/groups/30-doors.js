@@ -4,14 +4,14 @@ const {test,ok,eq,near,finite,fmt,BAD_TEXT,cleanHTML,mulberry32,seed,fix,seq,H,f
 test('Doors: after a gate room you choose from 2-3 doors, the first always a fight; before the boss only the boss',()=>{
   seed(12); for(let i=0;i<200;i++){ S.mode='battle'; const r=wonRoom(i%2); ok(r.doors.length>=2&&r.doors.length<=3); eq(r.doors[0],'fight'); eq(new Set(r.doors).size,r.doors.length); r.doors.forEach(k=>ok(DOORS[k])); fresh(); }
   const r=wonRoom(2); eq(r.doors.join(),'boss'); const b=wonRoom(3); ok(b.cleared); eq(b.doors,null,'none after the boss');
-  fresh(); setLvl(20); startTower(1); S.run.enemies=[foe({hp:0,dead:true})]; roomWon(); eq(S.run.doors,null,'not in the Tower');
+  fresh(); setLvl(20); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1,2:1}}); startTower(1); S.run.enemies=[foe({hp:0,dead:true})]; roomWon(); eq(S.run.doors,null,'not in the Tower');
   fix(0); eq(rollDoors({room:0,rooms:4}).length,3,'never loops even with fixed randomness');
 });
 test('Doors: descending with no choice takes the first door; a door that is not offered is refused',()=>{
   const r=wonRoom(0); r.doors=['fight','rest']; ok(!descend('treasure')); eq(S.mode,'raise'); ok(descend()); eq(S.mode,'battle'); eq(r.room,1); eq(r.roomKind,'fight');
 });
 test('Doors: an elite room has stronger foes and pays more',()=>{
-  seed(9); const r=wonRoom(0); r.doors=['fight','elite']; seed(9); const keep=JSON.stringify(S); descend('fight'); const plain=r.enemies.map(e=>[e.maxHp,e.atk]);
+  seed(9); const r=wonRoom(0); r.doors=['fight','elite']; r.pre=null; seed(9); const keep=JSON.stringify(S); descend('fight'); const plain=r.enemies.map(e=>[e.maxHp,e.atk]);
   S=JSON.parse(keep); seed(9); descend('elite'); S.run.enemies.forEach((e,i)=>{ eq(e.maxHp,Math.round(plain[i][0]*ELITE_ROOM)); });
   seed(6); let n=0; for(let i=0;i<4000;i++) n+=rollDrops(foe({base:'Tunnel Rat',role:'striker'})).length; near(n/4000,.28*ELITE_DROP,.03);
   fix(.5); const a={}; killLoot(foe({lvl:10}),a); S.run.roomKind=null; const b={}; killLoot(foe({lvl:10}),b); eq(a.gold,Math.round(b.gold*ELITE_GOLD));

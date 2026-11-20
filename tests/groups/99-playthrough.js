@@ -14,7 +14,7 @@ test('Playthrough: a bot plays 30 days, checking every rule after every action',
       for(const it of S.inv.slice()){ const d=ITEM[it.id], cur=S.equip[d.slot]; if(!cur||(!ITEM[cur.id].uq&&ITEM[cur.id].set<d.set)||d.uq) equip(it.u); }
       while(S.inv.length>bagMax()-3){ const it=S.inv.find(x=>!ITEM[x.id].uq); if(!it) break; sellItem(it.u); }
       if(S.army.length&&S.gold>800) empower(S.army[0].uid);
-      if(P.lvl>=TW.unlock&&S.day%4===0){ startTower(Math.max(...towerStarts())); towers++; }
+      if(towerOpen()&&S.day%4===0){ startTower(Math.max(...towerStarts())); towers++; }
       else { let g=0; for(let i=0;i<6;i++) if(P.lvl>=RK[i].unlock&&P.lvl>=SAFE[i]) g=i; startRun(g); }
       if(S.mode==='town') throw new Error('bot could not start a run on day '+S.day);
     } else if(S.mode==='battle'){

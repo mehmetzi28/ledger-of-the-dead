@@ -19,7 +19,7 @@ test('Market: potions cost more with level, fill a belt of 3, and are drunk in b
   S.gold=1000; ok(buyPotion('hp')); eq(S.gold,1000-20); ok(buyPotion('hp')); ok(buyPotion('hp')); ok(!buyPotion('hp'),'belt full'); eq(S.belt.hp,3); ok(buyPotion('mp')); ok(!buyPotion('elixir'));
   setLvl(10); eq(POTIONS.hp.price(),65);
   arena([foe({hp:1e6})]); ok(!buyPotion('mp'),'not in battle'); fix(.5); const P=S.player;
-  act('pot:hp'); eq(S.run.turn,1,'full HP: refuses'); P.hp=10; act('pot:hp'); eq(P.hp,10+Math.round(pMax()*.35)-1); eq(S.belt.hp,2); eq(S.run.turn,2);
+  act('pot:hp'); eq(S.run.turn,1,'full HP: refuses'); P.hp=10; act('pot:hp'); eq(P.hp,10+Math.round(Math.round(pMax()*.35)*(1+conHeal()/100))-1,'Constitution adds to healing received'); eq(S.belt.hp,2); eq(S.run.turn,2);
   P.mana=0; act('pot:mp'); eq(P.mana,Math.round(pMana()*.4)+1); eq(S.belt.mp,0); act('pot:mp'); eq(S.run.turn,3,'empty belt: refuses');
 });
 test('Market: gear sells for a quarter, uniques never, only in town',()=>{
@@ -39,4 +39,12 @@ test('Market: bag upgrades add 5 slots, four times',()=>{
 });
 test('Market: Grave Salts stack to 3',()=>{ S.gold=1000; for(let i=0;i<3;i++) ok(buySalt()); ok(!buySalt()); eq(S.salts,3); eq(S.gold,1000-3*saltPrice()); });
 
+test('Market: Buy max fills the salt pouch as far as the gold goes, in one click, and is disabled when nothing can be bought',()=>{
+  const c=saltPrice(); S.salts=0; S.gold=c*2+1; ok(/data-a="buysaltmax"[^>]*>Buy max/.test(marketHTML()),'shown');
+  eq(saltMaxN(),2); ACTIONS.buysaltmax(); eq(S.salts,2); eq(S.gold,1); eq(ui.msg.m,'Bought 2 Grave Salts for '+(2*c)+' gold.');
+  ok(/data-a="buysaltmax" disabled/.test(marketHTML()),'no gold: disabled'); ACTIONS.buysaltmax(); eq(S.salts,2); eq(ui.msg,null);
+  S.gold=1e6; ACTIONS.buysaltmax(); eq(S.salts,SALT_MAX,'never past the pouch'); eq(S.gold,1e6-(SALT_MAX-2)*c); ok(!/data-a="buysaltmax"/.test(marketHTML()),'pouch full: only the full label');
+  S.salts=0; arena([foe()]); eq(buySaltMax().n,0,'not in battle'); eq(S.salts,0);
+  eq(trText('Buy max'),'En fazlasını al'); eq(trText('Bought 2 Grave Salts for 40 gold.'),'2 Mezar Tuzu 40 altına alındı.');
+});
 })();

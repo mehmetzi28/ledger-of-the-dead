@@ -202,6 +202,17 @@ i,em{font-style:normal}
 .sh-t{color:var(--ward)}
 .fx{position:absolute;top:8px;right:8px;font:700 15px/1 var(--font-data);text-shadow:0 1px 3px #000;animation:rise .8s ease-out both}
 .fx.neg{color:var(--blood-text)} .fx.pos{color:var(--ok)}
+.fx.cmb{left:8px;right:auto;top:30px;font-size:12px;letter-spacing:.04em;color:var(--gold)} .unit.mini .fx.cmb{left:4px;top:20px;font-size:11px}
+.intent{display:flex;align-items:center;gap:4px;margin-top:3px;font:600 11px/1.2 var(--font-data);color:var(--mute)}
+.intent svg{flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.intent.i-atk{color:var(--blood-text)} .intent.i-heal{color:var(--ok)} .intent.i-abil{color:var(--gold)} .intent.i-frozen{color:var(--ward)}
+/* bestiary knowledge on foe intents and the order hints (ui-screens.js intentHTML, cmdHTML) */
+.intent{flex-wrap:wrap} .kn{font:700 11px/1.2 var(--font-data);color:var(--bone);margin-left:2px} .charge .kn{display:inline-block;margin:2px 6px 0 0}
+.kn-crit,.kn-exe,.kn-ord,.ord-h{font:600 10px/1.2 var(--font-data);color:var(--mute);letter-spacing:.04em}
+.kn-crit{padding:0 3px;border:1px solid currentColor;border-radius:2px;color:var(--ember)}
+.intent-2,.kn-ans{margin-top:2px;font:600 10px/1.25 var(--font-data);color:var(--mute);overflow-wrap:anywhere} .kn-ans{color:var(--ok)} .charge .kn-ans{color:var(--bone)}
+.kn-exe{display:inline-block;margin-top:3px;padding:0 4px;border-left:2px solid var(--blood-text);color:var(--blood-text)} .kn-ord{display:block;margin-top:2px;color:#ffb48a}
+.ord-h{margin-left:5px;opacity:.85}
 @keyframes rise{from{transform:translateY(8px);opacity:0}30%{opacity:1}to{transform:translateY(0);opacity:1}}
 
 .log{list-style:none;margin:0;padding:10px 12px;background:var(--well);border:1px solid var(--line);box-shadow:inset 0 0 20px #000;display:flex;flex-direction:column;gap:3px;font:400 12.5px/1.45 var(--font-data);min-height:96px}
@@ -283,6 +294,10 @@ i,em{font-style:normal}
 @keyframes shimmer{to{background-position:-200% 0}}
 .gempty{padding:12px;border:1px dashed var(--line-2);color:var(--mute);font:400 15px/1.3 var(--font-lore)}
 .ico.t0,.ico.t1,.ico.t2,.ico.t3,.ico.t4,.ico.t5{color:var(--tc)}
+/* gear tier accents: a faint edge light in the tier colour (blue and purple only for Rare and Epic), gold on Legendary and Unique, plus a small glint */
+.ico.t1>svg{filter:drop-shadow(0 0 1px rgba(127,211,90,.3))}.ico.t2>svg{filter:drop-shadow(0 0 1.4px rgba(95,168,240,.42))}.ico.t3>svg{filter:drop-shadow(0 0 1.8px rgba(182,132,236,.48))}
+.ico.t4>svg{filter:drop-shadow(0 0 2px rgba(240,176,80,.5))}.ico.t5>svg{filter:drop-shadow(0 0 2.4px rgba(246,222,150,.6))}
+.ico svg .glint{fill:#ffe9a8;opacity:.7}.ico.t4 svg .glint{fill:#f6c070;opacity:.6}
 .bes-gate{display:flex;flex-direction:column;gap:8px}
 .bes-h{display:flex;gap:12px;align-items:center;margin-top:6px}
 .bes-h h3{margin:0;font:700 19px/1.15 var(--font-head);letter-spacing:.04em}
@@ -528,7 +543,14 @@ kbd{border:0;background:rgba(0,0,0,.35);border-radius:3px;padding:1px 5px;opacit
 @media (max-width:420px){.mrow{gap:3px 6px;padding:5px 6px}}
 .curse-line b{color:#ffb59c!important}
 .dot-t{color:#e58c6e}.dot-t.poison{color:#9fd47a}
+.pills{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px;line-height:1.2}
+.pill{font:600 10.5px/1.3 var(--font-body);padding:0 5px;border-radius:7px;border:1px solid rgba(232,220,200,.22);background:rgba(10,8,6,.55);color:#d9cfbf;cursor:help;white-space:nowrap;letter-spacing:.02em}
+.pill.p-poison{color:#9fd47a;border-color:rgba(159,212,122,.4)}.pill.p-bleed{color:#e5776a;border-color:rgba(229,119,106,.45)}.pill.p-burn{color:#f0a05a;border-color:rgba(240,160,90,.45)}
+.pill.p-blight{color:#b9b46a;border-color:rgba(185,180,106,.45);background:rgba(40,38,14,.6)}.pill.p-frozen,.pill.p-chilled{color:#dfe6e2;border-color:rgba(223,230,226,.4)}
+.pill.p-cursed{color:#ff8a6a;border-color:rgba(255,138,106,.4)}.pill.p-sundered{color:#d08a52;border-color:rgba(208,138,82,.45)}.pill.p-hexed{color:#b8a48c;border-color:rgba(184,164,140,.45);background:rgba(30,22,18,.65)}
+.pill.p-hasted{color:#e8c66a;border-color:rgba(232,198,106,.45)}.pill.p-shield{color:#e8dcc8;border-color:rgba(232,220,200,.35)}
 .free-t{color:var(--ok)}
+.cond{cursor:help;letter-spacing:.02em}.cond.up{color:var(--ok)}.cond.down{color:#ffb59c}
 .aff{color:#ffb59c;cursor:help}.mst{cursor:help;letter-spacing:.02em}.bes-mastery{margin-top:2px}.phase-t{color:#ff8a6a}
 .dust-n{font:600 13px/1 var(--font-data);color:var(--bone)}
 .b-row{display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)}
@@ -609,6 +631,8 @@ body.calm .moment{animation:none}
 .door{display:grid;align-content:start;gap:4px;text-align:left;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--bone);padding:12px 14px;cursor:pointer;font:400 13px/1.4 var(--font-body)}
 .door b{font:600 17px/1.2 var(--font-head)}.door span{color:var(--mute)}
 .door:hover,.door:focus-visible{border-color:var(--gold);background:#24201c}
+.dl{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:4px;padding-top:6px;border-top:1px solid var(--line-2)}.dl .dlh,.dl .dlb{color:var(--bone);font-weight:600}.door .df{color:var(--bone)}.df small{margin-left:4px;color:var(--mute)}.door .df.el{color:#ee8f6f}
+@media (max-width:540px){.df small{display:none}}
 .door.d-elite b{color:#ee8f6f}.door.d-rest b{color:var(--ok)}.door.d-treasure b{color:var(--gold)}.door.d-boss b{color:#ff9a78}
 .setl{font:400 12px/1.4 var(--font-body);color:var(--mute)}.setl .on{color:var(--ok)}
 .cmds{align-items:center}.cmd-l{font:500 13px/1.2 var(--font-body);color:var(--mute);margin-right:4px}
@@ -713,6 +737,13 @@ svg.gate-mark{filter:url(#relief);color:var(--g2)}
 #scene .sc-ember{animation:scRise 14s linear infinite}#scene .sc-ember.d2{animation-duration:20s}
 #scene .sc-ray{animation:scRay 17s ease-in-out infinite alternate}#scene .sc-ray.d2{animation-duration:23s}
 #scene .sc-pulse{animation:scPulse 7s ease-in-out infinite alternate}
+#scene .sc-mote.d3{animation-duration:22s;animation-delay:-8s}#scene .sc-ember.d3{animation-duration:17s;animation-delay:-9s}#scene .sc-ash.d2{animation-duration:38s;animation-delay:-13s}#scene .sc-ash.d3{animation-duration:34s;animation-delay:-24s}
+/* depth layers (scPar, scSway in scenes.js): whole groups drift a few pixels, far ones slower than near ones; hanging things stir from their top edge */
+#scene .sc-par{animation:scPar 80s ease-in-out infinite alternate}#scene .sc-par.d2{animation:scPar2 54s ease-in-out infinite alternate}
+#scene .sc-sway{transform-box:fill-box;transform-origin:50% 0;animation:scSway 11s ease-in-out infinite alternate}
+@keyframes scPar{from{transform:translateX(-8px)}to{transform:translateX(8px)}}
+@keyframes scPar2{from{transform:translateX(18px)}to{transform:translateX(-18px)}}
+@keyframes scSway{from{transform:skewX(-1.4deg)}to{transform:skewX(1.4deg)}}
 @keyframes scRay{from{opacity:.55}to{opacity:1}}
 @keyframes scPulse{from{opacity:.05}to{opacity:.11}}
 body.scened::before{opacity:.35}
@@ -734,7 +765,7 @@ body.towerscene #hellbg svg,body.towerscene #hellbg .hb-vig{display:none}body.to
 @keyframes scRise{from{transform:translateY(40px);opacity:0}15%{opacity:.8}to{transform:translateY(-140px);opacity:0}}
 @keyframes scDrift{from{transform:translateX(-90px)}to{transform:translateX(90px)}}
 @keyframes scFlick{0%{opacity:.75}40%{opacity:1}70%{opacity:.82}100%{opacity:.95}}
-@keyframes scFall{from{transform:translateY(-40px)}to{transform:translateY(60px)}}
+@keyframes scFall{from{transform:translateY(-40px);opacity:0}15%{opacity:1}85%{opacity:1}to{transform:translateY(60px);opacity:0}}
 body.calm #scene *{animation:none!important}
 @media (prefers-reduced-motion:reduce){#scene *{animation:none!important}}
 body.gatefight #bossbg{opacity:0}
@@ -798,3 +829,76 @@ body.compact .unit.mini .ico{width:34px;height:34px}body.compact .unit.mini .ico
 .badge.rival-b{color:#e0806a}
 .chron.borrowed summary{color:var(--dim,#8a8070)}
 .trial-res .items{margin-bottom:6px}
+/* the Army tab: summary, role split, filters, army and Reserve side by side (stacked on phones), quick equip, evolution */
+.as-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.as-st{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border:1px solid var(--line);background:var(--well);min-width:0}.as-st b{font:600 20px/1.1 var(--font-data);color:var(--bone);overflow-wrap:anywhere;min-width:0}.as-st .as-max{display:block;font-size:13px;color:var(--mute);font-weight:500}
+.as-roles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:8px}
+.as-role{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 6px;padding:6px 8px;border:1px solid var(--line);background:var(--panel-2);color:var(--bone);text-align:left;cursor:pointer;font:500 13px/1.2 var(--font-body)}
+.as-role.on{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}.as-role b{font-weight:600;overflow:hidden;text-overflow:ellipsis}.as-role .as-bar{grid-column:1/-1}
+.as-bar{display:block;height:6px;background:rgba(0,0,0,.55);border:1px solid var(--line);overflow:hidden}.as-bar i{display:block;height:100%;background:var(--brass)}
+.army-filter{align-items:center;margin:4px 0 10px}.army-filter>.u-tag{flex:none;align-self:center;white-space:nowrap;margin:0 2px 0 8px;line-height:34px}.army-filter>.u-tag:first-child{margin-left:0}
+.army-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:12px;align-items:start}
+.army-cols>.army-col{min-width:0}.army-cols>.reserve{margin-top:0;padding-top:0;border-top:0;padding-left:12px;border-left:1px dashed var(--line-2)}
+.qg-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.qg-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 8px;border:1px solid var(--line);background:var(--panel-2)}
+.qg-row .ico{width:36px;height:36px}.qg-b{min-width:0}.qg-b .i-tag{font-size:11px;color:var(--mute)}
+.evo-list{display:flex;flex-direction:column;gap:6px}
+.evo-row{display:grid;grid-template-columns:minmax(0,1.4fr) auto minmax(60px,1fr) auto;gap:8px;align-items:center;font-size:14px}
+@media (max-width:540px){.as-roles{grid-template-columns:repeat(2,minmax(0,1fr))}.army-cols>.reserve{padding-left:0;border-left:0;padding-top:10px;border-top:1px dashed var(--line-2)}
+ .evo-row{grid-template-columns:minmax(0,1fr) auto;gap:3px 8px}.evo-row .as-bar{grid-column:1/-1}.qg-row{grid-template-columns:auto minmax(0,1fr)}.qg-row>.btn{grid-column:1/-1;justify-self:start}}
+/* gate cards: clears by difficulty, best run, curse banner, Details */
+.g-stars{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 6px}
+.g-star{font:500 11px/1 var(--font-data);letter-spacing:.04em;padding:3px 6px;border:1px solid var(--line);color:var(--mute);background:rgba(0,0,0,.3)}
+.g-star.on{color:var(--gold);border-color:var(--brass)}.g-star.h3.on{color:#e8564a;border-color:#7a2a22}
+.g-best{font:500 11px/1 var(--font-data);padding:3px 6px;color:var(--bone);border:1px solid var(--line-2)}
+.gate .curse-line{margin:2px 0 6px;padding:5px 8px;border-left:3px solid var(--blood);background:rgba(120,30,20,.22)}
+.g-detb{margin-top:6px}
+.g-det{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start;margin-top:6px;padding:8px;border:1px solid var(--line);background:rgba(0,0,0,.35)}
+.g-boss .ico{width:56px;height:56px}.g-boss.unknown{display:grid;place-items:center;width:56px;height:56px;border:1px dashed var(--line-2);background:#0b0a09;color:var(--mute);font:600 26px/1 var(--font-head)}
+.g-rows{display:flex;flex-direction:column;gap:3px;font-size:13px}.g-rows>div{display:grid;grid-template-columns:88px minmax(0,1fr);gap:8px}.g-rows b{color:var(--mute);font-weight:600}
+@media (max-width:540px){.g-det{grid-template-columns:minmax(0,1fr)}.g-rows>div{grid-template-columns:72px minmax(0,1fr)}}
+.g-star i{font-style:normal}
+/* History: lifetime analytics and the expandable run details */
+.h-det{margin-top:2px;font-size:.88em}
+.h-det summary{cursor:pointer;color:var(--mute)}
+.h-det>div{display:flex;flex-wrap:wrap;gap:4px;padding:1px 0}
+.h-det>div>span:first-child{color:var(--mute);min-width:7.5em}
+.h-bo{white-space:nowrap}
+/* the Gates tab's army strip: one worn line above the gates, wrapping on phones */
+.gate-army{display:flex;align-items:center;flex-wrap:nowrap;gap:6px 14px;margin:4px 0 10px;padding:6px 10px;border:1px solid var(--line);border-left:3px solid var(--brass);background:linear-gradient(90deg,rgba(0,0,0,.45),rgba(0,0,0,.15));font:13px/1.3 var(--font-body);white-space:nowrap;overflow:hidden}
+.gate-army>span{display:inline-flex;align-items:center;gap:6px;min-width:0}.gate-army .ga-n b{font-weight:600;color:var(--bone)}
+.gate-army .ga-bar{width:70px;height:5px}.gate-army .ga-bar.low i{background:var(--blood)}
+.gate-army .ga-down{color:var(--blood-text)}.gate-army .ga-hurt{color:var(--ember)}.gate-army .ga-ok{color:var(--mute)}
+.gate-army .ga-raid{display:block;color:var(--gold);overflow:hidden;text-overflow:ellipsis}.gate-army .ga-wait{color:var(--blood-text);font-weight:600}
+.gate-army .ga-go{margin-left:auto}
+@media (max-width:540px){.gate-army{flex-wrap:wrap;white-space:normal}.gate-army .ga-raid{white-space:normal}.gate-army .ga-go{margin-left:0}}
+/* ----- Guidance and colour-independent cues: What next, Codex search marks, tier marks on item icons, status pill glyphs */
+.goal-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.goal-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;font-size:14px;padding:6px 0 6px 10px;border-left:2px solid var(--brass)}
+.goal-list .btn{white-space:nowrap}
+.next-obj{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;width:100%;margin:0 0 10px;padding:9px 10px;text-align:left;font:inherit;color:var(--bone);background:var(--well);border:1px solid var(--brass);border-left:3px solid var(--gold);border-radius:4px;cursor:pointer}
+.next-obj b{grid-column:1/-1;font:700 11px/1.3 var(--font-data);letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+.next-obj span{font-size:14px;line-height:1.35}.next-obj .next-go{align-self:end;white-space:nowrap;color:var(--gold);font-size:13px}
+.next-obj .next-go::after{content:" A"}
+.next-obj:hover,.next-obj:focus-visible{border-color:var(--gold);background:var(--panel-2)}
+@media (max-width:540px){.next-obj{grid-template-columns:1fr}.next-obj .next-go{justify-self:start}}
+.cx-new{margin-left:6px;padding:0 4px;font:700 9.5px/1.4 var(--font-data);letter-spacing:.06em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(211,166,77,.5);border-radius:3px;vertical-align:1px}
+mark.cx-hit{background:rgba(211,166,77,.26);color:inherit;border-bottom:1px solid var(--gold);padding:0 1px}
+.tmark{position:absolute;left:-4px;top:-4px;fill:currentColor;stroke:#0d0b0a;stroke-width:.9;paint-order:stroke;filter:drop-shadow(0 0 1.5px rgba(0,0,0,.9));pointer-events:none}
+.ico svg.tmark{width:auto!important;height:7px!important;overflow:visible}
+.pg{width:.85em;height:.85em;margin-right:3px;vertical-align:-.08em;fill:currentColor;opacity:.92}
+.pg .pgs{fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:540px){.goal-list li{grid-template-columns:1fr}.goal-list .btn{justify-self:start}}
+.trait.bond{border-color:var(--gold);color:var(--gold)}.trait.mood-v{border-color:var(--blood);color:var(--blood-text)}.trait.mood-g{border-color:var(--line);color:var(--mute)}   /* bonds */
+/* front and back rows in battle: a small label over each row */
+.brow+.brow{margin-top:6px}
+.row-l{display:block;margin:2px 0 3px;font:600 9.5px/1 var(--font-head);letter-spacing:.18em;text-transform:uppercase;color:var(--mute);opacity:.8}
+.brow .row.minis{margin-top:0}
+@media (max-width:540px){.row-l{font-size:9px;margin:0 0 2px}.brow+.brow{margin-top:4px}}
+/* the defeat recap (ui-screens.js felledHTML) */
+.felled{margin:10px 0 4px;padding:8px 12px;border-left:3px solid var(--blood);background:rgba(0,0,0,.25)}
+.felled p{margin:0;overflow-wrap:anywhere}.felled-1{font-weight:700;color:var(--blood-text)}.felled .felled-2{margin-top:4px}
+/* evolution marks (ui-panels.js markChips, ui-screens.js markPickHTML) */
+.trait.mark{border-color:var(--brass);color:var(--bone)}.trait.mark-pend{border-color:var(--ok);color:var(--ok)}
+.mark-row{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:14px}.mark-row .chips{margin:0}
+@media (max-width:540px){.mark-row{flex-direction:column;align-items:flex-start}}

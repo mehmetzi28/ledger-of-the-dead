@@ -18,45 +18,53 @@ const devotion=()=>{ if(!faithOf()) return 0; const d=S.day-S.faith.day; return 
 const faithBuff=id=>{ const F=FAITH[id], m=faithOf()===id?DEVOTION_MUL[devotion()]:1, o={}; for(const k in F.buff) o[k]=Math.round(F.buff[k]*m); return o; };
 const faithB=k=>{ const id=faithOf(); if(!id) return 0; return (faithBuff(id)[k]||0)+(FAITH[id].debuff[k]||0); };
 const renounceCost=()=>100*S.player.lvl;
-function swear(id){ if(S.mode!=='town'||!FAITH[id]||faithOf()||S.player.lvl<FAITH_LV) return false; vitals(()=>{ S.faith={id,day:S.day}; }); tally('sworn'); return true; }
+function swear(id){ if(S.mode!=='town'||!FAITH[id]||faithOf()||!faithOpen()) return false; vitals(()=>{ S.faith={id,day:S.day}; }); tally('sworn'); return true; }
 function renounce(){ if(S.mode!=='town'||!faithOf()) return false; const c=renounceCost(); if(S.gold<c) return false; S.gold-=c; vitals(()=>{ delete S.faith; }); S.player.hp=Math.min(S.player.hp,pMax()); return true; }
 const xb=k=>titleB(k)+(k==='goldp'?titleColB():0)+setB(k)+usetB(k)+faithB(k)+skB(k);   // the worn title, the title collection (gold only), gate sets, unique sets, faith and the small passive skills
 
 // ===== SKILL UPGRADES =====
 // At rank 3 each skill offers a choice of two upgrades. Forgetting your skills lets you choose again.
+// Rank-3 upgrade numbers (the passives' upgrades each add a mechanic of their own, not more of the same bonus).
+const OSSIFIED=.08, MARROW=1.5, MEND_REVIVE=.3, OVERFLOW_MANA=5, BLOOD_OATH=.1, GRAVECALLER=2, POCKETS=1.5, KEEN_TRO=.15, KEEN_DROP=1.1, INSIGHT=1.25, BARBS=.15, FEAST_CAP=.3, CLEAR_MIND=.1, FRUGAL=.5, SENSE_SALT=30, DEEP_WELL=.85, DEEP_REGEN=1, IRON_WILL=.85, IRON_BASE=.95, IRON_LOW=.5, BLOODLET=.15, RENDING=10, MOON_LOW=.5, MOON_HIGH=1.25, SOUL_REAP_HEAL=.25, SOUL_REAP_MANA=10;
+// 2026-11-19: a bot measurement found Necrotic Edge, Reap and Deathless Will gave the same results either way (Reap's choices and Iron Will only
+// mattered near death). Each choice now works on every use: Rending sunders on a crit, Bloodletting bleeds, Harvest Moon also hits harder above
+// the line, Soul Reap heals on every reap, Deep Well adds a mana a turn, Iron Will always takes a little off.
+// 2026-11-19, measured with the balance bot rushing one skill to rank 3 ("mod":"skill:a"): Ossified at 15% cleared ~3 points more than Marrow Ward
+// (88/87% vs 85/84%, seeds 7700/9100), the only clear outlier: Ossified 15%->8%, Marrow Ward 30%->50% more ward. Field Notes counted every kill twice,
+// which undid the slower mastery: now every second kill counts twice (1.5x).
 const SKILL_MODS={
   spear:    {a:['Impaler','Pierces all foe armor.'],                      b:['Splinter','Also hits another foe for 50%.']},
-  bonearmor:{a:['Ossified','+6% more max HP.'],                            b:['Marrow Ward','Bone Ward grants 30% more ward.']},
-  mend:     {a:['Deep Mending','Heals 15% more of each minion\'s HP.'],   b:['Shared Flesh','Also heals you for 15% of your max HP.']},
-  blast:    {a:['Bigger Bang','Deals 30% more damage.'],                   b:['Grave Gas','Also poisons every foe it hits.']},
-  soulwell: {a:['Overflow','+1 more mana every turn.'],                    b:['Thrift','Soul Siphon costs 6 mana instead of 8.']},
+  bonearmor:{a:['Ossified','Every room starts with a Ward worth '+Math.round(OSSIFIED*100)+'% of your max HP.'], b:['Marrow Ward','Bone Ward grants '+Math.round((MARROW-1)*100)+'% more ward.']},
+  mend:     {a:['Deep Mending','Also pulls your strongest downed minion back up at 30% of its HP.'], b:['Shared Flesh','Also heals you for 15% of your max HP.']},
+  blast:    {a:['Bigger Bang','Deals 30% more damage and Sunders every foe it hits for 2 turns.'], b:['Grave Gas','Also poisons and Blights every foe it hits.']},
+  soulwell: {a:['Overflow','Every Soul you harvest restores 5 mana.'],     b:['Thrift','Soul Siphon costs 6 mana instead of 8.']},
   curse:    {a:['Lingering','Lasts 5 turns.'],                             b:['Spreading','Curses every foe, at 80% strength.']},
-  gravepact:{a:['Blood Oath','+6% more minion power.'],                    b:['Bone Shell','Your minions take 10% less damage.']},
+  gravepact:{a:['Blood Oath','Every minion gains +10% crit chance; strikers crit 35% of the time.'], b:['Bone Shell','Your minions take 10% less damage.']},
   chill:    {a:['Deep Freeze','Bosses resist 20% less often.'],            b:['Shatter','Frozen foes take 25% more damage.']},
-  edge:     {a:['Rending','Strike has +10% crit chance.'],                 b:['Bloodletting','Strike heals you for 10% of its damage.']},
+  edge:     {a:['Rending','Strike has +'+RENDING+'% crit chance, and its crits Sunder the target for 2 turns.'], b:['Bloodletting','Strike heals you for 10% of its damage and makes the target Bleed for '+Math.round(BLOODLET*100)+'% of it for 2 turns.']},
   frenzy:   {a:['Bloodlust','Lasts 2 turns longer.'],                      b:['Unholy Vigor','Also heals each minion for 15% of its HP.']},
-  mastery:  {a:['Gravecaller','+6% more chance to raise.'],                b:['Thrifty Rites','Raising costs 25% less mana.']},
-  reap:     {a:['Harvest Moon','Doubles below 50% HP instead of 35%.'],    b:['Soul Reap','A kill with Reap refunds 10 mana.']},
-  robber:   {a:['Deep Pockets','+5% more gold.'],                          b:['Keen Eye','+3% XP from kills.']},
-  scholar:  {a:['Insight','+4% more XP.'],                                 b:['Coin Lore','+3% gold from kills.']},
-  calcify:  {a:['Petrified','You take 2% less damage again.'],             b:['Thick Hide','+5% max HP.']},
-  sanguine: {a:['Blood Feast','+10% more healing.'],                       b:['Clear Mind','+5% max mana.']},
-  thrift:   {a:['Frugal Rites','Raising costs 10% less mana again.'],      b:['Grave Sense','+3% chance to raise.']},
-  deathless:{a:['Deep Well','+5% more max mana.'],                         b:['Iron Will','+3% max HP.']}
+  mastery:  {a:['Gravecaller','Raised minions rise 2 levels higher, never past your level + 2.'], b:['Thrifty Rites','Raising costs 25% less mana.']},
+  reap:     {a:['Harvest Moon','Doubles below '+Math.round(MOON_LOW*100)+'% HP instead of 35%, and above that deals '+Math.round((MOON_HIGH-1)*100)+'% more.'], b:['Soul Reap','Reap heals you for '+Math.round(SOUL_REAP_HEAL*100)+'% of its damage, and a kill with it refunds '+SOUL_REAP_MANA+' mana.']},
+  robber:   {a:['Deep Pockets','Elites and bosses drop 50% more gold.'],   b:['Keen Eye','Foes drop trophies more often, 75% instead of 60%, and gear 10% more often.']},
+  scholar:  {a:['Insight','Elites and bosses give 25% more XP.'],          b:['Field Notes','Every second kill counts twice toward studying and mastering its kind.']},
+  calcify:  {a:['Petrified','Enemy crits cannot crit you: they land as plain hits and open no wound.'], b:['Barbed Hide','Foes that hit you take 15% of the blow back.']},
+  sanguine: {a:['Blood Feast','Healing past your max HP becomes Ward, up to 30% of your max HP.'], b:['Clear Mind','Healing you receive also restores mana worth 10% of it.']},
+  thrift:   {a:['Frugal Rites','A failed raise refunds half its mana.'],   b:['Grave Sense','Grave Salts add 30% to a raise instead of 20%.']},
+  deathless:{a:['Deep Well','Active skills cost 15% less mana, and you regain '+DEEP_REGEN+' more mana every turn in battle.'], b:['Iron Will','You take '+Math.round((1-IRON_BASE)*100)+'% less damage, and '+Math.round((1-IRON_WILL)*100)+'% less below '+Math.round(IRON_LOW*100)+'% HP.']}
 };
 // The small passives above feed the same bonus pool as titles, sets and faith.
-const skB=k=>{ if(!S||!S.player) return 0; const m=id=>skMod(id);
+const skB=k=>{ if(!S||!S.player) return 0;
   switch(k){
-    case 'goldp': return 5*sk('robber')+(m('robber')==='a'?5:0)+(m('scholar')==='b'?3:0);
-    case 'xpp':   return 4*sk('scholar')+(m('scholar')==='a'?4:0)+(m('robber')==='b'?3:0);
-    case 'drp':   return 2*sk('calcify')+(m('calcify')==='a'?2:0);
-    case 'healp': return 8*sk('sanguine')+(m('sanguine')==='a'?10:0);
-    case 'manap': return 5*sk('deathless')+(m('deathless')==='a'?5:0)+(m('sanguine')==='b'?5:0);
-    case 'hpp':   return (m('calcify')==='b'?5:0)+(m('deathless')==='b'?3:0);
+    case 'goldp': return 5*sk('robber');
+    case 'xpp':   return 4*sk('scholar');
+    case 'drp':   return 2*sk('calcify');
+    case 'healp': return 8*sk('sanguine');
+    case 'manap': return 5*sk('deathless');
   } return 0; };
 const skMod=id=>(sk(id)>=SK_MAX&&S.player.skMod&&S.player.skMod[id])||null;
 const hasMod=(id,c)=>skMod(id)===c;
 function chooseMod(id,c){ const P=S.player; if(S.mode!=='town'||!SKILL_MODS[id]||!SKILL_MODS[id][c]||sk(id)<SK_MAX||skMod(id)) return false; vitals(()=>{ P.skMod=P.skMod||{}; P.skMod[id]=c; }); return true; }
+const skCost=s=>hasMod('deathless','a')?Math.round(s.cost*DEEP_WELL):s.cost;   // Deep Well
 const siphonCost=()=>hasMod('soulwell','b')?6:8;   // Soul Siphon: see the SOULS block for its armor piercing and Souls
 
 // ===== MINION COMMANDS =====
@@ -104,7 +112,7 @@ const STORY=[
   {act:2,id:'oath_hon',t:'The Old Gods answer',when:()=>faithOf()==='hon',m:'You knelt at the cracked altar and the Old Gods, who had not been asked for anything in a long time, answered. They do not approve of the Ledger. But they would rather it were held by someone who still kneels.'},
   {act:2,id:'oath_dis',t:'A debt called in',when:()=>faithOf()==='dis',m:'You spat on the altar and nothing struck you down. That was the answer. The Old Gods are old, and tired, and they have watched the Ledger outlive every one of them. You take what is owed. They let you.'},
   {act:2,id:'army5',t:'A household of the dead',when:()=>S.army.length>=5,m:'Five of them now, following you through the market at dawn. They carry your bags. They stand in the rain without complaint. One of them hums a song from a village that burned a century ago, and the others, slowly, have learned the words.'},
-  {act:2,id:'tower0',t:'The Tower notices',when:()=>S.player.lvl>=TW.unlock,m:'Far to the east a tower of red stone has stood for as long as the valley has had a name. Tonight a light came on in its lowest window. The Ledger turned, unbidden, to a page headed with a single word: Climb.'},
+  {act:2,id:'tower0',t:'The Tower notices',when:()=>towerOpen(),m:'Far to the east a tower of red stone has stood for as long as the valley has had a name. Tonight a light came on in its lowest window. The Ledger turned, unbidden, to a page headed with a single word: Climb.'},
   {act:2,id:'hard1',t:'Asking for more',when:()=>T_('heat1')>0,m:'You went back into a gate you had already emptied and asked it for something harder. The dead there were insulted, and rose stronger to prove it. The Ledger likes this about you. It writes faster when you are greedy.'},
   {act:2,id:'elder1',t:'An elder among the dead',when:()=>T_('elder')>=1,m:'One of yours has grown old in death, wiser than the living who buried it. It watches you write in the Ledger with an expression you cannot read. Once, when you hesitated over a name, it reached over and pointed.'},
   // ---- Act III: the climb
@@ -208,3 +216,133 @@ const BOSS_LINES={
 SECRET.forEach(B=>{ BOSS_LINES[B.name]=B.lines; });
 function bossSpeaks(e,when){ const L=BOSS_LINES[e.base]; if(!L) return; log(e.name+': "'+L[when==='hi'?0:1]+'"','boss'); }
 
+// ===== BONDS =====
+// Two minions alive together at the end of BOND_ROOMS won rooms in the army become Bonded (one partner each; benched or raiding
+// minions do not count, so the Reserve pauses it). A bonded minion hits BOND_ATK harder. When one is lost for good the other is
+// Vengeful (+BOND_VENGE attack until dawn) if it stood in the army in that same fight, or else Grieving (BOND_GRIEF attack through
+// a full day). A release or a fusion breaks the bond. S.bondT counts rooms per pair ("lowUid-highUid"); m.bond={u,n}; m.mood={k,u,n}.
+const BOND_ROOMS=25, BOND_ATK=.05, BOND_VENGE=.15, BOND_GRIEF=-.10;
+const allMins=()=>S.army.concat(S.reserve||[],S.waiting||[],...(S.raids||[]).map(x=>x.units||[]));
+const bondKey=(a,b)=>Math.min(a,b)+'-'+Math.max(a,b);
+const moodOn=m=>!!(m&&m.mood&&m.mood.u>=S.day);
+const bondMul=m=>(m&&m.bond?1+BOND_ATK:1)*(moodOn(m)?1+(m.mood.k==='v'?BOND_VENGE:BOND_GRIEF):1);   // syncMinion
+const bondMate=m=>m&&m.bond?allMins().find(x=>x.uid===m.bond.u&&x!==m)||null:null;
+const bondName=m=>{ const p=bondMate(m); return p?p.nick:m.bond?m.bond.n:''; };
+function bondsClean(){   // a bond whose partner is gone (released, fused away) or does not point back is broken
+  const all=allMins(); for(const m of all){ if(!m.bond) continue; const p=all.find(x=>x.uid===m.bond.u&&x!==m); if(!p||!p.bond||p.bond.u!==m.uid){ delete m.bond; syncMinion(m); } }
+}
+function bondsRoom(){   // roomWon: everyone standing in the army shares the room
+  const T=S.bondT=S.bondT&&typeof S.bondT==='object'?S.bondT:{}, live=S.army.filter(m=>!m.thrall&&m.hp>0&&!m.bond), r=S.run;
+  for(let i=0;i<live.length;i++) for(let j=i+1;j<live.length;j++){ const k=bondKey(live[i].uid,live[j].uid); T[k]=(T[k]||0)+1; }
+  const free=new Map(allMins().filter(m=>!m.thrall&&!m.bond).map(m=>[m.uid,m]));
+  for(const k of Object.keys(T)){ const [a,b]=k.split('-').map(Number); if(!free.has(a)||!free.has(b)) delete T[k]; }   // only pairs that can still bond are counted
+  for(const k of Object.keys(T).filter(k=>T[k]>=BOND_ROOMS).sort((x,y)=>T[y]-T[x])){ const [a,b]=k.split('-').map(Number), A=free.get(a), B=free.get(b); if(A.bond||B.bond) continue;
+    A.bond={u:B.uid,n:B.nick}; B.bond={u:A.uid,n:A.nick}; syncMinion(A); syncMinion(B); tally('bonds');
+    const m=A.nick+' and '+B.nick+' have fought '+BOND_ROOMS+' rooms side by side. They are Bonded.'; if(r&&r.events) r.events.push({m,c:'ok'}); else notify(m,'ok'); }
+  for(const k of Object.keys(T)){ const [a,b]=k.split('-').map(Number); if(free.get(a).bond||free.get(b).bond) delete T[k]; }
+}
+function setMood(p,k,n,u){ p.mood={k,u,n}; delete p.bond; syncMinion(p); p.hp=Math.min(p.hp,p.maxHp); }
+function bondFall(m,at){   // memorialize: a bonded minion is lost for good; returns the partner's name for the Memorial
+  if(!m) return null; if(!m.bond) return m.mood&&moodOn(m)?m.mood.n:null;   /* both lost in one fight: the second still names the first */
+  const n=bondName(m), p=bondMate(m), raid=!!at&&at.raid!=null;
+  if(p){ const v=!raid&&S.army.includes(p); setMood(p,v?'v':'g',m.nick,v||raid?S.day:S.day+1);   /* raid news comes at dawn: grief through the day that begins */
+    notify(v?p.nick+' saw '+m.nick+' fall and is Vengeful until dawn.':p.nick+' grieves for '+m.nick+'.',v?'ok':'bad'); }
+  else { S.bondPend=S.bondPend||{}; S.bondPend[m.bond.u]={n:m.nick}; }   // the partner marched on a raid that is coming home now: it learns at dawn
+  return n||null;
+}
+function bondsDawn(){   // closeDay, after the raids are home: news of the fallen, moods end, broken bonds part
+  const P=S.bondPend||{}; S.bondPend={};
+  for(const m of allMins()){ const q=P[m.uid]; if(q){ setMood(m,'g',q.n,S.day); notify(m.nick+' grieves for '+q.n+'.','bad'); }
+    else if(m.mood&&!moodOn(m)){ delete m.mood; syncMinion(m); } }
+  bondsClean();
+}
+function bondsFix(g){   // normalizeSave
+  const ok=v=>typeof v==='number'&&isFinite(v), all=g.army.concat(g.reserve||[],g.waiting||[],...(g.raids||[]).map(x=>x.units||[]));
+  for(const m of all){
+    if(m.bond&&!(typeof m.bond==='object'&&ok(m.bond.u)&&all.some(x=>x!==m&&x.uid===m.bond.u&&x.bond&&x.bond.u===m.uid))) delete m.bond;
+    if(m.mood&&!(typeof m.mood==='object'&&(m.mood.k==='v'||m.mood.k==='g')&&ok(m.mood.u))) delete m.mood; }
+  for(const m of all){ if(m.bond) m.bond={u:m.bond.u,n:cleanNick(String(m.bond.n||''))||'Nameless'}; if(m.mood) m.mood={k:m.mood.k,u:Math.floor(m.mood.u),n:cleanNick(String(m.mood.n||''))||'Nameless'}; }
+  if('bondT' in g){ const T=g.bondT&&typeof g.bondT==='object'&&!Array.isArray(g.bondT)?g.bondT:{}; g.bondT={};   /* absent stays absent: a save round trip changes nothing */
+  for(const k of Object.keys(T)) if(/^\d+-\d+$/.test(k)&&ok(T[k])&&T[k]>0) g.bondT[k]=Math.min(BOND_ROOMS,Math.floor(T[k])); }
+  if('bondPend' in g){ const Q=g.bondPend&&typeof g.bondPend==='object'&&!Array.isArray(g.bondPend)?g.bondPend:{}; g.bondPend={};
+  for(const k of Object.keys(Q)) if(/^\d+$/.test(k)&&Q[k]&&typeof Q[k].n==='string') g.bondPend[k]={n:cleanNick(Q[k].n)||'Nameless'}; }
+}
+const bondPairs=()=>{ const seen=new Set(), out=[]; for(const m of allMins()) if(m.bond&&!seen.has(m.uid)){ const p=bondMate(m); if(p){ seen.add(p.uid); out.push([m,p]); } seen.add(m.uid); } return out; };
+const bondNear=()=>{ const T=S.bondT||{}, all=allMins(); return Object.keys(T).map(k=>{ const [a,b]=k.split('-').map(Number); return {a:all.find(m=>m.uid===a),b:all.find(m=>m.uid===b),n:T[k]}; }).filter(x=>x.a&&x.b).sort((x,y)=>y.n-x.n); };
+
+// ===== EVENT CHAINS =====
+// Three first meetings (a wounded priest, a reliquary, a deserter) are written into S.chains when you choose; CHAIN_DAYS later a
+// follow-up waits in a gate event (CHAIN_BACK of events once due) and ends the chain. Walking past a first meeting starts nothing;
+// walking past a follow-up leaves it waiting.
+// S.chains[id]={s:state,d:day due} while waiting, {s:'end'} when over.
+const CHAIN_DAYS=2, CHAIN_BACK=.6;
+const chainGold=k=>{ const r=S.run, P=S.player; return Math.max(1,Math.round((10+P.lvl*4)*(1+(r&&RK[r.di]?r.di:0))*ngpReward()*k)); };
+const chainHp=f=>{ const P=S.player, d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*f))); P.hp-=d; return d; };
+const chainGear=()=>{ const r=S.run, it=addItem(pickRow(tableFor(r.di,'vanguard',false,true))); if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } return it; };
+const chainCoin=g=>{ S.gold+=g; S.run.goldTot=(S.run.goldTot||0)+g; sfx('coin'); };
+const chainXp=()=>{ const r=S.run, e=makeEnemy(r.di,RK[r.di].lv+Math.floor(r.room/2),false), xp=Math.round(killXp(e)*2); r.gained+=xp; r.ups+=addXp(xp); return xp; };
+const chainLoot=(g,it)=>g+' gold. '+(it?'Gear: '+ITEM[it.id].name+'.':'There was gear too, but your bag is full.');
+const CHAIN_EV={
+  priest:{chain:'priest',start:1,name:'A wounded priest',text:'A priest of the living lies in the rubble, bleeding from a bite. He sees what you are and does not beg.',
+    get opts(){ return [['spare','Bind his wounds (lose 10% HP)'],['finish','Finish him (bonus XP)'],['pass','Walk past']]; }},
+  priest_back:{chain:'priest',name:'The priest returns',text:'The priest you spared waits by the next door, his arm in a sling. "I pay my debts, even to your kind."',
+    get opts(){ return [['bless','Take his blessing (full HP, hit 15% harder this gate)'],['warn','Take his warning (gold and gear he hid)'],['pass','Not now']]; }},
+  priest_kin:{chain:'priest',name:'The grey brothers',text:'Three priests in grey bar the way. They know whose blood is on your hands.',
+    get opts(){ return [['fight','Cut through them (lose 20% HP, bonus XP)'],['pay','Pay blood money ('+chainGold(1)+' gold)'],['pass','Not now']]; }, off:k=>k==='pay'&&S.gold<chainGold(1)},
+  reliquary:{chain:'reliquary',start:1,name:'A sealed reliquary',text:'A saint\'s bones lie in a silver box under old prayers. The silver alone is worth a fortune.',
+    get opts(){ return [['loot','Loot it (gold and gear)'],['offer','Leave an offering ('+chainGold(.5)+' gold)'],['pass','Leave it be']]; }, off:k=>k==='offer'&&S.gold<chainGold(.5)},
+  relic_curse:{chain:'reliquary',name:'The saint\'s curse',text:'The air sours. Every shadow wears a saint\'s face, and the silver you took burns cold in your purse.',
+    get opts(){ return [['endure','Endure it (lose 25% HP)'],['return','Give the silver back ('+chainGold(1.5)+' gold)'],['pass','Not now']]; }, off:k=>k==='return'&&S.gold<chainGold(1.5)},
+  relic_gift:{chain:'reliquary',name:'The saint\'s gift',text:'A pale light waits in the corridor and takes the shape of an old man. He presses something into your hand.',
+    get opts(){ return [['take','Take the gift (a Soul, full mana and gear)'],['pass','Not now']]; }},
+  deserter:{chain:'deserter',start:1,name:'A deserter',text:'A soldier of the living hides among the dead, his badge torn off. He swears he can guide you, for a price.',
+    get opts(){ return [['pay','Pay him well ('+chainGold(.8)+' gold)'],['bread','Share your bread (free)'],['pass','Send him off']]; }, off:k=>k==='pay'&&S.gold<chainGold(.8)},
+  deserter_true:{chain:'deserter',name:'The deserter keeps his word',text:'The deserter waves you into a side tunnel, to a cache the living hid from their own.',
+    get opts(){ return [['take','Take the cache (gold and gear)'],['pass','Not now']]; }},
+  deserter_false:{chain:'deserter',name:'The deserter\'s price',text:'The deserter steps out of the dark with living soldiers at his back. "Nothing personal, necromancer."',
+    get opts(){ return [['fight','Fight your way out (lose 25% HP, bonus XP)'],['pay','Buy him off ('+chainGold(1.2)+' gold)'],['pass','Not now']]; }, off:k=>k==='pay'&&S.gold<chainGold(1.2)}
+};
+Object.assign(EVENTS,CHAIN_EV);
+const CHAIN_IDS=['priest','reliquary','deserter'];
+const CHAIN_NEXT={spared:'priest_back',slain:'priest_kin',looted:'relic_curse',offered:'relic_gift',paid:'deserter_true',fedTrue:'deserter_true',fedFalse:'deserter_false'};
+const chainSt=id=>S.chains&&S.chains[id]||null;
+const chainOk=k=>{ const E=EVENTS[k]; return !E.chain||(!!E.start&&!chainSt(E.chain)); };   // rollEvent: first meetings only until chosen
+function chainDue(){ const due=CHAIN_IDS.filter(id=>{ const c=chainSt(id); return c&&CHAIN_NEXT[c.s]&&S.day>=c.d; }); if(!due.length||Math.random()>=CHAIN_BACK) return null; return CHAIN_NEXT[chainSt(pick(due)).s]; }
+function chainResolve(ev,ch){   // resolveEvent for chain events: {m,c}, or null for a choice that cannot be taken
+  const E=EVENTS[ev.id], r=S.run, P=S.player, C=S.chains=S.chains||{}, go=s=>{ C[E.chain]={s,d:S.day+CHAIN_DAYS}; }, end=()=>{ C[E.chain]={s:'end'}; tally('chains'); };
+  if(E.opts.every(o=>o[0]!==ch)||(E.off&&E.off(ch))) return null;
+  if(ch==='pass') return E.start?{m:'You leave it be.',c:''}:{m:'You turn away. It will find you again.',c:''};   // a follow-up waits for another day
+  const id=ev.id;
+  if(id==='priest'&&ch==='spare'){ const d=chainHp(.1); go('spared'); return {m:'You bind the priest\'s wounds for '+d+' HP of your own. He limps into the dark without a word.',c:''}; }
+  if(id==='priest'&&ch==='finish'){ const xp=chainXp(); go('slain'); return {m:'You finish the priest. +'+xp+' XP. Someone will miss him.',c:'ok'}; }
+  if(id==='priest_back'&&ch==='bless'){ P.hp=pMax(); r.bless=true; end(); return {m:'The priest blesses you in the name of a god you do not know. You are whole, and you and your army hit 15% harder for the rest of this gate.',c:'ok'}; }
+  if(id==='priest_back'&&ch==='warn'){ const g=chainGold(1.5), it=chainGear(); chainCoin(g); end(); return {m:'He shows you where his order hid its tithe: '+chainLoot(g,it),c:'ok'}; }
+  if(id==='priest_kin'&&ch==='fight'){ const d=chainHp(.2), xp=chainXp(); end(); return {m:'You cut through the grey brothers. It costs '+d+' HP; +'+xp+' XP.',c:'bad'}; }
+  if(id==='priest_kin'&&ch==='pay'){ const g=chainGold(1); S.gold-=g; end(); return {m:'You pay '+g+' gold in blood money. The brothers let you pass.',c:''}; }
+  if(id==='reliquary'&&ch==='loot'){ const g=chainGold(1), it=chainGear(); chainCoin(g); go('looted'); return {m:'You prise the silver off the saint: '+chainLoot(g,it),c:'ok'}; }
+  if(id==='reliquary'&&ch==='offer'){ const g=chainGold(.5); S.gold-=g; go('offered'); return {m:'You leave '+g+' gold at the saint\'s feet and close the lid.',c:''}; }
+  if(id==='relic_curse'&&ch==='endure'){ const d=chainHp(.25); end(); return {m:'The curse wrings '+d+' HP out of you, then lets go for good.',c:'bad'}; }
+  if(id==='relic_curse'&&ch==='return'){ const g=chainGold(1.5); S.gold-=g; end(); return {m:'You leave '+g+' gold in the dust. The faces fade from the shadows.',c:''}; }
+  if(id==='relic_gift'&&ch==='take'){ const got=gainSoul(), it=chainGear(); P.mana=pMana(); end(); return {m:'The saint\'s gift: full mana'+(got?'. A Soul ('+r.souls+'/'+SOUL_MAX+')':'')+(it?'. Gear: '+ITEM[it.id].name:'')+'.',c:'ok'}; }
+  if(id==='deserter'&&ch==='pay'){ const g=chainGold(.8); S.gold-=g; go('paid'); return {m:'You pay the deserter '+g+' gold. He swears he will find you again.',c:''}; }
+  if(id==='deserter'&&ch==='bread'){ go(Math.random()<.5?'fedTrue':'fedFalse'); return {m:'You share your bread. The deserter eats like a wolf and slips away.',c:''}; }
+  if(id==='deserter_true'&&ch==='take'){ const g=chainGold(2), it=chainGear(); chainCoin(g); end(); return {m:'The deserter\'s cache: '+chainLoot(g,it),c:'ok'}; }
+  if(id==='deserter_false'&&ch==='fight'){ const d=chainHp(.25), xp=chainXp(); end(); return {m:'You fight your way out. It costs '+d+' HP; +'+xp+' XP.',c:'bad'}; }
+  if(id==='deserter_false'&&ch==='pay'){ const g=chainGold(1.2); S.gold-=g; end(); return {m:'You buy the deserter off for '+g+' gold. You will not see him again.',c:''}; }
+  return null;
+}
+function chainsFix(g){   // normalizeSave
+  if(!('chains' in g)) return; const C=g.chains&&typeof g.chains==='object'&&!Array.isArray(g.chains)?g.chains:{}; g.chains={};
+  for(const id of Object.keys(C).filter(id=>CHAIN_IDS.includes(id))){ const c=C[id];   /* saved key order (order met), so a reload is JSON-identical */ if(!c||typeof c!=='object') continue;
+    if(c.s==='end') g.chains[id]={s:'end'}; else if(CHAIN_NEXT[c.s]&&EVENTS[CHAIN_NEXT[c.s]].chain===id&&typeof c.d==='number'&&isFinite(c.d)) g.chains[id]={s:c.s,d:Math.floor(c.d)}; }
+}
+
+// ===== MAUSOLEUMS =====
+// A late gold sink: in town, raise a mausoleum over a name in the Memorial. Each one (at most MAUS_MAX, kept through New Game+
+// with the Memorial) gives every minion +MAUS_K max HP and attack for good. Costs climb: MAUS_COST[n] for the next one.
+const MAUS_MAX=5, MAUS_K=.02, MAUS_COST=[5000,10000,20000,30000,40000];
+const mausN=()=>S&&S.memorial?Math.min(MAUS_MAX,S.memorial.filter(e=>e.maus).length):0;
+const mausCost=()=>MAUS_COST[mausN()]||0;
+const canMaus=e=>!!e&&!e.maus&&S.mode==='town'&&mausN()<MAUS_MAX&&S.gold>=mausCost();
+function raiseMaus(i){ const e=(S.memorial||[])[i]; if(!canMaus(e)) return false; S.gold-=mausCost(); e.maus=1; tally('maus'); syncArmy(); sfx('raise'); return true; }
+const extraMul=(m,k)=>(k==='atk'?bondMul(m):1)*(1+MAUS_K*mausN());   // syncMinion: bonds and moods (attack), mausoleums (both)

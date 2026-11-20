@@ -5,6 +5,12 @@
 //   LOTD_BALANCE.run({diff:{hp:2.4}})           // try a DIFF change without editing the game
 //   LOTD_BALANCE.run({push:true})               // bots enter the hardest unlocked gate (below Recommended)
 //   LOTD_BALANCE.run({modes:['skills']})        // only the bot that learns skills (faster)
+//   LOTD_BALANCE.run({stats:['will','constitution']})   // replaces STAT_ORDER: the bot spends its points in this order, round and round
+//   LOTD_BALANCE.run({mods:'a'})                // buys every skill's rank-3 upgrade a ('b' for b; default 'none', so earlier numbers stay comparable)
+//   LOTD_BALANCE.run({mod:'mend:a'})            // rushes that skill to rank 3 before any other rank and takes that upgrade (with mods, overrides that skill)
+//   Measured 2026-11-19 after the stat rebalance (market, seeds 7700/9100): stats Will+Con 88/88%, Will 78/80%, Will+Int 84/82%, Will+Str 79/83%,
+//   default mix 85/86%. Rank-3: all a 85/86%, all b 84/86%; each rushed pair within ~2 points (Ossified 87/86% vs Marrow Ward 85/84% after
+//   15%->8%; it was 88/87%). The bot reaches rank 3 only from level ~38 when it learns rank by rank, which is why mod rushes the skill.
 //   modes: 'noSkills', 'skills', 'full' (market + the town economy), 'market' (skills + sells loot, buys gear, potions and salts, empowers minions at the
 //          Bone Altar, drinks potions, and answers telegraphed boss moves with Grave Chill or Bone Ward)
 // With the local server running (node tools/serve.js) you can load this file instead of pasting it:
@@ -14,6 +20,18 @@
 // The ~80% target is for the 'market' bot (skills + shopping + altar). The early option is no longer needed: SAFE for A and S
 // now matches where they are balanced. Current numbers, averaged over seeds 7700 and 9100 (results swing ~±7 points per seed set):
 // LOTD_BALANCE.run({bots:40, days:100, seed:7700, modes:['market']})   (one mode per call, ~15 s in a browser), or in Node: node tests/run-balance.js
+//   2026-11-20 later (rival stolen bodies, tempering, compounds, siege wall, pre-rolled doors; rival 15.4/6.4, TEMPER_GOLD 150): market 87/88%,
+//   tower 70/71, rift ~17/18; full 89/88%, tower 82/84, rift ~9/8; full heat:0 92%; sieges 87/85%; rival 68/68%; raids 78/78%; raises 19-20% / 32-33%;
+//   gold held day 100 avg/median market 35k/20k, 33k/15k; full 39k/22k, 34k/28k (tempering is capped by lines, not by cost).
+//   2026-11-20 (after difficulty rules, corpse conditions, marks, second intents; Hard XP 1.2, marks trimmed, rival 14.8/6.2): market 87/86%,
+//   tower 70/71, rift ~17/16; full 88/88%, tower 85/84, rift ~9; full heat:0 92/92%; sieges 85/84%; rival 64/71%; raids 78/78%; raises 20% / 32%.
+//   2026-11-19 (after the stat rebalance): market ~85-86%, tower ~71-72; full ~87-88%, tower ~85; full heat:0 ~91%; sieges held 83-85%; rival ~67-72%.
+//   2026-11-19 (after rows, foe intents, capstones, bonds, mausoleums; Hard 1.8, TW.hpG .042, sieges x2.4/x2.5, rival 12.8/5.4): market 85/86%,
+//   tower 71.5/70.1, rift ~15; full 88/87%, tower 84/83, rift ~8.5; full heat:0 92/91%; sieges held 86/84%; rival 71/62%; raids 77/78% (seeds 7700/9100).
+//   Stat builds then (market): Will+Con 90/89%, Will+Int 88/89%, Will+Str 89/88%, Will 86/88% (all above the default mix since rows).
+//   Gold (run-balance prints held gold avg/median at dusk on days 30/60/100, lifetime earned/spent): 2026-11-19 before bonds and mausoleums,
+//   market 2.0k/1.8k, 12.5k/5.5k, 48k/39k; full 2.5k/2.6k, 8.1k/7.2k, 49k/39k. With mausoleums (full only; ~4 of 5 raised by day 100) full day 100
+//   ~50k/34-45k: late income (~17k a day, mostly sell/buy churn) outruns any capped sink. "off":["maus"] and ["bonds"] measure without them.
 //   market:    clears ~81% overall, deaths ~16%, level ~51 on day 100, tower ~62 (daily quest: clear 4 rooms, 1 point + 15% of a level;
 //              skill bots pick Death's Toll at level 20 and use it with five Souls)
 //   full:      the market bot plus buildings, salvage, enchanting, fusion, bounties and orders against charging bosses:
@@ -27,7 +45,7 @@
 //              comparable with earlier runs; there the bot goes to a challenge's gate on its day and fights it like any boss room.
 //   The full bot now swears faith by default (Honored on even bots, Dishonored on odd) and climbs to Hard on cleared gates
 //   (opts.heat:1); pass faith/heat to override, heat:0 for the old behaviour. Every run also reports secret masters met/slain.
-//   opts.faith ('hon'|'dis') swears an oath at level 8; opts.ult ('toll'|'rise'|'prison') picks the ultimate; opts.heat (1-3) lets
+//   opts.faith ('hon'|'dis') swears an oath once the shrine opens (3 gates cleared, level 8); opts.ult ('toll'|'rise'|'prison') picks the ultimate; opts.heat (1-3) lets
 //   the bot climb a cleared gate's difficulty up to that level, stepping down after a death there. Measured (full, seed 7700):
 //   both faiths +1-2 points of clears (Honored and Dishonored within a point of each other); the three ultimates within ~2 Tower
 //   floors after Death's Toll went to 400%; Hard clears ~82% (Normal 85%), Brutal ~63%, Nightmare ~41% with ~54% deaths, and
@@ -60,22 +78,26 @@
   // ----- town: stats, skills, gear
   function town(B){
     const P=S.player;
-    while(P.pts>0) alloc(STAT_ORDER[B.statI++%STAT_ORDER.length]);
+    const SO=B.stats||STAT_ORDER; while(P.pts>0) alloc(SO[B.statI++%SO.length]);   // opts.stats overrides the stat order
+    if(B.skills&&B.mod){ const id=B.mod.split(':')[0]; while(P.sp>0&&sk(id)<SK_MAX&&P.lvl>=skReq(SKILL[id],sk(id)+1)){ const sp=P.sp; learnSkill(id); if(P.sp===sp) break; } }   // opts.mod rushes that skill to rank 3 first
     if(B.skills){
       let again=true;
       while(again&&P.sp>0){ again=false;
         for(let rank=1;rank<=SK_MAX&&!again;rank++) for(const id of SKILL_ORDER){
           if(sk(id)===rank-1&&P.lvl>=skReq(SKILL[id],rank)){ const sp=P.sp; learnSkill(id); if(P.sp<sp){ again=true; break; } } } }   // stop if learning fails (e.g. not in town)
     }
+    if(B.skills&&(B.mods||B.mod)) for(const id in SKILL_MODS) if(sk(id)>=SK_MAX&&!skMod(id)){   // opts.mods: 'a' or 'b' picks that upgrade on every skill at rank 3; opts.mod 'skill:c' forces one skill's choice (alone, or over opts.mods)
+      const f=B.mod&&B.mod.split(':'), c=f&&f[0]===id?f[1]:B.mods; if(c==='a'||c==='b') chooseMod(id,c); }
     if(B.skills&&S.player.lvl>=ULT_LV&&S.player.ult!==(B.ult||'toll')) chooseUlt(B.ult||'toll');   // ultimates open at level 20
-    if(B.faith&&S.player.lvl>=FAITH_LV&&!faithOf()) swear(B.faith);   // opts.faith: 'hon' or 'dis'
+    if(B.faith&&(typeof faithOpen==='function'?faithOpen():S.player.lvl>=FAITH_LV)&&!faithOf()) swear(B.faith);   // opts.faith: 'hon' or 'dis'
+    if(typeof markPend==='function'&&!(B.off&&B.off.marks)) for(const m of raidPool()) while(markPend(m)&&chooseMark(m.uid,markOpts(m)[0]));   // evolution marks: mark A at Elder, empowered at Eternal; "off":["marks"] takes none
     for(const sl of GEAR_SLOTS){
       const cur=S.equip[sl]; let best=null, bs=cur?itemScore(ITEM[cur.id]):-1;
       for(const it of S.inv){ const d=ITEM[it.id]; if(d.slot===sl&&itemScore(d)>bs){ best=it; bs=itemScore(d); } }
       if(best) equip(best.u);
     }
     if(B.full){   // the new economy: claim bounties, salvage the better spares for dust, build, enchant what you wear
-      if(!B.off.bounty) for(let i=0;i<3;i++) claimBounty(i);
+      if(!B.off.bounty&&townOpen()) for(let i=0;i<3;i++) claimBounty(i);   // the board shows once the town opens
       if(!B.off.salvage) for(const it of S.inv.slice()) if(!ITEM[it.id].uq&&ITEM[it.id].tier>=2) salvage(it.u);
     }
     if(B.market){   // sell everything not worn, buy better gear from the merchant, keep the potion belt full
@@ -87,13 +109,17 @@
       const reserve=(POTIONS.hp.price()+POTIONS.mp.price())*BELT_MAX;
       if(B.full){
         if(typeof repairBuilding==='function'&&S.siege&&S.siege.dmg) repairBuilding();   // a building burned in a siege: repair it first
-        for(const k of ['crypt','ossuary','altar','forge']){ const c=buildCost(k); if(!B.off[k]&&c&&S.gold-c[0]>=reserve) build(k); }
+        if(townOpen()) for(const k of ['crypt','ossuary','altar','forge']){ const c=buildCost(k); if(!B.off[k]&&c&&S.gold-c[0]>=reserve) build(k); }
         if(!B.off.enchant) for(const sl of GEAR_SLOTS){ const it=S.equip[sl]; if(it&&!ITEM[it.id].uq) while((it.ro||[]).length<lineMax(it)&&enchant(it.u,-1)); }
+        if(!B.off.temper&&typeof temper==='function') for(let g=0;g<200&&S.gold>10000;g++){   // tempering: worn lines, cheapest first, keeping 10000 gold in hand
+          const c=[]; for(const sl of GEAR_SLOTS){ const it=S.equip[sl]; if(it) (it.ro||[]).forEach((r,i)=>{ if(temperTo(it,i)!=null) c.push([temperCost(it),it,i]); }); }
+          c.sort((a,b)=>a[0]-b[0]); if(!c.length||S.gold-c[0][0]<10000||!temper(c[0][1].u,c[0][2])) break; }
         if(!B.off.fuse&&S.army.length>=slots()){ const by={}; for(const m of S.army) (by[m.role]=by[m.role]||[]).push(m);
           const pair=Object.values(by).filter(a=>a.length>=2).map(a=>a.sort((x,y)=>cval(x)-cval(y)).slice(0,2)).sort((a,b)=>cval(a[0])-cval(b[0]))[0];
           if(pair&&S.gold-fuseCost(pair[0],pair[1])>=reserve) fuse(pair[0].uid,pair[1].uid); }
       }
       for(const m of S.army.slice().sort((a,b)=>cval(b)-cval(a))){ while(S.gold-empowerCost(m)>=reserve&&empower(m.uid)); }
+      if(B.full&&!B.off.maus&&typeof raiseMaus==='function') for(let i=0;i<MAUS_MAX;i++){ const j=(S.memorial||[]).findIndex(e=>!e.maus); if(j<0||S.gold-mausCost()<reserve||!raiseMaus(j)) break; }   // mausoleums: the late gold sink, with what the Altar leaves
     }
     if(useRes(B)){   // the Reserve: whoever is stronger than the weakest army minion swaps in; a full bench lets its weakest go
       for(let i=0;i<20;i++){ const R=S.reserve||[], r=R.slice().sort((a,b)=>cval(b)-cval(a))[0], w=S.army.slice().sort((a,b)=>cval(a)-cval(b))[0]; if(!r) break;
@@ -139,7 +165,7 @@
     if(P.hp<max*.35&&P.mana>=8) return 'siphon';
     if(B.skills){
       const ok=id=>canUse(id)&&P.mana-SKILL[id].cost>=res, live=S.army.filter(m=>m.hp>0);
-      if(ok('reap')&&t.hp<t.maxHp*.35&&t.hp>pAtk()) return 'sk:reap';
+      if(ok('reap')&&t.hp<t.maxHp*(typeof reapLow==='function'?reapLow():.35)&&t.hp>pAtk()) return 'sk:reap';
       if(ok('blast')&&foes.length>=2) return 'sk:blast';
       if(ok('mend')&&live.length&&live.reduce((a,m)=>a+m.hp/m.maxHp,0)/live.length<.55) return 'sk:mend';
       if(ok('chill')&&(t.boss||foes.length>=3)) return 'sk:chill';
@@ -151,6 +177,7 @@
     if(P.mana>=8+res&&pSiph()>=pAtk()) return 'siphon';
     return 'strike';
   }
+  const RZ={t:0,ok:0};
   const useRes=B=>B&&B.full&&!B.off.reserve&&typeof reserveOpen==='function'&&reserveOpen();   // the Reserve, switchable with "off":["reserve"]
   function raisePhase(B){
     const r=S.run, P=S.player;
@@ -165,6 +192,7 @@
       }
       tryRaise(c.id, typeof S.salts==='number'&&S.salts>0&&(c.boss||c.elite));   // salts on the bodies worth the most
     }
+    for(const c of r.corpses) if(c.tried&&!c._z&&c.result){ c._z=1; RZ.t++; if(c.result==='raised') RZ.ok++; }   // raise attempts and successes (the report's raise rate)
   }
   function playRun(B,rec){
     const duel=typeof rivalToday==='function'&&rivalToday()&&S.player.lvl>=RK[rv().gi].unlock, gi=duel?rv().gi:pickGate(B), lvl=S.player.lvl;   // a rival's challenge today: go and meet it (rivalOpen is off outside 'full')
@@ -211,6 +239,7 @@
     finally{ S=JSON.parse(snap); Math.random=rand; }
   }
   function fightSiege(B){   // a siege is fought like rooms: the same decisions, raise the last wave's bodies, then dawn
+    if(typeof siegeWallPick==='function'&&S.mode==='siege'){ siegeGuard(guardDefault()); wallPool().sort((x,y)=>y.lvl-x.lvl||y.atk-x.atk).slice(0,SIEGE_WALL).forEach(m=>siegeWallPick(m.uid)); }   // guard the highest-level building, send the 2 strongest from the Reserve
     if(!beginSiege()) return; let guard=0;
     while(guard++<2000){
       if(S.mode==='battle'){ act(decide(B)); continue; }
@@ -221,16 +250,18 @@
   }
   function simBot(seed,B,days){
     Math.random=mulberry32(seed); newGame(); B.statI=0; B.hw={}; B.hwDay={};
-    const rec=[], lvAt={}, firstClear={}, loreAt={}, tiers=[];
+    const rec=[], lvAt={}, firstClear={}, loreAt={}, tiers=[], goldAt={}, gl={earn:0,spend:0,S:null};
+    const goldWatch=()=>{ if(gl.S===S) return; gl.S=S; let v=S.gold||0; Object.defineProperty(S,'gold',{enumerable:true,configurable:true,get:()=>v,set:x=>{ if(x>v) gl.earn+=x-v; else gl.spend+=v-x; v=x; }}); };   // lifetime gold earned and spent
     while(S.day<=days){
+      goldWatch();
       if(B.tiers&&S.watches===WATCHES&&S.day%(B.tiers.every||2)===0) tierProbe(B,seed,tiers);
       if(S.mode==='siege') fightSiege(B);
       town(B); const d=S.day; playRun(B,rec); if(S.mode==='siege') fightSiege(B);
       const last=rec[rec.length-1]; if(last&&last.cleared&&firstClear[last.gate]==null) firstClear[last.gate]=d;
-      if(S.day!==d){ if(typeof loreCheck==='function') loreCheck(); lvAt[d]=S.player.lvl;   /* the game checks lore when it draws; bots never draw */ loreAt[d]=[Object.keys(S.story||{}).length,S.pages||0]; }
+      if(S.day!==d){ if(typeof loreCheck==='function') loreCheck(); lvAt[d]=S.player.lvl; goldAt[d]=[S.gold,gl.earn,gl.spend];   /* the game checks lore when it draws; bots never draw */ loreAt[d]=[Object.keys(S.story||{}).length,S.pages||0]; }
     }
     town(B);
-    const tower=S.player.lvl>=TW.unlock?climb(B):0;
+    const tower=(typeof towerOpen==='function'?towerOpen():S.player.lvl>=TW.unlock)?climb(B):0;
     let riftDeaths=0;   // the Rift: keep going one depth deeper until it has killed the bot 3 times (at most 40 runs)
     if(typeof riftOpen==='function'&&riftOpen()&&!B.off.rift) for(let i=0;i<40&&riftDeaths<3;i++){
       S.mode='town'; S.run=null; S.watches=Math.max(1,S.watches); town(B); if(!startRift(riftBest()+1)) break; let guard=0;
@@ -239,7 +270,7 @@
     const sieges={fought:T_('sieges'),won:T_('siegeWins')}, raids={sent:T_('raidsSent'),won:T_('raidWins')}, passives=['robber','scholar','calcify','sanguine','thrift','deathless'].reduce((a,id)=>a+sk(id),0);
     const sec={met:T_('secretMet'),slain:SECRET.reduce((a,B,i)=>a+T_('secret_'+i),0)};
     const rival={met:T_('rivalMet'),wins:T_('rivalWins'),losses:T_('rivalLosses'),thefts:T_('rivalThefts'),day:(S.rival&&S.rival.met)||0};
-    return {rec,tiers,lvAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
+    return {maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
   }
 
   // ----- reporting
@@ -267,12 +298,15 @@
     for(const gi of [...new Set(tp.map(x=>x.gate))]) for(const h of [...new Set(tp.map(x=>x.heat))].sort()){ const g=tp.filter(x=>x.gate===gi&&x.heat===h), o={}; if(!g.length) continue;
       for(const x of g){ const k=x.lvl-x.lvl%2; (o[k]=o[k]||[0,0])[0]++; if(x.cleared) o[k][1]++; }
       tiers.push(RANKS[gi]+' '+HEAT[h].name+' [rec '+tierRec(gi,h)+']: '+Object.keys(o).map(Number).sort((x,y)=>x-y).map(l=>'Lv'+l+' '+pc(o[l][1],o[l][0])+'/'+o[l][0]).join('  ')); }
-    return {gates,heat,byLvl,tiers,sec,lore,raids,sieges,rival,rift,passives:avg(res.map(r=>r.passives||0)),runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
+    const med=a=>{ if(!a.length) return '-'; const b=a.slice().sort((x,y)=>x-y), m=b.length>>1; return Math.round(b.length%2?b[m]:(b[m-1]+b[m])/2); };
+    const gold={}; [30,60,100,days].forEach(d=>{ if(d>days) return; const a=res.map(r=>r.goldAt&&r.goldAt[d]).filter(Boolean); if(a.length) gold['day'+d]={avg:Math.round(avg(a.map(x=>x[0]))),median:med(a.map(x=>x[0])),earned:Math.round(avg(a.map(x=>x[1]))),spent:Math.round(avg(a.map(x=>x[2])))}; });   // gold held at dusk, and lifetime earned vs spent
+    gold.maus=avg(res.map(r=>r.maus||0)); gold.bonds=avg(res.map(r=>r.bonds||0));   // mausoleums raised and bonded pairs at the end
+    return {gold,gates,heat,byLvl,tiers,sec,lore,raids,sieges,rival,rift,passives:avg(res.map(r=>r.passives||0)),raise:(z=>(RZ.t=RZ.ok=0,z))(RZ.t?pc(RZ.ok,RZ.t)+' of '+RZ.t:null),runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
   }
 
   function run(opts){
     opts=Object.assign({bots:30,days:40,seed:1000,diff:null,tw:null,push:false,early:0,modes:['noSkills','skills']},opts||{});
-    const keep={siegeOpen:typeof siegeOpen==='function'?siegeOpen:null,rivalOpen:typeof rivalOpen==='function'?rivalOpen:null,S:JSON.stringify(S),rand:Math.random,save:save,DIFF:JSON.stringify(DIFF),TW:JSON.stringify(TW),SAFE:SAFE.slice()};
+    const keep={bondsRoom:typeof bondsRoom==='function'?bondsRoom:null,siegeOpen:typeof siegeOpen==='function'?siegeOpen:null,rivalOpen:typeof rivalOpen==='function'?rivalOpen:null,S:JSON.stringify(S),rand:Math.random,save:save,DIFF:JSON.stringify(DIFF),TW:JSON.stringify(TW),SAFE:SAFE.slice()};
     save=function(){};
     const sfxWas=typeof SFX!=='undefined'&&SFX.on; if(typeof SFX!=='undefined') SFX.on=false;   // no sound during simulations
     if(opts.early){ SAFE[4]-=opts.early; SAFE[5]-=opts.early; }   // let fair bots enter A and S early (the XP curve stalls them near level 20)
@@ -281,13 +315,14 @@
     const out={settings:{DIFF:JSON.parse(JSON.stringify(DIFF)),TW:Object.assign({},TW),bots:opts.bots,days:opts.days}}, t0=Date.now();
     try{
       for(const [name,skills,market,full] of [['noSkills',false,false,false],['skills',true,false,false],['market',true,true,false],['full',true,true,true]].filter(m=>opts.modes.includes(m[0]))){
+        if(keep.bondsRoom) bondsRoom=(opts.off||[]).includes('bonds')?()=>{}:keep.bondsRoom;   // "off":["bonds"]: no minion ever bonds
         if(keep.siegeOpen) siegeOpen=(opts.off||[]).includes('siege')?()=>false:keep.siegeOpen;   // "off":["siege"]: the living never come
         if(keep.rivalOpen) rivalOpen=(!full||(opts.off||[]).includes('rival'))?()=>false:keep.rivalOpen;   // the rival plays only in 'full'; "off":["rival"] switches it off there
-        const res=[]; for(let b=0;b<opts.bots;b++) res.push(simBot(opts.seed+b,{skills,market,full,push:opts.push,faith:opts.faith||(full?(b%2?'dis':'hon'):null),ult:opts.ult,heat:opts.heat!=null?opts.heat:(full?1:0),tiers:opts.tiers,off:Object.fromEntries((opts.off||[]).map(k=>[k,1]))},opts.days));
+        const res=[]; for(let b=0;b<opts.bots;b++) res.push(simBot(opts.seed+b,{skills,market,full,push:opts.push,faith:opts.faith||(full?(b%2?'dis':'hon'):null),ult:opts.ult,heat:opts.heat!=null?opts.heat:(full?1:0),tiers:opts.tiers,stats:opts.stats,mods:opts.mods,mod:opts.mod,off:Object.fromEntries((opts.off||[]).map(k=>[k,1]))},opts.days));
         out[name]=summarize(res,opts.days);
       }
     } finally {
-      if(keep.siegeOpen) siegeOpen=keep.siegeOpen; if(keep.rivalOpen) rivalOpen=keep.rivalOpen; Math.random=keep.rand; save=keep.save; keep.SAFE.forEach((v,i)=>SAFE[i]=v); if(typeof SFX!=='undefined') SFX.on=sfxWas;
+      if(keep.bondsRoom) bondsRoom=keep.bondsRoom; if(keep.siegeOpen) siegeOpen=keep.siegeOpen; if(keep.rivalOpen) rivalOpen=keep.rivalOpen; Math.random=keep.rand; save=keep.save; keep.SAFE.forEach((v,i)=>SAFE[i]=v); if(typeof SFX!=='undefined') SFX.on=sfxWas;
       Object.assign(DIFF,JSON.parse(keep.DIFF)); Object.assign(TW,JSON.parse(keep.TW));
       S=JSON.parse(keep.S);
     }

@@ -39,7 +39,7 @@ test('Nightmare: clearing on Nightmare earns that gate\'s title and a mark on it
   returnTown(); ui.tab='gates'; ok(/nm-mark/.test(renderAll('nm mark')));
 });
 test('Faith events: the sworn sometimes meet a shrine of their path, never of the other',()=>{
-  setLvl(20); S.mode='town'; S.faith=undefined; delete S.faith; fix(0); for(let i=0;i<20;i++) ok(!EVENTS[rollEvent().id].faith,'no faith events unsworn');
+  setLvl(20); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1,2:1}}); S.mode='town'; S.faith=undefined; delete S.faith; fix(0); for(let i=0;i<20;i++) ok(!EVENTS[rollEvent().id].faith,'no faith events unsworn');
   swear('hon'); fix(.1); eq(rollEvent().id,'oldgods'); fix(.9); ok(!EVENTS[rollEvent().id].faith);
   const P=S.player; eventScene('oldgods'); P.hp=Math.round(pMax()/2); P.mana=0; ok(resolveEvent('pray')); eq(P.mana,pMana()); ok(P.hp>pMax()/2);
   S.mode="town"; S.run=null; S.gold=1e6; ok(renounce()); S.gold=0; swear('dis'); fix(.1); eq(rollEvent().id,'defiled');

@@ -20,11 +20,11 @@ test('Skills: actives are blocked in town, by silence, cooldown and low mana',()
 });
 test('Skills: Bone Spear pierces half of armor',()=>{
   const t=foe({hp:1e6}); arena([t],3); fix(.5); S.player.skills.spear=1; S.player.mana=100; act('sk:spear');
-  eq(1e6-t.hp,H((pAtk()+pSiph())*.85*(1-DIFF.armor[3]*.5)));
+  eq(1e6-t.hp,H((pAtk()+pSiph())*.85*(1-DIFF.armor[3]*.5)*skMul()),'Intelligence adds skill damage');
 });
 test('Skills: Corpse Explosion hits every foe through armor and uses up a body',()=>{
   const a=foe({hp:1e6}), b=foe({hp:1e6}); arena([a,b],2); fix(.5); S.player.skills.blast=1; S.player.mana=100;
-  ok(!canUse('blast'),'needs a body'); const c=corpse(); S.run.corpses=[c]; act('sk:blast'); const d=H(pSiph()*.8);
+  ok(!canUse('blast'),'needs a body'); const c=corpse(); S.run.corpses=[c]; act('sk:blast'); const d=H(pSiph()*.8*skMul());
   eq(1e6-a.hp,d); eq(1e6-b.hp,d); eq(c.result,'exploded'); ok(c.tried);
 });
 test('Skills: Dark Mending heals hurt minions only',()=>{
@@ -50,12 +50,22 @@ test('Skills: Unholy Frenzy boosts minion damage for 3 turns',()=>{
 });
 test('Skills: Reap ignores armor and doubles on a foe below 35%',()=>{
   const a=foe({hp:1e6}), b=foe({hp:3e5,maxHp:1e6}); arena([a,b],4); fix(.5); S.player.skills.reap=1; S.player.mana=100;
-  act('sk:reap'); const d=1e6-a.hp; eq(d,H(pSiph()*1.5)); S.run.cd={}; S.player.mana=100; setTarget(b.id); act('sk:reap'); eq(3e5-b.hp,2*d);
+  act('sk:reap'); const d=1e6-a.hp; eq(d,H(pSiph()*1.5*skMul())); S.run.cd={}; S.player.mana=100; setTarget(b.id); act('sk:reap'); eq(3e5-b.hp,2*d);
 });
 test('Skills: Soul Well adds mana each turn, Necrotic Edge sharpens Strike',()=>{
   const t=foe({hp:1e6}); arena([t]); fix(.5); S.player.skills.soulwell=2; S.player.skills.edge=3; S.player.mana=0;
   act('strike'); eq(S.player.mana,3+1+2); eq(1e6-t.hp,H(pAtk()*dmgMul()*1.3));
 });
 test('Skills: active skills map to keys 4 and up in battle',()=>{ S.player.skills.spear=1; S.player.skills.reap=1; S.player.skills.bonearmor=1; eq(activeSkills().map(s=>s.id).join(),'spear,reap'); });
+
+test('Skills: Grave Chill by rank: 1 freezes a turn, 2 adds a Chill even when resisted, 3 freezes 2 turns; bosses resist 50/40/30%',()=>{
+  const b=foe({hp:1e6,boss:true,atk:1}); arena([b]); const P=S.player; P.mana=999;
+  P.skills.chill=1; fix(.55); useSkill('chill',b); ok(!b.stun,'50% at rank 1'); ok(!hasSt(b,'chilled'),'no chill at rank 1'); S.run.cd={}; fix(.45); useSkill('chill',b); eq(b.stun,1);
+  b.stun=0; P.skills.chill=2; S.run.cd={}; fix(.65); useSkill('chill',b); ok(!b.stun,'40% at rank 2'); eq(b.st.chilled,2,'chilled although it resisted'); const h=b.hp; hurtFoe(b,100); eq(h-b.hp,Math.round(100*CHILL_MUL));
+  P.skills.chill=3; S.run.cd={}; fix(.75); useSkill('chill',b); ok(!b.stun,'30% at rank 3'); S.run.cd={}; fix(.65); useSkill('chill',b); eq(b.stun,2);
+  ['1 turn','Bosses resist 50%'].forEach(x=>ok(SKILL.chill.desc(1).includes(x))); ok(/Chilled/.test(SKILL.chill.desc(2))&&!/Chilled/.test(SKILL.chill.desc(1))); ok(/2 turns/.test(SKILL.chill.desc(3))&&/30%/.test(SKILL.chill.desc(3)));
+  ok(trText(SKILL.chill.desc(2))!==SKILL.chill.desc(2)&&!/Chilled|Bosses/.test(trText(SKILL.chill.desc(2))),'Turkish');
+  [SKILL.curse.desc(3),SKILL.frenzy.desc(3),SKILL.mend.desc(1)].forEach(d=>ok(!/ turns| damage|minions/.test(trText(d)),trText(d)));
+});
 
 })();

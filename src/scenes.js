@@ -141,7 +141,9 @@ function scPillars(n,base,col,top,lit){   // two rows of columns running toward 
 }
 // More helpers for the repainted scenes: stars, drifting motes, crows, smoke, lit windows and a tiled floor in perspective.
 const scStars=(r,n,ymax)=>{ let o='<g fill="#e8e0c8">'; for(let i=0;i<n;i++) o+='<circle cx="'+(r()*1600).toFixed(0)+'" cy="'+(r()*ymax).toFixed(0)+'" r="'+(.5+r()*1.1).toFixed(2)+'" opacity="'+(.15+r()*.5).toFixed(2)+'"/>'; return o+'</g>'; };
-const scMotes=(r,n,c,y0,y1,cls)=>{ let o='<g fill="'+c+'">'; for(let i=0;i<n;i++) o+='<circle class="'+(cls||'sc-mote')+(i%3?'':' d2')+'" cx="'+(r()*1600).toFixed(0)+'" cy="'+(y0+r()*(y1-y0)).toFixed(0)+'" r="'+(.8+r()*1.8).toFixed(2)+'" opacity="'+(.15+r()*.45).toFixed(2)+'"/>'; return o+'</g>'; };
+const scMotes=(r,n,c,y0,y1,cls)=>{ const g=['','',''];   // three moving groups (not one animation per mote), each on its own beat; sc-amb marks them for scCalm
+  for(let i=0;i<n;i++) g[i%3]+='<circle cx="'+(r()*1600).toFixed(0)+'" cy="'+(y0+r()*(y1-y0)).toFixed(0)+'" r="'+(.8+r()*1.8).toFixed(2)+'" opacity="'+(.15+r()*.45).toFixed(2)+'"/>';
+  return g.map((s,k)=>s?'<g class="sc-amb '+(cls||'sc-mote')+(k?' d'+(k+1):'')+'" fill="'+c+'">'+s+'</g>':'').join(''); };
 const scCrow=(x,y,s,f)=>'<path d="M'+x+' '+y+'q'+(-6*s)+' '+(-5*s)+' '+(-13*s)+' '+(-2*s)+'q'+(6*s)+' 0 '+(9*s)+' '+(3*s)+'q'+(3*s)+' '+(-4*s)+' '+(10*s)+' '+(-5*s)+'q'+(-5*s)+' '+(3*s)+' '+(-6*s)+' '+(4*s)+'z" fill="'+(f||'#060504')+'"/>';
 const scSmoke=(x,y,h)=>'<path class="sc-fog d2" d="M'+x+' '+y+'C'+(x-14)+' '+(y-h*.3)+' '+(x+16)+' '+(y-h*.55)+' '+(x-6)+' '+(y-h*.8)+'S'+(x+20)+' '+(y-h*1.1)+' '+(x+8)+' '+(y-h*1.3)+'" stroke="#a89c84" stroke-opacity=".14" stroke-width="10" fill="none" stroke-linecap="round" filter="url(#scB2)"/>';
 const scWin=(x,y,w,h,o)=>scGlow(x+w/2,y+h/2,w*2.4,'#e8a050',.16*(o||1))+'<rect class="sc-flk" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="#e8a858" opacity="'+(.6*(o||1)).toFixed(2)+'"/><path d="M'+(x+w/2)+' '+y+'V'+(y+h)+'M'+x+' '+(y+h/2)+'H'+(x+w)+'" stroke="#1a120a" stroke-width="1"/>';
@@ -152,10 +154,51 @@ function scHouse(x,base,w,h,fill,lit,r){   // a cottage: walls, a steep roof, a 
   if(lit) o+=scWin(x+w*.3,base-h*.65,w*.18,h*.28,lit);
   return o;
 }
+// Depth for the backdrops: far ridges, ruined arches, arcades, chains, banners, mist bands, torches and braziers. Only whole
+// groups move, never single shapes: sc-par drifts a layer a few pixels (far layers slower than near ones, a parallax feel),
+// sc-sway stirs everything hanging, sc-amb holds motes and embers. All of it keeps to the edges and stays low in contrast,
+// so the cards in the middle read first. With motion reduced, scCalm drops the sc-amb groups and every animation class.
+const scPar=(s,near)=>'<g class="sc-par'+(near?' d2':'')+'">'+s+'</g>';
+const scSway=s=>'<g class="sc-sway">'+s+'</g>';
+const scCalm=h=>VIEW.calm?h.replace(/<g class="sc-amb[^"]*"[^>]*>(?:<circle[^>]*\/>)*<\/g>/g,'').replace(/ class="sc-[^"]*"/g,''):h;
+function scRidge(r,y,amp,step,col,o){   // a far mountain ridge: alternating crags and saddles, wider than the view so a drift never shows its end
+  let d='M-60 900V'+y; for(let x=-60,i=0;x<=1660;x+=step,i++) d+='L'+x+' '+(y-amp*(i%2?.12+r()*.35:.55+r()*.45)).toFixed(0);
+  return '<path d="'+d+'L1660 '+y+'V900Z" fill="'+col+'" opacity="'+(o==null?1:o)+'"/>';
+}
+function scRuin(x,base,w,h,col,flip){   // a broken archway of dressed stone: one whole pier with its impost, a pier snapped off in steps, the arch ring standing past the crown and broken off along its joints, fallen blocks under it; faint coursing lines
+  const R=w/2, p=w*.24, ri=R-p/2, ro=R+p/2, cy=base-h+ro, s=flip?-1:1, r=scRand(Math.round(x*7+base)), n=v=>v.toFixed(0);
+  const P=(rad,t)=>n(x-s*rad*Math.cos(t))+' '+n(cy-rad*Math.sin(t)), X=v=>n(x+s*v), sw=flip?0:1, rm=(ri+ro)/2, ta=1.62+r()*.16, tb=ta+.2+r()*.12;
+  const yT=base-(base-cy)*(.64+r()*.14), a=R-p/2, b=p*.1;   // the snapped pier's top, and the impost's overhang
+  let d='M'+X(-R-p/2-b*2)+' '+n(base)+'v'+n(-p*.3)+'h'+n(s*(w+p+b*4))+'v'+n(p*.3)+'Z'   // the plinth that ties both piers
+    +'M'+X(-R-p/2)+' '+n(base)+'V'+n(cy)+'H'+X(-R+p/2)+'V'+n(base)+'Z'   // the whole pier
+    +'M'+X(-R-p/2-b)+' '+n(cy)+'h'+n(s*(p+2*b))+'v'+n(p*.2)+'h'+n(-s*(p+2*b))+'Z'   // its impost
+    +'M'+X(a)+' '+n(base)+'V'+n(yT-p*.2)+'H'+X(a+p*.38)+'V'+n(yT+p*.12)+'L'+X(a+p*.7)+' '+n(yT+p*.3)+'V'+n(yT+p*.5)+'H'+X(a+p)+'V'+n(base)+'Z'   // the snapped pier, stepped
+    +'M'+P(ro,0)+'A'+n(ro)+' '+n(ro)+' 0 0 '+sw+' '+P(ro,tb)+'L'+P(rm,tb)+'L'+P(rm,ta+.08)+'L'+P(ri+p*.1,ta+.06)+'L'+P(ri,ta)+'A'+n(ri)+' '+n(ri)+' 0 0 '+(1-sw)+' '+P(ri,0)+'Z';   // the arch ring, broken off along its voussoir joints
+  for(let i=0,bx=a-p*.15;i<3;i++){ const k=p*(.7-i*.14), q=(r()-.5)*.5, c=Math.cos(q)*k/2, si=Math.sin(q)*k/2, cx=x+s*(bx-k/2), by=base-p*.3-k/2-(i===2?p*.5:0);   // fallen blocks, tilted, the last one resting on the others
+    d+='M'+n(cx-c+si)+' '+n(by-si-c)+'L'+n(cx+c+si)+' '+n(by+si-c)+'L'+n(cx+c-si)+' '+n(by+si+c)+'L'+n(cx-c-si)+' '+n(by-si+c)+'Z'; bx-=i?-k*.4:k*.95; }
+  let j=''; for(let y=base-p*.85;y>cy+p*.4;y-=p*.85) j+='M'+X(-R-p/2)+' '+n(y)+'h'+n(s*p)+(y>yT+p*.6?'M'+X(a)+' '+n(y)+'h'+n(s*p):'');   // coursing on the piers
+  for(let t=.32;t<ta-.1;t+=.34) j+='M'+P(ri,t)+'L'+P(ro,t);   // voussoir joints
+  return '<path d="'+d+'" fill="'+col+'"/><path d="'+j+'" stroke="#fff" stroke-opacity=".06" stroke-width="'+Math.max(1,p*.06).toFixed(1)+'" fill="none"/>';
+}
+function scArcade(y,h,w,col,o,sw){   // a far row of pointed arches, open where the cards stand
+  let d=''; for(let x=-w;x<1600+w;x+=w){ if(x+w>560&&x<1040) continue; d+='M'+x+' '+y+'V'+(y-h*.6)+'Q'+x+' '+(y-h)+' '+(x+w/2)+' '+(y-h)+'Q'+(x+w)+' '+(y-h)+' '+(x+w)+' '+(y-h*.6)+'V'+y; }
+  return '<path d="'+d+'" stroke="'+col+'" stroke-width="'+(sw||8)+'" fill="none" opacity="'+o+'"/>';
+}
+const scChain=(x,y0,y1,col,w)=>{ w=w||3; return '<path d="M'+x+' '+y0+'V'+y1+'" stroke="'+col+'" stroke-width="'+w+'" stroke-dasharray="'+(w*2.2).toFixed(1)+' '+(w*.9).toFixed(1)+'"/><path d="M'+x+' '+(y1-2)+'q'+(w*2)+' '+(w*3)+' 0 '+(w*4.5)+'" stroke="'+col+'" stroke-width="'+(w*.8).toFixed(1)+'" fill="none"/>'; };   // links, then a hook
+function scBanner(r,x,y,w,h,col,trim){   // a tattered banner on a crossbar, its hem torn into uneven tongues, with a faded sigil
+  let d='M'+(x-w/2)+' '+y+'H'+(x+w/2)+'V'+(y+h*(.8+r()*.15)).toFixed(0);
+  for(let i=1;i<=4;i++){ const tx=x+w/2-w*i/4; d+='L'+(tx+w/8).toFixed(0)+' '+(y+h*(i%2?.92+r()*.08:.7+r()*.12)).toFixed(0)+'L'+tx.toFixed(0)+' '+(y+h*(.76+r()*.16)).toFixed(0); }
+  return '<path d="M'+(x-w/2-6)+' '+y+'H'+(x+w/2+6)+'" stroke="#0a0806" stroke-width="4"/><path d="'+d+'Z" fill="'+col+'"/>'
+    +(trim?'<path d="M'+(x-w/2+4)+' '+(y+6)+'V'+(y+h*.6).toFixed(0)+'M'+(x+w/2-4)+' '+(y+6)+'V'+(y+h*.6).toFixed(0)+'" stroke="'+trim+'" stroke-opacity=".22" stroke-width="2"/><path d="M'+x+' '+(y+h*.2).toFixed(0)+'l'+(w*.16).toFixed(1)+' '+(h*.14).toFixed(1)+'l'+(-w*.16).toFixed(1)+' '+(h*.14).toFixed(1)+'l'+(-w*.16).toFixed(1)+' '+(-h*.14).toFixed(1)+'Z" fill="'+trim+'" opacity=".2"/>':'');
+}
+const scMist=(id,y,h,col,o)=>'<linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+col+'" stop-opacity="0"/><stop offset=".55" stop-color="'+col+'" stop-opacity="'+o+'"/><stop offset="1" stop-color="'+col+'" stop-opacity="0"/></linearGradient><rect x="-120" y="'+y+'" width="1840" height="'+h+'" fill="url(#'+id+')"/>';   // a band of lying mist, soft above and below
+const scBrazier=(x,y,k,c)=>{ k=k||1; c=c||'#0a0806'; return scGlow(x,y-30*k,60*k,'#ff8a3a',.16)+'<path d="M'+(x-14*k)+' '+y+'L'+x+' '+(y-26*k)+'L'+(x+14*k)+' '+y+'M'+x+' '+y+'V'+(y-26*k)+'" stroke="'+c+'" stroke-width="'+(2.5*k)+'" fill="none"/><path d="M'+(x-16*k)+' '+(y-30*k)+'H'+(x+16*k)+'L'+(x+10*k)+' '+(y-22*k)+'H'+(x-10*k)+'Z" fill="'+c+'"/>'+scFlame(x,y-30*k,1.3*k); };
+const scTorch=(x,y,k,c)=>{ k=k||1; c=c||'#0a0806'; return scGlow(x,y-14*k,44*k,'#ff9a40',.14)+'<path d="M'+(x-3*k)+' '+(y+18*k)+'L'+(x-2*k)+' '+y+'H'+(x+2*k)+'L'+(x+3*k)+' '+(y+18*k)+'Z" fill="'+c+'"/><path d="M'+(x-8*k)+' '+(y+12*k)+'H'+(x+8*k)+'" stroke="'+c+'" stroke-width="'+(2*k)+'"/>'+scFlame(x,y+2*k,k); };
 const BACKDROPS={
   tower:()=>{ const r=scRand(17); let o='<defs>'+scSky('skW','#0a0302','#2a0805','#5a140a')+'<linearGradient id="lava" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb050"/><stop offset="1" stop-color="#c8321a"/></linearGradient></defs><rect width="1600" height="900" fill="url(#skW)"/>'
     +[[300,150,380],[1250,120,420],[800,230,560]].map(([x,y,w],i)=>'<ellipse class="sc-fog'+(i%2?' d2':'')+'" cx="'+x+'" cy="'+y+'" rx="'+w+'" ry="'+(w*.2)+'" fill="#4a1208" opacity=".55" filter="url(#scB)"/>').join('')
     +scGlow(800,820,520,'#ff5a1a',.32)
+    +scPar(scRidge(scRand(117),470,150,80,'#2a0a05',.85)+scRuin(330,560,120,170,'#220805')+scRuin(1290,560,110,150,'#220805',1))
     +'<path d="M0 560L90 500L160 530L240 470L320 520L380 480L470 530L540 460L620 510L700 490L780 530L860 470L950 520L1030 480L1120 530L1200 470L1280 515L1360 485L1440 525L1520 475L1600 520V900H0Z" fill="#2e0c06"/>';
     for(let i=0;i<22;i++){
       const x=r()*1600;
@@ -170,7 +213,11 @@ const BACKDROPS={
       +'<path d="M786 262C770 244 764 224 770 202C777 226 786 240 796 252ZM814 262C830 244 836 224 830 202C823 226 814 240 804 252Z" fill="#0d0302"/>'
       +'<path d="M800 140L815 250L825 380L840 380L845 500L860 500L865 640" stroke="#ff6a2a" stroke-opacity=".25" stroke-width="2" fill="none"/>'
       +[[797,300],[762,430],[832,430],[797,520],[745,600],[850,600],[797,680]].map(([x,y])=>scGlow(x+3,y+5,14,'#ff7a2a',.3)+'<rect class="sc-flk" x="'+x+'" y="'+y+'" width="6" height="11" fill="#ffb050"/>').join('')
+      +scPar(scMist('mW',590,150,'#ff5a1a',.09),1)
       +'<path d="M0 700L80 660L150 690L230 640L310 690L380 660L460 700L520 760H0ZM1080 760L1140 700L1210 670L1280 700L1350 650L1420 690L1490 655L1560 690L1600 670V760Z" fill="#120403"/>'
+      +scBrazier(250,700,1.1,'#0d0302')+scBrazier(1350,692,1.1,'#0d0302')
+      +scSway(scChain(130,0,250,'#140504',4)+scChain(215,0,170,'#140504',3)+scChain(1385,0,210,'#140504',3)+scChain(1470,0,290,'#140504',4)
+        +'<path d="M1452 300H1488V346Q1470 356 1452 346ZM1458 300V348M1470 300V352M1482 300V348" stroke="#140504" stroke-width="3" fill="none"/>')
       +'<path d="M760 760C700 800 620 810 560 840S420 880 380 900H520C560 880 640 860 700 840S790 800 840 760Z" fill="url(#lava)" opacity=".85" class="sc-flk"/><path d="M760 760C700 800 620 810 560 840S420 880 380 900" stroke="#ffe0a0" stroke-opacity=".5" stroke-width="2" fill="none"/>'
       +scGlow(600,840,140,'#ff7a2a',.35)+'<path d="M0 760H1600V900H0Z" fill="#0a0202" opacity=".5"/>';
     for(let i=0;i<9;i++){
@@ -185,13 +232,16 @@ const BACKDROPS={
     +scGlow(1150,175,170,'#e0d6b8',.2)+'<circle cx="1150" cy="175" r="54" fill="#d8cfb2" opacity=".72"/><circle cx="1134" cy="162" r="11" fill="#b0a68a" opacity=".45"/><circle cx="1168" cy="192" r="8" fill="#b0a68a" opacity=".4"/><circle cx="1158" cy="150" r="5" fill="#b0a68a" opacity=".35"/>'
     +'<ellipse class="sc-fog" cx="1120" cy="190" rx="220" ry="16" fill="#14120e" opacity=".55" filter="url(#scB2)"/><ellipse class="sc-fog d2" cx="1240" cy="150" rx="180" ry="12" fill="#14120e" opacity=".4" filter="url(#scB2)"/>'
     +scGlow(800,650,560,'#7a5a32',.26)
+    +scPar(scRidge(scRand(107),565,120,90,'#211b14',.9)+scRuin(250,548,90,130,'#1c1712')+'<path d="M1390 560V470L1400 462L1406 476L1414 458L1426 470V560Z" fill="#1c1712"/>')
     +'<path d="M0 590Q240 520 470 560T900 545T1300 560T1600 530V900H0Z" fill="#2a2319"/>'
     +'<path d="M0 625Q200 585 420 610T820 600T1220 615T1600 595V900H0Z" fill="#1d1913"/>';
     for(let i=0;i<28;i++){ const x=r()*1600, y=600+r()*20; o+='<path d="M'+x+' '+(y+10)+'Q'+(x+8)+' '+(y-24-r()*20)+' '+(x+16)+' '+(y+10)+'Z" fill="#191510"/>'; }
     o+='<g>'+scHouse(470,655,64,44,'#14110d',.9,r)+scHouse(548,660,52,36,'#130f0c',0,r)+scHouse(720,662,58,40,'#14110d',.7,r)+scHouse(880,660,70,46,'#130f0c',1,r)+scHouse(965,664,50,34,'#14110d',0,r)+scHouse(1040,660,62,42,'#130f0c',.8,r)+'</g>'
       +'<g fill="#0f0d0a"><path d="M612 664V520L650 490L688 520V664Z"/><path d="M634 500V400L650 360L666 400V500Z"/><path d="M647 360V330H653V360ZM641 340H659V345H641Z"/></g>'+scWin(644,540,12,22,1)+scWin(645,420,10,14,.7)
       +'<path d="M0 668H1600" stroke="#0e0c09" stroke-width="5"/><g stroke="#0e0c09" stroke-width="3">'+Array.from({length:60},(_,i)=>'<path d="M'+(i*27+8)+' 668V'+(652+(i%3)*2)+'"/>').join('')+'</g>'
-      +scFog(660,.2,'#b8ac90')
+      +scFog(660,.2,'#b8ac90')+scPar(scMist('mT',600,120,'#8a7a5c',.14),1)
+      +'<g fill="#0c0a08"><path d="M298 668V556H303V668ZM1298 668V556H1303V668Z"/></g>'+(q=>scSway(scBanner(q,318,560,34,86,'#3a1c12','#c8a060')+scBanner(q,1318,560,34,86,'#3a1c12','#c8a060')))(scRand(207))
+      +scBrazier(420,712,.9)+scBrazier(1180,712,.9)
       +'<path d="M720 900L780 668H820L880 900Z" fill="#3a3024" opacity=".35"/>'
       +'<path d="M0 760Q400 715 760 740T1600 720V900H0Z" fill="#100e0b"/>';
     for(let i=0;i<26;i++){
@@ -219,6 +269,10 @@ const BACKDROPS={
       +'<g stroke="#5a7a50" stroke-opacity=".35" stroke-width="2">'+[[275,540,620],[1325,560,650],[420,300,380],[1180,320,420]].map(([x,a,b])=>'<path d="M'+x+' '+a+'V'+b+'"/>').join('')+'</g>'
       +'<g stroke="#120d08" stroke-width="2.5" fill="none">'+[[560,120],[640,90],[960,100],[1040,130],[700,70],[900,60]].map(([x,l])=>'<path d="M'+x+' 0C'+(x+8)+' '+(l*.4)+' '+(x-6)+' '+(l*.7)+' '+(x+3)+' '+l+'"/>').join('')+'</g>'
       +'<g fill="#ff5a3c">'+[[250,650],[262,650],[1290,665],[1301,665],[560,690],[571,690],[1050,688],[1060,688]].map(([x,y])=>'<circle class="sc-flk" cx="'+x+'" cy="'+y+'" r="2.3"/>').join('')+'</g>'
+      +scTorch(150,420,1.1,'#100c08')+scTorch(1450,440,1.1,'#100c08')
+      +scSway(scChain(380,0,230,'#120d08',3)+scChain(430,0,150,'#120d08',2.4)+scChain(1220,0,210,'#120d08',3)+scChain(1170,0,130,'#120d08',2.4))
+      +scRuin(120,710,150,200,'#0e0b07')+scRuin(1480,712,140,180,'#0e0b07',1)
+      +scPar(scMist('mR',630,130,'#8a8a60',.12),1)
       +scFog(705,.14,'#7a7a58',900)+scMotes(r,18,'#c8b080',380,690);
     return o; },
   g1:()=>{ const r=scRand(4); let o='<defs>'+scSky('skC','#070b0a','#16241f','#1e302a')+'</defs><rect width="1600" height="900" fill="url(#skC)"/>'+scGlow(800,470,280,'#6aa08a',.2);
@@ -228,14 +282,18 @@ const BACKDROPS={
     for(const sx of [-1,1]) for(let row=0;row<4;row++) for(let c=0;c<4;c++){ const x=800+sx*(290+c*38), y=420+row*42; o+='<ellipse cx="'+x+'" cy="'+y+'" rx="11" ry="13" fill="#050807"/><ellipse cx="'+x+'" cy="'+(y+1)+'" rx="6.5" ry="7.5" fill="#a8b8a0" opacity=".12"/>'; }
     o+='<g fill="#0a100e">'+[[330,690,200],[1270,690,200],[560,690,120],[1040,690,120]].map(([x,y,w])=>'<path d="M'+(x-w/2)+' '+y+'V'+(y-w*.28)+'H'+(x+w/2)+'V'+y+'Z"/><path d="M'+(x-w/2-6)+' '+(y-w*.28)+'H'+(x+w/2+6)+'L'+(x+w/2)+' '+(y-w*.36)+'H'+(x-w/2)+'Z"/>').join('')+'</g>'
       +'<g stroke="#0c1412" stroke-width="2.4">'+[[620,0,260],[980,0,240],[700,0,170],[900,0,190]].map(([x,a,b])=>'<path d="M'+x+' '+a+'V'+b+'" stroke-dasharray="6 3"/>').join('')+'</g>'
+      +(q=>scSway(scBanner(q,190,30,46,200,'#1a2420','#8aa890')+scBanner(q,1410,30,46,200,'#1a2420','#8aa890')+scBanner(q,400,30,34,140,'#16201c','#8aa890')+scBanner(q,1200,30,34,140,'#16201c','#8aa890')))(scRand(104))
+      +scPar(scMist('mC',600,170,'#7fa898',.12),1)
       +'<path d="M0 690H1600V900H0Z" fill="#10201c"/>'
       +[470,1130,640,960].map((x,i)=>scFlame(x,560+(i>1?40:0),i>1?.9:1.2)+'<path class="sc-flk" d="M'+(x-3)+' '+(700+(i>1?0:0))+'V'+(780+(i>1?20:60))+'" stroke="#ffb347" stroke-opacity=".25" stroke-width="'+(i>1?4:6)+'"/>').join('')
       +'<g stroke="#7fc1bd" stroke-opacity=".16" stroke-width="2">'+[712,742,782,832,882].map((y,i)=>'<path class="sc-fog'+(i%2?' d2':'')+'" d="M'+(480-i*110)+' '+y+'H'+(1120+i*110)+'"/>').join('')+'</g>'
+      +scRuin(140,900,220,300,'#09100e')+scRuin(1460,900,200,270,'#09100e',1)
       +scFog(700,.16,'#80b0a0',1000)+scFog(560,.09,'#80b0a0',800,1)+scMotes(r,16,'#b0d0c0',250,680);
     return o; },
   g2:()=>{ const r=scRand(3); let o='<defs>'+scSky('skB','#0c0705','#2c140a','#5a240e')+'</defs><rect width="1600" height="900" fill="url(#skB)"/>'
     +[[400,180,420,'#3a1a0e',.5],[1200,140,380,'#3a1a0e',.45],[800,260,520,'#5a2610',.35],[300,330,300,'#1a0c08',.6],[1300,300,320,'#1a0c08',.6]].map(([x,y,w,c,op])=>'<ellipse class="sc-fog'+(x>800?' d2':'')+'" cx="'+x+'" cy="'+y+'" rx="'+w+'" ry="'+(w*.22)+'" fill="'+c+'" opacity="'+op+'" filter="url(#scB)"/>').join('')
     +scGlow(800,700,480,'#d8622a',.3)
+    +scPar(scRidge(scRand(103),590,130,80,'#2a120a',.85)+scRuin(210,610,110,160,'#1e0d07')+scRuin(1400,606,90,120,'#1e0d07',1))+scPar(scRidge(scRand(203),630,50,60,'#25110a'),1)
     +'<path d="M0 640Q300 600 520 625T1000 610T1600 630V900H0Z" fill="#221009"/>'
     +'<path d="M370 700Q560 410 800 395Q1040 410 1230 700Z" fill="#160a06"/><path d="M420 700Q590 450 800 440" stroke="#5a2a14" stroke-opacity=".5" stroke-width="5" fill="none"/>';
     for(let i=0;i<50;i++){ const t=r(), x=420+t*760, y=700-Math.sin(t*Math.PI)*(290*(.92+r()*.08))+r()*10; o+='<path d="M'+x.toFixed(0)+' '+y.toFixed(0)+'l'+(r()*6-3).toFixed(1)+' -12" stroke="#2a140a" stroke-width="2"/>'; }
@@ -243,7 +301,9 @@ const BACKDROPS={
       +'<g stroke="#ff7a2c" stroke-width="2" fill="none" class="sc-flk" opacity=".7"><path d="M755 640L700 620L660 640M845 630L900 610L935 625M800 578L790 520L805 480M770 600L735 560"/></g>'
       +'<g fill="#100806">'+[[330,700,40,120],[440,690,34,150],[1160,690,34,150],[1270,700,40,120],[560,640,26,70],[1040,640,26,70]].map(([x,y,w,h])=>'<path d="M'+(x-w/2)+' '+y+'L'+(x-w*.4)+' '+(y-h)+'L'+(x+w*.35)+' '+(y-h*1.04)+'L'+(x+w/2)+' '+y+'Z"/>').join('')+'</g>'
       +'<g stroke="#ff8a3c" stroke-opacity=".45" stroke-width="1.5" class="sc-flk">'+[[440,600],[1160,600],[330,640],[1270,640]].map(([x,y])=>'<path d="M'+(x-5)+' '+y+'l5-8 5 8M'+x+' '+(y+12)+'v-6"/>').join('')+'</g>'
-      +'<path d="M0 780Q500 740 800 760T1600 750V900H0Z" fill="#0d0605"/>';
+      +scPar(scMist('mB',640,150,'#6a3020',.15),1)
+      +'<g fill="#0d0605"><path d="M118 790V520H123V790ZM1478 790V520H1483V790Z"/></g>'+(q=>scSway(scBanner(q,142,524,40,120,'#3a1a10','#c8783a')+scBanner(q,1502,524,40,120,'#3a1a10','#c8783a')))(scRand(303))
+      +'<path d="M0 780Q500 740 800 760T1600 750V900H0Z" fill="#0d0605"/>'+scBrazier(250,800,1,'#080403')+scBrazier(1350,796,1,'#080403');
     for(let i=0;i<70;i++){ const x=r()*1600, y=770+r()*130; o+='<path d="M'+x.toFixed(0)+' '+y.toFixed(0)+'q'+(r()*6-3).toFixed(1)+' -10 '+(r()*10-5).toFixed(1)+' -'+(12+r()*14).toFixed(0)+'" stroke="#1e100a" stroke-width="1.6" fill="none"/>'; }
     o+='<g fill="#2a1a12">'+[[220,840],[1380,830],[620,860],[1020,870]].map(([x,y])=>'<ellipse cx="'+x+'" cy="'+y+'" rx="11" ry="9"/><path d="M'+(x+10)+' '+(y+2)+'l40 -6M'+(x+12)+' '+(y+6)+'l34 4" stroke="#2a1a12" stroke-width="3"/>').join('')+'</g>'
       +'<g stroke="#120a06" stroke-width="4">'+[[300,900,330,760],[1300,900,1270,770],[1450,900,1480,800]].map(([a,b,c,d])=>'<path d="M'+a+' '+b+'L'+c+' '+d+'"/>').join('')+'</g>'
@@ -255,14 +315,17 @@ const BACKDROPS={
     o+='<circle cx="800" cy="210" r="112" fill="#0c0a09"/>';
     for(let i=0;i<12;i++){ const a=i*Math.PI/6, a2=a+Math.PI/6; o+='<path d="M800 210L'+(800+100*Math.cos(a)).toFixed(1)+' '+(210+100*Math.sin(a)).toFixed(1)+'A100 100 0 0 1 '+(800+100*Math.cos(a2)).toFixed(1)+' '+(210+100*Math.sin(a2)).toFixed(1)+'Z" fill="'+glass[i%5]+'" opacity=".3" stroke="#0c0a09" stroke-width="7"/>'; }
     for(let i=0;i<12;i++){ const a=(i+.5)*Math.PI/6; o+='<circle cx="'+(800+70*Math.cos(a)).toFixed(1)+'" cy="'+(210+70*Math.sin(a)).toFixed(1)+'" r="9" fill="#0c0a09"/><circle cx="'+(800+70*Math.cos(a)).toFixed(1)+'" cy="'+(210+70*Math.sin(a)).toFixed(1)+'" r="5" fill="'+glass[(i+2)%5]+'" opacity=".35"/>'; }
-    o+=scGlow(800,210,90,'#c8a060',.12);
+    o+=scGlow(800,210,90,'#c8a060',.12)+scPar(scArcade(700,280,120,'#0a0908',.55,10));
     o+='<circle cx="800" cy="210" r="30" fill="#9a7a30" opacity=".35" stroke="#0c0a09" stroke-width="6"/><circle cx="800" cy="210" r="100" fill="none" stroke="#0c0a09" stroke-width="8"/>';
     [[480,120,560],[1120,120,560],[260,90,420],[1340,90,420]].forEach(([x,w,h],i)=>{ o+=scGothic(x,700,w+24,h+24,'#0c0a09')+scGothic(x,690,w,h,glass[(i+1)%5]).replace('fill=','opacity=".46" fill=');
       o+='<path d="M'+x+' '+(690-h)+'V690M'+(x-w/2)+' '+(690-h*.45)+'H'+(x+w/2)+'M'+(x-w/2)+' '+(690-h*.2)+'H'+(x+w/2)+'" stroke="#0c0a09" stroke-width="'+(w*.06)+'"/>'
         +'<path d="M'+(x-w*.3)+' '+(690-h*.7)+'l'+(w*.25)+' '+(h*.08)+'l'+(-w*.12)+' '+(h*.1)+'Z" fill="#0c0a09"/>'; });
     o+='<path d="M720 300L880 300L1160 900H440Z" fill="url(#shaft)" class="sc-flk"/><path d="M440 560L520 560L700 900H300Z" fill="url(#shaft)" opacity=".7"/><path d="M1080 560L1160 560L1300 900H900Z" fill="url(#shaft)" opacity=".7"/>'
       +scMotes(r,30,'#f0d8a8',320,860)
-      +scPillars(4,760,'#0b0a09',100)
+      +scPillars(4,760,'#0b0a09',100)+scTorch(222,470,.9)+scTorch(1378,470,.9)
+      +(q=>scSway(scBanner(q,370,50,40,230,'#2a1410','#9a7a30')+scBanner(q,1230,50,40,230,'#2a1410','#9a7a30')
+        +[150,1450].map(x=>scChain(x,0,320,'#0a0908',2.6)+'<path d="M'+(x-12)+' 330H'+(x+12)+'L'+(x+8)+' 350H'+(x-8)+'Z" fill="#0a0908"/>'+scGlow(x,346,26,'#e8a050',.14)).join('')))(scRand(108))
+      +scPar(scMist('mH',650,170,'#c8b890',.09),1)
       +'<path d="M800 0V120" stroke="#0a0908" stroke-width="2"/><path d="M740 120H860L840 136H760Z" fill="#0a0908"/>'+[750,780,820,850].map(x=>scFlame(x,120,.6)).join('')
       +'<path d="M740 660H860V700H740Z" fill="#0d0b0a"/>'+scFlame(760,660,.55)+scFlame(840,660,.55)
       +'<path d="M0 760H1600V900H0Z" fill="#0c0a09"/>'+scTiles(700,900,'#18140f',7);
@@ -270,17 +333,22 @@ const BACKDROPS={
     return o+scFog(760,.12,'#c8b890',1100); },
   g4:()=>{ const r=scRand(11); let o='<defs>'+scSky('skO','#0b0c07','#232812','#353a18')+'</defs><rect width="1600" height="900" fill="url(#skO)"/>'+scStars(r,40,300)
     +scGlow(920,470,240,'#c8c070',.2)+'<circle cx="920" cy="470" r="92" fill="#b8b070" opacity=".32"/>'
+    +scPar(scRidge(scRand(111),600,95,100,'#1c200e',.85)+scRuin(1380,600,100,140,'#181b0c',1)+scRuin(190,604,80,110,'#181b0c'))
     +'<path d="M0 620Q400 590 800 610T1600 600V900H0Z" fill="#171a0b"/>';
     [[.35,640,'#1d2110'],[.55,690,'#14170a'],[.8,760,'#0d0e07']].forEach(([k,y,c])=>{ for(let i=0;i<7;i++){ const x=80+i*240+(k*170)%240+r()*40; o+=scTree(r,x,y,160+260*k,c,true); } o+=scFog(y-20,.08+k*.05,'#a8a878',1200,k>.5?1:0); });
-    o+='<g stroke="#0a0a06" stroke-width="2">'+[[300,390,450],[1290,400,470]].map(([x,a,b])=>'<path d="M'+x+' '+a+'V'+b+'"/>').join('')+'</g>'
-      +[[300,450],[1290,470]].map(([x,y])=>'<path d="M'+(x-16)+' '+y+'H'+(x+16)+'V'+(y+46)+'Q'+x+' '+(y+56)+' '+(x-16)+' '+(y+46)+'Z" fill="none" stroke="#0a0a06" stroke-width="3"/><path d="M'+(x-8)+' '+y+'V'+(y+50)+'M'+x+' '+y+'V'+(y+53)+'M'+(x+8)+' '+y+'V'+(y+50)+'" stroke="#0a0a06" stroke-width="2"/>').join('')
+    o+=scPar(scMist('mO',560,170,'#a8a878',.09),1)
+      +scSway('<g stroke="#0a0a06" stroke-width="2">'+[[300,390,450],[1290,400,470]].map(([x,a,b])=>'<path d="M'+x+' '+a+'V'+b+'"/>').join('')+'</g>'
+      +[[300,450],[1290,470]].map(([x,y])=>'<path d="M'+(x-16)+' '+y+'H'+(x+16)+'V'+(y+46)+'Q'+x+' '+(y+56)+' '+(x-16)+' '+(y+46)+'Z" fill="none" stroke="#0a0a06" stroke-width="3"/><path d="M'+(x-8)+' '+y+'V'+(y+50)+'M'+x+' '+y+'V'+(y+53)+'M'+(x+8)+' '+y+'V'+(y+50)+'" stroke="#0a0a06" stroke-width="2"/>').join(''))
       +scCrow(640,420,1.1,'#0a0a06')+scCrow(700,400,.9,'#0a0a06')+scCrow(1100,380,1,'#0a0a06')
       +'<path d="M0 820H1600V900H0Z" fill="#080905"/><g fill="#0b0b0b">'; for(let x=10;x<1600;x+=34) o+='<path d="M'+x+' 900V770L'+(x+4)+' 756L'+(x+8)+' 770V900Z"/>'; o+='</g><path d="M0 790H1600M0 850H1600" stroke="#0b0b0b" stroke-width="6"/>';
     o+='<g>'+Array.from({length:14},()=>{ const x=r()*1600, y=860+r()*36; return '<circle cx="'+x.toFixed(0)+'" cy="'+y.toFixed(0)+'" r="3" fill="#6a1a10"/><circle cx="'+(x-1).toFixed(0)+'" cy="'+(y-1).toFixed(0)+'" r="1" fill="#e8a080" opacity=".5"/>'; }).join('')+'</g>';
     return o+scFog(830,.12,'#8a8a60',1200,1)+scMotes(r,18,'#d0d0a0',300,800); },
   g5:()=>{ const r=scRand(5); let o='<defs>'+scSky('skA','#0a0908','#1e1a16','#2c2520')+'<linearGradient id="shaftA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8dec6" stop-opacity=".2"/><stop offset="1" stop-color="#e8dec6" stop-opacity="0"/></linearGradient></defs><rect width="1600" height="900" fill="url(#skA)"/>'+scGlow(800,430,280,'#d8c8a0',.14)
+    +scPar(scArcade(720,300,140,'#0c0b0a',.5,12))
     +scPillars(5,720,'#0c0b0a',120)
-    +[340,1260,520,1080].map((x,i)=>'<path d="M'+(x-30)+' 200H'+(x+30)+'V'+(470+i*20)+'L'+(x+10)+' '+(450+i*20)+'L'+x+' '+(480+i*20)+'L'+(x-14)+' '+(455+i*20)+'L'+(x-30)+' '+(475+i*20)+'Z" fill="#3a1812" opacity=".8"/><path d="M'+(x-12)+' 240L'+x+' 220L'+(x+12)+' 240L'+x+' 290Z" fill="#8a6a2a" opacity=".35"/>').join('')
+    +scSway([340,1260,520,1080].map((x,i)=>'<path d="M'+(x-30)+' 200H'+(x+30)+'V'+(470+i*20)+'L'+(x+10)+' '+(450+i*20)+'L'+x+' '+(480+i*20)+'L'+(x-14)+' '+(455+i*20)+'L'+(x-30)+' '+(475+i*20)+'Z" fill="#3a1812" opacity=".8"/><path d="M'+(x-12)+' 240L'+x+' 220L'+(x+12)+' 240L'+x+' 290Z" fill="#8a6a2a" opacity=".35"/>').join('')
+      +scChain(190,0,330,'#0a0908',3)+scChain(250,0,240,'#0a0908',2.4)+scChain(1410,0,320,'#0a0908',3)+scChain(1350,0,230,'#0a0908',2.4))
+    +scPar(scMist('mA',630,150,'#b8b0a0',.09),1)
     +'<path d="M720 0L880 0L960 720H640Z" fill="url(#shaftA)" class="sc-flk"/>'
     +'<path d="M520 720H1080L1040 690H560ZM580 690H1020L985 662H615ZM635 662H965L935 636H665Z" fill="#14120f"/><path d="M560 690H1040M615 662H985M665 636H935" stroke="#4a4238" stroke-opacity=".4" stroke-width="2"/>'
     +'<path d="M754 636V430L763 392L772 418L786 358L800 300L814 358L828 418L837 392L846 430V636Z" fill="#080706"/><path d="M722 572H878V594H722ZM724 594V528H744V594ZM856 594V528H876V594ZM730 594H870V636H730Z" fill="#080706"/><path d="M800 300L814 358L828 418L837 392L846 430V560" stroke="#e8dec6" stroke-opacity=".12" stroke-width="3" fill="none"/>'
@@ -288,6 +356,7 @@ const BACKDROPS={
     +'<path d="M0 720H1600V900H0Z" fill="#0e0d0b"/>'+scTiles(720,900,'#1e1b17',6)
     +'<g fill="#bfb49c" opacity=".55">'+Array.from({length:26},(_,i)=>{ const side=i%2?1:-1, x=800+side*(140+r()*170), y=715+r()*30; return '<circle cx="'+x.toFixed(0)+'" cy="'+y.toFixed(0)+'" r="'+(5+r()*3).toFixed(1)+'"/>'; }).join('')+'</g>'
     +'<g fill="#1a1714">'+Array.from({length:26},(_,i)=>{ const side=i%2?1:-1, x=800+side*(140+r()*170), y=717+r()*30; return '<circle cx="'+(x-2).toFixed(0)+'" cy="'+y.toFixed(0)+'" r="1.4"/><circle cx="'+(x+2).toFixed(0)+'" cy="'+y.toFixed(0)+'" r="1.4"/>'; }).join('')+'</g>'
+    +scRuin(120,900,200,260,'#0b0a09')+scRuin(1480,900,190,240,'#0b0a09',1)
     +scMotes(r,80,'#cfc4b0',0,900,'sc-ash');
     return o+scFog(720,.13,'#b8b0a0',1100); },
   rift:()=>{ const r=scRand(13); let o='<defs><radialGradient id="rf" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#3a120c"/><stop offset=".5" stop-color="#120706"/><stop offset="1" stop-color="#040202"/></radialGradient></defs><rect width="1600" height="900" fill="url(#rf)"/>'+scStars(r,110,900)
@@ -302,8 +371,10 @@ const BACKDROPS={
         +(lit>0?y-s*.3:y).toFixed(0)+'l'+(lit>0?s*.45:-s*.5).toFixed(0)+' '+(s*.6).toFixed(0)
         +'" stroke="#e8564a" stroke-opacity=".55" stroke-width="2" fill="none"/></g>';
     }
-    return o+scMotes(r,40,'#ffb090',0,900,'sc-ember')+scFog(800,.12,'#a04030',1100); }
+    return o+scPar(scRuin(258,340,120,150,'#0b0605')+scRuin(1350,270,90,120,'#0b0605',1)+'<path d="M176 340H344L310 362H210Z" fill="#0b0605"/><path d="M1286 270H1414L1390 288H1310Z" fill="#0b0605"/>')
+      +scPar(scMist('mF',700,200,'#a04030',.1),1)+scMotes(r,40,'#ffb090',0,900,'sc-ember')+scFog(800,.12,'#a04030',1100); }
 };
+for(const k in BACKDROPS){ const f=BACKDROPS[k]; BACKDROPS[k]=()=>scCalm(f()); }   // reduced motion: a still scene, no drifting motes
 // ===== BOSS ARENAS =====
 // Every boss, Tower warden and secret master fights in front of its own painted arena (scene key 'b:'+name), built on a
 // shared frame: a dark ground lit from behind the boss in its own colours (BOSS_LOOK), one signature motif, a floor,
@@ -485,9 +556,10 @@ function scAtmos(k){
 function sceneKey(){ if(VIEW.nobg) return ''; if(S.mode==='town') return ui.tab==='tower'?'tower':'town'; if(S.mode==='siege'||(S.run&&S.run.siege)) return 'town'; const r=S.run; const b=liveBoss(); if(b&&ARENAS[b.base]) return 'b:'+b.base; if(!r) return ''; if(r.tw) return 'tower'; return r.rift?'rift':'g'+r.di; }
 function scene(){
   const el=document.getElementById('scene'); if(!el) return; const k=sceneKey();
-  const boss=k.startsWith('b:'), build=boss?()=>scLift(ARENAS[k.slice(2)](scRand(k.length*97+k.charCodeAt(2))),1.22):()=>scLift(BACKDROPS[k]());
+  const boss=k.startsWith('b:'), build=boss?()=>scCalm(scLift(ARENAS[k.slice(2)](scRand(k.length*97+k.charCodeAt(2))),1.22)):()=>scLift(BACKDROPS[k]());
   document.body.classList.toggle('arena',boss);
-  if(el.dataset.k!==k){ el.dataset.k=k; el.innerHTML=k&&(boss?ARENAS[k.slice(2)]:BACKDROPS[k])?'<svg viewBox="0 0 '+SC_W+' '+SC_H+'" preserveAspectRatio="xMidYMax slice"><defs><filter id="scB" x="-30%" y="-200%" width="160%" height="500%"><feGaussianBlur stdDeviation="34"/></filter><filter id="scB2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter><radialGradient id="scV" cx="50%" cy="48%" r="75%"><stop offset=".58" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".62"/></radialGradient></defs>'+build()+scAtmos(k)+'<rect width="1600" height="900" fill="url(#scV)"/></svg>':''; }
+  const ck=k&&k+(VIEW.calm?'|calm':'');   // reduced motion builds a still copy, so switching it rebuilds the scene
+  if(el.dataset.k!==ck){ el.dataset.k=ck; el.innerHTML=k&&(boss?ARENAS[k.slice(2)]:BACKDROPS[k])?'<svg viewBox="0 0 '+SC_W+' '+SC_H+'" preserveAspectRatio="xMidYMax slice"><defs><filter id="scB" x="-30%" y="-200%" width="160%" height="500%"><feGaussianBlur stdDeviation="34"/></filter><filter id="scB2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter><radialGradient id="scV" cx="50%" cy="48%" r="75%"><stop offset=".58" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".62"/></radialGradient></defs>'+build()+scCalm(scAtmos(k))+'<rect width="1600" height="900" fill="url(#scV)"/></svg>':''; }
   document.body.classList.toggle('towerscene',k==='tower'); document.body.classList.toggle('scened',!!k);   // a scene brings its own vignette
   el.classList.toggle('on',!!k);
 }
@@ -506,9 +578,9 @@ try{
     VIEW.lang=LANGS[v.lang]?v.lang:'en';
     VIEW.fx=FX_MODES[v.fx]?v.fx:'auto';
     VIEW.army=v.army==='compact'?'compact':'cards';
-    if(v.fold&&typeof v.fold==='object') for(const k of ['equip','quest','bounty']) if(v.fold[k]) VIEW.fold[k]=true;
+    if(v.fold&&typeof v.fold==='object') for(const k of ['equip','quest','bounty','goal']) if(v.fold[k]) VIEW.fold[k]=true;
   }
   else { VIEW.calm=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches); if(window.innerWidth<=540) VIEW.fold={equip:true,bounty:true}; } }catch(e){}   // first visit on a phone: the side panel starts folded
-const FOLD_NAME={equip:'Equipment',quest:'Daily quest',bounty:'Bounty board'};
+const FOLD_NAME={equip:'Equipment',quest:'Daily quest',bounty:'Bounty board',goal:'What next'};
 const foldBtn=k=>'<button class="fold" data-a="fold" data-k="'+k+'" aria-expanded="'+!VIEW.fold[k]+'" aria-label="'+(VIEW.fold[k]?'Show ':'Hide ')+FOLD_NAME[k]+'">'+(VIEW.fold[k]?'&#9662;':'&#9652;')+'</button>';
 const foldCls=k=>VIEW.fold[k]?' folded':'';

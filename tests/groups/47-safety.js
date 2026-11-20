@@ -37,7 +37,7 @@ test('Unique sets: item cards, the equipment panel and the Codex show them',()=>
   ui.tab='gates'; ok(/uset-on">Wardens/.test(renderAll('panel'))); ui.tab='codex'; ACTIONS.cx('sets'); const h=renderAll('codex'); USET.forEach(u=>ok(h.includes(u.name.replace("'","'")),u.name)); ok(/Worn 2\/3/.test(h));
 });
 test('Army: the rename box keeps what you typed across a redraw, cleaned (bug found in review)',()=>{
-  const m=mkMinion({}); ui.tab='gates'; ACTIONS.renameo(String(m.uid)); ui.rn='Half-typed'; ok(/id="rn"[^>]*value="Half-typed"/.test(renderAll('redraw')),'shows the typed text');
+  const m=mkMinion({}); ui.tab='army'; ACTIONS.renameo(String(m.uid)); ui.rn='Half-typed'; ok(/id="rn"[^>]*value="Half-typed"/.test(renderAll('redraw')),'shows the typed text');
   ui.rn='<b>"x"</b>'; const h=renderAll('dirty'); ok(/value="bxb"/.test(h)&&!/value="<b>/.test(h),'never raw HTML in the box');
 });
 test('Saves: a damaged fusion count is clamped, so the two-fusion limit holds (bug found in review)',()=>{
@@ -49,7 +49,8 @@ test('Screens: the Town tab, bounty board, salvage and enchanting appear only on
   ui.tab='gates'; let h=renderAll('new game'); ok(!/data-k="town"/.test(h)&&!/Bounty board/.test(h),'hidden at the start');
   const it=give('2-wa'); ui.tab='gear'; h=renderAll('gear'); ok(!/data-a="salvage"/.test(h)&&!/data-a="ench"/.test(h)&&!/ dust</.test(h));
   ui.tab='town'; renderAll('locked town'); eq(ui.tab,'gates','a closed tab falls back to the gates');
-  S.ti=S.ti||{}; S.ti.clr={0:1}; ui.tab='gates'; h=renderAll('after a clear'); ok(/data-k="town"/.test(h)&&/Bounty board/.test(h)); ok(TIPS.find(t=>t.id==='townopen').when());
+  setLvl(6); S.ti=S.ti||{}; S.ti.clr={0:1}; ui.tab='gates'; h=renderAll('one clear'); ok(!/data-k="town"/.test(h)&&!/Bounty board/.test(h),'one clear is not enough, whatever the level'); setLvl(1);
+  S.ti.clr={0:1,1:1}; h=renderAll('after two clears'); ok(/data-k="town"/.test(h)&&/Bounty board/.test(h)); ok(TIPS.find(t=>t.id==='townopen').when());
   ui.tab='gear'; ok(!/data-a="salvage"/.test(renderAll('still early'))); S.dust=1; ok(/data-a="salvage"/.test(renderAll('with dust'))); S.dust=0; setLvl(6); ok(/data-a="ench"/.test(renderAll('level 6')));
 });
 })();

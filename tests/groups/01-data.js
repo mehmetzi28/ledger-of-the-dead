@@ -23,7 +23,7 @@ test('Data: every enemy has a trophy, and boss hearts are worth more',()=>{
   for(const k in TROPHY){ ok(TROPHY[k].value>0,k); ok(!BAD_TEXT.test(TROPHY[k].name),k); }
 });
 test('Data: every enemy, item and the player has an icon',()=>{
-  const miss=allNames().filter(n=>!IC[n]).concat(Object.values(ITEM).map(d=>d.glyph||('i_'+d.kind)).filter(k=>!IC[k]));
+  const miss=allNames().filter(n=>!IC[n]).concat(Object.values(ITEM).map(iglyph).filter(k=>!IC[k]));
   ['Necromancer','?','_'].forEach(k=>{ if(!IC[k]) miss.push(k); });
   eq(miss.length,0,'missing icons: '+miss.join(', '));
 });

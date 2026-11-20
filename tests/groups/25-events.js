@@ -4,7 +4,7 @@ const {test,ok,eq,near,finite,fmt,BAD_TEXT,cleanHTML,mulberry32,seed,fix,seq,H,f
 test('Events: rolled after some gate rooms, never after the last room or in the Tower',()=>{
   arena([foe({hp:0,dead:true})]); fix(0); roomWon(); ok(S.run.event,'event after room 1'); ok(EVENTS[S.run.event.id]);
   descend(); eq(S.run.event,null,'gone when you move on'); S.run.room=3; S.run.enemies=[foe({hp:0,dead:true})]; roomWon(); eq(S.run.event,null,'not after the boss');
-  fresh(); setLvl(20); startTower(1); S.run.enemies=[foe({hp:0,dead:true})]; fix(0); roomWon(); eq(S.run.event,null,'not in the Tower');
+  fresh(); setLvl(20); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1,2:1}}); startTower(1); S.run.enemies=[foe({hp:0,dead:true})]; fix(0); roomWon(); eq(S.run.event,null,'not in the Tower');
   fresh(); seed(31); let n=0; for(let i=0;i<1000;i++){ S.mode='town'; S.run=null; S.watches=3; startRun(0); S.run.enemies=[foe({hp:0,dead:true})]; roomWon(); if(S.run.event) n++; } near(n/1000,EVENT_CHANCE,.04);
 });
 test('Events: the blood shrine trades 20% max HP for 15% more damage this gate',()=>{

@@ -10,7 +10,7 @@ test('Sets: a gate unique counts toward its set, Tower gear never does',()=>{
 });
 test('Sets: percent bonuses really apply',()=>{
   arena([foe()],2); const m=dmgMul(); wear('2-wa'); wear('2-aa'); wear('2-tc'); near(dmgMul(),m*1.05,1e-9);
-  fresh(); wear('4-wa'); wear('4-aa'); wear('4-tc'); arena([foe()],4); const P=S.player; P.stats.constitution=500; P.hp=pMax(); const hp=P.hp; hurtAlly(P,100); eq(hp-P.hp,95);
+  fresh(); wear('4-wa'); wear('4-aa'); wear('4-tc'); arena([foe()],4); const P=S.player; P.stats.constitution=500; P.hp=pMax(); const hp=P.hp; hurtAlly(P,100); eq(hp-P.hp,95-CON_DR_CAP,'set 5% plus the capped Constitution part');
 });
 test('Sets: items show their set and which bonuses are active',()=>{ wear('3-wa'); wear('3-aa'); const it=give('3-ta'); const h=itemCard(it,''); ok(/Choir of Bones set \(2\/3 worn\)/.test(h)); ok(/class="on">2:/.test(h)); ok(!/class="on">3:/.test(h)); { const t=itemCard({u:1,id:'w1'},''); ok(!/set \(/.test(t)&&!/Scavenger|Drowned Vigil/.test(t),'tower uniques join no gate set'); ok(/Unique set: <b>Wardens/.test(t),'but they show their unique set'); } ui.tab='gear'; ok(/Choir of Bones set \(2\/3\)/.test(renderAll('equipment'))); });
 

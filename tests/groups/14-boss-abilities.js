@@ -18,7 +18,7 @@ test('Bosses: Hymn of Silence silences skills for 2 turns and mends foes',()=>{
 });
 test('Bosses: Seedfall mends every foe and sprouts a new one',()=>{ const b=bossFight(4); b.hp=b.maxHp/2; fireAbility(b); eq(b.hp,b.maxHp*.65); eq(S.run.enemies.length,2); });
 test('Bosses: Royal Decree hits for 45% of max HP, and Bone Ward soaks it',()=>{
-  const b=bossFight(5); const P=S.player; P.hp=pMax(); fireAbility(b); eq(P.hp,pMax()-Math.round(pMax()*.45)); P.hp=pMax(); P.shield=1e5; fireAbility(b); eq(P.hp,pMax());
+  const b=bossFight(5); const P=S.player; P.hp=pMax(); fireAbility(b); eq(P.hp,pMax()-Math.round(Math.round(pMax()*.45)*(1-pDr()/100)),'Constitution trims it'); P.hp=pMax(); P.shield=1e5; fireAbility(b); eq(P.hp,pMax());
 });
 test('Bosses: a boss spends its turn charging instead of hitting',()=>{
   const b=bossFight(5); b.atk=1e6; b.abilT=1; fix(.5); const P=S.player; P.stats.constitution=500; P.hp=pMax(); act('strike'); ok(b.charging); eq(P.hp,pMax());

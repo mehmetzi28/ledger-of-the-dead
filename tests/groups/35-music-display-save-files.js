@@ -2,7 +2,7 @@
 (function(){
 const {test,ok,eq,near,finite,fmt,BAD_TEXT,cleanHTML,mulberry32,seed,fix,seq,H,fresh,setLvl,foe,arena,mkMinion,corpse,raiseScene,wear,give,canon,firstDiff,renderAll,TABS,richState,invariants,NODE,bossFight,earn,eventScene,cursedRun,wonRoom,master,board,cdx}=window.LOTD_T;
 test('Music: a switch in Settings, remembered; picks a scene; silent without Web Audio',()=>{
-  const was=MUSIC.on; eq(musicScene(),'town'); ui.tab='tower'; eq(musicScene(),'tower'); ui.tab='gates'; arena([foe()]); eq(musicScene(),'gate'); flee(); setLvl(20); startTower(1); eq(musicScene(),'tower'); flee();
+  const was=MUSIC.on; eq(musicScene(),'town'); ui.tab='tower'; eq(musicScene(),'tower'); ui.tab='gates'; arena([foe()]); eq(musicScene(),'gate'); flee(); setLvl(20); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1,2:1}}); startTower(1); eq(musicScene(),'tower'); flee();
   ACTIONS.music(); eq(MUSIC.on,!was); eq(localStorage.getItem('lotd-music'),MUSIC.on?'on':'off'); music(); ACTIONS.music(); eq(MUSIC.on,was); ok(/data-a="music"/.test((ui.tab='settings',renderAll('settings'))));
 });
 test('Display: text size, reduced motion and high contrast apply and are remembered',()=>{

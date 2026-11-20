@@ -16,11 +16,11 @@ function giveAbility(e,id,faster){ e.abil=id; e.abilT=BOSS_ABIL[id].every-(faste
 function bossTurn(e){   // true if the boss spent its turn on its ability (or on gathering for it)
   if(!BOSS_ABIL[e.abil]) return false;
   const gap=mv=>Math.max(2,BOSS_ABIL[mv].every-(e.fast||0)-(omen()==='ashfall'?1:0));
-  if(e.charging){ const mv=e.move||e.abil; e.charging=false; e.move=null; e.abilT=gap(mv); fireAbility(e,mv); return true; }
+  if(e.charging){ const mv=e.move||e.abil; e.charging=false; e.move=null; e.abilT=gap(mv); BLOW={n:e.name,k:'sig',mv,w:1}; fireAbility(e,mv); BLOW=null; return true; }
   if(--e.abilT>0) return false;
   const mv=e.phase2&&e.alt?'sunder':e.abil, A=BOSS_ABIL[mv]; if(e.phase2) e.alt=!e.alt;   // the second phase alternates with Sundering Blow
   if(A.warn||e.phase2){ e.charging=true; e.move=mv; log(e.name+' gathers itself for '+A.name+'! '+A.desc,'bad'); sfx('warn'); fxe('charge',e); return true; }
-  e.abilT=gap(mv); fireAbility(e,mv); return true;
+  e.abilT=gap(mv); BLOW={n:e.name,k:'sig',mv}; fireAbility(e,mv); BLOW=null; return true;
 }
 function chargeInfo(e){   // a charging boss: the move it lands next turn, what answers it (from the rules here and in fireAbility), and the answer keys the action bar marks
   if(!e||!e.charging||e.hp<=0) return null; const mv=e.move||e.abil, A=BOSS_ABIL[mv]; if(!A) return null;
@@ -33,7 +33,7 @@ function summonAdd(e){
   const mk=()=>e.tw?makeTowerEnemy(e.tw,false,-1):makeEnemy(e.rankI,Math.max(1,e.lvl-2),false), hasMender=liveFoes().some(x=>x.role==='mender');
   let a=mk(); for(let i=0;i<30&&hasMender&&a.role==='mender';i++) a=mk(); if(hasMender&&a.role==='mender') return null;   // never a second mender (bug found in play-testing)
   if(e.tw) foeScale([a],TW.foeAtk); else { foeScale([a],foeAtkMul(S.run.di)); bulwark([a]); }
-  affixAll([a]); e.summoned++; S.run.enemies.push(a); return a;
+  affixAll([a]); foeRise([a]); e.summoned++; S.run.enemies.push(a); return a;
 }
 function fireAbility(e,mv){
   mv=mv||e.abil; const r=S.run, P=S.player, A=BOSS_ABIL[mv], foes=liveFoes();
@@ -55,8 +55,8 @@ function fireAbility(e,mv){
   else if(mv==='seedfall'){ foes.forEach(f=>{ f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*.15)); }); const a=summonAdd(e); log(e.name+' scatters Seedfall. Every foe mends'+(a?' and '+a.name+' sprouts from the ground':'')+'.','bad'); }
   else if(mv==='decree'){ const d=Math.round(pMax()*.45*enrage(e)); hurtAlly(P,d); fxe('hurt',P,{crit:1}); log(e.name+' speaks a Royal Decree. It strikes you for '+d+'.','bad'); }
   else if(mv==='sunder'){ const v=r.taunt>0?S.army.filter(m=>m.role==='vanguard'&&m.hp>0):[];
-    if(v.length){ const t=pick(v), d=hit(e.atk*2.2*enrage(e)); hurtAlly(t,d); fxe('hurt',t,{crit:1}); log(e.name+' brings down a Sundering Blow, but '+t.nick+' takes it for you: '+d+' damage.'+(t.hp<=0?' '+t.nick+' is down.':''),'bad'); }
-    else { const d=Math.round(pMax()*.35*enrage(e)); hurtAlly(P,d); fxe('hurt',P,{crit:1}); log(e.name+' brings down a Sundering Blow on you for '+d+'.','bad'); } }
+    if(v.length){ const t=pick(v), d=hit(e.atk*2.2*enrage(e)); hurtAlly(t,d); fxe('hurt',t,{crit:1}); log(e.name+' brings down a Sundering Blow, but '+t.nick+' takes it for you: '+d+' damage.'+(t.hp<=0?' '+t.nick+' is down.':''),'bad'); addSt(t,'sundered',2); }
+    else { const d=Math.round(pMax()*.35*enrage(e)); hurtAlly(P,d); fxe('hurt',P,{crit:1}); log(e.name+' brings down a Sundering Blow on you for '+d+'.','bad'); addSt(P,'sundered',2); } }   /* the blow also cracks your guard: Sundered */
   sfx('boss');
 }
 function playerFalls(){   // the player hit 0 HP: revive from gear if possible, otherwise the run is lost. True if defeated.
@@ -75,14 +75,155 @@ function sellJunk(){ if(S.mode!=='town') return null; const list=S.inv.filter(is
 // ===== STATUS EFFECTS =====
 // Damage over time: bleed (crits from enemy strikers), burn (Cinder Wave), poison (Venomous minions). One of each kind per unit;
 // a new dose refreshes it. They tick at the end of each turn, ignore ward and armor, and wear off when you leave a room.
-const DOTS={poison:{name:'Poisoned'},bleed:{name:'Bleeding'},burn:{name:'Burning'}};
-function addDot(u,k,d,t){ d=Math.round(d); if(d<1||!(u.hp>0)||hasAff(u,'warded')||hasTrait(u,'warded')) return; u.dots=u.dots||{}; const o=u.dots[k]; u.dots[k]=o?{d:Math.max(o.d,d),t:Math.max(o.t,t)}:{d,t}; }
+const DOTS={poison:{name:'Poisoned'},bleed:{name:'Bleeding'},burn:{name:'Burning'},blight:{name:'Blighted'}};   // blight: a shadow wound that also halves the healing its bearer receives
+DOTS.poison.tip='Venom eats HP at the end of each turn.'; DOTS.bleed.tip='An open wound bleeds at the end of each turn.'; DOTS.burn.tip='Fire burns at the end of each turn.'; DOTS.blight.tip='Shadow rot eats HP at the end of each turn and halves the healing received.';
+function addDot(u,k,d,t){ d=Math.round(d); if(d<1||!(u.hp>0)||hasAff(u,'warded')||hasTrait(u,'warded')||(k==='burn'&&hasTrait(u,'cinderborn'))) return; u.dots=u.dots||{}; const o=u.dots[k]; u.dots[k]=o?{d:Math.max(o.d,d),t:Math.max(o.t,t)}:{d,t}; }
 const clearDots=u=>{ if(u) delete u.dots; };
+const BLIGHT_HEAL=.5;   // a blighted unit receives half the healing
+const blightK=u=>(u&&u.dots&&u.dots.blight)?BLIGHT_HEAL:1;
+// Conditions: turns left in u.st[k]. They tick down at the end of each turn (skillTick) and wear off when you leave a room, like damage over time.
+// Sundered: takes 25% more damage. Hexed: deals 20% less. Hasted: strikes again for 50% at the end of each turn. Chilled (Grave Chill rank 2+): takes 20% more.
+const CONDS={
+  sundered:{name:'Sundered',desc:'Armor cracked: takes 25% more damage.'},
+  hexed:   {name:'Hexed',   desc:'Deals 20% less damage.'},
+  hasted:  {name:'Hasted',  desc:'Strikes again for 50% damage at the end of each turn.'},
+  chilled: {name:'Chilled', desc:'Slowed by frost: takes 20% more damage.'}
+};
+const SUNDER_MUL=1.25, HEX_MUL=.8, HASTE_MUL=.5, CHILL_MUL=1.2, ST_CH=1/3, VAN_SUNDER=.1;   // ST_CH: the Sundering and Hexing affixes and the Crushing and Hexing traits; VAN_SUNDER: a vanguard minion's hit
+function addSt(u,k,t){ if(!u||!(u.hp>0)||!CONDS[k]||stImmune(u,k)) return false; u.st=u.st||{}; u.st[k]=Math.max(u.st[k]||0,t); return true; }
+const hasSt=(u,k)=>!!(u&&u.st&&u.st[k]>0);
+const hexK=u=>hasSt(u,'hexed')?HEX_MUL:1;
+const clearSt=u=>{ if(u) delete u.st; };
+const clearAll=u=>{ clearDots(u); clearSt(u); if(u) delete u.mw; };   /* mw: a Warden's ward on a minion */   // leaving a room: every status ends
+function tickSt(){ const r=S.run; if(!r) return; for(const u of r.enemies.concat(allies())){ if(!u.st) continue; for(const k of Object.keys(u.st)) if(--u.st[k]<=0) delete u.st[k]; if(!Object.keys(u.st).length) delete u.st; } }
+function foeTarget(alive){ const w=alive.map(a=>a.role==='vanguard'?5:2); let roll=Math.random()*w.reduce((x,y)=>x+y,0), tg=alive[0];   // vanguards draw the eye
+  for(let i=0;i<alive.length;i++){ roll-=w[i]; if(roll<=0){ tg=alive[i]; break; } } return tg; }
+// ===== ROWS =====
+// Every unit stands in the Front ('f') or Back ('b') row. A minion's row is m.row (switched on the Army tab), else vanguards and reapers stand in front;
+// you stand at the back. Foes: bosses, the rival, vanguards and reapers in front. Vanguards and reapers are melee: while the other side has a
+// standing front row they reach only it. Strikers, menders and bosses reach anyone; Taunt, your Strike and skills, cleaves and splash ignore rows.
+// Your vanguards and reapers moved to the back row strike over the line for BACK_MELEE of their damage: safety costs reach.
+const MELEE={vanguard:1,reaper:1}, BACK_MELEE=.5;
+const rowOf=u=>u.id==='p'?'b':u.id!=null?(u.boss||u.rival||MELEE[u.role]?'f':'b'):(u.wall?'f':u.row==='f'||u.row==='b'?u.row:MELEE[u.role]?'f':'b');
+const rowK=m=>MELEE[m.role]&&rowOf(m)==='b'?BACK_MELEE:1;   // a minion's damage factor from its row
+const frontOf=L=>L.filter(u=>u.hp>0&&rowOf(u)==='f');
+const foeReach=(e,alive)=>{ const t=tauntPool(alive); if(t!==alive||!MELEE[e.role]||e.boss) return t; const f=frontOf(alive); return f.length?f:alive; };   // whom a foe may strike: Taunt first, then the row rule
+function minionTarget(m){ const t=currentTarget(); if(!t||!MELEE[m.role]||rowOf(t)==='f') return t; return frontOf(liveFoes()).sort((a,b)=>a.hp-b.hp)[0]||t; }   // a melee minion hits your target if it can reach it, else the weakest foe in front
+function setRow(uid){ if(S.mode==='battle') return; const m=S.army.concat(S.reserve||[]).find(x=>x.uid===uid); if(m&&!m.wall) m.row=rowOf(m)==='f'?'b':'f'; }   // out of battle only, so a fight's foe intents never shift under you
+// ===== FOE INTENTS =====
+// Each foe's next action (e.it: {k:'atk', t: the fxKey of you or a minion} or {k:'heal', t: a foe id}) is rolled when your turn starts
+// and shown on its card; on its turn it does exactly that. Rolled again only if its target fell, Taunt pulled it onto a vanguard (or lapsed: tn) or a row change put the target out of reach;
+// a frozen foe loses it. Same weights and odds as rolling on its turn. Boss moves are read off the boss (bossTurn) and shown over it; a move turn keeps e.it.
+// e.it2 is the action after it, rolled with it and moved up when e.it is spent, checked by the same rules (a mender heals whoever is most hurt then); Known foes show it.
+const tauntPool=alive=>{ if(S.run.taunt>0){ const v=alive.filter(a=>a.role==='vanguard'&&a.id!=='p'); if(v.length) return v; } return alive; };
+const mendTarget=()=>liveFoes().filter(x=>x.hp<x.maxHp*.7).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
+function rollIntent(e,k){ k=k||'it';
+  if(e.role==='mender'){ const h=mendTarget(); if(h) return e[k]={k:'heal',t:h.id}; }
+  const alive=allies().filter(a=>a.hp>0); if(!alive.length) return e[k]=null; const reach=foeReach(e,alive), tg=foeTarget(reach), bw=bulwarkFor(tg,reach);
+  const it=e[k]=bw?{k:'atk',t:fxKey(bw),bw:1}:{k:'atk',t:fxKey(tg)};   // bw: a Bulwark steps in front of a blow meant for your back row
+  if(tauntPool(alive)!==alive) it.tn=1; return it;
+}
+function intentOk(e,k){ const it=e[k||'it']; if(!it) return false;
+  if(it.k==='heal'){ const h=S.run.enemies.find(x=>x.id===it.t); return !!h&&h.hp>0; }
+  if(it.tn&&!(S.run.taunt>0)) return false;
+  const alive=allies().filter(a=>a.hp>0), tg=alive.find(a=>fxKey(a)===it.t); return !!tg&&foeReach(e,alive).includes(tg); }
+function planFoes(){ const r=S.run; if(!r||!r.enemies) return;
+  for(const e of liveFoes()){
+    if(!e.it&&e.it2){ e.it=e.it2; delete e.it2; }
+    if(e.role==='mender'&&e.it){ const h=mendTarget(); if(h?!(e.it.k==='heal'&&e.it.t===h.id):e.it.k==='heal') delete e.it; }   // as a fresh roll would choose
+    if(!intentOk(e)) rollIntent(e);
+    if(!intentOk(e,'it2')) rollIntent(e,'it2');
+  } }
+function planTxt(e,it){   // the words for a planned attack or heal
+  if(!it) return null;
+  if(it.k==='heal'){ const h=S.run.enemies.find(x=>x.id===it.t); if(!h) return null; return {k:'heal',txt:h===e?'Heals itself':'Heals '+h.name,tip:'Mends a wounded foe on its turn.'}; }
+  const tg=allies().find(a=>fxKey(a)===it.t); if(!tg) return null;
+  if(it.bw) return {k:'atk',tg,txt:'Attacks '+nameOf(tg),tip:'Bulwark: '+nameOf(tg)+' steps in front of a blow meant for your back row.'};
+  return {k:'atk',tg,txt:tg.id==='p'?'Attacks you':'Attacks '+nameOf(tg),tip:'Its next blow. Taunt turns it onto a vanguard; freezing it costs it the turn.'};
+}
+const sigMove=e=>e.phase2&&e.alt?'sunder':e.abil, sigCharged=(e,mv)=>!!(BOSS_ABIL[mv].warn||e.phase2);
+function intentInfo(e){   // what a foe card says it will do next: {k, txt, tip}, or null (a charging move has its own banner)
+  if(!e||e.hp<=0||!S.run||e.charging) return null;
+  if(e.stun>0) return {k:'frozen',txt:'Frozen',tip:'Frozen solid: it loses its next action.'};
+  const A=e.abil&&BOSS_ABIL[e.abil];
+  if(A&&e.abilT<=1){ const mv=sigMove(e), B=BOSS_ABIL[mv]; return sigCharged(e,mv)?{k:'abil',mv,txt:'Gathers for '+B.name,tip:'Next turn it gathers itself, and the turn after it lands '+B.name+'. '+B.desc}:{k:'abil',mv,txt:'Will use '+B.name,tip:B.desc}; }
+  return planTxt(e,e.it);
+}
+function nextInfo(e){   // the action after the next one (Known foes): read off the boss's move counter, else e.it2
+  if(!e||e.hp<=0||!S.run||e.charging||e.stun>0) return null;
+  if(e.abil&&BOSS_ABIL[e.abil]){ const mv=sigMove(e), B=BOSS_ABIL[mv];
+    if(e.abilT<=1) return sigCharged(e,mv)?{k:'abil',txt:'Will use '+B.name}:planTxt(e,e.it);   // gathering, then it lands; or a move now, then the kept blow
+    if(e.abilT===2) return {k:'abil',txt:(sigCharged(e,mv)?'Gathers for ':'Will use ')+B.name}; }
+  return planTxt(e,e.it2);
+}
+// ===== BESTIARY KNOWLEDGE =====
+// What the Ledger shows on a foe's card by its kind's mastery tier (1 Studied, 2 Known, 3 Mastered, 4 Ledgered; masteryOf). Read only: no Math.random, no state change.
+const knowLv=e=>{ const t=masteryOf(e.base||e.name); return t?MASTERY.indexOf(t)+1:0; };
+const afterWard=(a,d)=>a.id==='p'?Math.max(0,d-(S.player.shield||0)):d;
+const foeBlow=(e,tg)=>afterWard(tg,allyDr(tg,Math.max(1,Math.round(e.atk*enrage(e)*(hasAff(e,'enraged')&&e.hp<e.maxHp/2?1.6:1)*hexK(e)))));   // a plain blow without the roll's spread or a crit (act)
+function sigBlow(e,mv){   // what a damaging boss move deals (fireAbility): {you, army, van}; null for the others
+  const P=S.player, k=enrage(e);
+  if(mv==='cinder'){ const d=Math.round(e.atk*(e.secret?.45:.7)*k); return {you:afterWard(P,allyDr(P,d)),army:S.army.filter(m=>m.hp>0).reduce((s,m)=>s+allyDr(m,d),0)}; }
+  if(mv==='decree') return {you:afterWard(P,allyDr(P,Math.round(pMax()*.45*k)))};
+  if(mv==='sunder'){ const v=S.run.taunt>0&&S.army.find(m=>m.role==='vanguard'&&m.hp>0); return v?{van:allyDr(v,Math.round(e.atk*2.2*k))}:{you:afterWard(P,allyDr(P,Math.round(pMax()*.35*k)))}; }
+  return null;
+}
+function foeKnow(e){   // {lv, dmg, crit, next, aff, sig, ans}: what this foe's tier shows
+  const o={lv:knowLv(e)}; if(!o.lv||!S.run||e.hp<=0) return o;
+  const i=intentInfo(e), mv=e.charging?(e.move||e.abil):i&&i.mv;
+  if(i&&i.k==='atk'){ o.dmg=foeBlow(e,i.tg); o.crit=e.role==='striker'&&!hasSt(e,'hexed'); }
+  if(o.lv>=2){ o.next=nextInfo(e); if(e.aff&&e.aff.length) o.aff=e.aff; }
+  if(o.lv>=3&&mv) o.sig=sigBlow(e,mv);
+  if(o.lv>=4){
+    if(mv){ const c=blowCounters({k:'sig',mv,w:e.charging||sigCharged(e,mv)?1:0}); o.ans=o.sig?c:c.filter(x=>x!=='ward'); }
+    else if(i&&i.k==='atk'&&i.tg.id==='p'&&o.dmg>=pMax()*.15) o.ans=blowCounters({k:'hit'});   // heavy blows on you
+  }
+  return o;
+}
+function orderHints(){   // the order buttons' hints, from the current plan: {vanguard: blows Taunt pulls, mender: ward Bone Shield adds}; none once an order is given
+  const h={}, P=S.player; if(!S.run||S.mode!=='battle') return h;
+  if(canCommand('vanguard')) h.vanguard=liveFoes().filter(e=>{ if(e.stun>0) return false; if(e.charging) return (e.move||e.abil)==='sunder';
+    const i=intentInfo(e); if(!i) return false; if(i.k==='abil') return i.mv==='sunder'; return i.k==='atk'&&!(i.tg.role==='vanguard'&&i.tg.id!=='p'); }).length;
+  if(canCommand('mender')){ const w=S.army.filter(m=>m.role==='mender'&&m.hp>0).reduce((a,m)=>a+Math.round(m.atk*1.5),0); h.mender=Math.min(Math.round(pMax()*.6),P.shield+w)-P.shield; }   // as command() gives it
+  return h;
+}
+const execMark=e=>e.hp>0&&e.hp<e.maxHp*.4&&canCommand('reaper');   // Execute doubles reaper blows below 40% HP (act)
+// ===== STATUS COMBOS =====
+// Statuses that meet: a short log line, and a floating word on the unit's card (r.fx[key].c).
+const COMBOS={
+  frostbreak:{name:'Frostbreak',desc:'Your Strike, Bone Spear or Reap on a foe that is Frozen and Chilled deals 50% more, and the blow breaks the freeze.'},
+  rot:       {name:'Spreading Rot',desc:'Corpse Explosion with a Blighted body or a Blighted foe in the room spreads that Blight to every foe it hits.'},
+  fizzle:    {name:'Fizzle',desc:'A Hexed foe cannot crit: its crit lands as a plain hit and opens no wound.'},
+  breach:    {name:'Breach',desc:'Under Execute, your reapers ignore the armor of Sundered foes.'},
+  swift:     {name:'Swift Blow',desc:'A Hasted minion\'s follow-up strike carries its venom, blight, sunder and hex like a normal hit.'}
+};
+const FROSTBREAK=1.5;
+function combo(k,units,msg){ const r=S.run; tally('combos'); log(msg,'ok'); for(const u of [].concat(units||[])){ const id=fxKey(u); if(id==null) continue; const f=r.fx[id]||(r.fx[id]={d:0,h:0}); f.c=COMBOS[k].name; } }
+const frozenChilled=t=>!!t&&t.hp>0&&t.stun>0&&hasSt(t,'chilled');
+function frostbreak(t){ t.stun=0; combo('frostbreak',t,'Frostbreak: '+t.name+' shatters out of the ice.'); }
+function foeOnHit(e,tg){   // what a foe's hit leaves behind: affixes and the Whisper Choir
+  if(!(tg.hp>0)) return '';
+  let x='';
+  if(hasAff(e,'plague')){ addDot(tg,'blight',e.atk*.2,2); if(tg.dots&&tg.dots.blight) x+=', blighted'; }
+  if(hasAff(e,'sundering')&&Math.random()<ST_CH&&addSt(tg,'sundered',2)) x+=', sundered';
+  if((hasAff(e,'hexing')||e.base==='Whisper Choir')&&Math.random()<ST_CH&&addSt(tg,'hexed',2)) x+=', hexed';
+  return x;
+}
+function hasteStrikes(){   // the end of the turn: every Hasted unit strikes once more for half damage
+  const r=S.run;
+  for(const m of S.army){ if(!(m.hp>0)||!hasSt(m,'hasted')) continue; const tg=minionTarget(m); if(!tg) break;
+    let d=hit(m.atk*dmgMul()*HASTE_MUL*hexK(m)*rowK(m)*breakK(m,tg)); const cr=blurCrit(m); if(cr) d=Math.round(d*1.8); hurtFoe(tg,d); fxe('mhit',tg); log(m.nick+' is hasted and strikes '+tg.name+' again for '+d+(cr?' (crit)':'')+'.'); const x=minionOnHit(m,tg); if(x) combo('swift',tg,'Swift Blow: '+tg.name+' is '+x.split(' and ').filter(Boolean).map(v=>({poisons:'poisoned',blights:'blighted',sunders:'sundered',hexes:'hexed',chills:'chilled',burns:'burning'})[v.split(' ')[0]]).join(', ')+'.'); checkDeaths(); }
+  for(const e of liveFoes()){ if(!hasSt(e,'hasted')||e.froze===r.turn) continue; let alive=allies().filter(a=>a.hp>0); if(!alive.length) break;
+    alive=foeReach(e,alive);   // Taunt and the row rule hold for the follow-up too
+    const tg=foeTarget(alive), d=hit(e.atk*HASTE_MUL*hexK(e)*enrage(e)); BLOW={n:e.name,k:'haste'}; hurtAlly(tg,d); BLOW=null; fxe('hurt',tg); log(e.name+' is hasted and strikes '+(tg.id==='p'?'you':nameOf(tg))+' again for '+d+'.','bad');
+    if(tg.hp<=0&&tg.id!=='p') log(tg.nick+' is down.','bad'); if(S.player.hp<=0) return; }
+}
 function tickDots(){
   let foeD=0, ourD=0;
-  const tick=(u,hurt)=>{ if(!u.dots) return; for(const k of Object.keys(u.dots)){ const o=u.dots[k]; if(u.hp>0) hurt(u,o.d); if(--o.t<=0) delete u.dots[k]; } if(!Object.keys(u.dots).length) delete u.dots; };
-  for(const e of S.run.enemies) tick(e,(u,d)=>{ const h=u.hp; hurtFoe(u,d); foeD+=h-u.hp; });
-  for(const a of allies()) tick(a,(u,d)=>{ const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u,n,0); if(u.id==='p') S.run.hurt=true; } ourD+=n; if(u.hp<=0&&u.id!=='p'){ log(u.nick+' succumbs.','bad'); fxe('death',u); } });
+  const tick=(u,hurt)=>{ if(!u.dots) return; for(const k of Object.keys(u.dots)){ const o=u.dots[k]; if(u.hp>0) hurt(u,o.d,k); if(--o.t<=0) delete u.dots[k]; } if(!Object.keys(u.dots).length) delete u.dots; };
+  for(const e of S.run.enemies) tick(e,(u,d,k)=>{ const h=u.hp; KILL=k; hurtFoe(u,k==='blight'?Math.round(d*shadowK()):d); KILL=null; foeD+=h-u.hp; });   // Black Eclipse feeds your blight
+  for(const a of allies()) tick(a,(u,d,k)=>{ const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u,n,0); if(u.id==='p'){ S.run.hurt=true; S.run.blow={k:'dot',dot:k}; } } ourD+=n; if(u.hp<=0&&u.id!=='p'&&!stitchUp(u)){ log(u.nick+' succumbs.','bad'); fxe('death',u); } });
+  capFester(foeD);
   if(foeD) log('Poison eats '+foeD+' HP from your foes.','ok');
   if(ourD) log('Bleeding and burns cost your side '+ourD+' HP.','bad');
 }
@@ -100,12 +241,27 @@ const EVENTS={
 };
 const STRAGGLER_BONUS=25;
 const FAITH_EVENT=.25;   // a sworn necromancer meets a shrine true to the oath in a quarter of events
-function rollEvent(){ const fe=Object.keys(EVENTS).find(k=>EVENTS[k].faith&&EVENTS[k].faith===faithOf()), id=fe&&Math.random()<FAITH_EVENT?fe:pick(Object.keys(EVENTS).filter(k=>!EVENTS[k].faith)), ev={id}; if(id==='pedlar'){ ev.pot=pick(Object.keys(POTIONS)); ev.price=Math.ceil(POTIONS[ev.pot].price()/2); } return ev; }
-function corpseOf(e){ const c={id:'c'+e.id,armed:isArmed(e.base),name:e.name,base:e.base,role:e.role,rankI:e.rankI,lvl:e.lvl,hf:e.hf,af:e.af,tw:e.tw,boss:e.boss,elite:e.elite,tried:false,result:null,minion:null}; if(e.aff&&e.aff.length) c.aff=e.aff.slice(); return c; }
+function rollEvent(){ { const cd=chainDue(); if(cd) return {id:cd}; } const fe=Object.keys(EVENTS).find(k=>EVENTS[k].faith&&EVENTS[k].faith===faithOf()), id=fe&&Math.random()<FAITH_EVENT?fe:pick(Object.keys(EVENTS).filter(k=>!EVENTS[k].faith&&chainOk(k))), ev={id}; if(id==='pedlar'){ ev.pot=pick(Object.keys(POTIONS)); ev.price=Math.ceil(POTIONS[ev.pot].price()/2); } return ev; }
+function corpseOf(e){ const c={id:'c'+e.id,armed:isArmed(e.base),name:e.name,base:e.base,role:e.role,rankI:e.rankI,lvl:e.lvl,hf:e.hf,af:e.af,tw:e.tw,boss:e.boss,elite:e.elite,tried:false,result:null,minion:null}; if(e.aff&&e.aff.length) c.aff=e.aff.slice(); if(e.dots&&e.dots.blight) c.bl=e.dots.blight.d; if(e.cd&&e.hp<=0) c.cd=e.cd; return c; }   // bl: it died Blighted (Spreading Rot); cd: how it died (CORPSE_CONDS)
+// Corpse conditions: how a foe died marks its body. First match in this order; raise: % added before the clamp; trait: what it rises with
+// in place of the random trait (a boss still rolls its second one, an elite still keeps an affix).
+const CORPSE_CONDS={
+  preserved:{name:'Preserved',raise:15, trait:'rimeborn',  when:'Frozen when it died.',                                 story:'Pulled from the ice: its hits Chill.'},
+  clean:    {name:'Clean',    raise:8,  trait:'unmarred',  when:'Killed by your Reap, or by a reaper under Execute.',   story:'Cut down clean: nothing of it was spoiled.'},
+  rot:      {name:'Rotten',   raise:-10,trait:'necrotic',  when:'Died Blighted.',                                       story:'Risen from the rot: its hits Blight.'},
+  tainted:  {name:'Tainted',  raise:-5, trait:'venom',     when:'Killed by poison.',                                    story:'Venom still in its veins: its hits Poison.'},
+  charred:  {name:'Charred',  raise:-10,trait:'cinderborn',when:'Killed by a burn.',                                    story:'Raised from the ashes: its hits Burn.'},
+  mangled:  {name:'Mangled',  raise:-8, trait:'stitched',  when:'The killing blow went past its HP by more than its max HP.',story:'Sewn back together: it gets up once more.'}
+};
+const RIME_CH=1/3, CINDER_CH=1/3, CINDER_K=.15, UNMARRED_K=.15, STITCH_HP=.25, STITCH_MAX=.9;   // death traits: proc chances, Cinderborn's burn (sized like Venomous poison), Unmarred's bonus, Stitched's rise and HP
+function deathCond(e,d){ return e.stun>0?'preserved':KILL==='reap'||KILL==='exec'?'clean':(e.dots&&e.dots.blight)||KILL==='blight'?'rot':KILL==='poison'?'tainted':KILL==='burn'?'charred':d-e.hp>e.maxHp?'mangled':null; }
+const condRaise=c=>c.cd&&CORPSE_CONDS[c.cd]?CORPSE_CONDS[c.cd].raise:0;
+function stitchUp(a){ if(a.id==='p'||a.hp>0||!hasTrait(a,'stitched')||(a.sx||0)>=(hasTrait(a,'patchwork')?2:1)) return false; a.sx=(a.sx||0)+1; a.hp=Math.max(1,Math.round(a.maxHp*(hasTrait(a,'deathlesshusk')?.5:STITCH_HP))); log(a.nick+' is Stitched together and gets up again.','ok'); return true; }   // once per room (roomStart clears sx)
 function resolveEvent(ch){
   const r=S.run; if(S.mode!=='raise'||!r||!r.event||r.event.done) return false;
   const ev=r.event, P=S.player, lvl=RK[r.di].lv+Math.floor(r.room/2); let m='', c='';
-  if(ch==='pass') m='You leave it be.';
+  if(EVENTS[ev.id].chain){ const o=chainResolve(ev,ch); if(!o) return false; m=o.m; c=o.c; }
+  else if(ch==='pass') m='You leave it be.';
   else if(ev.id==='shrine'&&ch==='bleed'){ if(P.hp<=1) return false; const d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*.2))); P.hp-=d; r.bless=true; tally('shrine'); m='The shrine drinks '+d+' HP. You and your army hit 15% harder for the rest of this gate.'; c='ok'; }
   else if(ev.id==='pedlar'&&ch==='buy'){ if(S.gold<ev.price||S.belt[ev.pot]>=BELT_MAX) return false; S.gold-=ev.price; S.belt[ev.pot]++; tally('pedlar'); m='You buy a '+POTIONS[ev.pot].name+' for '+ev.price+' gold.'; c='ok'; sfx('coin'); }
   else if(ev.id==='coffer'&&ch==='open'){ tally('coffer');
@@ -144,12 +300,28 @@ function dayMod(){
 const OMENS={
   bloodmoon:{name:'Blood Moon',desc:'Elites are twice as common.'},
   paletide: {name:'Pale Tide', desc:'+10% chance to raise the dead.'},
-  ashfall:  {name:'Ashfall',   desc:'Bosses and wardens use their moves a turn sooner, and pay 25% more XP.'}
+  ashfall:  {name:'Ashfall',   desc:'Bosses and wardens use their moves a turn sooner, and pay 25% more XP.'},
+  eclipse:  {name:'Black Eclipse',desc:'Soul Siphon and your shadow damage, the Siphon skills and blight, deal 20% more. Foes crit 10% less often and miss 1 blow in 10.'},
+  boneharvest:{name:'Bone Harvest',desc:'Foes drop trophies 25% more often and elites one more. Any kill may leave bone dust: 1 kill in 4, and 3 from a boss.'},
+  ironrain: {name:'Iron Rain', desc:'Gear drops 10% more often and rolls bonus lines as if one tier higher. Foes wear heavier armor and are 25% tougher to hurt.'},
+  soulstorm:{name:'Soul Storm',desc:'Every room starts with one Soul harvested, and you regain 20% more mana each turn. Foes deal 25% more damage.'}
 };
 const OMEN_CHANCE=.25, OMEN_RAISE=10, OMEN_BOSS_XP=1.25;
+const ECLIPSE_SHADOW=1.2, ECLIPSE_CRIT=.1, ECLIPSE_MISS=.1, HARVEST_TRO=.25, HARVEST_DUST=.25, HARVEST_DUST_BOSS=3, IRON_DROP=1.1, IRON_ARMOR=1.25, STORM_REGEN=.2, STORM_ATK=1.25;
+const shadowK=()=>omen()==='eclipse'?ECLIPSE_SHADOW:1;   // Black Eclipse: Soul Siphon, the Siphon skills (Corpse Explosion, Grave Chill, Reap) and blight
+const foeCrit=()=>.25-(omen()==='eclipse'?ECLIPSE_CRIT:0);   // an enemy striker's crit chance
+function roomStart(list){   // a fresh room or floor: Soul Storm, the Swift affix and trait, and Ossified
+  foeRise(list);
+  for(const m of S.army){ delete m.sx; if(m.hp>0&&hasTrait(m,'swift')) addSt(m,'hasted',2); }   // sx: Stitched used this room
+  if(omen()==='soulstorm') gainSoul();
+  if(hasMod('bonearmor','a')) S.player.shield=Math.max(S.player.shield||0,Math.round(pMax()*OSSIFIED));
+  planFoes();
+  progRoom();
+}
+function foeRise(list){ progFoes(list); for(const e of list){ if(omen()==='soulstorm') e.atk=Math.max(1,Math.round(e.atk*STORM_ATK)); if(hasAff(e,'swift')) addSt(e,'hasted',3); } }   // also for foes called in mid-fight
 function dayOmen(){ if(!S.omen||S.omen.day!==S.day) S.omen={day:S.day,id:anyClear()&&Math.random()<OMEN_CHANCE?pick(Object.keys(OMENS)):null}; return S.omen; }
 const omen=()=>(S&&S.player&&!(S.run&&(S.run.siege||S.run.trial)))?dayOmen().id:null;   // omens do not reach a siege or a Trial
-const eliteChance=()=>.1*(omen()==='bloodmoon'?2:1);
+const eliteBase=()=>.1*(omen()==='bloodmoon'?2:1), eliteChance=()=>eliteBase()*(runHeat()>=1?HARD_ELITE:1);   // Hard and up: twice the elites
 const gateMod=di=>{ const m=dayMod(); return m.gi===di?m.id:null; };
 const runMod=()=>(S.run&&!S.run.tw&&S.run.mod)||null;
 const hasRunMod=id=>{ const r=S.run; return !!r&&!r.tw&&(r.mod===id||r.mod2===id); };   // a Trial can carry a second curse (r.mod2)
@@ -167,7 +339,17 @@ function volatileBurst(e){   // Volatile dead: a dying foe bursts on you
 // ===== GATE DIFFICULTY =====
 // A cleared gate can be entered on a higher difficulty: Hard after a clear, Brutal after a Hard clear, Nightmare after Brutal.
 // Foes grow stronger and every reward grows with them. On a cursed day the curse feeds on it: foes x1.5 more, rewards x1.3.
-const HEAT=[{name:'Normal',foe:1,xp:1,gold:1,drop:1},{name:'Hard',foe:1.4,xp:1.3,gold:1.5,drop:1.3},{name:'Brutal',foe:2,xp:1.7,gold:2.2,drop:1.7},{name:'Nightmare',foe:3.6,xp:2.3,gold:3,drop:2.2}];
+// Each level also adds a rule (rule), and keeps the rules below it: Hard doubles the elites (HARD_ELITE); Brutal moves a boss's second phase up to
+// BRUTAL_PHASE of its HP and gives every front-row foe an affix (no elite stats, ordinary drops); Nightmare makes one foe an elite in a room that rolled
+// none and starts bosses in their second phase. Elites the rules add drop as elites but carry the gate's unique at ordinary odds (e.hx, tableFor).
+const HARD_ELITE=2, BRUTAL_PHASE=.65;
+const HEAT=[{name:'Normal',foe:1,xp:1,gold:1,drop:1},{name:'Hard',foe:1.8,xp:1.2,gold:1.5,drop:1.3,rule:'Elites appear twice as often.'},{name:'Brutal',foe:2.5,xp:1.7,gold:2.2,drop:1.7,rule:'Bosses enter their second phase at '+Math.round(BRUTAL_PHASE*100)+'% HP, and every foe in the front row carries an affix.'},{name:'Nightmare',foe:3.6,xp:2.3,gold:3,drop:2.2,rule:'Every room holds at least one elite, and bosses start in their second phase.'}];
+const heatRules=lv=>HEAT.slice(1,lv+1).map(h=>h.rule);   // the rules in force on a level, its own last
+function heatRoom(list,di){   // Nightmare, before scaling: a room with no elite gets one, and the boss starts in its second phase
+  if(runHeat()<3||list.some(e=>e.rival)) return;
+  if(!list.some(e=>e.elite)){ const c=list.filter(e=>!e.boss); if(c.length){ const e=pick(c), s=mobStats(di,e.lvl,e.hf,e.af,false,true); Object.assign(e,{elite:true,hx:1,name:pick(ELITE)+' '+e.base,maxHp:s.hp,hp:s.hp,atk:s.atk}); } }
+  for(const e of list) if(e.boss&&e.abil&&!e.phase2){ e.phase2=true; e.fast=(e.fast||0)+1; e.alt=true; e.abilT=Math.min(e.abilT,2); }
+}
 const DAMNED=1.3, DAMNED_FOE=1.5, CURSE_FOE=1.15;   // cursed and harder: rewards x1.3, foes x1.5; cursed on Normal: foes x1.15 (rewards come from the curse itself)
 const foeHeat=()=>{ const h=runHeat(), m=runMod(); return (h?HEAT[h].foe:1)*(m?(h?DAMNED_FOE:CURSE_FOE):1); };
 const heatMax=di=>Math.min(HEAT.length-1,S.ti&&S.ti.clr&&S.ti.clr[di]?((S.heatMax&&S.heatMax[di]!=null?S.heatMax[di]:0)+1):0);   // highest level you may pick
@@ -179,23 +361,40 @@ const runFarm=()=>{ const r=S.run; if(!r||r.tw||r.rift||r.siege||r.heat||runMod(
 const heatK=k=>{ const h=runHeat(); if(!h) return (k==='xp'||k==='gold')?runFarm():1; return (k==='foe'?foeHeat():HEAT[h][k]*(runMod()?DAMNED:1)); };   // the cursed and the hard together
 
 // ===== RUN HISTORY =====
-const HIST_N=20, LIFE_KEYS=['runs','clears','deaths','fled','rooms','kills','xp','gold','items','raised'];
+const HIST_N=20, LIFE_KEYS=['runs','clears','deaths','fled','rooms','kills','xp','gold','items','raised','souls','wn','wt','ct','cn','stk'];   // wn/wt: wins of the runs tracked for the win rate; ct/cn: turns and count of timed gate clears; stk: the current win streak
 const runResult=r=>r.cleared?'cleared':S.mode==='defeat'?'fell':r.fled?'fled':'left';
+// A win: a clear (a held siege too), or a Tower climb walked out of with a floor won. A fall or a flight breaks the streak; walking out of a gate early neither adds nor breaks.
+const runWon=(r,res)=>res==='cleared'||(!!r.tw&&res==='left'&&(r.won||0)>0);
+function runBoss(r){ const b=(r.enemies||[]).find(e=>e.boss&&!e.dead&&e.hp>0); return b?[b.name,0]:r.bossK?[r.bossK,1]:null; }   // the boss or warden faced last, and whether it fell
+function runMvp(){ const a=(S.army||[]).filter(m=>!m.thrall).sort((x,y)=>((y.hp>0)-(x.hp>0))||(y.lvl-x.lvl)); const m=a[0]; return m?[m.nick||m.name,m.role||'',m.lvl||1]:null; }   // a standing minion first, then the highest level
 function recordRun(target,r,res){
   const h={d:S.day,g:r.tw?-1:r.di,f0:r.tw0||0,f1:r.tw||0,rooms:r.won||0,kills:r.kills||0,xp:r.gained||0,gold:r.goldTot||0,items:r.items||0,raised:r.raised||0,mod:r.mod||null,res}; if(r.heat) h.heat=r.heat; if(r.secret) h.sec=r.secret; if(r.rift) h.rift=r.rift; if(r.riftRec) h.rr=1; if(r.siege) h.siege=1; if(r.trial) h.trial=r.trial;
+  { if(r.tt) h.tt=r.tt; if(r.mod2) h.m2=r.mod2; const om=omen(); if(om) h.om=om; const bo=runBoss(r); if(bo) h.bo=bo; const mv=runMvp(); if(mv) h.mvp=mv; h.lv=S.player.lvl; if(r.dd) h.dd=Math.round(r.dd); if(r.mh) h.mh=Math.round(r.mh); if(r.dt) h.dt=Math.round(r.dt); if(res==='fell'&&r.felled) h.fb=r.felled; }   // the details row of the History table
   target.hist=(target.hist||[]).concat([h]).slice(-HIST_N);
   const L=target.life=target.life||{}; LIFE_KEYS.forEach(k=>{ L[k]=L[k]||0; });
   L.runs++; if(res==='cleared') L.clears++; if(res==='fell') L.deaths++; if(res==='fled') L.fled++;
   L.rooms+=h.rooms; L.kills+=h.kills; L.xp+=h.xp; L.gold+=h.gold; L.items+=h.items; L.raised+=h.raised;
+  L.souls+=r.soulT||0; L.wt++; if(runWon(r,res)){ L.wn++; L.stk++; } else if(res==='fell'||res==='fled') L.stk=0;
+  if(res==='cleared'&&!r.tw&&!r.rift&&!r.siege&&!r.trial&&r.tt>0){ L.ct+=r.tt; L.cn++; }
 }
 // ===== RECORDS =====
 // Personal bests for the Ledger's Records page. They are kept through New Game+.
 // S.rec = {hit:{v,day}, fast:{di:{t,day,heat}}, kills:{v,day}, gold:{v,day}, floor:{v,day}, sec:{i:day}}
-const REC_NAME={rift:'Deepest Rift',hit:'biggest hit',kills:'most kills in one run',gold:'most gold from one run',floor:'deepest Tower floor'};
+const REC_NAME={rift:'Deepest Rift',hit:'biggest hit',kills:'most kills in one run',gold:'most gold from one run',floor:'deepest Tower floor',tw10:'fastest 10-floor climb',streak:'longest win streak',taken:'most damage survived in one run',mlv:'highest minion level',ftr:'most traits on a fused minion',held:'most gold held'};
+// The {v,day} records normalizeSave keeps; S.rec.fast and S.rec.riftF ({band:{t,day,d}}, fewest turns per Rift depth band) and S.rec.sec have their own shapes.
+const REC_NUM=['hit','kills','gold','floor','rift','tw10','streak','taken','mlv','ftr','held'], RIFT_BAND=5, TW_SPLIT=10;
 function recFlash(k,txt){ const r=S.run; if(r){ r.recF=r.recF||{}; if(r.recF[k]) return; r.recF[k]=1; } moment('New record: '+txt,'gold'); }   // once per run and kind, never for a first record
-function recBest(k,v){ if(!S||!(v>0)) return; S.rec=S.rec||{}; const o=S.rec[k]; if(!o||v>o.v){ S.rec[k]={v:Math.round(v),day:S.day}; if(o) recFlash(k,REC_NAME[k]+', '+Math.round(v).toLocaleString()); } }
-function recRun(r){   // at the end of every run
+function recBest(k,v,quiet){ if(!S||!(v>0)) return; S.rec=S.rec||{}; const o=S.rec[k]; if(!o||v>o.v){ S.rec[k]={v:Math.round(v),day:S.day}; if(o&&!quiet) recFlash(k,REC_NAME[k]+', '+Math.round(v).toLocaleString()); } }
+function recLow(k,v){ if(!S||!(v>0)) return; S.rec=S.rec||{}; const o=S.rec[k]; if(!o||v<o.v){ S.rec[k]={v:Math.round(v),day:S.day}; if(o) recFlash(k,REC_NAME[k]+', '+Math.round(v).toLocaleString()+' turns'); } }   // lower is better (turns)
+const recV=k=>(S&&S.rec&&S.rec[k]&&S.rec[k].v)||0;
+function towerSplit(r){ r.twT=r.twT||[0]; r.twT.push(r.tt||0); const n=r.twT.length; if(n>TW_SPLIT) recLow('tw10',Math.max(1,r.twT[n-1]-r.twT[n-1-TW_SPLIT])); }   // turns over the last ten floors of this climb
+function riftFast(r){ const m=Math.floor(r.rift/RIFT_BAND)*RIFT_BAND; if(!(m>=RIFT_BAND)||!(r.tt>0)) return; S.rec=S.rec||{}; const F=S.rec.riftF=S.rec.riftF||{}, o=F[m]; if(!o||r.tt<o.t){ F[m]={t:r.tt,day:S.day,d:r.rift}; if(o) moment('New record: Rift depth '+m+'+ in '+r.tt+' turns','gold'); } }
+const riftFastBest=min=>{ const F=(S&&S.rec&&S.rec.riftF)||{}; let b=Infinity; for(const m in F) if(+m>=min&&F[m].t<b) b=F[m].t; return b; };   // fewest turns for a dive of depth min or deeper
+function recArmy(){ if(!S||!S.army) return; let lv=0; for(const m of S.army.concat(S.reserve||[])) if(m&&!m.thrall&&m.lvl>lv) lv=m.lvl; recBest('mlv',lv,true); recBest('held',S.gold,true); }   // quiet: checked on every render
+function recRun(r,res){   // at the end of every run
   if(!r) return; recBest('kills',r.kills||0); recBest('gold',r.goldTot||0);
+  if(res==null) res=runResult(r); if(res!=='fell') recBest('taken',r.dt||0); recBest('streak',(S.life&&S.life.stk)||0);
+  { const om=omen(); if(om&&res!=='fell'){ tally('omenRuns'); tally('om_'+om); if(runWon(r,res)){ tally('omenWins'); tally('omw_'+om); } } }   // omen titles: survived and won under each omen
   if(!r.tw&&!r.rift&&!r.trial&&r.cleared&&r.tt>0){ S.rec=S.rec||{}; const f=S.rec.fast=S.rec.fast||{}, o=f[r.di]; if(!o||r.tt<o.t){ f[r.di]={t:r.tt,day:S.day,heat:r.heat||0}; if(o) moment('New record: '+DUNGEONS[r.di].name+' in '+r.tt+' turns','gold'); } }
 }
 // ===== DOORS =====
@@ -223,7 +422,19 @@ function quietRoom(kind){   // a rest or treasure room: no fight, then the doors
     m='You rest among the bones. You and your army recover.'; sfx('heal'); }
   else { const g=Math.round((15+P.lvl*5)*(1+r.di)*ngpReward()*(1+xb('goldp')/100)); S.gold+=g; r.goldTot=(r.goldTot||0)+g; r.lastGold=g; const it=addItem(pickRow(tableFor(r.di,'vanguard',true,false)));
     if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } m='The vault gives up '+g+' gold'+(it?' and '+withArticle(ITEM[it.id].name):'')+'.'; sfx('coin'); }
-  r.events.push({m,c:'ok'}); r.quiet=kind; r.doors=rollDoors(r); S.mode='raise';
+  r.events.push({m,c:'ok'}); r.quiet=kind; r.doors=rollDoors(r); preRooms(r); S.mode='raise';
+}
+// The Ledger reads the doors: the room behind a fight or elite door is rolled with the doors (r.pre, kept in the save), so a door
+// can show what waits behind it. How much it shows depends on how well you know this gate's dead (doorSight) and its master (doorBoss).
+function preRooms(r){ r.pre=null; for(const k of r.doors||[]) if(k==='fight'||k==='elite'){ r.pre=r.pre||{}; r.pre[k]=buildRoom(r.room+1,k); } }
+function doorSight(di){   // 2: most of the gate's kinds Known (rows and levels too), 1: most Studied (names, elites and affixes), 0: nothing. Most: at least 2.
+  const ms=DUNGEONS[di].mobs, need=Math.min(2,ms.length), n=id=>{ const at=MASTERY.findIndex(t=>t.id===id); return ms.filter(m=>MASTERY.indexOf(masteryOf(m[0]))>=at).length; };
+  return n('known')>=need?2:n('studied')>=need?1:0;
+}
+const DOOR_TIP={swarm:'At most '+SUMMON_CAP+' answer it in one fight',bonewall:"A shield holds at most 40% of a foe's HP",seedfall:'At most '+SUMMON_CAP+' sprout in one fight'};   // moves that are not telegraphed: what limits them
+function doorBoss(di){   // the boss door, once its master is Ledgered: the signature move and what answers it (the same answers as a charging boss: chargeInfo)
+  const t=masteryOf(DUNGEONS[di].boss[0]); if(!t||t.id!=='ledgered'||rivalHere(di)) return null;
+  const mv=GATE_ABIL[di], A=BOSS_ABIL[mv]; return {name:A.name,tip:A.warn?chargeInfo({charging:true,hp:1,move:mv}).hint:DOOR_TIP[mv]};
 }
 
 // ===== GEAR SETS =====

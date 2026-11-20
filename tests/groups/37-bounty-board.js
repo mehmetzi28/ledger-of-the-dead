@@ -19,7 +19,7 @@ test('Bounties: deeds count toward contracts, and a finished one pays once, in t
 });
 test('Bounties: arches, floors and bosses are counted where they happen',()=>{
   const a=T_('archs'), f=T_('floors'); const r=wonRoom(0); r.doors=['fight','elite']; descend('elite'); eq(T_('archs'),a+1);
-  returnTown(); setLvl(20); startTower(1); S.run.enemies=[foe({hp:0,dead:true})]; roomWon(); eq(T_('floors'),f+1);
+  returnTown(); setLvl(20); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1,2:1}}); startTower(1); S.run.enemies=[foe({hp:0,dead:true})]; roomWon(); eq(T_('floors'),f+1);
 });
 test('Bounties: gear needs bag room; conditional contracts only appear when they make sense',()=>{
   const L=board([{id:'kills',rw:{gear:1}}]); L[0].base=totalKills()-L[0].n;
@@ -27,8 +27,8 @@ test('Bounties: gear needs bag room; conditional contracts only appear when they
   for(let i=0;i<60;i++){ seed(i+1); makeBounties(); S.bounty.list.forEach(b=>ok(!['cursed','flawless','orders','floors','poison'].includes(b.id),b.id+' offered too early')); }
 });
 test('Bounties: the board shows in the side panel and survives a save',()=>{
-  setLvl(6); const L=board([{id:'kills',rw:{g:50}},{id:'raise',rw:{dust:3}},{id:'bosses',rw:{gear:1}}]); L[0].base-=L[0].n;
-  let h=renderAll('board'); ok(/Bounty board/.test(h)&&new RegExp('Defeat '+BOUNTIES.kills.n+' foes in one day').test(h)); ok(/data-a="claimb" data-k="0"/.test(h)); ok(!/data-k="1"[^>]*>Claim/.test(h));
+  setLvl(6); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1}}); const L=board([{id:'kills',rw:{g:50}},{id:'raise',rw:{dust:3}},{id:'bosses',rw:{gear:1}}]); L[0].base-=L[0].n;
+  let h=renderAll('board'); ok(/Bounty board/.test(h)&&new RegExp('Defeat '+BOUNTIES.kills.n+' foes<').test(h)); ok(/data-a="claimb" data-k="0"/.test(h)); ok(!/data-k="1"[^>]*>Claim/.test(h));
   save(); const a=JSON.stringify(S); S=null; loadGame(); eq(JSON.stringify(S),a);
   ACTIONS.claimb('0'); ok(S.notices.some(n=>/Bounty claimed: 50 gold/.test(n.m))); ok(/Claimed\./.test(renderAll('claimed')));
   eq(normalizeSave({v:2,player:{lvl:1},bounty:{day:1,list:[{id:'fake',n:1,base:0,rw:{},claimed:false}]}}).bounty,null);

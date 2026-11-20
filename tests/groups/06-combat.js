@@ -3,7 +3,7 @@
 const {test,ok,eq,near,finite,fmt,BAD_TEXT,cleanHTML,mulberry32,seed,fix,seq,H,fresh,setLvl,foe,arena,mkMinion,corpse,raiseScene,wear,give,canon,firstDiff,renderAll,TABS,richState,invariants,NODE,bossFight,earn,eventScene,cursedRun,wonRoom,master,board,cdx}=window.LOTD_T;
 test('Combat: Strike hits through armor, gives mana and ends the turn',()=>{
   const t=foe({hp:10000}); arena([t]); fix(.5); const P=S.player; P.mana=0;
-  const d=H(pAtk()*dmgMul()); act('strike'); eq(t.hp,10000-d); eq(d,7); eq(P.mana,4,'+3 strike, +1 per turn'); eq(S.run.turn,2); eq(P.hp,pMax()-1,'the foe hits back for 1');
+  const d=H(pAtk()*pierceMul(strPen())); act('strike'); eq(t.hp,10000-d); eq(d,9,'Strength pierces a little armor'); eq(P.mana,4,'+3 strike, +1 per turn'); eq(S.run.turn,2); eq(P.hp,pMax()-1,'the foe hits back for 1');
 });
 test('Combat: Soul Siphon needs 8 mana, drains and heals',()=>{
   const t=foe({hp:10000}); arena([t]); fix(.5); const P=S.player;
@@ -50,7 +50,7 @@ test('Combat: minion menders heal you, reapers cleave a second foe',()=>{
   act('strike'); ok(S.player.hp>=10+18-2,'healed by the mender'); const d=H(100*dmgMul()); eq(b.hp,10000-Math.round(d*.5));
 });
 test('Combat: vanguards draw most enemy blows',()=>{
-  arena([foe({hp:1e6,atk:1})]); seed(5); const v=mkMinion({role:'vanguard'}); v.maxHp=v.hp=1e6; S.player.stats.constitution=1e4; S.player.hp=pMax();
+  arena([foe({hp:1e6,atk:1,role:'striker'})]); seed(5); const v=mkMinion({role:'vanguard'});   /* a striker reaches every row */ v.maxHp=v.hp=1e6; S.player.stats.constitution=1e4; S.player.hp=pMax();
   let onV=0; for(let i=0;i<300;i++){ const h=v.hp; act('strike'); if(v.hp<h) onV++; } ok(onV>170&&onV<260,'vanguard took '+onV+' of 300 blows');
 });
 test('Combat: the target can be chosen and moves on when it dies',()=>{

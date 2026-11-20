@@ -27,7 +27,7 @@ test('Loadouts: a sold item, a fallen minion and gear held by a minion are repor
 });
 
 test('Loadouts: the army and Reserve limits hold; a swap needs no free place; no room is reported',()=>{
-  setLvl(25); S.mode='town'; while(S.army.length<slots()) mkMinion({}); const kept=S.army.slice(); ok(saveLoadout(0));
+  setLvl(25); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1}}); S.mode='town'; while(S.army.length<slots()) mkMinion({}); const kept=S.army.slice(); ok(saveLoadout(0));
   const x=kept[0]; ok(toReserve(x.uid)); while(S.reserve.length<reserveMax()) bench({}); const y=mkMinion({nick:'Newcomer'}); eq(S.army.length,slots());
   let r=useLoadout(0); eq(r.miss.length,0,'swapped in'); ok(S.army.includes(x)&&S.reserve.includes(y)); eq(S.reserve.length,reserveMax()); eq(S.army.length,slots());
   const z=bench({nick:'Extra'}); S.loadouts[2].s={gear:{weapon:null,armor:null,relic:null},army:kept.map(m=>[m.uid,m.nick]).concat([[z.uid,'Extra']]),res:[],ult:null};
