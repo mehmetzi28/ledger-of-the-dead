@@ -134,7 +134,7 @@ const ACTIONS={
   release:k=>{ if(ui.confirm===+k){ release(+k); ui.confirm=null; } else ui.confirm=+k; },
   newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); OPEN_HELP.on=false; ui.tab='gates'; ui.gsub='open'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
 };
-function settled(){ checkTitles(); try{ loreCheck(); }catch(e){} render(); }   // after an action: award titles and lore passages, then draw
+function settled(){ sgTipHide(); checkTitles(); try{ loreCheck(); }catch(e){} render(); }   // after an action: award titles and lore passages, then draw
 const CONFIRM_ACTS=['release','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
 document.addEventListener('click',e=>{
   MUSIC.armed=true;
@@ -152,6 +152,20 @@ document.addEventListener('change',e=>{   // a dropdown with data-a works like a
   if(f.size>2e6){ ui.msg={m:'That file is too large to be a save.',c:'bad'}; settled(); return; }
   const rd=new FileReader(); rd.onload=()=>{ ui.file={name:f.name,text:String(rd.result||'')}; ui.confirm=null; settled(); }; rd.readAsText(f);
 });
+// Stat glyph tooltip: the stat's name and what it does, at once on hover, and for a few seconds on a tap (a title would be slow and never show on touch).
+let sgTip=null, sgTimer=0;
+function sgTipShow(g){
+  if(!sgTip){ sgTip=document.createElement('div'); sgTip.id='sgtip'; sgTip.setAttribute('role','tooltip'); document.body.appendChild(sgTip); }
+  const h=SG_HINT[g.dataset.k], b=document.createElement('b'); b.textContent=g.getAttribute('aria-label')||''; sgTip.replaceChildren(b);   /* the label is already in the page's language */
+  if(h){ const s=document.createElement('span'); s.textContent=VIEW.lang==='tr'?trText(h):h; sgTip.appendChild(s); }
+  sgTip.hidden=false; const r=g.getBoundingClientRect(), w=sgTip.offsetWidth, th=sgTip.offsetHeight;
+  sgTip.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+'px'; sgTip.style.top=(r.top-th-8<8?r.bottom+8:r.top-th-8)+'px';
+}
+const sgTipHide=()=>{ if(sgTip) sgTip.hidden=true; clearTimeout(sgTimer); };
+document.addEventListener('pointerover',e=>{ if(e.pointerType==='touch') return; const g=e.target.closest&&e.target.closest('.sg[data-k]'); if(g) sgTipShow(g); });
+document.addEventListener('pointerout',e=>{ if(e.target.closest&&e.target.closest('.sg[data-k]')) sgTipHide(); });
+document.addEventListener('pointerdown',e=>{ const g=e.target.closest&&e.target.closest('.sg[data-k]'); if(g&&e.pointerType==='touch'){ sgTipShow(g); clearTimeout(sgTimer); sgTimer=setTimeout(sgTipHide,2600); } else if(!g) sgTipHide(); });
+window.addEventListener('scroll',sgTipHide,{passive:true});
 window.addEventListener('storage',e=>{   // another tab of this game saved: stop saving here so neither overwrites the other
   if(e.key===SAVE_KEY&&e.newValue!=null&&!TAB.blocked){ TAB.blocked=true; try{ settled(); }catch(x){} } });
 window.addEventListener('resize',()=>{ if(VIEW.fx==='auto') try{ applyView(); }catch(e){} });   // Auto effects follow the window size

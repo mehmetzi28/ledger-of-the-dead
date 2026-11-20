@@ -914,6 +914,11 @@ mark.cx-hit{background:rgba(211,166,77,.26);color:inherit;border-bottom:1px soli
 /* stat glyphs (sg in ui-icons.js): a worn mark in the stat's natural colour, the number after it */
 .sg{display:inline-flex;width:1.05em;height:1.05em;margin-right:2px;vertical-align:-.17em;color:var(--mute);filter:drop-shadow(0 1px 0 rgba(0,0,0,.7))}
 .sg svg{width:100%;height:100%;fill:currentColor;opacity:.9}
+.sg[data-k]{cursor:help}
+#sgtip{position:fixed;z-index:70;max-width:240px;padding:7px 10px 8px;pointer-events:none;border:1px solid var(--trim,#5d4b34);background:var(--grain),linear-gradient(180deg,#1d1813,#100d0a);box-shadow:inset 0 0 0 1px #050403,0 6px 18px rgba(0,0,0,.7);font:13px/1.35 var(--font-data);color:var(--bone)}
+#sgtip b{display:block;font:600 15px/1.2 var(--font-head);font-variant:small-caps;letter-spacing:.04em;color:#e4c98f}
+#sgtip span{display:block;margin-top:2px;color:#cfc3a8}
+#sgtip[hidden]{display:none}
 .sg .k{fill:none;stroke:rgba(10,8,6,.62);stroke-width:.7;stroke-linecap:round}.sg .d{fill:rgba(10,8,6,.75)}
 .sg .o{fill:none;stroke:currentColor;stroke-width:1.25;stroke-linecap:round;stroke-linejoin:round}
 .sg-hp{color:#b8483a}.sg-atk,.sg-pierce,.sg-matk{color:#b9b0a0}.sg-crit{color:#d9a24c}.sg-siph{color:#a9c98a}.sg-mana,.sg-regen,.sg-raise,.sg-heal{color:#8fbf72}
@@ -7292,6 +7297,21 @@ const TR_DICT=new Map(Object.entries({
 "minions +#%":"hizmetkârlar +%#",
 "minion attack +#%":"hizmetkâr saldırısı +%#",
 "Strike damage, crit chance, armor piercing, minion attack":"Vuruş hasarı, kritik şansı, zırh delme, hizmetkâr saldırısı",
+"Damage it can take before it falls":"Düşmeden önce dayanabileceği hasar",
+"Damage of a basic hit":"Sıradan bir vuruşun hasarı",
+"Chance for Strike to land a critical hit":"Vuruşun kritik isabet etme şansı",
+"Soul Siphon drains life from a foe and heals you":"Ruh Emme bir düşmanın canını emer ve seni iyileştirir",
+"Pays for skills and for raising the dead":"Yetenekleri ve ölüleri diriltmeyi karşılar",
+"Bone Ward: a shield that soaks up damage":"Kemik Kalkanı: hasarı emen bir kalkan",
+"Chance that a fallen foe answers your call":"Düşen bir düşmanın çağrına cevap verme şansı",
+"More HP and attack for all your minions":"Tüm hizmetkârların için daha fazla can ve saldırı",
+"More attack for all your minions":"Tüm hizmetkârların için daha fazla saldırı",
+"Mana you regain every turn":"Her tur geri kazandığın mana",
+"How many minions your army can hold":"Ordunun kaç hizmetkâr alabileceği",
+"Share of foe armor your Strike ignores":"Vuruşunun yok saydığı düşman zırhı payı",
+"Less damage from every hit you take":"Aldığın her darbeden daha az hasar",
+"More healing from every source":"Her kaynaktan daha fazla iyileşme",
+"More damage from your skills":"Yeteneklerinden daha fazla hasar",
 "Mana, Siphon, Ward, skill damage, minion attack":"Mana, Emme, Kalkan, yetenek hasarı, hizmetkâr saldırısı",
 "Strike damage, crit chance, armor piercing":"Vuruş hasarı, kritik şansı, zırh delme",
 "Max HP, damage taken, healing received":"Azami Can, alınan hasar, alınan iyileşme",
@@ -8693,7 +8713,11 @@ const SG_PATH={
  skill:'<path class="o" d="M5 .8L7.5 9 1 3.9h8L2.5 9Z"/>'
 };
 const SG_WORD={pierce:'Armor pierce',dr:'Damage taken',heal:'Healing received',skill:'Skill damage',matk:'Minion attack'};
-const sgl=(k,lab)=>{ lab=lab||SG_WORD[k]||(STATL[k]&&STATL[k][0])||k; return '<span class="sg sg-'+k+'" role="img" title="'+lab+'" aria-label="'+lab+'"><svg viewBox="0 0 10 10" aria-hidden="true">'+(SG_PATH[k]||'')+'</svg></span>'; };
+const SG_HINT={hp:'Damage it can take before it falls',atk:'Damage of a basic hit',crit:'Chance for Strike to land a critical hit',siph:'Soul Siphon drains life from a foe and heals you',mana:'Pays for skills and for raising the dead',ward:'Bone Ward: a shield that soaks up damage',
+  strength:'Strike damage, crit chance, armor piercing, minion attack',constitution:'Max HP, damage taken, healing received',intelligence:'Mana, Siphon, Ward, skill damage, minion attack',will:'Mana, army slots, raise odds, minion bond',
+  raise:'Chance that a fallen foe answers your call',mpow:'More HP and attack for all your minions',matk:'More attack for all your minions',regen:'Mana you regain every turn',slot:'How many minions your army can hold',
+  pierce:'Share of foe armor your Strike ignores',dr:'Less damage from every hit you take',heal:'More healing from every source',skill:'More damage from your skills'};   // the stat tooltip's second line (sgTipShow, ui-input.js)
+const sgl=(k,lab)=>{ lab=lab||SG_WORD[k]||(STATL[k]&&STATL[k][0])||k; return '<span class="sg sg-'+k+'" role="img" data-k="'+k+'" aria-label="'+lab+'"><svg viewBox="0 0 10 10" aria-hidden="true">'+(SG_PATH[k]||'')+'</svg></span>'; };
 const statG=(k,v)=>'<span class="sv">'+sgl(k)+(v>0?'+':'&minus;')+Math.abs(v)+STATL[k][1]+'</span>';   // item lines: mark and signed number
 // ----- item icons + cards
 Object.assign(GLYPH,{
@@ -10489,7 +10513,7 @@ const ACTIONS={
   release:k=>{ if(ui.confirm===+k){ release(+k); ui.confirm=null; } else ui.confirm=+k; },
   newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); OPEN_HELP.on=false; ui.tab='gates'; ui.gsub='open'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
 };
-function settled(){ checkTitles(); try{ loreCheck(); }catch(e){} render(); }   // after an action: award titles and lore passages, then draw
+function settled(){ sgTipHide(); checkTitles(); try{ loreCheck(); }catch(e){} render(); }   // after an action: award titles and lore passages, then draw
 const CONFIRM_ACTS=['release','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
 document.addEventListener('click',e=>{
   MUSIC.armed=true;
@@ -10507,6 +10531,20 @@ document.addEventListener('change',e=>{   // a dropdown with data-a works like a
   if(f.size>2e6){ ui.msg={m:'That file is too large to be a save.',c:'bad'}; settled(); return; }
   const rd=new FileReader(); rd.onload=()=>{ ui.file={name:f.name,text:String(rd.result||'')}; ui.confirm=null; settled(); }; rd.readAsText(f);
 });
+// Stat glyph tooltip: the stat's name and what it does, at once on hover, and for a few seconds on a tap (a title would be slow and never show on touch).
+let sgTip=null, sgTimer=0;
+function sgTipShow(g){
+  if(!sgTip){ sgTip=document.createElement('div'); sgTip.id='sgtip'; sgTip.setAttribute('role','tooltip'); document.body.appendChild(sgTip); }
+  const h=SG_HINT[g.dataset.k], b=document.createElement('b'); b.textContent=g.getAttribute('aria-label')||''; sgTip.replaceChildren(b);   /* the label is already in the page's language */
+  if(h){ const s=document.createElement('span'); s.textContent=VIEW.lang==='tr'?trText(h):h; sgTip.appendChild(s); }
+  sgTip.hidden=false; const r=g.getBoundingClientRect(), w=sgTip.offsetWidth, th=sgTip.offsetHeight;
+  sgTip.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+'px'; sgTip.style.top=(r.top-th-8<8?r.bottom+8:r.top-th-8)+'px';
+}
+const sgTipHide=()=>{ if(sgTip) sgTip.hidden=true; clearTimeout(sgTimer); };
+document.addEventListener('pointerover',e=>{ if(e.pointerType==='touch') return; const g=e.target.closest&&e.target.closest('.sg[data-k]'); if(g) sgTipShow(g); });
+document.addEventListener('pointerout',e=>{ if(e.target.closest&&e.target.closest('.sg[data-k]')) sgTipHide(); });
+document.addEventListener('pointerdown',e=>{ const g=e.target.closest&&e.target.closest('.sg[data-k]'); if(g&&e.pointerType==='touch'){ sgTipShow(g); clearTimeout(sgTimer); sgTimer=setTimeout(sgTipHide,2600); } else if(!g) sgTipHide(); });
+window.addEventListener('scroll',sgTipHide,{passive:true});
 window.addEventListener('storage',e=>{   // another tab of this game saved: stop saving here so neither overwrites the other
   if(e.key===SAVE_KEY&&e.newValue!=null&&!TAB.blocked){ TAB.blocked=true; try{ settled(); }catch(x){} } });
 window.addEventListener('resize',()=>{ if(VIEW.fx==='auto') try{ applyView(); }catch(e){} });   // Auto effects follow the window size

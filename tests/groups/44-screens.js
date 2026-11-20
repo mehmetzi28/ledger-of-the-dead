@@ -57,9 +57,14 @@ test('Screens: on phones the pinned action bar carries a thin HP tick per minion
   S.army=[];
 });
 
+test('Screens: every stat glyph explains itself in a tooltip (name and what it does), in Turkish too; no slow native title',()=>{
+  for(const k of Object.keys(SG_PATH)){ ok(SG_HINT[k],'hint for '+k); ok(trText(SG_HINT[k])!==SG_HINT[k],'Turkish for the '+k+' hint'); }
+  const g=sgl('atk'); ok(g.includes('data-k="atk"')&&g.includes('aria-label="Strike"'),'key and label'); ok(!/title=/.test(g),'no native title');
+  ok(typeof sgTipShow==='function'&&typeof sgTipHide==='function','tooltip helpers');
+});
 test('Screens: item lines are stat glyphs with numbers, each glyph labelled with the full word; the comparison keeps its colours',()=>{
   const it=give('2-wa'); it.ro=[['will',3]]; const h=itemCard(it,'',true), d=ITEM['2-wa'];
-  Object.keys(d.stats).filter(k=>d.stats[k]).forEach(k=>ok(h.includes('class="sg sg-'+k+'" role="img" title="'+STATL[k][0]+'" aria-label="'+STATL[k][0]+'"'),'glyph for '+k));
+  Object.keys(d.stats).filter(k=>d.stats[k]).forEach(k=>ok(h.includes('class="sg sg-'+k+'" role="img" data-k="'+k+'" aria-label="'+STATL[k][0]+'"'),'glyph for '+k));
   ok(/class="roll" title="Bonus line"><span class="sv"><span class="sg sg-will"[^>]*aria-label="Will"/.test(h)&&h.includes('+3</span>'),'a bonus line');
   ok(!/\d (Strike|Siphon|Max HP|Will)\b/.test(h.replace(/<[^>]+>/g,' ').replace(/title="[^"]*"/g,'')),'no stat words after numbers');
   ok(Object.keys(SG_PATH).every(k=>!!sgl(k).match(/aria-label="[A-Z][^"]+"/)),'every glyph has a word'); ['Armor pierce','Minion attack','Skill damage','Healing received'].forEach(w=>{ VIEW.lang='tr'; try{ ok(trText(w)!==w,'Turkish: '+w); } finally{ VIEW.lang='en'; } });
