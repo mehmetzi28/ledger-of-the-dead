@@ -75,7 +75,7 @@ function stPills(u){
 }
 // A foe's next action under its name (intentInfo, game-gate-rules.js): a small glyph, a few words, the detail in the tooltip.
 const INTENT_ICO={atk:'M2 10L9 3M6.5 3H9V5.5M3 7l2 2',heal:'M6 2v8M2 6h8',abil:'M6 1l1.4 3.6L11 6 7.4 7.4 6 11 4.6 7.4 1 6l3.6-1.4z',frozen:'M6 1v10M1.7 3.5l8.6 5M1.7 8.5l8.6-5'};
-const KNOW_ANS={taunt:['Taunt','Taunt pulls this onto a vanguard.'],ward:['Bone Ward','Bone Ward soaks it.'],chill:['Grave Chill','Grave Chill freezes it first.'],focus:['Focus','Focus breaks it.']};
+const KNOW_ANS={taunt:['Taunt','Taunt pulls this onto a vanguard.'],guard:['Guard','Guard has a front-row vanguard take it if it would kill you.'],ward:['Bone Ward','Bone Ward soaks it.'],chill:['Grave Chill','Grave Chill freezes it first.'],focus:['Focus','Focus breaks it.']};
 const aboutN=n=>n<50?n:Math.round(n/(n<200?5:10))*(n<200?5:10);   // "about": the roll spreads a blow by 15% either way
 const endDot=t=>/[.!?]$/.test(t)?t:t+'.';
 function sigHTML(s){ return s?(s.you!=null?'<b class="kn">you '+s.you+'</b>':'')+(s.army?'<b class="kn">army '+s.army+'</b>':'')+(s.van!=null?'<b class="kn">vanguard '+aboutN(s.van)+'</b>':''):''; }
@@ -124,7 +124,10 @@ function cmdHTML(){
   const roles=Object.keys(CMDS).filter(k=>S.army.some(m=>m.role===k&&m.hp>0)); if(!roles.length) return ''; const ans=chargeAns(), oh=orderHints(), OH={vanguard:n=>'pulls '+n,mender:n=>'+'+n+' ward'};
   return '<div class="btns cmds"><span class="cmd-l" title="Free, once a room">Orders:</span>'+roles.map(k=>{ const used=S.run.cmd&&S.run.cmd[k];
     const an=!used&&ans.includes(k);
-    return '<button class="btn small'+(an?' answer':'')+'" data-a="cmd" data-k="'+k+'" title="'+CMDS[k].desc+'"'+(used?' disabled':'')+'>'+(an?ANS_M:'')+CMDS[k].name+(used?' &middot; given':'')+(oh[k]!=null?'<span class="ord-h">'+OH[k](oh[k])+'</span>':'')+(an?ANS_S:'')+'<kbd>'+ORDER_KEY[k]+'</kbd></button>'; }).join('')+'</div>';
+    return '<button class="btn small'+(an?' answer':'')+'" data-a="cmd" data-k="'+k+'" title="'+CMDS[k].desc+'"'+(used?' disabled':'')+'>'+(an?ANS_M:'')+CMDS[k].name+(used?' &middot; given':'')+(oh[k]!=null?'<span class="ord-h">'+OH[k](oh[k])+'</span>':'')+(an?ANS_S:'')+'<kbd>'+ORDER_KEY[k]+'</kbd></button>'+(k==='vanguard'?guardBtn():''); }).join('')+'</div>';
+}
+function guardBtn(){ const used=S.run.cmd&&S.run.cmd.guard;   // Guard: costs the turn, so it goes through act; disabled with no vanguard in the front row
+  return '<button class="btn small" data-a="act" data-k="guard" title="'+GUARD.desc+'"'+(canGuard()?'':' disabled')+'>'+GUARD.name+(used?' &middot; given':'')+'<kbd>G</kbd></button>';
 }
 function srAnnounce(){   // read out the newest battle line once (the log itself is rebuilt on every render, so it cannot be the live region)
   const el=document.getElementById('sr-live'); if(!el) return; const L=S.run&&S.mode!=='town'&&S.run.log, last=L&&L.length?L[L.length-1].m:'';
@@ -435,7 +438,7 @@ function spoilsHTML(){
   return h;
 }
 const FELL_DOT={bleed:'bleeding',burn:'burns',poison:'poison',blight:'blight'};
-const FELL_C={taunt:'Taunt was not used.',ward:'Bone Ward was down.',chill:'Grave Chill was ready but not used.',focus:'Focus was not used to break it.'};
+const FELL_C={taunt:'Taunt was not used.',ward:'Bone Ward was down.',chill:'Grave Chill was ready but not used.',focus:'Focus was not used to break it.',guard:'Guard was not used.'};
 function felledHTML(b){   // the defeat recap: the blow that felled you and the answers you had for it (game-runs.js blowNote)
   if(!b||!b.k) return ''; const A=b.mv&&BOSS_ABIL[b.mv];
   const l1=b.k==='dot'?'Felled by '+(FELL_DOT[b.dot]||'a wound')+'.':'Felled by '+b.n+'\'s '+(A?A.name+(b.w?', telegraphed '+b.w+' turn'+(b.w>1?'s':'')+' ahead':''):b.k==='crit'?'critical hit':b.k==='haste'?'hasted strike':'blow')+'.';
@@ -458,7 +461,7 @@ function keysHTML(){   // every shortcut in one list; ? opens it, Esc closes it
    +'<h3>In town</h3>'+row('1-9','Switch tabs')+row('Esc','Back to the gate list, cancel a rename or a confirm')
    +'<h3>Between rooms</h3>'+row('1-4','Pick a door')+row('Space','Raise the best')
    +'<h3>In battle</h3>'+row('1','Strike')+row('2','Soul Siphon')+row('3','Bone Ward')+row('4-9','Your skills')+row('R','Ultimate')+row('[ ]','Change target')
-   +Object.keys(CMDS).filter(k=>ORDER_KEY[k]).map(k=>row(ORDER_KEY[k],CMDS[k].name)).join('')
+   +Object.keys(CMDS).filter(k=>ORDER_KEY[k]).map(k=>row(ORDER_KEY[k],CMDS[k].name)).join('')+row('G','Guard (uses your turn)')
    +Object.keys(POTIONS).map(k=>row(POTIONS[k].key,POTIONS[k].name)).join('')
    +'<h3>After a fall</h3>'+row('R','Retry the room')+row('?','Show or hide this list')+'</div></div>';
 }

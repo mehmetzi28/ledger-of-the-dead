@@ -7,8 +7,8 @@ const doomed=()=>{ const P=S.player; P.hp=1; P.shield=0; };
 test('Defeat recap: a foe blow names the attacker, and lists Taunt (vanguard standing) and Bone Ward (no ward)',()=>{
   fresh(); const a=foe({name:'Grim Biter',hp:1e6,atk:50,role:'striker'}); arena([a]); mkMinion({role:'vanguard'}); fix(.99); doomed(); a.it={k:'atk',t:'p'};
   act('strike'); eq(S.mode,'defeat'); const b=S.run.felled; ok(b,'the blow is kept');
-  eq(b.n,'Grim Biter'); eq(b.k,'hit'); eq(String(b.c),'taunt,ward','only answers that apply: '+JSON.stringify(b));
-  const h=renderAll('defeat recap'); ok(h.includes('Felled by Grim Biter\'s blow.')&&h.includes('Taunt was not used. Bone Ward was down.'),'shown on the defeat screen');
+  eq(b.n,'Grim Biter'); eq(b.k,'hit'); eq(String(b.c),'taunt,guard,ward','only answers that apply: '+JSON.stringify(b));
+  const h=renderAll('defeat recap'); ok(h.includes('Felled by Grim Biter\'s blow.')&&h.includes('Taunt was not used. Guard was not used. Bone Ward was down.'),'shown on the defeat screen');
 });
 test('Defeat recap: Taunt in force or already given, a ward up, or no vanguard: none of them are listed',()=>{
   const run=prep=>{ fresh(); const a=foe({name:'Grim Biter',hp:1e6,atk:500,role:'striker'}); arena([a]); fix(.99); doomed(); a.it={k:'atk',t:'p'}; prep(a); act('strike'); return S.run.felled; };
@@ -21,7 +21,7 @@ test('Defeat recap: Taunt in force or already given, a ward up, or no vanguard: 
 });
 test('Defeat recap: a telegraphed boss move says so, and lists Focus with strikers standing; Taunt only for Sundering Blow',()=>{
   fresh(); const b=bossFight(5); S.run.enemies.forEach(e=>{ if(e!==b) e.hp=1e6, e.maxHp=1e6, e.stun=5; }); b.hp=b.maxHp=1e7; b.charging=true; b.move='decree'; mkMinion({role:'striker'}); mkMinion({role:'vanguard'}); fix(.99); doomed();
-  act('strike'); eq(S.mode,'defeat'); const f=S.run.felled; eq(f.k,'sig'); eq(f.mv,'decree'); eq(f.w,1); eq(String(f.c),'ward,focus','Decree cannot be Taunted: '+JSON.stringify(f));
+  act('strike'); eq(S.mode,'defeat'); const f=S.run.felled; eq(f.k,'sig'); eq(f.mv,'decree'); eq(f.w,1); eq(String(f.c),'guard,ward,focus','Decree cannot be Taunted, but Guard covers it: '+JSON.stringify(f));
   ok(renderAll('decree').includes('Felled by '+b.name+'\'s Royal Decree, telegraphed 1 turn ahead.'));
   fresh(); const s=bossFight(5); S.run.enemies.forEach(e=>{ if(e!==s) e.hp=1e6, e.maxHp=1e6, e.stun=5; }); s.hp=s.maxHp=1e7; s.charging=true; s.move='sunder'; mkMinion({role:'vanguard'}); fix(.99); doomed();
   act('strike'); ok(S.run.felled.c.includes('taunt'),'a Sundering Blow could have gone to the vanguard');

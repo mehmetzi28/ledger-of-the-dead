@@ -22,4 +22,31 @@ test('Commands: Focus and Execute end with the room even when your own blow won 
   ok(command('striker')); ok(command('reaper')); act('strike'); eq(S.mode,'raise'); descend('fight');
   ok(!S.run.focus,'no free Focus in the next room'); ok(!S.run.execute,'no free Execute');
 });
+// Guard (game-faith-story.js): the vanguard order that costs your turn and takes one killing blow
+const guardRoom=(atk)=>{ fresh(10); const a=foe({name:'Grim Biter',hp:1e6,atk:atk||50,role:'striker'}); arena([a]); const v=mkMinion({role:'vanguard'}); v.maxHp=v.hp=1e6; const P=S.player; P.hp=1; P.shield=0; fix(.99); a.it={k:'atk',t:'p'}; return {a,v,P}; };
+test('Orders: Guard costs your turn, and a front-row vanguard takes the blow that would kill you at SB_TAKE',()=>{
+  let {a,v,P}=guardRoom(); const t=S.run.turn; ok(canGuard()); act('guard'); eq(S.run.turn,t+1,'Guard was your turn'); eq(S.mode,'battle','saved'); eq(P.hp,1);
+  ok(S.run.log.some(l=>/^Guard: .+ steps in front of you and takes the killing blow\.$/.test(l.m)),'logged'); const took=v.maxHp-v.hp; ok(took>0); ok(!canGuard(),'once per room'); const t1=S.run.turn; act('guard'); eq(S.run.turn,t1,'refused the second time');
+  ({a,v,P}=guardRoom()); a.it={k:'atk',t:fxKey(v)}; act('strike'); near(took/(v.maxHp-v.hp),SB_TAKE,.05,'at SB_TAKE of the same blow');
+});
+test('Orders: Guard holds only until your next turn and lets survivable hits through',()=>{
+  let {a,v,P}=guardRoom(); P.hp=pMax(); a.atk=2; act('guard'); ok(P.hp<pMax(),'a hit you survive lands on you'); eq(v.hp,v.maxHp,'the vanguard is untouched');
+  P.hp=1; a.atk=50; a.it={k:'atk',t:'p'}; act('strike'); eq(S.mode,'defeat','gone at your next turn: it was spent on nothing'); ok(!S.run.felled.c||!S.run.felled.c.includes('guard'),'given this room: not listed');
+  ({a,v,P}=guardRoom()); act('strike'); eq(S.mode,'defeat','no Guard, no save'); ok(S.run.felled.c.includes('guard')); ok(renderAll('recap').includes('Guard was not used.'));
+});
+test('Orders: Guard covers a telegraphed boss move, unlike Taunt',()=>{
+  fresh(); const b=bossFight(5); S.run.enemies.forEach(e=>{ if(e!==b) e.hp=1e6, e.maxHp=1e6, e.stun=5; }); b.charging=true; b.move='decree'; const v=mkMinion({role:'vanguard'}); v.maxHp=v.hp=1e7; fix(.99); S.player.hp=1; S.player.shield=0;
+  act('guard'); eq(S.mode,'battle','the Decree landed on the vanguard'); eq(S.player.hp,1); ok(v.hp<v.maxHp);
+});
+test('Orders: Guard needs a living vanguard in the front row, comes back each room and after a Retry; button, key, Codex, Turkish',()=>{
+  let {v}=guardRoom(); v.row='b'; ok(!canGuard(),'back row'); const t=S.run.turn; act('guard'); eq(S.run.turn,t,'refused: no turn spent'); v.row='f'; v.hp=0; ok(!canGuard(),'downed');
+  ({v}=guardRoom()); mkMinion({role:'reaper'}); v.role='striker'; ok(!canGuard(),'only a vanguard');
+  ({v}=guardRoom()); S.player.hp=pMax(); snapRoom(); act('guard'); ok(!canGuard()); S.player.hp=0; defeat(); ok(retryRoom()); ok(canGuard(),'back after a Retry');
+  wonRoom(0); descend('fight'); ok(canGuard(),'back in the next room');
+  let h=renderAll('guard'); ok(/data-a="act" data-k="guard"[^>]*>Guard<kbd>G<\/kbd>/.test(h),'the button'); ok(keysHTML().includes('Guard (uses your turn)'));
+  if(NODE){ const t2=S.run.turn; window.__listeners.keydown[0]({key:'g',preventDefault(){},target:{}}); eq(S.run.turn,t2+1,'G guards'); }
+  fresh(); ok(cdx('orders').includes('Unlike Taunt'),'Codex');
+  ok(trText(GUARD.desc)!==GUARD.desc&&trText('Guard was not used.')==='Siper kullanılmadı.','Turkish'); ok(trText('Guard: Bonehound steps in front of you and takes the killing blow.').startsWith('Siper:'));
+  ok(trText('Guard: Bonehound plants itself before you. The next blow that would kill you is its to take.').startsWith('Siper:'));
+});
 })();

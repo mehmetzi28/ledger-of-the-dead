@@ -85,6 +85,16 @@ function command(role){
   else { r.execute=true; log('Execute: your reapers look for the weak.','ok'); }
   sfx('skill'); return true;
 }
+// Guard: a vanguard order that costs your turn (act('guard')), apart from the free orders above. Until your next turn, the first foe blow that
+// would kill you, boss moves included, lands on a living front-row vanguard at SB_TAKE of its damage (it may die of it). Once per room (r.cmd.guard);
+// r.guard: the turn it holds through. Not in the room snapshot, so a Retry gives it back.
+const SB_TAKE=1.5, GUARD={name:'Guard',desc:'Costs your turn. Until your next turn, the first foe blow that would kill you, boss moves included, is taken by a vanguard in your front row at '+Math.round(SB_TAKE*100)+'% of its damage. It may fall to it.'};
+const guardFront=()=>frontOf(S.army).filter(m=>m.role==='vanguard').sort((a,b)=>b.hp-a.hp)[0];
+const canGuard=()=>S.mode==='battle'&&!!S.run&&!(S.run.cmd&&S.run.cmd.guard)&&!!guardFront();
+function guard(){ if(!canGuard()) return false; const r=S.run; r.cmd=r.cmd||{}; r.cmd.guard=true; r.guard=r.turn; tally('commands'); log('Guard: '+guardFront().nick+' plants itself before you. The next blow that would kill you is its to take.','ok'); return true; }
+function guardBlow(tg,d){   // the vanguard that takes this blow on you instead, or null
+  const r=S.run, P=S.player; if(!r||tg.id!=='p'||r.guard!==r.turn||allyDr(P,d)-(P.shield||0)<P.hp) return null;
+  const v=guardFront(); if(!v) return null; delete r.guard; log('Guard: '+v.nick+' steps in front of you and takes the killing blow.','ok'); return v; }
 
 // ===== STORY AND BOSS VOICES =====
 // The Ledger tells its story as you go: a passage for the first clear of each gate and for Tower milestones. Bosses speak.

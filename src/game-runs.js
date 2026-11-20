@@ -83,6 +83,7 @@ function hurtFoe(e,d){ if(e.curse) d=Math.round(d*e.curse.mul); { const mk=maste
   if(e.hp>0&&d>=e.hp) e.cd=deathCond(e,d);   // the killing blow decides the body's condition
   recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e,d,0); { const r=S.run; r.dd=(r.dd||0)+d; if(d>(r.mh||0)) r.mh=d; } }   /* damage dealt and the biggest hit this run, for the History */
 function hurtAlly(a,d){
+  if(a.id==='p'&&BLOW){ const v=guardBlow(a,d); if(v) return hurtAlly(v,Math.round(d*SB_TAKE)); }   // Guard, for boss moves (plain hits swap their target before this)
   if(a.id==='p'&&S.run) S.run.blow=BLOW?blowNote(BLOW):null;   // what hits you, for the defeat recap (before the ward soaks it)
   d=allyDr(a,d);
   if(a.id==='p'){ const s=Math.min(S.player.shield,d); S.player.shield-=s; d-=s; } else if(a.mw>0){ const s=Math.min(a.mw,d); a.mw-=s; d-=s; }   // a Warden's ward on a minion
@@ -196,6 +197,7 @@ function act(kind){
   }else if(kind.startsWith('sk:')){ if(!useSkill(kind.slice(3),t)) return; }
   else if(kind==='ult'){ if(!useUlt(t)) return; }
   else if(kind.startsWith('pot:')){ if(!drink(kind.slice(4))) return; }
+  else if(kind==='guard'){ if(!guard()) return; }   // an order that costs the turn (game-faith-story.js)
   else return;
   sfx(kind==='strike'?'strike':kind.startsWith('pot:')?'heal':'skill');
   checkDeaths();
@@ -236,10 +238,11 @@ function act(kind){
       const hurt=r.enemies.find(x=>x.id===it.t);
       if(hurt){ const h=Math.min(Math.round(e.atk*.9*(1-foeArmor())*blightK(hurt)),hurt.maxHp-hurt.hp); /* scaled by armor like your damage, so menders can't stall a fight */ hurt.hp+=h; log(e.name+' mends '+hurt.name+'.'); continue; }
     }
-    const tg=alive.find(a=>fxKey(a)===it.t)||foeTarget(foeReach(e,alive));
+    let tg=alive.find(a=>fxKey(a)===it.t)||foeTarget(foeReach(e,alive));
     if(it.bw&&fxKey(tg)===it.t) log('Bulwark: '+tg.nick+' intercepts '+e.name+'\'s blow.','ok');   // planned with the intent, so the card already showed it
     if(omen()==='eclipse'&&Math.random()<ECLIPSE_MISS){ log(e.name+' misses '+(tg.id==='p'?'you':nameOf(tg))+' in the dark.','ok'); continue; }   // Black Eclipse
     let d=hit(e.atk*enrage(e)*(hasAff(e,'enraged')&&e.hp<e.maxHp/2?1.6:1)*hexK(e)); let crit=e.role==='striker'&&Math.random()<foeCrit(); if(crit&&hasSt(e,'hexed')){ crit=false; combo('fizzle',e,'Fizzle: the hex spoils '+e.name+'\'s killing blow.'); } if(crit&&tg.id==='p'&&hasMod('calcify','a')) crit=false;   /* Petrified: rolled, then refused */ if(crit) d=Math.round(d*1.8);
+    { const gv=guardBlow(tg,d); if(gv){ tg=gv; d=Math.round(d*SB_TAKE); } }   // Guard: swapped here so the log names who was hit
     BLOW={n:e.name,k:crit?'crit':'hit'}; hurtAlly(tg,d); BLOW=null; fxe('hurt',tg,crit?{crit:1}:null); if(crit) addDot(tg,'bleed',e.atk*.3,2);   // a striker's crit opens a wound
     if(hasAff(e,'vampiric')){ const h=Math.min(e.maxHp-e.hp,Math.round(d*.4*blightK(e))); if(h>0){ e.hp+=h; mark(e,0,h); } }
     const ex=foeOnHit(e,tg);
@@ -316,6 +319,7 @@ function blowNote(b){ const n=Object.assign({},b), c=blowCounters(b); if(c.lengt
 function blowCounters(b){   // the answers to a blow you have and have not used, only those that apply to it (the defeat recap and the bestiary's Ledgered hints)
   const r=S.run, c=[], up=role=>S.army.some(m=>m.role===role&&m.hp>0)&&!(r.cmd&&r.cmd[role]);   /* an order not yet given this room, with someone to give it to */
   if((b.k!=='sig'||b.mv==='sunder')&&!(r.taunt>0)&&up('vanguard')) c.push('taunt');   /* single-target blows only: Taunt moves no other boss move */
+  if(!(r.cmd&&r.cmd.guard)&&guardFront()) c.push('guard');   /* every blow, boss moves too */
   if(!(S.player.shield>0)) c.push('ward');
   if(sk('chill')&&!(r.silence>0)&&!skCd('chill')) c.push('chill');
   if(b.w&&up('striker')) c.push('focus');   /* a charged move: a focused crit breaks it */

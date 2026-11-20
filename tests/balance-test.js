@@ -23,6 +23,8 @@
 //   2026-11-20 headstones and events in 'full' (seed 7700): market 87% (unchanged); full 89%, tower 86; "off":["events"] 88%, tower 82;
 //   ~264 events a bot (243 chain meetings, 120 chains ended over 40 bots). Headstones: ~186k gold a bot (median 156k), 28 tiers, +5% max HP;
 //   full gold held day 100 avg/median 20k/19k with them, 39k/32k with "off":["head"].
+//   2026-11-20 Guard (the full bot gives it only before a telegraphed move that would kill it; market never): market 87%, full 88%, tower 84.5.
+//   Guarding whenever the foe cards add up to a kill gave full 91% (market +4), so the bot stays strict.
 //   2026-11-20 later (rival stolen bodies, tempering, compounds, siege wall, pre-rolled doors; rival 15.4/6.4, TEMPER_GOLD 150): market 87/88%,
 //   tower 70/71, rift ~17/18; full 89/88%, tower 82/84, rift ~9/8; full heat:0 92%; sieges 87/85%; rival 68/68%; raids 78/78%; raises 19-20% / 32-33%;
 //   gold held day 100 avg/median market 35k/20k, 33k/15k; full 39k/22k, 34k/28k (tempering is capped by lines, not by cost).
@@ -162,6 +164,7 @@
       if(B.skills&&charging.charging&&canUse('chill')&&P.mana>=SKILL.chill.cost){ setTarget(charging.id); return 'sk:chill'; }
       if((mv==='decree'||mv==='cinder'||mv==='sunder')&&charging.charging&&P.mana>=6&&P.shield<max*.3) return 'ward';
     }
+    if(B.full&&!B.off.guard&&typeof canGuard==='function'&&canGuard()&&foes.some(e=>{ if(!e.charging||e.stun>0) return false; const s=sigBlow(e,e.move||e.abil); return s&&s.you>=P.hp; })) return 'guard';   // Guard ('full' only; "off":["guard"]): a telegraphed move that would kill you
     if(B.skills&&canUlt()){ const u=P.ult, down=S.army.filter(m=>m.hp<=0).length;
       if(u==='toll'&&foes.length>=2) return 'ult';
       if(u==='rise'&&(down>=2||P.hp<max*.4||(down>=1&&t.boss))) return 'ult';

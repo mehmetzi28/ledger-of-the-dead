@@ -177,6 +177,7 @@ document.addEventListener('keydown',e=>{
   if(S.mode==='defeat'&&!typing&&e.key.toLowerCase()==='r'&&canRetry()){ e.preventDefault(); retryRoom(); settled(); return; }   // R: Instant Retry
   if(S.mode!=='battle') return;
   if(e.key===']'||e.key==='['){ const f=liveFoes(); if(f.length>1){ e.preventDefault(); const i=f.findIndex(x=>x.id===S.run.target); setTarget(f[(i+(e.key==='['?f.length-1:1))%f.length].id); settled(); } return; }   // Tab stays with the browser, so keyboard players can still move between buttons
+  if(e.key.toLowerCase()==='g'){ e.preventDefault(); if(canGuard()){ act('guard'); settled(); } return; }   // G: Guard (uses the turn)
   const ord=ORDER_KEYS[e.key.toLowerCase()]; if(ord){ e.preventDefault(); if(command(ord)) settled(); return; }
   let k={'1':'strike','2':'siphon','3':'ward'}[e.key]; if(!k&&e.key.toLowerCase()==='r'&&canUlt()) k='ult';
   if(!k&&/^[4-9]$/.test(e.key)){ const s=activeSkills()[+e.key-4]; if(s) k='sk:'+s.id; }
