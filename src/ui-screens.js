@@ -424,9 +424,10 @@ function eventHTML(){
 }
 function spoilsHTML(){
   const r=S.run, sp=(r.spoils||[]).map(u=>S.inv.find(x=>x.u===u)).filter(Boolean);
-  let h='';
-  if(sp.some(it=>ITEM[it.id].uq)) h+='<div class="note ok"><i>Unique</i><span>Something very few ever hold. Equip it and read what it does.</span></div>';
-  if((r.lostLoot||[]).length) h+='<div class="note bad"><i>Bag full</i><span>Left behind: '+r.lostLoot.join(', ')+'.</span></div>';
+  let h='', n='';   // n: the spoils notes, kept in one box like the room log above them
+  if(sp.some(it=>ITEM[it.id].uq)) n+='<div class="note ok"><i>Unique</i><span>Something very few ever hold. Equip it and read what it does.</span></div>';
+  if((r.lostLoot||[]).length) n+='<div class="note bad"><i>Bag full</i><span>Left behind: '+r.lostLoot.join(', ')+'.</span></div>';
+  if(n) h+='<div class="notes">'+n+'</div>';
   const tro=Object.keys(r.lastTroph||{});
   if(r.lastGold||tro.length) h+='<p class="group-h">Gold and trophies</p><div class="loot-line">'+gold(r.lastGold||0)
     +tro.map(k=>'<span class="tro-chip">'+TROPHY[k].name+(r.lastTroph[k]>1?' &times;'+r.lastTroph[k]:'')+'</span>').join('')+'</div>';

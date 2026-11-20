@@ -28,9 +28,27 @@ const fxAll=sel=>{ try{ return Array.from(app.querySelectorAll(sel)).map(fxBox).
 
 // After every render: start loading, shut the layer when effects are switched off, or play the queue.
 function fxSync(){
+  try{ fxBeats(); }catch(e){}
   if(!fxAllowed()){ if(FXL.st==='ready'||FXL.st==='init') fxDrop(); else if(FXL.st==='loading') FXL.st='off'; FXL.q.length=0; return; }
   if(FXL.st==='off') fxLoad();
   else if(FXL.st==='ready') fxFlush();
+}
+// Beats that need no PixiJS, read from the state after each render: a boss entering its second phase shakes the battle window
+// and dims the room for a moment; a minion that just fell crumbles on its card. They only add CSS classes and a passing overlay.
+const FXB={run:null,p1:new Set(),fell:new Set()};
+function fxBeats(){
+  const r=typeof S!=='undefined'&&S&&S.run; if(!r||typeof app==='undefined'||!app||!app.querySelectorAll) return;
+  const fresh=r!==FXB.run, dead=new Set(Array.from(app.querySelectorAll('.unit.ally.dead[data-u]')).map(el=>el.getAttribute('data-u')));
+  if(fresh){ FXB.run=r; FXB.p1.clear(); }   // a new run (or a loaded save): learn who is down without replaying it
+  let phase=null;
+  for(const e of r.enemies||[]) if(e.boss){ if(e.phase2&&FXB.p1.has(e.id)){ FXB.p1.delete(e.id); phase=e; } else if(!e.phase2&&e.hp>0) FXB.p1.add(e.id); }   // a boss that starts in phase two (Nightmare) never shakes
+  const fell=fresh?[]:[...dead].filter(k=>k!=='p'&&!FXB.fell.has(k)); FXB.fell=dead;
+  if(!fxAllowed()) return;
+  fell.forEach(k=>{ const el=fxEl(k); if(el) el.classList.add('crumble'); });
+  if(!phase) return;
+  const w=app.querySelector('.main > .win'); if(w){ w.classList.remove('shake'); void w.offsetWidth; w.classList.add('shake'); }
+  if(document.body&&document.createElement){ const d=document.createElement('div'); d.className='fx-dim'; d.setAttribute('aria-hidden','true'); document.body.appendChild(d); setTimeout(()=>d.remove(),800); }
+  if(FXL.st==='ready'&&FXL.q.length<FXL.QMAX){ const k=fxKey(phase); FXL.q.push({kind:'boss',k,o:null,r:fxRect(k)}); }   // and the Pixi layer, when it runs, adds the boss flare
 }
 function fxLoad(){
   if(typeof document==='undefined'||typeof document.createElement!=='function') return;   // the Node harness has no DOM to draw in

@@ -1014,6 +1014,13 @@ html:has(body.hell)::after{opacity:.25}   /* thinner fog over the Tower fires */
 html:has(body.nobg)::after{display:none}
 @media (prefers-reduced-motion:reduce){html::after{animation:none}}
 @media (max-width:520px){.tt-row>.btns{grid-column:1/-1}}   /* a row with several buttons (the forge slots) puts them under its text on a phone */
+/* battle beats (src/fx.js fxBeats): a boss's second phase dims the room for a moment; a minion that just fell crumbles on its card */
+.fx-dim{position:fixed;inset:0;z-index:9;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,rgba(70,16,8,.3),rgba(0,0,0,.7));animation:fxdim .75s ease-out forwards}
+@keyframes fxdim{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
+.unit.ally.crumble{animation:crumble .6s ease-in both}
+@keyframes crumble{0%{opacity:1;filter:none;transform:none}30%{opacity:.95;filter:grayscale(.5) brightness(1.35);transform:translateY(-1px)}100%{opacity:.32;filter:grayscale(1);transform:translateY(3px) scale(.97)}}
+@media (prefers-reduced-motion:reduce){.fx-dim{display:none}.unit.ally.crumble{animation:none}}
+.q-note.bad,.u-sub.bad{color:var(--blood-text)}   /* .q-note and .u-sub set their own grey after .bad, so a warning line read as plain text (siege intro, war table) */
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
@@ -4986,9 +4993,27 @@ const fxAll=sel=>{ try{ return Array.from(app.querySelectorAll(sel)).map(fxBox).
 
 // After every render: start loading, shut the layer when effects are switched off, or play the queue.
 function fxSync(){
+  try{ fxBeats(); }catch(e){}
   if(!fxAllowed()){ if(FXL.st==='ready'||FXL.st==='init') fxDrop(); else if(FXL.st==='loading') FXL.st='off'; FXL.q.length=0; return; }
   if(FXL.st==='off') fxLoad();
   else if(FXL.st==='ready') fxFlush();
+}
+// Beats that need no PixiJS, read from the state after each render: a boss entering its second phase shakes the battle window
+// and dims the room for a moment; a minion that just fell crumbles on its card. They only add CSS classes and a passing overlay.
+const FXB={run:null,p1:new Set(),fell:new Set()};
+function fxBeats(){
+  const r=typeof S!=='undefined'&&S&&S.run; if(!r||typeof app==='undefined'||!app||!app.querySelectorAll) return;
+  const fresh=r!==FXB.run, dead=new Set(Array.from(app.querySelectorAll('.unit.ally.dead[data-u]')).map(el=>el.getAttribute('data-u')));
+  if(fresh){ FXB.run=r; FXB.p1.clear(); }   // a new run (or a loaded save): learn who is down without replaying it
+  let phase=null;
+  for(const e of r.enemies||[]) if(e.boss){ if(e.phase2&&FXB.p1.has(e.id)){ FXB.p1.delete(e.id); phase=e; } else if(!e.phase2&&e.hp>0) FXB.p1.add(e.id); }   // a boss that starts in phase two (Nightmare) never shakes
+  const fell=fresh?[]:[...dead].filter(k=>k!=='p'&&!FXB.fell.has(k)); FXB.fell=dead;
+  if(!fxAllowed()) return;
+  fell.forEach(k=>{ const el=fxEl(k); if(el) el.classList.add('crumble'); });
+  if(!phase) return;
+  const w=app.querySelector('.main > .win'); if(w){ w.classList.remove('shake'); void w.offsetWidth; w.classList.add('shake'); }
+  if(document.body&&document.createElement){ const d=document.createElement('div'); d.className='fx-dim'; d.setAttribute('aria-hidden','true'); document.body.appendChild(d); setTimeout(()=>d.remove(),800); }
+  if(FXL.st==='ready'&&FXL.q.length<FXL.QMAX){ const k=fxKey(phase); FXL.q.push({kind:'boss',k,o:null,r:fxRect(k)}); }   // and the Pixi layer, when it runs, adds the boss flare
 }
 function fxLoad(){
   if(typeof document==='undefined'||typeof document.createElement!=='function') return;   // the Node harness has no DOM to draw in
@@ -7607,14 +7632,6 @@ IC['Tunnel Rat']=T('M12 42C4 44 1 52 8 57',2.6,'currentColor')+P('M10 40C10 29 2
  +P('M36 27a5.5 5.5 0 1 1 .1 0Z','m')+D('M36 27a2.8 2.8 0 1 1 .1 0Z')+P('M20 48v8h6v-8Z','m')+P('M34 48v8h6v-8Z','m')
  +L('M17 34C21 31 26 31 29 34M15 40C19 38 24 38 27 40')+E(47,35,1.7,'#ff8a5c')+'<circle cx="59" cy="37" r="1.8" class="dk"/>'
  +'<path fill="#e9dfc6" d="M49 42l1.8 4 1.8-4z"/>'+L('M52 36L63 32M52 39L63 41',1);
-IC['Grave Beetle']=T('M20 18L9 10M19 28L6 28M20 38L8 48M44 18L55 10M45 28L58 28M44 38L56 48',2.4,'currentColor')
- +P('M32 14C46 14 52 26 52 38C52 50 44 58 32 58C20 58 12 50 12 38C12 26 18 14 32 14Z')+L('M32 18V57',1.6)
- +P('M32 8C38 8 41 13 40 18H24C23 13 26 8 32 8Z','m')+P('M24 10C20 8 18 6 16 2C21 3 24 5 26 8Z','bn')+P('M40 10C44 8 46 6 48 2C43 3 40 5 38 8Z','bn')
- +E(28,13,1.4,'#8fd46a')+E(36,13,1.4,'#8fd46a')+L('M16 30C20 28 24 28 28 30M36 30C40 28 44 28 48 30M15 42C20 40 25 40 29 42M35 42C40 40 45 40 49 42',1.2)
- +'<path d="M20 26C22 22 26 20 29 20" stroke="#fff" stroke-opacity=".3" stroke-width="2" fill="none" stroke-linecap="round"/>';
-IC['Marrow Mite']=T('M24 34L8 26L4 36M24 38L6 42L8 54M24 42L12 56M40 34L56 26L60 36M40 38L58 42L56 54M40 42L52 56M26 30L16 16M38 30L48 16',2,'currentColor')
- +P('M32 24C42 24 48 31 48 39C48 49 41 56 32 56C23 56 16 49 16 39C16 31 22 24 32 24Z')+P('M32 14C38 14 41 18 41 23C41 26 37 28 32 28C27 28 23 26 23 23C23 18 26 14 32 14Z','m')
- +E(28,21,1.5,'#ff8a5c')+E(36,21,1.5,'#ff8a5c')+L('M24 40C28 37 36 37 40 40M22 46C28 43 36 43 42 46',1.2)+'<circle cx="32" cy="50" r="3.6" fill="#e9dfc6" opacity=".75"/>';
 IC['The Rat King']=GR('translate(0 6)',T('M8 40C2 44 4 54 12 56M56 40C62 44 60 54 52 56M32 54C30 60 36 62 40 58',2.4,'currentColor')
  +P('M32 14C46 14 54 24 54 34C54 46 44 54 32 54C20 54 10 46 10 34C10 24 18 14 32 14Z')
  +P('M16 20a8 8 0 1 1 .1 0Z','m')+P('M48 20a8 8 0 1 1 .1 0Z','m')+D('M16 20a4.2 4.2 0 1 1 .1 0ZM48 20a4.2 4.2 0 1 1 .1 0Z')
@@ -7628,14 +7645,10 @@ IC['Shiv Cutpurse']=P('M8 62C8 50 16 44 30 44C44 44 50 50 50 62Z','m')+P('M30 16
 IC['Tallow Chandler']=P('M10 62C10 50 14 40 20 34C24 30 40 30 44 34C50 40 54 50 54 62Z','bn')+P('M24 7H28V17H24ZM36 6H40V17H36ZM30 4H34V15H30Z','b')+FLM(26,5,.38)+FLM(38,4,.38)+FLM(32,2,.4)+P('M32 14C40 14 44 20 44 28C44 34 40 38 32 38C24 38 20 34 20 28C20 20 24 14 32 14Z','bn')+'<path d="M22 30V41M42 30V44M27 38V47M38 38V45" stroke="#e9dfc6" stroke-width="3" stroke-linecap="round"/>'+D('M24.5 25C24.5 22.5 30 22.5 30 25C30 27.5 24.5 27.5 24.5 25ZM34 25C34 22.5 39.5 22.5 39.5 25C39.5 27.5 34 27.5 34 25Z')+E(27.2,25,1.2,'#ffd27a')+'<path d="M37 15V31" stroke="#e9dfc6" stroke-width="4.4" stroke-linecap="round"/>'+D('M28 31C28 29.5 36 29.5 36 31C36 35 34.5 38 32 38C29.5 38 28 35 28 31Z')+P('M14 54H50V60H14Z','m');
 
 // ---- D : Sunken Crypt
-IC['Skeleton Guard']=P('M32 4L38 12H26Z','bn')+L('M32 4V56',0)+P('M45 24H62V40C62 50 54 56 53.5 58C53 56 45 50 45 40Z','m')+L('M53.5 24V56M45 32H62',1.2)
- +SKULL(26,32,1,'bn',FIREC)+P('M10 20C10 12 18 8 26 8S42 12 42 20V26H10Z','b')+L('M26 8V26',1.4)
- +P('M12 50C12 44 18 42 26 42S40 44 40 50V62H12Z','b')+L('M18 50L34 62M34 50L18 62',1.2);
 IC['Crypt Ghoul']=P('M10 62C10 50 14 44 22 42H42C50 44 54 50 54 62Z','m')+P('M32 6C44 6 50 16 50 26C50 32 48 36 46 40L44 46H20L18 40C16 36 14 32 14 26C14 16 20 6 32 6Z','bn')
  +D('M16 22L28 28L18 32ZM48 22L36 28L46 32Z')+E(23,28,1.5,'#ff8a5c')+E(41,28,1.5,'#ff8a5c')+D('M20 38C26 36 38 36 44 38L42 48H22Z')
  +'<path fill="#e9dfc6" d="M23 38l2 5 2-5zM29 38l2 6 2-6zM35 38l2 5 2-5zM41 38l-1 4-2-4z"/>'+L('M24 10C26 14 24 18 22 20M40 10C38 14 40 18 42 20',1.2)
  +'<path d="M4 54L8 40L12 54ZM60 54L56 40L52 54Z" class="bn"/>';
-IC['Drowned Priest']=P('M6 62C6 50 16 44 32 44C48 44 58 50 58 62Z','m')+T('M24 46L27 62M40 46L37 62',2.6,'#d3a64d')+P('M32 8C46 8 52 18 52 28C52 38 44 46 32 46C20 46 12 38 12 28C12 18 18 8 32 8Z','b')+D('M19 24C19 20 30 20 30 24C30 28 19 28 19 24ZM34 24C34 20 45 20 45 24C45 28 34 28 34 24Z')+E(25,24,1.4,SOULC)+E(39,24,1.4,SOULC)+D('M27 34C27 31 37 31 37 34C37 39 34 42 32 42C30 42 27 39 27 34Z')+T('M16 16C10 22 14 30 8 38M22 10C18 18 22 24 18 32M48 16C54 22 50 30 56 38M42 10C46 18 42 24 46 32',2.4,'#5f9a58')+'<path d="M14 40C14 44 12 44 12 47M50 40C50 44 52 44 52 47" stroke="#7fc1bd" stroke-width="2" fill="none" stroke-linecap="round" opacity=".7"/>'+'<path d="M4 56C12 52 18 58 26 54S40 58 48 54 58 58 62 54V64H4Z" fill="#6ea8a4" opacity=".55"/>';
 IC['The Crypt Warden']=P('M8 62V40C8 30 16 24 32 24S56 30 56 40V62Z','m')+HELM(32,28,1.05,'b','#ffd27a')+P('M8 40H20V54H8ZM44 40H56V54H44Z','m')
  +'<circle cx="32" cy="52" r="5" fill="#d3a64d"/><circle cx="32" cy="52" r="2" class="dk"/><rect x="31" y="56" width="2.4" height="8" fill="#d3a64d"/><rect x="33" y="60" width="4" height="2.2" fill="#d3a64d"/>'
  +'<path d="M20 4L32 10L44 4L40 16H24Z" class="gd"/>'+CROWNP(32,6,.5);
@@ -7998,6 +8011,60 @@ IC['Crypt Ghoul']=P('M8 64C8 52 14 45 22 43H42C50 45 56 52 56 64Z','m')+FOLD('M2
   +'<path fill="#bfb296" d="M24.5 46.3l1.4-3.3 1.4 3.3M29.4 46.5l1.5-3.6 1.5 3.6M34.4 46.3l1.4-3.3 1.4 3.3"/>'
   +RIM('M18 20C19.5 12 25 7 31 6.2',1.3)
   +P('M3 56L7.5 41L12 56ZM61 56L56.5 41L52 56Z','bn');
+// ---- the first two gates' common foes, hand-painted like their bosses (a new player meets these most)
+IC['Grave Beetle']=T('M21 25L12 20L7 12M19 35L9 34L3 39M21 45L13 51L10 60M43 25L52 20L57 12M45 35L55 34L61 39M43 45L51 51L54 60',2.4,'currentColor')
+  +L('M7 12L5 10.5M3 39L1.5 41M10 60L8.5 62M57 12L59 10.5M61 39L62.5 41M54 60L55.5 62',.9)
+  +T('M28 8C25 4.5 21 3.5 17 5M36 8C39 4.5 43 3.5 47 5',1.3,'currentColor')
+  +P('M31.2 27C22 27.5 15 33 15 42.5C15 52.5 22 59.5 31.2 61.5Z')+P('M32.8 27C42 27.5 49 33 49 42.5C49 52.5 42 59.5 32.8 61.5Z')
+  +FOLD('M24 31.5C20 37.5 20 49.5 25 57.5M28 29.5C26 37 26 50 29 59.5M40 31.5C44 37.5 44 49.5 39 57.5M36 29.5C38 37 38 50 35 59.5',.9)
+  +RIM('M17.5 38.5C18 32.5 22 29 28 28.2',1.3)+'<path d="M43.5 34C45.5 37 46 41 45.5 44.5" stroke="#cfe0c0" stroke-opacity=".3" stroke-width="1.6" fill="none" stroke-linecap="round"/>'
+  +P('M32 14.5C41 14.5 46 18.5 46 24C46 27.5 40 29 32 29S18 27.5 18 24C18 18.5 23 14.5 32 14.5Z','m')
+  +FOLD('M32 15.5V28M25 18C24 21 24.5 24 26 26.5M39 18C40 21 39.5 24 38 26.5',.8)+'<g fill="#d9cdb0" opacity=".45"><circle cx="28.5" cy="21.5" r="1.1"/><circle cx="35.5" cy="21.5" r="1.1"/><circle cx="21.5" cy="23" r=".7"/><circle cx="42.5" cy="23" r=".7"/></g>'+RIM('M20.5 19C23 16.5 26.5 15.5 30 15.3',.9)
+  +P('M32 6C36.5 6 39 9 39 12.5C39 15 36 16 32 16S25 15 25 12.5C25 9 27.5 6 32 6Z','m')
+  +P('M27.5 8.5C25 7 24 4.5 24.8 2C26.5 3.2 28.5 5 30 7.2Z','bn')+P('M36.5 8.5C39 7 40 4.5 39.2 2C37.5 3.2 35.5 5 34 7.2Z','bn')
+  +E(28.6,11.6,1.1,'#8fd46a')+E(35.4,11.6,1.1,'#8fd46a');
+IC['Marrow Mite']=T('M24 31L14 25L9 15M23 35L11 33L5 39M23 39L12 43L8 53M25 43L17 52L16 61M40 31L50 25L55 15M41 35L53 33L59 39M41 39L52 43L56 53M39 43L47 52L48 61',2,'currentColor')
+  +T('M26 17C22 14 21 10 22.5 7M38 17C42 14 43 10 41.5 7',1.4,'currentColor')
+  +P('M32 28C42 28 48 36 48 45C48 54 41 60.5 32 60.5C23 60.5 16 54 16 45C16 36 22 28 32 28Z')
+  +FOLD('M18.5 38C25 35 39 35 45.5 38M17 46C24 43 40 43 47 46M19.5 53.5C25 51.5 39 51.5 44.5 53.5',1)
+  +'<ellipse cx="32" cy="46.5" rx="10" ry="8" fill="#e9dfc6" opacity=".12"/>'+P('M32 40C36 40 38.5 43 38.5 46.5C38.5 50 35.5 52.5 32 52.5S25.5 50 25.5 46.5C25.5 43 28 40 32 40Z','bn')
+  +L('M30.5 41.5L32 44.5L30.6 47.5L32.4 51.5',.6)+RIM('M27.5 42.5C28.5 41.3 30 40.7 31.5 40.6',.8)
+  +L('M17 49L14 50M47 49L50 50M20 56L18 58M44 56L46 58',.7)+RIM('M18.5 41C19.5 34 24 30 30 29.2',1.3)
+  +P('M32 15C38.5 15 41.5 19 41.5 24C41.5 28 37.5 31 32 31S22.5 28 22.5 24C22.5 19 25.5 15 32 15Z','m')+RIM('M25 19.5C26.5 17 28.5 16.2 31 16',.9)
+  +P('M28.5 15.5C27 12.5 27.5 9.5 29.5 8.5C30 11 30.5 13 31.2 15Z','bn')+P('M35.5 15.5C37 12.5 36.5 9.5 34.5 8.5C34 11 33.5 13 32.8 15Z','bn')
+  +E(29,21.5,1,'#ff8a5c')+E(35,21.5,1,'#ff8a5c')+'<circle cx="30.8" cy="18.8" r=".7" fill="#ff8a5c"/><circle cx="33.2" cy="18.8" r=".7" fill="#ff8a5c"/>'
+  +FOLD('M26 27C29 28.5 35 28.5 38 27',.8);
+IC['Skeleton Guard']=T('M53 9V64',2.2,'#5a4426')+RIM('M52.3 13V62',.5)+P('M53 1L56.5 9L53 13.5L49.5 9Z')+L('M51.5 14H54.5M51.5 16H54.5',.8)
+  +P('M6 64V50C6 42 13 38 22 38H42C51 38 58 42 58 50V64Z','m')+'<path class="st" style="stroke-width:.8;opacity:.6" d="'+ROWS(10,44,4,5,6,7.3,3)+'"/>'
+  +P('M6 50C6 42 11 38.5 19 39L21 49ZM58 50C58 42 53 38.5 45 39L43 49Z')+RIM('M8 47C8.5 43 11.5 40.5 16 40',1.1)
+  +P('M29 34H35V40H29Z','bn')+L('M29 36.8H35',.6)
+  +P('M32 12C23.5 12 19 18 19 25C19 30 21 33 23.5 35V40H40.5V35C43 33 45 30 45 25C45 18 40.5 12 32 12Z','bn')
+  +'<ellipse class="dk" cx="26.5" cy="26.5" rx="3.6" ry="4.1"/><ellipse class="dk" cx="37.5" cy="26.5" rx="3.6" ry="4.1"/>'+E(26.5,26.8,1.3,FIREC)+E(37.5,26.8,1.3,FIREC)
+  +D('M32 30.5L30 34.5H34Z')+L('M24 36.5C28 38 36 38 40 36.5M27 37V40M30 37.6V40.5M34 37.6V40.5M37 37V40',.8)+L('M38.5 31L37 33.5L38.5 35',.6)
+  +P('M17 23C17 12 23.5 5 32 5S47 12 47 23L44 24C41 20 37 19 33.6 19.5V31H30.4V19.5C27 19 23 20 20 24Z')
+  +P('M16 21.5C22 19 42 19 48 21.5L47.5 24.5C41 22 23 22 16.5 24.5Z','m')+L('M32 5V19.5',1)+RIM('M20 18C21 11 25.5 7 31 6.2',1.3)
+  +'<path d="M40 9C41 12 40.5 14 42 16.5M23 12C22.5 14 23.5 15 22.8 17.5" stroke="#7a4a2c" stroke-width="1.1" opacity=".7" fill="none"/>'
+  +'<g class="gd"><circle cx="20" cy="22.6" r=".8"/><circle cx="26" cy="21.3" r=".8"/><circle cx="38" cy="21.3" r=".8"/><circle cx="44" cy="22.6" r=".8"/></g>'
+  +P('M49.5 40.5C49.5 38.5 56.5 38.5 56.5 40.5V44.5H49.5Z','bn')+L('M51.3 40V44.5M53 39.6V44.5M54.8 40V44.5',.5)
+  +'<path fill="#4a3a2c" d="M3 42C9 40 19 40 25 42V54C25 59 19 63 14 64.5C9 63 3 59 3 54Z"/><path fill="url(#gSh)" d="M3 42C9 40 19 40 25 42V54C25 59 19 63 14 64.5C9 63 3 59 3 54Z"/>'
+  +'<path d="M4 42.5C9.5 40.6 18.5 40.6 24 42.5V54C24 58.4 18.6 62.2 14 63.5C9.4 62.2 4 58.4 4 54Z" fill="none" stroke="currentColor" stroke-width="1.6"/>'
+  +L('M8.5 42V60M14 41V64M19.5 42V60',.6)+'<path d="M14 44.5L19 49.5L14 56L9 49.5Z" fill="#d9cdb0" opacity=".35"/>'+D('M25 46L22.5 47.5L25 49Z')
+  +P(CIR(14,50.5,3.2),'gd')+RIM('M5 44.5C5 50 5.5 55 8.5 59',1);
+IC['Drowned Priest']=P('M4 64C6 52 14 44 32 44S58 52 60 64Z','m')+FOLD('M18 50L14 64M46 50L50 64M32 52V64',1)
+  +T('M24 45L27 64M40 45L37 64',2.4,'#a8873e')+L('M24.6 54H27.4M38.6 54H35.8',.6)
+  +P('M32 3C19 3 12 13 12 26C12 36 10 42 7 48C14 46 20 44 24 42H40C44 44 50 46 57 48C54 42 52 36 52 26C52 13 45 3 32 3Z','m')
+  +FOLD('M15 30C15 38 13 43 10 46M49 30C49 38 51 43 54 46',1)+RIM('M15 22C15.5 14 21 7 29 5',1.3)
+  +D('M32 10C24 10 19 17 19 26C19 34 23 41 32 41S45 34 45 26C45 17 40 10 32 10Z')
+  +P('M32 14C26 14 22.5 19 22.5 26C22.5 33 26.5 39 32 39S41.5 33 41.5 26C41.5 19 38 14 32 14Z')
+  +'<path d="M22.5 23C25 20 39 20 41.5 23V25.5C38 22.5 26 22.5 22.5 25.5Z" fill="#000" opacity=".3"/>'
+  +D('M25 25.8C25 23.8 30 23.8 30 25.8C30 27.8 25 27.8 25 25.8ZM34 25.8C34 23.8 39 23.8 39 25.8C39 27.8 34 27.8 34 25.8Z')+E(27.5,25.9,1.15,SOULC)+E(36.5,25.9,1.15,SOULC)
+  +L('M32 27.5V30.5L30.8 31.2M24.5 30C25.5 31.5 26.5 32 27.5 32M39.5 30C38.5 31.5 37.5 32 36.5 32',.6)
+  +D('M28.5 33.5C29.5 32.5 34.5 32.5 35.5 33.5C35 36.5 33.5 37.5 32 37.5S29 36.5 28.5 33.5Z')
+  +'<path d="M32 37.5C32 40 31.5 41 31.5 42.5M13 47C13 50 11.5 51 11.5 53M52 47C52 50 53.5 51 53.5 53" stroke="#7fc1bd" stroke-width="1.1" opacity=".7" fill="none" stroke-linecap="round"/>'
+  +'<circle cx="38" cy="18.5" r="1.3" fill="#cfc6b0" opacity=".45"/><g fill="#cfc6b0" opacity=".85"><circle cx="17" cy="15" r="1.6"/><circle cx="19.6" cy="12.4" r="1"/><circle cx="48.5" cy="34" r="1.4"/><circle cx="46.8" cy="36.3" r=".8"/></g>'
+  +T('M16 13C12 19 16 26 11 34C10 37 12 40 10 44M46 7C51 13 47 20 52 26M21 7.5C18 13 21 18 18 23',1.9,'#4f7a48')
+  +'<path d="M25 42C26 46 29 48 32 48S38 46 39 42" fill="none" stroke="#a9a090" stroke-width="1.2" stroke-dasharray="1.6 .8"/>'+P(CIR(32,51.5,3.4),'gd')+D(CIR(32,51.5,1.4))
+  +'<path d="M2 58C10 54 16 60 24 56S38 60 46 56 56 60 62 56V64H2Z" fill="#6ea8a4" opacity=".45"/><path d="M2 58C10 54 16 60 24 56S38 60 46 56 56 60 62 56" stroke="#cfe6e0" stroke-opacity=".4" stroke-width=".8" fill="none"/>';
 // ---- the ten Hell Tower wardens, hand-painted like the gate bosses
 IC['The Gate Hound']=P('M2 64V48C2 42 8 38 16 38H48C56 38 62 42 62 48V64Z','m')+FOLD('M14 44L10 64M50 44L54 64M32 42V64',1)
   +[[13,26,.82],[51,26,.82],[32,20,1]].map(([x,y,k])=>GR('translate('+x+' '+y+') scale('+k+')',
@@ -8614,7 +8681,7 @@ function helpHTML(){
       return '<div class="tt-row step'+(ok?' on':'')+'"><div><h4><span class="step-n">'+(ok?'&#10003;':(i+1))+'</span>'+x[0]+'</h4><div class="u-sub">'+x[2]+'</div></div></div>'; }).join('')+'</div>'
    +'<p class="group-h">What opens later</p><div class="items">'+HELP_LATER().map(x=>'<div class="tt-row'+(x[2]?' on':'')+'"><div><h4>'+x[0]+'</h4><div class="u-sub">'+x[1]+'</div></div>'+(x[2]?'<span class="u-tag ok">Open</span>':'')+'</div>').join('')+'</div>'
    +'<p class="group-h">Keys in battle</p><p class="help-p">1 Strike, 2 Soul Siphon, 3 Bone Ward, 4 to 9 your skills, R your ultimate (from level '+ULT_LV+'), Q and W potions, '+Object.keys(ORDER_KEYS).map(k=>k.toUpperCase()).join(' ')+' orders ('+Object.values(ORDER_KEYS).map(r=>CMDS[r].name).join(', ')+'), and ] and [ to change target. Tab moves between buttons as usual.</p>'
-   +'<p class="group-h">Saving</p><p class="help-p">The game saves after every action and keeps a backup from each of the last '+BAK_N+' days (Settings).</p><p class="help-p">The game saves itself after every action, and keeps your save from the start of each of the last '+BAK_N+' days (Settings). In a gate or the Tower it saves as if you had walked out, so closing the tab there counts as leaving. Use save slots before something risky, and save files or codes to move to another browser.</p>'
+   +'<p class="group-h">Saving</p><p class="help-p">The game saves itself after every action, and keeps your save from the start of each of the last '+BAK_N+' days (Settings). In a gate or the Tower it saves as if you had walked out, so closing the tab there counts as leaving. Use save slots before something risky, and save files or codes to move to another browser.</p>'
    +'<div class="btns"><button class="btn small primary" data-a="tab" data-k="codex">Open the Codex: every rule and number</button></div></section>';
 }
 function saveTabHTML(){
@@ -8638,7 +8705,7 @@ function saveTabHTML(){
    +'<div class="tt-row"><div><h4>Effects</h4><div class="u-sub">Light uses simpler icon shading and still backgrounds, for phones. Full also draws battle effects. Auto picks Light on small or slow devices'+(VIEW.fx==='auto'?' (now: '+(fxLight()?'Light':'Full')+')':'')+'.</div></div><div class="btns" style="margin:0">'
      +Object.keys(FX_MODES).map(k=>'<button class="btn small'+(VIEW.fx===k?' primary':'')+'" data-a="view" data-k="fx|'+k+'" aria-pressed="'+(VIEW.fx===k)+'">'+FX_MODES[k]+'</button>').join('')+'</div></div>'
    +'<div class="tt-row'+(VIEW.hc?' on':'')+'"><div><h4>High contrast</h4><div class="u-sub">Brighter text and bolder bars.</div></div><button class="btn small'+(VIEW.hc?'':' primary')+'" data-a="view" data-k="hc" aria-pressed="'+VIEW.hc+'">'+(VIEW.hc?'Turn off':'Turn on')+'</button></div></div>'
-   +'<p class="group-h">Save &amp; load</p><p class="lede">Saves after every action. Slots keep a safe copy; a save code carries your game to another browser.</p><p class="lede">The game saves itself after every action (in a gate or the Tower, as if you had walked out). Slots are for keeping a safe copy before something risky, like a Tower warden. A save code lets you carry your progress to another browser or device.</p>';
+   +'<p class="group-h">Save &amp; load</p><p class="lede">The game saves itself after every action (in a gate or the Tower, as if you had walked out). Slots are for keeping a safe copy before something risky, like a Tower warden. A save code lets you carry your progress to another browser or device.</p>';
   if(!ok) h+='<div class="note bad"><i>Storage</i><span>This browser is not letting the page store anything, so autosave and slots will not persist. Use a save code below to keep your progress.</span></div>';
   if(ui.msg) h+='<div class="note '+(ui.msg.c||'')+'"><i>Save</i><span>'+ui.msg.m+'</span></div>';
   h+='<div class="u-sub">Autosave: '+(ok?'on &middot; last saved '+when(S.savedAt):'off')+'</div><p class="group-h">Slots</p><div class="items">';
@@ -9687,9 +9754,10 @@ function eventHTML(){
 }
 function spoilsHTML(){
   const r=S.run, sp=(r.spoils||[]).map(u=>S.inv.find(x=>x.u===u)).filter(Boolean);
-  let h='';
-  if(sp.some(it=>ITEM[it.id].uq)) h+='<div class="note ok"><i>Unique</i><span>Something very few ever hold. Equip it and read what it does.</span></div>';
-  if((r.lostLoot||[]).length) h+='<div class="note bad"><i>Bag full</i><span>Left behind: '+r.lostLoot.join(', ')+'.</span></div>';
+  let h='', n='';   // n: the spoils notes, kept in one box like the room log above them
+  if(sp.some(it=>ITEM[it.id].uq)) n+='<div class="note ok"><i>Unique</i><span>Something very few ever hold. Equip it and read what it does.</span></div>';
+  if((r.lostLoot||[]).length) n+='<div class="note bad"><i>Bag full</i><span>Left behind: '+r.lostLoot.join(', ')+'.</span></div>';
+  if(n) h+='<div class="notes">'+n+'</div>';
   const tro=Object.keys(r.lastTroph||{});
   if(r.lastGold||tro.length) h+='<p class="group-h">Gold and trophies</p><div class="loot-line">'+gold(r.lastGold||0)
     +tro.map(k=>'<span class="tro-chip">'+TROPHY[k].name+(r.lastTroph[k]>1?' &times;'+r.lastTroph[k]:'')+'</span>').join('')+'</div>';

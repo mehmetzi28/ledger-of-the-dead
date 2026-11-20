@@ -1003,3 +1003,10 @@ html:has(body.hell)::after{opacity:.25}   /* thinner fog over the Tower fires */
 html:has(body.nobg)::after{display:none}
 @media (prefers-reduced-motion:reduce){html::after{animation:none}}
 @media (max-width:520px){.tt-row>.btns{grid-column:1/-1}}   /* a row with several buttons (the forge slots) puts them under its text on a phone */
+/* battle beats (src/fx.js fxBeats): a boss's second phase dims the room for a moment; a minion that just fell crumbles on its card */
+.fx-dim{position:fixed;inset:0;z-index:9;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,rgba(70,16,8,.3),rgba(0,0,0,.7));animation:fxdim .75s ease-out forwards}
+@keyframes fxdim{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
+.unit.ally.crumble{animation:crumble .6s ease-in both}
+@keyframes crumble{0%{opacity:1;filter:none;transform:none}30%{opacity:.95;filter:grayscale(.5) brightness(1.35);transform:translateY(-1px)}100%{opacity:.32;filter:grayscale(1);transform:translateY(3px) scale(.97)}}
+@media (prefers-reduced-motion:reduce){.fx-dim{display:none}.unit.ally.crumble{animation:none}}
+.q-note.bad,.u-sub.bad{color:var(--blood-text)}   /* .q-note and .u-sub set their own grey after .bad, so a warning line read as plain text (siege intro, war table) */
