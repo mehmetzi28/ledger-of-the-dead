@@ -15,7 +15,7 @@ function checkPhase(){
   for(const e of liveFoes()) if(e.boss&&e.abil&&!e.phase2&&(e.tw||e.rival||e.rankI>=1||runHeat()>=2)&&e.hp<=e.maxHp*phaseAt()){   // the Rat King, a new player's first boss, keeps one phase
     e.phase2=true; e.fast=(e.fast||0)+1; e.alt=true; e.abilT=Math.min(e.abilT,2);   // Sundering Blow comes first
     const l=PHASE_LINES[e.base]; log(e.name+(l?': "'+l+'"':' rises in fury.'),'boss');
-    log(e.name+' enters its second phase. It moves faster, warns before every move, and adds Sundering Blow.','bad'); sfx('warn'); tally('phases'); moment(e.name+' enters its second phase','bad');
+    log(e.name+' enters its second phase. It moves faster, warns before every move, and adds Sundering Blow.','bad'); sfx('phase'); tally('phases'); moment(e.name+' enters its second phase','bad');
   }
 }
 function breakCharge(e,why){ const mv=e.move||e.abil; e.charging=false; e.move=null; e.abilT=BOSS_ABIL[mv].every; log(why+' '+BOSS_ABIL[mv].name+' is lost.','ok'); tally('cancels'); moment(BOSS_ABIL[mv].name+' broken','ok'); }
@@ -152,7 +152,7 @@ const headTiers=()=>S&&S.memorial?S.memorial.reduce((t,e)=>t+(e.hs|0),0):0;
 const headBonus=()=>HEAD_CAP*(1-Math.exp(-HEAD_K*headTiers()/HEAD_CAP));   // extraMul (syncMinion): max HP
 const headCost=e=>Math.round(HEAD_GOLD*Math.pow(HEAD_GROW,e.hs|0));
 const canHead=e=>!!e&&S.mode==='town'&&(e.hs|0)<HEAD_TOP&&S.gold>=headCost(e);
-function carveHead(i){ const e=(S.memorial||[])[i]; if(!canHead(e)) return false; const c=headCost(e); S.gold-=c; e.hs=(e.hs|0)+1; tally('headG',c); syncArmy(); sfx('raise'); return true; }
+function carveHead(i){ const e=(S.memorial||[])[i]; if(!canHead(e)) return false; const c=headCost(e); S.gold-=c; e.hs=(e.hs|0)+1; tally('headG',c); syncArmy(); sfx('carve'); return true; }
 function memorialFix(g){   // normalizeSave: keep well-formed entries only
   const num=(v,d)=>typeof v==='number'&&isFinite(v)?v:d, ok=e=>e&&typeof e==='object'&&typeof e.nick==='string'&&typeof e.name==='string';
   g.memorial=Array.isArray(g.memorial)?g.memorial.filter(ok).slice(0,MEM_MAX).map(e=>{ const o={nick:cleanNick(e.nick)||'Nameless',kind:cleanText(typeof e.kind==='string'?e.kind:e.name),name:cleanText(e.name),rk:clamp(Math.floor(num(e.rk,0)),0,RANKS.length-1),

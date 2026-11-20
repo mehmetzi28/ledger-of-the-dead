@@ -1010,3 +1010,4 @@ html:has(body.nobg)::after{display:none}
 @keyframes crumble{0%{opacity:1;filter:none;transform:none}30%{opacity:.95;filter:grayscale(.5) brightness(1.35);transform:translateY(-1px)}100%{opacity:.32;filter:grayscale(1);transform:translateY(3px) scale(.97)}}
 @media (prefers-reduced-motion:reduce){.fx-dim{display:none}.unit.ally.crumble{animation:none}}
 .q-note.bad,.u-sub.bad{color:var(--blood-text)}   /* .q-note and .u-sub set their own grey after .bad, so a warning line read as plain text (siege intro, war table) */
+@media (max-width:520px){.corpse .btns{gap:6px}.corpse .btns .btn{padding-left:7px;padding-right:7px}}   /* a phone: Raise and With salts sit side by side when they fit */

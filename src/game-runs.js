@@ -199,7 +199,7 @@ function act(kind){
   else if(kind.startsWith('pot:')){ if(!drink(kind.slice(4))) return; }
   else if(kind==='guard'){ if(!guard()) return; }   // an order that costs the turn (game-faith-story.js)
   else return;
-  sfx(kind==='strike'?'strike':kind.startsWith('pot:')?'heal':'skill');
+  sfx(kind==='strike'?'strike':kind==='guard'?'guard':kind.startsWith('pot:')?'heal':'skill');
   checkDeaths();
   if(!liveFoes().length){ roomWon(); return; }
   // minions act

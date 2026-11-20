@@ -43,6 +43,7 @@ function fxBeats(){
   let phase=null;
   for(const e of r.enemies||[]) if(e.boss){ if(e.phase2&&FXB.p1.has(e.id)){ FXB.p1.delete(e.id); phase=e; } else if(!e.phase2&&e.hp>0) FXB.p1.add(e.id); }   // a boss that starts in phase two (Nightmare) never shakes
   const fell=fresh?[]:[...dead].filter(k=>k!=='p'&&!FXB.fell.has(k)); FXB.fell=dead;
+  if(fell.length) sfx('crumble');   // the sound plays even with motion effects off
   if(!fxAllowed()) return;
   fell.forEach(k=>{ const el=fxEl(k); if(el) el.classList.add('crumble'); });
   if(!phase) return;

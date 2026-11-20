@@ -32,6 +32,11 @@ function sfx(kind){
     case 'warn':   tone(c,310,0,.12,'square',.06); tone(c,310,0,.12,'square',.06,.18); break;
     case 'boss':   tone(c,70,40,.5,'sawtooth',.12); noise(c,.45,.2,400); break;
     case 'death':  tone(c,200,40,.9,'sawtooth',.1); break;
+    case 'guard':  noise(c,.12,.22,700); tone(c,95,60,.18,'triangle',.16); tone(c,880,0,.3,'triangle',.035,.02); break;   // a shield planted: thud and ring
+    case 'guardblow': noise(c,.18,.3,900); tone(c,160,45,.3,'square',.08); tone(c,620,560,.4,'triangle',.05,.03); break;   // the blow lands on the shield
+    case 'carve':  [0,.11,.22].forEach(d=>noise(c,.05,.22,4200,d)); tone(c,210,0,.4,'triangle',.07,.3); break;   // chisel taps, then the stone hums
+    case 'phase':  tone(c,55,110,.7,'sawtooth',.1); tone(c,82,41,.8,'sawtooth',.07,.1); noise(c,.6,.18,300); break;   // a boss's second phase
+    case 'crumble': noise(c,.3,.14,1400); [0,.07,.15,.24].forEach((d,i)=>tone(c,900-i*150,0,.05,'triangle',.05,d)); tone(c,120,50,.3,'triangle',.06); break;   // a minion falls to bones
   } }catch(e){}
 }
 

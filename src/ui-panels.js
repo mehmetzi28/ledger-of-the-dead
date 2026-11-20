@@ -483,7 +483,7 @@ function saveTabHTML(){
    +'<p class="group-h">Help</p><div class="items"><div class="tt-row"><div><h4>How to play</h4><div class="u-sub">First steps, ticked off as you play.</div></div>'
    +'<button class="btn small primary" data-a="tab" data-k="help">Open</button></div>'
    +'<div class="tt-row'+(tipsOff?'':' on')+'"><div><h4>Tips</h4><div class="u-sub">'+(tipsOff?'Tips are hidden.':seenTips+' of '+TIPS.length+' seen.')+'</div></div>'
-   +'<div class="btns" style="margin:0">'+(tipsOff?'<button class="btn small primary" data-a="tipson">Show tips</button>':'')+(seenTips?'<button class="btn small" data-a="tipsreset">Show all again</button>':'')+'</div></div></div>'
+   +'<div class="btns" style="margin:0">'+(tipsOff?'<button class="btn small primary" data-a="tipson">Show tips</button>':'')+(seenTips?'<button class="btn small" data-a="tipsreset">Show all again</button>':tipsOff?'':'<button class="btn small" disabled>No tips seen yet</button>')+'</div></div></div>'
    +'<p class="group-h">Sound</p><div class="tt-row'+(SFX.on?' on':'')+'"><div><h4>Sound effects</h4><div class="u-sub">Remembered in this browser.</div></div>'
    +'<button class="btn small'+(SFX.on?'':' primary')+'" data-a="sound" aria-pressed="'+SFX.on+'">'+(SFX.on?'Turn off':'Turn on')+'</button></div>'
    +'<div class="tt-row'+(MUSIC.on?' on':'')+'"><div><h4>Music</h4><div class="u-sub">A theme for each place and boss.</div></div>'

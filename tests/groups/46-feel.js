@@ -15,6 +15,6 @@ test('Feel: ] and [ change target (Tab is left to the browser), Z X C V give ord
   ok(/Taunt &middot; given<kbd>Z<\/kbd>/.test(renderAll('keys')));
   S.mode='town'; S.run=null; ui.rename=null; const m=mkMinion({}); ui.rename=m.uid; ui.rn='Keyed'; key('Enter',{target:{id:'rn'}}); eq(m.nick,'Keyed','Enter saves a new name');
 });
-test('Feel: the Ember Stalker and Tallow Chandler were redrawn',()=>{ ok(IC['Ember Stalker'].includes('M3 36L6 24')); ok(IC['Tallow Chandler'].includes('M37 15V31')); });
+test('Feel: the Ember Stalker and Tallow Chandler were redrawn',()=>{ ok(IC['Ember Stalker'].includes('M21 33C17 28 10 27 6 29')); ok(IC['Tallow Chandler'].includes('M37 15V31')); });
 
 })();

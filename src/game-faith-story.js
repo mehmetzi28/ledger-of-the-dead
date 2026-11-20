@@ -94,7 +94,7 @@ const canGuard=()=>S.mode==='battle'&&!!S.run&&!(S.run.cmd&&S.run.cmd.guard)&&!!
 function guard(){ if(!canGuard()) return false; const r=S.run; r.cmd=r.cmd||{}; r.cmd.guard=true; r.guard=r.turn; tally('commands'); log('Guard: '+guardFront().nick+' plants itself before you. The next blow that would kill you is its to take.','ok'); return true; }
 function guardBlow(tg,d){   // the vanguard that takes this blow on you instead, or null
   const r=S.run, P=S.player; if(!r||tg.id!=='p'||r.guard!==r.turn||allyDr(P,d)-(P.shield||0)<P.hp) return null;
-  const v=guardFront(); if(!v) return null; delete r.guard; log('Guard: '+v.nick+' steps in front of you and takes the killing blow.','ok'); return v; }
+  const v=guardFront(); if(!v) return null; delete r.guard; log('Guard: '+v.nick+' steps in front of you and takes the killing blow.','ok'); sfx('guardblow'); return v; }
 
 // ===== STORY AND BOSS VOICES =====
 // The Ledger tells its story as you go: a passage for the first clear of each gate and for Tower milestones. Bosses speak.
