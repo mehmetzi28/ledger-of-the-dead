@@ -151,4 +151,41 @@ test('Battle stage: Auto keeps the effects (and the stage) on a phone, unless th
   finally{ window.innerWidth=w; VIEW.fx=fx; }
 });
 
+test('Raise stage: clicking a body raises it like its card, into the Reserve when the army is full; tried or unknown bodies are ignored',()=>{
+  setLvl(4); const r=raiseScene([corpse({}),corpse({}),corpse({})],4); S.player.mana=100; const [a,b,c]=r.corpses;
+  fix(0); ok(stageRaise(a.id),'a body'); ok(a.tried&&a.result==='raised','raised'); ok(!stageRaise(a.id),'tried already'); ok(!stageRaise('nobody'),'no such body');
+  ui.confirm=5; fix(.99); stageRaise(b.id); eq(b.result,'failed','the odds still decide'); eq(ui.confirm,null,'a pending confirm is dropped');
+  S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1}}); while(armyUsed()<slots()) mkMinion({}); const n=S.reserve.length; fix(0); ok(stageRaise(c.id)); eq(S.reserve.length,n+1,'into the Reserve'); ok(c.res);
+  S.mode='town'; r.corpses.push(corpse({})); ok(!stageRaise(r.corpses[3].id),'only on the raise screen');
+});
+
+test('Raise stage: with the stage on, the bodies get a stage and the cards a compact strip that keeps Raise and With salts',()=>{
+  setLvl(4); const r=raiseScene([corpse({}),corpse({})],4); S.player.mana=100; S.salts=2;
+  ok(!raiseHTML().includes('class="stage'),'no stage without the layer'); ok(raiseHTML().includes('<div class="corpses">'));
+  const ok0=FXS.ok, st=FXL.st, fx=VIEW.fx; FXS.ok=true; FXL.st='ready'; VIEW.fx='full';
+  try{
+    if(!fxAllowed()) return;
+    const h=raiseHTML();
+    ok(/<div class="stage raise-st" aria-hidden="true" style="height:\d+px"><\/div>/.test(h),'the stage host'); ok(h.includes('<div class="corpses staged">'),'the compact strip');
+    for(const c of r.corpses){ ok(h.includes('data-a="raise" data-k="'+c.id+'"'),'Raise '+c.id); ok(h.includes('data-a="raisesalt" data-k="'+c.id+'"'),'With salts '+c.id); }
+    ok(h.includes('data-a="raisebest"'),'Raise the best (Space)');
+    r.corpses=[]; ok(!raiseHTML().includes('class="stage'),'no bodies, no stage');
+  } finally { FXS.ok=ok0; FXL.st=st; VIEW.fx=fx; }
+});
+
+test('Spoils: the loot row shows item icons by rarity, the gold to count up and a bag mark, hidden from screen readers; the text stays',()=>{
+  setLvl(4); const r=raiseScene([],4); const it={u:++S.uid,id:'1-wa'}; S.inv.push(it); r.spoils=[it.u]; r.lastGold=57; r.lastTroph={};
+  const h=spoilsHTML(); ok(/<div class="loot-fly" aria-hidden="true" data-k="[^"]+">/.test(h),'the row');
+  ok(h.includes('<b class="gold-up" data-n="57">57</b>'),'the gold'); ok(h.includes('class="lf-i t'+ITEM['1-wa'].tier+'"'),'the item, by tier'); ok(/class="lf-bag">.*<b>1<\/b>/.test(h),'the bag and its count');
+  ok(h.includes('Spoils from this room')&&h.includes('data-a="equip"'),'the cards stay'); ok(h.includes('Gold and trophies'),'the text line stays');
+  r.spoils=[]; r.lastGold=0; ok(!spoilsHTML().includes('loot-fly'),'nothing won, no row');
+});
+
+test('Moments: a level-up and a new title are queued as big framed banners; other moments stay small',()=>{
+  setLvl(1); MOMENTS.length=0; addXp(need(1)); const m=MOMENTS.find(x=>/Level 2/.test(x.t)); ok(m&&m.k==='lvl','level-up banner');
+  let h=renderAll('lvl banner'); ok(h.includes('class="moment gold big lvl"'),'drawn big');
+  MOMENTS.length=0; S.ti=S.ti||{}; S.ti.raised=1; checkTitles(); const t=MOMENTS.find(x=>/title/i.test(x.t)); ok(t&&t.k==='title','title banner');
+  MOMENTS.length=0; moment('Grace','gold'); ok(!MOMENTS[0].k); h=renderAll('small'); ok(h.includes('class="moment gold"'),'a plain moment');
+});
+
 })();

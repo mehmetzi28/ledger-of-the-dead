@@ -52,7 +52,7 @@ function syncMinion(m){
 const syncArmy = ()=>{ S.army.forEach(syncMinion); (S.reserve||[]).forEach(syncMinion); (S.waiting||[]).forEach(syncMinion); };   // benched and waiting minions keep up with Will and gear too
 
 const MOMENTS=[];   // banners for big moments; render() shows them once, then clears them
-function moment(t,c){ MOMENTS.push({t,c:c||'ok'}); if(MOMENTS.length>3) MOMENTS.shift(); }
+function moment(t,c,k){ MOMENTS.push(k?{t,c:c||'ok',k}:{t,c:c||'ok'}); if(MOMENTS.length>3) MOMENTS.shift(); }   // k: 'lvl' or 'title', drawn as the big framed banner
 function notify(m,c){ S.notices.unshift({m,c:c||'info'}); S.notices.length=Math.min(S.notices.length,6); }
 
 // ----- game lifecycle
@@ -435,7 +435,7 @@ function checkTitles(){
   }
   if(won.length===1){ const t=won[0]; notify('Title earned: '+t.name+'. '+t.req+(buffTxt(t.b)?' Worn, it gives '+buffTxt(t.b)+'.':''),'ok'); }
   else if(won.length>1) notify(won.length+' titles earned: '+won.map(t=>t.name).join(', ')+'. See the Titles tab for what each one gives.','ok');   // one line, not a pile
-  if(won.length&&typeof moment==='function') moment(won.length>1?won.length+' titles earned':'Title earned: '+won[0].name,'gold');
+  if(won.length&&typeof moment==='function') moment(won.length>1?won.length+' titles earned':'Title earned: '+won[0].name,'gold','title');
   // a title put on or taken off here changes stats like wearing it by hand: HP, mana and the army follow
   if(next!==sel0){ const P=S.player; T.sel=sel0; vitals(()=>{ T.sel=next; }); P.hp=Math.min(P.hp,pMax()); P.mana=Math.min(P.mana,pMana()); }
 }
@@ -444,7 +444,7 @@ const titleName=()=>{ const t=S.ti&&S.ti.sel&&TITLE[S.ti.sel]; return t?t.name:'
 function addXp(n){
   const P=S.player; P.xp+=n; let ups=0;
   while(P.xp>=need(P.lvl)){ P.xp-=need(P.lvl); P.lvl++; P.pts+=3; P.sp=(P.sp||0)+1; ups++; }
-  if(ups){ sfx('level'); moment('Level '+P.lvl,'gold'); P.hp=pMax(); P.mana=pMana(); syncArmy(); const nu=SKILLS.filter(s=>s.lv>P.lvl-ups&&s.lv<=P.lvl).map(s=>s.name); notify('Level '+P.lvl+'. +'+(3*ups)+' stat points and +'+ups+' skill point'+(ups>1?'s':'')+' to spend.'+(nu.length?' New skill: '+nu.join(', ')+'.':''),'ok'); }
+  if(ups){ sfx('level'); moment('Level '+P.lvl,'gold','lvl'); P.hp=pMax(); P.mana=pMana(); syncArmy(); const nu=SKILLS.filter(s=>s.lv>P.lvl-ups&&s.lv<=P.lvl).map(s=>s.name); notify('Level '+P.lvl+'. +'+(3*ups)+' stat points and +'+ups+' skill point'+(ups>1?'s':'')+' to spend.'+(nu.length?' New skill: '+nu.join(', ')+'.':''),'ok'); }
   return ups;
 }
 function minionXp(m,n){

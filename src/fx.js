@@ -29,14 +29,14 @@ const fxAll=sel=>{ try{ return Array.from(app.querySelectorAll(sel)).map(el=>fxR
 
 // After every render: start loading, shut the layer when effects are switched off, or play the queue.
 function fxSync(){
-  try{ fxBeats(); }catch(e){}
+  try{ fxBeats(); }catch(e){} try{ fxSpoils(); }catch(e){}
   if(!fxAllowed()){ if(FXL.st==='ready'||FXL.st==='init') fxDrop(); else if(FXL.st==='loading') FXL.st='off'; FXL.q.length=0; return; }
   if(FXL.st==='off') fxLoad();
   else if(FXL.st==='ready'){ try{ fxStage(); }catch(e){} const hit=fxFlush(); try{ fxStageAfter(hit); }catch(e){} }
 }
 // Beats that need no PixiJS, read from the state after each render: a boss entering its second phase shakes the battle window
 // and dims the room for a moment; a minion that just fell crumbles on its card. They only add CSS classes and a passing overlay.
-const FXB={run:null,p1:new Set(),fell:new Set()};
+const FXB={run:null,p1:new Set(),fell:new Set(),loot:null};
 function fxBeats(){
   const r=typeof S!=='undefined'&&S&&S.run; if(!r||typeof app==='undefined'||!app||!app.querySelectorAll) return;
   const fresh=r!==FXB.run, dead=new Set(Array.from(app.querySelectorAll('.unit.ally.dead[data-u]')).map(el=>el.getAttribute('data-u')));
@@ -51,6 +51,17 @@ function fxBeats(){
   const w=app.querySelector('.main > .win'); if(w){ w.classList.remove('shake'); void w.offsetWidth; w.classList.add('shake'); }
   if(document.body&&document.createElement){ const d=document.createElement('div'); d.className='fx-dim'; d.setAttribute('aria-hidden','true'); document.body.appendChild(d); setTimeout(()=>d.remove(),800); }
   if(FXL.st==='ready'&&FXL.q.length<FXL.QMAX){ const k=fxKey(phase); FXL.q.push({kind:'boss',k,o:null,r:fxRect(k)}); }   // and the Pixi layer, when it runs, adds the boss flare
+}
+// The room's loot row (.loot-fly, spoilsHTML; no PixiJS): once per room the items pop in and fly into the bag mark and the gold counts up.
+// Later renders of the same room show the bag already filled; Light effects and reduced motion show the row still, items beside the bag.
+function fxSpoils(){
+  const el=typeof app!=='undefined'&&app&&app.querySelector&&app.querySelector('.loot-fly'); if(!el||!fxAllowed()||el.classList.contains('go')) return;
+  const k=el.getAttribute('data-k'); if(k===FXB.loot){ el.classList.add('done'); return; } FXB.loot=k;
+  const bag=fxBox(el.querySelector('.lf-bag')), its=Array.from(el.querySelectorAll('.lf-i'));
+  its.forEach((i,n)=>{ const b=fxBox(i); if(b&&bag){ i.style.setProperty('--dx',(bag.x+bag.w/2-b.x-b.w/2)+'px'); i.style.setProperty('--dy',(bag.y+bag.h/2-b.y-b.h/2)+'px'); } i.style.setProperty('--d',n*90+'ms'); });
+  el.style.setProperty('--e',(its.length*90+1350)+'ms'); el.classList.add('go');
+  const g=el.querySelector('.gold-up'), n=g?+g.getAttribute('data-n'):0;
+  if(n>0&&window.requestAnimationFrame){ const t0=performance.now(), f=t=>{ const q=Math.min(1,(t-t0)/800); g.textContent=Math.round(n*(1-(1-q)*(1-q))).toLocaleString(); if(q<1&&g.isConnected) requestAnimationFrame(f); }; g.textContent='0'; requestAnimationFrame(f); }
 }
 function fxLoad(){
   if(typeof document==='undefined'||typeof document.createElement!=='function') return;   // the Node harness has no DOM to draw in
@@ -327,7 +338,7 @@ function fxFighter(k,foe){
   F.tag=foe?new PIXI.Text({text:'',style:{fontFamily:FXS.font,fontSize:11,fontWeight:'700',fill:0xe5776a,stroke:{color:0x0a0806,width:3}}}):new PIXI.Graphics();
   if(foe) F.tag.anchor.set(.5,1);
   c.addChild(F.shadow,F.glow,F.ring,F.chg,F.body,F.bk,F.plate,F.name,F.tag);
-  if(foe){ c.eventMode='static'; c.cursor='pointer'; c.on('pointertap',()=>{ try{ stageTap(k); }catch(e){} }); }
+  if(foe){ c.eventMode='static'; c.cursor='pointer'; c.on('pointertap',()=>{ try{ if(foe===2) stageRaise(k); else stageTap(k); }catch(e){} }); }   // foe 2: a body on the raise stage
   FXS.root.addChild(c); FXS.f.set(k,F); return F;
 }
 const fxTr=t=>{ try{ return VIEW.lang==='tr'?trText(t):t; }catch(e){ return t; } };
@@ -360,14 +371,14 @@ function fxUpd(F,p,cell,tg,r){
 // After each render: place the fighters, sized to the stage's width (a phone gets smaller sprites, never fewer lanes).
 function fxStage(){
   const A=FXS.app; if(!A) return;
-  const host=typeof S!=='undefined'&&S&&S.mode==='battle'&&S.run&&app.querySelector('.stage');
-  if(!host){ if(A.canvas.parentNode) A.canvas.parentNode.removeChild(A.canvas); A.ticker.stop();
+  const rs=typeof S!=='undefined'&&S&&S.run&&S.mode==='raise', host=typeof S!=='undefined'&&S&&(S.mode==='battle'||rs)&&S.run&&app.querySelector('.stage');   /* rs: the raise screen, bodies where the foes stood */
+  if(!host){ FXS.md=null; if(A.canvas.parentNode) A.canvas.parentNode.removeChild(A.canvas); A.ticker.stop();
     if(FXS.f.size||FXS.nums.length){ FXS.f.forEach(F=>F.c.destroy({children:true})); FXS.f.clear(); FXS.nums.forEach(n=>n.T.destroy()); FXS.nums=[]; } return; }
   if(A.canvas.parentNode!==host) host.appendChild(A.canvas);
-  const r=S.run, fresh=!FXS.f.size, W=Math.max(200,host.clientWidth|0), all=[S.player].concat(S.army);
-  const L=[[r.enemies,'b',1],[r.enemies,'f',1],[all,'f',0],[all,'b',0]].map(([l,k,foe])=>({foe,u:l.filter(u=>rowOf(u)===k)})).filter(l=>l.u.length);
+  const r=S.run, fresh=!FXS.f.size, from=FXS.md, W=Math.max(200,host.clientWidth|0), all=[S.player].concat(S.army), foes=rs?fxBodies(r):r.enemies, fk=rs?2:1;
+  const L=[[foes,'b',fk],[foes,'f',fk],[all,'f',0],[all,'b',0]].map(([l,k,foe])=>({foe,u:l.filter(u=>rowOf(u)===k)})).filter(l=>l.u.length);
   const n=Math.max(3,...L.map(l=>l.u.length)), cell=W/n, s=Math.round(Math.max(W<520?40:56,Math.min(96,cell*.72))), pos=new Map(), tg=new Set();   // the fighters fill the stage; a crowded row shrinks them
-  for(const e of r.enemies){ const i=e.hp>0&&intentInfo(e); if(i&&i.k==='atk'&&i.tg) tg.add(fxKey(i.tg)); }
+  if(!rs) for(const e of r.enemies){ const i=e.hp>0&&intentInfo(e); if(i&&i.k==='atk'&&i.tg) tg.add(fxKey(i.tg)); }
   let y=6, mid=0;
   for(const l of L){
     if(!l.foe&&!mid){ mid=y+4; y+=12; }
@@ -383,10 +394,55 @@ function fxStage(){
     for(const l of L){ const b=new PIXI.Sprite(FXS.tex.dot); b.anchor.set(.5); b.tint=0; b.alpha=.5; b.position.set(W/2,l.y+2); b.scale.set(W/26,s/70); FXS.floor.addChild(b); }
     if(mid) FXS.floor.rect(W*.08,mid,W*.84,1).fill({color:FXS.col.bone,alpha:.16}).rect(W*.2,mid+2,W*.6,1).fill({color:0,alpha:.5}); }
   fxStageBg();
-  for(const [k,p] of pos){ const F=FXS.f.get(k)||fxFighter(k,p.foe); fxUpd(F,p,cell,tg,r); F.c.zIndex=p.y; }
+  for(const [k,p] of pos){ const nw=!FXS.f.has(k), F=FXS.f.get(k)||fxFighter(k,p.foe);
+    if(p.foe===2) fxBodyUpd(F,p,cell,nw&&from==='battle'); else { fxUpd(F,p,cell,tg,r); if(nw&&rs&&!fresh&&!p.foe) fxAnim(F,'spawn',650,500); }   // a body just raised joins your side
+    F.c.zIndex=p.y; }
   for(const [k,F] of FXS.f) if(!pos.has(k)){ F.c.destroy({children:true}); FXS.f.delete(k); }
   if(fresh){ FXS.seen=r.fx; if(r.cmd&&r.cmd.guard) FXS.gcmd=r.cmd; }   // a stage just opened: show what stands, do not replay the last turn
-  A.ticker.start();
+  FXS.md=S.mode; A.ticker.start();
+}
+// ----- the raise stage: each body lies where its foe stood (in the foes' order), its raise chance an arc on the ground around it -----
+const fxBodies=r=>{ const at=c=>{ const i=r.enemies.findIndex(e=>'c'+e.id===c.id); return i<0?1e3:i; }; return r.corpses.slice().sort((a,b)=>at(a)-at(b)); };
+function fxBodyUpd(F,p,cell,fall){   // fall: the stage comes straight from the fight, so the body drops first
+  const c=p.u, s=p.s, res=c.tried?c.result:null, P=S.player;
+  F.u=c; F.x=p.x; F.y=p.y; if(F.cx==null){ F.cx=p.x; F.cy=p.y; }
+  if(F.res===undefined){ F.res=res; F.gone=!!res; if(fall&&!res) fxAnim(F,'fall',150,450); }
+  else if(res!==F.res){ F.res=res; fxAnim(F,res==='raised'?'rise':'dust',0,res==='raised'?1300:850);
+    if(res!=='raised'&&FXL.root){ const b=fxStageRect(F.k); if(b){ fxDeath({x:b.x,y:b.y+b.h*.55,w:b.w,h:b.h*.45},80,FXL.col,false); fxGo(); } } }   // crumbles: ash on the overlay
+  if(!F.arc){ F.arc=new PIXI.Graphics(); F.c.addChildAt(F.arc,1); }
+  const html=ico(c.base,c.rankI,{boss:c.boss,elite:c.elite});
+  if(F.html!==html){ F.html=html; F.spr.texture=fxIcoTex(html)||PIXI.Texture.EMPTY; F.s=0; }
+  if(F.s!==s){ F.s=s; fxFit(F); F.shadow.scale.set(s/24,s/110); F.glow.scale.set(s/20,s/40); F.glow.tint=FXS.col.soul; F.c.hitArea=new PIXI.Rectangle(-cell/2,-s*.8,cell,s*.8+48); }
+  const can=!res&&P.mana>=raiseCost(c)&&(armyUsed()<slots()||reserveRoom()), ch=raiseChance(c), K=c.cd&&CORPSE_CONDS[c.cd];
+  F.can=can; F.c.eventMode=res?'none':'static'; F.c.cursor=can?'pointer':'default';
+  const key=[c.name,s,ch,can,!!res,VIEW.lang].join('|'); if(key===F.key) return; F.key=key;
+  F.name.style.fill=c.boss||c.elite?FXS.col.gold:FXS.col.bone; F.name.style.fontSize=s<56?12:13; fxFitText(F.name,fxTr(c.name),Math.round(Math.max(s*1.2,cell*.94)),true); F.name.y=6;
+  F.tag.anchor.set(.5,0); F.tag.style.fill=can?FXS.col.soul:FXS.col.ash; F.tag.style.fontSize=13; F.tag.text=ch+'%'; F.tag.y=F.name.y+F.name.height+1;
+  const R=s*.64, a0=-Math.PI/2, g=F.arc.clear(); F.arc.position.set(0,-s*.1); F.arc.scale.set(1,.42);   // a ring lying on the ground, read clockwise from the back
+  g.circle(0,0,R).stroke({width:5,color:0x0a0806,alpha:.65});
+  if(ch>0) g.moveTo(0,-R).arc(0,0,R,a0,a0+Math.PI*2*Math.min(1,ch/100)).stroke({width:3.5,color:can?FXS.col.soul:FXS.col.ash,alpha:can?1:.6});
+  const pl=F.plate.clear();
+  if(K){ const x=F.tag.width/2+9, y=F.tag.y+7, up=K.raise>0; pl.poly(up?[x-5,y+3,x+5,y+3,x,y-5]:[x-5,y-3,x+5,y-3,x,y+5]).fill(up?FXS.col.soul:0xc9402c).stroke({width:1.5,color:0x0a0806}); }   // the corpse condition: up adds to the chance, down takes from it
+}
+const fxEase=k=>1-(1-k)*(1-k);
+function fxBodyStep(F,dt,T){   // lying, falling, rising (stands, glows, walks to your side and fades) or crumbling to dust
+  const e=Math.min(1,dt/120); F.cx+=(F.x-F.cx)*e; F.cy+=(F.y-F.cy)*e;
+  let up=0, rk=-1, dk=-1;
+  for(let i=F.a.length-1;i>=0;i--){ const a=F.a[i]; a.age+=dt; const k=a.age/a.d;
+    if(a.k==='fall'){ if(k>=1){ F.a.splice(i,1); continue; } up=a.age<0?1:1-k*k; continue; }
+    if(a.age<0) continue; if(k>=1){ F.a.splice(i,1); F.gone=true; continue; }
+    if(a.k==='rise') rk=k; else dk=k; }
+  F.c.visible=!F.gone; if(F.gone) return;
+  const s=F.s, stand=rk>=0?fxEase(Math.min(1,rk/.35)):up, lie=1-stand, walk=rk>.35?fxEase((rk-.35)/.65):0;
+  F.body.rotation=-.4*lie; F.body.x=s*.12*lie; F.body.y=0;   // slumped (tipped and flattened), so wide and tall creatures both read as down
+  F.c.x=F.cx; F.c.y=F.cy+walk*s*1.1;
+  F.body.scale.set(1+.1*lie,(1-.45*lie)*(dk>=0?1-.8*dk:1));
+  F.spr.alpha=dk>=0?1-dk:rk>.6?1-(rk-.6)/.4:.94;
+  F.spr.tint=dk>=0?fxMix(0x8a7b68,0x2e2925,dk):rk>=0?fxMix(0x8a7b68,0xffffff,stand):0x8a7b68;   // sepia while it lies
+  F.glow.visible=rk>=0; if(rk>=0) F.glow.alpha=.75*Math.sin(Math.PI*rk);
+  const idle=!F.res; F.arc.visible=F.plate.visible=F.name.visible=F.tag.visible=idle&&up<.5;
+  if(idle) F.arc.alpha=F.can?.75+.25*Math.sin(T/380):.7;
+  F.shadow.alpha=dk>=0?1-dk:1;
 }
 function fxStageBg(){   // the painted backdrop (#scene, scenes.js) as the stage's own background, so the fighters stand in the place
   const sc=document.getElementById('scene'), k=sc&&sc.dataset.k||'', sv=k&&sc.querySelector('svg'); if(k===FXS.bgk) return;
@@ -418,25 +474,26 @@ function fxStageAfter(hit){   // numbers, blocks and deaths for this turn, once 
   if(r.cmd&&r.cmd.guard&&FXS.gcmd!==r.cmd){ FXS.gcmd=r.cmd;   // Guard given this turn: the vanguard plants itself before you while the foes strike
     const v=guardFront(), V=v&&FXS.f.get(String(fxKey(v))), P=FXS.f.get('p');
     if(V&&P){ V.c.zIndex=P.y+1; fxAnim(V,'guard',0,1500,P.x+P.s*.25-V.x,P.y-P.s*.35-V.y); } }
-  for(const F of FXS.f.values()){ const dead=F.u.hp<=0; if(dead&&F.dead===false) fxAnim(F,'die',(hit[F.k]?hit[F.k].t:0)+180,700); F.dead=dead; }
+  for(const F of FXS.f.values()){ if(F.foe===2) continue; const dead=F.u.hp<=0; if(dead&&F.dead===false) fxAnim(F,'die',(hit[F.k]?hit[F.k].t:0)+180,700); F.dead=dead; }
 }
 const fxMix=(a,b,k)=>{ const c=s=>Math.round(((a>>s)&255)*(1-k)+((b>>s)&255)*k); return (c(16)<<16)|(c(8)<<8)|c(0); };
 function fxStageStep(tk){
   const dt=Math.min(50,tk.deltaMS), T=(FXS.t+=dt);
   for(const F of FXS.f.values()){
+    if(F.foe===2){ fxBodyStep(F,dt,T); continue; }
     const e=Math.min(1,dt/120); F.cx+=(F.x-F.cx)*e; F.cy+=(F.y-F.cy)*e; if(!F.a.length) F.c.zIndex=F.y;
-    let ox=0,oy=0,fl=0,dk=-1,bk=-1;
+    let ox=0,oy=0,fl=0,dk=-1,bk=-1,sp=1;
     for(let i=F.a.length-1;i>=0;i--){ const a=F.a[i]; a.age+=dt;
-      if(a.age<0){ if(a.k==='die') dk=Math.max(dk,0); continue; }
+      if(a.age<0){ if(a.k==='die') dk=Math.max(dk,0); if(a.k==='spawn') sp=0; continue; }
       const k=a.age/a.d; if(k>=1){ F.a.splice(i,1); continue; }
       const w=Math.sin(Math.PI*k);
       if(a.k==='lunge'){ ox+=a.dx*w; oy+=a.dy*w; }
       else if(a.k==='guard'){ const h=Math.min(1,k/.2,(1-k)/.2); ox+=a.dx*h; oy+=a.dy*h; }
       else if(a.k==='recoil'){ oy+=a.dy*w*F.s*.1; ox+=Math.sin(k*28)*(1-k)*3; fl=Math.max(fl,1-k); }
-      else if(a.k==='die') dk=k; else if(a.k==='block') bk=k;
+      else if(a.k==='die') dk=k; else if(a.k==='block') bk=k; else if(a.k==='spawn') sp=k;
     }
     const gone=F.dead&&dk<0, bob=gone?0:Math.sin(T/650+F.ph);
-    F.c.x=F.cx+ox; F.c.y=F.cy+oy-(dk>0?dk*F.s*.18:0);
+    F.c.x=F.cx+ox; F.c.y=F.cy+oy-(dk>0?dk*F.s*.18:0); F.c.alpha=sp;
     F.body.y=-bob*F.s*.02; F.body.scale.set(1+(dk>0?dk*.08:0),(1+bob*.012)*(dk>0?1-.3*dk:1));
     F.spr.alpha=gone?.26:dk>0?1-.74*dk:1;
     F.spr.tint=gone?0x5a5450:fl>0?fxMix(0xffffff,0xff6a55,fl):dk>0?fxMix(0xffffff,0x5a5450,dk):0xffffff;

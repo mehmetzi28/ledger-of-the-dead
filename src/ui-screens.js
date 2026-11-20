@@ -162,6 +162,9 @@ const grpHTML=(t,h)=>h?'<div class="cgrp"><p class="rub">'+t+'</p>'+h+'</div>':'
 function stageTap(k){   // a foe clicked on the battle stage (fx.js): the same action as its card's button
   if(S.mode!=='battle'||!S.run||!S.run.enemies.some(e=>e.id===k&&e.hp>0)) return false;
   if(ui.confirm!==null) ui.confirm=null; ACTIONS.target(k); settled(); return true; }
+function stageRaise(k){   // a body clicked on the raise stage (fx.js): the same action as its card's first button (into the Reserve when the army is full)
+  const c=S.mode==='raise'&&S.run&&S.run.corpses.find(x=>x.id===k); if(!c||c.tried) return false;
+  if(ui.confirm!==null) ui.confirm=null; (armyUsed()>=slots()&&reserveRoom()?ACTIONS.raiseres:ACTIONS.raise)(k); settled(); return true; }
 function battleHTML(){
   currentTarget();
   const r=S.run, D=DUNGEONS[r.di], P=S.player, boss=r.room===r.rooms-1, ans=chargeAns(), st=stageOn();   /* st: the battle stage (fx.js) shows the fight; the cards fold into a strip */
@@ -434,14 +437,15 @@ function raiseHTML(){
          +c.aff.map(a=>AFFIX[a].name===TRAITS[AFFIX[a].trait].name?'keeps '+AFFIX[a].name:AFFIX[a].name+' &rarr; '+TRAITS[AFFIX[a].trait].name).join(', ')+'</span>':'')
        +(c.free?' &middot; <span class="free-t">Straggler: free, +'+STRAGGLER_BONUS+'%</span>':'')+condHTML(c)+'</div></div></div></div>'+right+'</div>';
   }).join('');
-  const done=r.cleared, q=r.quiet&&DOORS[r.quiet];
+  const done=r.cleared, q=r.quiet&&DOORS[r.quiet], st=stageOn()&&r.corpses.length>0;   /* st: the bodies lie on the battle stage (fx.js); the cards fold into a compact strip */
   return '<section class="win" aria-labelledby="h-raise"><h2 class="win-h" id="h-raise">'+(r.trial?'Trial &middot; '+D.name+' &middot; '+(done?'Complete':'Room '+(r.room+1)+'/'+r.rooms+' cleared'):r.siege?'Siege &middot; The necropolis holds':r.tw?'Hell Tower &middot; Floor '+r.tw+(done?' &middot; Conquered':' cleared'):(r.rift?'The Rift '+r.rift+' &middot; ':'')+D.name+' &middot; '+(done?'Cleared':'Room '+(r.room+1)+(q?'':' cleared')))+'</h2>'
    +'<h3 class="win-title">'+(r.trial?(done?'The Trial is over.':'No bodies rise in a Trial. On to the next room.'):r.siege?'The living break and run. Their dead are yours.':r.tw?(done?'Abaddon is dead. The Tower is yours.':'The floor is still.'):(done?'The gate falls silent.':q?q.name:'The room is still.'))+'</h3>'
    +(q?'<p class="lede">No fight here &middot; Mana '+P.mana+'/'+pMana()+'</p>':'<p class="lede">+'+r.lastXp+' XP'+(r.ups?' &middot; level up':'')+' &middot; Mana '+P.mana+'/'+pMana()+' &middot; <span title="Whatever you do not raise is gone when you move on">unraised bodies are lost</span></p>')
    +(r.events.length?'<div class="notes">'+r.events.map(e=>'<div class="note '+e.c+'"><i>Log</i><span>'+e.m+'</span></div>').join('')+'</div>':'')
+   +(st?'<div class="stage raise-st" aria-hidden="true" style="height:'+(FXS.h||300)+'px"></div>':'')
    +(full&&r.corpses.some(c=>!c.tried)?(w=>'<div class="note bad"><i>Full</i><span>'+(bench?'Your army is full. The Reserve has '+(reserveMax()-S.reserve.length)+' free place'+(reserveMax()-S.reserve.length>1?'s':'')+': raise into it, or release someone.':'Your army is full. Release someone to make room.')+'</span>'+(w?'<button class="btn small warn" data-a="release" data-k="'+w.uid+'">'+(ui.confirm===w.uid?'Confirm: release '+w.nick:'Release your weakest, '+w.nick+' (Lv '+w.lvl+' '+ROLES[w.role].label.toLowerCase()+')')+'</button>':'')+'</div>')(weakest()):'')
    +(!full&&r.corpses.filter(c=>!c.tried).length>=2?'<div class="btns"><button class="btn small primary" data-a="raisebest" title="Tries every body, most valuable first; uses salts on bosses and elites" aria-keyshortcuts="Space">Raise the best<kbd>Space</kbd></button></div>':'')
-   +(r.trial?trialResultHTML(r):'')+eventHTML()+spoilsHTML()+((q||r.trial)&&!r.corpses.length?'':'<p class="group-h">The fallen</p><div class="corpses">'+(corpses||'<p class="lede">Nothing left to raise.</p>')+'</div>')
+   +(r.trial?trialResultHTML(r):'')+eventHTML()+spoilsHTML()+((q||r.trial)&&!r.corpses.length?'':'<p class="group-h">The fallen</p><div class="corpses'+(st?' staged':'')+'">'+(corpses||'<p class="lede">Nothing left to raise.</p>')+'</div>')
    +(r.doors&&!done?doorsHTML():'<div class="btns">'+(done?'<button class="btn primary" data-a="town">'+(r.siege?'Back to the necropolis &middot; dawn':'Return to the gate')+'</button>':'<button class="btn primary" data-a="descend">'+(r.tw?'Ascend to floor '+(r.tw+1)+' (heal ':'Descend (heal ')+Math.round(DIFF.heal*100)+'%, mana +'+Math.round(DIFF.mana*100)+'%)</button><button class="btn" data-a="town">'+(r.tw?'Descend with spoils':r.trial?'Leave the Trial':'Leave with spoils')+'</button>')+'</div>')+'</section>'
    +armyHTML();
 }
@@ -474,6 +478,11 @@ function spoilsHTML(){
   if((r.lostLoot||[]).length) n+='<div class="note bad"><i>Bag full</i><span>Left behind: '+r.lostLoot.join(', ')+'.</span></div>';
   if(n) h+='<div class="notes">'+n+'</div>';
   const tro=Object.keys(r.lastTroph||{});
+  if(r.lastGold||tro.length||sp.length) h+='<div class="loot-fly" aria-hidden="true" data-k="'+[S.day,r.di,r.room,r.tw||0,r.rift||0,r.lastGold||0,(r.spoils||[]).join('.')].join(':')+'">'   // the same loot drawn: fx.js flies it into the bag once
+    +(r.lastGold?'<span class="gold-n">'+COIN+'<b class="gold-up" data-n="'+r.lastGold+'">'+r.lastGold.toLocaleString()+'</b></span>':'')
+    +tro.map(k=>'<span class="lf-t">'+ico(TROPHY[k].ico,TROPHY[k].rankI,{boss:k.startsWith('b:')})+'</span>').join('')
+    +sp.map(it=>'<span class="lf-i t'+ITEM[it.id].tier+'">'+iico(ITEM[it.id])+'</span>').join('')
+    +(sp.length?'<span class="lf-bag"><svg viewBox="0 0 24 24" width="26" height="26"><path d="M9 3h6l-1.6 3.2C17.5 8 20 12 20 16c0 3.3-3.6 5-8 5s-8-1.7-8-5c0-4 2.5-8 6.6-9.8z" fill="#3a2c1e" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M9.6 6.4h4.8" stroke="currentColor" stroke-width="1.4"/></svg><b>'+sp.length+'</b></span>':'')+'</div>';
   if(r.lastGold||tro.length) h+='<p class="group-h">Gold and trophies</p><div class="loot-line">'+gold(r.lastGold||0)
     +tro.map(k=>'<span class="tro-chip">'+TROPHY[k].name+(r.lastTroph[k]>1?' &times;'+r.lastTroph[k]:'')+'</span>').join('')+'</div>';
   if(sp.length) h+='<p class="group-h">Spoils from this room</p><div class="items">'+sp.map(it=>itemCard(it,'<button class="btn small primary" data-a="equip" data-k="'+it.u+'">'+(S.equip[ITEM[it.id].slot]?'Swap in':'Equip')+'</button>',true)).join('')+'</div>';

@@ -1143,3 +1143,36 @@ html:has(body.nobg)::after{display:none}
   .actbar .cgrp+.cgrp .btns::-webkit-scrollbar{display:none}
   .actbar .cgrp+.cgrp .btns .btn{flex:0 0 auto;white-space:nowrap}
 }
+/* the raise stage (fx.js): the bodies lie on the battle stage, so each corpse card folds into one compact line that keeps its buttons */
+.raise-st{margin:4px 0 2px}
+.corpses.staged{gap:6px}
+.corpses.staged .corpse{padding:6px 10px;gap:8px;animation:none}
+.corpses.staged .corpse .ico{width:34px;height:34px}.corpses.staged .corpse .ico svg{width:28px;height:28px}
+.corpses.staged .corpse .u-name{font-size:15px}
+.corpses.staged .corpse .u-sub{font-size:12px}
+/* spoils: the room's loot as icons that fly into the bag (fx.js fxSpoils plays it once per room; the text and item cards below stay) */
+.loot-fly{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:3px;background:rgba(10,8,7,.55)}
+.loot-fly .gold-n{font-size:17px}
+.loot-fly .ico{width:34px;height:34px}.loot-fly .ico svg{width:28px;height:28px}
+.lf-i .ico{box-shadow:inset 0 0 10px rgba(0,0,0,.85),0 0 12px -2px var(--tc)}
+.lf-bag{position:relative;margin-left:auto;color:var(--bone);display:inline-grid;place-items:center}
+.lf-bag b{position:absolute;right:-7px;top:-5px;min-width:16px;padding:0 3px;border-radius:8px;background:#0a0806;border:1px solid var(--gold);color:var(--gold);font:700 10px/14px var(--font-data);text-align:center}
+.loot-fly.go .lf-i{animation:lf-pop .35s var(--d,0ms) both,lf-fly .45s calc(var(--d,0ms) + 1000ms) ease-in forwards}
+.loot-fly.go .lf-t{animation:lf-pop .35s both}
+.loot-fly.go .lf-bag{animation:lf-bump .35s var(--e,1400ms) ease-out}
+.loot-fly.done .lf-i{display:none}
+@keyframes lf-pop{0%{opacity:0;transform:scale(.2)}70%{opacity:1;transform:scale(1.15)}100%{opacity:1;transform:none}}
+@keyframes lf-fly{to{opacity:0;transform:translate(var(--dx,0),var(--dy,0)) scale(.3)}}
+@keyframes lf-bump{40%{transform:scale(1.25)}}
+@media (prefers-reduced-motion:reduce){.loot-fly .lf-i,.loot-fly .lf-t,.loot-fly .lf-bag{animation:none!important}}
+/* a level-up or a new title: a framed banner with gold trim, about 1.8 s; with reduced motion it shows still and then goes */
+.moment.big{position:relative;padding:14px 26px;border:1px solid var(--gold);border-radius:2px;background:linear-gradient(180deg,rgba(40,30,18,.97),rgba(12,9,7,.97));color:var(--gold);
+  font:600 22px/1.2 var(--font-head);letter-spacing:.06em;text-shadow:0 0 12px rgba(211,166,77,.35),0 2px 2px #000;
+  box-shadow:inset 0 0 0 3px rgba(10,8,6,.9),inset 0 0 0 4px rgba(211,166,77,.45),inset 0 0 26px rgba(0,0,0,.7),0 10px 30px rgba(0,0,0,.7);animation:moment-big 1.8s ease forwards}
+.moment.big::before,.moment.big::after{content:'';position:absolute;top:50%;width:9px;height:9px;margin-top:-5px;background:var(--gold);transform:rotate(45deg);box-shadow:0 0 6px rgba(211,166,77,.6)}
+.moment.big::before{left:-5px}.moment.big::after{right:-5px}
+@keyframes moment-big{0%{opacity:0;transform:scale(.86)}12%{opacity:1;transform:scale(1.04)}20%{transform:none}78%{opacity:1}100%{opacity:0}}
+@keyframes moment-still{0%{opacity:1}100%{opacity:0}}
+body.calm .moment.big{animation:moment-still 1.8s steps(1,end) forwards}
+@media (prefers-reduced-motion:reduce){.moment.big{animation:moment-still 1.8s steps(1,end) forwards}}
+@media (max-width:540px){.moment.big{font-size:18px;padding:11px 18px}}
