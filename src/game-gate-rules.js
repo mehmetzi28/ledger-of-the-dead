@@ -32,7 +32,7 @@ function summonAdd(e){
   if(e.summoned>=SUMMON_CAP||liveFoes().length>=5) return null;
   const mk=()=>e.tw?makeTowerEnemy(e.tw,false,-1):makeEnemy(e.rankI,Math.max(1,e.lvl-2),false), hasMender=liveFoes().some(x=>x.role==='mender');
   let a=mk(); for(let i=0;i<30&&hasMender&&a.role==='mender';i++) a=mk(); if(hasMender&&a.role==='mender') return null;   // never a second mender (bug found in play-testing)
-  if(e.tw) foeScale([a],TW.foeAtk); else { foeScale([a],foeAtkMul(S.run.di)); bulwark([a]); }
+  if(e.tw) foeScale([a],TW.foeAtk); else { foeScale([a],foeAtkMul(S.run.di)); bulwark([a]); riftScale([a]); heatScale([a]); }   /* as buildRoom scales a room's foes */
   affixAll([a]); foeRise([a]); e.summoned++; S.run.enemies.push(a); return a;
 }
 function fireAbility(e,mv){
@@ -352,6 +352,7 @@ function heatRoom(list,di){   // Nightmare, before scaling: a room with no elite
 }
 const DAMNED=1.3, DAMNED_FOE=1.5, CURSE_FOE=1.15;   // cursed and harder: rewards x1.3, foes x1.5; cursed on Normal: foes x1.15 (rewards come from the curse itself)
 const foeHeat=()=>{ const h=runHeat(), m=runMod(); return (h?HEAT[h].foe:1)*(m?(h?DAMNED_FOE:CURSE_FOE):1); };
+function heatScale(list){ const f=foeHeat(); if(f!==1) for(const e of list){ if(e.rival) continue; e.maxHp=e.hp=Math.round(e.maxHp*f); e.atk=Math.max(1,Math.round(e.atk*f)); } }   // a room's foes and the adds called into it; the rival keeps their own measure
 const heatMax=di=>Math.min(HEAT.length-1,S.ti&&S.ti.clr&&S.ti.clr[di]?((S.heatMax&&S.heatMax[di]!=null?S.heatMax[di]:0)+1):0);   // highest level you may pick
 const heatOf=di=>Math.min((S.heat&&S.heat[di])||0,heatMax(di));
 function setHeat(di,lv){ if(S.mode!=='town'||!RK[di]||!(lv>=0&&lv<=heatMax(di))) return false; S.heat=S.heat||{}; if(lv) S.heat[di]=lv; else delete S.heat[di]; return true; }

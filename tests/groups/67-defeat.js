@@ -71,4 +71,8 @@ test('Retry: R on the defeat screen, the shortcut sheet, the Codex and Turkish',
   ok(trText('Taunt was not used. Bone Ward was down.').includes('Kışkırt'),'tr counters'); eq(trText('Felled by bleeding.'),'Seni kanama devirdi.');
   for(const s of ['Retry the room','After a fall','You stand at the threshold again. The room waits as it was','A Trial room cannot be retried: its score counts every attempt']) ok(TR_DICT.has(s),s);
 });
+test('Retry: a Stitched minion may rise again and a Warden ward from the fall is gone',()=>{
+  fresh(10); arena([foe({hp:1e6,atk:30,role:'striker'})]); const m=mkMinion({role:'vanguard',traits:['stitched']}); snapRoom();
+  m.sx=1; m.mw=50; S.player.hp=0; defeat(); ok(retryRoom()); ok(!m.sx,'Stitched unused, as the room began'); ok(!m.mw,'no leftover ward');
+});
 })();

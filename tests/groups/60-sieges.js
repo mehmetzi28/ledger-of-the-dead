@@ -135,4 +135,8 @@ test('Sieges: the Codex, How to play, the screens and Turkish',()=>{
   ok(BOSS_LINES[SIEGE_BOSS].every(l=>trText(l)!==l),'the captain speaks Turkish');
   ok(SIEGE_NAMES.every(n=>IC[n]&&MAT[n]),'each of the living has an icon and colours'); ok(SIEGE_NAMES.every(n=>!/#(2a3a8a|5a3a9a)/i.test(MAT[n][1])),'no blue or purple');
 });
+test('Sieges: every wave starts like a room, so Swift hastes and Stitched is fresh',()=>{
+  town(20); const m=mkMinion({lvl:12,traits:['swift','stitched']}); m.sx=1; dueTonight(); beginSiege();
+  ok(hasSt(m,'hasted'),'Swift'); ok(!m.sx,'Stitched unused'); m.sx=1; killWave(); eq(S.run.room,1); ok(!m.sx,'fresh again at wave 2');
+});
 })();

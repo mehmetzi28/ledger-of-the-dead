@@ -39,7 +39,7 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
     if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true)); const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
     else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
     heatRoom(list,di); foeScale(list,foeAtkMul(di)); bulwark(list); riftScale(list);
-    { const f=foeHeat(); if(f!==1) for(const e of list){ if(e.rival) continue; e.maxHp=e.hp=Math.round(e.maxHp*f); e.atk=Math.max(1,Math.round(e.atk*f)); } }   // the rival keeps their own measure
+    heatScale(list);
     if(!boss&&kind==='elite') for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*ELITE_ROOM); e.atk=Math.max(1,Math.round(e.atk*ELITE_ROOM)); }
     affixAll(list);
   } finally { Math.random=R0; }
@@ -273,7 +273,7 @@ function gateCleared(r){   // the boss room of a gate is won: story, clear talli
   return Math.round(RK[di].clear*fk);
 }
 function roomWon(){
-  const r=S.run, P=S.player; r.events=[]; bondsRoom();
+  const r=S.run, P=S.player; r.events=[]; r.focus=false; r.execute=false; bondsRoom();   /* Focus and Execute end with the room even if no minion phase came */
   let xp=r.pending; r.pending=0;
   const last=r.room===r.rooms-1;
   const share=Math.round(xp*.5), shatter=hasFlag('bonebank')?0:Math.max(SHATTER_MIN,SHATTER_BASE-A('will')*SHATTER_WILL);
@@ -331,7 +331,7 @@ function retryRoom(){   // the room again as it began: same foes at full HP, you
   for(const k of ['kills','dt','dd','mh','hurt','soulT','tt','recF']) if(r[k]!==undefined) o[k]=r[k]; else delete o[k];   /* what happened in the fall still happened: run stats, records, turns */
   o.retries=(r.retries||0)+1; S.run=ROOM0.r=o;
   ['hp','mana','shield','st','dots'].forEach((k,i)=>{ if(s.p[i]==null) delete P[k]; else P[k]=s.p[i]; });
-  for(const m of S.army){ const x=s.a.find(y=>y[0]===m.uid); if(!x) continue; m.hp=Math.min(m.maxHp,x[1]); if(x[2]) m.st=x[2]; else delete m.st; if(x[3]) m.dots=x[3]; else delete m.dots; }
+  for(const m of S.army){ delete m.sx; delete m.mw; const x=s.a.find(y=>y[0]===m.uid); if(!x) continue;   /* a room begins with Stitched unused and no Warden ward */ m.hp=Math.min(m.maxHp,x[1]); if(x[2]) m.st=x[2]; else delete m.st; if(x[3]) m.dots=x[3]; else delete m.dots; }
   P.hp=Math.min(pMax(),P.hp); P.mana=Math.min(pMana(),P.mana);   /* gear taken off on the defeat screen lowers the caps the snapshot was taken under */
   S.mode='battle'; log('You stand at the threshold again. The room waits as it was.','story'); sfx('skill'); return true;
 }

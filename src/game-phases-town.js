@@ -420,7 +420,7 @@ function spawnSiege(){   // one wave of the living
   if(r.room&&bl('ossuary')&&r.fallen&&r.fallen.length){ const c=r.fallen.splice(Math.floor(Math.random()*r.fallen.length),1)[0], lv=Math.max(1,c.lvl-SIEGE_OSS_GAP*(BUILD_MAX+1-bl('ossuary')));
     const m={uid:++S.uid,armed:false,eq:null,nick:freeNick(),name:c.name,kind:c.base,role:c.role,rankI:c.rankI,lvl:lv,lvl0:lv,xp:0,boss:false,elite:false,hf:c.hf,af:c.af,hp:1,maxHp:null,atk:0,stage:0,traits:[],thrall:true};
     syncMinion(m); m.hp=m.maxHp; S.army.push(m); log('The Ossuary stirs: '+m.nick+', once '+withArticle(c.base)+', rises to fight for you tonight.','ok'); }
-  planFoes(); if(liveFoes().some(e=>e.boss)) fxe('boss',list[0]);
+  roomStart(list); if(liveFoes().some(e=>e.boss)) fxe('boss',list[0]);   /* a wave is a fresh fight: Swift, Stitched, room wards, pacts (roomStart plans the foes) */
 }
 function beginSiege(){
   if(S.mode!=='siege') return false; const di=siegeGate();

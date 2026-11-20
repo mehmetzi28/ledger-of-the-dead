@@ -102,4 +102,9 @@ test('Difficulty rules: Nightmare puts an elite in every room and starts bosses 
   const cx=codexSection('gates'); HEAT.slice(1).forEach(x=>ok(cx.includes(x.rule)));
   HEAT.slice(1).map(x=>x.rule).concat(['Rules',heatRules(3).join(' '),'Each harder difficulty also adds a rule and keeps the rules below it. Elites the rules add drop as elites, but carry the gate\'s unique only at an ordinary foe\'s odds.']).forEach(t=>ok(trText(t)!==t,'untranslated: '+t));
 });
+test('Difficulty: adds a boss calls in are as strong as the room around them (Hard and up, curses, the Rift)',()=>{
+  fresh(10); S.ti={clr:{0:1}}; S.heatMax={0:2}; S.mod={day:S.day,gi:-1,id:null}; setHeat(0,3); S.mode='town'; S.watches=WATCHES; fix(.5); startRun(0);
+  const room=S.run.enemies[0], b=makeEnemy(0,room.lvl+2,true); S.run.enemies=[room,b]; const a=summonAdd(b);
+  eq(a.base,room.base); eq(a.lvl,room.lvl); eq(a.maxHp,room.maxHp,'Nightmare scales the add like the room');
+});
 })();

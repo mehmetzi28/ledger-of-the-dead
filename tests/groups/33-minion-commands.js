@@ -17,4 +17,9 @@ test('Orders: Focus makes strikers crit, Execute doubles reapers on weak foes, B
 });
 test('Orders: order buttons show in battle',()=>{ arena([foe()]); mkMinion({role:'vanguard'}); mkMinion({role:'mender'}); const h=renderAll('orders'); ok(/data-a="cmd" data-k="vanguard"/.test(h)&&/data-a="cmd" data-k="mender"/.test(h)); ACTIONS.cmd('mender'); ok(/Bone Shield &middot; given/.test(renderAll('given'))); });
 
+test('Commands: Focus and Execute end with the room even when your own blow won it',()=>{
+  fresh(10); arena([foe({hp:1})]); mkMinion({role:'striker'}); mkMinion({role:'reaper'});
+  ok(command('striker')); ok(command('reaper')); act('strike'); eq(S.mode,'raise'); descend('fight');
+  ok(!S.run.focus,'no free Focus in the next room'); ok(!S.run.execute,'no free Execute');
+});
 })();
