@@ -115,7 +115,7 @@ h1{margin:0;font:700 clamp(24px,4.6vw,42px)/1.05 var(--font-display);letter-spac
 .bar{height:8px;background:var(--well);border:1px solid var(--line);box-shadow:inset 0 1px 3px #000}
 .fill{display:block;height:100%;transition:width .3s}
 .fill.hp{background:linear-gradient(180deg,#d9503e,#8c2418)}
-.fill.mp{background:linear-gradient(180deg,#a8e585,#4f8a35);box-shadow:0 0 8px rgba(143,212,106,.55)}
+.fill.mp{background:linear-gradient(180deg,#8fb8f0,#33609e);box-shadow:0 0 8px rgba(111,159,224,.5)}
 .fill.xp{background:linear-gradient(180deg,#e6c06a,#9a7530)}
 
 .stats{display:flex;flex-direction:column;border-top:1px solid var(--line)}
@@ -712,7 +712,7 @@ body.bossfight #bossbg{opacity:.75}body.gatefight #bossbg{opacity:.32}body.nobg 
 @keyframes bbTurn{to{background-position:0 0,0 0}}@keyframes bbBreathe{50%{filter:brightness(1.25)}}
 body.calm *,body.calm *::before,body.calm *::after{animation:none!important;transition:none!important}
 body.hc{--mute:#cfc6b6;--line:#5a5048;--line-2:#7a6c5f}
-body.hc .fill.hp{background:#ff5a46}body.hc .fill.mp{background:#b8f58e}body.hc .fill.xp{background:#ffd36b}
+body.hc .fill.hp{background:#ff5a46}body.hc .fill.mp{background:#9cc6ff}body.hc .fill.xp{background:#ffd36b}
 body.hc .bar{background:#000;outline:1px solid rgba(255,255,255,.35)}
 body.hc .u-sub,body.hc .q-note,body.hc .lede{color:#e6ddcc}.res-fell{color:var(--blood-text)}.res-fled,.res-left{color:var(--mute)}
 
@@ -915,13 +915,14 @@ mark.cx-hit{background:rgba(211,166,77,.26);color:inherit;border-bottom:1px soli
 .sg{display:inline-flex;width:1.05em;height:1.05em;margin-right:2px;vertical-align:-.17em;color:var(--mute);filter:drop-shadow(0 1px 0 rgba(0,0,0,.7))}
 .sg svg{width:100%;height:100%;fill:currentColor;opacity:.9}
 .sg[data-k]{cursor:help}
+.mcost{display:inline-flex;align-items:center;gap:1px;white-space:nowrap}.mcost .sg{margin-right:1px}   /* a skill's mana cost on its battle button */
 #sgtip{position:fixed;z-index:70;max-width:240px;padding:7px 10px 8px;pointer-events:none;border:1px solid var(--trim,#5d4b34);background:var(--grain),linear-gradient(180deg,#1d1813,#100d0a);box-shadow:inset 0 0 0 1px #050403,0 6px 18px rgba(0,0,0,.7);font:13px/1.35 var(--font-data);color:var(--bone)}
 #sgtip b{display:block;font:600 15px/1.2 var(--font-head);font-variant:small-caps;letter-spacing:.04em;color:#e4c98f}
 #sgtip span{display:block;margin-top:2px;color:#cfc3a8}
 #sgtip[hidden]{display:none}
 .sg .k{fill:none;stroke:rgba(10,8,6,.62);stroke-width:.7;stroke-linecap:round}.sg .d{fill:rgba(10,8,6,.75)}
 .sg .o{fill:none;stroke:currentColor;stroke-width:1.25;stroke-linecap:round;stroke-linejoin:round}
-.sg-hp{color:#b8483a}.sg-atk,.sg-pierce,.sg-matk{color:#b9b0a0}.sg-crit{color:#d9a24c}.sg-siph{color:#a9c98a}.sg-mana,.sg-regen,.sg-raise,.sg-heal{color:#8fbf72}
+.sg-hp{color:#b8483a}.sg-atk,.sg-pierce,.sg-matk{color:#b9b0a0}.sg-crit{color:#d9a24c}.sg-siph{color:#a9c98a}.sg-raise,.sg-heal{color:#8fbf72}.sg-mana,.sg-regen{color:#6f9fe0}
 .sg-ward,.sg-constitution,.sg-mpow{color:#d6ccb2}.sg-strength{color:#c4825a}.sg-intelligence{color:#b9a27a}.sg-will{color:#e08a3c}.sg-slot,.sg-dr{color:#9a8f81}.sg-skill{color:#d3a64d}
 .sv{white-space:nowrap}
 @media (max-width:540px){.goal-list li{grid-template-columns:1fr}.goal-list .btn{justify-self:start}}
@@ -6305,6 +6306,7 @@ const TR_DICT=new Map(Object.entries({
 "Max HP (flat)":"Azami Can (sabit)",
 "Max HP (percent)":"Azami Can (yüzde)",
 "Max mana":"Azami mana",
+"Mana cost":"Mana bedeli",
 "Max mana (flat)":"Azami mana (sabit)",
 "Max mana (percent)":"Azami mana (yüzde)",
 "Mender":"Şifacı",
@@ -8718,6 +8720,7 @@ const SG_HINT={hp:'Damage it can take before it falls',atk:'Damage of a basic hi
   raise:'Chance that a fallen foe answers your call',mpow:'More HP and attack for all your minions',matk:'More attack for all your minions',regen:'Mana you regain every turn',slot:'How many minions your army can hold',
   pierce:'Share of foe armor your Strike ignores',dr:'Less damage from every hit you take',heal:'More healing from every source',skill:'More damage from your skills'};   // the stat tooltip's second line (sgTipShow, ui-input.js)
 const sgl=(k,lab)=>{ lab=lab||SG_WORD[k]||(STATL[k]&&STATL[k][0])||k; return '<span class="sg sg-'+k+'" role="img" data-k="'+k+'" aria-label="'+lab+'"><svg viewBox="0 0 10 10" aria-hidden="true">'+(SG_PATH[k]||'')+'</svg></span>'; };
+const manaCost=n=>'<span class="mcost">'+sgl('mana','Mana cost')+n+'</span>';   // battle buttons: what an action costs, so a bare "10" reads as 10 mana
 const statG=(k,v)=>'<span class="sv">'+sgl(k)+(v>0?'+':'&minus;')+Math.abs(v)+STATL[k][1]+'</span>';   // item lines: mark and signed number
 // ----- item icons + cards
 Object.assign(GLYPH,{
@@ -10033,13 +10036,13 @@ function battleHTML(){
    +(st?stripHTML(sideH,[S.player].concat(S.army),'ally'):'<p class="group-h">'+sideH+'</p>'+rowsHTML([S.player].concat(S.army),'row minis side',u=>u.id==='p'?unitCard(u,'ally'):unitCard(u,'ally',true)))
    +'</div><div class="bat-cmd">'
    +'<div class="actbar">'+partyStrip()+'<div class="cgrp"><p class="rub">Actions</p><div class="btns acts-main"><button class="btn primary" data-a="act" data-k="strike">Strike +3 mana<kbd>1</kbd></button>'
-   +'<button class="btn" data-a="act" data-k="siphon"'+(P.mana<siphonCost()?' disabled':'')+'>Soul Siphon '+siphonCost()+'<kbd>2</kbd></button>'
-   +'<button class="btn'+(ans.includes('ward')&&P.mana>=6?' answer':'')+'" data-a="act" data-k="ward"'+(P.mana<6?' disabled':'')+'>'+(ans.includes('ward')&&P.mana>=6?ANS_M:'')+'Bone Ward 6'+(ans.includes('ward')&&P.mana>=6?ANS_S:'')+'<kbd>3</kbd></button>'
+   +'<button class="btn" data-a="act" data-k="siphon"'+(P.mana<siphonCost()?' disabled':'')+'>Soul Siphon '+manaCost(siphonCost())+'<kbd>2</kbd></button>'
+   +'<button class="btn'+(ans.includes('ward')&&P.mana>=6?' answer':'')+'" data-a="act" data-k="ward"'+(P.mana<6?' disabled':'')+'>'+(ans.includes('ward')&&P.mana>=6?ANS_M:'')+'Bone Ward '+manaCost(6)+(ans.includes('ward')&&P.mana>=6?ANS_S:'')+'<kbd>3</kbd></button>'
    +'<button class="btn warn" data-a="flee"'+(r.siege?' title="Fleeing a siege counts as a defeat"':'')+'>'+(r.siege?'Abandon the walls':'Flee')+'</button></div>'
    +ultHTML()+'</div>'
    +grpHTML('Skills',(activeSkills().length?'<div class="btns">'+activeSkills().map((s,i)=>{ const cd=skCd(s.id), why=r.silence>0?'Silenced by the Hymn':cd>0?'Ready in '+cd+' turn'+(cd>1?'s':''):s.id==='blast'&&!freeCorpse()?'Needs a body that fell this room':s.id==='mend'&&!S.army.some(m=>m.hp>0&&m.hp<m.maxHp)?'No wounded minions':P.mana<s.cost?'Not enough mana':s.desc(sk(s.id));
       const an=ans.includes(s.id)&&canUse(s.id);
-      return '<button class="btn'+(an?' answer':'')+'" data-a="act" data-k="sk:'+s.id+'" title="'+why+'"'+(canUse(s.id)?'':' disabled')+'>'+(an?ANS_M:'')+s.name+' '+skCost(s)+(cd>0?' &middot; '+cd+'t':'')+(an?ANS_S:'')+(i<6?'<kbd>'+(i+4)+'</kbd>':'')+'</button>'; }).join('')+'</div>':'')
+      return '<button class="btn'+(an?' answer':'')+'" data-a="act" data-k="sk:'+s.id+'" title="'+why+'"'+(canUse(s.id)?'':' disabled')+'>'+(an?ANS_M:'')+s.name+' '+manaCost(skCost(s))+(cd>0?' &middot; '+cd+'t':'')+(an?ANS_S:'')+(i<6?'<kbd>'+(i+4)+'</kbd>':'')+'</button>'; }).join('')+'</div>':'')
    )
    +grpHTML('Orders',cmdHTML())
    +grpHTML('Potions',((S.belt.hp||S.belt.mp)?'<div class="btns">'+Object.keys(POTIONS).filter(k=>S.belt[k]&&!pactOn('dry')).map(k=>{ const p=POTIONS[k], full=k==='hp'?P.hp>=pMax()&&!P.dots:P.mana>=pMana();

@@ -62,6 +62,12 @@ test('Screens: every stat glyph explains itself in a tooltip (name and what it d
   const g=sgl('atk'); ok(g.includes('data-k="atk"')&&g.includes('aria-label="Strike"'),'key and label'); ok(!/title=/.test(g),'no native title');
   ok(typeof sgTipShow==='function'&&typeof sgTipHide==='function','tooltip helpers');
 });
+test('Screens: battle buttons show their mana cost with the mana glyph, not a bare number',()=>{
+  fresh(); arena([foe()]); S.player.skills.spear=1; const h=battleHTML(), m='aria-label="Mana cost"';
+  ok(new RegExp('data-k="siphon"[^>]*>Soul Siphon <span class="mcost">[^]*?'+m+'[^]*?</span>'+siphonCost()+'</span>').test(h),'Soul Siphon');
+  ok(new RegExp('Bone Ward <span class="mcost">[^]*?'+m+'[^]*?</span>6</span>').test(h),'Bone Ward');
+  ok(new RegExp('data-k="sk:spear"[^>]*>Bone Spear <span class="mcost">[^]*?'+m).test(h),'a skill'); ok(trText('Mana cost')!=='Mana cost','Turkish');
+});
 test('Screens: item lines are stat glyphs with numbers, each glyph labelled with the full word; the comparison keeps its colours',()=>{
   const it=give('2-wa'); it.ro=[['will',3]]; const h=itemCard(it,'',true), d=ITEM['2-wa'];
   Object.keys(d.stats).filter(k=>d.stats[k]).forEach(k=>ok(h.includes('class="sg sg-'+k+'" role="img" data-k="'+k+'" aria-label="'+STATL[k][0]+'"'),'glyph for '+k));

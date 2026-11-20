@@ -788,6 +788,7 @@ const TR_DICT=new Map(Object.entries({
 "Max HP (flat)":"Azami Can (sabit)",
 "Max HP (percent)":"Azami Can (yüzde)",
 "Max mana":"Azami mana",
+"Mana cost":"Mana bedeli",
 "Max mana (flat)":"Azami mana (sabit)",
 "Max mana (percent)":"Azami mana (yüzde)",
 "Mender":"Şifacı",
