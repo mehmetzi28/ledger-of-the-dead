@@ -23,15 +23,15 @@ function fxe(kind,u,o){
 }
 function fxEl(k){ try{ return typeof app!=='undefined'&&app&&app.querySelector?app.querySelector('[data-u="'+k+'"]'):null; }catch(e){ return null; } }
 function fxBox(el){ if(!el||!el.getBoundingClientRect) return null; const b=el.getBoundingClientRect(); return b.width>0&&b.height>0?{x:b.left,y:b.top,w:b.width,h:b.height}:null; }
-const fxRect=k=>fxBox(fxEl(k));
-const fxAll=sel=>{ try{ return Array.from(app.querySelectorAll(sel)).map(fxBox).filter(Boolean); }catch(e){ return []; } };
+const fxRect=k=>fxStageRect(k)||fxBox(fxEl(k));   // on the battle stage when it runs, else the card
+const fxAll=sel=>{ try{ return Array.from(app.querySelectorAll(sel)).map(el=>fxRect(el.getAttribute('data-u'))).filter(Boolean); }catch(e){ return []; } };
 
 // After every render: start loading, shut the layer when effects are switched off, or play the queue.
 function fxSync(){
   try{ fxBeats(); }catch(e){}
   if(!fxAllowed()){ if(FXL.st==='ready'||FXL.st==='init') fxDrop(); else if(FXL.st==='loading') FXL.st='off'; FXL.q.length=0; return; }
   if(FXL.st==='off') fxLoad();
-  else if(FXL.st==='ready') fxFlush();
+  else if(FXL.st==='ready'){ try{ fxStage(); }catch(e){} const hit=fxFlush(); try{ fxStageAfter(hit); }catch(e){} }
 }
 // Beats that need no PixiJS, read from the state after each render: a boss entering its second phase shakes the battle window
 // and dims the room for a moment; a minion that just fell crumbles on its card. They only add CSS classes and a passing overlay.
@@ -81,12 +81,12 @@ async function fxInit(){
     FXL.app=a; FXL.root=new PIXI.Container(); a.stage.addChild(FXL.root);
     FXL.tex=fxTextures(a.renderer); FXL.col=fxColours();
     a.ticker.add(fxStep);
-    if(!FXL.vis){ FXL.vis=true; document.addEventListener('visibilitychange',()=>{ if(document.hidden) fxClear(); }); }
-    FXL.st='ready';
+    if(!FXL.vis){ FXL.vis=true; document.addEventListener('visibilitychange',()=>{ if(document.hidden) fxClear(); else if(FXS.app&&FXS.app.canvas.isConnected) FXS.app.ticker.start(); }); }
+    FXL.st='ready'; fxStageInit();
   }catch(e){ fxFail(e&&e.message); }
 }
 function fxDrop(){   // effects switched off: take the canvas and the WebGL context away entirely
-  const a=FXL.app; fxClear(); FXL.st='off'; FXL.app=null; FXL.root=null; FXL.pool=[];
+  const a=FXL.app; fxClear(); FXL.st='off'; FXL.app=null; FXL.root=null; FXL.pool=[]; fxStageDrop();
   if(!a) return;
   try{ for(const k in FXL.tex) FXL.tex[k].destroy(true); }catch(e){}
   FXL.tex=null;
@@ -96,6 +96,7 @@ function fxClear(){   // drop every live effect and stop the ticker (tab hidden,
   FXL.q.length=0;
   for(const p of FXL.live) fxFree(p); FXL.live.length=0;
   const a=FXL.app; if(a) try{ a.render(); a.ticker.stop(); }catch(e){}
+  if(FXS.app) try{ FXS.app.ticker.stop(); }catch(e){}
 }
 
 // ----- textures: drawn once with Graphics, no image files -----
@@ -215,7 +216,7 @@ function fxUlt(e,r,col){   // one stronger version of the fitting effect, across
 
 // Plays the queued moments in order on a short clock, so a full army's turn reads as a flurry rather than one flash.
 function fxFlush(){
-  const q=FXL.q; FXL.q=[]; if(!q.length) return;
+  const q=FXL.q, hit={}; FXL.q=[]; if(!q.length) return hit;   // hit: when each unit is first struck this turn (the stage's numbers wait for it)
   const col=FXL.col, me=()=>fxRect('p'), nM=q.filter(e=>e.kind==='mhit').length, sparks=nM>8?2:nM>4?3:4;
   let t=0, prev=0;
   for(const e of q){
@@ -239,6 +240,197 @@ function fxFlush(){
       case 'ult': fxUlt(e,r,col); t+=300; break;
     }
     prev=at;
+    if(HIT_K[e.kind]){ const h=hit[e.k]||(hit[e.k]={t:at,c:0}); if(e.o&&e.o.crit) h.c=1; try{ fxStageMove(e,at); }catch(x){} }
   }
-  fxGo();
+  fxGo(); return hit;
+}
+
+// ===== THE BATTLE STAGE =====
+// While the layer runs, the battle is shown on a second small canvas in .stage (battleHTML): the foes' back and front rows at the
+// top, your front and back rows below, each fighter a sprite cut from its painted icon (ico(), rasterised once and cached by its
+// markup) with a name plate, an HP bar, status marks and, on foes, the intent. It reads the state after each render and never
+// changes it; clicking a foe goes through stageTap (ui-screens.js), the same action as its card. The cards fold into a compact
+// strip (.win.staged) that stays in the DOM for screen readers and keyboards. Without the layer nothing here runs.
+const FXS={app:null,root:null,floor:null,tex:null,col:null,f:new Map(),ico:new Map(),css:null,seen:null,h:0,W:0,t:0,ok:false,nums:[],font:['serif'],fontH:['serif'],rs:false};
+const stageOn=()=>FXS.ok&&FXL.st==='ready'&&fxAllowed();
+const HIT_K={strike:1,mhit:1,hurt:1,spear:1,burst:1,siphon:1};
+const ST_COL={poison:0x9fd47a,bleed:0xe5776a,burn:0xf0a05a,blight:0xb9b46a,frozen:0xdfe6e2,chilled:0xdfe6e2,cursed:0xff8a6a,sundered:0xd08a52,hexed:0xb8a48c,hasted:0xe8c66a,shield:0xe8dcc8};
+const INT_COL={atk:0xe5776a,heal:0x9fd47a,abil:0xd3a64d,frozen:0xdfe6e2};
+function fxStatus(u){   // one colour per status on a unit, in the order its pills show them
+  const c=[]; if(!u||u.hp<=0) return c;
+  if(u.dots) for(const k in u.dots) c.push(ST_COL[k]||ST_COL.shield);
+  if(u.stun>0) c.push(ST_COL.frozen); if(u.curse) c.push(ST_COL.cursed);
+  if(u.st) for(const k in u.st) if(u.st[k]>0) c.push(ST_COL[k]||ST_COL.shield);
+  if(u.shield>0) c.push(ST_COL.shield); return c;
+}
+function fxStageRect(k){   // a fighter's box on the page, for the overlay effects
+  const F=FXS.ok&&k!=null&&FXS.f.get(String(k)), cv=FXS.app&&FXS.app.canvas; if(!F||!cv||!cv.isConnected) return null;
+  const b=cv.getBoundingClientRect(); return b.width>0?{x:b.left+F.x-F.s/2,y:b.top+F.y-F.s,w:F.s,h:F.s}:null;
+}
+async function fxStageInit(){
+  if(FXS.app) return;
+  try{
+    const a=new PIXI.Application();
+    await a.init({backgroundAlpha:0,antialias:true,resolution:Math.min(window.devicePixelRatio||1,2),autoDensity:true,width:320,height:200,
+      autoStart:false,sharedTicker:false,preference:'webgl',powerPreference:'low-power',hello:false});
+    if(FXL.st!=='ready'||FXS.app){ a.destroy({removeView:true},{children:true}); return; }
+    a.ticker.stop(); a.ticker.maxFPS=40;
+    a.canvas.className='stage-cv'; a.canvas.setAttribute('aria-hidden','true');
+    const fam=n=>{ try{ const v=getComputedStyle(document.documentElement).getPropertyValue(n).split(',').map(x=>x.trim().replace(/^['"]|['"]$/g,'')).filter(Boolean); return v.length?v:['serif']; }catch(e){ return ['serif']; } };
+    FXS.font=fam('--font-data'); FXS.fontH=fam('--font-head'); FXS.col=fxColours();
+    FXS.app=a; FXS.root=new PIXI.Container(); FXS.root.sortableChildren=true; FXS.floor=new PIXI.Graphics(); FXS.floor.zIndex=-1e4;
+    a.stage.addChild(FXS.root); FXS.root.addChild(FXS.floor); FXS.tex=fxTextures(a.renderer);
+    a.ticker.add(fxStageStep); FXS.ok=true;
+    if(!FXS.rs){ FXS.rs=true; window.addEventListener('resize',()=>{ if(FXS.app) try{ fxStage(); }catch(e){} }); }
+    if(typeof S!=='undefined'&&S&&S.mode==='battle') render();   // swap the cards for the stage now, not on the next turn
+  }catch(e){ FXS.ok=false; try{ console.info('Battle stage is off: '+(e&&e.message)+'. The cards show the fight instead.'); }catch(x){} }
+}
+function fxStageDrop(){   // the layer is going away: the stage too, and the cards come back
+  const a=FXS.app, was=FXS.ok; FXS.ok=false; FXS.app=null; FXS.root=null; FXS.floor=null; FXS.f.clear(); FXS.nums=[]; FXS.seen=null; FXS.W=0;
+  if(a) try{ a.ticker.remove(fxStageStep); for(const k in FXS.tex) FXS.tex[k].destroy(true); FXS.ico.forEach(t=>{ if(t) t.destroy(true); }); a.destroy({removeView:true},{children:true}); }catch(e){}
+  FXS.tex=null; FXS.ico.clear();
+  if(was&&typeof app!=='undefined'&&app&&app.querySelector&&app.querySelector('.win.staged')) setTimeout(()=>render(),0);
+}
+
+// ----- fighter sprites: the painted icon drawn once into a texture -----
+function fxIcoCss(){   // the icon rules from the page's stylesheet, so the picture matches the cards
+  if(FXS.css!=null) return FXS.css; let s='';
+  for(const sh of Array.from(document.styleSheets||[])){ let rs; try{ rs=sh.cssRules; }catch(e){ continue; }
+    for(const r of Array.from(rs||[])) if(r.selectorText&&/\.ico|\.mt-/.test(r.selectorText)&&!/body|\.unit|\.item|\.gslot|\.trow|\.mrow|\.bes/.test(r.selectorText)) s+=r.cssText; }
+  const cs=getComputedStyle(document.documentElement), v=n=>cs.getPropertyValue(n).trim();
+  return FXS.css=s+'.ico svg,.ico>svg,.ico.boss svg,.ico.boss>svg{width:64px!important;height:64px!important;overflow:visible}g.ico{--well:'+v('--well')+';--gold:'+v('--gold')+';--ember:'+v('--ember')+'}';
+}
+function fxIcoTex(html){   // null until the image has loaded; the fighters that wear it are updated then
+  if(FXS.ico.has(html)) return FXS.ico.get(html);
+  FXS.ico.set(html,null);
+  const m=/^<span class="([^"]*)"[^>]*>(<svg[\s\S]*<\/svg>)/.exec(html), defs=document.getElementById('paint');
+  if(!m||!defs||!window.URL||!URL.createObjectURL) return null;
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="-4 -4 72 72"><style>'+fxIcoCss()+'</style><defs>'+defs.parentNode.innerHTML+'</defs><g class="'+m[1]+'">'+m[2].replace('<svg ','<svg x="0" y="0" width="64" height="64" ')+'</g></svg>';
+  const img=new Image(), url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));
+  img.onload=()=>{ URL.revokeObjectURL(url); if(!FXS.app) return;
+    try{ const c=document.createElement('canvas'); c.width=c.height=160; c.getContext('2d').drawImage(img,0,0,160,160); const t=PIXI.Texture.from(c); FXS.ico.set(html,t);
+      for(const F of FXS.f.values()) if(F.html===html){ F.spr.texture=t; fxFit(F); } }catch(e){} };
+  img.onerror=()=>URL.revokeObjectURL(url);
+  img.src=url; return null;
+}
+function fxFit(F){ const z=F.s*72/64; if(F.spr.texture&&F.spr.texture!==PIXI.Texture.EMPTY){ F.spr.width=z; F.spr.height=z; } F.spr.y=F.s*4/64; }
+function fxFighter(k,foe){
+  const c=new PIXI.Container(), sp=(t,add)=>{ const s=new PIXI.Sprite(FXS.tex[t]); s.anchor.set(.5); if(add) s.blendMode='add'; s.visible=false; return s; };
+  const F={k,foe,c,x:0,y:0,cx:null,cy:0,s:0,ph:fxR(0,6.3),a:[],dead:null,key:'',html:''};
+  F.shadow=sp('dot'); F.shadow.tint=0; F.shadow.visible=true;
+  F.glow=sp('dot',1); F.ring=sp('ring',1); F.chg=sp('ring',1); F.chg.tint=FXS.col.ember; F.bk=sp('ring',1); F.bk.tint=FXS.col.ward;
+  F.body=new PIXI.Container(); F.spr=new PIXI.Sprite(PIXI.Texture.EMPTY); F.spr.anchor.set(.5,1); F.body.addChild(F.spr);
+  F.plate=new PIXI.Graphics();
+  F.name=new PIXI.Text({text:'',style:{fontFamily:FXS.fontH,fontSize:13,fontWeight:'600',fill:FXS.col.bone,stroke:{color:0x0a0806,width:3}}}); F.name.anchor.set(.5,0);
+  F.tag=foe?new PIXI.Text({text:'',style:{fontFamily:FXS.font,fontSize:11,fontWeight:'700',fill:0xe5776a,stroke:{color:0x0a0806,width:3}}}):new PIXI.Graphics();
+  if(foe) F.tag.anchor.set(.5,1);
+  c.addChild(F.shadow,F.glow,F.ring,F.chg,F.body,F.bk,F.plate,F.name,F.tag);
+  if(foe){ c.eventMode='static'; c.cursor='pointer'; c.on('pointertap',()=>{ try{ stageTap(k); }catch(e){} }); }
+  FXS.root.addChild(c); FXS.f.set(k,F); return F;
+}
+const fxTr=t=>{ try{ return VIEW.lang==='tr'?trText(t):t; }catch(e){ return t; } };
+function fxFitText(T,s,w){ T.text=s; if(T.width<=w) return; let n=s.length; while(n>3&&T.width>w){ n--; T.text=s.slice(0,n)+'…'; } }
+function fxUpd(F,p,cell,tg,r){
+  const u=p.u, s=p.s, dead=u.hp<=0, isP=u.id==='p', max=isP?pMax():u.maxHp;
+  F.u=u; F.x=p.x; F.y=p.y; if(F.cx==null){ F.cx=p.x; F.cy=p.y; } if(F.dead===null) F.dead=dead;
+  const html=isP?ico('Necromancer',pRankI(),{}):ico(u.base||u.kind||u.name,u.rankI,{boss:u.boss,secret:u.secret,elite:u.elite});
+  if(F.html!==html){ F.html=html; F.spr.texture=fxIcoTex(html)||PIXI.Texture.EMPTY; F.s=0; }
+  if(F.s!==s){ F.s=s; fxFit(F); F.shadow.scale.set(s/34,s/120); F.glow.scale.set(s/26,s/76); F.ring.scale.set(s/52,s/150); F.bk.position.set(0,-s*.5); F.c.hitArea=new PIXI.Rectangle(-cell/2,-s-14,cell,s+44); }
+  const nm=F.foe?u.name:(isP?'You':nick(u)), st=fxStatus(u), sel=F.foe&&!dead&&r.target===u.id, ch=F.foe&&!dead?chargeInfo(u):null, it=F.foe&&!dead&&!ch?intentInfo(u):null;
+  const lab=ch?'Charging: '+ch.name:it?it.txt:'', kind=ch?'abil':it?it.k:'', bw=Math.round(Math.max(40,Math.min(s*1.15,cell*.9)));
+  const key=[nm,u.hp,max,s,bw,dead,st.join(','),sel,lab,kind,tg.has(F.k),VIEW.lang,isP?u.shield:0].join('|');
+  if(key===F.key) return; F.key=key;
+  F.name.style.fill=u.boss||u.elite?FXS.col.gold:FXS.col.bone; F.name.style.fontSize=s<50?11:13; fxFitText(F.name,fxTr(nm),bw+16); F.name.y=6;
+  const g=F.plate.clear(), by=F.name.y+F.name.height+2, w=Math.max(0,Math.min(1,u.hp/max));
+  g.rect(-bw/2-1,by-1,bw+2,7).fill({color:0x0a0806,alpha:.85}).rect(-bw/2,by,bw*w,5).fill(F.foe?0xb83a2a:0x6f9a4c);
+  if(isP&&u.shield>0) g.rect(-bw/2,by,bw*Math.min(1,u.shield/max),2).fill(FXS.col.ward);
+  st.slice(0,6).forEach((c,i,a)=>{ const x=(i-(a.length-1)/2)*8; g.poly([x,by+9,x+3,by+12,x,by+15,x-3,by+12]).fill(c).stroke({width:1,color:0x0a0806,alpha:.8}); });
+  F.glow.visible=!!st.length; if(st.length){ F.glow.tint=st[0]; F.glow.alpha=.45; }
+  F.ring.visible=sel; F.ring.tint=FXS.col.bone; F.chg.visible=!!ch;
+  if(F.foe){ F.tag.style.fill=INT_COL[kind]||FXS.col.bone; fxFitText(F.tag,fxTr(lab),Math.max(cell*.95,70)); F.tag.y=-s-4; }
+  else { F.tag.clear(); if(tg.has(F.k)) F.tag.poly([-6,-s-12,6,-s-12,0,-s-4]).fill(0xc9402c).stroke({width:1.5,color:0x0a0806}); }   // a foe means to hit this one next
+}
+// After each render: place the fighters, sized to the stage's width (a phone gets smaller sprites, never fewer lanes).
+function fxStage(){
+  const A=FXS.app; if(!A) return;
+  const host=typeof S!=='undefined'&&S&&S.mode==='battle'&&S.run&&app.querySelector('.stage');
+  if(!host){ if(A.canvas.parentNode) A.canvas.parentNode.removeChild(A.canvas); A.ticker.stop();
+    if(FXS.f.size||FXS.nums.length){ FXS.f.forEach(F=>F.c.destroy({children:true})); FXS.f.clear(); FXS.nums.forEach(n=>n.T.destroy()); FXS.nums=[]; } return; }
+  if(A.canvas.parentNode!==host) host.appendChild(A.canvas);
+  const r=S.run, fresh=!FXS.f.size, W=Math.max(200,host.clientWidth|0), all=[S.player].concat(S.army);
+  const L=[[r.enemies,'b',1],[r.enemies,'f',1],[all,'f',0],[all,'b',0]].map(([l,k,foe])=>({foe,u:l.filter(u=>rowOf(u)===k)})).filter(l=>l.u.length);
+  const fixed=18+L.reduce((a,l)=>a+(l.foe?26:16)+38,0), tall=L.reduce((a,l)=>a+(l.u.some(u=>u.boss)?1.3:1)*1.08,0), room=Math.max(300,(window.innerHeight||800)*.5);   // the stage keeps to about half the screen
+  const n=Math.max(3,...L.map(l=>l.u.length)), cell=W/n, s=Math.round(Math.max(34,Math.min(80,cell*.62,(room-fixed)/tall))), pos=new Map(), tg=new Set();
+  for(const e of r.enemies){ const i=e.hp>0&&intentInfo(e); if(i&&i.k==='atk'&&i.tg) tg.add(fxKey(i.tg)); }
+  let y=6, mid=0;
+  for(const l of L){
+    if(!l.foe&&!mid){ mid=y+4; y+=12; }
+    const big=l.u.some(u=>u.boss)?1.3:1; y+=(l.foe?26:16)+s*big*1.08;
+    l.u.forEach((u,i)=>pos.set(String(fxKey(u)),{u,foe:l.foe,x:Math.round((W-l.u.length*cell)/2+cell*(i+.5)),y:Math.round(y),s:Math.round(s*(u.boss?1.3:1))}));
+    y+=38;
+  }
+  const H=Math.round(y);
+  host.style.height=H+'px';
+  if(H!==FXS.h||W!==FXS.W){ FXS.h=H; FXS.W=W; A.renderer.resize(W,H);
+    FXS.floor.clear(); if(mid) FXS.floor.rect(W*.08,mid,W*.84,1).fill({color:FXS.col.bone,alpha:.14}).rect(W*.2,mid+2,W*.6,1).fill({color:0,alpha:.5}); }
+  for(const [k,p] of pos){ const F=FXS.f.get(k)||fxFighter(k,p.foe); fxUpd(F,p,cell,tg,r); F.c.zIndex=p.y; }
+  for(const [k,F] of FXS.f) if(!pos.has(k)){ F.c.destroy({children:true}); FXS.f.delete(k); }
+  if(fresh){ FXS.seen=r.fx; if(r.cmd&&r.cmd.guard) FXS.gcmd=r.cmd; }   // a stage just opened: show what stands, do not replay the last turn
+  A.ticker.start();
+}
+function fxAnim(F,k,t,d,dx,dy){ F.a.push({k,age:-t,d,dx:dx||0,dy:dy||0}); }
+function fxStageMove(e,at){   // from fxFlush, on the same clock as the overlay: the attacker lunges, the target recoils
+  const T=FXS.f.get(String(e.k)); if(!T) return;
+  const by=e.kind==='strike'||e.kind==='spear'||e.kind==='siphon'?'p':e.o&&e.o.by, A=by!=null&&FXS.f.get(String(by));
+  if(A&&A!==T){ const dx=T.x-A.x, dy=T.y-A.y, d=Math.hypot(dx,dy)||1, go=e.kind==='strike'||e.kind==='mhit'||e.kind==='hurt'?Math.min(d*.4,A.s*.9):A.s*.15;
+    fxAnim(A,'lunge',Math.max(0,at-110),240,dx/d*go,dy/d*go); }
+  fxAnim(T,'recoil',at,300,0,T.foe?-1:1);
+}
+function fxNum(F,txt,col,t,big,small){   // a number that rises off a fighter and fades
+  const T=new PIXI.Text({text:txt,style:{fontFamily:FXS.fontH,fontSize:Math.round((small?12:big?28:19)*(F.s<50?.85:1)),fontWeight:'700',fill:col,stroke:{color:0x0a0806,width:4}}});
+  T.anchor.set(.5,1); T.visible=false; T.zIndex=2e4; FXS.root.addChild(T);
+  FXS.nums.push({T,x:F.x+fxR(-F.s*.15,F.s*.15),y:F.y-F.s*(small?1.05:.7),age:-t,life:big?1050:850,big});
+}
+function fxStageAfter(hit){   // numbers, blocks and deaths for this turn, once per turn (r.fx is new on every action)
+  const r=typeof S!=='undefined'&&S&&S.run; if(!FXS.app||!FXS.f.size||!r) return;
+  if(r.fx!==FXS.seen){ FXS.seen=r.fx;
+    for(const k in r.fx){ const f=r.fx[k], F=FXS.f.get(k); if(!F) continue; const h=hit[k], t=h?h.t:0;
+      if(f.d) fxNum(F,String(f.d),h&&h.c?FXS.col.gold:F.foe?FXS.col.bone:0xe5776a,t+60,h&&h.c);
+      if(f.h) fxNum(F,'+'+f.h,0x9fd47a,t+(f.d?220:0));
+      if(f.c) fxNum(F,fxTr(f.c),FXS.col.gold,t+300,false,true); }
+    for(const k in hit){ const f=r.fx[k], F=FXS.f.get(k); if(F&&!(f&&(f.d||f.h))) fxAnim(F,'block',hit[k].t,420); } }   // struck for nothing: a ward or shield took it
+  if(r.cmd&&r.cmd.guard&&FXS.gcmd!==r.cmd){ FXS.gcmd=r.cmd;   // Guard given this turn: the vanguard plants itself before you while the foes strike
+    const v=guardFront(), V=v&&FXS.f.get(String(fxKey(v))), P=FXS.f.get('p');
+    if(V&&P){ V.c.zIndex=P.y+1; fxAnim(V,'guard',0,1500,P.x+P.s*.25-V.x,P.y-P.s*.35-V.y); } }
+  for(const F of FXS.f.values()){ const dead=F.u.hp<=0; if(dead&&F.dead===false) fxAnim(F,'die',(hit[F.k]?hit[F.k].t:0)+180,700); F.dead=dead; }
+}
+const fxMix=(a,b,k)=>{ const c=s=>Math.round(((a>>s)&255)*(1-k)+((b>>s)&255)*k); return (c(16)<<16)|(c(8)<<8)|c(0); };
+function fxStageStep(tk){
+  const dt=Math.min(50,tk.deltaMS), T=(FXS.t+=dt);
+  for(const F of FXS.f.values()){
+    const e=Math.min(1,dt/120); F.cx+=(F.x-F.cx)*e; F.cy+=(F.y-F.cy)*e; if(!F.a.length) F.c.zIndex=F.y;
+    let ox=0,oy=0,fl=0,dk=-1,bk=-1;
+    for(let i=F.a.length-1;i>=0;i--){ const a=F.a[i]; a.age+=dt;
+      if(a.age<0){ if(a.k==='die') dk=Math.max(dk,0); continue; }
+      const k=a.age/a.d; if(k>=1){ F.a.splice(i,1); continue; }
+      const w=Math.sin(Math.PI*k);
+      if(a.k==='lunge'){ ox+=a.dx*w; oy+=a.dy*w; }
+      else if(a.k==='guard'){ const h=Math.min(1,k/.2,(1-k)/.2); ox+=a.dx*h; oy+=a.dy*h; }
+      else if(a.k==='recoil'){ oy+=a.dy*w*F.s*.1; ox+=Math.sin(k*28)*(1-k)*3; fl=Math.max(fl,1-k); }
+      else if(a.k==='die') dk=k; else if(a.k==='block') bk=k;
+    }
+    const gone=F.dead&&dk<0, bob=gone?0:Math.sin(T/650+F.ph);
+    F.c.x=F.cx+ox; F.c.y=F.cy+oy-(dk>0?dk*F.s*.18:0);
+    F.body.y=-bob*F.s*.02; F.body.scale.set(1+(dk>0?dk*.08:0),(1+bob*.012)*(dk>0?1-.3*dk:1));
+    F.spr.alpha=gone?.26:dk>0?1-.74*dk:1;
+    F.spr.tint=gone?0x5a5450:fl>0?fxMix(0xffffff,0xff6a55,fl):dk>0?fxMix(0xffffff,0x5a5450,dk):0xffffff;
+    F.plate.visible=F.name.visible=F.tag.visible=!gone;
+    if(F.ring.visible) F.ring.alpha=.5+.25*Math.sin(T/280);
+    if(F.chg.visible){ const p=(T%900)/900; F.chg.alpha=.8*(1-p)+.1; F.chg.scale.set(F.s/34*(1.35-.6*p),F.s/100*(1.35-.6*p)); }
+    F.bk.visible=bk>=0; if(bk>=0){ F.bk.alpha=.9*(1-bk); F.bk.scale.set(F.s/90*(1+bk*.6)); }
+  }
+  for(let i=FXS.nums.length-1;i>=0;i--){ const n=FXS.nums[i]; n.age+=dt; if(n.age<0) continue;
+    const k=n.age/n.life; if(k>=1){ n.T.destroy(); FXS.nums.splice(i,1); continue; }
+    n.T.visible=true; n.T.x=n.x; n.T.y=n.y-36*(1-(1-k)*(1-k)); n.T.alpha=k>.6?(1-k)/.4:1; n.T.scale.set(n.big?1.5-.5*Math.min(1,k*5):1);
+  }
 }

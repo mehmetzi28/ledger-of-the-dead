@@ -759,6 +759,8 @@ const TR_DICT=new Map(Object.entries({
 "Lock it so it is never sold, salvaged or discarded":"Asla satılmaması, parçalanmaması veya atılmaması için kilitle",
 "Locked":"Kilitli",
 "Log":"Kayıt",
+"Show the full log":"Tüm kaydı göster",
+"Show fewer lines":"Daha az satır göster",
 "Lore":"Hikâye",
 "Lore page":"Hikâye sayfası",
 "Loss":"Yenilgi",

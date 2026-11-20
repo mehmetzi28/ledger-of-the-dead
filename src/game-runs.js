@@ -213,7 +213,7 @@ function act(kind){
     let tg=minionTarget(m); if(!tg) break;
     const breach=m.role==='reaper'&&r.execute&&hasSt(tg,'sundered')&&foeArmor()>0;   // Breach: Execute ignores a Sundered foe's armor
     let d=hit(m.atk*(breach?pierceMul(1):dmgMul())*(r.frenzy>0?r.frenzyMul:1)*(m.role==='reaper'&&r.execute&&tg.hp<tg.maxHp*.4?2:1)*(hasTrait(m,'wrathful')&&m.hp<m.maxHp/2?1.4:1)*hexK(m)*rowK(m)*(tg.hp<tg.maxHp*BUTCHER_LOW?1+markV(m,'butcher'):1)*breakK(m,tg)); const cc=mCritCh(m), crit=(m.role==='striker'&&r.focus)||(cc>0&&Math.random()<cc); if(crit){ d=Math.round(d*1.8); tally('crits'); }
-    KILL=m.role==='reaper'&&r.execute?'exec':null; hurtFoe(tg,d); KILL=null; fxe('mhit',tg);
+    KILL=m.role==='reaper'&&r.execute?'exec':null; hurtFoe(tg,d); KILL=null; fxe('mhit',tg,{by:fxKey(m)});
     if(crit&&r.focus&&tg.charging&&tg.hp>0) breakCharge(tg,m.nick+'\'s focused strike breaks '+theName(tg.name)+'\'s focus.');
     let extra=minionOnHit(m,tg);
     if(m.role==='reaper'){ const o=liveFoes().filter(x=>x!==tg); if(o.length){ const o2=pick(o); const d2=Math.round(d*.5); hurtFoe(o2,d2); extra=' and cleaves '+o2.name+' for '+d2; } }
@@ -243,7 +243,7 @@ function act(kind){
     if(omen()==='eclipse'&&Math.random()<ECLIPSE_MISS){ log(e.name+' misses '+(tg.id==='p'?'you':nameOf(tg))+' in the dark.','ok'); continue; }   // Black Eclipse
     let d=hit(e.atk*enrage(e)*(hasAff(e,'enraged')&&e.hp<e.maxHp/2?1.6:1)*hexK(e)); let crit=e.role==='striker'&&Math.random()<foeCrit(); if(crit&&hasSt(e,'hexed')){ crit=false; combo('fizzle',e,'Fizzle: the hex spoils '+e.name+'\'s killing blow.'); } if(crit&&tg.id==='p'&&hasMod('calcify','a')) crit=false;   /* Petrified: rolled, then refused */ if(crit) d=Math.round(d*1.8);
     { const gv=guardBlow(tg,d); if(gv){ tg=gv; d=Math.round(d*SB_TAKE); } }   // Guard: swapped here so the log names who was hit
-    BLOW={n:e.name,k:crit?'crit':'hit'}; hurtAlly(tg,d); BLOW=null; fxe('hurt',tg,crit?{crit:1}:null); if(crit) addDot(tg,'bleed',e.atk*.3,2);   // a striker's crit opens a wound
+    BLOW={n:e.name,k:crit?'crit':'hit'}; hurtAlly(tg,d); BLOW=null; fxe('hurt',tg,{crit:crit?1:0,by:e.id}); if(crit) addDot(tg,'bleed',e.atk*.3,2);   // a striker's crit opens a wound
     if(hasAff(e,'vampiric')){ const h=Math.min(e.maxHp-e.hp,Math.round(d*.4*blightK(e))); if(h>0){ e.hp+=h; mark(e,0,h); } }
     const ex=foeOnHit(e,tg);
     log(e.name+' hits '+(tg.id==='p'?'you':nameOf(tg))+' for '+d+(crit?' (crit'+(tg.hp>0&&tg.dots&&tg.dots.bleed?', bleeding':'')+')':'')+ex+'.','bad');

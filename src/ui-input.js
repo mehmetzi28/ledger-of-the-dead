@@ -128,7 +128,7 @@ const ACTIONS={
   ttf:k=>{ ui.ttf=(k in {all:1,got:1,locked:1,close:1}||/^r[0-5]$/.test(k))?k:'all'; },
   tower:k=>startTower(+k),
   act:k=>act(k),
-  target:k=>setTarget(k),
+  target:k=>setTarget(k), logall:()=>{ ui.logAll=!ui.logAll; },
   flee:()=>flee(),
   raise:k=>tryRaise(k), descend:()=>descend(), town:()=>returnTown(), retry:()=>{ retryRoom(); }, rest:()=>restDay(),
   release:k=>{ if(ui.confirm===+k){ release(+k); ui.confirm=null; } else ui.confirm=+k; },

@@ -91,4 +91,42 @@ test('Battle effects: the Effects setting says Full draws them, in Turkish too',
   VIEW.fx='auto';
 });
 
+test('Battle stage: off in Node, so the battle keeps its cards and the full log',()=>noLayer(()=>{
+  setLvl(10); arena([foe(),foe()]); for(let i=0;i<6;i++) log('line '+i);
+  ok(!stageOn(),'no stage without the layer'); const h=renderAll('stage off');
+  ok(!h.includes(' staged')&&!h.includes('class="stage"'),'no stage, no strip'); ok(!h.includes('data-a="logall"'),'no log toggle'); ok(h.includes('line 0')&&h.includes('line 5'),'every line');
+}));
+
+test('Battle stage: the short log shows the newest three lines and a toggle that opens the rest',()=>{
+  setLvl(10); arena([foe()]); S.run.log=[]; for(let i=0;i<6;i++) log('line '+i); ui.logAll=false;
+  let h=logHTML(true); eq((h.match(/<li/g)||[]).length,3,'three lines'); ok(h.includes('line 5')&&!h.includes('line 2<'),'the newest first');
+  ok(h.includes('data-a="logall"')&&h.includes('aria-expanded="false"')&&h.includes('Show the full log'),'a toggle');
+  ACTIONS.logall(); h=logHTML(true); eq((h.match(/<li/g)||[]).length,6,'opened'); ok(h.includes('aria-expanded="true"')&&h.includes('Show fewer lines'));
+  ACTIONS.logall(); ok(!ui.logAll,'closes again');
+  ok(!logHTML().includes('logall'),'the long log has no toggle'); S.run.log=S.run.log.slice(0,2); ok(!logHTML(true).includes('logall'),'two lines need no toggle');
+  for(const k of ['Show the full log','Show fewer lines']) ok(TR_DICT.has(k),'Turkish: '+k);
+});
+
+test('Battle stage: clicking a foe on the stage targets it like its card, and dead or unknown foes are ignored',()=>{
+  setLvl(10); const a=foe(), b=foe(), c=foe({hp:0,dead:true}); arena([a,b,c]); const A=S.run.enemies[0].id, B=S.run.enemies[1].id, C=S.run.enemies[2].id;
+  S.run.target=A; ok(stageTap(B),'a living foe'); eq(S.run.target,B,'targeted');
+  ok(!stageTap(C),'a fallen foe'); ok(!stageTap('nobody'),'no such foe'); eq(S.run.target,B,'the target stays');
+  ui.confirm=5; stageTap(A); eq(S.run.target,A); eq(ui.confirm,null,'a pending confirm is dropped, as any click does');
+  S.mode='town'; ok(!stageTap(B),'only in battle'); S.mode='battle';
+});
+
+test('Battle stage: with the stage on, the cards fold into a strip that keeps targets, intents and the short log',()=>{
+  setLvl(10); arena([foe(),foe()]); for(let i=0;i<6;i++) log('line '+i); ui.logAll=false;
+  const ok0=FXS.ok, st=FXL.st, fx=VIEW.fx; FXS.ok=true; FXL.st='ready'; VIEW.fx='full';
+  try{
+    if(!fxAllowed()) return;   /* a browser asking for reduced motion: the stage stays off */
+    const h=battleHTML();
+    ok(h.includes('<section class="win staged"'),'the strip'); ok(/<div class="stage" aria-hidden="true" style="height:\d+px"><\/div>/.test(h),'the stage host');
+    for(const e of S.run.enemies) ok(h.includes('data-a="target" data-k="'+e.id+'"'),'a target button for '+e.id);
+    ok(h.includes('class="intent'),'intents stay'); ok(h.includes('data-u="p"'),'your card stays'); ok(h.includes('data-a="logall"'),'the short log');
+  } finally { FXS.ok=ok0; FXL.st=st; VIEW.fx=fx; }
+  ok(!battleHTML().includes('staged'),'and back to cards');
+  const u=foe(); u.dots={poison:{d:3,t:2}}; u.st={hasted:1}; eq(fxStatus(u).length,2,'a colour per status'); u.hp=0; eq(fxStatus(u).length,0,'none on the dead');
+});
+
 })();

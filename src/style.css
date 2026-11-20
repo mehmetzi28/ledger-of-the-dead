@@ -1030,3 +1030,18 @@ html:has(body.nobg)::after{display:none}
 @media (prefers-reduced-motion:reduce){.fx-dim{display:none}.unit.ally.crumble{animation:none}}
 .q-note.bad,.u-sub.bad{color:var(--blood-text)}   /* .q-note and .u-sub set their own grey after .bad, so a warning line read as plain text (siege intro, war table) */
 @media (max-width:520px){.corpse .btns{gap:6px}.corpse .btns .btn{padding-left:7px;padding-right:7px}}   /* a phone: Raise and With salts sit side by side when they fit */
+/* the battle stage (src/fx.js): a canvas over the painted arena while the effects layer runs; the cards fold into a compact strip (.win.staged) that keeps every name, HP, status and intent */
+.stage{position:relative;width:100%;min-height:120px;border:1px solid var(--line);border-radius:3px;overflow:hidden;touch-action:manipulation;
+  background:radial-gradient(ellipse 75% 60% at 50% 50%,rgba(24,18,13,.2),rgba(4,3,2,.72)),linear-gradient(180deg,rgba(60,16,10,.2),transparent 45%,transparent 55%,rgba(20,26,14,.16));box-shadow:inset 0 0 40px rgba(0,0,0,.85)}
+.stage canvas{display:block}
+.win.staged .row{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px}
+.win.staged .row.minis{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-top:0}
+.win.staged .row.side>.unit:not(.mini){grid-column:auto;grid-row:auto}
+.win.staged .unit{padding:5px 8px;gap:3px}
+.win.staged .unit .ico,.win.staged .unit>.fx{display:none}
+.win.staged .unit .u-top,.win.staged .unit .u-sub{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.win.staged .unit .u-name{font-size:14px;line-height:1.2}
+.win.staged .unit .bar{height:4px}.win.staged .unit .u-hp{font-size:11px;line-height:1.1}
+.win.staged .log.short{min-height:0}
+.log-t{align-self:flex-start;margin-top:-6px}
+@media (max-width:540px){.win.staged .row,.win.staged .row.minis{grid-template-columns:repeat(2,minmax(0,1fr))}}

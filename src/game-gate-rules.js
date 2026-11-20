@@ -212,10 +212,10 @@ function foeOnHit(e,tg){   // what a foe's hit leaves behind: affixes and the Wh
 function hasteStrikes(){   // the end of the turn: every Hasted unit strikes once more for half damage
   const r=S.run;
   for(const m of S.army){ if(!(m.hp>0)||!hasSt(m,'hasted')) continue; const tg=minionTarget(m); if(!tg) break;
-    let d=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*HASTE_MUL*hexK(m)*rowK(m)*breakK(m,tg)); const cr=blurCrit(m); if(cr) d=Math.round(d*1.8); hurtFoe(tg,d); fxe('mhit',tg); log(m.nick+' is hasted and strikes '+tg.name+' again for '+d+(cr?' (crit)':'')+'.'); const x=minionOnHit(m,tg); if(x) combo('swift',tg,'Swift Blow: '+tg.name+' is '+x.split(' and ').filter(Boolean).map(v=>({poisons:'poisoned',blights:'blighted',sunders:'sundered',hexes:'hexed',chills:'chilled',burns:'burning'})[v.split(' ')[0]]).join(', ')+'.'); checkDeaths(); }
+    let d=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*HASTE_MUL*hexK(m)*rowK(m)*breakK(m,tg)); const cr=blurCrit(m); if(cr) d=Math.round(d*1.8); hurtFoe(tg,d); fxe('mhit',tg,{by:fxKey(m)}); log(m.nick+' is hasted and strikes '+tg.name+' again for '+d+(cr?' (crit)':'')+'.'); const x=minionOnHit(m,tg); if(x) combo('swift',tg,'Swift Blow: '+tg.name+' is '+x.split(' and ').filter(Boolean).map(v=>({poisons:'poisoned',blights:'blighted',sunders:'sundered',hexes:'hexed',chills:'chilled',burns:'burning'})[v.split(' ')[0]]).join(', ')+'.'); checkDeaths(); }
   for(const e of liveFoes()){ if(!hasSt(e,'hasted')||e.froze===r.turn) continue; let alive=allies().filter(a=>a.hp>0); if(!alive.length) break;
     alive=foeReach(e,alive);   // Taunt and the row rule hold for the follow-up too
-    let tg=foeTarget(alive), d=hit(e.atk*HASTE_MUL*hexK(e)*enrage(e)); const gv=guardBlow(tg,d); if(gv){ tg=gv; d=Math.round(d*SB_TAKE); } BLOW={n:e.name,k:'haste'}; hurtAlly(tg,d); BLOW=null; fxe('hurt',tg); log(e.name+' is hasted and strikes '+(tg.id==='p'?'you':nameOf(tg))+' again for '+d+'.','bad');
+    let tg=foeTarget(alive), d=hit(e.atk*HASTE_MUL*hexK(e)*enrage(e)); const gv=guardBlow(tg,d); if(gv){ tg=gv; d=Math.round(d*SB_TAKE); } BLOW={n:e.name,k:'haste'}; hurtAlly(tg,d); BLOW=null; fxe('hurt',tg,{by:e.id}); log(e.name+' is hasted and strikes '+(tg.id==='p'?'you':nameOf(tg))+' again for '+d+'.','bad');
     if(tg.hp<=0&&tg.id!=='p') log(tg.nick+' is down.','bad'); if(S.player.hp<=0) return; }
 }
 function tickDots(){

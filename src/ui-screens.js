@@ -140,15 +140,22 @@ function srAnnounce(){   // read out the newest battle line once (the log itself
 // Front and Back rows in battle (rowOf, game-gate-rules.js): a small label over each row; an empty row is left out
 function rowsHTML(list,cls,card){ return [['f','Front'],['b','Back']].map(([k,l])=>{ const L=list.filter(u=>rowOf(u)===k); return L.length?'<div class="brow"><span class="row-l">'+l+'</span><div class="'+cls+'">'+L.map(card).join('')+'</div></div>':''; }).join(''); }
 const rowBtn=(m,cls,txt)=>{ const f=rowOf(m)==='f'; return S.mode==='battle'?'':'<button class="'+cls+'" data-a="mrow" data-k="'+m.uid+'" title="'+(f?'Move to back':'Move to front')+'">'+txt(f)+'</button>'; };   // rows change out of battle only
-function logHTML(){ return '<ol class="log">'+S.run.log.map(l=>'<li class="'+l.c+'">'+l.m+'</li>').join('')+'</ol>'; }
+function logHTML(short){   // short (the battle stage is on): the newest three lines, and a toggle for the rest
+  const L=S.run.log, cut=short&&L.length>3;
+  return '<ol class="log'+(short?' short':'')+'">'+(cut&&!ui.logAll?L.slice(0,3):L).map(l=>'<li class="'+l.c+'">'+l.m+'</li>').join('')+'</ol>'
+   +(cut?'<button class="linkbtn log-t" data-a="logall" aria-expanded="'+!!ui.logAll+'">'+(ui.logAll?'Show fewer lines':'Show the full log')+'</button>':''); }
+function stageTap(k){   // a foe clicked on the battle stage (fx.js): the same action as its card's button
+  if(S.mode!=='battle'||!S.run||!S.run.enemies.some(e=>e.id===k&&e.hp>0)) return false;
+  if(ui.confirm!==null) ui.confirm=null; ACTIONS.target(k); settled(); return true; }
 function battleHTML(){
   currentTarget();
-  const r=S.run, D=DUNGEONS[r.di], P=S.player, boss=r.room===r.rooms-1, ans=chargeAns();
+  const r=S.run, D=DUNGEONS[r.di], P=S.player, boss=r.room===r.rooms-1, ans=chargeAns(), st=stageOn();   /* st: the battle stage (fx.js) shows the fight; the cards fold into a strip */
   const mini='<div class="mini-hp" aria-hidden="true"><div><span>HP '+Math.max(0,P.hp)+'/'+pMax()+(P.shield?' +'+P.shield:'')+'</span><div class="bar"><i class="fill hp" style="width:'+pct(P.hp,pMax())+'%"></i></div></div><div><span>Mana '+P.mana+'/'+pMana()+'</span><div class="bar"><i class="fill mp" style="width:'+pct(P.mana,pMana())+'%"></i></div></div></div>';
-  return '<section class="win" aria-labelledby="h-battle">'+mini+'<h2 class="win-h" id="h-battle">'+(r.tw?'Hell Tower &middot; Floor '+r.tw+(r.tw%10===0?' &middot; Warden':'')+' &middot; Turn '+r.turn:(r.siege?'Siege &middot; Wave '+(r.room+1)+'/'+r.rooms+' &middot; Turn '+r.turn:r.trial?'Trial &middot; Room '+(r.room+1)+'/'+r.rooms+' &middot; Turn '+((r.tt||0)+1):(r.rift?'The Rift &middot; Depth '+r.rift+' &middot; ':'')+D.name+' &middot; Room '+(r.room+1)+'/'+r.rooms+(boss?' &middot; Boss':'')+' &middot; Turn '+r.turn))+'</h2>'
+  return '<section class="win'+(st?' staged':'')+'" aria-labelledby="h-battle">'+mini+'<h2 class="win-h" id="h-battle">'+(r.tw?'Hell Tower &middot; Floor '+r.tw+(r.tw%10===0?' &middot; Warden':'')+' &middot; Turn '+r.turn:(r.siege?'Siege &middot; Wave '+(r.room+1)+'/'+r.rooms+' &middot; Turn '+r.turn:r.trial?'Trial &middot; Room '+(r.room+1)+'/'+r.rooms+' &middot; Turn '+((r.tt||0)+1):(r.rift?'The Rift &middot; Depth '+r.rift+' &middot; ':'')+D.name+' &middot; Room '+(r.room+1)+'/'+r.rooms+(boss?' &middot; Boss':'')+' &middot; Turn '+r.turn))+'</h2>'
    +(r.mod?'<p class="q-note"><span class="curse-line" style="margin:0">Cursed: <b>'+MODS[r.mod].name+'</b>. '+MODS[r.mod].desc+'</span></p>':'')+(r.mod2&&MODS[r.mod2]?'<p class="q-note"><span class="curse-line" style="margin:0">Cursed: <b>'+MODS[r.mod2].name+'</b>. '+MODS[r.mod2].desc+'</span></p>':'')
    +(r.heat?'<p class="q-note bad">Difficulty: <b>'+HEAT[r.heat].name+'</b>'+(r.mod?', and the curse feeds on it':'')+'.</p>':'')
    +(r.bless?'<p class="q-note ok">Blood-blessed: you and your army hit 15% harder in this gate.</p>':'')
+   +(st?'<div class="stage" aria-hidden="true" style="height:'+(FXS.h||300)+'px"></div>':'')
    +'<p class="group-h">Foes'+(foeArmor()?' &middot; '+armorTag(foeArmor()):'')+'</p>'+rowsHTML(r.enemies,'row',e=>unitCard(e,'foe'))
    +'<p class="group-h">Your side'+(r.frenzy>0?' &middot; <span class="ok">Frenzy '+r.frenzy+'</span>':'')+(r.silence>0?' &middot; <span class="bad">Silenced '+r.silence+'</span>':'')+(r.taunt>0?' &middot; <span class="ok">Taunting '+r.taunt+'</span>':'')+'</p>'+rowsHTML([S.player].concat(S.army),'row minis side',u=>u.id==='p'?unitCard(u,'ally'):unitCard(u,'ally',true))
    +'<div class="actbar">'+partyStrip()+'<div class="btns"><button class="btn primary" data-a="act" data-k="strike">Strike +3 mana<kbd>1</kbd></button>'
@@ -162,7 +169,7 @@ function battleHTML(){
    +(activeSkills().length?'<div class="btns">'+activeSkills().map((s,i)=>{ const cd=skCd(s.id), why=r.silence>0?'Silenced by the Hymn':cd>0?'Ready in '+cd+' turn'+(cd>1?'s':''):s.id==='blast'&&!freeCorpse()?'Needs a body that fell this room':s.id==='mend'&&!S.army.some(m=>m.hp>0&&m.hp<m.maxHp)?'No wounded minions':P.mana<s.cost?'Not enough mana':s.desc(sk(s.id));
       const an=ans.includes(s.id)&&canUse(s.id);
       return '<button class="btn'+(an?' answer':'')+'" data-a="act" data-k="sk:'+s.id+'" title="'+why+'"'+(canUse(s.id)?'':' disabled')+'>'+(an?ANS_M:'')+s.name+' '+skCost(s)+(cd>0?' &middot; '+cd+'t':'')+(an?ANS_S:'')+(i<6?'<kbd>'+(i+4)+'</kbd>':'')+'</button>'; }).join('')+'</div>':'')
-   +'</div>'+logHTML()+'</section>';
+   +'</div>'+logHTML(st)+'</section>';
 }
 function slotsHTML(){ const n=slots(), u=armyUsed(); let s='<span class="slots" aria-label="'+u+' of '+n+' slots used">'; for(let i=0;i<n;i++) s+='<i class="slot'+(i<u?' on':'')+'"></i>'; return s+'</span>'; }
 function minionDetail(m){   // everything about one minion, readable without hovering
