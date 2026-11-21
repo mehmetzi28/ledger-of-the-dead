@@ -14,7 +14,7 @@ test('Recommended level: measured per gate, at or above its unlock, and not drif
     ok(Math.abs(recShift(i))<=REC_DRIFT,RANKS[i]+' tuning moved the advice '+recShift(i).toFixed(1)+' levels: re-measure with node tests/run-balance.js \'{"byLvl":true}\' and update REC_BASE and REC_AT'); }
 });
 test('Recommended level: follows a gate\'s armor, foe attack, gate multiplier and foe level',()=>tuned(()=>{
-  DIFF.armor[1]=.74; DIFF.foeAtk[1]=1.1; eq(gateRec(1),9,'the old Crypt tuning was harder');
+  DIFF.armor[1]=.74; DIFF.foeAtk[1]=1.1; eq(gateRec(1),8,'the old Crypt tuning was harder');
   DIFF.armor[1]=.5; DIFF.foeAtk[1]=.85; ok(gateRec(1)<5,'less armor, easier');
   DIFF.foeAtk[2]=1.2; ok(gateRec(2)>9,'harder hits');
   DIFF.gate[3]*=1.2; ok(gateRec(3)>15,'stronger foes');
@@ -71,7 +71,7 @@ test('First raise: a new save\'s first raise always answers, shown as 100%, then
 });
 test('First raise: a failed raise never happens before it, an elite or boss counts, and the tips say so',()=>{
   newGame(); const e=corpse({elite:true,lvl:3}); raiseScene([e]); S.player.mana=99; fix(.99); eq(raiseChance(e),100); tryRaise(e.id); eq(e.result,'raised');
-  ok(/except the very first: that one always answers/.test(TIPS.find(t=>t.id==='raise').m)); ok(/your first raise always answers/.test(FIRST_STEPS[1][2]));
+  ok(/your first never does/.test(TIPS.find(t=>t.id==='raise').m)); ok(/your first raise always answers/.test(FIRST_STEPS[1][2]));
 });
 test('First raise: old saves with an army, history or progress count as having raised; a new save keeps it across reloads',()=>{
   eq(normalizeSave({v:2,player:{lvl:3}}).firstRaise,0,'progress');

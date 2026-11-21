@@ -22,7 +22,7 @@ test('Codex: creatures you have not met stay hidden until you meet them',()=>{
 });
 test('Codex: numbers come from the game tables, so they follow balance changes',()=>{
   ok(cdx('status').includes(Math.round(DIFF.armor[3]*100)+'%')); ok(cdx('town').includes(BUILD_COST[2][0]+' gold + '+BUILD_COST[2][1]+' bone dust')); ok(cdx('skills').includes('Rank 3 (Lv '+skReq(SKILL.reap,3)+')'));
-  const keep=EVENT_CHANCE; ok(cdx('rooms').includes(Math.round(keep*100)+'% of gate rooms'));
+  const keep=EVENT_CHANCE; ok(cdx('rooms').includes(Math.round(keep*100)+'% of gate and Rift rooms'));
 });
 
 test('Codex: the numbers it states match what the game does',()=>{

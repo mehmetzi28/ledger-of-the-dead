@@ -22,7 +22,7 @@ function statsHTML(d,it){ return Object.keys(d.stats).filter(k=>d.stats[k]).map(
 // A fold for long text: a native <details>, so it opens from the keyboard; ui.det remembers it across renders (ui-input.js). With keep the summary
 // stays when open (a heading); without it the summary (a short line) gives way to the body, which holds the full text.
 const detl=(k,sum,body,cls,keep)=>'<details class="more'+(keep?' keep':'')+(cls?' '+cls:'')+'" data-det="'+k+'"'+(ui.det&&ui.det[k]?' open':'')+'><summary>'+(keep?sum:'<span class="more-1">'+sum+'</span>')+' <span class="more-l">Details</span><span class="more-h">Hide details</span></summary><div class="more-b">'+body+'</div></details>';
-function brief(k,t,cls){ const i=t.indexOf('. '), tg=cls==='u-sub'?'div':'p'; return i<0?'<'+tg+' class="'+(cls||'q-note')+'">'+t+'</'+tg+'>':detl(k,t.slice(0,i+1),t,cls||'q-note'); }   // the first sentence in view, the whole text one press away
+function brief(k,t,cls){ return '<details class="more brief '+(cls||'q-note')+'" data-det="'+k+'"'+(ui.det&&ui.det[k]?' open':'')+'><summary title="'+t.replace(/<[^>]+>/g,'').replace(/"/g,'&quot;')+'"><span class="more-l">How it works</span><span class="more-h">Hide</span></summary><div class="more-b">'+t+'</div></details>'; }   // a rule text folded to one small link (its tooltip holds the text), the whole text one press away
 function cmpHTML(it){   // what wearing this would change, against what is in that slot now
   const d=ITEM[it.id], cur=S.equip[d.slot]; if(cur&&cur.u===it.u) return '';
   if(!cur) return '<div class="cmp">Your '+SLOTS[d.slot].toLowerCase()+' slot is empty.</div>';
@@ -229,8 +229,7 @@ function questHTML(){
   const done=questDone();
   return '<section class="win'+foldCls('quest')+'" aria-labelledby="h-quest"><h2 class="win-h" id="h-quest">Daily quest &middot; Day '+S.day+'<span class="fold-sum">'+(q.claimed?'claimed':done?'ready to claim':rows.filter(r=>r[1]>=r[2]).length+'/3')+'</span>'+foldBtn('quest')+'</h2>'
    +rows.map(r=>'<div class="q-row"><span class="box'+(r[1]>=r[2]?' on':'')+'"></span><span>'+r[0]+'</span><span class="num">'+Math.min(r[1],r[2])+'/'+r[2]+'</span></div>').join('')
-   +(q.claimed?'<p class="q-note ok">Reward claimed for today.</p>':done?'<button class="btn primary" data-a="claim">Claim reward</button>':'<p class="q-note">Reward: +'+QUEST_PTS+' stat point'+(QUEST_PTS>1?'s':'')+' and bonus XP.<br>Unfinished at dawn, it simply lapses.</p>')
-   +brief('watch','Each dungeon you enter uses a watch. When the third is spent, the day closes.','q-note')+'</section>';
+   +(q.claimed?'<p class="q-note ok">Reward claimed for today.</p>':done?'<button class="btn primary" data-a="claim">Claim reward</button>':'<p class="q-note" title="Unfinished at dawn, it simply lapses.">Reward: +'+QUEST_PTS+' stat point'+(QUEST_PTS>1?'s':'')+' &middot; XP</p>')+'</section>';
 }
 function bountyHTML(){
   const list=bounties(), town=S.mode==='town';
@@ -269,14 +268,14 @@ function gateHTML(i){
    +'<div class="g-head gs-g'+i+'" aria-hidden="true">'+(locked?G_SEAL+'<span class="g-sealtxt">Sealed &middot; Lv '+R.unlock+'</span>':'')   /* the painted place, its boss once met; text here repeats the card, so screen readers skip it */
    +(met?'<span class="g-por gate-mark">'+ico(D.boss[0],i,{boss:true})+'</span>':'<span class="g-por unknown">'+G_UNKNOWN+'</span>')+'</div>'
    +'<div class="badge r'+i+'">'+RANKS[i]+'</div><div class="g-body"><h3>'+D.name+'</h3>'
-   +(gateMod(i)?'<div role="note" class="curse-line">Cursed: <b>'+MODS[gateMod(i)].name+'</b>. '+MODS[gateMod(i)].desc+' '+MOD_REWARD+(S.ti&&S.ti.clr&&S.ti.clr[5]&&P.lvl-CURSE_GAP>RK[i].lv?' Foes about Lv '+(P.lvl-CURSE_GAP)+'.':'')+'</div>':'')
+   +(gateMod(i)?(M=>'<div role="note" class="curse-line" title="Cursed: '+M.name+'. '+M.desc+' '+MOD_REWARD+'"><b class="curse-tag"><i aria-hidden="true">&#9760;</i> '+M.name+'</b> Foes +'+Math.round((CURSE_FOE-1)*100)+'% &middot; gold x'+MOD_GOLD+' &middot; XP +'+Math.round((MOD_XP-1)*100)+'% &middot; gear +'+Math.round((MOD_DROP-1)*100)+'%'+(S.ti&&S.ti.clr&&S.ti.clr[5]&&P.lvl-CURSE_GAP>RK[i].lv?' &middot; Foes Lv '+(P.lvl-CURSE_GAP):'')+'</div>')(MODS[gateMod(i)]):'')
    +'<div class="g-stars" role="list" aria-label="Clears by difficulty">'+HEAT.map((x,lv)=>'<span role="listitem" class="g-star h'+lv+(stars[lv]?' on':'')+'" title="'+x.name+(stars[lv]?': cleared':': not cleared yet')+'">'+'<i aria-hidden="true">'+(stars[lv]?'&#9733;':'&#9734;')+'</i> '+x.name+'</span>').join('')
    +(best?'<span class="g-best" title="Your fastest clear of this gate, day '+best.day+(best.heat?', '+HEAT[best.heat].name:'')+'">Best '+best.t+' turns</span>':'')+'</div>'
    +'<p>'+D.blurb+'</p>'
    +'<div class="meta">'+(locked?'Opens at level '+R.unlock:'<span class="danger-'+danger.toLowerCase()+'">'+danger+' for you</span>')+' &middot; <span class="rec-lv" title="Most necromancers clear this gate'+(heatOf(i)&&!locked?' on '+HEAT[heatOf(i)].name:'')+' from this hero level">Recommended Lv '+rec+'+</span>'
    +(DIFF.armor[i]?' &middot; '+armorTag(DIFF.armor[i]):'')+' &middot; Boss: <b>'+(met?D.boss[0]:'???')+'</b>'
    +(S.mode==='town'&&raidGates().includes(i)&&bestSquad()&&!raidOrders().length?(sq=>'<div class="raid-odds" title="'+sq[0].nick+' and '+(sq.length-1)+' of your strongest; set the squad on the War table">Raid odds '+Math.round(raidOdds(sq,i)*100)+'%</div>')(bestSquad()):'')
-   +heatHTML(i)+(gateFarm(i)<1?'<div class="farm-line dim">Rewards here '+Math.round(gateFarm(i)*100)+'% on Normal at your level; Hard and up pay in full.</div>':'')+'</div>'
+   +heatHTML(i)+(gateFarm(i)<1?'<div class="farm-line dim" title="Rewards here '+Math.round(gateFarm(i)*100)+'% on Normal at your level; Hard and up pay in full.">Rewards '+Math.round(gateFarm(i)*100)+'% &middot; Hard+ full</div>':'')+'</div>'
    +'<button class="linkbtn g-detb" data-a="gdet" data-k="'+i+'" aria-expanded="'+det+'">'+(det?'Hide details':'Details')+'</button>'+(det?gateDetHTML(i):'')+'</div>'
    +'<button class="btn '+(locked?'':'primary')+'" data-a="enter" data-k="'+i+'"'+(locked?' disabled':'')+'>'+(locked?'Reach Lv '+R.unlock:'Enter'+(heatOf(i)?' &middot; '+HEAT[heatOf(i)].name:''))+'</button></div>';
 }
@@ -297,7 +296,7 @@ function heatHTML(i){   // difficulty picker on a cleared gate's card
   const cur=heatOf(i), H=HEAT[cur], nm=T_('nm'+i);
   return '<div class="heat" role="group" aria-label="Difficulty">'+HEAT.map((x,lv)=>'<button class="chip-btn'+(lv===cur?' on':'')+'" data-a="heat" data-k="'+i+'|'+lv+'"'+(lv>mx?' disabled title="Clear the gate on '+HEAT[lv-1].name+' first"':lv?' title="'+heatRules(lv).join(' ')+'"':'')+' aria-pressed="'+(lv===cur)+'">'+heatMarks(lv)+x.name+' <span class="chip-lv" title="Recommended Lv '+tierRec(i,lv)+'+">'+tierRec(i,lv)+'+</span></button>').join('')
    +(nm?'<span class="nm-mark" title="Cleared on Nightmare '+nm+' time'+(nm>1?'s':'')+'">&#9760; Nightmare'+(nm>1?' x'+nm:'')+'</span>':'')
-   +(cur?'<div class="heat-note">Foes x'+H.foe+' &middot; XP x'+H.xp+' &middot; gold x'+H.gold+' &middot; gear x'+H.drop+(gateMod(i)?' <b class="bad">Cursed and '+H.name+': the curse feeds on it: foes x'+DAMNED_FOE+', rewards x'+DAMNED+'.</b>':'')+'</div>':'')+'</div>';
+   +(cur?'<div class="heat-note">Foes x'+H.foe+' &middot; XP x'+H.xp+' &middot; gold x'+H.gold+' &middot; gear x'+H.drop+(gateMod(i)?' <b class="bad" title="Cursed and '+H.name+': the curse feeds on it: foes x'+DAMNED_FOE+', rewards x'+DAMNED+'."><i aria-hidden="true">&#9760;</i> Curse + '+H.name+': foes x'+DAMNED_FOE+' &middot; rewards x'+DAMNED+'</b>':'')+'</div>':'')+'</div>';
 }
 function titlesHTML(){
   const T=Object.assign({got:{}},S.ti), n=titlesGot();   /* S.ti can exist before checkTitles first adds got */
@@ -327,23 +326,23 @@ function towerHTML(){
   const bosses=TW_BOSS.map((n,i)=>({f:(i+1)*10,name:n}));
   let h='<section class="win" aria-labelledby="h-tw"><h2 class="win-h" id="h-tw">The Hell Tower</h2>'
    +'<h3 class="win-title">One hundred floors. Every floor is harder than the last.</h3>'
-   +brief('tower','A separate climb from the gates. Each floor is a single fight; between floors you raise the dead and climb on. A warden waits on every tenth floor and carries a unique relic. The first time you break a warden its unique is guaranteed. After that it drops '+Math.round(TW.repeat*100)+'% of the time, as gold if you already carry it. Wardens grow wrathful if the fight drags on. A climb uses one watch, and floors you have cleared become checkpoints.'+(TW.armor?' Tower foes wear '+Math.round(TW.armor*100)+'% armor.':'')+'','lede')
+   +brief('tower','A separate climb from the gates. Each floor is a single fight; between floors you raise the dead and climb on. A warden waits on every tenth floor and carries a unique item. The first time you break a warden its unique is guaranteed. After that it drops '+Math.round(TW.repeat*100)+'% of the time, as gold if you already carry it. Wardens grow wrathful if the fight drags on. A climb uses one watch, and floors you have cleared become checkpoints.'+(TW.armor?' Tower foes wear '+Math.round(TW.armor*100)+'% armor.':'')+'','lede')
    +'<div class="tw-hero"><b>Highest floor '+T.best+' / 100</b><div class="tw-prog"><i style="width:'+Math.min(100,T.best)+'%"></i></div>'
    +'<div class="u-sub">Uniques claimed '+Object.keys(T.got).length+' / '+TW_UNIQ.length+'</div></div>'
    +'<p class="group-h">Begin the climb from</p>';
   if(locked) h+='<p class="lede bad">The Tower opens once '+OPEN_AT.tower+' gates are cleared, from level '+TW.unlock+'.</p>';
   else{
     h+='<div class="chips">'+st.map(f=>'<button class="btn'+(f===st[st.length-1]?' primary':'')+'" data-a="tower" data-k="'+f+'"'+(noWatch?' disabled':'')+'>Floor '+f+'</button>').join('')+'</div>'
-     +'<p class="q-note">Recommended level for floor '+st[st.length-1]+': '+recLv(st[st.length-1])+'. '+(noWatch?'No watches left today. Rest until dawn.':'Uses one watch.')+'</p>';
+     +'<p class="q-note"><span class="rec-lv">Floor '+st[st.length-1]+': Recommended Lv '+recLv(st[st.length-1])+'+</span> &middot; '+(noWatch?'<span class="bad">No watches left</span>':'1 watch')+'</p>';
   }
-  h+=T.best>=100?'<div class="tw-hero abyss"><b>The Abyss &middot; floor '+(T.best>100?T.best:'101')+'+</b><div class="u-sub">Abaddon is dead, but the Tower goes on. Past floor 100 every floor is harder than the last, forever. Each tenth floor holds an abyssal warden that leaves gold and a legendary. Your record: floor '+T.best+'.</div></div>'
+  h+=T.best>=100?'<div class="tw-hero abyss"><b>The Abyss &middot; floor '+(T.best>100?T.best:'101')+'+</b><div class="u-sub" title="Abaddon is dead, but the Tower goes on. Past floor 100 every floor is harder than the last, forever. Each tenth floor holds an abyssal warden that leaves gold and a legendary.">Endless &middot; every 10th floor: gold + legendary &middot; Record '+T.best+'</div></div>'
      :'<p class="q-note">Beyond floor 100 lies the Abyss, a climb with no top.</p>';
   h+='<p class="group-h">The wardens</p><div class="items">';
   bosses.forEach(b=>{
     const seen=T.best>=b.f-10, ids=TW_IDS[b.f]||[], fin=b.f===100;
     h+='<div class="tw-row'+(seen?'':' locked')+(fin?' final':'')+'">'+(seen?ico(b.name,5,{boss:true}):'<span class="ico unk" aria-hidden="true"><svg viewBox="0 0 64 64">'+IC['?']+'</svg></span>')
      +'<div><div class="tw-fl">Floor '+b.f+(T.best>=b.f?' &middot; defeated':'')+'</div><h4>'+(seen?b.name:'???')+'</h4>'
-     +(seen?'<div class="u-sub">Recommended level '+recLv(b.f)+'. '+(fin?'The final warden. It drops three uniques and is the hardest thing in the game.':'Drops a unique.')+'</div>'
+     +(seen?'<div class="u-sub"'+(fin?' title="The final warden. It drops three uniques and is the hardest thing in the game."':'')+'><span class="rec-lv">Recommended Lv '+recLv(b.f)+'+</span> &middot; '+(fin?'3 uniques':'1 unique')+'</div>'
         +'<div class="tw-uq">'+ids.map(id=>{ const d=ITEM[id], got=T.got[id];
             return itemCard({id:id},got?'<span class="tw-got">Owned</span>':''); }).join('')+'</div>'
        :'<div class="u-sub">Reach floor '+(b.f-9)+' to learn what waits here.</div>')+'</div></div>';
@@ -467,7 +466,7 @@ const FIRST_STEPS=[
   ['Stock up at the Market',()=>(S.belt.hp+S.belt.mp)>0||T_('drank')>0,'Healing Draughts (Q) and Mana Tonics (W) save runs. Sell trophies and spare gear there to pay for them.'],
   ['Finish a daily quest',()=>T_('claims')>0,'Defeat foes, clear rooms and clear a dungeon in one day for a stat point and XP. An unfinished quest costs nothing.'],
   ['Open the town',()=>townOpen(),'Clear '+OPEN_AT.town+' gates and a Town tab and a bounty board appear: buildings, fusion and contracts.'],
-  ['Reach the Hell Tower',()=>towerOpen(),'Once '+OPEN_AT.tower+' gates are cleared, from level '+TW.unlock+', a separate climb opens: one fight per floor, a unique relic every tenth floor, checkpoints as you go.'],
+  ['Reach the Hell Tower',()=>towerOpen(),'Once '+OPEN_AT.tower+' gates are cleared, from level '+TW.unlock+', a separate climb opens: one fight per floor, a warden with a unique every tenth floor, checkpoints as you go.'],
   ['Break the Throne of Ash',()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]),'The last gate. Clearing it opens New Game+ in Settings and makes cursed gates rise to just below your level.']
 ];
 // Later systems for the How to play page, read from the game's own unlock levels so the page cannot go stale.
@@ -479,6 +478,8 @@ const HELP_LATER=()=>[
   ['Harder gates','A cleared gate offers Hard, then Brutal and Nightmare: stronger foes, bigger rewards.',DUNGEONS.some((D,i)=>heatMax(i)>0)],
   ['Cursed gates','Each day one cleared gate is cursed: harder, and pays more.',DUNGEONS.some((D,i)=>S.ti&&S.ti.clr&&S.ti.clr[i])],
   ['Sieges','Once your buildings have '+SIEGE_BUILT+' levels, the living march on the necropolis every '+SIEGE_GAP[0]+' to '+SIEGE_GAP[1]+' days, at the end of a day you are warned about.',siegeOpen()],
+  ['Raids','A raised elite or boss may rise as a Commander. From the War table on the Gates tab it leads a squad against a cleared gate for gold, gear and XP.',raidGates().length>0&&raidPool().some(isCommander)],
+  ['The Rift','Once the Throne of Ash has fallen, from level '+RIFT_LV+': a dive through the dead of every gate, one depth deeper each time you clear your deepest.',riftOpen()],
   ['Ultimates','At level '+ULT_LV+' choose an ultimate on the Skills tab. Gather '+SOUL_MAX+' Souls in a run and press R.',S.player.lvl>=ULT_LV],
   ['The Rival','After '+RIVAL_AT+' different gate clears a rival necromancer steals bodies now and then and, about every two weeks, waits in one of your cleared gates.',rivalOpen()&&!!(S.rival&&S.rival.met)],
   ['Trials','Once the Throne of Ash has fallen: one fixed four-room challenge each week, scored by turns, on the Gates tab.',trialOpen()]

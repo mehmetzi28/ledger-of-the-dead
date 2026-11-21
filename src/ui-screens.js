@@ -37,7 +37,7 @@ function townHTML(){
   if(sub==='trial') return h+trialHTML()+armyBriefHTML();
   h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'+gateArmyHTML()
    +((n=>n<FIRST_STEPS.length&&!(S.tips&&S.tips.off)?'<p class="q-note guide-link"><button class="linkbtn" data-a="tab" data-k="help">How to play &middot; first steps '+n+'/'+FIRST_STEPS.length+'</button></p>':'')(stepsDone()))   /* for a new player; gone once every step is done or tips are switched off */
-   +(omen()?'<div class="omen-line"><b>Omen today: '+OMENS[omen()].name+'.</b> '+OMENS[omen()].desc+' It touches every gate and the Tower until dawn.</div>':'')+rivalWarnHTML()
+   +(omen()?'<div class="omen-line" title="It touches every gate and the Tower until dawn."><b>Omen today: '+OMENS[omen()].name+'.</b> '+OMENS[omen()].desc+'</div>':'')+rivalWarnHTML()
    +'<div class="gates">'+DUNGEONS.map((d,i)=>gateHTML(i)).join('')+'</div>'
    +'<div class="btns"><button class="btn small" data-a="rest">Rest until dawn</button></div></section>';
   return h;
@@ -171,9 +171,9 @@ function battleHTML(){
   const foeH='Foes'+(foeArmor()?' &middot; '+armorTag(foeArmor()):''), sideH='Your side'+(r.frenzy>0?' &middot; <span class="ok">Frenzy '+r.frenzy+'</span>':'')+(r.silence>0?' &middot; <span class="bad">Silenced '+r.silence+'</span>':'')+(r.taunt>0?' &middot; <span class="ok">Taunting '+r.taunt+'</span>':'');
   const mini='<div class="mini-hp" aria-hidden="true"><div><span>HP '+Math.max(0,P.hp)+'/'+pMax()+(P.shield?' +'+P.shield:'')+'</span><div class="bar"><i class="fill hp" style="width:'+pct(P.hp,pMax())+'%"></i></div></div><div><span>Mana '+P.mana+'/'+pMana()+'</span><div class="bar"><i class="fill mp" style="width:'+pct(P.mana,pMana())+'%"></i></div></div></div>';
   return '<section class="win'+(st?' staged':'')+'" aria-labelledby="h-battle">'+mini+'<h2 class="win-h" id="h-battle">'+(r.tw?'Hell Tower &middot; Floor '+r.tw+(r.tw%10===0?' &middot; Warden':'')+' &middot; Turn '+r.turn:(r.siege?'Siege &middot; Wave '+(r.room+1)+'/'+r.rooms+' &middot; Turn '+r.turn:r.trial?'Trial &middot; Room '+(r.room+1)+'/'+r.rooms+' &middot; Turn '+((r.tt||0)+1):(r.rift?'The Rift &middot; Depth '+r.rift+' &middot; ':'')+D.name+' &middot; Room '+(r.room+1)+'/'+r.rooms+(boss?' &middot; Boss':'')+' &middot; Turn '+r.turn))+'</h2>'
-   +(r.mod?'<p class="q-note"><span class="curse-line" style="margin:0">Cursed: <b>'+MODS[r.mod].name+'</b>. '+MODS[r.mod].desc+'</span></p>':'')+(r.mod2&&MODS[r.mod2]?'<p class="q-note"><span class="curse-line" style="margin:0">Cursed: <b>'+MODS[r.mod2].name+'</b>. '+MODS[r.mod2].desc+'</span></p>':'')
-   +(r.heat?'<p class="q-note bad">Difficulty: <b>'+HEAT[r.heat].name+'</b>'+(r.mod?', and the curse feeds on it':'')+'.</p>':'')
-   +(r.bless?'<p class="q-note ok">Blood-blessed: you and your army hit 15% harder in this gate.</p>':'')
+   +((r.mod||r.mod2||r.heat||r.bless)?'<div class="facts run-mods">'+[r.mod,r.mod2].filter(m=>m&&MODS[m]).map(m=>'<span class="bad" title="Cursed: '+MODS[m].name+'. '+MODS[m].desc+'"><i aria-hidden="true">&#9760;</i> '+MODS[m].name+'</span>').join('')
+     +(r.heat?'<span class="bad" title="Difficulty: '+HEAT[r.heat].name+(r.mod?', and the curse feeds on it':'')+'.">'+HEAT[r.heat].name+'</span>':'')
+     +(r.bless?'<span class="ok" title="Blood-blessed: you and your army hit 15% harder in this gate.">Blood-blessed +15%</span>':'')+'</div>':'')
    +'<div class="bat"><div class="bat-main">'
    +(st?'<div class="stage" aria-hidden="true" style="height:'+(FXS.h||300)+'px"></div>':'')
    +(st?stripHTML(foeH,r.enemies,'foe'):'<p class="group-h">'+foeH+'</p>'+rowsHTML(r.enemies,'row',e=>unitCard(e,'foe')))
@@ -445,7 +445,7 @@ function raiseHTML(){
    +(q?'<p class="lede">No fight here &middot; Mana '+P.mana+'/'+pMana()+'</p>':'<p class="lede">+'+r.lastXp+' XP'+(r.ups?' &middot; level up':'')+' &middot; Mana '+P.mana+'/'+pMana()+' &middot; <span title="Whatever you do not raise is gone when you move on">unraised bodies are lost</span></p>')
    +(r.events.length?'<div class="notes">'+r.events.map(e=>'<div class="note '+e.c+'"><i>Log</i><span>'+e.m+'</span></div>').join('')+'</div>':'')
    +(st?'<div class="stage raise-st" aria-hidden="true" style="height:'+(FXS.h||300)+'px"></div>':'')
-   +(full&&r.corpses.some(c=>!c.tried)?(w=>'<div class="note bad"><i>Full</i><span>'+(bench?'Your army is full. The Reserve has '+(reserveMax()-S.reserve.length)+' free place'+(reserveMax()-S.reserve.length>1?'s':'')+': raise into it, or release someone.':'Your army is full. Release someone to make room.')+'</span>'+(w?'<button class="btn small warn" data-a="release" data-k="'+w.uid+'">'+(ui.confirm===w.uid?'Confirm: release '+w.nick:'Release your weakest, '+w.nick+' (Lv '+w.lvl+' '+ROLES[w.role].label.toLowerCase()+')')+'</button>':'')+'</div>')(weakest()):'')
+   +(full&&r.corpses.some(c=>!c.tried)?(w=>'<div class="note bad"><i>Full</i><span>'+(bench?'Army full &middot; Reserve: '+(reserveMax()-S.reserve.length)+' free':'Army full &middot; release someone')+'</span>'+(w?'<button class="btn small warn" data-a="release" data-k="'+w.uid+'">'+(ui.confirm===w.uid?'Confirm: release '+w.nick:'Release your weakest, '+w.nick+' (Lv '+w.lvl+' '+ROLES[w.role].label.toLowerCase()+')')+'</button>':'')+'</div>')(weakest()):'')
    +(!full&&r.corpses.filter(c=>!c.tried).length>=2?'<div class="btns"><button class="btn small primary" data-a="raisebest" title="Tries every body, most valuable first; uses salts on bosses and elites" aria-keyshortcuts="Space">Raise the best<kbd>Space</kbd></button></div>':'')
    +(r.trial?trialResultHTML(r):'')+eventHTML()+spoilsHTML()+((q||r.trial)&&!r.corpses.length?'':'<p class="group-h">The fallen</p><div class="corpses'+(st?' staged':'')+'">'+(corpses||'<p class="lede">Nothing left to raise.</p>')+'</div>')
    +(r.doors&&!done?doorsHTML():'<div class="btns">'+(done?'<button class="btn primary" data-a="town">'+(r.siege?'Back to the necropolis &middot; dawn':'Return to the gate')+'</button>':'<button class="btn primary" data-a="descend">'+(r.tw?'Ascend to floor '+(r.tw+1)+' (heal ':'Descend (heal ')+Math.round(DIFF.heal*100)+'%, mana +'+Math.round(DIFF.mana*100)+'%)</button><button class="btn" data-a="town">'+(r.tw?'Descend with spoils':r.trial?'Leave the Trial':'Leave with spoils')+'</button>')+'</div>')+'</section>'
@@ -462,7 +462,7 @@ function doorLore(k){   // what the Ledger reads behind a door (doorSight, doorB
 function doorsHTML(){
   const r=S.run;
   return '<p class="group-h">Next room &middot; heal '+Math.round(DIFF.heal*100)+'%, mana +'+Math.round(DIFF.mana*100)+'% &middot; keys 1&ndash;'+r.doors.length+'</p><div class="doors">'
-   +r.doors.map((k,i)=>'<button class="door d-'+k+'" data-a="door" data-k="'+k+'" aria-keyshortcuts="'+(i+1)+'"><b>'+DOORS[k].name+'<kbd>'+(i+1)+'</kbd></b><span>'+DOORS[k].desc+'</span>'+doorLore(k)+'</button>').join('')+'</div>'
+   +r.doors.map((k,i)=>'<button class="door d-'+k+'" data-a="door" data-k="'+k+'" aria-keyshortcuts="'+(i+1)+'"><b>'+DOORS[k].name+'<kbd>'+(i+1)+'</kbd></b><span'+(DOORS[k].s?' title="'+DOORS[k].desc+'"':'')+'>'+(DOORS[k].s||DOORS[k].desc)+'</span>'+doorLore(k)+'</button>').join('')+'</div>'
    +'<div class="btns"><button class="btn" data-a="town">Leave with spoils</button></div>';
 }
 function eventHTML(){
@@ -476,7 +476,7 @@ function eventHTML(){
 function spoilsHTML(){
   const r=S.run, sp=(r.spoils||[]).map(u=>S.inv.find(x=>x.u===u)).filter(Boolean);
   let h='', n='';   // n: the spoils notes, kept in one box like the room log above them
-  if(sp.some(it=>ITEM[it.id].uq)) n+='<div class="note ok"><i>Unique</i><span>Something very few ever hold. Equip it and read what it does.</span></div>';
+  if(sp.some(it=>ITEM[it.id].uq)) n+='<div class="note ok"><i>Unique</i><span>Very few ever hold one.</span></div>';
   if((r.lostLoot||[]).length) n+='<div class="note bad"><i>Bag full</i><span>Left behind: '+r.lostLoot.join(', ')+'.</span></div>';
   if(n) h+='<div class="notes">'+n+'</div>';
   const tro=Object.keys(r.lastTroph||{});
@@ -501,12 +501,12 @@ function felledHTML(b){   // the defeat recap: the blow that felled you and the 
 function defeatHTML(){
   const r=S.run;
   if(r.siege) return '<section class="win siege-lost" aria-labelledby="h-def"><h2 class="win-h" id="h-def">Siege &middot; The walls fell</h2><h3 class="win-title">'+(r.fled?'You left the walls to the living.':'The living broke through on wave '+(r.room+1)+'.')+'</h3>'
-   +'<p class="lede">'+(r.siegeLoss||'')+' You lose no XP, and none of your dead were lost: they dragged themselves back into the crypts before dawn.</p>'
+   +'<p class="lede">'+(r.siegeLoss||'')+'</p><div class="facts" title="You lose no XP, and none of your dead were lost: they dragged themselves back into the crypts before dawn."><span class="ok">No XP lost</span><span class="ok">No minions lost</span></div>'
    +'<div class="btns"><button class="btn primary" data-a="town">Wait for dawn</button></div>'+logHTML()+'</section>';
   return '<section class="win" aria-labelledby="h-def"><h2 class="win-h" id="h-def">Fallen</h2><h3 class="win-title">'+(r.tw?'You fell on floor '+r.tw+' of the Hell Tower.':'You went down in room '+(r.room+1)+'.')+'</h3>'
-   +felledHTML(r.felled)+'<p class="lede">Loot from rooms already cleared is kept. This room\'s spoils are lost and you lose some XP. Your army carried you out and bound itself back together.</p>'
-   +'<div class="btns"><button class="btn primary" data-a="town">Return to the gate</button>'+(canRetry()?'<button class="btn" data-a="retry">Retry the room<kbd>R</kbd></button>':'')+'</div>'
-   +(canRetry()?'<p class="u-sub">Retry starts this room over as it began: the same foes at full strength, you and your army as you entered. No watch is spent; the XP loss stands.</p>':r.trial?'<p class="u-sub">A Trial room cannot be retried: its score counts every attempt.</p>':'')+logHTML()+'</section>';
+   +felledHTML(r.felled)+'<div class="facts" title="Loot from rooms already cleared is kept. This room\'s spoils are lost and you lose some XP. Your army carried you out and bound itself back together."><span class="ok">Earlier loot kept</span><span class="bad">Room spoils lost</span><span class="bad">&minus;XP</span><span class="ok">Army intact</span></div>'
+   +'<div class="btns"><button class="btn primary" data-a="town">Return to the gate</button>'+(canRetry()?'<button class="btn" data-a="retry" title="Retry starts this room over as it began: the same foes at full strength, you and your army as you entered. No watch is spent; the XP loss stands.">Retry the room<kbd>R</kbd></button>':'')+'</div>'
+   +(canRetry()?'<p class="u-sub">Same foes &middot; no watch spent</p>':r.trial?'<p class="u-sub">A Trial room cannot be retried: its score counts every attempt.</p>':'')+logHTML()+'</section>';
 }
 function keysHTML(){   // every shortcut in one list; ? opens it, Esc closes it
   const row=(k,t)=>'<div class="kr"><kbd>'+k+'</kbd><span>'+t+'</span></div>';
@@ -524,26 +524,26 @@ function siegeTownHTML(){   // the Town tab: a warning banner (only once warned:
   if(!siegeOpen()) return ''; const g=sg(); let h='';
   if(siegeWarned()){ const now=siegeTonight();
     h+='<div class="siege-warn" role="status"><b>'+(now?'The living march on the necropolis tonight, when the day ends.':'The living march on the necropolis tomorrow at dusk.')+'</b> '
-     +'Three waves, the last led by an Inquisitor Captain. Your buildings lend their strength; raids march before them. <button class="linkbtn" data-a="cxgo" data-k="sieges">Read about sieges</button></div>'
+     +'<button class="linkbtn" data-a="cxgo" data-k="sieges">Read about sieges</button></div>'
      +'<p class="u-sub siege-line">Siege: '+(now?'tonight':'in 1 day')+'</p>'; }
   if(g.dmg){ const c=repairCost(), conf=ui.confirm==='repair';
-    h+='<div class="tt-row siege-dmg bad"><div><h4>'+BUILD[g.dmg].name+' &middot; damaged</h4><div class="u-sub">Burned in the last siege. Its effects, siege perk included, are lost until it is repaired. Repairs cost gold only.</div></div>'
+    h+='<div class="tt-row siege-dmg bad"><div><h4>'+BUILD[g.dmg].name+' &middot; damaged</h4><div class="u-sub" title="Burned in the last siege. Its effects, siege perk included, are lost until it is repaired. Repairs cost gold only.">No effect until repaired</div></div>'
      +'<button class="btn small '+(conf?'warn':'primary')+'" data-a="repair"'+(S.gold<c?' disabled':'')+'>'+(conf?'Confirm: repair for '+c+' gold':'Repair &middot; '+gold(c))+'</button></div>'; }
   return h;
 }
 function siegeHTML(){   // nightfall on a siege day: the intro screen
   const di=siegeGate(), P=S.player, pk=siegePerks(), away=raidN(), g=sg();
   return '<section class="win siege-intro" aria-labelledby="h-siege"><h2 class="win-h" id="h-siege">Siege &middot; Night of day '+S.day+'</h2><h3 class="win-title">The living are at the walls</h3>'
-   +'<p class="lede">Torches on the hill road. The town has sent its militia, its crossbows and its chaplains, and the Inquisition has sent a captain to lead them. '
-   +'They come in '+SIEGE_WAVES+' waves, at level '+siegeLvl()+', as hard as the '+DUNGEONS[di].name+'. Between waves you heal as between rooms; nothing can be raised until the last wave falls. On home ground your downed minions never shatter. Fleeing counts as a defeat.</p>'
+   +'<p class="lede">Torches on the hill road. The Inquisition leads the town\'s militia.</p>'
+   +'<div class="facts" title="Between waves you heal as between rooms; nothing can be raised until the last wave falls. On home ground your downed minions never shatter. Fleeing counts as a defeat."><span>'+SIEGE_WAVES+' waves</span><span>Lv '+siegeLvl()+'</span><span>Like the '+DUNGEONS[di].name+'</span><span>No raising until the end</span><span class="ok">Minions never shatter</span><span class="bad">Fleeing = defeat</span></div>'
    +'<p class="group-h">Your buildings</p>'+(pk.length?'<ul class="siege-perks">'+pk.map(x=>'<li><b>'+x.name+'</b>: '+x.t+'</li>').join('')+'</ul>':'<p class="q-note">No building lends you its strength tonight.</p>')
    +(g.dmg?'<p class="q-note bad">The '+BUILD[g.dmg].name+' still lies in ruins and gives nothing.</p>':'')
    +(away?'<p class="q-note">'+away+' of your dead marched on a raid tonight and are not on the walls.</p>':'')
-   +'<p class="q-note">Hold, and the town pays: gold, bone dust and a piece of gear. Fall, and they burn one of your buildings until you repair it.</p>'+siegeChoiceHTML()
+   +'<div class="facts" title="Hold, and the town pays: gold, bone dust and a piece of gear. Fall, and they burn one of your buildings until you repair it."><span class="ok">Hold: gold, dust, gear</span><span class="bad">Fall: a building burns</span></div>'+siegeChoiceHTML()
    +'<div class="btns"><button class="btn primary" data-a="siegego">Man the walls</button></div></section>'+armyHTML();
 }
 function siegeChoiceHTML(){   // the intro screen's two choices: the guarded building and the wall
   const g=sg(), gb=g.dmg?[]:guardable(), pool=wallPool(), w=g.wall||[], chip=(a,k,t,on,dis)=>'<button class="btn small'+(on?' primary':'')+'" data-a="'+a+'" data-k="'+k+'" aria-pressed="'+on+'"'+(dis?' disabled':'')+'>'+t+'</button>';
-  return (gb.length?'<p class="group-h">Guard a building</p><p class="u-sub">If the walls fall, the living cannot burn the building you guard; they fire another, or take gold if none is left.</p><div class="chips">'+gb.map(k=>chip('sguard',k,BUILD[k].name+' &middot; Lv '+blRaw(k),g.guard===k)).join('')+'</div>':'')
-   +(pool.length?'<p class="group-h">On the wall &middot; '+w.length+'/'+SIEGE_WALL+'</p><p class="u-sub">Up to '+SIEGE_WALL+' minions from the Reserve fight this siege in your front row, then go back to the Reserve.</p><div class="chips">'+pool.map(m=>chip('swall',m.uid,m.nick+' &middot; Lv '+m.lvl,w.includes(m.uid),!w.includes(m.uid)&&w.length>=SIEGE_WALL)).join('')+'</div>':'');
+  return (gb.length?'<p class="group-h">Guard a building</p><p class="u-sub" title="If the walls fall, the living cannot burn the building you guard; they fire another, or take gold if none is left.">Spared if the walls fall</p><div class="chips">'+gb.map(k=>chip('sguard',k,BUILD[k].name+' &middot; Lv '+blRaw(k),g.guard===k)).join('')+'</div>':'')
+   +(pool.length?'<p class="group-h">On the wall &middot; '+w.length+'/'+SIEGE_WALL+'</p><p class="u-sub" title="Up to '+SIEGE_WALL+' minions from the Reserve fight this siege in your front row, then go back to the Reserve.">Reserve minions in your front row, tonight only</p><div class="chips">'+pool.map(m=>chip('swall',m.uid,m.nick+' &middot; Lv '+m.lvl,w.includes(m.uid),!w.includes(m.uid)&&w.length>=SIEGE_WALL)).join('')+'</div>':'');
 }

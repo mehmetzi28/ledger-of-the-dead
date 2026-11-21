@@ -106,7 +106,7 @@ test('Screens: item lines are stat glyphs with numbers, each glyph labelled with
 });
 test('Screens: long text folds behind Details (native, keyboard-ready) and stays open across renders; the full text is kept',()=>{
   S.mode='town'; ui.tab='town'; const h=buildHTML();
-  ok(/<details class="more lede" data-det="town"><summary><span class="more-1">Build up the necropolis\.<\/span>/.test(h),'the lede is one line'); ok(h.includes('which you get by salvaging gear on the Gear tab.</div></details>'),'the whole paragraph is in Details');
+  ok(/<details class="more brief lede" data-det="town"><summary title="Build up the necropolis\. [^"]+"><span class="more-l">How it works<\/span>/.test(h),'the lede is one small link, its text in the tooltip'); ok(h.includes('which you get by salvaging gear on the Gear tab.</div></details>'),'the whole paragraph is in Details');
   ok(h.includes('data-det="bcrypt"')&&h.includes(BUILD.crypt.desc),'building descriptions fold, kept whole');
   ok(/data-det="pit"/.test(h),'the Flesh Pit intro folds'); ui.det={town:true}; ok(/data-det="town" open>/.test(buildHTML()),'remembered open');
   ui.det={}; const it=give('w1'), c=itemCard(it,''); ok(/<details class="more i-fx"[^>]*><summary><span class="more-1">[^<:]+<\/span>/.test(c)&&c.includes(FLAGS[ITEM.w1.flag]),'a unique effect: its name, the rule one press away');

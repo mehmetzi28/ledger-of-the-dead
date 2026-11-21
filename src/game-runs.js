@@ -388,14 +388,15 @@ const firstRaise=()=>!!(S&&S.firstRaise)&&!T_('raised');
 function raiseChance(c){
   if(firstRaise()) return 100;
   let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+4*sk('mastery')+B_OSS*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*RAISE_LV-RK[c.rankI].pen;
-  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c);
+  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c);
   return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
 }
 const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*(hasFlag('cheapraise')?.5:1)*(hasMod('mastery','b')?.75:1)*(1-.06*sk('thrift')));
 function freeNick(){ const used=S.army.concat(benched(),...(S.raids||[]).map(x=>x.units)).map(m=>m.nick); const f=NICKS.filter(n=>!used.includes(n)); return f.length?pick(f):pick(NICKS)+' II'; }
 const SALT_BONUS=20, SALT_MAX=3, saltPrice=()=>10+S.player.lvl*3;   // Grave Salts: bought at the market, +20% on one raise
 const RAISE_BASE=18, RAISE_WILL=1.1, RAISE_MIN=1, RAISE_MAX=80, SALT_CAP=95;   // salts may still reach 95%
-const RAISE_LV=3, RAISE_ELITE=10, RAISE_BOSS=15, SHATTER_BASE=25, SHATTER_WILL=1.5, SHATTER_MIN=5;   // % per level you stand above the body, the elite and boss penalties; a downed minion's shatter chance after a fight (% , less per Will point, never below the floor)
+const RAISE_BOSS_EACH=10;   // less per boss already in the army or Reserve, so bosses do not snowball
+const RAISE_LV=3, RAISE_ELITE=10, RAISE_BOSS=15,SHATTER_BASE=25, SHATTER_WILL=1.5, SHATTER_MIN=5;   // % per level you stand above the body, the elite and boss penalties; a downed minion's shatter chance after a fight (% , less per Will point, never below the floor)
 const saltAdd=()=>hasMod('thrift','b')?SENSE_SALT:SALT_BONUS;   // Grave Sense
 const saltChance=c=>firstRaise()?100:clamp(raiseChance(c)+saltAdd(),RAISE_MIN,SALT_CAP);
 function tryRaise(id,salt,bench){   // bench: raise to the Reserve, only when the army is full and the Reserve has room

@@ -5,6 +5,7 @@ test('Raising: chance rises with Will and level, falls for rank, elites and boss
   const c=corpse({lvl:1}); const base=raiseChance(c); eq(base,Math.round(RAISE_BASE+4*RAISE_WILL)); eq(RAISE_BASE,18); eq(RAISE_WILL,1.1); eq(RAISE_MIN,1); eq(RAISE_MAX,80); eq(SALT_CAP,95);
   S.player.stats.will=10; ok(raiseChance(c)>base); S.player.stats.will=4;
   ok(raiseChance(corpse({elite:true}))<base); ok(raiseChance(corpse({boss:true}))<raiseChance(corpse({elite:true})));
+  { const b=corpse({boss:true,lvl:-20}), b0=raiseChance(b); S.army.push({boss:true}); eq(raiseChance(b),b0-RAISE_BOSS_EACH,'each boss owned lowers boss raises'); S.army.pop(); }
   eq(raiseChance(corpse({lvl:99})),1); S.player.lvl=99; eq(raiseChance(c),80); S.player.lvl=1;
   S.player.skills.mastery=2; eq(raiseChance(c),base+8);
 });

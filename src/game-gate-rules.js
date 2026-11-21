@@ -404,9 +404,9 @@ function recRun(r,res){   // at the end of every run
 const ELITE_ROOM=1.25, ELITE_DROP=2, ELITE_GOLD=1.5, REST_HEAL=.4;
 const DOORS={
   fight:   {name:'A dark passage',  desc:'Another room of the gate.'},
-  elite:   {name:'A bloodied arch', desc:'Stronger foes (+25% HP and attack). Twice the gear drops and 50% more gold.'},
-  rest:    {name:'A quiet ossuary', desc:'No fight. Rest to recover 40% of your HP and mana, and your army 40%.'},
-  treasure:{name:'A sealed vault',  desc:'No fight. Gold and a piece of gear.'},
+  elite:   {name:'A bloodied arch', desc:'Stronger foes (+25% HP and attack). Twice the gear drops and 50% more gold.', s:'Foes +25% · gear x2 · gold +50%'},
+  rest:    {name:'A quiet ossuary', desc:'No fight. Rest to recover 40% of your HP and mana, and your army 40%.', s:'Rest · +40% HP, mana, army'},
+  treasure:{name:'A sealed vault',  desc:'No fight. Gold and a piece of gear.', s:'Gold + gear'},
   boss:    {name:'The boss chamber',desc:'The master of this gate.'}
 };
 function rollDoors(r){

@@ -5,7 +5,7 @@ test('Curses: after the Throne falls, a cursed gate\'s foes rise to five levels 
   setLvl(40); S.ti={clr:{0:1}}; S.mod={day:S.day,gi:0,id:'fury'}; S.watches=3; startRun(0); eq(curseRise(0),0,'Throne not cleared yet'); const lv0=S.run.enemies[0].lvl; flee();
   S.ti.clr[5]=1; S.mod={day:S.day,gi:0,id:'fury'}; S.watches=3; startRun(0); eq(curseRise(0),40-CURSE_GAP-RK[0].lv); ok(S.run.enemies.every(e=>e.lvl>=40-CURSE_GAP),'foes rose'); ok(S.run.enemies[0].lvl>lv0); flee();
   S.mod={day:S.day,gi:1,id:'fury'}; S.watches=3; startRun(0); eq(curseRise(0),0,'a plain gate stays as it is'); flee();
-  ui.tab='gates'; S.mod={day:S.day,gi:0,id:'horde'}; ok(/Foes about Lv 35/.test(renderAll('gate card')));
+  ui.tab='gates'; S.mod={day:S.day,gi:0,id:'horde'}; ok(/&middot; Foes Lv 35</.test(renderAll('gate card')));
 });
 test('Tower: the climb steepens more slowly past floor 60, and the recommended level tells the truth',()=>{
   eq(twHpF(60),60); eq(twAtkF(60),60); eq(twHpF(100),88); eq(twAtkF(100),80); eq(towerStats(100,60,1,1,false,false).atk,Math.max(1,Math.round(3.2*TW.atk0*Math.pow(1+TW.atkG,79)*DIFF.atk*(1+.12*59))),'floor 100 attacks like old floor 80');

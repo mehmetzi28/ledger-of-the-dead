@@ -33,7 +33,7 @@ test('Reserve: benched minions take no part in a fight, take no damage, earn no 
 
 test('Reserve: a full army may raise straight to the Reserve, with the real odds and mana cost',()=>{
   setLvl(4); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1}}); fill(); const c=raiseScene([corpse({}),corpse({})],4); c.lastXp=0; S.player.mana=100; const cost=raiseCost(c.corpses[0]);
-  let h=renderAll('raise full'); ok(/data-a="raiseres"/.test(h),'the option'); ok(h.includes('Raise to the Reserve &middot; '+raiseChance(c.corpses[0])+'% &middot; '+cost+' mana'),'odds and cost'); ok(/The Reserve has 6 free places/.test(h));
+  let h=renderAll('raise full'); ok(/data-a="raiseres"/.test(h),'the option'); ok(h.includes('Raise to the Reserve &middot; '+raiseChance(c.corpses[0])+'% &middot; '+cost+' mana'),'odds and cost'); ok(/Army full &middot; Reserve: 6 free/.test(h));
   tryRaise(c.corpses[0].id); eq(c.corpses[0].tried,false,'a plain raise is still refused');
   fix(0); const n=S.army.length, m0=S.player.mana; tryRaise(c.corpses[0].id,false,true); eq(S.army.length,n); eq(S.reserve.length,1); eq(S.player.mana,m0-cost); eq(S.reserve[0].hp,S.reserve[0].maxHp);
   ok(/Raised to the Reserve as/.test(renderAll('raised')));

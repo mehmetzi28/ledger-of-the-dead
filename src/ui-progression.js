@@ -9,7 +9,7 @@ function capRows(p){
 function capHTML(){   // on the Skills tab
   const P=S.player, cur=capPath(), tied=capTied();
   let h='<p class="group-h">Mastery paths'+(P.lvl<CAP_LV1?' &middot; capstones open at level '+CAP_LV1:'')+'</p>'
-   +'<p class="q-note">Every skill belongs to a path. At level '+CAP_LV1+' the path with the most skill points (at least '+CAP_MIN+') grants its first capstone, and at level '+CAP_LV2+' its second. Forgetting skills recounts them.</p><div class="items">';
+   +'<p class="q-note" title="Every skill belongs to a path. At level '+CAP_LV1+' the path with the most skill points (at least '+CAP_MIN+') grants its first capstone, and at level '+CAP_LV2+' its second. Forgetting skills recounts them.">Most points (min '+CAP_MIN+') wins &middot; capstones at Lv '+CAP_LV1+' and '+CAP_LV2+'</p><div class="items">';
   for(const p in PATHS){
     const pick=tied.length>1&&tied.includes(p)?(P.capPath===p||(!tied.includes(P.capPath)&&tied[0]===p)?'<span class="u-tag ok">Followed</span>':'<button class="btn small primary" data-a="cappath" data-k="'+p+'">Follow</button>'):'';
     h+='<div class="tt-row'+(cur===p?' on':'')+'"><div><h4>'+PATHS[p].name+' path <span class="u-tag">'+ptsTxt(pathPts(p))+'</span></h4><div class="u-sub dim">'+PATHS[p].skills.map(id=>SKILL[id].name).join(', ')+'</div>'+capRows(p)+'</div>'+pick+'</div>';
