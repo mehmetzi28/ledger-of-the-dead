@@ -154,7 +154,7 @@ const headCost=e=>Math.round(HEAD_GOLD*Math.pow(HEAD_GROW,e.hs|0));
 const canHead=e=>!!e&&S.mode==='town'&&(e.hs|0)<HEAD_TOP&&S.gold>=headCost(e);
 function carveHead(i){ const e=(S.memorial||[])[i]; if(!canHead(e)) return false; const c=headCost(e); S.gold-=c; e.hs=(e.hs|0)+1; tally('headG',c); syncArmy(); sfx('carve'); return true; }
 function memorialFix(g){   // normalizeSave: keep well-formed entries only
-  const num=(v,d)=>typeof v==='number'&&isFinite(v)?v:d, ok=e=>e&&typeof e==='object'&&typeof e.nick==='string'&&typeof e.name==='string';
+  const ok=e=>e&&typeof e==='object'&&typeof e.nick==='string'&&typeof e.name==='string';
   g.memorial=Array.isArray(g.memorial)?g.memorial.filter(ok).slice(0,MEM_MAX).map(e=>{ const o={nick:cleanNick(e.nick)||'Nameless',kind:cleanText(typeof e.kind==='string'?e.kind:e.name),name:cleanText(e.name),rk:clamp(Math.floor(num(e.rk,0)),0,RANKS.length-1),
     lvl:Math.max(1,Math.floor(num(e.lvl,1))),st:clamp(Math.floor(num(e.st,0)),0,STAGE_MAX),tr:Array.isArray(e.tr)?e.tr.filter(t=>TRAITS[t]):[],role:ROLES[e.role]?e.role:'striker',day:Math.max(1,Math.floor(num(e.day,1)))};
     if(e.boss) o.boss=1; if(e.elite) o.elite=1; for(const k of ['g','raid']) if(RK[e[k]]) o[k]=e[k]; for(const k of ['f','rd']) if(num(e[k],0)>0) o[k]=Math.floor(e[k]); if(typeof e.bd==='string'&&cleanNick(e.bd)) o.bd=cleanNick(e.bd); if(e.maus) o.maus=1; if(num(e.hs,0)>=1) o.hs=Math.min(HEAD_TOP,Math.floor(e.hs)); return o; }):[];
@@ -197,7 +197,7 @@ function useLoadout(i){
   return {miss};
 }
 function loadoutsFix(g){   // normalizeSave: shape only; ids that no longer exist are kept until the slot is used
-  const L=Array.isArray(g.loadouts)?g.loadouts:[], pint=v=>typeof v==='number'&&isFinite(v), pair=x=>Array.isArray(x)&&pint(x[0])&&typeof x[1]==='string';
+  const L=Array.isArray(g.loadouts)?g.loadouts:[], pair=x=>Array.isArray(x)&&fin(x[0])&&typeof x[1]==='string';
   g.loadouts=freshLoadouts().map((d,i)=>{ const o=L[i]; if(!o||typeof o!=='object') return d; const s=o.s&&typeof o.s==='object'?o.s:null;
     const gear={}; if(s) for(const sl of GEAR_SLOTS){ const x=s.gear&&s.gear[sl]; gear[sl]=pair(x)?[x[0],x[1]]:null; }
     return {n:cleanNick(o.n),s:s?{gear,army:(Array.isArray(s.army)?s.army:[]).filter(pair).slice(0,40).map(x=>[x[0],cleanNick(x[1])||'Nameless']),res:(Array.isArray(s.res)?s.res:[]).filter(pair).slice(0,60).map(x=>[x[0],cleanNick(x[1])||'Nameless']),ult:ULTS[s.ult]?s.ult:null}:null}; });

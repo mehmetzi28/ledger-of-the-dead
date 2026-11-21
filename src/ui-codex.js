@@ -342,16 +342,16 @@ function bondTags(m){   // plain words for the compact row's title and the card'
   if(moodOn(m)) t.push(m.mood.k==='v'?'Vengeful: '+m.mood.n:'Grieving: '+m.mood.n); return t;
 }
 function bondChips(m){
-  let h=''; if(m.bond) h+='<span class="trait bond" title="+'+bondPct(BOND_ATK)+' attack while the bond holds">Bonded: '+hEsc(bondName(m))+'</span>';
-  if(moodOn(m)) h+=m.mood.k==='v'?'<span class="trait mood-v" title="+'+bondPct(BOND_VENGE)+' attack until dawn">Vengeful: '+hEsc(m.mood.n)+'</span>'
-    :'<span class="trait mood-g" title="'+bondPct(BOND_GRIEF)+' less attack for a day">Grieving: '+hEsc(m.mood.n)+'</span>';
+  let h=''; if(m.bond) h+='<span class="trait bond" title="+'+bondPct(BOND_ATK)+' attack while the bond holds">Bonded: '+cleanText(bondName(m))+'</span>';
+  if(moodOn(m)) h+=m.mood.k==='v'?'<span class="trait mood-v" title="+'+bondPct(BOND_VENGE)+' attack until dawn">Vengeful: '+cleanText(m.mood.n)+'</span>'
+    :'<span class="trait mood-g" title="'+bondPct(BOND_GRIEF)+' less attack for a day">Grieving: '+cleanText(m.mood.n)+'</span>';
   return h;
 }
 function bondsArmyHTML(){   // the Army tab: every bonded pair, and the pairs closest to bonding
   const P=bondPairs(), N=bondNear().slice(0,3); if(!P.length&&!N.length) return '';
   return '<section class="win bonds-w" aria-labelledby="h-bonds"><h2 class="win-h" id="h-bonds">Bonds</h2>'
-   +(P.length?'<div class="items">'+P.map(([a,b])=>'<div class="tt-row"><div><h4>'+hEsc(a.nick)+' &amp; '+hEsc(b.nick)+'</h4><div class="u-sub">Bonded &middot; +'+bondPct(BOND_ATK)+' attack each</div></div></div>').join('')+'</div>':'')
-   +(N.length?'<p class="u-sub">'+N.map(x=>hEsc(x.a.nick)+' &amp; '+hEsc(x.b.nick)+': '+x.n+'/'+BOND_ROOMS+' rooms together').join(' &middot; ')+'</p>':'')+'</section>';
+   +(P.length?'<div class="items">'+P.map(([a,b])=>'<div class="tt-row"><div><h4>'+cleanText(a.nick)+' &amp; '+cleanText(b.nick)+'</h4><div class="u-sub">Bonded &middot; +'+bondPct(BOND_ATK)+' attack each</div></div></div>').join('')+'</div>':'')
+   +(N.length?'<p class="u-sub">'+N.map(x=>cleanText(x.a.nick)+' &amp; '+cleanText(x.b.nick)+': '+x.n+'/'+BOND_ROOMS+' rooms together').join(' &middot; ')+'</p>':'')+'</section>';
 }
 CODEX.splice(CODEX.findIndex(c=>c[0]==='fusion')+1,0,['bonds','Bonds']);
 CODEX.splice(CODEX.findIndex(c=>c[0]==='rooms')+1,0,['chains','Event chains']);
@@ -360,7 +360,7 @@ function cxBondsHTML(){
   return cxP('Two minions that are both standing in your army at the end of '+BOND_ROOMS+' won rooms become Bonded. Each minion has at most one partner. Rooms only count while both fight in the army: the Reserve, the gate and a raid pause the count, and a new partner starts from nothing.')
    +cxP('A bonded minion hits '+bondPct(BOND_ATK)+' harder for as long as the bond holds. Releasing either one, or fusing one into another minion, breaks the bond.')
    +cxP('When one partner is lost for good, the other takes it hard. If it was in your army in that same fight, it is Vengeful: '+bondPct(BOND_VENGE)+' more attack until dawn. If it was anywhere else (benched, waiting, or the loss came on a raid), it is Grieving: '+bondPct(BOND_GRIEF)+' less attack for a day. Either way it is free to bond again. The Memorial remembers who the fallen was bonded to.')
-   +'<p class="group-h">Your bonds</p>'+(P.length?cxList(P.map(([a,b])=>cxRow(hEsc(a.nick)+' &amp; '+hEsc(b.nick),'Bonded'))):cxP('None yet.'));
+   +'<p class="group-h">Your bonds</p>'+(P.length?cxList(P.map(([a,b])=>cxRow(cleanText(a.nick)+' &amp; '+cleanText(b.nick),'Bonded'))):cxP('None yet.'));
 }
 function cxChainsHTML(){
   const st=id=>{ const c=chainSt(id); return !c?'Not begun':c.s==='end'?'Ended':'Waiting'; };

@@ -48,7 +48,7 @@ test('Faith events: the sworn sometimes meet a shrine of their path, never of th
 test('History: a slain secret master is written in red in the run history and the list of masters',()=>{
   setLvl(30); S.ti=S.ti||{}; S.ti.clr={0:1}; S.watches=3; startRun(0); S.run.room=3; const e=makeSecret(0,5); S.run.enemies=[e]; e.hp=0; checkDeaths(); returnTown();
   const h=S.hist[S.hist.length-1]; eq(h.sec,SECRET[0].name); ui.tab='hist'; const x=renderAll('history'); ok(x.includes('sec-k')&&x.includes(SECRET[0].name+' slain')&&/Secret masters slain/.test(x));
-  const g=normalizeSave({v:2,player:{lvl:5},hist:[{d:1,res:'cleared',sec:'Bogus'},{d:2,res:'cleared',sec:SECRET[1].name,heat:9}]}); eq('sec' in g.hist[0],false); eq(g.hist[1].sec,SECRET[1].name); eq('heat' in g.hist[1],false);
+  const g=normalizeSave({v:2,player:{lvl:5},hist:[{d:1,g:0,res:'cleared',sec:'Bogus'},{d:2,g:1,res:'cleared',sec:SECRET[1].name,heat:9}]}); eq('sec' in g.hist[0],false); eq(g.hist[1].sec,SECRET[1].name); eq('heat' in g.hist[1],false);
 });
 test('Display: boss backgrounds have their own switch',()=>{
   ui.tab='settings'; ok(/data-k="nobg"/.test(renderAll('settings'))); ACTIONS.view('nobg'); ok(VIEW.nobg); ok(document.body.classList.contains('nobg')); ACTIONS.view('nobg'); ok(!VIEW.nobg);

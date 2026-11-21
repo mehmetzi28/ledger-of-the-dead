@@ -43,6 +43,15 @@ test('Saves: a full browser storage does not crash the game',()=>{
   if(!NODE) return; const orig=localStorage.setItem; localStorage.setItem=()=>{ throw new Error('QuotaExceeded'); };
   try{ save(); eq(slotWrite(1),false); eq(storageOk(),false); }finally{ localStorage.setItem=orig; } ok(storageOk());
 });
+test('Saves: a poisoned save code cannot put markup in the page or break a tab',()=>{
+  richState(); S.mode='town'; S.run=null; const X='<i>X</i>', g=JSON.parse(JSON.stringify(S)), m=mkMinion({nick:'Tw'});
+  g.hist.push({d:1,g:999,res:'cleared',rooms:1},{d:2,g:0,res:X,rooms:1},{d:3,g:0,res:'left',rooms:X,kills:X,xp:-5,gold:{},items:null,raised:[]});
+  g.kills={'Tunnel Rat':X,'Imp':-1}; g.ti=Object.assign({},g.ti,{got:{d_raise1:X},bosses:X}); g.equip.zz=X;
+  g.army.push(Object.assign(JSON.parse(JSON.stringify(m)),{uid:9999,tw:30,rankI:X,eq:X}));
+  let ok1; try{ ok1=importCode(CODE_TAG+btoa(unescape(encodeURIComponent(JSON.stringify(g))))); }catch(e){ ok(false,'importCode threw: '+e.message); }
+  ok(ok1,'the repaired code loads'); eq(S.hist[S.hist.length-1].rooms,0); ok(!S.hist.some(h=>h.g===999||h.res===X)); eq(S.army.find(x=>x.uid===9999).rankI,twRank(30));
+  for(const t of ['hist','bes','titles','army','town']){ ui.tab=t; const h=renderAll('poisoned '+t); ok(!h.includes('<i>X'),t); }
+});
 test('Saves: item and minion ids stay unique after loading',()=>{
   const g=normalizeSave({v:2,uid:1,player:{lvl:2},inv:[{u:5,id:'0-wa'}],army:[{role:'striker',lvl:2,rankI:0,name:'Imp',uid:9}]}); adoptSave(g); eq(S.uid,9); const it=addItem('0-ta'); eq(it.u,10);
 });

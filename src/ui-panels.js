@@ -596,13 +596,12 @@ function memorialHTML(){   // the fallen, newest first, in a muted hand; honouri
   h+='<div class="mem-list">'+list.map((e,i)=>{ const c=honourCost(e);
     return '<div class="mem-row">'+ico(e.kind,e.rk,{boss:e.boss,elite:e.elite,role:e.role})+'<span class="rk r'+e.rk+'">'+RANKS[e.rk]+'</span><div class="mem-t"><b>'+e.nick+'</b> <span class="dim">'+theName(mName({name:e.name,stage:e.st}))+'</span>'
      +'<div class="u-sub"><span>'+memWhere(e)+'</span> &middot; <span>Day '+e.day+'</span> &middot; <span>Lv '+e.lvl+'</span></div>'
-     +(e.tr.length?'<div class="u-sub mem-tr">'+e.tr.map(t=>TRAITS[t].name).join(', ')+'</div>':'')+(e.bd?'<div class="u-sub mem-bd">Bonded to '+hEsc(e.bd)+'</div>':'')+(e.maus?'<div class="u-sub mem-maus">Rests in a mausoleum</div>':'')+(e.hs?'<div class="u-sub mem-hs">Headstone, tier '+e.hs+'</div>':'')+'</div>'+(town?'<div class="mem-b">':'')+mausBtn(e,i)
+     +(e.tr.length?'<div class="u-sub mem-tr">'+e.tr.map(t=>TRAITS[t].name).join(', ')+'</div>':'')+(e.bd?'<div class="u-sub mem-bd">Bonded to '+cleanText(e.bd)+'</div>':'')+(e.maus?'<div class="u-sub mem-maus">Rests in a mausoleum</div>':'')+(e.hs?'<div class="u-sub mem-hs">Headstone, tier '+e.hs+'</div>':'')+'</div>'+(town?'<div class="mem-b">':'')+mausBtn(e,i)
      +(town&&(e.hs|0)<HEAD_TOP?'<button class="btn small" data-a="head" data-k="'+i+'"'+(S.gold<headCost(e)?' disabled title="Not enough gold"':'')+'>'+(e.hs?'Raise headstone':'Carve a headstone')+' &middot; '+headCost(e)+' gold</button>':'')
      +(town&&e.st>=1&&!remembered()?'<button class="btn small" data-a="honour" data-k="'+i+'"'+(S.gold<c?' disabled title="Not enough gold"':'')+'>Honour &middot; '+c+' gold</button>':'')+(town?'</div>':'')+'</div>'; }).join('')+'</div>';
   if(M.length>MEM_SHOW) h+='<div class="btns"><button class="linkbtn" data-a="memall">'+(ui.memAll?'Show the newest '+MEM_SHOW:'Show all '+M.length)+'</button></div>';
   return h+'</section>';
 }
-const hEsc=t=>String(t==null?'':t).replace(/[<>&"]/g,'');   // names from a save go into the page
 function histStatsHTML(L){   // lifetime analytics: from the lifetime counters, not only the last runs
   const n=v=>(v||0).toLocaleString(), rate=L.wt?L.wn/L.wt:(L.runs?(L.clears||0)/L.runs:0), avg=L.cn?Math.round(L.ct/L.cn):0;
   let fav=-1, fn=0; DUNGEONS.forEach((D,i)=>{ const c=T_('clrN'+i); if(c>fn){ fn=c; fav=i; } });
@@ -613,8 +612,8 @@ function histStatsHTML(L){   // lifetime analytics: from the lifetime counters, 
 }
 function histDetail(x){   // the expandable line under a run; runs from before these details were kept have none
   const n=v=>(v||0).toLocaleString(), out=[];
-  if(x.bo) out.push('<div><span>Boss</span> <b>'+hEsc(x.bo[0])+'</b> <span class="'+(x.bo[1]?'ok':'dim')+'">'+(x.bo[1]?'slain':'still standing')+'</span></div>');
-  if(x.mvp) out.push('<div><span>Best minion</span> <b>'+hEsc(x.mvp[0])+'</b> <span class="dim">'+(ROLES[x.mvp[1]]?ROLES[x.mvp[1]].label:hEsc(x.mvp[1]))+' &middot; Lv '+(+x.mvp[2]||1)+'</span></div>');
+  if(x.bo) out.push('<div><span>Boss</span> <b>'+cleanText(x.bo[0])+'</b> <span class="'+(x.bo[1]?'ok':'dim')+'">'+(x.bo[1]?'slain':'still standing')+'</span></div>');
+  if(x.mvp) out.push('<div><span>Best minion</span> <b>'+cleanText(x.mvp[0])+'</b> <span class="dim">'+(ROLES[x.mvp[1]]?ROLES[x.mvp[1]].label:cleanText(x.mvp[1]))+' &middot; Lv '+(+x.mvp[2]||1)+'</span></div>');
   if(x.lv) out.push('<div><span>Your level</span> <b>'+x.lv+'</b></div>');
   if(x.dd||x.mh) out.push('<div><span>Damage dealt</span> <b>'+n(x.dd)+'</b> <span class="dim">&middot; biggest hit '+n(x.mh)+'</span></div>');
   if(x.dt) out.push('<div><span>Damage taken</span> <b>'+n(x.dt)+'</b></div>');
@@ -640,7 +639,7 @@ function histHTML(){
   return h+'<div class="hist-wrap"><table class="hist"><thead><tr><th>Day</th><th>Where</th><th>Result</th><th class="num">Turns</th><th class="num">Rooms</th><th class="num">Kills</th><th class="num">XP</th><th class="num">Gold</th><th class="num">Gear</th><th class="num">Raised</th></tr></thead><tbody>'
    +H.map(x=>'<tr><td class="num">'+x.d+'</td><td>'+where(x)+(x.mod&&MODS[x.mod]?' <span class="dim">('+MODS[x.mod].name+')</span>':'')
      +(x.heat&&HEAT[x.heat]?' <span class="dim">'+HEAT[x.heat].name+'</span>':'')+(x.om&&OMENS[x.om]?' <span class="dim h-om">'+OMENS[x.om].name+'</span>':'')+(x.sec?'<div class="sec-k">&#9760; '+x.sec+' slain</div>':'')+histDetail(x)
-     +'</td><td class="res-'+x.res+'">'+(x.siege&&x.res==='cleared'?'Held':RES[x.res]||x.res)+(x.bo&&!x.sec?'<div class="u-sub h-bo">'+(x.bo[1]?'&#9760; ':'')+hEsc(x.bo[0])+'</div>':'')+'</td><td class="num">'+(x.tt?x.tt:'&ndash;')+'</td><td class="num">'+x.rooms+'</td><td class="num">'+x.kills+'</td><td class="num">'
+     +'</td><td class="res-'+x.res+'">'+(x.siege&&x.res==='cleared'?'Held':RES[x.res]||x.res)+(x.bo&&!x.sec?'<div class="u-sub h-bo">'+(x.bo[1]?'&#9760; ':'')+cleanText(x.bo[0])+'</div>':'')+'</td><td class="num">'+(x.tt?x.tt:'&ndash;')+'</td><td class="num">'+x.rooms+'</td><td class="num">'+x.kills+'</td><td class="num">'
      +n(x.xp)+'</td><td class="num">'+n(x.gold)+'</td><td class="num">'+x.items+'</td><td class="num">'+x.raised+'</td></tr>').join('')
    +'</tbody></table></div></section>';
 }

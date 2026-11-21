@@ -105,6 +105,7 @@ function bakLoad(i){ const g=bakRead(i); return g?adoptSave(g.data):false; }
 // ----- save slots and save codes
 const SLOTS_N=3, CODE_TAG='LOTD1:';
 const slotKey=i=>SAVE_KEY+'-slot'+i;
+const fin=v=>typeof v==='number'&&isFinite(v), num=(v,def)=>fin(v)?v:def;   // save repair helpers
 // Repair a save into the current shape, or return null if it cannot be a save. Works on a copy; never touches S.
 // Migrates v1 saves (Might/Vigor/Intellect) and fills in anything missing, so older or damaged saves still load.
 function normalizeSave(src){
@@ -113,7 +114,7 @@ function normalizeSave(src){
   if(g.v===1){ const st=g.player.stats||{}, ren={might:'strength',vigor:'constitution',intellect:'intelligence'};
     for(const o in ren) if(o in st){ st[ren[o]]=st[o]; delete st[o]; } g.player.stats=st; g.v=2; }
   if(g.v!==2||typeof g.player.lvl!=='number'||!(g.player.lvl>=1)) return null;
-  const d=freshState(), num=(v,def)=>typeof v==='number'&&isFinite(v)?v:def, obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
+  const d=freshState(), obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
   const hadSp=typeof g.player.sp==='number';   // saves from before skills get one point per level already reached
   const P=g.player=Object.assign({},d.player,g.player);
   P.stats=Object.assign({},d.player.stats,obj(P.stats)?P.stats:{}); for(const k in d.player.stats) P.stats[k]=num(P.stats[k],d.player.stats[k]);
@@ -126,46 +127,51 @@ function normalizeSave(src){
   for(const k of ['notices','inv','army']) if(!Array.isArray(g[k])) g[k]=[];
   g.notices=g.notices.filter(n=>obj(n)&&typeof n.m==='string').slice(0,6).map(n=>({m:n.m.replace(/[<>]/g,''),c:/^\w+$/.test(n.c)?n.c:'info'}));   // a pasted save code is untrusted: notices go into the page as HTML
   for(const k of ['kills','tower','equip','quest']) if(!obj(g[k])) g[k]=d[k];
+  for(const k in g.kills){ const v=g.kills[k]; if(fin(v)&&v>=0) g.kills[k]=Math.floor(v); else delete g.kills[k]; }   // kill counts are shown in the Bestiary
   g.quest=Object.assign({},d.quest,g.quest); if('raises' in g.quest){ delete g.quest.raises; }   // the old "raise the dead" goal became "clear rooms"
   g.tower={best:num(g.tower.best,0),got:obj(g.tower.got)?g.tower.got:{}};
   const okItem=it=>!!(it&&ITEM[it.id]&&typeof it.u==='number');
   g.inv=g.inv.filter(okItem);
-  for(const sl of GEAR_SLOTS) if(!okItem(g.equip[sl])) g.equip[sl]=null;
+  for(const k in g.equip) if(!GEAR_SLOTS.includes(k)) delete g.equip[k]; for(const sl of GEAR_SLOTS) if(!okItem(g.equip[sl])) g.equip[sl]=null;
   const RA=Array.isArray(g.raids)?g.raids.filter(x=>obj(x)&&RK[x.di]&&Array.isArray(x.units)):[];   // squads out raiding: repaired with the army, then split back out
   RA.forEach((x,i)=>x.units.forEach(m=>{ if(obj(m)){ m._raid=i; g.army.push(m); } }));
   for(const k of ['reserve','waiting']) (Array.isArray(g[k])?g[k]:[]).forEach(m=>{ if(obj(m)){ m._raid=k; g.army.push(m); } });   // the Reserve and minions waiting at the gate: repaired the same way, never trimmed
   g.army=g.army.filter(m=>m&&typeof m==='object'&&!m.thrall&&ROLES[m.role]&&typeof m.lvl==='number'&&(m.tw||RK[m.rankI]));
-  for(const m of g.army){ m.hf=num(m.hf,1); m.af=num(m.af,1); m.xp=num(m.xp,0); m.hp=num(m.hp,1); m.nick=cleanNick(m.nick)||'Nameless'; m.name=cleanText(m.name); m.kind=cleanText(m.kind); if('fused' in m) m.fused=clamp(Math.floor(num(+m.fused,0)),0,FUSE_MAX); m.kind=m.kind||m.name; if(m.row!=='f'&&m.row!=='b') delete m.row;
+  for(const m of g.army){ m.hf=num(m.hf,1); m.af=num(m.af,1); m.xp=num(m.xp,0); m.hp=num(m.hp,1); m.nick=cleanNick(m.nick)||'Nameless'; m.name=cleanText(m.name); m.kind=cleanText(m.kind); if('fused' in m) m.fused=clamp(Math.floor(num(+m.fused,0)),0,FUSE_MAX); m.kind=m.kind||m.name; if(m.row!=='f'&&m.row!=='b') delete m.row; if(!RK[m.rankI]) m.rankI=twRank(Math.floor(num(m.tw,1)));   // tower minions store their tower rank
     m.traits=Array.isArray(m.traits)?m.traits.filter(t=>TRAITS[t]&&(t!=='commander'||canLead(m))):[]; m.stage=clamp(Math.floor(num(m.stage,0)),0,STAGE_MAX); m.lvl0=num(m.lvl0,m.lvl); if(m.cd&&!CORPSE_CONDS[m.cd]) delete m.cd; normMarks(m);   // minions from before traits keep no trait; cd: how its body died
-    if(m.armed){ m.eq=obj(m.eq)?m.eq:{}; for(const sl of GEAR_SLOTS) if(!okItem(m.eq[sl])) m.eq[sl]=null; } }
+    if(m.armed){ m.eq=obj(m.eq)?m.eq:{}; for(const k in m.eq) if(!GEAR_SLOTS.includes(k)) delete m.eq[k]; for(const sl of GEAR_SLOTS) if(!okItem(m.eq[sl])) m.eq[sl]=null; } else if(m.eq!=null) m.eq=null; }
   let top=num(g.uid,0);   // next id must stay above every id in use, or two items/minions would share one
   g.inv.concat(Object.values(g.equip),...g.army.map(m=>m.eq?Object.values(m.eq):[])).forEach(it=>{ if(it) top=Math.max(top,it.u); });
   g.army.forEach(m=>{ top=Math.max(top,num(m.uid,0)); }); g.army.forEach(m=>{ if(typeof m.uid!=='number') m.uid=++top; });
   g.raids=RA.map((x,i)=>Object.assign({di:x.di,day:Math.floor(num(x.day,g.day)),units:g.army.filter(m=>m._raid===i)},Array.isArray(x.res)?{res:x.res.filter(u=>typeof u==='number')}:{},typeof x.odds==='number'&&isFinite(x.odds)?{odds:clamp(x.odds,RAID_MIN,RAID_MAX)}:{})).filter(x=>x.units.length);
   for(const k of ['reserve','waiting']) g[k]=g.army.filter(m=>m._raid===k);
   g.army=g.army.filter(m=>m._raid==null); g.raids.forEach(x=>x.units.forEach(m=>{ delete m._raid; })); g.reserve.concat(g.waiting).forEach(m=>{ delete m._raid; });
-  const pint=v=>typeof v==='number'&&isFinite(v);   // tonight's raid orders: uids only (the squad stays in the army until nightfall)
-  g.raidOrders=Array.isArray(g.raidOrders)?g.raidOrders.filter(o=>obj(o)&&RK[o.di]&&pint(o.cu)&&Array.isArray(o.uids)).map(o=>({di:o.di,day:Math.floor(num(o.day,g.day)),cu:o.cu,uids:o.uids.filter(pint).slice(0,12)})):[];
+  g.raidOrders=Array.isArray(g.raidOrders)?g.raidOrders.filter(o=>obj(o)&&RK[o.di]&&fin(o.cu)&&Array.isArray(o.uids)).map(o=>({di:o.di,day:Math.floor(num(o.day,g.day)),cu:o.cu,uids:o.uids.filter(fin).slice(0,12)})):[];   // tonight's raid orders: uids only (the squad stays in the army until nightfall)
   g.raidLog=Array.isArray(g.raidLog)?g.raidLog.filter(x=>obj(x)&&RK[x.di]&&typeof x.nick==='string').slice(0,RAID_LOG).map(x=>({day:Math.floor(num(x.day,1)),di:x.di,won:!!x.won,nick:cleanNick(x.nick)||'Nameless',lost:Math.max(0,Math.floor(num(x.lost,0)))})):[];
   g.rift=obj(g.rift)?{best:Math.max(0,Math.floor(num(g.rift.best,0)))}:{best:0};
   g.uid=top; g.mode='town'; g.run=null;
   g.gold=Math.max(0,Math.floor(num(g.gold,0)));
   const tr={}; if(obj(g.trophies)) for(const k in g.trophies){ const n=Math.floor(num(g.trophies[k],0)); if(TROPHY[k]&&n>0) tr[k]=n; } g.trophies=tr;
   const b=obj(g.belt)?g.belt:{}; g.belt={hp:clamp(Math.floor(num(b.hp,0)),0,BELT_MAX),mp:clamp(Math.floor(num(b.mp,0)),0,BELT_MAX)};
-  if(obj(g.ti)&&'compounds' in g.ti) g.ti.compounds=Array.isArray(g.ti.compounds)?g.ti.compounds.filter((c,i,a)=>COMPOUND[c]&&a.indexOf(c)===i):[];   // fusion compounds found
+  if('ti' in g&&!obj(g.ti)) g.ti={};   // deed counters, earned titles {id:day}, cleared gates, the worn title, fusion compounds found
+  if(obj(g.ti)){ const T=g.ti; for(const k in T) if(!['got','clr','sel','compounds'].includes(k)&&!(fin(T[k])||T[k]===true)) delete T[k];
+    for(const k of ['got','clr']) if(k in T&&!obj(T[k])) T[k]={}; if(T.got) for(const k in T.got) if(!(fin(T.got[k])&&T.got[k]>0)) delete T.got[k];
+    if('sel' in T&&T.sel!==null&&typeof T.sel!=='string') delete T.sel;
+    if('compounds' in T) T.compounds=Array.isArray(T.compounds)?T.compounds.filter((c,i,a)=>COMPOUND[c]&&a.indexOf(c)===i):[]; }
   g.tips=obj(g.tips)?g.tips:{}; g.ngp=Math.max(0,Math.floor(num(g.ngp,0)));
   g.pacts=g.ngp?cleanPacts(g.pacts):[]; if(!PATHS[P.capPath]) delete P.capPath;   // New Game+ pacts and the chosen capstone path (src/game-progression.js)
   g.firstRaise=('firstRaise' in g)?(g.firstRaise?1:0):(g.army.length||g.raids.length||g.reserve.length||(obj(g.ti)&&g.ti.raised)||g.runs||(Array.isArray(g.hist)&&g.hist.length)||(obj(g.life)&&g.life.runs)||g.day>1||P.lvl>1||g.ngp?0:1);   // saves from before the sure first raise: any army, history or progress counts as having raised already
   g.bagLv=clamp(Math.floor(num(g.bagLv,0)),0,BAG_COST.length); g.salts=clamp(Math.floor(num(g.salts,0)),0,SALT_MAX);
   g.shop=(obj(g.shop)&&typeof g.shop.day==='number'&&Array.isArray(g.shop.stock)&&g.shop.stock.every(s=>s&&ITEM[s.id]))?g.shop:null;
-  const fixRo=it=>{ if(!it) return; if(Array.isArray(it.ro)) it.ro=it.ro.filter(r=>Array.isArray(r)&&ROLL_KEYS[r[0]]&&typeof r[1]==='number'&&isFinite(r[1])&&r[1]>0).slice(0,3).map(r=>[r[0],Math.round(r[1])]);
+  const fixRo=it=>{ if(!obj(it)) return; if(Array.isArray(it.ro)) it.ro=it.ro.filter(r=>Array.isArray(r)&&ROLL_KEYS[r[0]]&&typeof r[1]==='number'&&isFinite(r[1])&&r[1]>0).slice(0,3).map(r=>[r[0],Math.round(r[1])]);
     if(!Array.isArray(it.ro)||!it.ro.length||ITEM[it.id].uq) delete it.ro; if(it.lk!==true) delete it.lk;
     if('tp' in it){ const t=Math.floor(num(+it.tp,0)); if(t>0&&!ITEM[it.id].uq) it.tp=Math.min(t,99); else delete it.tp; } };   // tp: times tempered
   g.inv.concat(Object.values(g.equip),...g.army.concat(g.reserve,g.waiting,...g.raids.map(x=>x.units)).map(m=>m.eq?Object.values(m.eq):[]),g.shop?g.shop.stock:[]).forEach(fixRo);
   delete P.dots; delete P.st; delete P.debuff; g.army.forEach(m=>{ delete m.dots; delete m.st; });   // status effects only live inside a fight
   g.mod=(obj(g.mod)&&typeof g.mod.day==='number'&&typeof g.mod.gi==='number'&&(g.mod.gi<0||(MODS[g.mod.id]&&RK[g.mod.gi])))?{day:g.mod.day,gi:g.mod.gi,id:g.mod.gi<0?null:g.mod.id}:null;
   const so=obj(g.story)?g.story:{}; g.story={}; for(const k in so) if(STORY_BY[k]&&typeof so[k]==='number') g.story[k]=so[k];
-  g.hist=Array.isArray(g.hist)?g.hist.filter(h=>obj(h)&&typeof h.d==='number'&&typeof h.res==='string').slice(-HIST_N):[];
+  g.hist=Array.isArray(g.hist)?g.hist.filter(h=>obj(h)&&fin(h.d)&&['cleared','fell','fled','left'].includes(h.res)&&(h.g<0||RK[h.g])).slice(-HIST_N):[];   // g: the gate, -1 for the Tower
+  g.hist.forEach(h=>{ for(const k of ['d','rooms','kills','xp','gold','items','raised','f0','f1','rift','trial']) if(k in h) h[k]=Math.max(0,Math.floor(num(h[k],0))); });   // shown in the History table
   g.hist.forEach(h=>{ if('sec' in h&&secretOf(h.sec)<0) delete h.sec; if('heat' in h&&!HEAT[h.heat]) delete h.heat; });
   g.hist.forEach(h=>{ for(const k of ['bo','mvp']) if(k in h&&!(Array.isArray(h[k])&&typeof h[k][0]==='string')) delete h[k]; for(const k of ['om','m2']) if(k in h&&typeof h[k]!=='string') delete h[k]; for(const k of ['tt','lv','dd','mh','dt']) if(k in h&&!(typeof h[k]==='number'&&h[k]>=0)) delete h[k]; if('fb' in h&&!(obj(h.fb)&&typeof h.fb.k==='string')) delete h.fb; });   // the details of newer runs; older runs simply lack them
   const L=obj(g.life)?g.life:{}; g.life={}; for(const k of LIFE_KEYS) g.life[k]=Math.max(0,num(L[k],0));

@@ -267,13 +267,13 @@ function bondsDawn(){   // closeDay, after the raids are home: news of the falle
   bondsClean();
 }
 function bondsFix(g){   // normalizeSave
-  const ok=v=>typeof v==='number'&&isFinite(v), all=g.army.concat(g.reserve||[],g.waiting||[],...(g.raids||[]).map(x=>x.units||[]));
+  const all=g.army.concat(g.reserve||[],g.waiting||[],...(g.raids||[]).map(x=>x.units||[]));
   for(const m of all){
-    if(m.bond&&!(typeof m.bond==='object'&&ok(m.bond.u)&&all.some(x=>x!==m&&x.uid===m.bond.u&&x.bond&&x.bond.u===m.uid))) delete m.bond;
-    if(m.mood&&!(typeof m.mood==='object'&&(m.mood.k==='v'||m.mood.k==='g')&&ok(m.mood.u))) delete m.mood; }
+    if(m.bond&&!(typeof m.bond==='object'&&fin(m.bond.u)&&all.some(x=>x!==m&&x.uid===m.bond.u&&x.bond&&x.bond.u===m.uid))) delete m.bond;
+    if(m.mood&&!(typeof m.mood==='object'&&(m.mood.k==='v'||m.mood.k==='g')&&fin(m.mood.u))) delete m.mood; }
   for(const m of all){ if(m.bond) m.bond={u:m.bond.u,n:cleanNick(String(m.bond.n||''))||'Nameless'}; if(m.mood) m.mood={k:m.mood.k,u:Math.floor(m.mood.u),n:cleanNick(String(m.mood.n||''))||'Nameless'}; }
   if('bondT' in g){ const T=g.bondT&&typeof g.bondT==='object'&&!Array.isArray(g.bondT)?g.bondT:{}; g.bondT={};   /* absent stays absent: a save round trip changes nothing */
-  for(const k of Object.keys(T)) if(/^\d+-\d+$/.test(k)&&ok(T[k])&&T[k]>0) g.bondT[k]=Math.min(BOND_ROOMS,Math.floor(T[k])); }
+  for(const k of Object.keys(T)) if(/^\d+-\d+$/.test(k)&&fin(T[k])&&T[k]>0) g.bondT[k]=Math.min(BOND_ROOMS,Math.floor(T[k])); }
   if('bondPend' in g){ const Q=g.bondPend&&typeof g.bondPend==='object'&&!Array.isArray(g.bondPend)?g.bondPend:{}; g.bondPend={};
   for(const k of Object.keys(Q)) if(/^\d+$/.test(k)&&Q[k]&&typeof Q[k].n==='string') g.bondPend[k]={n:cleanNick(Q[k].n)||'Nameless'}; }
 }

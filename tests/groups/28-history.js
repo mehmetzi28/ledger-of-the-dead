@@ -20,7 +20,7 @@ test('History: closing the tab mid-run records it in the save, not twice',()=>{
 });
 test('History: lifetime totals survive New Game+, damaged history is cleaned',()=>{
   S.life.runs=50; S.ti={clr:{5:1}}; ok(startNGP()); eq(S.life.runs,50); eq(S.hist.length,0);
-  const g=normalizeSave({v:2,player:{lvl:2},hist:[{d:1,res:'left'},null,'x',{d:'a'}],life:{runs:'x',kills:5,bogus:9}}); eq(g.hist.length,1); eq(g.life.runs,0); eq(g.life.kills,5); eq(g.life.bogus,undefined);
+  const g=normalizeSave({v:2,player:{lvl:2},hist:[{d:1,g:0,res:'left'},null,'x',{d:'a'}],life:{runs:'x',kills:5,bogus:9}}); eq(g.hist.length,1); eq(g.life.runs,0); eq(g.life.kills,5); eq(g.life.bogus,undefined);
 });
 test('History: the History tab renders',()=>{ ui.tab='hist'; ok(/No runs yet/.test(renderAll('empty history'))); richState(); ui.tab='hist'; const h=renderAll('full history'); ok(/Hell Tower, floor/.test(h)&&/Drought/.test(h)); });
 
@@ -33,7 +33,7 @@ test('History: a run keeps its turns, boss, best minion, level, damage, omen and
   S.hist.push({d:1,g:1,f0:0,f1:0,rooms:2,kills:3,xp:5,gold:6,items:0,raised:0,mod:'drought',res:'left'}); S.life.souls=4;
   ui.tab='hist'; const html=renderAll('history details'); ok(html.includes('Lifetime analytics')&&html.includes('Win rate')&&html.includes('Souls harvested')&&html.includes('h-det'));
   ok(html.includes('Favorite gate')&&html.includes(DUNGEONS[0].name)); eq(trText('Lifetime analytics')!=='Lifetime analytics',true);
-  const g=normalizeSave({v:2,player:{lvl:2},hist:[{d:1,res:'left',bo:'x',mvp:[3],om:5,tt:-1,dd:'a'},{d:2,res:'cleared',bo:['Rat King',1],tt:9}]}); eq(g.hist.length,2);
+  const g=normalizeSave({v:2,player:{lvl:2},hist:[{d:1,g:0,res:'left',bo:'x',mvp:[3],om:5,tt:-1,dd:'a'},{d:2,g:0,res:'cleared',bo:['Rat King',1],tt:9}]}); eq(g.hist.length,2);
   ok(!('bo' in g.hist[0])&&!('mvp' in g.hist[0])&&!('om' in g.hist[0])&&!('tt' in g.hist[0])&&!('dd' in g.hist[0]),'damaged details dropped'); eq(g.hist[1].tt,9); eq(g.hist[1].bo[0],'Rat King');
   const old=normalizeSave({v:2,player:{lvl:2},life:{runs:5,clears:2}}); eq(old.life.wn,0); eq(old.life.souls,0);
 });

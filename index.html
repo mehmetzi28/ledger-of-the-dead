@@ -1739,6 +1739,7 @@ function bakLoad(i){ const g=bakRead(i); return g?adoptSave(g.data):false; }
 // ----- save slots and save codes
 const SLOTS_N=3, CODE_TAG='LOTD1:';
 const slotKey=i=>SAVE_KEY+'-slot'+i;
+const fin=v=>typeof v==='number'&&isFinite(v), num=(v,def)=>fin(v)?v:def;   // save repair helpers
 // Repair a save into the current shape, or return null if it cannot be a save. Works on a copy; never touches S.
 // Migrates v1 saves (Might/Vigor/Intellect) and fills in anything missing, so older or damaged saves still load.
 function normalizeSave(src){
@@ -1747,7 +1748,7 @@ function normalizeSave(src){
   if(g.v===1){ const st=g.player.stats||{}, ren={might:'strength',vigor:'constitution',intellect:'intelligence'};
     for(const o in ren) if(o in st){ st[ren[o]]=st[o]; delete st[o]; } g.player.stats=st; g.v=2; }
   if(g.v!==2||typeof g.player.lvl!=='number'||!(g.player.lvl>=1)) return null;
-  const d=freshState(), num=(v,def)=>typeof v==='number'&&isFinite(v)?v:def, obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
+  const d=freshState(), obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
   const hadSp=typeof g.player.sp==='number';   // saves from before skills get one point per level already reached
   const P=g.player=Object.assign({},d.player,g.player);
   P.stats=Object.assign({},d.player.stats,obj(P.stats)?P.stats:{}); for(const k in d.player.stats) P.stats[k]=num(P.stats[k],d.player.stats[k]);
@@ -1760,46 +1761,51 @@ function normalizeSave(src){
   for(const k of ['notices','inv','army']) if(!Array.isArray(g[k])) g[k]=[];
   g.notices=g.notices.filter(n=>obj(n)&&typeof n.m==='string').slice(0,6).map(n=>({m:n.m.replace(/[<>]/g,''),c:/^\w+$/.test(n.c)?n.c:'info'}));   // a pasted save code is untrusted: notices go into the page as HTML
   for(const k of ['kills','tower','equip','quest']) if(!obj(g[k])) g[k]=d[k];
+  for(const k in g.kills){ const v=g.kills[k]; if(fin(v)&&v>=0) g.kills[k]=Math.floor(v); else delete g.kills[k]; }   // kill counts are shown in the Bestiary
   g.quest=Object.assign({},d.quest,g.quest); if('raises' in g.quest){ delete g.quest.raises; }   // the old "raise the dead" goal became "clear rooms"
   g.tower={best:num(g.tower.best,0),got:obj(g.tower.got)?g.tower.got:{}};
   const okItem=it=>!!(it&&ITEM[it.id]&&typeof it.u==='number');
   g.inv=g.inv.filter(okItem);
-  for(const sl of GEAR_SLOTS) if(!okItem(g.equip[sl])) g.equip[sl]=null;
+  for(const k in g.equip) if(!GEAR_SLOTS.includes(k)) delete g.equip[k]; for(const sl of GEAR_SLOTS) if(!okItem(g.equip[sl])) g.equip[sl]=null;
   const RA=Array.isArray(g.raids)?g.raids.filter(x=>obj(x)&&RK[x.di]&&Array.isArray(x.units)):[];   // squads out raiding: repaired with the army, then split back out
   RA.forEach((x,i)=>x.units.forEach(m=>{ if(obj(m)){ m._raid=i; g.army.push(m); } }));
   for(const k of ['reserve','waiting']) (Array.isArray(g[k])?g[k]:[]).forEach(m=>{ if(obj(m)){ m._raid=k; g.army.push(m); } });   // the Reserve and minions waiting at the gate: repaired the same way, never trimmed
   g.army=g.army.filter(m=>m&&typeof m==='object'&&!m.thrall&&ROLES[m.role]&&typeof m.lvl==='number'&&(m.tw||RK[m.rankI]));
-  for(const m of g.army){ m.hf=num(m.hf,1); m.af=num(m.af,1); m.xp=num(m.xp,0); m.hp=num(m.hp,1); m.nick=cleanNick(m.nick)||'Nameless'; m.name=cleanText(m.name); m.kind=cleanText(m.kind); if('fused' in m) m.fused=clamp(Math.floor(num(+m.fused,0)),0,FUSE_MAX); m.kind=m.kind||m.name; if(m.row!=='f'&&m.row!=='b') delete m.row;
+  for(const m of g.army){ m.hf=num(m.hf,1); m.af=num(m.af,1); m.xp=num(m.xp,0); m.hp=num(m.hp,1); m.nick=cleanNick(m.nick)||'Nameless'; m.name=cleanText(m.name); m.kind=cleanText(m.kind); if('fused' in m) m.fused=clamp(Math.floor(num(+m.fused,0)),0,FUSE_MAX); m.kind=m.kind||m.name; if(m.row!=='f'&&m.row!=='b') delete m.row; if(!RK[m.rankI]) m.rankI=twRank(Math.floor(num(m.tw,1)));   // tower minions store their tower rank
     m.traits=Array.isArray(m.traits)?m.traits.filter(t=>TRAITS[t]&&(t!=='commander'||canLead(m))):[]; m.stage=clamp(Math.floor(num(m.stage,0)),0,STAGE_MAX); m.lvl0=num(m.lvl0,m.lvl); if(m.cd&&!CORPSE_CONDS[m.cd]) delete m.cd; normMarks(m);   // minions from before traits keep no trait; cd: how its body died
-    if(m.armed){ m.eq=obj(m.eq)?m.eq:{}; for(const sl of GEAR_SLOTS) if(!okItem(m.eq[sl])) m.eq[sl]=null; } }
+    if(m.armed){ m.eq=obj(m.eq)?m.eq:{}; for(const k in m.eq) if(!GEAR_SLOTS.includes(k)) delete m.eq[k]; for(const sl of GEAR_SLOTS) if(!okItem(m.eq[sl])) m.eq[sl]=null; } else if(m.eq!=null) m.eq=null; }
   let top=num(g.uid,0);   // next id must stay above every id in use, or two items/minions would share one
   g.inv.concat(Object.values(g.equip),...g.army.map(m=>m.eq?Object.values(m.eq):[])).forEach(it=>{ if(it) top=Math.max(top,it.u); });
   g.army.forEach(m=>{ top=Math.max(top,num(m.uid,0)); }); g.army.forEach(m=>{ if(typeof m.uid!=='number') m.uid=++top; });
   g.raids=RA.map((x,i)=>Object.assign({di:x.di,day:Math.floor(num(x.day,g.day)),units:g.army.filter(m=>m._raid===i)},Array.isArray(x.res)?{res:x.res.filter(u=>typeof u==='number')}:{},typeof x.odds==='number'&&isFinite(x.odds)?{odds:clamp(x.odds,RAID_MIN,RAID_MAX)}:{})).filter(x=>x.units.length);
   for(const k of ['reserve','waiting']) g[k]=g.army.filter(m=>m._raid===k);
   g.army=g.army.filter(m=>m._raid==null); g.raids.forEach(x=>x.units.forEach(m=>{ delete m._raid; })); g.reserve.concat(g.waiting).forEach(m=>{ delete m._raid; });
-  const pint=v=>typeof v==='number'&&isFinite(v);   // tonight's raid orders: uids only (the squad stays in the army until nightfall)
-  g.raidOrders=Array.isArray(g.raidOrders)?g.raidOrders.filter(o=>obj(o)&&RK[o.di]&&pint(o.cu)&&Array.isArray(o.uids)).map(o=>({di:o.di,day:Math.floor(num(o.day,g.day)),cu:o.cu,uids:o.uids.filter(pint).slice(0,12)})):[];
+  g.raidOrders=Array.isArray(g.raidOrders)?g.raidOrders.filter(o=>obj(o)&&RK[o.di]&&fin(o.cu)&&Array.isArray(o.uids)).map(o=>({di:o.di,day:Math.floor(num(o.day,g.day)),cu:o.cu,uids:o.uids.filter(fin).slice(0,12)})):[];   // tonight's raid orders: uids only (the squad stays in the army until nightfall)
   g.raidLog=Array.isArray(g.raidLog)?g.raidLog.filter(x=>obj(x)&&RK[x.di]&&typeof x.nick==='string').slice(0,RAID_LOG).map(x=>({day:Math.floor(num(x.day,1)),di:x.di,won:!!x.won,nick:cleanNick(x.nick)||'Nameless',lost:Math.max(0,Math.floor(num(x.lost,0)))})):[];
   g.rift=obj(g.rift)?{best:Math.max(0,Math.floor(num(g.rift.best,0)))}:{best:0};
   g.uid=top; g.mode='town'; g.run=null;
   g.gold=Math.max(0,Math.floor(num(g.gold,0)));
   const tr={}; if(obj(g.trophies)) for(const k in g.trophies){ const n=Math.floor(num(g.trophies[k],0)); if(TROPHY[k]&&n>0) tr[k]=n; } g.trophies=tr;
   const b=obj(g.belt)?g.belt:{}; g.belt={hp:clamp(Math.floor(num(b.hp,0)),0,BELT_MAX),mp:clamp(Math.floor(num(b.mp,0)),0,BELT_MAX)};
-  if(obj(g.ti)&&'compounds' in g.ti) g.ti.compounds=Array.isArray(g.ti.compounds)?g.ti.compounds.filter((c,i,a)=>COMPOUND[c]&&a.indexOf(c)===i):[];   // fusion compounds found
+  if('ti' in g&&!obj(g.ti)) g.ti={};   // deed counters, earned titles {id:day}, cleared gates, the worn title, fusion compounds found
+  if(obj(g.ti)){ const T=g.ti; for(const k in T) if(!['got','clr','sel','compounds'].includes(k)&&!(fin(T[k])||T[k]===true)) delete T[k];
+    for(const k of ['got','clr']) if(k in T&&!obj(T[k])) T[k]={}; if(T.got) for(const k in T.got) if(!(fin(T.got[k])&&T.got[k]>0)) delete T.got[k];
+    if('sel' in T&&T.sel!==null&&typeof T.sel!=='string') delete T.sel;
+    if('compounds' in T) T.compounds=Array.isArray(T.compounds)?T.compounds.filter((c,i,a)=>COMPOUND[c]&&a.indexOf(c)===i):[]; }
   g.tips=obj(g.tips)?g.tips:{}; g.ngp=Math.max(0,Math.floor(num(g.ngp,0)));
   g.pacts=g.ngp?cleanPacts(g.pacts):[]; if(!PATHS[P.capPath]) delete P.capPath;   // New Game+ pacts and the chosen capstone path (src/game-progression.js)
   g.firstRaise=('firstRaise' in g)?(g.firstRaise?1:0):(g.army.length||g.raids.length||g.reserve.length||(obj(g.ti)&&g.ti.raised)||g.runs||(Array.isArray(g.hist)&&g.hist.length)||(obj(g.life)&&g.life.runs)||g.day>1||P.lvl>1||g.ngp?0:1);   // saves from before the sure first raise: any army, history or progress counts as having raised already
   g.bagLv=clamp(Math.floor(num(g.bagLv,0)),0,BAG_COST.length); g.salts=clamp(Math.floor(num(g.salts,0)),0,SALT_MAX);
   g.shop=(obj(g.shop)&&typeof g.shop.day==='number'&&Array.isArray(g.shop.stock)&&g.shop.stock.every(s=>s&&ITEM[s.id]))?g.shop:null;
-  const fixRo=it=>{ if(!it) return; if(Array.isArray(it.ro)) it.ro=it.ro.filter(r=>Array.isArray(r)&&ROLL_KEYS[r[0]]&&typeof r[1]==='number'&&isFinite(r[1])&&r[1]>0).slice(0,3).map(r=>[r[0],Math.round(r[1])]);
+  const fixRo=it=>{ if(!obj(it)) return; if(Array.isArray(it.ro)) it.ro=it.ro.filter(r=>Array.isArray(r)&&ROLL_KEYS[r[0]]&&typeof r[1]==='number'&&isFinite(r[1])&&r[1]>0).slice(0,3).map(r=>[r[0],Math.round(r[1])]);
     if(!Array.isArray(it.ro)||!it.ro.length||ITEM[it.id].uq) delete it.ro; if(it.lk!==true) delete it.lk;
     if('tp' in it){ const t=Math.floor(num(+it.tp,0)); if(t>0&&!ITEM[it.id].uq) it.tp=Math.min(t,99); else delete it.tp; } };   // tp: times tempered
   g.inv.concat(Object.values(g.equip),...g.army.concat(g.reserve,g.waiting,...g.raids.map(x=>x.units)).map(m=>m.eq?Object.values(m.eq):[]),g.shop?g.shop.stock:[]).forEach(fixRo);
   delete P.dots; delete P.st; delete P.debuff; g.army.forEach(m=>{ delete m.dots; delete m.st; });   // status effects only live inside a fight
   g.mod=(obj(g.mod)&&typeof g.mod.day==='number'&&typeof g.mod.gi==='number'&&(g.mod.gi<0||(MODS[g.mod.id]&&RK[g.mod.gi])))?{day:g.mod.day,gi:g.mod.gi,id:g.mod.gi<0?null:g.mod.id}:null;
   const so=obj(g.story)?g.story:{}; g.story={}; for(const k in so) if(STORY_BY[k]&&typeof so[k]==='number') g.story[k]=so[k];
-  g.hist=Array.isArray(g.hist)?g.hist.filter(h=>obj(h)&&typeof h.d==='number'&&typeof h.res==='string').slice(-HIST_N):[];
+  g.hist=Array.isArray(g.hist)?g.hist.filter(h=>obj(h)&&fin(h.d)&&['cleared','fell','fled','left'].includes(h.res)&&(h.g<0||RK[h.g])).slice(-HIST_N):[];   // g: the gate, -1 for the Tower
+  g.hist.forEach(h=>{ for(const k of ['d','rooms','kills','xp','gold','items','raised','f0','f1','rift','trial']) if(k in h) h[k]=Math.max(0,Math.floor(num(h[k],0))); });   // shown in the History table
   g.hist.forEach(h=>{ if('sec' in h&&secretOf(h.sec)<0) delete h.sec; if('heat' in h&&!HEAT[h.heat]) delete h.heat; });
   g.hist.forEach(h=>{ for(const k of ['bo','mvp']) if(k in h&&!(Array.isArray(h[k])&&typeof h[k][0]==='string')) delete h[k]; for(const k of ['om','m2']) if(k in h&&typeof h[k]!=='string') delete h[k]; for(const k of ['tt','lv','dd','mh','dt']) if(k in h&&!(typeof h[k]==='number'&&h[k]>=0)) delete h[k]; if('fb' in h&&!(obj(h.fb)&&typeof h.fb.k==='string')) delete h.fb; });   // the details of newer runs; older runs simply lack them
   const L=obj(g.life)?g.life:{}; g.life={}; for(const k of LIFE_KEYS) g.life[k]=Math.max(0,num(L[k],0));
@@ -3756,13 +3762,13 @@ function bondsDawn(){   // closeDay, after the raids are home: news of the falle
   bondsClean();
 }
 function bondsFix(g){   // normalizeSave
-  const ok=v=>typeof v==='number'&&isFinite(v), all=g.army.concat(g.reserve||[],g.waiting||[],...(g.raids||[]).map(x=>x.units||[]));
+  const all=g.army.concat(g.reserve||[],g.waiting||[],...(g.raids||[]).map(x=>x.units||[]));
   for(const m of all){
-    if(m.bond&&!(typeof m.bond==='object'&&ok(m.bond.u)&&all.some(x=>x!==m&&x.uid===m.bond.u&&x.bond&&x.bond.u===m.uid))) delete m.bond;
-    if(m.mood&&!(typeof m.mood==='object'&&(m.mood.k==='v'||m.mood.k==='g')&&ok(m.mood.u))) delete m.mood; }
+    if(m.bond&&!(typeof m.bond==='object'&&fin(m.bond.u)&&all.some(x=>x!==m&&x.uid===m.bond.u&&x.bond&&x.bond.u===m.uid))) delete m.bond;
+    if(m.mood&&!(typeof m.mood==='object'&&(m.mood.k==='v'||m.mood.k==='g')&&fin(m.mood.u))) delete m.mood; }
   for(const m of all){ if(m.bond) m.bond={u:m.bond.u,n:cleanNick(String(m.bond.n||''))||'Nameless'}; if(m.mood) m.mood={k:m.mood.k,u:Math.floor(m.mood.u),n:cleanNick(String(m.mood.n||''))||'Nameless'}; }
   if('bondT' in g){ const T=g.bondT&&typeof g.bondT==='object'&&!Array.isArray(g.bondT)?g.bondT:{}; g.bondT={};   /* absent stays absent: a save round trip changes nothing */
-  for(const k of Object.keys(T)) if(/^\d+-\d+$/.test(k)&&ok(T[k])&&T[k]>0) g.bondT[k]=Math.min(BOND_ROOMS,Math.floor(T[k])); }
+  for(const k of Object.keys(T)) if(/^\d+-\d+$/.test(k)&&fin(T[k])&&T[k]>0) g.bondT[k]=Math.min(BOND_ROOMS,Math.floor(T[k])); }
   if('bondPend' in g){ const Q=g.bondPend&&typeof g.bondPend==='object'&&!Array.isArray(g.bondPend)?g.bondPend:{}; g.bondPend={};
   for(const k of Object.keys(Q)) if(/^\d+$/.test(k)&&Q[k]&&typeof Q[k].n==='string') g.bondPend[k]={n:cleanNick(Q[k].n)||'Nameless'}; }
 }
@@ -4001,7 +4007,7 @@ const headCost=e=>Math.round(HEAD_GOLD*Math.pow(HEAD_GROW,e.hs|0));
 const canHead=e=>!!e&&S.mode==='town'&&(e.hs|0)<HEAD_TOP&&S.gold>=headCost(e);
 function carveHead(i){ const e=(S.memorial||[])[i]; if(!canHead(e)) return false; const c=headCost(e); S.gold-=c; e.hs=(e.hs|0)+1; tally('headG',c); syncArmy(); sfx('carve'); return true; }
 function memorialFix(g){   // normalizeSave: keep well-formed entries only
-  const num=(v,d)=>typeof v==='number'&&isFinite(v)?v:d, ok=e=>e&&typeof e==='object'&&typeof e.nick==='string'&&typeof e.name==='string';
+  const ok=e=>e&&typeof e==='object'&&typeof e.nick==='string'&&typeof e.name==='string';
   g.memorial=Array.isArray(g.memorial)?g.memorial.filter(ok).slice(0,MEM_MAX).map(e=>{ const o={nick:cleanNick(e.nick)||'Nameless',kind:cleanText(typeof e.kind==='string'?e.kind:e.name),name:cleanText(e.name),rk:clamp(Math.floor(num(e.rk,0)),0,RANKS.length-1),
     lvl:Math.max(1,Math.floor(num(e.lvl,1))),st:clamp(Math.floor(num(e.st,0)),0,STAGE_MAX),tr:Array.isArray(e.tr)?e.tr.filter(t=>TRAITS[t]):[],role:ROLES[e.role]?e.role:'striker',day:Math.max(1,Math.floor(num(e.day,1)))};
     if(e.boss) o.boss=1; if(e.elite) o.elite=1; for(const k of ['g','raid']) if(RK[e[k]]) o[k]=e[k]; for(const k of ['f','rd']) if(num(e[k],0)>0) o[k]=Math.floor(e[k]); if(typeof e.bd==='string'&&cleanNick(e.bd)) o.bd=cleanNick(e.bd); if(e.maus) o.maus=1; if(num(e.hs,0)>=1) o.hs=Math.min(HEAD_TOP,Math.floor(e.hs)); return o; }):[];
@@ -4044,7 +4050,7 @@ function useLoadout(i){
   return {miss};
 }
 function loadoutsFix(g){   // normalizeSave: shape only; ids that no longer exist are kept until the slot is used
-  const L=Array.isArray(g.loadouts)?g.loadouts:[], pint=v=>typeof v==='number'&&isFinite(v), pair=x=>Array.isArray(x)&&pint(x[0])&&typeof x[1]==='string';
+  const L=Array.isArray(g.loadouts)?g.loadouts:[], pair=x=>Array.isArray(x)&&fin(x[0])&&typeof x[1]==='string';
   g.loadouts=freshLoadouts().map((d,i)=>{ const o=L[i]; if(!o||typeof o!=='object') return d; const s=o.s&&typeof o.s==='object'?o.s:null;
     const gear={}; if(s) for(const sl of GEAR_SLOTS){ const x=s.gear&&s.gear[sl]; gear[sl]=pair(x)?[x[0],x[1]]:null; }
     return {n:cleanNick(o.n),s:s?{gear,army:(Array.isArray(s.army)?s.army:[]).filter(pair).slice(0,40).map(x=>[x[0],cleanNick(x[1])||'Nameless']),res:(Array.isArray(s.res)?s.res:[]).filter(pair).slice(0,60).map(x=>[x[0],cleanNick(x[1])||'Nameless']),ult:ULTS[s.ult]?s.ult:null}:null}; });
@@ -9568,13 +9574,12 @@ function memorialHTML(){   // the fallen, newest first, in a muted hand; honouri
   h+='<div class="mem-list">'+list.map((e,i)=>{ const c=honourCost(e);
     return '<div class="mem-row">'+ico(e.kind,e.rk,{boss:e.boss,elite:e.elite,role:e.role})+'<span class="rk r'+e.rk+'">'+RANKS[e.rk]+'</span><div class="mem-t"><b>'+e.nick+'</b> <span class="dim">'+theName(mName({name:e.name,stage:e.st}))+'</span>'
      +'<div class="u-sub"><span>'+memWhere(e)+'</span> &middot; <span>Day '+e.day+'</span> &middot; <span>Lv '+e.lvl+'</span></div>'
-     +(e.tr.length?'<div class="u-sub mem-tr">'+e.tr.map(t=>TRAITS[t].name).join(', ')+'</div>':'')+(e.bd?'<div class="u-sub mem-bd">Bonded to '+hEsc(e.bd)+'</div>':'')+(e.maus?'<div class="u-sub mem-maus">Rests in a mausoleum</div>':'')+(e.hs?'<div class="u-sub mem-hs">Headstone, tier '+e.hs+'</div>':'')+'</div>'+(town?'<div class="mem-b">':'')+mausBtn(e,i)
+     +(e.tr.length?'<div class="u-sub mem-tr">'+e.tr.map(t=>TRAITS[t].name).join(', ')+'</div>':'')+(e.bd?'<div class="u-sub mem-bd">Bonded to '+cleanText(e.bd)+'</div>':'')+(e.maus?'<div class="u-sub mem-maus">Rests in a mausoleum</div>':'')+(e.hs?'<div class="u-sub mem-hs">Headstone, tier '+e.hs+'</div>':'')+'</div>'+(town?'<div class="mem-b">':'')+mausBtn(e,i)
      +(town&&(e.hs|0)<HEAD_TOP?'<button class="btn small" data-a="head" data-k="'+i+'"'+(S.gold<headCost(e)?' disabled title="Not enough gold"':'')+'>'+(e.hs?'Raise headstone':'Carve a headstone')+' &middot; '+headCost(e)+' gold</button>':'')
      +(town&&e.st>=1&&!remembered()?'<button class="btn small" data-a="honour" data-k="'+i+'"'+(S.gold<c?' disabled title="Not enough gold"':'')+'>Honour &middot; '+c+' gold</button>':'')+(town?'</div>':'')+'</div>'; }).join('')+'</div>';
   if(M.length>MEM_SHOW) h+='<div class="btns"><button class="linkbtn" data-a="memall">'+(ui.memAll?'Show the newest '+MEM_SHOW:'Show all '+M.length)+'</button></div>';
   return h+'</section>';
 }
-const hEsc=t=>String(t==null?'':t).replace(/[<>&"]/g,'');   // names from a save go into the page
 function histStatsHTML(L){   // lifetime analytics: from the lifetime counters, not only the last runs
   const n=v=>(v||0).toLocaleString(), rate=L.wt?L.wn/L.wt:(L.runs?(L.clears||0)/L.runs:0), avg=L.cn?Math.round(L.ct/L.cn):0;
   let fav=-1, fn=0; DUNGEONS.forEach((D,i)=>{ const c=T_('clrN'+i); if(c>fn){ fn=c; fav=i; } });
@@ -9585,8 +9590,8 @@ function histStatsHTML(L){   // lifetime analytics: from the lifetime counters, 
 }
 function histDetail(x){   // the expandable line under a run; runs from before these details were kept have none
   const n=v=>(v||0).toLocaleString(), out=[];
-  if(x.bo) out.push('<div><span>Boss</span> <b>'+hEsc(x.bo[0])+'</b> <span class="'+(x.bo[1]?'ok':'dim')+'">'+(x.bo[1]?'slain':'still standing')+'</span></div>');
-  if(x.mvp) out.push('<div><span>Best minion</span> <b>'+hEsc(x.mvp[0])+'</b> <span class="dim">'+(ROLES[x.mvp[1]]?ROLES[x.mvp[1]].label:hEsc(x.mvp[1]))+' &middot; Lv '+(+x.mvp[2]||1)+'</span></div>');
+  if(x.bo) out.push('<div><span>Boss</span> <b>'+cleanText(x.bo[0])+'</b> <span class="'+(x.bo[1]?'ok':'dim')+'">'+(x.bo[1]?'slain':'still standing')+'</span></div>');
+  if(x.mvp) out.push('<div><span>Best minion</span> <b>'+cleanText(x.mvp[0])+'</b> <span class="dim">'+(ROLES[x.mvp[1]]?ROLES[x.mvp[1]].label:cleanText(x.mvp[1]))+' &middot; Lv '+(+x.mvp[2]||1)+'</span></div>');
   if(x.lv) out.push('<div><span>Your level</span> <b>'+x.lv+'</b></div>');
   if(x.dd||x.mh) out.push('<div><span>Damage dealt</span> <b>'+n(x.dd)+'</b> <span class="dim">&middot; biggest hit '+n(x.mh)+'</span></div>');
   if(x.dt) out.push('<div><span>Damage taken</span> <b>'+n(x.dt)+'</b></div>');
@@ -9612,7 +9617,7 @@ function histHTML(){
   return h+'<div class="hist-wrap"><table class="hist"><thead><tr><th>Day</th><th>Where</th><th>Result</th><th class="num">Turns</th><th class="num">Rooms</th><th class="num">Kills</th><th class="num">XP</th><th class="num">Gold</th><th class="num">Gear</th><th class="num">Raised</th></tr></thead><tbody>'
    +H.map(x=>'<tr><td class="num">'+x.d+'</td><td>'+where(x)+(x.mod&&MODS[x.mod]?' <span class="dim">('+MODS[x.mod].name+')</span>':'')
      +(x.heat&&HEAT[x.heat]?' <span class="dim">'+HEAT[x.heat].name+'</span>':'')+(x.om&&OMENS[x.om]?' <span class="dim h-om">'+OMENS[x.om].name+'</span>':'')+(x.sec?'<div class="sec-k">&#9760; '+x.sec+' slain</div>':'')+histDetail(x)
-     +'</td><td class="res-'+x.res+'">'+(x.siege&&x.res==='cleared'?'Held':RES[x.res]||x.res)+(x.bo&&!x.sec?'<div class="u-sub h-bo">'+(x.bo[1]?'&#9760; ':'')+hEsc(x.bo[0])+'</div>':'')+'</td><td class="num">'+(x.tt?x.tt:'&ndash;')+'</td><td class="num">'+x.rooms+'</td><td class="num">'+x.kills+'</td><td class="num">'
+     +'</td><td class="res-'+x.res+'">'+(x.siege&&x.res==='cleared'?'Held':RES[x.res]||x.res)+(x.bo&&!x.sec?'<div class="u-sub h-bo">'+(x.bo[1]?'&#9760; ':'')+cleanText(x.bo[0])+'</div>':'')+'</td><td class="num">'+(x.tt?x.tt:'&ndash;')+'</td><td class="num">'+x.rooms+'</td><td class="num">'+x.kills+'</td><td class="num">'
      +n(x.xp)+'</td><td class="num">'+n(x.gold)+'</td><td class="num">'+x.items+'</td><td class="num">'+x.raised+'</td></tr>').join('')
    +'</tbody></table></div></section>';
 }
@@ -9960,16 +9965,16 @@ function bondTags(m){   // plain words for the compact row's title and the card'
   if(moodOn(m)) t.push(m.mood.k==='v'?'Vengeful: '+m.mood.n:'Grieving: '+m.mood.n); return t;
 }
 function bondChips(m){
-  let h=''; if(m.bond) h+='<span class="trait bond" title="+'+bondPct(BOND_ATK)+' attack while the bond holds">Bonded: '+hEsc(bondName(m))+'</span>';
-  if(moodOn(m)) h+=m.mood.k==='v'?'<span class="trait mood-v" title="+'+bondPct(BOND_VENGE)+' attack until dawn">Vengeful: '+hEsc(m.mood.n)+'</span>'
-    :'<span class="trait mood-g" title="'+bondPct(BOND_GRIEF)+' less attack for a day">Grieving: '+hEsc(m.mood.n)+'</span>';
+  let h=''; if(m.bond) h+='<span class="trait bond" title="+'+bondPct(BOND_ATK)+' attack while the bond holds">Bonded: '+cleanText(bondName(m))+'</span>';
+  if(moodOn(m)) h+=m.mood.k==='v'?'<span class="trait mood-v" title="+'+bondPct(BOND_VENGE)+' attack until dawn">Vengeful: '+cleanText(m.mood.n)+'</span>'
+    :'<span class="trait mood-g" title="'+bondPct(BOND_GRIEF)+' less attack for a day">Grieving: '+cleanText(m.mood.n)+'</span>';
   return h;
 }
 function bondsArmyHTML(){   // the Army tab: every bonded pair, and the pairs closest to bonding
   const P=bondPairs(), N=bondNear().slice(0,3); if(!P.length&&!N.length) return '';
   return '<section class="win bonds-w" aria-labelledby="h-bonds"><h2 class="win-h" id="h-bonds">Bonds</h2>'
-   +(P.length?'<div class="items">'+P.map(([a,b])=>'<div class="tt-row"><div><h4>'+hEsc(a.nick)+' &amp; '+hEsc(b.nick)+'</h4><div class="u-sub">Bonded &middot; +'+bondPct(BOND_ATK)+' attack each</div></div></div>').join('')+'</div>':'')
-   +(N.length?'<p class="u-sub">'+N.map(x=>hEsc(x.a.nick)+' &amp; '+hEsc(x.b.nick)+': '+x.n+'/'+BOND_ROOMS+' rooms together').join(' &middot; ')+'</p>':'')+'</section>';
+   +(P.length?'<div class="items">'+P.map(([a,b])=>'<div class="tt-row"><div><h4>'+cleanText(a.nick)+' &amp; '+cleanText(b.nick)+'</h4><div class="u-sub">Bonded &middot; +'+bondPct(BOND_ATK)+' attack each</div></div></div>').join('')+'</div>':'')
+   +(N.length?'<p class="u-sub">'+N.map(x=>cleanText(x.a.nick)+' &amp; '+cleanText(x.b.nick)+': '+x.n+'/'+BOND_ROOMS+' rooms together').join(' &middot; ')+'</p>':'')+'</section>';
 }
 CODEX.splice(CODEX.findIndex(c=>c[0]==='fusion')+1,0,['bonds','Bonds']);
 CODEX.splice(CODEX.findIndex(c=>c[0]==='rooms')+1,0,['chains','Event chains']);
@@ -9978,7 +9983,7 @@ function cxBondsHTML(){
   return cxP('Two minions that are both standing in your army at the end of '+BOND_ROOMS+' won rooms become Bonded. Each minion has at most one partner. Rooms only count while both fight in the army: the Reserve, the gate and a raid pause the count, and a new partner starts from nothing.')
    +cxP('A bonded minion hits '+bondPct(BOND_ATK)+' harder for as long as the bond holds. Releasing either one, or fusing one into another minion, breaks the bond.')
    +cxP('When one partner is lost for good, the other takes it hard. If it was in your army in that same fight, it is Vengeful: '+bondPct(BOND_VENGE)+' more attack until dawn. If it was anywhere else (benched, waiting, or the loss came on a raid), it is Grieving: '+bondPct(BOND_GRIEF)+' less attack for a day. Either way it is free to bond again. The Memorial remembers who the fallen was bonded to.')
-   +'<p class="group-h">Your bonds</p>'+(P.length?cxList(P.map(([a,b])=>cxRow(hEsc(a.nick)+' &amp; '+hEsc(b.nick),'Bonded'))):cxP('None yet.'));
+   +'<p class="group-h">Your bonds</p>'+(P.length?cxList(P.map(([a,b])=>cxRow(cleanText(a.nick)+' &amp; '+cleanText(b.nick),'Bonded'))):cxP('None yet.'));
 }
 function cxChainsHTML(){
   const st=id=>{ const c=chainSt(id); return !c?'Not begun':c.s==='end'?'Ended':'Waiting'; };
