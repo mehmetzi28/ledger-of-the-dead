@@ -98,12 +98,15 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
 
 **Combat depth**
 
-- **G1. Foe kinds have no identity.** The 42 gate foes share their role's stat factors; only the Whisper Choir does
+- ~~**G1. Foe kinds have no identity.**~~ Closed by R1 PR B: sixteen foe kits, one per kind, shown on the card by mastery
+  tier, listed in door lore and the Codex; weakness kills raise the Undone with an echo of the kit. (Was: The 42 gate foes share their role's stat factors; only the Whisper Choir does
   something of its own. Learning a foe in the bestiary reveals numbers, not behavior, so "read the fight" has little to
-  read in ordinary rooms. (Combat, bestiary, doors, corpse conditions.)
-- **G2. Strong players alpha-strike.** The bots end most rooms in one action once ahead; turn-based Trial scores floor
+  read in ordinary rooms. (Combat, bestiary, doors, corpse conditions.))
+- ~~**G2. Strong players alpha-strike.**~~ Closed in part by R1 PR B: kits give rooms at your level something to read
+  (shields, marks, burrows, banners, bombers) and the bot now targets by kit; outgrown rooms are swept instead of
+  clicked. Boss fights stay for R2. (Was: The bots end most rooms in one action once ahead; turn-based Trial scores floor
   near 4; orders, statuses and combos rarely matter in content you have outgrown. Stacked foe multipliers above ~3x HP per
-  hit become walls instead of puzzles. (Combat, difficulty, Trials.)
+  hit become walls instead of puzzles. (Combat, difficulty, Trials.))
 - **G3. Bosses have one move.** Six gate bosses, ten wardens, six secret masters and the rival share seven moves
   between them; wardens and secret masters reuse the gate moves, the rival only has Royal Decree. (Bosses, Tower, secret
   masters, rival.)
@@ -111,8 +114,9 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
   (Was: Frost, fire, rot and shadow exist as flavor (Rimeborn, Cinderborn, blight, the Eclipse's
   "shadow"), but nothing resists or is weak to them, so gear, affixes, traits and skills cannot specialize against a gate.
   (Combat, traits, gear, omens, bestiary.))
-- **G5. Outgrown content is slow.** Farming far below your level pays less but costs the same clicks; there is no quick
-  resolve for rooms you cannot lose. (Combat, raids, calendar.)
+- ~~**G5. Outgrown content is slow.**~~ Closed by R1 PR B: Sweep wins an outgrown Normal gate run for one watch at 80%
+  kill XP. (Was: Farming far below your level pays less but costs the same clicks; there is no quick
+  resolve for rooms you cannot lose. (Combat, raids, calendar.))
 
 **Army**
 

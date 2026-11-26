@@ -288,7 +288,8 @@ function gateHTML(i){
    +(S.mode==='town'&&raidGates().includes(i)&&bestSquad()&&!raidOrders().length?(sq=>'<div class="raid-odds" title="'+sq[0].nick+' and '+(sq.length-1)+' of your strongest; set the squad on the War table">Raid odds '+Math.round(raidOdds(sq,i)*100)+'%</div>')(bestSquad()):'')
    +heatHTML(i)+(gateFarm(i)<1?'<div class="farm-line dim" title="Rewards here '+Math.round(gateFarm(i)*100)+'% on Normal at your level; Hard and up pay in full.">Rewards '+Math.round(gateFarm(i)*100)+'% &middot; Hard+ full</div>':'')+'</div>'
    +'<button class="linkbtn g-detb" data-a="gdet" data-k="'+i+'" aria-expanded="'+det+'">'+(det?'Hide details':'Details')+'</button>'+(det?gateDetHTML(i):'')+'</div>'
-   +'<button class="btn '+(locked?'':'primary')+'" data-a="enter" data-k="'+i+'"'+(locked?' disabled':'')+'>'+(locked?'Reach Lv '+R.unlock:'Enter'+(heatOf(i)?' &middot; '+HEAT[heatOf(i)].name:''))+'</button></div>';
+   +'<button class="btn '+(locked?'':'primary')+'" data-a="enter" data-k="'+i+'"'+(locked?' disabled':'')+'>'+(locked?'Reach Lv '+R.unlock:'Enter'+(heatOf(i)?' &middot; '+HEAT[heatOf(i)].name:''))+'</button>'
+   +(sweepOk(i)?'<button class="btn sweep-b" data-a="sweep" data-k="'+i+'" title="Win the whole run at once: one watch, kill XP at '+Math.round(SWEEP_XP*100)+'%, gold, trophies and gear as usual; nothing raised, no events or doors. A secret master or the rival stops it at the boss room.">Sweep &middot; 1 watch</button>':'')+'</div>';
 }
 function gateDetHTML(i){   // a gate card's Details: the boss (painted once met), study progress and what the gate pays
   const D=DUNGEONS[i], kn=n=>(S.kills&&S.kills[n])||0, foes=D.mobs.map(m=>m[0]).concat([D.boss[0]]), studied=foes.filter(n=>kn(n)>=KNOW_AT).length, met=bossMet(i), H=HEAT[heatOf(i)];

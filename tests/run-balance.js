@@ -15,6 +15,7 @@ for(const m of ['noSkills','skills','market','full']){
   if(r.tiers&&r.tiers.length) console.log('  clear by hero level (2-level bins) per difficulty:\n    '+r.tiers.join('\n    '));
   if(r.heat&&r.heat.length>1) console.log('  difficulty: '+r.heat.join(' | '));
   if(r.raise) console.log('  raises: '+r.raise+' attempts answered');
+  if(r.sweeps) console.log('  sweeps: '+r.sweeps.n+' ('+r.sweeps.perBot+' a bot, '+r.sweeps.stopped+' stopped by a master)');
   if(r.sec) console.log('  secret masters: met '+r.sec.met+', slain '+r.sec.slain);
   if(r.lore) console.log('  lore: '+Object.entries(r.lore).map(([d,v])=>d+' '+v).join(' | '));
   if(r.sieges&&r.sieges.fought) console.log('  sieges: fought '+r.sieges.fought+', held '+r.sieges.won+' ('+Math.round(r.sieges.won/r.sieges.fought*100)+'%)');

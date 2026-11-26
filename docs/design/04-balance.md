@@ -24,6 +24,18 @@ to each constant in `src/` and in `claude.md`; this page is the summary to read 
 
 ## 4.2 Latest measurements (2026-11-26, seeds 7700 and 9100, 40 bots x 100 days)
 
+**After foe kits, the Undone and Sweep (R1 PR B)**: before any retune, kits cost the first gates most (market E 92 to 83%,
+D 90 to 86%; full E 87 to 81%), Tower 78 to 71-72 and Rift 23 to 18-19. Rat Warren ablation: the Warren Bandit's mana
+thief and the Tunnel Rat's pack hunter were each worth 3-4 points of E. Retune: `DIFF.foeAtk` E/D 1.2/.95 to 1.0/.9
+(nothing else moved). Then market 90/89% gates (E 89, D 90, C 92, B 91, A 88, S 90), Tower 78.1/78.5, Rift 22.9/23.2;
+full 91/91% (E 84, D 85, C 88, B 81, A 84, S 96), Tower 84.6/83.2, Rift 12.1/12.5, sieges 86/84%, rival 71/72%. Turns per
+room barely moved (market C 5.3, B 3.4, A 3.7, S 3.0): kits make rooms harder to read, not longer, for a bot that targets
+well. `REC_BASE` stands (byLvl and push: D 87% at Lv5, C 78% at 9, B 79-89% at 14-15, A 77-85% at 19, S 86-89% at 26).
+The bot's kit policy (target order, no ward into a Sapper, ward before an ambush or surfacing) is worth ~2 points of
+clears and ~1 Rift depth (`"off":["kits"]`: 88%, Rift 21.8). Sweep: the market bot sweeps ~105 runs a game (the full bot,
+busy elsewhere, under 1); it changes no level, Tower or Rift number (`"off":["sweep"]` 94% clears only because the
+swept runs are then fought as easy clears), so it saves clicks without adding power.
+
 **After damage types (R1 PR A)**: profiles, typed affixes and typed lines moved nothing past noise. market 92/93% gates
 (main 92/92%), Tower 78.5/78.4, Rift 23-24; full 91/92%, Tower 84-85, Rift 12-13, sieges 85-86%, rival 73-77%. Turns per
 room shifted a little where the bots' physical damage meets a profile (Ashen Barrow 5.3 to 5.6, Hollow Cathedral 3.6 to
@@ -70,11 +82,11 @@ Gold at day 100 (before Awakening and headstones): ~33-39k average held, ~1.1M l
 
 | # | Problem | Status / idea | Roadmap |
 |---|---|---|---|
-| B1 | `market` sits a few points over the ~85% target on gates (91% after the Con change) | Accept until foe kits land; kits will add difficulty through rules, then retune `DIFF` | R1 |
+| B1 | `market` sits a few points over the ~85% target on gates (91% after the Con change) | Kits landed (R1 PR B) and E/D were retuned to stay near 90%: the kit-aware bot plays them well. Revisit once boss kits (R2) add their share | R1, R2 |
 | B2 | Constitution builds trail Strength and Intelligence builds by ~10 Tower floors and ~20 Rift depths | Damage types and foe kits give Con-heavy builds a role (outlasting attrition kits) | R1, R11 |
 | B3 | Late gold surplus | Economy round: income curve and open-ended sinks that connect systems | R4 |
 | B4 | The `full` bot's Rift depth (~13) is far below `market` (~31) because it spends days elsewhere | Measure the Rift with a dedicated probe, not the 100-day average | R9 |
-| B5 | Trial scores floor out for over-leveled players | Trials now use Throne strength and a fair level per tier; revisit with foe kits | R1 |
+| B5 | Trial scores floor out for over-leveled players | Trials now use Throne strength and a fair level per tier; Trial foes carry kits since R1 PR B. Revisit with boss kits | R1, R2 |
 | B6 | Balance has never been checked by a human | Local play log export | R15 |
 | B7 | Daily quest is a free stat point a day (~100 points over a game) | Make it a choice or fold into bounties | R5 (ride-along) |
 | B8 | Hero could carry rooms alone, then fell far behind the army late | Closed by Command (PR #5): the hero draws on the army's power | R0 shipped |

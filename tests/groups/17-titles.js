@@ -7,8 +7,8 @@ test('Titles: earned once, worn automatically, with one notice',()=>{
 });
 test('Titles: every condition can be checked on a new game without errors',()=>{ checkTitles(); TITLES.forEach(t=>{ const v=t.ok(); ok(v===true||v===false||v===undefined||typeof v==='number','title '+t.id+' returned '+v); }); });
 test('Titles: deed counters add up',()=>{ tally('x'); tally('x',4); eq(S.ti.x,5); });
-test('Titles: 148 titles, each with a small, readable bonus',()=>{
-  eq(TITLES.length,148); eq(new Set(TITLES.map(t=>t.name)).size,148,'unique names');
+test('Titles: 152 titles, each with a small, readable bonus',()=>{
+  eq(TITLES.length,152); eq(new Set(TITLES.map(t=>t.name)).size,152,'unique names');
   for(const t of TITLES){ const ks=Object.keys(t.b); ok(ks.length>=1&&ks.length<=2,t.id+' bonus count'); ks.forEach(k=>{ ok(TBUFF_L[k]||STATL[k],t.id+' unknown bonus '+k); ok(t.b[k]>0&&t.b[k]<=(TBUFF_L[k]?10:25)*RARITY_MUL[t.r],t.id+' '+k+' is not small'); ok(k!=='slot',t.id+' gives army slots'); }); ok(buffTxt(t.b)&&!BAD_TEXT.test(buffTxt(t.b)),t.id+' text'); }
   ['Gates','Hell Tower','Curses and events','Deeds'].forEach(g=>ok(TITLES.some(t=>t.grp===g),g));
 });
@@ -69,6 +69,7 @@ test('Titles: the big deeds unlock',()=>{
   S.rec=Object.assign(S.rec||{},{fast:{0:{t:16,day:1,heat:0}},streak:{v:10,day:1},tw10:{v:75,day:1},ftr:{v:FUSE_TRAITS,day:1},riftF:{10:{t:25,day:1,d:10}}}); S.gold=25000; ['u0','u1','u2','u3','u4','u5'].forEach(id=>give(id));
   S.ti.fullGear=true; Object.assign(S.life,{gold:50000,items:200,runs:100,rooms:1000}); const L=give('4-wa'); L.ro=[['will',1],['hp',9],['crit',2]];
   S.army=[]; TRAIT_IDS.forEach((t,i)=>mkMinion({traits:[t],stage:i<3?2:0,lvl:20})); mkMinion({lvl:50}); while(S.army.length<slots()) mkMinion({});
+  KIT_IDS.forEach(k=>S.ti['ks_'+k]=1); S.ti.weakK=500; S.ti.defused=25; S.ti.gcBane=50;   /* the foe-kit deeds */
   checkTitles(); const miss=TITLES.filter(t=>!S.ti.got[t.id]).map(t=>t.id); eq(miss.join(),'','titles not earned');
 });
 
@@ -80,7 +81,7 @@ test('Titles: six rarities; rarer ones give bigger bonuses, and Epic and rarer s
 });
 const earnN=n=>{ S.ti=S.ti||{}; S.ti.got={}; TITLES.slice(0,n).forEach(t=>S.ti.got[t.id]=1); S.ti.sel=null; };
 test('Titles collection: +1% gold from kills per 10 titles earned, capped at +10%, and nothing else',()=>{
-  const N=TITLES.length; eq(N,148); const base=xb('goldp');
+  const N=TITLES.length; eq(N,152); const base=xb('goldp');
   for(const [n,b] of [[0,0],[9,0],[10,1],[25,2],[99,9],[100,10],[N,10]]){ earnN(n); eq(titlesGot(),n); eq(titleColB(),b,n+' titles'); eq(xb('goldp'),base+b,'goldp at '+n); }
   earnN(N); S.ti.got.nonsense=1; eq(titlesGot(),N,'unknown ids do not count'); for(const k of ['dmgp','hpp','drp','xpp','crit','mpow']) eq(xb(k),0,'no '+k);
   earnN(0); eq(xb('dmgp'),0);

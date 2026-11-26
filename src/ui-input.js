@@ -102,7 +102,7 @@ const ACTIONS={
   salvtier:k=>{ const t=+k; if(ui.confirm!=='sv'+t){ ui.confirm='sv'+t; return; } ui.confirm=null; const r=salvageTier(t); ui.msg=r&&r.n?{mk:1,m:'Salvaged '+r.n+' '+TIERS[t]+' piece'+(r.n>1?'s':'')+' into '+r.d+' bone dust.',c:'ok'}:null; },
   junk:()=>{ if(ui.confirm!=='junk'){ ui.confirm='junk'; return; } ui.confirm=null; const r=sellJunk(); ui.msg=r&&r.n?{mk:1,m:'Sold '+r.n+' piece'+(r.n>1?'s':'')+' of junk for '+r.g+' gold.',c:'ok'}:null; },
   sellitem:k=>{ if(ui.confirm!=='si'+k){ ui.confirm='si'+k; return; } ui.confirm=null; const it=S.inv.find(x=>x.u===+k), nm=it&&ITEM[it.id].name, g=sellItem(+k); ui.msg=g?{mk:1,m:'Sold '+nm+' for '+g+' gold.',c:'ok'}:null; }, skreset:()=>{ if(ui.confirm==='skreset'){ ui.confirm=null; resetSkills(); } else ui.confirm='skreset'; }, claim:()=>claimQuest(), notesall:()=>{ ui.notesAll=!ui.notesAll; }, dismiss:()=>{ S.notices=currentTip()?S.notices.filter(n=>n.c==='story'):[]; },   /* story notes hidden under a tip were not seen yet */
-  enter:k=>startRun(+k),
+  enter:k=>startRun(+k), sweep:k=>{ sweep(+k); },
   pick:k=>{ const a=k.split('|'); ui.pick=(ui.pick&&ui.pick.uid===+a[0]&&ui.pick.slot===a[1])?null:{uid:+a[0],slot:a[1]}; },
   give:k=>{ const a=k.split('|'); giveGear(+a[0],+a[1]); ui.pick=null; },
   take:k=>{ const a=k.split('|'); takeGear(+a[0],a[1]); }, settings:()=>{ if(S.mode!=='town') return; ui.tab=ui.tab==='settings'?'gates':'settings'; ui.msg=null; ui.exp=''; },

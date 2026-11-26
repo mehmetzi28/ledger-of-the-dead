@@ -571,6 +571,7 @@ kbd{border:0;background:rgba(0,0,0,.35);border-radius:3px;padding:1px 5px;opacit
 .gate .meta b{font-weight:600;color:var(--bone)}
 .danger-easy{color:var(--mute)}.danger-fair{color:var(--ok)}.danger-hard{color:var(--ember)}.danger-deadly{color:var(--blood-text)}
 .gate .meta .rec-lv{color:var(--bone)}.armor-tag{cursor:help;border-bottom:1px dotted currentColor}
+.kit{color:#e0b878;cursor:help;border-bottom:1px dotted currentColor}.kit.unk{color:var(--mute)}.kit-st{font-size:.85em;color:var(--mute)}.intent.i-shield,.strip .c-i.i-shield{color:var(--ward)}
 .dt-tag{cursor:help;border-bottom:1px dotted currentColor}.dt-tag .dt-g+.dt-g{margin-left:0}.dt{font-weight:600}.dt-phys{color:#d8c8a8}.dt-shad{color:#b48cf0}.dt-frost{color:#8fd0ff}.dt-fire{color:#ff8a4c}.dt-rot{color:#a8d05a}
 .sg-fres svg,.sg-fdmg svg{color:#ff8a4c}.sg-frres svg,.sg-frdmg svg{color:#8fd0ff}.sg-rres svg,.sg-rdmg svg{color:#a8d05a}.sg-sres svg,.sg-sdmg svg{color:#b48cf0}
 .u-tag,.i-tag{font:500 12px/1.2 var(--font-body)}
