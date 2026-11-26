@@ -19,7 +19,7 @@ substantial feature or rework; small fixes ride along inside one. Rounds name th
 | # | Round | Priority | Closes | Needs | Size | Spec |
 |---|---|---|---|---|---|---|
 | R0 | Hero power scales with army strength | Shipped (#5) | G9, B8 | | L | |
-| R1 | Every foe is a puzzle: foe kits and damage types | Shipped (#9, PR B) | G1, G2, G4, G5, B1, B2, B5 | | XL | [spec](rounds/R01-foe-kits-and-damage-types.md) |
+| R1 | Every foe is a puzzle: foe kits and damage types | Shipped (#9, #10) | G1, G2, G4, G5, B1, B2, B5 | | XL | [spec](rounds/R01-foe-kits-and-damage-types.md) |
 | R2 | Masters worth remembering: boss kits | P1 | G3, G11 (part) | R1 | XL | [spec](rounds/R02-boss-kits.md) |
 | R3 | The end of the book: the seventh gate and the ending | P1 | G16, G21 (part) | R2 helps | XL | [spec](rounds/R03-the-end-of-the-book.md) |
 | R4 | Gold that means something: late economy and crafting | P1 | G10, G11, G14, B3 | | L | [spec](rounds/R04-late-economy-and-crafting.md) |
@@ -508,4 +508,4 @@ Ideas worth keeping that are not yet a round:
 | Deeper roadmap: full specs per round, idea catalogue, phases and dependency map | #6 | 2026-11-26 |
 | A full spec file for every round R6-R18, twelve new systems R19-R30, gaps G28-G39 | #7 | 2026-11-26 |
 | R1 PR A: damage types, place profiles, typed affixes, resistance and damage lines | #9 | 2026-11-26 |
-| R1 PR B: sixteen foe kits, the Undone, Sweep, kit-aware bot, E/D retune | PR B | 2026-11-26 |
+| R1 PR B: sixteen foe kits, the Undone, Sweep, kit-aware bot, E/D retune | #10 | 2026-11-26 |
