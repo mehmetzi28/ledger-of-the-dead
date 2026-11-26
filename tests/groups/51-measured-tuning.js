@@ -1,6 +1,6 @@
 // Tuning from bot measurements, title filters, faith events, Nightmare titles and secret-master history.
 (function(){
-const {test,ok,eq,near,fix,H,setLvl,foe,arena,mkMinion,renderAll,eventScene}=window.LOTD_T;
+const {test,ok,eq,near,fix,seq,H,setLvl,foe,arena,mkMinion,renderAll,eventScene}=window.LOTD_T;
 test('Secrets: each boss room without the secret master makes the next likelier; meeting it resets the count',()=>{
   setLvl(10); S.ti=S.ti||{}; S.ti.clr={0:1}; S.sbPity={};
   eq(secretChance(0),SECRET_CHANCE); fix(.9); ok(!secretRoll(0)); ok(!secretRoll(0)); eq(S.sbPity[0],2); near(secretChance(0),SECRET_CHANCE+2*SECRET_PITY,1e-9);
@@ -38,12 +38,12 @@ test('Nightmare: clearing on Nightmare earns that gate\'s title and a mark on it
   eq(T_('nm2'),1); eq(T_('damned3'),1); checkTitles(); ok(S.ti.got.nm2&&S.ti.got.dm3); eq(TITLE.dm3.r,5);
   returnTown(); ui.tab='gates'; ok(/nm-mark/.test(renderAll('nm mark')));
 });
-test('Faith events: the sworn sometimes meet a shrine of their path, never of the other',()=>{
+test('Faith events: the sworn sometimes meet their own god\'s shrine, or another god\'s; prayer adds devotion',()=>{
   setLvl(20); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1,2:1}}); S.mode='town'; S.faith=undefined; delete S.faith; fix(0); for(let i=0;i<20;i++) ok(!EVENTS[rollEvent().id].faith,'no faith events unsworn');
-  swear('hon'); fix(.1); eq(rollEvent().id,'oldgods'); fix(.9); ok(!EVENTS[rollEvent().id].faith);
-  const P=S.player; eventScene('oldgods'); P.hp=Math.round(pMax()/2); P.mana=0; ok(resolveEvent('pray')); eq(P.mana,pMana()); ok(P.hp>pMax()/2);
-  S.mode="town"; S.run=null; S.gold=1e6; ok(renounce()); S.gold=0; swear('dis'); fix(.1); eq(rollEvent().id,'defiled');
-  eventScene('defiled'); S.run.souls=0; const g0=S.gold, h0=P.hp; ok(resolveEvent('take')); ok(S.gold>g0); ok(P.hp<h0); eq(S.run.souls,1);
+  swear('hon'); seq([.1,.9]); eq(rollEvent().id,'oldgods'); fix(.9); ok(!EVENTS[rollEvent().id].faith); seq([.1,.1,0]); const ge=rollEvent(); eq(ge.id,'godshrine'); ok(ge.g&&ge.g!=='hon');
+  const P=S.player; eventScene('oldgods'); P.hp=Math.round(pMax()/2); P.mana=0; const d0=faithDev(); ok(resolveEvent('pray')); eq(P.mana,pMana()); ok(P.hp>pMax()/2); eq(faithDev()-d0,DEV_SHRINE);
+  S.mode="town"; S.run=null; S.gold=1e6; ok(renounce()); S.gold=0; swear('dis'); seq([.1,.9]); eq(rollEvent().id,'defiled');
+  eventScene('defiled'); S.run.souls=0; const g0=S.gold, h0=P.hp; ok(resolveEvent('take')); ok(S.gold>g0); ok(P.hp<h0); eq(S.run.souls,1); eq(faithDev(),DEV_SHRINE);
 });
 test('History: a slain secret master is written in red in the run history and the list of masters',()=>{
   setLvl(30); S.ti=S.ti||{}; S.ti.clr={0:1}; S.watches=3; startRun(0); S.run.room=3; const e=makeSecret(0,5); S.run.enemies=[e]; e.hp=0; checkDeaths(); returnTown();

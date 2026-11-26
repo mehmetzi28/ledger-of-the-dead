@@ -650,7 +650,9 @@ kbd{border:0;background:rgba(0,0,0,.35);border-radius:3px;padding:1px 5px;opacit
 .tt-rsel select{background:var(--panel);color:var(--bone);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit}
 .tprog{position:relative;overflow:hidden;min-width:54px;text-align:center}.tprog i{position:absolute;left:0;bottom:0;height:2px;background:var(--soul)}
 /* ---- Faith, Records and Codex search ---- */
-.faith-l{font:600 12px/1.2 var(--font-body)}.faith-l.hon{color:#e8d9a8}.faith-l.dis{color:#e8564a}
+.faith-l{font:600 12px/1.2 var(--font-body)}.faith-l.hon{color:#e8d9a8}.faith-l.dis{color:#e8564a}.faith-l.vesh{color:#a8d8e8}.faith-l.ulm{color:#b9b46a}.faith-l.choir{color:#b8a4d8}
+.dev-bar{height:6px;border-radius:3px;background:rgba(255,255,255,.08);margin:6px 0 2px;overflow:hidden}.dev-bar i{display:block;height:100%;background:var(--gold,#d3a64d)}
+ol.boons{margin:6px 0 0;padding-left:18px;font-size:12px}ol.boons li.dim{opacity:.55}
 .rec-v{font:600 14px/1.2 var(--font-body);text-align:right;white-space:nowrap}
 .cx-q{width:100%;box-sizing:border-box;margin:4px 0 10px;padding:9px 12px;background:rgba(0,0,0,.35);color:inherit;border:1px solid var(--line);border-radius:6px;font:14px/1.2 var(--font-body)}
 /* ---- Tabs and accessibility ---- */

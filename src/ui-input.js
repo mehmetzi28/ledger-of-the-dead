@@ -45,9 +45,9 @@ const ACTIONS={
   sound:()=>{ SFX.on=!SFX.on; try{ localStorage.setItem('lotd-sound',SFX.on?'on':'off'); }catch(e){} if(SFX.on) sfx('coin'); },
   buypot:k=>{ const c=POTIONS[k].price(); ui.msg=buyPotion(k)?{mk:1,m:'Bought a '+POTIONS[k].name+' for '+c+' gold.',c:'ok'}:null; },
   buyitem:k=>{ const s=shopStock()[+k], c=s&&shopPrice(ITEM[s.id]); ui.msg=buyStock(+k)?{mk:1,m:'Bought '+ITEM[s.id].name+' for '+c+' gold. It is in your bag.',c:'ok'}:null; },
-  selltro:k=>{ const g=sellTrophy(k,false); ui.msg=g?{mk:1,m:'Sold '+TROPHY[k].name+' for '+g+' gold.',c:'ok'}:null; },
-  selltroall:k=>{ const n=S.trophies[k], g=sellTrophy(k,true); ui.msg=g?{mk:1,m:'Sold '+n+' '+TROPHY[k].name+' for '+g+' gold.',c:'ok'}:null; },
-  sellalltro:()=>{ const g=sellAllTrophies(); ui.msg=g?{mk:1,m:'Sold every trophy for '+g+' gold.',c:'ok'}:null; },
+  selltro:k=>{ if(vowAsk('sell')) return; const g=sellTrophy(k,false); ui.msg=g?{mk:1,m:'Sold '+TROPHY[k].name+' for '+g+' gold.',c:'ok'}:null; },
+  selltroall:k=>{ if(vowAsk('sell')) return; const n=S.trophies[k], g=sellTrophy(k,true); ui.msg=g?{mk:1,m:'Sold '+n+' '+TROPHY[k].name+' for '+g+' gold.',c:'ok'}:null; },
+  sellalltro:()=>{ if(vowAsk('sell')) return; const g=sellAllTrophies(); ui.msg=g?{mk:1,m:'Sold every trophy for '+g+' gold.',c:'ok'}:null; },
   buysalt:()=>{ const c=saltPrice(); ui.msg=buySalt()?{mk:1,m:'Bought Grave Salts for '+c+' gold.',c:'ok'}:null; },
   buysaltmax:()=>{ const r=buySaltMax(); ui.msg=r.n?{mk:1,m:'Bought '+r.n+' Grave Salts for '+r.g+' gold.',c:'ok'}:null; },
   buybag:()=>{ const c=BAG_COST[S.bagLv||0]; ui.msg=buyBag()?{mk:1,m:'Your bag now holds '+bagMax()+' items. Paid '+c+' gold.',c:'ok'}:null; },
@@ -73,7 +73,7 @@ const ACTIONS={
   comm:k=>{ const p=commFill(+k); ui.msg=p?{mk:1,m:'Commission filled: +'+p.g+' gold and +'+p.d+' bone dust.',c:'ok'}:null; },
   bmt:k=>{ const a=k.split('|'), got=bmTrade(a[0],a[1]); ui.msg=got?{mk:1,m:'The black market deals: you get '+got+'.',c:'ok'}:null; },
   brew:k=>{ ui.msg=brew(k)?{mk:1,m:'You brew a '+POTIONS[k].name+' from four trophies.',c:'ok'}:null; },
-  raisesalt:k=>tryRaise(k,true), raisebest:()=>{ raiseBest(); }, raiseres:k=>tryRaise(k,false,true), raiseressalt:k=>tryRaise(k,true,true),
+  raisesalt:k=>{ if(!vowAsk('raise')) tryRaise(k,true); }, raisebest:()=>{ if(!vowAsk('raise')) raiseBest(); }, raiseres:k=>{ if(!vowAsk('raise')) tryRaise(k,false,true); }, raiseressalt:k=>{ if(!vowAsk('raise')) tryRaise(k,true,true); },
   mark:k=>{ const a=k.split('|'); chooseMark(+a[0],a[1]); },
   tores:k=>{ toReserve(+k); }, toarmy:k=>{ toArmy(+k); }, swapo:k=>{ ui.swap=ui.swap===+k?null:+k; }, swap:k=>{ const a=k.split('|'); if(swapReserve(+a[0],+a[1])) ui.swap=null; },
   rsort:k=>{ sortReserve(k); }, gatearmy:k=>{ fromGate(+k,'army'); }, gateres:k=>{ fromGate(+k,'reserve'); },
@@ -152,7 +152,7 @@ const ACTIONS={
   act:k=>act(k),
   target:k=>setTarget(k), logall:()=>{ ui.logAll=!ui.logAll; },
   flee:()=>flee(),
-  raise:k=>tryRaise(k), descend:()=>descend(), town:()=>returnTown(), retry:()=>{ retryRoom(); }, rest:()=>restDay(),
+  raise:k=>{ if(!vowAsk('raise')) tryRaise(k); }, descend:()=>descend(), town:()=>returnTown(), retry:()=>{ retryRoom(); }, rest:()=>restDay(),
   release:k=>{ if(ui.confirm===+k){ release(+k); ui.confirm=null; } else ui.confirm=+k; },
   ending:k=>{ if(ui.confirm==='end:'+k){ ui.confirm=null; if(chooseEnding(k)) ui.lpJust=1; } else ui.confirm='end:'+k; },
   inscribe:k=>{ inscribe(k); },
@@ -161,6 +161,8 @@ const ACTIONS={
   newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); OPEN_HELP.on=false; ui.tab='gates'; ui.gsub='open'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
 };
 function settled(){ sgTipHide(); if(S&&S.mode==='town') cmdSync(); checkTitles(); try{ loreCheck(); }catch(e){} render(); }   // after an action: award titles and lore passages, then draw
+// the vow warning (game-pantheon.js): the first press says what breaks; the next one goes ahead (ui.vowOk for the rest of the day)
+function vowAsk(k){ if(!vowWarn(k)||ui.vowOk===k+S.day) return false; ui.vowOk=k+S.day; ui.msg={m:k==='raise'?'Raising another body breaks your vow to Morrow (no more than '+MORROW_RAISE+' in a run). Press again to raise anyway.':'Selling a trophy breaks your vow to Ulm. Press again to sell anyway.',c:'bad'}; return true; }
 const CONFIRM_ACTS=['release','respec','cross','ending','hforge','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
 document.addEventListener('click',e=>{
   MUSIC.armed=true;

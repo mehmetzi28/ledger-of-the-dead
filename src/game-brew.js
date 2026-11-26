@@ -48,6 +48,7 @@ function brewCan(id){
 }
 function brewIt(id){   // spends the parts (cheapest first) or spare hearts (lowest first) and the gold
   if(!brewCan(id)) return false; const B=BREWS[id], free=freeBrew(); S.gold-=brewGold(id); if(free) S.freeBrew=S.day;
+  faithUsed(B.hearts||Object.values(B.parts).reduce((a,n)=>a+n,0));   /* Ulm's deed (game-pantheon.js) */
   if(B.hearts){ let need=B.hearts; for(const [k,n] of spareHearts()){ const t=Math.min(n,need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
   else for(const r of Object.keys(B.parts)){ let need=B.parts[r]; for(const k of partKeys(r,B.g)){ const t=Math.min(S.trophies[k],need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
   const n=brewTwice()?2:1;   /* the Distillery (game-town2.js) */
@@ -121,7 +122,7 @@ function commCan(i){ const c=commissions()[i]; if(!c||c.done||S.mode!=='town') r
   if(c.k==='hf') return !!commItem(c); return !!commMinion(c); }
 function commFill(i){
   if(!commCan(i)) return false; const c=S.comm.list[i], p=commPay(c);
-  if(c.k==='tro'){ let need=c.n; for(const k of trosOf(c.role,c.g)){ const t=Math.min(S.trophies[k],need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
+  if(c.k==='tro'){ faithUsed(c.n); let need=c.n; for(const k of trosOf(c.role,c.g)){ const t=Math.min(S.trophies[k],need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
   else if(c.k==='hf'){ const it=commItem(c); S.inv=S.inv.filter(x=>x!==it); }
   else { const m=commMinion(c); returnGear(m); S.army=S.army.filter(x=>x!==m); bondsClean(); syncArmy(); }
   S.gold+=p.g; S.dust=(S.dust||0)+p.d; c.done=1; dread(-DREAD_COMM); orderEv('comm'); tally('commissions'); tally('commG',p.g); sfx('coin'); return p;

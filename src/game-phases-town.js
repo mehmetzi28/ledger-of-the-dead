@@ -12,7 +12,7 @@ const PHASE_LINES={
 };
 function checkPhase(){
   if(!S.run) return;
-  for(const e of liveFoes()) if(e.boss&&e.abil&&!e.phase2&&!e.hunger&&(e.tw||e.rival||e.rankI>=1||runHeat()>=2)&&e.hp<=e.maxHp*phaseAt()){   // the Rat King, a new player's first boss, keeps one phase
+  for(const e of liveFoes()) if(e.boss&&e.abil&&!e.phase2&&!e.hunger&&(e.tw||e.rival||e.rankI>=1||runHeat()>=2)&&e.hp<=e.maxHp*phaseAt()&&!hibernates(e)){   /* Vesh's Hibernation (game-pantheon.js) */   // the Rat King, a new player's first boss, keeps one phase
     e.phase2=true; e.fast=(e.fast||0)+1; e.alt=true; e.abilT=Math.min(e.abilT,2); if(e.reck) reckLastPage(e);   /* The Last Page (game-rival-arc.js) */   // Sundering Blow comes first (a boss with a move set has a twist instead)
     const l=PHASE_LINES[e.base]; log(e.name+(l?': "'+l+'"':' rises in fury.'),'boss'); const tw=bossTwist(e);
     log(tw?e.name+' enters its second phase: '+tw.name+'. '+tw.desc+' It moves faster and warns before every move.':e.name+' enters its second phase. It moves faster, warns before every move, and adds Sundering Blow.','bad'); sfx('phase'); tally('phases'); moment(e.name+' enters its second phase','bad');
@@ -134,17 +134,17 @@ function memorialize(m,at){
   if(!m||m.thrall) return null;
   const e=Object.assign({nick:m.nick,kind:m.kind||m.name,name:m.name,rk:m.rankI|0,lvl:m.lvl,st:m.stage||0,tr:(m.traits||[]).slice(),role:m.role,day:S.day},m.boss?{boss:1}:{},m.elite?{elite:1}:{},at||{});
   { const bd=bondFall(m,at); if(bd) e.bd=bd; }
-  S.memorial=[e].concat(S.memorial||[]); while(S.memorial.length>MEM_MAX){ const j=S.memorial.map(x=>!x.maus&&!x.hs).lastIndexOf(true); S.memorial.splice(j<0?MEM_MAX:j,1); }   /* a mausoleum's or headstone's name is never dropped */
+  faithLost(m); S.memorial=[e].concat(S.memorial||[]); while(S.memorial.length>MEM_MAX){ const j=S.memorial.map(x=>!x.maus&&!x.hs).lastIndexOf(true); S.memorial.splice(j<0?MEM_MAX:j,1); }   /* a mausoleum's or headstone's name is never dropped */
   notify(m.nick+' '+theName(mName(m)).replace(/^The /,'the ')+' is written into the Memorial.','');
   return e;
 }
 const memWhere=e=>e.raid!=null&&DUNGEONS[e.raid]?'Fell on a raid to the '+DUNGEONS[e.raid].name:e.f?'Shattered in the Hell Tower, floor '+e.f:e.rd?'Shattered in the Rift, depth '+e.rd:DUNGEONS[e.g]?'Shattered in the '+DUNGEONS[e.g].name:'Shattered';
 const honourCost=e=>Math.round(mneed(e.lvl)*MEM_COST);   // about one Bone Altar level at its level (before the Altar building's discount)
-const remembered=()=>!!(S&&S.honor&&S.honor.day===S.day);
+const remembered=()=>!!(S&&S.honor&&S.honor.day<=S.day&&S.honor.day>S.day-honourDays());   /* the Choir: two days (game-pantheon.js) */
 const canHonour=e=>!!e&&e.st>=1&&S.mode==='town'&&!remembered()&&S.gold>=honourCost(e);
 function honour(i){
   const e=(S.memorial||[])[i]; if(!canHonour(e)) return false;
-  S.gold-=honourCost(e); S.honor={day:S.day,nick:e.nick}; syncArmy(); S.army.concat(S.reserve||[]).forEach(m=>{ m.hp=Math.min(m.hp,m.maxHp); }); sfx('raise'); return true;
+  S.gold-=honourCost(e); S.honor={day:S.day,nick:e.nick}; deed('choir',5); syncArmy(); S.army.concat(S.reserve||[]).forEach(m=>{ m.hp=Math.min(m.hp,m.maxHp); }); sfx('raise'); return true;
 }
 // HEADSTONES: an uncapped late gold sink. In town, carve a headstone over any name in the Memorial (the released are never written
 // there) and raise it tier by tier; the next tier of a stone costs HEAD_GOLD*HEAD_GROW^(its tier). Each tier of every stone adds about
@@ -154,7 +154,7 @@ const headTiers=()=>S&&S.memorial?S.memorial.reduce((t,e)=>t+(e.hs|0),0):0;
 const headBonus=()=>HEAD_CAP*(1-Math.exp(-HEAD_K*headTiers()/HEAD_CAP));   // extraMul (syncMinion): max HP
 const headCost=e=>Math.round(HEAD_GOLD*Math.pow(HEAD_GROW,e.hs|0));
 const canHead=e=>!!e&&S.mode==='town'&&(e.hs|0)<HEAD_TOP&&S.gold>=headCost(e);
-function carveHead(i){ const e=(S.memorial||[])[i]; if(!canHead(e)) return false; const c=headCost(e); S.gold-=c; e.hs=(e.hs|0)+1; tally('headG',c); syncArmy(); sfx('carve'); return true; }
+function carveHead(i){ const e=(S.memorial||[])[i]; if(!canHead(e)) return false; const c=headCost(e); S.gold-=c; e.hs=(e.hs|0)+1; tally('headG',c); deed('choir',10); syncArmy(); sfx('carve'); return true; }
 function memorialFix(g){   // normalizeSave: keep well-formed entries only
   const ok=e=>e&&typeof e==='object'&&typeof e.nick==='string'&&typeof e.name==='string';
   g.memorial=Array.isArray(g.memorial)?g.memorial.filter(ok).slice(0,MEM_MAX).map(e=>{ const o={nick:cleanNick(e.nick)||'Nameless',kind:cleanText(typeof e.kind==='string'?e.kind:e.name),name:cleanText(e.name),rk:clamp(Math.floor(num(e.rk,0)),0,RANKS.length-1),
@@ -267,13 +267,13 @@ const ULTS={
   rise:  {name:'Unholy Resurrection',  desc:'Every downed minion rises at full HP and the rest heal fully; you heal 40% of your max HP, and your army deals 50% more damage for 3 turns.'},
   prison:{name:'Soul Prison',          desc:'Every foe is frozen for 2 turns (bosses 1), breaking any charging move, and takes 30% more damage for 3 turns.'}
 };
-function gainSoul(){ const r=S.run; if(!r) return false; r.souls=r.souls||0; if(r.souls>=SOUL_MAX) return false; r.souls++; r.soulT=(r.soulT||0)+1;   // soulT: souls harvested this run, for the lifetime count
+function gainSoul(){ const r=S.run; if(!r) return false; r.souls=r.souls||0; if(r.souls>=soulCap()) return false; r.souls++; r.soulT=(r.soulT||0)+1;   // soulT: souls harvested this run, for the lifetime count
   if(hasMod('soulwell','a')) S.player.mana=Math.min(pMana(),S.player.mana+OVERFLOW_MANA);   // Overflow
   return true; }
 const canUlt=()=>S.mode==='battle'&&!!S.run&&S.player.lvl>=ULT_LV&&!!ULTS[S.player.ult]&&(S.run.souls||0)>=SOUL_MAX;
 function chooseUlt(id){ if(S.mode!=='town'||!ULTS[id]||S.player.lvl<ULT_LV) return false; S.player.ult=id; return true; }
 function useUlt(t){
-  if(!canUlt()) return false; const r=S.run, P=S.player, id=P.ult; r.souls=0; tally('ults');
+  if(!canUlt()) return false; const r=S.run, P=S.player, id=P.ult; r.souls=Math.max(0,r.souls-SOUL_MAX); tally('ults');
   if(id==='toll'){ let tot=0, slain=0; for(const o of liveFoes()){ const d=hit(pSiph()*TOLL_MUL*pierceMul(1)); hurtFoe(o,d,'shad'); tot+=d; if(o.hp>0&&!o.boss&&o.hp<o.maxHp*TOLL_EXEC){ mark(o,o.hp,0); o.hp=0; slain++; } }
     log("Death's Toll: every foe takes the Ledger's due, "+tot+' damage in all'+(slain?', and '+slain+' fall where they stand':'')+'.','ok'); }
   else if(id==='rise'){ let n=0; for(const m of S.army){ if(m.hp<=0){ m.hp=m.maxHp; n++; } else healAlly(m,m.maxHp); } healAlly(P,Math.round(pMax()*.4)); r.frenzy=Math.max(r.frenzy||0,3); r.frenzyMul=Math.max(r.frenzyMul||1,1.5);

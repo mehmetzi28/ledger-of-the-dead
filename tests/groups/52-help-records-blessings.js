@@ -33,12 +33,12 @@ test('Records: a turn counter runs through the whole gate, and a slain secret ma
   setLvl(30); S.watches=3; startRun(0); const r=S.run; skillTick(); skillTick(); eq(r.tt,2);
   const e=makeSecret(0,5); r.enemies=[e]; e.hp=0; checkDeaths(); eq(S.rec.sec[0],S.day); flee();
 });
-test('Faith: full devotion grants a blessing once per run — Grace saves the Honored One, the Tithe starts the Dishonored with Souls',()=>{
-  setLvl(30); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1,2:1}}); S.mode='town'; S.gold=1e6; ok(swear('hon')); S.faith.day=S.day-DEVOTION[2]; ok(blessed('hon'));
+test('Faith: rank 5 grants the last boon — Grace saves Morrow\'s faithful, the Tithe starts the Profane with Souls',()=>{
+  setLvl(30); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1,2:1}}); S.mode='town'; S.gold=1e6; ok(swear('hon')); S.faith.dev=DEV_RANKS*DEV_STEP; ok(blessed('hon'));
   arena([foe({hp:1e6})]); const P=S.player; S.run.tw=5; P.hp=0; ok(playerFalls(),'no Grace in the Tower'); S.mode='town'; S.run=null; arena([foe({hp:1e6})]); P.hp=0; ok(!playerFalls(),'saved'); eq(P.hp,Math.round(pMax()*GRACE_HP)); P.hp=0; ok(playerFalls(),'only once a run');
   returnTown(); S.mode='town'; ok(renounce()); ok(swear('dis')); ok(!blessed('dis'),'devotion starts over'); S.watches=3; startRun(0); eq(S.run.souls||0,0); flee();
-  S.faith.day=S.day-DEVOTION[2]; S.watches=3; startRun(0); eq(S.run.souls,TITHE_SOULS); flee();
-  ui.tab='town'; ok(renderAll('shrine').includes(FAITH.dis.bless.name)); ui.tab='codex'; ui.cx='faith'; ok(renderAll('cx faith').includes(FAITH.hon.bless.name));
+  S.faith.dev=DEV_RANKS*DEV_STEP; S.watches=3; startRun(0); eq(S.run.souls,TITHE_SOULS); flee();
+  ui.tab='town'; ok(renderAll('shrine').includes('Tithe of Souls')); ui.tab='codex'; ui.cx='faith'; ok(renderAll('cx faith').includes('Grace: once a gate run'));
 });
 test('Tower tab: not shown at all until the Tower opens (three gate clears and level 10)',()=>{
   setLvl(TW.unlock); S.mode='town'; ui.tab='gates'; ACTIONS.tab('tower'); eq(ui.tab,'gates'); ui.tab='tower'; const h=renderAll('closed');

@@ -31,9 +31,9 @@ test('Inscriptions: only earned ones are offered, one per ending, kept through N
 test('Inscriptions: each does what it says',()=>{
   fresh(30); const c=corpseLike(); const r0=raiseChance(c); S.inscriptions=['many']; eq(raiseChance(c),Math.min(RAISE_MAX,r0+INSC_RAISE));
   S.inscriptions=['fallen']; S.memorial=Array.from({length:15},(x,i)=>({nick:'N'+i,kind:'Tunnel Rat',name:'Tunnel Rat',rk:0,lvl:1,st:0,tr:[],role:'striker',day:1})); eq(Math.round(fallenK()*100),INSC_FALLEN_MAX);
-  S.inscriptions=['faithful']; S.faith={id:Object.keys(FAITH)[0],day:S.day}; eq(devotion(),1,'second rank at once');
+  S.inscriptions=['faithful']; delete S.faith; S.mode='town'; S.ti=S.ti||{}; S.ti.clr=Object.assign(S.ti.clr||{},{0:1,1:1,2:1}); setLvl(Math.max(S.player.lvl,10)); ok(swear('vesh')); eq(faithRank(),1,'rank 1 at once');
   S.inscriptions=['rival']; const g2=theftGap(); S.inscriptions=[]; eq(g2,theftGap()*2);
-  const b=makeSecret(2,30); arena([b],2); S.run.troph={}; S.inscriptions=[]; killLoot(b,S.run); const k=trophyKey(b), n0=S.run.troph[k]; S.run.troph={}; S.inscriptions=['masters']; killLoot(b,S.run); eq(S.run.troph[k],n0+1,'Of the Masters');
+  const b=makeSecret(2,30); arena([b],2); S.run.mod=null; S.run.troph={}; S.inscriptions=[]; killLoot(b,S.run); const k=trophyKey(b), n0=S.run.troph[k]; S.run.troph={}; S.inscriptions=['masters']; killLoot(b,S.run); eq(S.run.troph[k],n0+1,'Of the Masters');
   S.run.troph={}; const L=makeEnemy(2,30,true); L.ledger=1; S.inscriptions=[]; killLoot(L,S.run); eq(S.run.troph[trophyKey(L)],LEDGER_HEART,'a Ledger-form heart pays twice');
 });
 test('Quiet Valley: foes 15% gentler and nothing rises until the first gate clear, then The book stirs',()=>{

@@ -37,7 +37,7 @@ test('Tips: full devotion, Records, Nightmare and omens',()=>{
   S.runs=9; ok(!tip('records').when()); S.runs=10; ok(tip('records').when());
   S.ti=S.ti||{}; S.ti.clr={0:1}; S.heatMax={}; ok(!tip('nightmare').when()); S.heatMax={0:2}; ok(tip('nightmare').when());
   S.omen={day:S.day,id:null}; ok(!tip('omen').when()); S.omen.id='ashfall'; ok(tip('omen').when());
-  setLvl(30); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1,2:1}}); S.gold=1e6; delete S.faith; ok(!tip('bless').when()); swear('dis'); ok(!tip('bless').when()); S.faith.day=S.day-DEVOTION[2]; ok(tip('bless').when());
+  setLvl(30); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1,2:1}}); S.gold=1e6; delete S.faith; ok(!tip('bless').when()); swear('dis'); ok(!tip('bless').when()); S.faith.dev=DEV_RANKS*DEV_STEP; ok(tip('bless').when());
 });
 test('Omens: seven in all, the old three kept; new ids load, bogus ones are dropped',()=>{
   ['bloodmoon','paletide','ashfall','eclipse','boneharvest','ironrain','soulstorm'].forEach(k=>ok(OMENS[k]&&OMENS[k].name&&OMENS[k].desc,k)); eq(Object.keys(OMENS).length,7);

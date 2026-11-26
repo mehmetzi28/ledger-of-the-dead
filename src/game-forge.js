@@ -70,7 +70,7 @@ function hfCan(boss,slot,lines){
 function heartforge(boss,slot,lines,force){   // returns the item, or null; force: spend a heart a unique still needs
   if(!hfCan(boss,slot,lines)||(hfGuard(boss)&&!force)) return null;
   const I=hfInfo(boss), pool=Object.values(ITEM).filter(d=>!d.uq&&!d.tower&&d.set===I.set&&d.slot===slot); if(!pool.length) return null;
-  S.gold-=Math.round(I.gold); S.dust-=I.dust; const k=hfKey(boss); S.trophies[k]--; if(!S.trophies[k]) delete S.trophies[k];
+  S.gold-=Math.round(I.gold); S.dust-=I.dust; const k=hfKey(boss); S.trophies[k]--; if(!S.trophies[k]) delete S.trophies[k]; faithUsed(1);
   const it=addItem(pick(pool).id,lines.map(l=>[l,hfLineVal(I,l)])); it.hf=boss; if(I.pw) it.pw=I.pw;
   tally('heartforged'); tally('hfGold',Math.round(I.gold)); sfx('level'); return it;
 }
