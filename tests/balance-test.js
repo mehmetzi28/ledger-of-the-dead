@@ -20,6 +20,8 @@
 // The ~80% target is for the 'market' bot (skills + shopping + altar). The early option is no longer needed: SAFE for A and S
 // now matches where they are balanced. Current numbers, averaged over seeds 7700 and 9100 (results swing ~±7 points per seed set):
 // LOTD_BALANCE.run({bots:40, days:100, seed:7700, modes:['market']})   (one mode per call, ~15 s in a browser), or in Node: node tests/run-balance.js
+//   2026-11-26 Soul Tether, one soul per boss, Awakening, B/A/S/Tower/Rift/rival/siege retune (seeds 7700/9100): market 89/90%, tower 78/79, rift 25/27;
+//   full 90/90%, tower 88/88, rift 12/12, sieges 84%, rival 71/68%; full awakens ~6.5 ranks (~60k gold). Tower by day (market): 35 ~43, 60 ~68, 100 ~78.
 //   2026-11-20 headstones and events in 'full' (seed 7700): market 87% (unchanged); full 89%, tower 86; "off":["events"] 88%, tower 82;
 //   ~264 events a bot (243 chain meetings, 120 chains ended over 40 bots). Headstones: ~186k gold a bot (median 156k), 28 tiers, +5% max HP;
 //   full gold held day 100 avg/median 20k/19k with them, 39k/32k with "off":["head"].

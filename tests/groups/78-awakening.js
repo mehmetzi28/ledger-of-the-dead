@@ -32,6 +32,7 @@ test('Awakening: item cards, the Gear tab button, the Codex and Turkish; saves r
   rich(); const it=give('u1'); S.trophies['b:The Crypt Warden']=3; ui.tab='gear';
   let h=renderAll('gear awaken'); ok(new RegExp('data-a="awaken" data-k="'+it.u+'"').test(h),'the button'); ok(h.includes('Awaken I')&&h.includes('Heart of The Crypt Warden 3/1'),'its price');
   ACTIONS.awaken(String(it.u)); eq(it.aw,1); h=renderAll('awakened'); ok(h.includes('Awakened I'),'the tag'); ok(h.includes(String(Math.round(ITEM.u1.stats.atk*(1+AWAKEN_K)))),'the awakened figure');
+  wear('u2'); S.trophies['b:The Ember Knight']=1; ok(goals().some(x=>x.t==='A unique you wear can be awakened.'),'What next'); ok(trText('A unique you wear can be awakened.')!=='A unique you wear can be awakened.');
   S.trophies={}; ok(/data-a="awaken"[^>]*disabled/.test(renderAll('poor')),'disabled without hearts');
   ok(cdx('gear').includes('Awaken'),'Codex'); ok(trText(AWAKEN_TXT)!==AWAKEN_TXT&&trText('Awakened II')==='Uyanmış II'&&trText('Awaken III')==='Uyandır III','Turkish');
   const n=give('2-wa'); n.aw=3; const big=give('u3'); big.aw=99; const bad=give('u4'); bad.aw='x';

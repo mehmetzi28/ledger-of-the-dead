@@ -325,6 +325,7 @@ function goals(){
   if(trialOpen()&&trialReady()&&!trialBestWeek()) add('This week\'s Trial is not done yet.','Trial','gates|trial');
   if(raidPool().some(m=>markPend(m))) add('A minion is ready to choose its mark.','Army','army');
   if((S.memorial||[]).some(canHonour)) add('You can honour a fallen minion in the Memorial.','Memorial','mem');
+  if(GEAR_SLOTS.some(sl=>S.equip[sl]&&canAwaken(S.equip[sl]))) add('A unique you wear can be awakened.','Gear','gear');
   return g.slice(0,GOAL_N);
 }
 function goalsHTML(){
