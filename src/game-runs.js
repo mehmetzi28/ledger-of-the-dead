@@ -279,14 +279,17 @@ function roomWon(){
   const r=S.run, P=S.player; r.events=[]; r.focus=false; r.execute=false; bondsRoom();   /* Focus and Execute end with the room even if no minion phase came */
   let xp=r.pending; r.pending=0;
   const last=r.room===r.rooms-1;
-  const share=Math.round(xp*.5), shatter=hasFlag('bonebank')?0:Math.max(SHATTER_MIN,SHATTER_BASE-A('will')*SHATTER_WILL);
+  const share=Math.round(xp*.5), downs=[], bound=[];   /* the downed come first on the screen after the fight: who is gone, who got back up */
   for(const m of S.army.slice()){
     if(m.thrall) continue;   /* a siege thrall earns nothing and is gone at dawn */
     if(m.hp<=0) r.downs=(r.downs||0)+1;   /* downed this room: a Trial's score counts them */
-    if(m.hp>0){ if(minionXp(m,share)) r.events.push({m:m.nick+' reaches level '+m.lvl+'.',c:'ok'}); }
-    else if(!r.siege&&!hasTrait(m,'gravebound')&&Math.random()*100<shatter){   /* home ground: nothing shatters in a siege */ returnGear(m); S.army=S.army.filter(x=>x!==m); r.events.push({m:m.nick+', '+theName(mName(m))+', shattered and is gone.',c:'bad'}); memorialize(m,r.tw?{f:r.tw}:r.rift?{rd:r.rift}:{g:r.di}); }
-    else{ m.hp=Math.ceil(m.maxHp*.4); r.events.push({m:m.nick+' was downed but binds back together.',c:''}); }
+    if(m.hp>0){ if(minionXp(m,share)) r.events.push({m:m.nick+' reaches level '+m.lvl+'.',c:'ok'}); continue; }
+    const ch=shatterOdds(m);
+    if(Math.random()*100<ch){ returnGear(m); S.army=S.army.filter(x=>x!==m); downs.push({m:m.nick+', '+theName(mName(m))+', shattered and is gone ('+ch+'% chance).',c:'bad'}); memorialize(m,r.tw?{f:r.tw}:r.rift?{rd:r.rift}:{g:r.di}); }
+    else{ m.hp=Math.ceil(m.maxHp*BIND_HP); bound.push(m); }
   }
+  if(bound.length){ const ch=Math.max(...bound.map(shatterOdds)); downs.push({m:'Downed but bound back together at '+Math.round(BIND_HP*100)+'% HP: '+bound.map(m=>m.nick).join(', ')+'. '+(ch?'The chance to shatter was '+ch+'%.':'None of them could shatter.'),c:'down'}); }
+  r.events.unshift(...downs);
   if(r.tw){
     const f=r.tw; S.tower.best=Math.max(S.tower.best,f); recBest('floor',f); towerSplit(r); for(const k of [10,25,40,50,60,75,90,100]) if(S.tower.best>=k) unlockStory('t'+k,r);
     if(f%10===0){ xp+=120*f; S.quest.clears++; towerBossLoot(f,r); }
@@ -402,7 +405,11 @@ function freeNick(){ const used=S.army.concat(benched(),...(S.raids||[]).map(x=>
 const SALT_BONUS=20, SALT_MAX=3, saltPrice=()=>10+S.player.lvl*3;   // Grave Salts: bought at the market, +20% on one raise
 const RAISE_BASE=18, RAISE_WILL=1.1, RAISE_MIN=1, RAISE_MAX=80, SALT_CAP=95;   // salts may still reach 95%
 const RAISE_BOSS_EACH=10;   // less per boss already in the army or Reserve, so bosses do not snowball
-const RAISE_LV=3, RAISE_ELITE=10, RAISE_BOSS=15,SHATTER_BASE=25, SHATTER_WILL=1.5, SHATTER_MIN=5;   // % per level you stand above the body, the elite and boss penalties; a downed minion's shatter chance after a fight (% , less per Will point, never below the floor)
+const RAISE_LV=3, RAISE_ELITE=10, RAISE_BOSS=15,SHATTER_BASE=50, SHATTER_WILL=1, SHATTER_MIN=20, BIND_HP=.4;   // % per level you stand above the body, the elite and boss penalties; a downed minion's shatter chance after a fight (% , less per Will point, never below the floor)
+function shatterOdds(m){   // % chance a downed minion shatters for good when its room ends; otherwise it binds back at BIND_HP. Never in a siege (home ground), never Grave-bound, never with Bone Bank
+  if(hasFlag('bonebank')||hasTrait(m,'gravebound')||(S.run&&S.run.siege)) return 0;
+  return Math.max(SHATTER_MIN,SHATTER_BASE-A('will')*SHATTER_WILL);
+}
 const saltAdd=()=>hasMod('thrift','b')?SENSE_SALT:SALT_BONUS;   // Grave Sense
 const saltChance=c=>soulBound(c)?0:firstRaise()?100:clamp(raiseChance(c)+saltAdd(),RAISE_MIN,SALT_CAP);
 function tryRaise(id,salt,bench){   // bench: raise to the Reserve, only when the army is full and the Reserve has room

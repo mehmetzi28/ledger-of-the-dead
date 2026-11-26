@@ -191,8 +191,11 @@ gear converts to minion attack and HP (`gearBonus`).
 **Bonds** (`BOND_ROOMS`). Two minions alive together through 25 won rooms bond (+5% attack). When one is lost the other is
 Vengeful (+15% until dawn) if it saw it, else Grieving (-10% through a day).
 
-**Shattering and the Memorial**. A minion downed in a fight shatters afterwards at 25% - 1.5% per Will (min 5%; never in
-sieges, never with Grave-bound or Bone Bank), else binds back at 40%. The lost are written into the **Memorial** (200
+**Shattering and the Memorial**. A minion downed in a fight shatters afterwards at 50% - 1% per Will (min 20%; never in
+sieges, never with Grave-bound or Bone Bank; `shatterOdds`), else binds back at 40% (`BIND_HP`). A downed minion's card in
+battle shows its odds, and the screen after the fight opens with who shattered and who bound back (2026-11-26: the old
+25% - 1.5%/Will, min 5% read as "my dead came back"; the bots replace the extra losses with ~15% more raises and clear
+as often). The lost are written into the **Memorial** (200
 names). Once a day you may honour a fallen evolved minion (+5% max HP to the army until dawn). **Headstones**: an
 uncapped gold sink, each tier adds about 0.5% army max HP, softly capped at 6%. **Mausoleums**: 5 at most (5k to 40k),
 each +2% army HP and attack for good.

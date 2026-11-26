@@ -702,6 +702,8 @@ body.calm .moment{animation:none}
 .cmds{align-items:center}.cmd-l{font:500 13px/1.2 var(--font-body);color:var(--mute);margin-right:4px}
 .log li.story,.note.story span{font:400 16px/1.5 var(--font-lore);color:var(--gold)}
 .note.story{border-left-color:var(--brass)}
+.note.down{border-left-color:var(--brass)} .note.down i{color:var(--gold)}
+.down-t{color:var(--gold)}
 .log li.boss{font:400 14.5px/1.4 var(--font-lore);color:#ffb59c}
 .chron{border-radius:8px;background:var(--panel-2);padding:8px 12px;margin-bottom:6px}
 .chron summary{cursor:pointer;font:600 16px/1.3 var(--font-head);color:var(--bone)}

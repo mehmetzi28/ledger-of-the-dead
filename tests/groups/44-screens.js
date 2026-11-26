@@ -75,7 +75,7 @@ test('Screens: on phones the pinned action bar carries a thin HP tick per minion
   S.army=[]; arena([foe()]); let h=renderAll('no army'); ok(/class="actbar"/.test(h),'battle bar'); ok(!/class="pstrip"/.test(h),'absent with no army');
   const a=mkMinion({lvl:5}), b=mkMinion({lvl:5}), c=mkMinion({lvl:5}); b.hp=Math.floor(b.maxHp*.2); c.hp=0; h=renderAll('party strip');
   ok(/class="actbar"><div class="pstrip"/.test(h),'inside the pinned bar, above the buttons'); eq((h.match(/class="pt[ "]/g)||[]).length,3);
-  ok(h.includes('title="'+a.nick+': '+a.hp+'/'+a.maxHp+'"'),'title'); ok(/class="pt low"/.test(h),'low'); c.hp=0; h=partyStrip(); ok(/class="pt down"/.test(h),'fallen dimmed'); ok(h.includes('aria-label="'+c.nick+': down"'),'down label');
+  ok(h.includes('title="'+a.nick+': '+a.hp+'/'+a.maxHp+'"'),'title'); ok(/class="pt low"/.test(h),'low'); c.hp=0; h=partyStrip(); ok(/class="pt down"/.test(h),'fallen dimmed'); ok(h.includes('aria-label="'+c.nick+': '+downTip(c)+'"'),'down label');
   S.army=[];
 });
 
