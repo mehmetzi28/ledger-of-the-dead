@@ -1,0 +1,109 @@
+# 4. Balance
+
+Balance is measured with bots, never guessed. This page holds the targets, the latest numbers, what we have learned
+about how the game behaves, the known problems, and the levers. The full measurement history lives in the comments next
+to each constant in `src/` and in `claude.md`; this page is the summary to read first.
+
+## 4.1 Targets
+
+| What | Target | Why |
+|---|---|---|
+| Gate clears, `market` bot, entering at the Recommended level | ~80% per gate; ~85% over a 100-day game | Hard enough that a fair player sometimes falls |
+| `full` bot (uses every system) vs `market` | 1 to 3 points above | Systems should help, not trivialize |
+| `full` bot on Normal only (`"heat":0`) | at most ~91-92% | The guard rail: Normal must not become a walk |
+| No-skill bot | clearly below the skill bot | Skills must matter |
+| Recommended level (`gateRec`, `tierRec`) | the lowest level where the bot clears ~75% | The gate card must tell the truth |
+| Hell Tower (market) | floor ~43 by day 35, ~68 by day 60, ~78 by day 100 | A climb that lasts the whole game |
+| Hell Tower (full) | ~85-90 by day 100 | Floor 100 stays a real goal |
+| Sieges held (full) | 80-87% | A real threat to the town |
+| Rival challenges won (full) | ~65-75% | They should win sometimes |
+| Raids won (full) | ~75-80% | A reliable but risky order |
+| Stat builds (Will + one other) | within ~4 points of each other on gates | No dead stat |
+| Rank-3 skill upgrades (a vs b) | within ~2 points | Both choices real |
+| Each system switched off (`"off"`) | costs about 1 point of clears or a few Tower floors | Every system pulls its weight |
+
+## 4.2 Latest measurements (2026-11-26, seeds 7700 and 9100, 40 bots x 100 days)
+
+After the Soul Tether, one soul per boss, Awakening, the B/A/S retune, Constitution feeding the army, the tier advice
+refit and Throne-strength Trials:
+
+| Mode | Gate clears | Tower | Rift | Other |
+|---|---|---|---|---|
+| market | 91 / 91% (B 82-88% at Lv16, A 68-80% at 19, S 80-85% at 27) | 80 / 81 | 31 / 31 | raises answered ~20% of attempts |
+| full | 90-91% | 88 | 13 | sieges 86%, rival 79%, raids ~77%, awakening ~7 ranks, ~10 Trial hearts a bot, ~60k gold on awakening |
+| builds (market, 7700) | Will+Con 94%, Will+Str 94%, Will+Int 95% | 78 / 87 / 87 | 19 / 40 / 37 | Constitution trails in the endless modes |
+
+Gold at day 100 (before Awakening and headstones): ~33-39k average held, ~1.1M lifetime in `full`.
+
+## 4.3 What we have learned
+
+1. **Combat is alpha-strike.** Strong bots end most rooms in one action, so level offsets barely move results, and
+   turn-count scores floor out around 4 for an over-leveled player. Design that relies on long fights only works where
+   the player is not far ahead. (Gap G2.)
+2. **One-shots hid everything.** Before the tether, ~97% of hero deaths from the B gate on were one blow at full HP (foe
+   hits 0.8-1.1x max HP at B-S, 1.6x in the Tower, 5x in the Rift), so foe attack barely moved those gates. With the
+   tether, foe attack matters again (B/A/S `foeAtk` 5.2 / 4.2 / 4.5).
+3. **Stacked multipliers become walls.** Foe multipliers stacked past ~3x HP per hit stop being harder and start being
+   impossible. Prefer rules (an extra elite, a phase sooner, an affix) over bigger numbers.
+4. **Bots farm the S gate ~15 levels over.** Its losses were back-row one-shots, so S looked easy only because it was
+   farmed; at its Recommended level it is on target.
+5. **Late income outruns every capped sink.** Tempering stops once every line is at its best, mausoleums cap at five,
+   buildings at three levels. Headstones and Awakening now absorb a lot (~186k and ~60k a bot), but income keeps growing
+   with level and difficulty. (Gap G10.)
+6. **Constitution needed an army hook.** It was the one stat that gave the army nothing; 1% minion HP per point fixed the
+   gates, and it still trails in damage-decided endless modes.
+7. **Bosses stacked before one soul per boss.** Armies ended as ten or more Pale Sovereigns and no vanguards.
+8. **The Recommended-level model drifts.** `gateRec` shifts the measured `REC_BASE` with the tuning; a test fails once
+   the shift passes `REC_DRIFT` (2 levels), and then the gate must be re-measured.
+
+## 4.4 Known problems and open questions
+
+| # | Problem | Status / idea | Roadmap |
+|---|---|---|---|
+| B1 | `market` sits a few points over the ~85% target on gates (91% after the Con change) | Accept until foe kits land; kits will add difficulty through rules, then retune `DIFF` | R1 |
+| B2 | Constitution builds trail Strength and Intelligence builds by ~10 Tower floors and ~20 Rift depths | Damage types and foe kits give Con-heavy builds a role (outlasting attrition kits) | R1, R11 |
+| B3 | Late gold surplus | Economy round: income curve and open-ended sinks that connect systems | R4 |
+| B4 | The `full` bot's Rift depth (~13) is far below `market` (~31) because it spends days elsewhere | Measure the Rift with a dedicated probe, not the 100-day average | R9 |
+| B5 | Trial scores floor out for over-leveled players | Trials now use Throne strength and a fair level per tier; revisit with foe kits | R1 |
+| B6 | Balance has never been checked by a human | Local play log export | R15 |
+| B7 | Daily quest is a free stat point a day (~100 points over a game) | Make it a choice or fold into bounties | R5 (ride-along) |
+| B8 | Hero can still carry rooms alone | "Hero power scales with army strength" (in progress, other thread) | R0 |
+
+## 4.5 Levers
+
+| Lever | Where | Moves |
+|---|---|---|
+| `DIFF.hp`, `DIFF.atk`, `DIFF.gate[]` | `game-data.js` | Foes and minions together |
+| `DIFF.armor[]`, `DIFF.foeAtk[]` | `game-data.js` | Living foes only: fight length and danger per gate |
+| `DIFF.xpBase`, `DIFF.xpExp`, `DIFF.farm*` | `game-data.js` | Leveling pace, farming falloff |
+| `REC_BASE`, `REC_AT`, `REC_TIER` | `game-data.js` | The advice shown to players (re-measure when the drift test fails) |
+| `HEAT` | `game-gate-rules.js` | Hard / Brutal / Nightmare foe and reward multipliers |
+| `TW` | `game-data.js` | Tower growth, armor, attack |
+| `RIFT_*` | `game-skills-market.js` | Rift depth scaling and drops |
+| `TETHER`, `SB_TAKE` | `game-faith-story.js` | How much the front row protects you; Guard's cost |
+| `CON_*`, `STR_*`, `INT_*` | `game-player.js` | What each stat point gives |
+| `RAISE_*`, `SHATTER_*` | `game-runs.js` | Army growth and loss |
+| `SIEGE_*` | `game-phases-town.js` | Siege strength and pay |
+| `RIVAL_*` | `game-rival-trials.js` | Rival strength, schedule, stash |
+| `TRIAL_*` | `game-rival-trials.js` | Trial strength, par, hearts |
+| `AWAKEN_*`, `TEMPER_*`, `HEAD_*`, `MAUS_*` | `game-phases-town.js`, `game-faith-story.js` | Late gold sinks |
+| `COMPOUNDS`, `MARK`, `CORPSE_CONDS` | `game-skills-market.js`, `game-gate-rules.js` | Army depth |
+| Capstone and pact constants | `game-progression.js` | Paths and New Game+ |
+
+## 4.6 How to measure
+
+```sh
+node tests/run-balance.js                                   # market, default seed
+node tests/run-balance.js '{"seed":9100}'                   # the second seed (always run both: results swing ~±7 points per seed set)
+node tests/run-balance.js '{"modes":["market","full"]}'     # both modes
+node tests/run-balance.js '{"modes":["full"],"off":["raid"]}'   # what a system is worth
+node tests/run-balance.js '{"byLvl":true}'                  # clear rate by hero level (Recommended levels)
+node tests/run-balance.js '{"tiers":{"gates":[3,4,5],"heats":[1,2,3],"near":20,"every":3}}'   # tier advice probe
+LOTD_HTML=/path/to/tuned/index.html node tests/run-balance.js   # test a tuned copy without committing it
+```
+
+- Each mode takes ~70-120 s; the machine has 4 cores, so run seeds and modes in parallel.
+- `"stats":[...]`, `"mods":"a"|"b"`, `"mod":"skill:a"`, `"faith"`, `"ult"`, `"heat"` measure builds and choices.
+- A mid-line `//` comment silently swallows the code after it on a one-line statement: use `/* */` (the lint catches it).
+- Write every new measurement next to the constant it justified, and add the headline numbers to 4.2.
+- When a round adds a system, teach the `full` bot to use it and add an `"off"` switch, so its worth can be measured.
