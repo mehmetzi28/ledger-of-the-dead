@@ -169,3 +169,29 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
   pays only gold. (Titles, meta.)
 - **G27. Balance is measured only by bots.** No record of how a human plays (deaths, time per run, what they ignore)
   that a playtester could send back. (Tooling.)
+
+**Missing systems** (found 2026-11-26 when the roadmap was deepened; each is a whole system the game lacks, not a weak
+link between existing ones)
+
+- **G28. The valley is a list, not a place.** Gates, Tower, Rift and town are cards; the lore's river, roads, villages
+  and chapel are never somewhere the player stands. Watches have no geography. (Map, travel, story.) R19.
+- **G29. The living are faceless.** They exist only as siege waves; there is no one to trade with, help or prey on, so
+  dread and raising have no moral or economic face. (Villages, dread, raising.) R20.
+- **G30. Power has no personal cost.** The hero's body and kit never change with what they do; the Ledger's corruption
+  of its keeper is only lore. (Hero, faith, story.) R21.
+- **G31. Minions can be shaped but never designed.** Every minion is a foe that rose; spare bodies and trophies have no
+  creative use. (Army, crafting, trophies.) R22.
+- **G32. A fallen minion's line ends.** The Memorial remembers names, but nothing of what a minion was carries into the
+  next raise of its kind; raising is only a dice roll, never a slow craft. (Memorial, raising, Embalmery.) R23.
+- **G33. The keeper does everything personally.** No one but the hero (and a raid squad) works; no succession for the
+  book. (Late game, endings, town.) R24.
+- **G34. The year is flat.** 100 days with no seasons; omens are the only daily variation and are unconnected to time.
+  (Calendar, omens, garden, map.) R25.
+- **G35. A failed raise is a dead end.** The body is gone; Souls exist only inside a run. (Raising, Souls, gear.) R26.
+- **G36. Minions are never tested on their own.** The Reserve and the army's builds have no stage of their own. (Army,
+  Reserve, commands.) R27.
+- **G37. The hero's deaths are pure loss.** A counter remembers them; nothing else does. (Defeat, hero, story.) R28.
+- **G38. The player never defends a dungeon.** Sieges are fixed battles at the walls; the town's treasure is never at
+  risk in a way the player designs against. (Town, Reserve, economy.) R29.
+- **G39. No long project that ties systems.** Progress is split across a dozen places; nothing lets the player pay one
+  system's resource to improve another's rules. (Meta, Library, every system.) R30.

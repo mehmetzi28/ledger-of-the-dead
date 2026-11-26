@@ -25,7 +25,7 @@ Costs per level, shared by all buildings (gold, bone dust): **1.5k / 5k+30 / 14k
 | Building | L1-3 (as today) | L4 | L5 | Spec at 3 (pick one) | Spec at 5 (pick one) |
 |---|---|---|---|---|---|
 | **Crypt** | +1 army slot and cap, +2 Reserve | +1 slot | +1 slot, +4 Reserve | *Ossuary Halls* +4 Reserve / *War Crypt* minions +5% HP | *Catacombs*: Reserve minions fight in sieges / *Throne Crypt*: +1 more slot |
-| **Forge** | -15% reforge/enchant cost | -15% | -15% and heart-forging (R4) -20% | *Smithy* masterwork chance +10% / *Bonewright* enchants cost no gold | *Great Forge* legendary 3rd line from any boss / *Tempering Pit* temper goes one step past "best" |
+| **Forge** | -15% reforge/enchant cost | -15% | -15% and heart-forging (R4) -20% | *Smithy* masterwork chance +10% / *Bonewright* enchants cost no gold | *Great Forge* heartforged 3rd line from any boss / *Tempering Pit* temper goes one step past "best" |
 | **Ossuary** | +3% raise chance | +3% | +3% | *Charnel Rites* elites raise +10% / *Soul Well* +1 Soul per gate run | *Grave Lord's Seat* bosses raise +10% / *Deep Ossuary* corpse conditions give +5% more |
 | **Altar** | +5% mana, Bone Altar -12% | same | same | *Blood Altar* skills cost 5% less / *Bone Altar* empower +1 step | *Black Altar* ultimate charges 15% faster / *Grave Altar* +1 ult charge after a boss |
 

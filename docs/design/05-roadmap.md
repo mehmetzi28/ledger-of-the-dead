@@ -24,26 +24,39 @@ substantial feature or rework; small fixes ride along inside one. Rounds name th
 | R3 | The end of the book: the seventh gate and the ending | P1 | G16, G21 (part) | R2 helps | XL | [spec](rounds/R03-the-end-of-the-book.md) |
 | R4 | Gold that means something: late economy and crafting | P1 | G10, G11, G14, B3 | | L | [spec](rounds/R04-late-economy-and-crafting.md) |
 | R5 | The necropolis grows: town expansion and the town's dread | P1 | G6, G12, G13, G15, B7 | R4 helps | XL | [spec](rounds/R05-the-necropolis-grows.md) |
-| R6 | Expeditions: raids rework and Commanders in battle | P2 | G17, G8 | R5 | L | [spec](rounds/P2-rounds.md#r6-expeditions-raids-rework-and-commanders-in-battle) |
-| R7 | The rival's war: an arc with an ending | P2 | G19 | R2 | L | [spec](rounds/P2-rounds.md#r7-the-rivals-war-an-arc-with-an-ending) |
-| R8 | The pantheon: faith rework, gods and omens | P2 | G18, G20 | R5 | L | [spec](rounds/P2-rounds.md#r8-the-pantheon-faith-rework-gods-and-omens) |
-| R9 | Rift sigils and Riftborn gear | P2 | G22, B4 | R2 | L | [spec](rounds/P2-rounds.md#r9-rift-sigils-and-riftborn-gear) |
-| R10 | Ascension: New Game+ rework | P2 | G21 | R3 | L | [spec](rounds/P2-rounds.md#r10-ascension-new-game-rework) |
-| R11 | Hero builds 2.0 | P2 | G25, B2 | | L | [spec](rounds/P2-rounds.md#r11-hero-builds-20) |
-| R12 | Army roles 2.0: charms, minion actives, a fifth role | P2 | G7, G8 | R1 | XL | [spec](rounds/P2-rounds.md#r12-army-roles-20-charms-minion-actives-a-fifth-role) |
-| R13 | Nemeses and a living valley: content pack | P3 | G24, G20 | R1 | L | [spec](rounds/P3-rounds.md#r13-nemeses-and-a-living-valley-content-pack) |
-| R14 | Sieges 2.0: the Inquisition escalates | P3 | G23 | R5 | L | [spec](rounds/P3-rounds.md#r14-sieges-20-the-inquisition-escalates) |
-| R15 | Modes and playtest logs | P3 | G27, B6 | | L | [spec](rounds/P3-rounds.md#r15-modes-and-playtest-logs) |
-| R16 | Titles and collection 2.0 | P3 | G26 | | L | [spec](rounds/P3-rounds.md#r16-titles-and-collection-20) |
-| R17 | Presentation: music, stage, art | P3 | | R1, R2 | L | [spec](rounds/P3-rounds.md#r17-presentation-music-stage-art) |
-| R18 | UX and onboarding pass | P3 | | after any 3 rounds | L | [spec](rounds/P3-rounds.md#r18-ux-and-onboarding-pass) |
+| R6 | Expeditions: raids rework and Commanders in battle | P2 | G17, G8 | R5 | L | [spec](rounds/R06-expeditions.md) |
+| R7 | The rival's war: an arc with an ending | P2 | G19 | R2 | L | [spec](rounds/R07-the-rivals-war.md) |
+| R8 | The pantheon: faith rework, gods and omens | P2 | G18, G20 | R5 | L | [spec](rounds/R08-the-pantheon.md) |
+| R9 | Rift sigils and Riftborn gear | P2 | G22, B4 | R2 | L | [spec](rounds/R09-rift-sigils.md) |
+| R10 | Ascension: New Game+ rework | P2 | G21 | R3 | L | [spec](rounds/R10-ascension.md) |
+| R11 | Hero builds 2.0 | P2 | G25, B2 | | L | [spec](rounds/R11-hero-builds.md) |
+| R12 | Army roles 2.0: charms, minion actives, a fifth role | P2 | G7, G8 | R1 | XL | [spec](rounds/R12-army-roles.md) |
+| R13 | Nemeses and a living valley: content pack | P3 | G24, G20 | R1 | L | [spec](rounds/R13-nemeses-and-content.md) |
+| R14 | Sieges 2.0: the Inquisition escalates | P3 | G23 | R5 | L | [spec](rounds/R14-sieges-2.md) |
+| R15 | Modes and playtest logs | P3 | G27, B6 | | L | [spec](rounds/R15-modes-and-logs.md) |
+| R16 | Titles and collection 2.0 | P3 | G26 | | L | [spec](rounds/R16-titles-and-collection.md) |
+| R17 | Presentation: music, stage, art | P3 | | R1, R2 | L | [spec](rounds/R17-presentation.md) |
+| R18 | UX and onboarding pass | P3 | | after any 3 rounds | L | [spec](rounds/R18-ux-and-onboarding.md) |
+| R19 | The valley map: roads, sites and travel | P4 | G28 | | XL | [spec](rounds/R19-the-valley-map.md) |
+| R20 | Villages of the living: trade, tribute and fear | P4 | G29 | R5 | L | [spec](rounds/R20-villages-of-the-living.md) |
+| R21 | The phylactery: corruption and the hero's transformation | P4 | G30 | | L | [spec](rounds/R21-the-phylactery.md) |
+| R22 | The bone workshop: constructs built from parts | P4 | G31 | R4 helps | L | [spec](rounds/R22-the-bone-workshop.md) |
+| R23 | Bloodlines and the grave garden | P4 | G32 | R5 | L | [spec](rounds/R23-bloodlines-and-the-grave-garden.md) |
+| R24 | Apprentices: a school of the Ledger | P4 | G33 | R5 | L | [spec](rounds/R24-apprentices.md) |
+| R25 | Seasons and weather | P4 | G34 | | L | [spec](rounds/R25-seasons-and-weather.md) |
+| R26 | Spirits and soulbinding | P4 | G35 | R1 | L | [spec](rounds/R26-spirits-and-soulbinding.md) |
+| R27 | The Bone Pit: minion duels and tournaments | P4 | G36 | | L | [spec](rounds/R27-the-bone-pit.md) |
+| R28 | Scars: what death leaves on the hero | P4 | G37 | | L | [spec](rounds/R28-scars.md) |
+| R29 | The crypt beneath: tomb robbers and a dungeon to defend | P4 | G38 | R5 | XL | [spec](rounds/R29-the-crypt-beneath.md) |
+| R30 | Necromantic research: a tree that ties everything | P4 | G39 | R5 | L | [spec](rounds/R30-necromantic-research.md) |
 
 The order is a recommendation, not a queue: pick the highest round whose needs are met, unless a later one fixes
 something that hurts more right now.
 
 ## Phases
 
-The rounds fall into four phases. A phase is done when its rounds have shipped and 04-balance.md shows its numbers.
+The rounds fall into five phases. Phase 5 rounds are new systems; they can be picked earlier when their needs are met
+and one fits what the game needs most at the time. A phase is done when its rounds have shipped and 04-balance.md shows its numbers.
 
 | Phase | Rounds | The game after it |
 |---|---|---|
@@ -51,6 +64,7 @@ The rounds fall into four phases. A phase is done when its rounds have shipped a
 | **2. A game with an end** | R3, R4, R5 | the book ends with a choice; late gold, trophies and hearts all buy something; the town grows all game and fears you |
 | **3. Systems that talk** | R6-R12 | raids, the rival, faith, the Rift, NG+, hero builds and army roles each tie into three or more other systems |
 | **4. A finished game** | R13-R18 | content depth, modes, collection, music and art, and a UX pass over everything |
+| **5. New systems** | R19-R30 | the valley becomes a place with villages, seasons and a crypt to defend; the hero can be corrupted and scarred; minions can be designed, bred, trained in a pit and succeeded by apprentices; a research tree ties it all |
 
 ## Dependencies
 
@@ -74,9 +88,26 @@ graph LR
   R15[R15 modes, logs]
   R16[R16 titles 2.0]
   R18[R18 UX pass]
+  R5 --> R20[R20 villages]
+  R19[R19 valley map] --> R20
+  R5 --> R23[R23 bloodlines, garden]
+  R5 --> R24[R24 apprentices]
+  R5 --> R29[R29 the crypt]
+  R5 --> R30[R30 research]
+  R1 --> R26[R26 spirits]
+  R4 --> R22[R22 bone workshop]
+  R22 --> R29
+  R26 --> R29
+  R6 --> R24
+  R21[R21 phylactery]
+  R25[R25 seasons] -.-> R19
+  R25 -.-> R23
+  R27[R27 Bone Pit]
+  R28[R28 scars]
 ```
 
-Solid arrows are hard needs (the later round uses code the earlier one adds). R3 can ship before R2 with the fallback
+Solid arrows are hard needs (the later round uses code the earlier one adds); dotted arrows are hooks that make the
+later round richer. R3 can ship before R2 with the fallback
 moves in its spec; R5 can ship before R4 with its Apothecary limited to potions.
 
 ## Which systems each round touches
@@ -101,6 +132,25 @@ A round that touches many systems is a connecting round; the matrix shows where 
 | Rival | | ● | ○ | | ○ | ○ | ● | | | ○ | | | ○ | |
 | Memorial | ○ | | ● | | | | | ○ | | | | ● | ○ | |
 | NG+ | | | ● | | | | ○ | | | ● | | | | |
+
+
+**Phase 5 rounds** (new systems):
+
+| System | R19 | R20 | R21 | R22 | R23 | R24 | R25 | R26 | R27 | R28 | R29 | R30 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Combat | ○ | | ● | | | | ○ | ○ | ● | ○ | ● | ○ |
+| Army and traits | | ○ | ○ | ● | ● | ○ | | ○ | ● | | ○ | ○ |
+| Hero | | | ● | | | | | | | ● | | ○ |
+| Raising and corpses | ○ | ○ | ○ | ○ | ● | | ○ | ● | | | ○ | ○ |
+| Gear and crafting | | ○ | | ● | | | | ● | ○ | | ○ | |
+| Economy | ○ | ● | | ○ | | ○ | | | ○ | | ● | ○ |
+| Town and Reserve | | ○ | ○ | ● | ● | ● | | ○ | ● | ○ | ● | ● |
+| Sieges | ○ | ○ | ○ | ○ | | ○ | ○ | | | ○ | ○ | ○ |
+| Faith and omens | ○ | ○ | ○ | | ○ | ○ | ● | ○ | | ○ | | ○ |
+| Story and endings | ● | ● | ● | | | ● | ○ | | | ○ | | |
+| Map and travel | ● | ○ | | | | | ○ | | | | | ○ |
+| Memorial | | | | ○ | ● | ○ | | | | | | |
+| Rival | ○ | | | | | ○ | | | ○ | | ○ | |
 
 ## Every idea
 
@@ -247,7 +297,7 @@ choice measurably varies between bots; sieges held stays 80-87% with dread in pl
 ## P2: rounds after that
 
 ### R6. Expeditions: raids rework and Commanders in battle
-**Full spec**: [P2-rounds.md](rounds/P2-rounds.md#r6-expeditions-raids-rework-and-commanders-in-battle).
+**Full spec**: [R06-expeditions.md](rounds/R06-expeditions.md).
 **Goal**: sending your dead out is a plan with choices, and a Commander matters in every fight.
 **Closes**: G17, G8.
 **Scope**: raids become expeditions of one to three nights against any cleared gate on any cleared difficulty, a cursed
@@ -259,7 +309,7 @@ choices; expeditions are worth about as much as a watch spent fighting; Rally ch
 **Needs**: R5 (War Room). **Size**: L.
 
 ### R7. The rival's war: an arc with an ending
-**Full spec**: [P2-rounds.md](rounds/P2-rounds.md#r7-the-rivals-war-an-arc-with-an-ending).
+**Full spec**: [R07-the-rivals-war.md](rounds/R07-the-rivals-war.md).
 **Goal**: the rival becomes a story with stakes that builds to a final reckoning.
 **Closes**: G19.
 **Scope**: an escalating arc (thefts, challenges, a raid on your town led by the rival, then their lair, a gate of their
@@ -270,7 +320,7 @@ trades bodies); rival strength carries a share into New Game+; recover stolen bo
 `full` bot game; the duel is won ~65-75%. **Needs**: R2 (rival kit). **Size**: L.
 
 ### R8. The pantheon: faith rework, gods and omens
-**Full spec**: [P2-rounds.md](rounds/P2-rounds.md#r8-the-pantheon-faith-rework-gods-and-omens).
+**Full spec**: [R08-the-pantheon.md](rounds/R08-the-pantheon.md).
 **Goal**: an oath is a relationship with a god that you grow through deeds, and the gods move the weather.
 **Closes**: G18, G20.
 **Scope**: four named Old Gods and a profane path, each tied to omens and a playstyle; devotion grows by deeds (not only
@@ -280,7 +330,7 @@ sieges, dread, story. **Done when**: each oath is within a few points of the oth
 bot. **Needs**: R5 (Temple, dread). **Size**: L.
 
 ### R9. Rift sigils and Riftborn gear
-**Full spec**: [P2-rounds.md](rounds/P2-rounds.md#r9-rift-sigils-and-riftborn-gear).
+**Full spec**: [R09-rift-sigils.md](rounds/R09-rift-sigils.md).
 **Goal**: the Rift is a chosen risk with rewards that exist nowhere else.
 **Closes**: G22, B4.
 **Scope**: pick sigils (modifiers) before a dive for better rewards; Riftborn items with a fixed rift power; named
@@ -289,7 +339,7 @@ probe for depth. **Connects**: Rift, gear, Trials, records, kits. **Done when**:
 predictable amount; Riftborn gear is wanted by the bot. **Needs**: R2. **Size**: L.
 
 ### R10. Ascension: New Game+ rework
-**Full spec**: [P2-rounds.md](rounds/P2-rounds.md#r10-ascension-new-game-rework).
+**Full spec**: [R10-ascension.md](rounds/R10-ascension.md).
 **Goal**: each cycle is new, not just harder.
 **Closes**: G21.
 **Scope**: each cycle rewrites part of the valley (a boss variant per gate, new foe variants, a new curse); ascension
@@ -298,7 +348,7 @@ level) chosen when the cycle starts; ties to R3's two endings. **Connects**: NG+
 cycles 1-3 each play differently in bot runs and stay on the gate curve. **Needs**: R3. **Size**: L.
 
 ### R11. Hero builds 2.0
-**Full spec**: [P2-rounds.md](rounds/P2-rounds.md#r11-hero-builds-20).
+**Full spec**: [R11-hero-builds.md](rounds/R11-hero-builds.md).
 **Goal**: a necromancer's build is a real choice that can be changed at a cost.
 **Closes**: G25, B2.
 **Scope**: paid stat respec (Library); Frost and Rot get a fifth skill; each path gets a signature active at level 40;
@@ -307,7 +357,7 @@ Constitution builds. **Connects**: skills, paths, stats, loot, Library. **Done w
 gates and within a few floors in the Tower. **Size**: L.
 
 ### R12. Army roles 2.0: charms, minion actives, a fifth role
-**Full spec**: [P2-rounds.md](rounds/P2-rounds.md#r12-army-roles-20-charms-minion-actives-a-fifth-role).
+**Full spec**: [R12-army-roles.md](rounds/R12-army-roles.md).
 **Goal**: every minion can be shaped, and elders can act on command.
 **Closes**: G7, G8.
 **Scope**: a charm slot on every minion (crafted from trophies); a gear-bearer wearing a unique gains a minion version of
@@ -321,36 +371,79 @@ commands, crafting, Memorial. **Done when**: the bot's army mix uses every role;
 ## P3: later
 
 ### R13. Nemeses and a living valley: content pack
-**Full spec**: [P3-rounds.md](rounds/P3-rounds.md#r13-nemeses-and-a-living-valley-content-pack).
+**Full spec**: [R13-nemeses-and-content.md](rounds/R13-nemeses-and-content.md).
 **Closes**: G24, G20. A foe that downs one of your minions may survive with a name, grow, and return in later runs (avenge
 it for its trophies and a Memorial line); five more curses, ten more events, three more chains, three more omens, event
 outcomes that touch dread, faith and the rival. **Needs**: R1.
 
 ### R14. Sieges 2.0: the Inquisition escalates
-**Full spec**: [P3-rounds.md](rounds/P3-rounds.md#r14-sieges-20-the-inquisition-escalates).
+**Full spec**: [R14-sieges-2.md](rounds/R14-sieges-2.md).
 **Closes**: G23. Siege tiers that grow with your wins; new foe kinds with kits and damage types; choose which wall to
 hold; defenses built in town; siege boss variants; an Inquisition story arc that ends in a confrontation. **Needs**: R5.
 
 ### R15. Modes and playtest logs
-**Full spec**: [P3-rounds.md](rounds/P3-rounds.md#r15-modes-and-playtest-logs).
+**Full spec**: [R15-modes-and-logs.md](rounds/R15-modes-and-logs.md).
 **Closes**: G27, B6. An Ironman save slot (falls cost much more, nothing else changes); seeded challenge codes to share
 locally; custom difficulty sliders; a local play log (runs, deaths and their blows, time per run, ignored systems)
 exportable as a file for review. Never uploaded anywhere.
 
 ### R16. Titles and collection 2.0
-**Full spec**: [P3-rounds.md](rounds/P3-rounds.md#r16-titles-and-collection-20).
+**Full spec**: [R16-titles-and-collection.md](rounds/R16-titles-and-collection.md).
 **Closes**: G26. Inscribe up to three earned titles beside the worn one (slots unlock with the collection); collection
 milestones pay cosmetics (robes, army banners, stage backdrops) and small rule perks.
 
 ### R17. Presentation: music, stage, art
-**Full spec**: [P3-rounds.md](rounds/P3-rounds.md#r17-presentation-music-stage-art).
+**Full spec**: [R17-presentation.md](rounds/R17-presentation.md).
 Per-gate and per-boss music themes; stage animations for kits, damage types and boss moves; evolved minion art by stage;
 a title screen; painted epilogues for the endings. **Needs**: R1, R2.
 
 ### R18. UX and onboarding pass
-**Full spec**: [P3-rounds.md](rounds/P3-rounds.md#r18-ux-and-onboarding-pass).
+**Full spec**: [R18-ux-and-onboarding.md](rounds/R18-ux-and-onboarding.md).
 Re-run the first hour with the new systems; a mobile layout pass; Codex links from every number; a "why did I lose"
 view in the History; render performance on large late-game saves.
+
+---
+
+## P4: new systems
+
+Twelve systems the game does not have yet (gaps G28-G39). Each spec is as complete as the P1 specs. They can be picked
+earlier than their phase when their needs are met.
+
+### R19. The valley map: roads, sites and travel
+**Full spec**: [R19-the-valley-map.md](rounds/R19-the-valley-map.md). **Closes** G28. A painted map with roads, fog, travel in steps, and sites that are not gates (graveyards, battlefields, shrines, a mine, a wolf den); road encounters; scouting and a raven familiar.
+
+### R20. Villages of the living: trade, tribute and fear
+**Full spec**: [R20-villages-of-the-living.md](rounds/R20-villages-of-the-living.md). **Closes** G29. Three villages with standing, weekly favors, trade, allegiance rewards (a living knight companion), and the dark path of raiding them for bodies.
+
+### R21. The phylactery: corruption and the hero's transformation
+**Full spec**: [R21-the-phylactery.md](rounds/R21-the-phylactery.md). **Closes** G30. A corruption meter, a phylactery that cheats death once a day, five hero forms (Lich, Blood Lord, Bone Colossus, Choir Saint, Plague Herald) with stages and an apotheosis.
+
+### R22. The bone workshop: constructs built from parts
+**Full spec**: [R22-the-bone-workshop.md](rounds/R22-the-bone-workshop.md). **Closes** G31. Design a minion from four parts (frame, arms, head, core) taken from bodies, trophies and boss hearts; constructs break instead of shattering.
+
+### R23. Bloodlines and the grave garden
+**Full spec**: [R23-bloodlines-and-the-grave-garden.md](rounds/R23-bloodlines-and-the-grave-garden.md). **Closes** G32. Fallen and retired Elders become ancestors of their kind's line (up to +15% and inherited traits); plant bodies to raise them a stage higher; graft kits across kinds.
+
+### R24. Apprentices: a school of the Ledger
+**Full spec**: [R24-apprentices.md](rounds/R24-apprentices.md). **Closes** G33. Up to three apprentices with temperaments and loyalty run daily tasks, can be ordained, can defect to the rival, and can inherit the Ledger at the ending.
+
+### R25. Seasons and weather
+**Full spec**: [R25-seasons-and-weather.md](rounds/R25-seasons-and-weather.md). **Closes** G34. Four seasons of 25 days with festivals and seasonal foes; daily weather rules (rain, fog, heat, storm, snow) forecast a day ahead.
+
+### R26. Spirits and soulbinding
+**Full spec**: [R26-spirits-and-soulbinding.md](rounds/R26-spirits-and-soulbinding.md). **Closes** G35. Failed raises leave spirits; bind them into gear sockets by kit, spend them as one-use spells; unspent Souls bank as essence.
+
+### R27. The Bone Pit: minion duels and tournaments
+**Full spec**: [R27-the-bone-pit.md](rounds/R27-the-bone-pit.md). **Closes** G36. Daily minion-only bouts on a 30-champion ladder, Pit Tokens, betting, seasonal tournaments; trains the Reserve.
+
+### R28. Scars: what death leaves on the hero
+**Full spec**: [R28-scars.md](rounds/R28-scars.md). **Closes** G37. Killing blows leave scars with a bane and a boon by source; heal, deepen or ritualize them; a death ledger with milestones.
+
+### R29. The crypt beneath: tomb robbers and a dungeon to defend
+**Full spec**: [R29-the-crypt-beneath.md](rounds/R29-the-crypt-beneath.md). **Closes** G38. Lay out a crypt of rooms, traps and posted minions; robbers, relic hunters, templars, the rival's thieves and delver heroes come for the treasure.
+
+### R30. Necromantic research: a tree that ties everything
+**Full spec**: [R30-necromantic-research.md](rounds/R30-necromantic-research.md). **Closes** G39. Research points from study and discovery buy nodes in four branches; every node names the two systems it ties; kept through New Game+.
 
 ---
 
@@ -376,12 +469,23 @@ Small fixes to bundle into the round named. Don't ship them alone.
 
 Ideas worth keeping that are not yet a round:
 
-- **Grave garden**: plant a body in town to raise it later, stronger (ties corpses, town, calendar).
-- **Ledger inscriptions**: write a fallen minion's name into the Ledger for a permanent small effect (ties the Memorial).
-- **Minion voices**: short lines from evolved minions at key moments.
-- **Necromancer appearance**: robes and staff looks unlocked by deeds.
-- **Valley map**: a painted map of the gates, Tower, Rift, town and abbey as the Gates tab's backdrop.
-- **Weather and seasons**: a slow calendar layer above omens.
+- **Minion voices**: short lines from evolved minions at key moments (R17 can carry them).
+- **Infernal contracts**: the Tower's devils offer a contract per 10 floors: a strong boon for a debt paid later (a minion,
+  a building's level, a day lost); unpaid debts send a collector. Ties the Tower, the town and the phylactery (R21).
+- **Plague season**: a valley-wide plague that spreads between gates and villages over days; minions with rot traits
+  resist; villages lose people (bodies), dread rises. Ties seasons (R25), villages (R20), Ulm (R8).
+- **Bone steeds**: a mount raised from beast bodies (R19's wolf den) that cuts travel steps and joins the hero in the back
+  row with one action of its own. Ties the map, raising, the hero.
+- **Minion morale**: a mood per minion moved by bonds, losses, rest and victories, nudging its attack ±10%. Ties bonds,
+  the Memorial, the Pit (R27).
+- **The Ledger's own pages**: the player writes short names into blank pages (a minion, a foe, a place) for small
+  permanent effects; a page can be torn out to undo. Ties the Memorial, R3's inscriptions, the rival's torn pages.
+- **Wandering dead**: unbound undead roam the map at night; bind them with Soul Essence (R26) instead of raising. Ties the
+  map, spirits, raising.
+- **Rift cartography**: map the Rift's folds as depths are reached; a mapped depth can be skipped or revisited for its
+  guardian. Ties the Rift (R9), research (R30).
+- **Heraldry**: design the necropolis banner (shapes and colors from the palette); villages and the rival react to it.
+  Ties collection (R16), villages (R20).
 
 ## Not doing
 
@@ -401,4 +505,5 @@ Ideas worth keeping that are not yet a round:
 | Lord of the Eclipse requirement fix, bot raise rate | #3 | 2026-11-26 |
 | Design documents (this folder) | #4 | 2026-11-26 |
 | R0 Command: the hero draws on the army's power; Tower minions off the foe curve; B/A/S, Tower and Rift retune | #5 | 2026-11-26 |
-| Deeper roadmap: full specs per round, idea catalogue, phases and dependency map | this PR | 2026-11-26 |
+| Deeper roadmap: full specs per round, idea catalogue, phases and dependency map | #6 | 2026-11-26 |
+| A full spec file for every round R6-R18, twelve new systems R19-R30, gaps G28-G39 | this PR | 2026-11-26 |

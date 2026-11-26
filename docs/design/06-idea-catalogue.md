@@ -106,7 +106,7 @@ Kinds at a glance: a system with few **C** ideas is an island; a system with onl
 | GE4 | A | The Scribe's Regalia set and Oswin's Ledger-Chain | R3 |
 | GE5 | A | Three rival uniques | R7 |
 | GE6 | A | Typed bonus lines and resistances | R1 |
-| GE7 | I | Loadouts: save gear sets per activity (gates, Tower, Rift) | free |
+| GE7 | I | Loadouts switch by themselves when entering the Tower, the Rift or a siege (loadouts exist; the swap is manual) | free |
 | GE8 | I | Compare view shows the change to modeled strength | free |
 
 ## Consumables
@@ -137,7 +137,7 @@ Kinds at a glance: a system with few **C** ideas is an island; a system with onl
 | TO2 | A | Charnel Yard, Library, Embalmery, Bell Tower, Apothecary, War Room, Temple | R5 |
 | TO3 | A | Dread meter and bands | R5 |
 | TO4 | I | Daily orders replace the daily quest | R5 |
-| TO5 | A | A painted valley map as the Gates backdrop | free |
+| TO5 | A | A painted valley map as the Gates backdrop | R19 |
 | TO6 | A | Town visitors (a pedlar, a pilgrim, a spy) by dread band | free |
 
 ## Sieges
@@ -258,4 +258,104 @@ Kinds at a glance: a system with few **C** ideas is an island; a system with onl
 | UX3 | I | Codex links from every number | R18 |
 | UX4 | I | Large-save performance | R18 |
 | UX5 | I | Colorblind-safe types, font size, reduced motion | R18 |
-| UX6 | A | Weather and seasons above omens | free |
+| UX6 | A | Weather and seasons above omens | R25 |
+
+## New systems (phase 5)
+
+### Valley map and travel (R19)
+
+| ID | Kind | Idea | Where |
+|---|---|---|---|
+| VM1 | A | A painted map with roads, steps and fog | R19 |
+| VM2 | A | Ten site types: graveyards, battlefields, shrines, crossroads, hermit, mine, gallows, stones, ford, wolf den | R19 |
+| VM3 | A | Road encounters and scouting; a raven familiar | R19 |
+| VM4 | C | Squads, nemeses and siege armies move on the map | R19 |
+| VM5 | A | Bone steeds that cut travel | free |
+| VM6 | A | Wandering dead bound with essence | free |
+
+### Villages (R20)
+
+| ID | Kind | Idea | Where |
+|---|---|---|---|
+| VI1 | A | Three villages with standing, trade and favors | R20 |
+| VI2 | A | Raiding a village: bodies with village traits, abandonment | R20 |
+| VI3 | A | Allegiance rewards and a living knight companion | R20 |
+| VI4 | C | Villages send mobs or militia to sieges by standing | R20 |
+| VI5 | A | Heraldry the villages react to | free |
+
+### The hero's body: corruption, forms, scars (R21, R28)
+
+| ID | Kind | Idea | Where |
+|---|---|---|---|
+| HB1 | A | Corruption meter with gains and losses | R21 |
+| HB2 | A | The phylactery and Death's Door | R21 |
+| HB3 | A | Five forms with stages and an apotheosis | R21 |
+| HB4 | A | Scars with a bane and a boon by source | R28 |
+| HB5 | I | Deepen and ritualize scars | R28 |
+| HB6 | A | The death ledger | R28 |
+| HB7 | A | Infernal contracts from the Tower's devils | free |
+
+### Making minions: constructs, bloodlines, the garden (R22, R23)
+
+| ID | Kind | Idea | Where |
+|---|---|---|---|
+| MM1 | A | Constructs from four parts | R22 |
+| MM2 | A | The Bone Workshop building | R22 |
+| MM3 | A | Bloodlines: ancestors per kind | R23 |
+| MM4 | A | Retirement with honors | R23 |
+| MM5 | A | The grave garden with fertilizers | R23 |
+| MM6 | A | Grafting kits across kinds | R23 |
+| MM7 | A | Minion morale | free |
+
+### Apprentices (R24)
+
+| ID | Kind | Idea | Where |
+|---|---|---|---|
+| AP1 | A | Apprentices with temperaments and loyalty | R24 |
+| AP2 | A | Daily tasks: farm, study, garden, walls, expeditions, climb | R24 |
+| AP3 | C | Defection to the rival | R24 |
+| AP4 | C | Succession: an apprentice inherits the Ledger | R24 |
+
+### Seasons and weather (R25)
+
+| ID | Kind | Idea | Where |
+|---|---|---|---|
+| SW1 | A | Four seasons with rules and festivals | R25 |
+| SW2 | A | Eight weathers forecast a day ahead | R25 |
+| SW3 | A | Seasonal foe variants | R25 |
+| SW4 | A | A plague season that spreads across the valley | free |
+
+### Spirits (R26)
+
+| ID | Kind | Idea | Where |
+|---|---|---|---|
+| SP1 | A | Spirits from failed raises, a lantern and a Spirit Ledger | R26 |
+| SP2 | A | Soul sockets in gear by kit | R26 |
+| SP3 | A | Spirit spells | R26 |
+| SP4 | A | Soul Essence and wisps | R26 |
+
+### The Bone Pit (R27)
+
+| ID | Kind | Idea | Where |
+|---|---|---|---|
+| BP1 | A | Minion-only bouts with orders | R27 |
+| BP2 | A | A 30-champion ladder and Pit Tokens | R27 |
+| BP3 | A | Betting and seasonal tournaments | R27 |
+
+### The crypt beneath (R29)
+
+| ID | Kind | Idea | Where |
+|---|---|---|---|
+| CR1 | A | A crypt layout of rooms, posts and traps | R29 |
+| CR2 | A | Five intruder bands up to delver heroes | R29 |
+| CR3 | A | Stand watch and dawn replays | R29 |
+| CR4 | A | Delver trophies and gear | R29 |
+
+### Research (R30)
+
+| ID | Kind | Idea | Where |
+|---|---|---|---|
+| RS1 | A | Research points from study and discovery | R30 |
+| RS2 | A | Four branches, each node tying two systems | R30 |
+| RS3 | A | Rift cartography | free |
+| RS4 | A | The Ledger's own pages | free |
