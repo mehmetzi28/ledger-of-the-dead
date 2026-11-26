@@ -229,7 +229,7 @@ function fireKitMove2(e,mv){   // the masters' and wardens' moves (fireKitMove h
   else if(mv==='breath'){ let tot=0; allies().filter(a=>hittable(a)&&rowOf(a)==='f').forEach(a=>{ tot+=bossHit(e,a,1.2,'fire',mv); }); log(e.name+' breathes fire down your front row for '+tot+'.','bad'); }
   else if(mv==='molten'){ e.molten=r.turn+3; log(e.name+'\'s scales run molten.','bad'); }
   else if(mv==='tail'){ let tot=0; allies().filter(a=>hittable(a)&&rowOf(a)==='b').forEach(a=>{ tot+=bossHit(e,a,.8,'phys',mv); }); log(e.name+' sweeps your back row with its tail for '+tot+'.','bad'); }
-  else if(mv==='verse'){ r.silence=3; e.verses=(e.verses||0)+1; log(e.name+' sings a Verse of Binding. Your skills are silenced for 2 turns.','bad'); }
+  else if(mv==='verse'){ r.silence=silenceT(3); e.verses=(e.verses||0)+1; log(e.name+' sings a Verse of Binding. Your skills are silenced for 2 turns.','bad'); }
   else if(mv==='crescendo'){ const d=Math.round(pMax()*(.08+.04*(e.verses||0))); BLOW={n:e.name,k:'sig',mv}; hurtAlly(P,d,'shad'); BLOW=null; fxe('hurt',P,{crit:1}); log(e.name+' swells into a Crescendo for '+d+'.','bad'); }
   else if(mv==='echoes'){ const got=[]; for(let i=0;i<2;i++){ const a=summonAdd(e,'Hollow Chorister','striker'); if(a) got.push(a); } log(got.length?e.name+' echoes: '+got.map(x=>x.name).join(' and ')+' join the song.':e.name+' echoes, but no voice answers.','bad'); }
   else if(mv==='spread'){ const L=S.army.filter(hittable).sort((a,b)=>b.atk-a.atk).slice(0,2); L.forEach(m=>{ m.root=r.turn+3; }); log(L.length?e.name+' spreads its roots: '+L.map(m=>m.nick).join(' and ')+' are rooted for 2 turns.':e.name+' spreads its roots, but no minion stands.','bad'); }

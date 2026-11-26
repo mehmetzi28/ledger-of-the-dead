@@ -493,7 +493,7 @@ function eventHTML(){
   const E=EVENTS[ev.id], P=S.player;
   const label=(k,t)=>ev.id==='pedlar'&&k==='buy'?'Buy '+withArticle(POTIONS[ev.pot].name)+' &middot; '+gold(ev.price):t;
   const off=k=>(ev.id==='pedlar'&&k==='buy'&&(S.gold<ev.price||S.belt[ev.pot]>=beltMax()))||!!(E.off&&E.off(k));
-  return '<div class="event-box"><h4>'+E.name+'</h4><p>'+E.text+'</p>'+(ev.id==='shrine'&&P.hp<=1?'<p class="q-note">You have no blood to spare.</p>':'')
+  return '<div class="event-box"><h4>'+E.name+'</h4><p>'+E.text+'</p>'+(ev.g&&FAITH[ev.g]?'<p class="q-note">It belongs to '+FAITH[ev.g].name+': '+FAITH[ev.g].domain.toLowerCase()+'. Vow: '+FAITH[ev.g].vow+'</p>':'')+(ev.id==='shrine'&&P.hp<=1?'<p class="q-note">You have no blood to spare.</p>':'')
    +'<div class="btns" style="margin:0">'+E.opts.map((o,i)=>'<button class="btn small'+(i===0?' primary':'')+'" data-a="event" data-k="'+o[0]+'"'+(off(o[0])||(ev.id==='shrine'&&o[0]==='bleed'&&P.hp<=1)?' disabled':'')+'>'+label(o[0],o[1])+'</button>').join('')+'</div></div>';
 }
 function spoilsHTML(){

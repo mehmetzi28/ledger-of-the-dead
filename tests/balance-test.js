@@ -85,7 +85,7 @@
   const STAT_ORDER=['intelligence','constitution','will','intelligence','constitution','strength'];
   const SKILL_ORDER=['spear','bonearmor','mend','blast','soulwell','curse','gravepact','chill','frenzy','edge','mastery','reap','robber','scholar','calcify','sanguine','thrift','deathless'];   // the small passives last: actives come first
   const itemScore=d=>d.tier*10+(d.uq?25:0)+(d.rival?6.5:d.set||0);   // the rival's book: worn over the gate and Tower uniques
-  const cval=c=>c.rankI*100+c.lvl+(c.boss?40:0)+(c.elite?15:0);
+  const cval=c=>c.rankI*100+c.lvl+(c.boss?40:0)+(c.elite?15:0)-(c.traits&&typeof faithOf==='function'&&faithOf()==='vesh'&&c.traits.some(t=>t==='necrotic'||t==='witchrot')?150:0);   // Vesh's vow: rot-spreading minions go to the bench
   function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 
   // ----- town: stats, skills, gear
@@ -118,7 +118,7 @@
     if(B.market){   // sell everything not worn, buy better gear from the merchant, keep the potion belt full
       if(B.full&&!B.off.forge&&typeof heartforge==='function') hfPolicy(B);   // heart-forging before the hearts are sold ("off":["forge"])
       if(B.full&&!B.off.brew&&typeof brewIt==='function') brewPolicy(B);   // brewing, commissions and the black market before the pouch is sold ("off":["brew"])
-      sellAllTrophies(); for(const it of S.inv.slice()) if(!ITEM[it.id].uq) sellItem(it.u);
+      if(!(typeof vowWarn==='function'&&vowWarn('sell'))) sellAllTrophies(); for(const it of S.inv.slice())   /* R8: Ulm's vow */ if(!ITEM[it.id].uq) sellItem(it.u);
       shopStock().forEach((s,i)=>{ if(s.sold) return; const d=ITEM[s.id], cur=S.equip[d.slot];
         if((!cur||itemScore(d)>itemScore(ITEM[cur.id]))&&S.gold-buyPrice(d)>=POTIONS.hp.price()*2&&buyStock(i)){ const it=S.inv[S.inv.length-1]; equip(it.u); for(const x of S.inv.slice()) if(!ITEM[x.id].uq) sellItem(x.u); } });
       while(buyPotion('hp')); while(buyPotion('mp')); while(buySalt());
@@ -215,7 +215,7 @@
     if(B.skills){
       const ok=id=>canUse(id)&&P.mana-SKILL[id].cost>=res, live=S.army.filter(m=>m.hp>0);
       if(ok('reap')&&t.hp<t.maxHp*(typeof reapLow==='function'?reapLow():.35)&&t.hp>pAtk()) return 'sk:reap';
-      if(ok('blast')&&foes.length>=2) return 'sk:blast';
+      if(ok('blast')&&foes.length>=2&&!(faithOf&&faithOf()==='vesh'&&foes.some(f=>f.dots&&f.dots.blight))) return 'sk:blast';   // Vesh: no Spreading Rot
       if(ok('mend')&&live.length&&live.reduce((a,m)=>a+m.hp/m.maxHp,0)/live.length<.55) return 'sk:mend';
       if(ok('chill')&&(t.boss||foes.length>=3)) return 'sk:chill';
       if(ok('frenzy')&&live.length>=2) return 'sk:frenzy';
@@ -231,7 +231,7 @@
   function raisePhase(B){
     const r=S.run, P=S.player;
     for(const c of r.corpses.filter(c=>!c.tried).sort((a,b)=>cval(b)-cval(a))){
-      if(P.mana<raiseCost(c)) continue;
+      if(P.mana<raiseCost(c)) continue; if(typeof vowWarn==='function'&&vowWarn('raise')) break;   // R8: Morrow's vow (no more than 10 a run)
       if(S.army.length>=slots()){
         const w=S.army.slice().sort((a,b)=>cval(a)-cval(b))[0];
         const better=w&&cval(w)<cval(c)-3&&raiseChance(c)>=40;   // worth an army place now
@@ -247,7 +247,7 @@
   // between-room events and event chains ('full' only; "off":["events"] walks past them all, as the other modes do): what a careful player
   // takes from what the screen shows (HP, gold, belt, army places), never from the hidden outcome of a chain
   const EVT_PICK={
-    shrine:f=>f.hp>=.6?'bleed':'pass', pedlar:f=>'buy', coffer:f=>f.hp>=.5?'open':'pass', oldgods:f=>'pray', defiled:f=>f.hp>=.4?'take':'pass',
+    shrine:f=>f.hp>=.6?'bleed':'pass', pedlar:f=>'buy', coffer:f=>f.hp>=.5?'open':'pass', oldgods:f=>'pray', defiled:f=>f.hp>=.4?'take':'pass', vshrine:f=>'pray', ushrine:f=>'pray', cshrine:f=>'pray', godshrine:f=>f.can('desecrate')?'desecrate':'pass',   /* R8: keeps its god */
     straggler:f=>f.room?'raise':'finish', priest:f=>f.hp>=.4?'spare':'pass', priest_back:f=>f.hp<.6?'bless':'warn',
     priest_kin:f=>f.can('pay')?'pay':f.hp>=.5?'fight':'pass', reliquary:f=>f.can('offer')?'offer':'pass', relic_curse:f=>f.can('return')?'return':f.hp>=.5?'endure':'pass',
     relic_gift:f=>'take', deserter:f=>f.can('pay')?'pay':'bread', deserter_true:f=>'take', deserter_false:f=>f.can('pay')?'pay':f.hp>=.5?'fight':'pass'};
@@ -376,6 +376,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
       playRun(B,rec); if(S.mode==='siege') fightSiege(B);
       const last=rec[rec.length-1]; if(last&&last.cleared&&firstClear[last.gate]==null) firstClear[last.gate]=d;
       if(abbeyDay==null&&S.abbey&&S.abbey.open) abbeyDay=d;
+      if(S.day!==d&&typeof faithRank==='function'&&faithOf()){ const k=faithRank(); B.fr=B.fr||{}; for(let i=1;i<=k;i++) if(B.fr[i]==null) B.fr[i]=d; }   // R8: the day each devotion rank was first held
       if(S.day!==d){ if(typeof loreCheck==='function') loreCheck(); lvAt[d]=S.player.lvl; goldAt[d]=[S.gold,gl.earn,gl.spend];   /* the game checks lore when it draws; bots never draw */ loreAt[d]=[Object.keys(S.story||{}).length,S.pages||0]; }
     }
     town(B);
@@ -393,7 +394,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
     const rival={met:T_('rivalMet'),wins:T_('rivalWins'),losses:T_('rivalLosses'),thefts:T_('rivalThefts'),day:(S.rival&&S.rival.met)||0};
     const head=typeof headBonus==='function'?{g:T_('headG'),t:headTiers(),b:headBonus()}:null;
     const awk={g:T_('awakenG'),n:T_('awakened')};   // awakening ranks bought and their gold
-    return {arc:{ch:(S.rival&&S.rival.arc&&S.rival.arc.ch)||0,d2:(S.rival&&S.rival.arc&&S.rival.arc.op[2])||0,d3:(S.rival&&S.rival.arc&&S.rival.arc.op[3])||0,ww:T_('wagerWins'),wl:T_('wagerLosses'),sw:T_('rivalSiegeWins'),sl:T_('rivalSiegeLosses'),rec:T_('reclaimed'),d4:(S.rival&&S.rival.arc&&S.rival.arc.op[4])||0,d5:(S.rival&&S.rival.arc&&S.rival.arc.op[5])||0,ed:(S.rival&&S.rival.arc&&S.rival.arc.ed)||0,rgR:T_('rgRuns'),rgC:T_('rgClears'),rkT:T_('reckTries'),rkW:T_('reckWins'),uq:typeof RIVAL_UQ!=='undefined'?RIVAL_UQ.filter(id=>GEAR_SLOTS.some(sl=>S.equip[sl]&&S.equip[sl].id===id)).length:0},exp:{nights:T_('expNights'),won:T_('expNightsWon'),clean:T_('expClean'),long:T_('expLong'),hunt:T_('exp_hunt'),curse:T_('exp_curse'),band:T_('exp_band'),scav:T_('exp_scav'),gate:T_('exp_gate'),rallies:T_('rallies'),camps:T_('expCamps')},town2:{n:TW2C.n,spec:TW2C.spec,emb:TW2C.emb,omen:TW2C.omen,yard:T_('yardSold'),ord:T_('orders'),pick:TW2C.ord,hunts:T_('ord_hunt'),claims:(S.ti&&S.ti.claims)||0,dread:typeof dreadOf==='function'?dreadOf():0,upk:T_('upkeepG'),tithes:T_('tithes'),bands:['calm','uneasy','afraid','terror'].map(b=>T_('band_'+b)),lv:Object.fromEntries(Object.keys(BUILD).map(k=>[k,blRaw(k)]))},hf:{n:HFC.n,g:HFC.g},brew:{n:BRC.n,g:BRC.g,comm:BRC.comm,commG:BRC.commG,bm:BRC.bm,prep:T_('prepUsed')},abbeyDay,abbeyEnd,abbeyProbe,trials,ev:B.ev||{},chainsEnded:T_('chains'),head,awk,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
+    return {god:typeof faithOf==='function'&&faithOf()?{id:faithOf(),rank:faithRank(),r1:(B.fr||{})[1]||0,r3:(B.fr||{})[3]||0,r5:(B.fr||{})[5]||0,vb:T_('vowsBroken'),cv:T_('converted')}:null,arc:{ch:(S.rival&&S.rival.arc&&S.rival.arc.ch)||0,d2:(S.rival&&S.rival.arc&&S.rival.arc.op[2])||0,d3:(S.rival&&S.rival.arc&&S.rival.arc.op[3])||0,ww:T_('wagerWins'),wl:T_('wagerLosses'),sw:T_('rivalSiegeWins'),sl:T_('rivalSiegeLosses'),rec:T_('reclaimed'),d4:(S.rival&&S.rival.arc&&S.rival.arc.op[4])||0,d5:(S.rival&&S.rival.arc&&S.rival.arc.op[5])||0,ed:(S.rival&&S.rival.arc&&S.rival.arc.ed)||0,rgR:T_('rgRuns'),rgC:T_('rgClears'),rkT:T_('reckTries'),rkW:T_('reckWins'),uq:typeof RIVAL_UQ!=='undefined'?RIVAL_UQ.filter(id=>GEAR_SLOTS.some(sl=>S.equip[sl]&&S.equip[sl].id===id)).length:0},exp:{nights:T_('expNights'),won:T_('expNightsWon'),clean:T_('expClean'),long:T_('expLong'),hunt:T_('exp_hunt'),curse:T_('exp_curse'),band:T_('exp_band'),scav:T_('exp_scav'),gate:T_('exp_gate'),rallies:T_('rallies'),camps:T_('expCamps')},town2:{n:TW2C.n,spec:TW2C.spec,emb:TW2C.emb,omen:TW2C.omen,yard:T_('yardSold'),ord:T_('orders'),pick:TW2C.ord,hunts:T_('ord_hunt'),claims:(S.ti&&S.ti.claims)||0,dread:typeof dreadOf==='function'?dreadOf():0,upk:T_('upkeepG'),tithes:T_('tithes'),bands:['calm','uneasy','afraid','terror'].map(b=>T_('band_'+b)),lv:Object.fromEntries(Object.keys(BUILD).map(k=>[k,blRaw(k)]))},hf:{n:HFC.n,g:HFC.g},brew:{n:BRC.n,g:BRC.g,comm:BRC.comm,commG:BRC.commG,bm:BRC.bm,prep:T_('prepUsed')},abbeyDay,abbeyEnd,abbeyProbe,trials,ev:B.ev||{},chainsEnded:T_('chains'),head,awk,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
   }
 
   // ----- reporting
@@ -427,6 +428,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
     gold.maus=avg(res.map(r=>r.maus||0)); gold.bonds=avg(res.map(r=>r.bonds||0));   // mausoleums raised and bonded pairs at the end
     { const f=res.map(r=>r.hf).filter(Boolean); if(f.some(x=>x.n)) gold.hforge={n:avg(f.map(x=>x.n)),spent:Math.round(avg(f.map(x=>x.g)))}; }
     { const f=res.map(r=>r.brew).filter(Boolean); if(f.some(x=>x.n||x.comm)) gold.brew={n:avg(f.map(x=>x.n)),spent:Math.round(avg(f.map(x=>x.g))),comm:avg(f.map(x=>x.comm)),commG:Math.round(avg(f.map(x=>x.commG))),bm:avg(f.map(x=>x.bm)),prep:avg(f.map(x=>x.prep))}; }
+    { const f=res.filter(r=>r.god).map(r=>Object.assign({},r.god,{runs:r.rec.filter(x=>!x.rival&&x.gate<6),tw:r.tower,rift:r.rift})); if(f.length){ const by={}; f.forEach(x=>{ (by[x.id]=by[x.id]||[]).push(x); }); gold.gods=Object.keys(by).map(id=>{ const L=by[id], d=k=>{ const v=L.map(x=>x[k]).filter(x=>x>0); return v.length?avg(v)+' ('+v.length+')':'-'; }; const rn=[].concat(...L.map(x=>x.runs)); return id+': clears '+(rn.length?Math.round(100*rn.filter(x=>x.cleared).length/rn.length):0)+'%, Tower '+avg(L.map(x=>x.tw))+', Rift '+avg(L.map(x=>x.rift))+', rank '+avg(L.map(x=>x.rank))+', rank 1 on day '+d('r1')+', 3 on '+d('r3')+', 5 on '+d('r5')+', vows broken '+avg(L.map(x=>x.vb)); }); } }
     { const f=res.map(r=>r.arc).filter(Boolean); if(f.length&&f.some(x=>x.ch>0)){ const d=k=>{ const v=f.map(x=>x[k]).filter(x=>x>0); return v.length?avg(v)+' ('+v.length+' bots)':'-'; }; gold.arc={ch:avg(f.map(x=>x.ch)),d2:d('d2'),d3:d('d3'),ww:avg(f.map(x=>x.ww)),wl:avg(f.map(x=>x.wl)),sw:f.reduce((a,x)=>a+x.sw,0),sl:f.reduce((a,x)=>a+x.sl,0),rec:avg(f.map(x=>x.rec)),d4:d('d4'),d5:d('d5'),ed:d('ed'),rgR:f.reduce((a,x)=>a+(x.rgR||0),0),rgC:f.reduce((a,x)=>a+(x.rgC||0),0),rkT:f.reduce((a,x)=>a+(x.rkT||0),0),rkW:f.reduce((a,x)=>a+(x.rkW||0),0),uq:avg(f.map(x=>x.uq||0))}; } }
     { const f=res.map(r=>r.exp).filter(Boolean); if(f.length&&f.some(x=>x.nights||x.rallies)){ gold.exp={}; for(const k in f[0]) gold.exp[k]=avg(f.map(x=>x[k])); } }
     { const f=res.map(r=>r.town2).filter(Boolean); if(f.length&&f.some(x=>x.n||x.spec)) gold.town2={n:avg(f.map(x=>x.n)),spec:avg(f.map(x=>x.spec)),emb:avg(f.map(x=>x.emb)),omen:avg(f.map(x=>x.omen)),ord:avg(f.map(x=>x.ord||0)),hunts:avg(f.map(x=>x.hunts||0)),claims:avg(f.map(x=>x.claims||0)),pick:avg(f.map(x=>x.pick||0)),dread:avg(f.map(x=>x.dread||0)),upk:Math.round(avg(f.map(x=>x.upk||0))),tithes:avg(f.map(x=>x.tithes||0)),bands:[0,1,2,3].map(i=>avg(f.map(x=>(x.bands||[])[i]||0))).join('/'),lv:Object.keys(f[0].lv).map(k=>k+' '+avg(f.map(x=>x.lv[k]||0))).join(', ')}; }
@@ -457,7 +459,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
         if(keep.siegeOpen) siegeOpen=(opts.off||[]).includes('siege')?()=>false:keep.siegeOpen;   // "off":["siege"]: the living never come
         if(keep.rivalOpen) rivalOpen=(!full||(opts.off||[]).includes('rival'))?()=>false:keep.rivalOpen;   // the rival plays only in 'full'; "off":["rival"] switches it off there
         if(keep.rivalArcOn) rivalArcOn=(opts.off||[]).includes('rivalarc')?()=>false:keep.rivalArcOn;   // "off":["rivalarc"]: the rival stays in chapter 1
-        const res=[]; for(let b=0;b<opts.bots;b++) res.push(simBot(opts.seed+b,{skills,market,full,push:opts.push,dread:opts.dread,faith:opts.faith||(full?(b%2?'dis':'hon'):null),ult:opts.ult,heat:opts.heat!=null?opts.heat:(full?1:0),tiers:opts.tiers,stats:opts.stats,mods:opts.mods,mod:opts.mod,rival:opts.rival,off:Object.fromEntries((opts.off||[]).map(k=>[k,1]))},opts.days));
+        const res=[]; for(let b=0;b<opts.bots;b++) res.push(simBot(opts.seed+b,{skills,market,full,push:opts.push,dread:opts.dread,faith:opts.faith||(full?(typeof GODS!=='undefined'?GODS[b%GODS.length]:(b%2?'dis':'hon')):null),ult:opts.ult,heat:opts.heat!=null?opts.heat:(full?1:0),tiers:opts.tiers,stats:opts.stats,mods:opts.mods,mod:opts.mod,rival:opts.rival,off:Object.fromEntries((opts.off||[]).map(k=>[k,1]))},opts.days));
         out[name]=summarize(res,opts.days);
       }
     } finally {

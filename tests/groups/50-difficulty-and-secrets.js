@@ -48,18 +48,20 @@ test("Ultimates: Death's Toll finishes the weak, Resurrection raises the fallen,
   flee(); chooseUlt('rise'); const m=mkMinion({}), n=mkMinion({}); arena([foe({hp:1e6})]); m.hp=0; n.hp=1; S.run.souls=SOUL_MAX; useUlt(); eq(m.hp,m.maxHp,'risen'); eq(n.hp,n.maxHp); ok(S.run.frenzy>=2&&S.run.frenzyMul>=1.5);
   flee(); chooseUlt('prison'); const f1=foe({hp:1e6}), f2=foe({hp:1e6,boss:true,charging:true,abil:'decree',move:'decree'}); arena([f1,f2]); S.run.souls=SOUL_MAX; useUlt(); eq(f1.stun,2); eq(f2.stun,1); eq(f1.curse.mul,1.3);
 });
-test('Faith: an oath from level 8, each path gives and takes, and the gift grows with devotion',()=>{
-  ok(!swear('hon'),'too low'); setLvl(8); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1}}); ok(!swear('hon'),'two clears'); S.ti.clr[2]=1; const P=S.player, hp=pMax(), dm=dmgMul(); ok(swear('hon')); eq(faithOf(),'hon'); ok(!swear('dis'),'one oath at a time');
-  eq(pMax(),Math.round(hp*1.1)||pMax()); ok(Math.abs(pMax()-hp*1.1)<=2,'+10% max HP'); arena([foe()]); ok(dmgMul()<dm,'deals less'); P.stats.constitution=300; P.hp=10; const h=healAlly(P,100); eq(h,Math.round(100*(1+(25+conHeal())/100)),'heals 25% more (on top of Constitution)'); flee();
-  S.day+=10; eq(devotion(),1); eq(faithBuff('hon').healp,38); S.day+=15; eq(devotion(),2); eq(faithBuff('hon').hpp,20); eq(FAITH.hon.debuff.dmgp,-8,'the price stays');
+test('Faith: an oath from level 8, one god at a time; devotion ranks open boons (Morrow: healing, then HP)',()=>{
+  ok(!swear('hon'),'too low'); setLvl(8); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1}}); ok(!swear('hon'),'two clears'); S.ti.clr[2]=1; const P=S.player, hp=pMax(); ok(swear('hon')); eq(faithOf(),'hon'); ok(!swear('dis'),'one oath at a time');
+  eq(faithRank(),0); eq(pMax(),hp,'rank 0 gives nothing'); S.faith.dev=DEV_STEP; eq(faithRank(),1); eq(faithBuff('hon').healp,15); P.stats.constitution=300; arena([foe()]); P.hp=10; eq(healAlly(P,100),Math.round(100*(1+(15+conHeal())/100)),'heals 15% more (on top of Constitution)'); flee();
+  const hp1=pMax(); S.faith.dev=2*DEV_STEP; ok(Math.abs(pMax()-hp1*1.08)<=2,'+8% max HP at rank 2'); S.faith.dev=99*DEV_STEP; eq(faithRank(),DEV_RANKS,'five ranks at most');
   S.gold=0; ok(!renounce(),'costs gold'); S.gold=1e4; ok(renounce()); eq(faithOf(),null); eq(S.gold,1e4-renounceCost());
-  ok(swear('dis')); arena([foe()]); P.hp=10; eq(healAlly(P,100),Math.round(100*(1+(conHeal()-25)/100)),'heals 25% less (Constitution still adds)'); ok(P.hp<=pMax()); invariants('faith');
+  ok(swear('dis')); S.faith.dev=4*DEV_STEP; eq(faithB('dmgp'),20); eq(faithB('hpp'),-10); eq(faithB('goldp'),15); P.hp=Math.min(P.hp,pMax()); invariants('faith');
 });
-test('Faith: the shrine on the Town tab, debuffs read with a minus, saves keep only a real oath',()=>{
-  setLvl(8); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1,2:1}}); ui.tab='town'; let h=renderAll('shrine'); ok(/Old Shrine/.test(h)&&/data-a="swear" data-k="dis"/.test(h)); ok(/costs &minus;8% Damage dealt/.test(h),'debuff text');
-  ACTIONS.swear('dis'); eq(faithOf(),null,'asks first'); ACTIONS.swear('dis'); eq(faithOf(),'dis'); h=renderAll('sworn'); ok(/Dishonored One/.test(h)&&/devotion 1\/3/.test(h)&&/faith-l dis/.test(h));
-  eq(buffTxt({drp:-3}),'+3% Damage taken'); eq(buffTxt({drp:3}),'&minus;3% Damage taken'); ok(TIPS.find(t=>t.id==='faith').m.includes('Old Shrine'),'tip names the shrine');
+test('Faith: the Pantheon on the Town tab, five gods with vows and boons; saves keep only a real oath and old oaths convert',()=>{
+  setLvl(8); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1,2:1}}); ui.tab='town'; let h=renderAll('shrine'); ok(/The Pantheon/.test(h)); GODS.forEach(k=>ok(new RegExp('data-a="swear" data-k="'+k+'"').test(h),k)); ok(h.includes(FAITH.ulm.vow));
+  ACTIONS.swear('dis'); eq(faithOf(),null,'asks first'); ACTIONS.swear('dis'); eq(faithOf(),'dis'); h=renderAll('sworn'); ok(/The Profane/.test(h)&&/rank 0\/5/.test(h)&&/faith-l dis/.test(h));
+  eq(buffTxt({drp:-3}),'+3% Damage taken'); eq(buffTxt({drp:3}),'&minus;3% Damage taken'); ok(TIPS.find(t=>t.id==='faith').m.includes('Pantheon'),'tip names the Pantheon');
   const g=normalizeSave({v:2,player:{lvl:9},faith:{id:'nope',day:1}}); eq('faith' in g,false); eq(normalizeSave({v:2,player:{lvl:9},faith:{id:'hon',day:3}}).faith.id,'hon');
+  eq(normalizeSave({v:2,day:40,player:{lvl:9},faith:{id:'hon',day:3}}).faith.dev,4*DEV_STEP,'25+ days: rank 4'); eq(normalizeSave({v:2,day:20,player:{lvl:9},faith:{id:'dis',day:3}}).faith.dev,2*DEV_STEP,'10+ days: rank 2');
+  eq(normalizeSave({v:2,day:20,player:{lvl:9},faith:{id:'vesh',day:3,dev:150,vb:2}}).faith.dev,150);
 });
 test('Music and looks: every boss (secret ones too) has its own theme and background, with no blue or purple',()=>{
   const bosses=DUNGEONS.map(D=>D.boss[0]).concat(TW_BOSS,SECRET.map(x=>x.name));

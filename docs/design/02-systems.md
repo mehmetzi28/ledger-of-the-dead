@@ -22,7 +22,7 @@ New players meet the game gradually. Most gates are counted in distinct gate cle
 | Level 6 (or holding bone dust) | Salvage, enchanting, tempering, Awakening (the workshop, `workOpen`) |
 | 2 distinct clears | Town tab: buildings, the Reserve, bounty board, Flesh Pit (fusion) |
 | Town + 2 building levels | Siege nights, every 7-10 days |
-| 3 distinct clears + level 8 | The Old Shrine (faith) |
+| 3 distinct clears + level 8 | The Pantheon (faith) |
 | 3 distinct clears + level 10 | The Hell Tower |
 | 4 distinct clears | The Rival |
 | A raised elite or boss with Commander | Raids (the War table) |
@@ -69,7 +69,7 @@ knowledge allows (`doorSight`, `doorBoss`).
 
 **Events between rooms** (`EVENTS`, `resolveEvent`): blood shrine (pay 20% HP, +15% damage this gate), pedlar (a potion
 at half price), sealed coffer (60% gold and gear, 40% needle trap), wounded straggler (free raise at +25%, or bonus XP),
-and faith shrines (Old Gods for the Honored, defiled altar for the Dishonored). **Event chains** (`CHAIN_EV`): three
+and faith shrines (one per god: Morrow's, Vesh's, Ulm's, the Choir's and the Profane's defiled altar, plus a shrine to a god not your own that offers conversion). **Event chains** (`CHAIN_EV`): three
 first meetings (wounded priest, sealed reliquary, deserter) whose choice decides a follow-up two days later.
 
 **Defeat** (`defeat`, `retryRoom`). Falling loses that room's spoils and 15% of a level's XP; downed minions get up at
@@ -116,10 +116,7 @@ second: Ossuary Ward / Barbed Ossuary, Blood Tithe / Sanguine Covenant, Rime / D
 run). From level 20 you pick one ultimate: Death's Toll (400% Siphon to all, executes non-bosses under 20%), Unholy
 Resurrection (raise all downed, heal, +50% army damage), Soul Prison (freeze all, +30% damage taken).
 
-**Faith** (`game-faith-story.js`: `FAITH`). From level 8 and 3 clears, swear Honored (+10% HP, +25% healing; -8% damage,
--15% gold) or Dishonored (+12% damage, +20% gold; -10% HP, -25% healing). Devotion multiplies the buff x1.5 after 10
-days and x2 after 25; at full devotion a blessing: Grace (once per gate run, survive a killing blow at 25%) or Tithe of
-Souls (start every run with 3 Souls). Renouncing costs 100 gold per level and resets devotion.
+**The pantheon** (`game-pantheon.js`: `FAITH`, `BOONS`, R8 PR A). From level 8 and 3 clears, swear to one of four Old Gods or the Profane path: Morrow, the Last Light (fire; vow: never raise more than 10 bodies in one run), Vesh, the Cold Mother (frost; vow: 3 foes dying Blighted in one run, your minions' blight included, breaks it), Ulm of the Furrow (rot; vow: never sell a trophy), the Hollow Choir (shadow; vow: never lose a named minion) and the Profane (no vow; devotion fades 5 a day). Devotion is points earned by deeds the god likes (fire kills, healing from low, clean clears; freezes and Preserved raises; trophies used, rot kills, bodies exploded; Siphons, headstones, honours; elite and boss kills), x DEED_K (each god's pace) x the Temple; every 100 points (DEV_STEP) is a rank, five ranks, each a boon (`BOONS`: stats through faithB, or hooks such as Morrow's stand and rise, Vesh's extra freeze turn and Hibernation, Ulm's rot pools and Harvest Home, the Choir's siphon, silence and Requiem, the Profane's Soul and Tithe). Breaking a vow (once a day) loses that day's points and a rank; the game asks once before a raise or sale that would break it. Shrines: every god has one in the gates (your own +20 devotion; another's offers conversion at half the points; the Profane may desecrate). Rank 1 and rank 5 write a passage each; seven titles (one per god at rank 5, Godless, Turncoat). Old saves keep their oath (Honored -> Morrow, Dishonored -> Profane) with points from their days. Renouncing costs 100 gold per level.
 
 **Titles** (`game-player.js`: `TITLES`). 148 titles, earned once and kept through New Game+. The worn title gives a
 small bonus scaled by rarity (Common to Unique; Epic and up hidden until earned). Every 10 titles add 1% gold from kills
@@ -414,7 +411,7 @@ ending), unlocks its epilogue (*The quiet valley* or *The open book*, with a clo
 rival, the Memorial's size and an Eternal in the army) and its title. Each ending writes one **Ledger inscription**
 earned that cycle (`INSCRIPTIONS`, permanent, at most 5): Of the Many (300 raises: +3% raise chance), Of the Fallen
 (20 headstones: +1% army max HP per Memorial name, up to 10%), Of the Tower (floor 100: the Tower can start at floor
-11), Of the Masters (all six masters: their hearts drop one more), Of the Faithful (an oath held at full devotion with no
+11), Of the Masters (all six masters: their hearts drop one more), Of the Faithful (an oath held to rank 4 or more with no
 renouncing: a new oath starts at the second rank), Of the Rival (5 wins: thefts come half as often). New Game+ after an
 ending: **the Quiet Valley** (foes x0.85, no raising until the cycle's first gate clear, then *The book stirs*) or **the
 Keeper's Cycle** (one random gate boss in Ledger form: phase two from the start, heart x2; a third abbey key, the

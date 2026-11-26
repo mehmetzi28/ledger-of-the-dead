@@ -227,7 +227,7 @@ const INSCRIPTIONS={
   fallen:  {name:'Of the Fallen',  need:'20 headstones in the Memorial',        desc:'Each minion in the Memorial gives your army +1% max HP, up to 10%.', ok:()=>headstones()>=20},
   tower:   {name:'Of the Tower',   need:'Hell Tower floor 100',                 desc:'The Tower can start at floor 11 from the first climb.',      ok:()=>((S.tower&&S.tower.best)||0)>=100},
   masters: {name:'Of the Masters', need:'all six secret masters slain',         desc:'A secret master drops one heart more.',                      ok:()=>mastersSlain()>=SECRET.length},
-  faithful:{name:'Of the Faithful',need:'an oath kept the whole cycle',         desc:'A new oath starts at the second rank of devotion.',          ok:()=>!!faithOf()&&devotion()>=2&&cyc('renounced')===0},
+  faithful:{name:'Of the Faithful',need:'an oath kept the whole cycle',         desc:'A new oath starts at rank 1 of devotion.',          ok:()=>!!faithOf()&&faithRank()>=4&&cyc('renounced')===0},
   rival:   {name:'Of the Rival',   need:'the rival beaten 5 times in the cycle',desc:'The rival comes to steal half as often.',                    ok:()=>cyc('rivalWins')>=5}
 };
 const INSC_IDS=Object.keys(INSCRIPTIONS);

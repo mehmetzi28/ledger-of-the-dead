@@ -39,13 +39,13 @@ function canUse(id){
 function useSkill(id,t){
   if(!canUse(id)) return false;
   const s=SKILL[id], rk=sk(id), r=S.run, P=S.player;
-  const mg=marginReady(); P.mana-=skCost(s); marginSkill(r,t,mg); hfSkill(); r.naveU=1; r.lastSk=id; r.cd=r.cd||{}; r.cd[id]=s.cd+1; tally('sk_'+id);   // +1: the end-of-turn tick runs this same turn
+  const mg=marginReady(); P.mana-=skCost(s); marginSkill(r,t,mg); hfSkill(); r.naveU=1; r.lastSk=id; r.cd=r.cd||{}; r.cd[id]=s.cd+1-(id==='blast'?faithBlastCd():0); tally('sk_'+id);   // +1: the end-of-turn tick runs this same turn
   if(id==='spear'){ const fb=frozenChilled(t), d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(hasMod('spear','a')?1:.5)*skMul()*(fb?FROSTBREAK:1)); hurtFoe(t,d,'phys'); log('Bone Spear impales '+t.name+' for '+d+'.'); fxe('spear',t); if(fb&&t.hp>0) frostbreak(t);
     if(hasMod('spear','b')){ const o=liveFoes().filter(x=>x!==t); if(o.length){ const o2=pick(o), d2=Math.round(d*.5); hurtFoe(o2,d2,'phys'); log('A splinter tears into '+o2.name+' for '+d2+'.'); } } }
   else if(id==='blast'){ const c=freeCorpse(); c.tried=true; c.result='exploded'; const base=pSiph()*(.6+.2*rk)*pierceMul(1)*(hasMod('blast','a')?1.3:1)*skMul()*shadowK(); let tot=0;
     const rot=Math.max(c.bl||0,...liveFoes().map(o=>o.dots&&o.dots.blight?o.dots.blight.d:0)), spread=[];   // Spreading Rot: a blighted body, or blight already in the room
     for(const o of liveFoes()){ const d=hit(base); hurtFoe(o,d,'rot'); fxe('burst',o); tot+=d; if(rot&&o.hp>0&&!(o.dots&&o.dots.blight)){ addDot(o,'blight',rot,2); if(o.dots&&o.dots.blight) spread.push(o); } if(hasMod('blast','a')) addSt(o,'sundered',2); if(hasMod('blast','b')){ addDot(o,'poison',pSiph()*.15,3); addDot(o,'blight',pSiph()*.1,3); } } log('The body of '+c.name+' bursts apart, dealing '+tot+' damage across the room.');
-    if(spread.length) combo('rot',spread,'Spreading Rot: the blight spreads to '+spread.length+' foe'+(spread.length>1?'s':'')+'.'); }
+    deed('ulm',2); if(spread.length) combo('rot',spread,'Spreading Rot: the blight spreads to '+spread.length+' foe'+(spread.length>1?'s':'')+'.'); }
   else if(id==='mend'){
     let tot=0;
     const cured=allies().some(a=>a.dots);
@@ -63,7 +63,7 @@ function useSkill(id,t){
     if(rk>=3) for(const o of (hasMod('curse','b')?liveFoes():[t])) addSt(o,'hexed',2); }   // rank 3: the curse also hexes
   else if(id==='chill'){ const d=hit(pSiph()*.5*dmgMul()*skMul()*shadowK()); hurtFoe(t,d,'frost'); fxe('ward',t); const held=!t.boss||Math.random()*100<40+10*rk+(hasMod('chill','a')?20:0);
     if(rk>=2&&t.hp>0) addSt(t,'chilled',2);   // rank 2: Chilled, resisted or not
-    if(held&&t.hp>0){ t.stun=rk>=3?2:1; tally('frozen'); log('Grave Chill hits '+t.name+' for '+d+' and freezes it solid.'); } else log('Grave Chill hits '+t.name+' for '+d+', but it shakes off the frost.'); }
+    if(held&&t.hp>0){ t.stun=(rk>=3?2:1)+faithFrozen(t); tally('frozen'); log('Grave Chill hits '+t.name+' for '+d+' and freezes it solid.'); } else log('Grave Chill hits '+t.name+' for '+d+', but it shakes off the frost.'); }
   else if(id==='frenzy'){ r.frenzy=hasMod('frenzy','a')?5:3; r.frenzyMul=1+(.2+.15*rk); if(hasMod('frenzy','b')) for(const m of S.army) if(m.hp>0) healAlly(m,Math.round(m.maxHp*.15)); if(rk>=3) for(const m of S.army) if(m.hp>0) addSt(m,'hasted',2); log('Unholy Frenzy: your army surges with '+Math.round((r.frenzyMul-1)*100)+'% more damage.','ok'); }
   else if(id==='reap'){ const low=t.hp<t.maxHp*reapLow(); let d=hit(pSiph()*(1.2+.3*rk)*pierceMul(1)*skMul()*shadowK()); if(low) d*=2; else if(hasMod('reap','a')) d=Math.round(d*MOON_HIGH); const fb=frozenChilled(t); if(fb) d=Math.round(d*FROSTBREAK); KILL='reap'; hurtFoe(t,d,'shad'); KILL=null; fxe('strike',t,{crit:1});
     if(hasMod('reap','b')){ healAlly(P,Math.round(d*SOUL_REAP_HEAL)); if(t.hp<=0) P.mana=Math.min(pMana(),P.mana+SOUL_REAP_MANA); }   // Soul Reap
@@ -115,7 +115,7 @@ function killLoot(e,r){   // called once per kill, from checkDeaths
   r.gold=(r.gold||0)+coin;
   if(omen()==='boneharvest'&&!r.trial&&(e.boss||Math.random()<HARVEST_DUST)) r.bdust=(r.bdust||0)+(e.boss?HARVEST_DUST_BOSS:1);   // Bone Harvest: bone dust from the dead
   const key=trophyKey(e); if(!TROPHY[key]||e.stash) return;
-  const har=omen()==='boneharvest', tch=.6*(har?1+HARVEST_TRO:1)+(hasMod('robber','b')?KEEN_TRO:0);   // Bone Harvest and Keen Eye
+  const har=omen()==='boneharvest', tch=(.6*(har?1+HARVEST_TRO:1)+(hasMod('robber','b')?KEEN_TRO:0))*faithTro();   /* Ulm (game-pantheon.js) */   // Bone Harvest and Keen Eye
   const n=(e.boss?(1+(e.secret&&hasInsc('masters')?1:0))*(e.ledger?LEDGER_HEART:1):e.elite?2+(har?1:0):(Math.random()<tch?1:0))*cursed;
   if(n){ const q=quillK(r,n); r.troph=r.troph||{}; r.troph[key]=(r.troph[key]||0)+n*q; }   /* Pickpocket: the first trophy of a room drops twice (game-rival-arc.js) */
 }
@@ -160,7 +160,7 @@ function buyStock(i){
   if(S.gold<cost||S.inv.length>=bagMax()) return false;
   S.gold-=cost; s.sold=true; addItem(s.id,s.ro||null); sfx('coin'); return true;
 }
-function sellTrophy(k,all){ const n=S.trophies[k]||0; if(!n||!TROPHY[k]||S.mode!=='town') return 0; const q=all?n:1; S.trophies[k]-=q; if(!S.trophies[k]) delete S.trophies[k]; const g=q*TROPHY[k].value; S.gold+=g; tally('soldTro',q); sfx('coin'); return g; }
+function sellTrophy(k,all){ const n=S.trophies[k]||0; if(!n||!TROPHY[k]||S.mode!=='town') return 0; const q=all?n:1; S.trophies[k]-=q; if(!S.trophies[k]) delete S.trophies[k]; const g=q*TROPHY[k].value; S.gold+=g; tally('soldTro',q); faithSold(); sfx('coin'); return g; }   /* Ulm's vow (game-pantheon.js) */
 function sellAllTrophies(){ let g=0; for(const k of Object.keys(S.trophies)){ const keep=k.startsWith('b:')?heartsKept(k):0; if(!keep) g+=sellTrophy(k,true); else for(let n=S.trophies[k]-keep;n>0;n--) g+=sellTrophy(k); } return g; }   // keeps the hearts your uniques still need to awaken
 // Gold sinks: the Bone Altar levels a minion up (never past the usual cap of your level + 2), bag upgrades add space, salts help raising.
 const empowerCost=m=>Math.round(mneed(m.lvl)*.6*(1-B_ALT_COST*bl('altar'))*empowerK());   /* Bone Altar spec (game-town2.js) */
@@ -431,13 +431,13 @@ const TIPS=[
   {id:'salvage',t:'Salvage and enchant', m:'Gear you will not wear can be salvaged into bone dust on the Gear tab. Dust enchants gear (add or re-roll a bonus line) and builds the higher levels of town buildings.', when:()=>S.mode==='town'&&ui.tab==='gear'&&S.inv.length>=6&&workOpen()},
   {id:'townopen',t:'The town opens', m:'A Town tab has appeared: build up the necropolis and fuse minions in the Flesh Pit. A bounty board in the side panel now holds up to three contracts, with a new one each dawn.', when:()=>S.mode==='town'&&townOpen()},
   {id:'reserve',t:'The Reserve', m:'Your army list now has a Reserve below it: a bench for minions you want to keep but not take along. Benched minions do not fight or grow. Moving one in or out is free, in town. When your army is full, a raised body can go straight to the Reserve.', when:()=>S.mode==='town'&&reserveOpen()},
-  {id:'faith',  t:'The Old Shrine', m:'The Old Shrine on the Town tab now takes an oath: Honored One or Dishonored One. Each path gives a bonus and takes something in return.', when:()=>S.mode==='town'&&townOpen()&&faithOpen()&&!faithOf()},
+  {id:'faith',  t:'The Pantheon', m:'The Pantheon on the Town tab now takes an oath to one of four Old Gods, or to none. Each god grows with the deeds it likes, gives a boon at every rank and asks a vow.', when:()=>S.mode==='town'&&townOpen()&&faithOpen()&&!faithOf()},
   {id:'ult',    t:'Your ultimate awaits', m:'At level 20 you can choose an ultimate on the Skills tab. Soul Siphon, elites and bosses give Souls; with five, press R in battle to unleash it.', when:()=>S.mode==='town'&&S.player.lvl>=ULT_LV&&!S.player.ult},
   {id:'siege',  t:'A siege is coming', m:'The living march on the necropolis tomorrow at dusk. When the day ends you defend it in three waves. Each building lends a perk (Town tab), and a raid ordered for tonight marches before they come. Hold, and the town pays; fall, and a building burns until you repair it.', when:()=>S.mode==='town'&&siegeWarned()},
   {id:'raid',   t:'A Commander', m:'One of your minions can lead. Open the War table under the Gates tab to order it and a squad against a gate you have cleared. They fight beside you until nightfall, march when the day ends and come back at dawn.', when:()=>S.mode==='town'&&raidPool().some(isCommander)},
   {id:'rift',   t:'The Rift', m:'The Rift is open, under the Gates tab. Every depth is harder than the last, and there is no bottom.', when:()=>S.mode==='town'&&riftOpen()},
   {id:'heat',   t:'Harder gates', m:'You have cleared a gate, so its card now offers Hard difficulty: stronger foes for more XP, gold and gear. Clear each level to open the next. On a cursed day the two stack.', when:()=>S.mode==='town'&&!T_('heat1')&&DUNGEONS.some((D,i)=>heatMax(i)>0)},
-  {id:'bless',  t:'Full devotion', m:'You have kept your oath long enough: its blessing is now active. The Old Shrine on the Town tab shows what it does.', when:()=>S.mode==='town'&&!!faithOf()&&blessed(faithOf())},
+  {id:'bless',  t:'Full devotion', m:'Your god has granted its fifth rank and its last boon. The Pantheon on the Town tab shows what it does.', when:()=>S.mode==='town'&&!!faithOf()&&blessed(faithOf())},
   {id:'records',t:'Records', m:'The Ledger tab keeps your best: deepest floor, biggest hit, most kills, and the fastest clear of each gate. Beat one and you will hear about it.', when:()=>S.mode==='town'&&S.runs>=10},
   {id:'nightmare',t:'Nightmare', m:'A gate now offers Nightmare: foes three times as strong, rewards to match, and a title of its own for the clear.', when:()=>S.mode==='town'&&DUNGEONS.some((D,i)=>heatMax(i)>=3)},
   {id:'omen',   t:'An omen', m:'Some days carry an omen that touches every gate and the Tower. Today\'s is shown above the gates.', when:()=>S.mode==='town'&&!!omen()},

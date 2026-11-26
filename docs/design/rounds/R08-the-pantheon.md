@@ -118,3 +118,39 @@ the vow; call the god's best omen on boss days. `"off":["gods"]` uses today's bi
 - **Vows that feel like traps**: each vow is shown before swearing, and the game warns before an action that breaks it
   (raising the 11th body under Morrow asks once).
 - **Omen calls make days predictable**: calls cost a rank; only one a day.
+
+## As built (PR A, #22)
+
+- **Where**: `src/game-pantheon.js` (after game-faith-story.js; the old FAITH block left it). `S.faith = {id, day, dev,
+  dd, dday, vb, cv}`: the god, the day sworn, devotion points, today's points and their day, the day the vow last broke,
+  conversions. `faithRank(g)` = floor(dev / DEV_STEP), capped at DEV_RANKS 5. `faithFix` loads old saves: Honored ->
+  Morrow, Dishonored -> Profane, with 400 points after 25+ days, 200 after 10+.
+- **Gods**: as the table above (Morrow fire, Vesh frost, Ulm rot, the Choir shadow, the Profane none). Vows as specced,
+  except Vesh's: it breaks when **3 foes die Blighted in one run** (VESH_ROT), your minions' blight included; a single
+  Blighted death broke it ~85 times a bot (necrotic and witchrot minions blight constantly). The Profane has no vow and
+  loses 5 points a day (faithDawn).
+- **Deeds**: as specced, with the Choir's Memorial honour 5 and a headstone 10; each god's points x DEED_K (hon .4,
+  vesh 1, ulm .4, choir 3, dis 1) x the Temple's devotion bonus. Deeds come from hooks in the systems they watch:
+  faithKill (checkDeaths), faithHealed (healAlly), faithFrozen (Grave Chill), faithRaised (tryRaise), faithUsed (brew,
+  forge, commission), the Corpse Explosion, Siphon, carveHead, the honour, gateCleared (a clean clear: no minion lost).
+- **Boons**: as the table; stats (Morrow r1-2, Profane r1, r2, r4) through faithB and the Temple; the rest are hooks
+  (morrowScorch, faithSave for the stand and the rise, faithHit/faithFrozen/hibernates for Vesh, faithTro/faithRot/
+  ULM_POOL/faithBlastCd/faithHarvest for Ulm, faithSiph/silenceT/honourDays/choirK for the Choir, soulCap and
+  titheSouls for the Profane). Grace keeps its old rule (a killing blow survived at 25%, once a run).
+- **The vow**: vowBreak loses today's points and DEV_STEP (once a day); vowWarn makes the UI ask once before the raise
+  (Morrow) or the sale (Ulm) that would break it.
+- **Shrines**: `oldgods` is Morrow's, `defiled` the Profane altar (+20), new vshrine/ushrine/cshrine, and `godshrine`
+  (30% of shrine rolls, SHRINE_OTHER) for a god not your own: pray (convert at half the points), desecrate (Profane only)
+  or pass.
+- **UI**: the Old Shrine is the **Pantheon** (faithHTML): five god cards with domain, vow, deeds and boons by rank, the
+  devotion bar; the faith chip shows the rank. Codex: the Pantheon rewritten with every boon row. Turkish for all of it.
+- **Titles** (7, 183): one per god at rank 5 (f_hon ... f_dis), Godless (a New Game+ started Profane), Turncoat (three
+  conversions). Six new passages (Vesh, Ulm and the Choir at ranks 1 and 5); Morrow and the Profane reuse the oath and
+  blessing passages.
+- **Bot**: swears GODS[b % 5]; prays at its own shrine, desecrates when Profane; stops raising at Morrow's limit; Ulm
+  never sells trophies; Vesh skips Corpse Explosion into blight and benches necrotic and witchrot minions. Prints
+  `gods:` (clears, Tower, Rift, rank, the day of ranks 1/3/5, vows broken).
+- **Measured**: every god 89-91% on gates (within 2 points), Tower 85-88; rank 5 on day 31-52. See 04-balance.
+- **Tests**: 98-pantheon (10); 826 in all.
+- **Left for PR B**: the omen forecast, call and ward; Long Night, Rot Bloom, Choir Night; Temple L3 per-god specs and
+  the L5 free call; dread and siege hooks; the Captain names your god; Weather-Maker.

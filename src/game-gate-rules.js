@@ -56,7 +56,7 @@ function fireAbility(e,mv){
     });
     log(e.name+' unleashes a Cinder Wave for '+tot+' damage across your side.','bad');
   }
-  else if(mv==='hymn'){ r.silence=3; foes.forEach(f=>{ f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*.1)); }); log(e.name+' sings the Hymn of Silence. Your skills are silenced for 2 turns and every foe mends.','bad'); }
+  else if(mv==='hymn'){ r.silence=silenceT(3); foes.forEach(f=>{ f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*.1)); }); log(e.name+' sings the Hymn of Silence. Your skills are silenced for 2 turns and every foe mends.','bad'); }
   else if(mv==='seedfall'){ foes.forEach(f=>{ f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*.15)); }); const a=summonAdd(e); if(a&&e.kit) a.seed=r.turn; log(e.name+' scatters Seedfall. Every foe mends'+(a?' and '+a.name+' sprouts from the ground':'')+'.','bad'); }
   else if(mv==='decree'){ const d=Math.round(pMax()*.45*enrage(e)); hurtAlly(P,d); fxe('hurt',P,{crit:1}); log(e.name+' speaks a Royal Decree. It strikes you for '+d+'.','bad'); }
   else if(fireKitMove(e,mv)){}   /* the move sets' new moves (game-boss-kits.js) */
@@ -254,9 +254,9 @@ function hasteStrikes(){   // the end of the turn: every Hasted unit strikes onc
 function tickDots(){
   let foeD=0, ourD=0;
   const tick=(u,hurt)=>{ if(!u.dots) return; for(const k of Object.keys(u.dots)){ const o=u.dots[k]; if(u.hp>0) hurt(u,o.d,k); if(--o.t<=0) delete u.dots[k]; } if(!Object.keys(u.dots).length) delete u.dots; };
-  for(const e of S.run.enemies) tick(e,(u,d,k)=>{ const h=u.hp; KILL=k; hurtFoe(u,k==='blight'?Math.round(d*shadowK()):d,DOT_TYPE[k]); KILL=null; foeD+=h-u.hp; });   // Black Eclipse feeds your blight
+  for(const e of S.run.enemies) tick(e,(u,d,k)=>{ const h=u.hp; KILL=k; hurtFoe(u,k==='blight'?Math.round(d*shadowK()*faithRot()):d,DOT_TYPE[k]); KILL=null; foeD+=h-u.hp; });   // Black Eclipse feeds your blight
   const dg=S.run.dirge>S.run.turn?2:1;   /* a Dirge: your side's wounds bleed twice as fast */
-  for(const a of allies()) tick(a,(u,d,k)=>{ d*=dg; { const rs=allyRes(u,DOT_TYPE[k]); if(rs) d=Math.max(1,Math.round(d*(1-rs))); } const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u,n,0); if(u.id==='p'){ S.run.hurt=true; S.run.blow={k:'dot',dot:k}; } } ourD+=n; if(u.hp<=0&&u.id!=='p'&&!stitchUp(u)){ log(u.nick+' succumbs.','bad'); fxe('death',u); } });
+  for(const a of allies()) tick(a,(u,d,k)=>{ d*=dg; { const rs=allyRes(u,DOT_TYPE[k]); if(rs) d=Math.max(1,Math.round(d*(1-rs))); } const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u,n,0); if(u.id==='p'){ S.run.hurt=true; S.run.blow={k:'dot',dot:k}; } } ourD+=n; if(u.hp<=0&&u.id!=='p'&&!stitchUp(u)&&!faithSave(u)){ log(u.nick+' succumbs.','bad'); fxe('death',u); } });
   capFester(foeD);
   if(foeD) log('Poison eats '+foeD+' HP from your foes.','ok');
   if(ourD) log('Bleeding and burns cost your side '+ourD+' HP.','bad');
@@ -269,13 +269,18 @@ const EVENTS={
   shrine:   {name:'A blood shrine',     text:'Old blood crusts a stone basin. Feed it, and it sharpens every blow for the rest of this gate.', opts:[['bleed','Feed it 20% of your max HP'],['pass','Walk past']]},
   pedlar:   {name:'A wandering pedlar', text:'A hooded dead man rattles a tray of bottles and asks half the market price.', opts:[['buy','Buy'],['pass','Wave him off']]},
   coffer:   {name:'A sealed coffer',    text:'An iron box, chained shut. It might hold gold and gear, or a trap.', opts:[['open','Force it open'],['pass','Leave it']]},
-  oldgods:  {name:'A shrine of the Old Gods',faith:'hon',text:'A clean stone in a dirty place, still warm. The Old Gods know an Honored One.', opts:[['pray','Pray (heal 30% HP, refill mana)'],['pass','Walk past']]},
-  defiled:  {name:'A defiled altar',   faith:'dis',text:'Someone gutted the old altar and left the offerings. A Dishonored One takes what is owed.', opts:[['take','Take the offerings (lose 10% HP, gain gold and a Soul)'],['pass','Walk past']]},
+  oldgods:  {name:'A shrine of Morrow',faith:'hon',text:'A clean stone in a dirty place, still warm with the Last Light. Morrow knows its own.', opts:[['pray','Pray (heal 30% HP, refill mana, +20 devotion)'],['pass','Walk past']]},
+  defiled:  {name:'A defiled altar',   faith:'dis',text:'Someone gutted the old altar and left the offerings. The Profane take what is owed.', opts:[['take','Take the offerings (lose 10% HP, gain gold, a Soul and 20 devotion)'],['pass','Walk past']]},
+  vshrine:  {name:'A shrine of Vesh',  faith:'vesh',text:'A block of old ice with a body asleep inside it, unspoiled. The Cold Mother knows her own.', opts:[['pray','Pray (heal 30% HP, refill mana, +20 devotion)'],['pass','Walk past']]},
+  ushrine:  {name:'A shrine of Ulm',   faith:'ulm',text:'A ring of bones planted like seed, and something green growing from them. Ulm knows his own.', opts:[['pray','Pray (heal 30% HP, refill mana, +20 devotion)'],['pass','Walk past']]},
+  cshrine:  {name:'A shrine of the Choir',faith:'choir',text:'A hollow stone that hums with many voices, very softly. The Choir knows its own.', opts:[['pray','Pray (heal 30% HP, refill mana, +20 devotion)'],['pass','Walk past']]},
+  godshrine:{name:'Another god\'s shrine',faith:'*',text:'A shrine to a god you did not swear to. Its keeper is long dead, but the god is listening.', opts:[['convert','Convert to this god (keep half your devotion)'],['desecrate','Desecrate it (the Profane only: gold and 10 devotion)'],['pass','Walk past']],off:k=>k==='desecrate'&&faithOf()!=='dis'},
   straggler:{name:'A wounded straggler',text:'One of the gate\'s dead drags itself away from the fight, broken.', opts:[['raise','Take it as it is (free raise, +25%)'],['finish','Finish it (bonus XP)']]}
 };
 const STRAGGLER_BONUS=25;
-const FAITH_EVENT=.25;   // a sworn necromancer meets a shrine true to the oath in a quarter of events
-function rollEvent(){ { const cd=chainDue(); if(cd) return {id:cd}; } const fe=Object.keys(EVENTS).find(k=>EVENTS[k].faith&&EVENTS[k].faith===faithOf()), id=fe&&Math.random()<FAITH_EVENT?fe:pick(Object.keys(EVENTS).filter(k=>!EVENTS[k].faith&&chainOk(k))), ev={id:id!=='pedlar'&&dreadBand().id==='calm'&&Math.random()<1/Object.keys(EVENTS).length?'pedlar':id};   /* Calm: pedlars twice as common (game-dread.js) */ if(ev.id==='pedlar'){ ev.pot=pick(Object.keys(POTIONS)); ev.price=Math.ceil(POTIONS[ev.pot].price()/2); } return ev; }
+const FAITH_EVENT=.25, SHRINE_OTHER=.3;   // SHRINE_OTHER: of those, another god's shrine (conversion)
+   // a sworn necromancer meets a shrine true to the oath in a quarter of events
+function rollEvent(){ { const cd=chainDue(); if(cd) return {id:cd}; } const fe=Object.keys(EVENTS).find(k=>EVENTS[k].faith&&EVENTS[k].faith===faithOf()), id=fe&&Math.random()<FAITH_EVENT?(Math.random()<SHRINE_OTHER?'godshrine':fe):pick(Object.keys(EVENTS).filter(k=>!EVENTS[k].faith&&chainOk(k))), ev={id:id!=='pedlar'&&dreadBand().id==='calm'&&Math.random()<1/Object.keys(EVENTS).length?'pedlar':id};   /* Calm: pedlars twice as common (game-dread.js) */ if(ev.id==='godshrine') ev.g=pick(GODS.filter(g=>g!==faithOf())); if(ev.id==='pedlar'){ ev.pot=pick(Object.keys(POTIONS)); ev.price=Math.ceil(POTIONS[ev.pot].price()/2); } return ev; }
 function corpseOf(e){ const c={id:'c'+e.id,armed:isArmed(e.base),name:e.name,base:e.base,role:e.role,rankI:e.rankI,lvl:e.lvl,hf:e.hf,af:e.af,tw:e.tw,boss:e.boss,elite:e.elite,tried:false,result:null,minion:null}; if(e.aff&&e.aff.length) c.aff=e.aff.slice(); if(e.dots&&e.dots.blight) c.bl=e.dots.blight.d; if(e.cd&&e.hp<=0) c.cd=e.cd; return c; }   // bl: it died Blighted (Spreading Rot); cd: how it died (CORPSE_CONDS)
 // Corpse conditions: how a foe died marks its body. First match in this order; raise: % added before the clamp; trait: what it rises with
 // in place of the random trait (a boss still rolls its second one, an elite still keeps an affix).
@@ -304,8 +309,10 @@ function resolveEvent(ch){
       if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } findPage('coffer',r); m='Inside: '+g+' gold'+(it?' and '+withArticle(ITEM[it.id].name)+'.':'. There was gear too, but your bag is full.'); c='ok'; sfx('coin'); }
     else { const d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*.25))); P.hp-=d; tally('trap'); m='A needle trap. You lose '+d+' HP and find nothing.'; c='bad'; sfx('hurt'); }
   }
-  else if(ev.id==='oldgods'&&ch==='pray'){ const h=healAlly(P,Math.round(pMax()*.3)); P.mana=pMana(); tally('prayed'); m='The Old Gods hear you. You recover '+h+' HP and your mana is full.'; c='ok'; sfx('coin'); }
-  else if(ev.id==='defiled'&&ch==='take'){ const d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*.1))), g=Math.round((10+P.lvl*3)*(1+r.di)*ngpReward()); P.hp-=d; S.gold+=g; r.goldTot=(r.goldTot||0)+g; const got=gainSoul(); tally('defiled');
+  else if(['oldgods','vshrine','ushrine','cshrine'].includes(ev.id)&&ch==='pray'){ const h=healAlly(P,Math.round(pMax()*.3)); P.mana=pMana(); tally('prayed'); deed(faithOf(),DEV_SHRINE/DEED_K[faithOf()]/templeDev()); m=FAITH[faithOf()].short.replace(/^the /,'The ')+' hears you. You recover '+h+' HP, your mana is full and your devotion grows.'; c='ok'; sfx('coin'); }
+  else if(ev.id==='godshrine'&&ch==='convert'){ const g=ev.g; if(!convert(g)) return false; m='You kneel to '+FAITH[g].name+'. Half your devotion comes with you.'; c='ok'; sfx('raise'); }
+  else if(ev.id==='godshrine'&&ch==='desecrate'){ if(faithOf()!=='dis') return false; const g=Math.round((10+P.lvl*3)*(1+r.di)*ngpReward()); S.gold+=g; r.goldTot=(r.goldTot||0)+g; deed('dis',10/DEED_K.dis/templeDev()); tally('desecrated'); m='You break the shrine of '+FAITH[ev.g].name+' and take '+g+' gold from its offerings.'; c='ok'; sfx('coin'); }
+  else if(ev.id==='defiled'&&ch==='take'){ const d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*.1))), g=Math.round((10+P.lvl*3)*(1+r.di)*ngpReward()); P.hp-=d; S.gold+=g; r.goldTot=(r.goldTot||0)+g; const got=gainSoul(); tally('defiled'); deed('dis',DEV_SHRINE/DEED_K.dis/templeDev());
     m='You take the offerings: '+g+' gold'+(got?' and a Soul ('+r.souls+'/'+SOUL_MAX+')':'')+'. The altar takes '+d+' HP in return.'; c='ok'; sfx('coin'); }
   else if(ev.id==='straggler'&&ch==='raise'){ const e=makeEnemy(r.di,lvl,false), cp=corpseOf(e); cp.free=true; r.corpses.push(cp); m=e.name+' waits with the other bodies. Raising it costs no mana.'; c='ok'; }
   else if(ev.id==='straggler'&&ch==='finish'){ const e=makeEnemy(r.di,lvl,false), xp=Math.round(killXp(e)*1.5); r.gained+=xp; r.ups+=addXp(xp); m='You finish '+theName(e.name)+'. +'+xp+' XP.'; c='ok'; }

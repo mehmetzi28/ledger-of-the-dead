@@ -661,7 +661,9 @@ kbd{border:0;background:rgba(0,0,0,.35);border-radius:3px;padding:1px 5px;opacit
 .tt-rsel select{background:var(--panel);color:var(--bone);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit}
 .tprog{position:relative;overflow:hidden;min-width:54px;text-align:center}.tprog i{position:absolute;left:0;bottom:0;height:2px;background:var(--soul)}
 /* ---- Faith, Records and Codex search ---- */
-.faith-l{font:600 12px/1.2 var(--font-body)}.faith-l.hon{color:#e8d9a8}.faith-l.dis{color:#e8564a}
+.faith-l{font:600 12px/1.2 var(--font-body)}.faith-l.hon{color:#e8d9a8}.faith-l.dis{color:#e8564a}.faith-l.vesh{color:#a8d8e8}.faith-l.ulm{color:#b9b46a}.faith-l.choir{color:#b8a4d8}
+.dev-bar{height:6px;border-radius:3px;background:rgba(255,255,255,.08);margin:6px 0 2px;overflow:hidden}.dev-bar i{display:block;height:100%;background:var(--gold,#d3a64d)}
+ol.boons{margin:6px 0 0;padding-left:18px;font-size:12px}ol.boons li.dim{opacity:.55}
 .rec-v{font:600 14px/1.2 var(--font-body);text-align:right;white-space:nowrap}
 .cx-q{width:100%;box-sizing:border-box;margin:4px 0 10px;padding:9px 12px;background:rgba(0,0,0,.35);color:inherit;border:1px solid var(--line);border-radius:6px;font:14px/1.2 var(--font-body)}
 /* ---- Tabs and accessibility ---- */
@@ -1791,7 +1793,7 @@ function newGame(){
 const canNGP=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]);
 const ownedUniques=()=>[...new Set(S.inv.concat(Object.values(S.equip)).filter(it=>it&&ITEM[it.id]&&ITEM[it.id].uq).map(it=>it.id))];
 function startNGP(carry,pacts){
-  if(S.mode!=='town'||!canNGP()) return false;
+  if(S.mode!=='town'||!canNGP()) return false; if(faithOf()==='dis') tally('godless');   /* Godless: a cycle finished Profane (game-pantheon.js) */
   const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts),ally:S.ally||null}; ngpEnding(keep);   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
   newGame(); Object.assign(S,keep); S.ti.clr={}; ngpEndingStart();   // titles stay earned; New Game+ again needs another Throne of Ash clear
   S.watches=WATCHES-pactWatch(); S.notices=[]; if(carry&&own.includes(carry)){ const it=addItem(carry,null); if(it&&carryAw) it.aw=carryAw; }   /* an awakened unique keeps its ranks */ unlockStory('ngp');
@@ -1900,7 +1902,7 @@ function normalizeSave(src){
   const L=obj(g.life)?g.life:{}; g.life={}; for(const k of LIFE_KEYS) g.life[k]=Math.max(0,num(L[k],0));
   if(!obj(g.build)) g.build={}; for(const k of Object.keys(g.build)){ const v=g.build[k]; if(!BUILD[k]||typeof v!=='number'||!(v>=1)) delete g.build[k]; else g.build[k]=Math.min(BUILD_MAX,Math.floor(v)); }
   g.dust=Math.max(0,Math.floor(num(g.dust,0)));
-  if(g.faith!==undefined&&!(obj(g.faith)&&FAITH[g.faith.id]&&typeof g.faith.day==='number')) delete g.faith;
+  faithFix(g);   /* the pantheon; an old two-oath faith converts (game-pantheon.js) */
   if(g.rec!==undefined){ if(!obj(g.rec)) delete g.rec; else { const R0=g.rec, okv=o=>obj(o)&&typeof o.v==='number'&&o.v>0&&typeof o.day==='number';
     for(const k of REC_NUM) if(k in R0&&!okv(R0[k])) delete R0[k];
     if('riftF' in R0){ if(!obj(R0.riftF)) delete R0.riftF; else for(const m of Object.keys(R0.riftF)){ const o=R0.riftF[m]; if(!(+m>=1)||!obj(o)||!(o.t>0)||typeof o.day!=='number'||!(o.d>=+m)) delete R0.riftF[m]; } }
@@ -2076,6 +2078,13 @@ const roll3=()=>S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&!
  ['r_end','Deeds','Last Word','End the rival after the Reckoning.',()=>T_('rivalEnded')>=1,{dmgp:4,mpow:3}],
  ['r_spare','Deeds','Mercy in Red Ink','Spare the rival after the Reckoning.',()=>T_('rivalSpared')>=1,{hpp:4,mpow:3}],
  ['r_clean','Deeds','Not in Their Book','Finish the rival\'s story with fewer than 5 bodies ever stolen.',()=>T_('arcClean')>=1,{raise:4}],
+ ['f_hon','Deeds','Bearer of the Last Light','Reach rank 5 with Morrow.',()=>T_('r5_hon')>=1,{hpp:3,mpow:2}],
+ ['f_vesh','Deeds','Child of the Cold Mother','Reach rank 5 with Vesh.',()=>T_('r5_vesh')>=1,{siph:4}],
+ ['f_ulm','Deeds','Keeper of the Furrow','Reach rank 5 with Ulm.',()=>T_('r5_ulm')>=1,{goldp:4,raise:2}],
+ ['f_choir','Deeds','Voice of the Choir','Reach rank 5 with the Hollow Choir.',()=>T_('r5_choir')>=1,{mpow:5}],
+ ['f_dis','Deeds','Wholly Profane','Reach rank 5 on the Profane path.',()=>T_('r5_dis')>=1,{dmgp:4}],
+ ['f_godless','Deeds','Godless','Finish a cycle on the Profane path (begin New Game+ while Profane).',()=>T_('godless')>=1,{dmgp:3,goldp:3}],
+ ['f_turncoat','Deeds','Turncoat','Convert to another god at their shrine 3 times.',()=>T_('converted')>=3,{xpp:3}],
  ['r_5','Deeds','Rift-Walker','Clear depth 5 of the Rift.',()=>riftBest()>=5,{dmgp:4}],
  ['r_15','Deeds','Riftborn','Clear depth 15 of the Rift.',()=>riftBest()>=15,{dmgp:5,hpp:4}],
  ['r_30','Deeds','Lord of the Torn Sky','Clear depth 30 of the Rift.',()=>riftBest()>=30,{dmgp:6,mpow:6}],
@@ -2166,7 +2175,7 @@ function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // d
 // rarer ones stay hidden ("???") until earned. Rarity follows how hard a title is: bot runs measured the reachable ones,
 // and deeds the bots skip (events, forging) were judged by hand.
 const TITLE_RARITY={hd1:1,hd2:2,nm0:3,nm1:3,nm2:3,nm3:4,nm4:4,nm5:5,dm3:5,sb0:5,sb1:5,sb2:5,sb3:5,sb4:5,sb5:5,g0:0,g1:0,d_raise1:0,d_kill100:0,d_death:0,d_armed1:0,d_lv10:0,d_study:0,s_venom:0,f_crit:0,d_tower1:0,d_quest7:0,d_army:0,g2:1,t10:1,t20:1,d_raise50:1,d_cancel:1,d_evolve:1,d_uq:1,d_gold:1,m0:1,m1:1,c_drought:1,c_fury:1,c_bulwark:1,c_horde:1,c_volatile:1,p_25:1,k_spear:1,k_blast:1,k_chill:1,g_items:1,g_sold:1,f_flawless:1,f_last:1,a_boss:1,e_strag:1,e_pedlar:1,e_trap:1,d_death10:1,g3:2,g4:2,t30:2,t40:2,t50:2,d_kill1000:2,d_lv25:2,d_raise200:2,d_tower50:2,d_cancel10:2,d_trophy500:2,d_altar:2,d_elder:2,m2:2,m3:2,d_armed3:2,d_master:2,d_bag:2,c_25:2,e_shrine:2,e_coffer:2,s_poison:2,s_cure:2,k_reap:2,k_master3:2,k_all:2,f_boss25:2,f_elite100:2,g_gold:2,g_roll3:2,a_traits:2,a_elders:2,e_day100:2,e_runs100:2,g_reforge:2,g5:3,t60:3,t70:3,m4:3,m5:3,tw75:3,d_lv50:3,p_100:3,f_crit1000:3,e_rooms1000:3,twruns:3,d_ngp:3,d_tower110:3,t80:4,t90:4,t100:4,d_kill5000:4,d_all:4,d_tower150:4,a_raise500:4,e_lv75:4,tw200:5,d_ngp3:5,d_tuq:5,a_ancient:3,a_eternal:4,a_raid1:1,a_raid25:3,r_5:3,r_15:4,r_30:5};
-Object.assign(TITLE_RARITY,{x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
+Object.assign(TITLE_RARITY,{x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
 const RARITY_MUL=[1,1,1.25,1.5,2,3], HIDDEN_FROM=3;
 TITLES.forEach(t=>{ t.r=TITLE_RARITY[t.id]!=null?TITLE_RARITY[t.id]:1; const m=RARITY_MUL[t.r]; for(const k in t.b) t.b[k]=Math.max(t.b[k],Math.round(t.b[k]*m)); });
 const titleHidden=t=>t.r>=HIDDEN_FROM&&!(S&&S.ti&&S.ti.got&&S.ti.got[t.id]);
@@ -2236,7 +2245,7 @@ function closeDay(){
   if(!S.quest.claimed&&questDone()) claimQuest();   // an unfinished quest simply lapses
   const hon=remembered(); S.day++; S.watches=WATCHES-pactWatch(); if(hon) syncArmy();   /* the Remembered buff ends at dawn */
   S.quest={kills:0,rooms:0,clears:0,claimed:false};
-  const rr=resolveRaids(); placeWaiting(); bondsDawn(); yardDawn(); embDawn(); upkeepDawn(); dreadDawn();   /* upkeep and the town's dread (game-dread.js) */   /* the Charnel Yard, the Embalmery (game-town2.js) */
+  const rr=resolveRaids(); placeWaiting(); bondsDawn(); yardDawn(); embDawn(); upkeepDawn(); dreadDawn(); faithDawn();   /* upkeep and the town's dread (game-dread.js) */   /* the Charnel Yard, the Embalmery (game-town2.js) */
   P.hp=pMax(); P.mana=pMana(); P.shield=0;
   S.army.forEach(m=>m.hp=m.maxHp);
   notify('Day '+S.day+' begins. You have '+S.watches+' watches.'+raidDayLine(rr));
@@ -2326,13 +2335,13 @@ const liveFoes = ()=>S.run.enemies.filter(e=>e.hp>0);
 const fxKey=u=>u==null?null:typeof u==='string'?u:u.id!=null?u.id:u.uid!=null?'m'+u.uid:null;   // the key a unit's card answers to (data-u, r.fx): minions have no id, only a uid
 function mark(u,d,h){ const id=fxKey(u); if(id==null) return; const f=S.run.fx[id]||(S.run.fx[id]={d:0,h:0}); f.d+=d; f.h+=h; if(id==='p'&&d>0) S.run.dt=(S.run.dt||0)+d; }   // dt: damage you took this run (History, Records)
 function hit(b){ return Math.max(1,Math.round(b*rnd(.85,1.15))); }
-function hurtFoe(e,d,ty){ if(abbeyMiss(e)) return; ty=MARGIN||(DTYPE[ty]?ty:'phys');   /* an Unwritten foe; a Marginalia skill (game-abbey.js) */ if(e.curse) d=Math.round(d*e.curse.mul); { const mk=masteryDmg(e.base); if(mk) d=Math.round(d*(1+mk/100)); }   /* bestiary mastery: every hit from you and your army, once */ if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25); if(e.stun>0&&capOn('frost1')) d=Math.round(d*CAP_RIME);
+function hurtFoe(e,d,ty){ if(abbeyMiss(e)) return; ty=MARGIN||(DTYPE[ty]?ty:'phys');   /* an Unwritten foe; a Marginalia skill (game-abbey.js) */ if(e.curse) d=Math.round(d*e.curse.mul); { const mk=masteryDmg(e.base); if(mk) d=Math.round(d*(1+mk/100)); }   /* bestiary mastery: every hit from you and your army, once */ if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25); if(e.stun>0&&capOn('frost1')) d=Math.round(d*CAP_RIME); { const fk=faithHit(e); if(fk!==1) d=Math.round(d*fk); }   /* Vesh: frozen foes take more (game-pantheon.js) */
   if(hasSt(e,'sundered')) d=Math.round(d*SUNDER_MUL); if(hasSt(e,'chilled')) d=Math.round(d*CHILL_MUL);   // conditions (game-gate-rules.js)
   { const k=(1-foeRes(e,ty))*typeDmg(ty)*oilK(e,ty)*archiveK(e)*rallyK(); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
   e.lt=ty;   /* the type of the last hit it took (a weakness kill) */
   d=bossTaken(e,kitTaken(e,d));   /* Heartwood (game-boss-kits.js) */   /* Bulwark stance, a Banner-bearer beside it (game-kits.js) */
   if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e,0,0); return; } }   // Bone Wall shield soaks damage first
-  if(e.hp>0&&d>=e.hp) e.cd=deathCond(e,d);   // the killing blow decides the body's condition
+  if(e.hp>0&&d>=e.hp){ e.cd=deathCond(e,d); e.kb=d; }   /* kb: the killing blow (Morrow's scorch) */   // the killing blow decides the body's condition
   recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e,d,0); kitHurt(e); bossHurt(e,d,ty); { const r=S.run; r.dd=(r.dd||0)+d; if(d>(r.mh||0)) r.mh=d; } }   /* damage dealt and the biggest hit this run, for the History */
 function hurtAlly(a,d,ty){
   if(a.id==='p'&&S.run&&S.run.conf) d=Math.round(d*BK_CONFESS);   /* the Iron Inquisitor's Confession, until you ward */
@@ -2341,7 +2350,7 @@ function hurtAlly(a,d,ty){
   hfScales(a,d);   /* Scales (game-forge.js) */   // what hits you, for the defeat recap (before the ward soaks it)
   d=allyDr(a,d); { const ik=brewDr(a); if(ik!==1) d=Math.round(d*ik); }   /* Iron Draught (game-brew.js) */ { const rs=allyRes(a,ty); if(rs) d=Math.max(1,Math.round(d*(1-rs))); }   /* damage types: your resistance lines, a minion's typed trait */
   if(a.id==='p'){ const sk=SAP?KIT_SAP:1, s=Math.min(S.player.shield,d*sk); S.player.shield-=s; d-=Math.round(s/sk); if(BLOW&&d>0) d=tetherBlow(d); /* the Soul Tether (game-faith-story.js) */ } else if(a.mw>0){ const sk=SAP?KIT_SAP:1, s=Math.min(a.mw,d*sk); a.mw-=s; d-=Math.round(s/sk); }   // a Warden's ward on a minion
-  d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a,d,0); if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p'&&!echoCall(a)&&!stitchUp(a)){ fxe('death',a); chainSpear(); }
+  d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a,d,0); if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p'&&!echoCall(a)&&!stitchUp(a)&&!faithSave(a)){ fxe('death',a); chainSpear(); }
   return d;
 }
 function allyDr(a,d){   // a blow on you or a minion after its damage reduction, before your ward (pure: the bestiary's damage figures use it too)
@@ -2363,7 +2372,7 @@ function healAlly(a,h){
   if(a.id==='p'&&over>0&&hasMod('sanguine','a')&&S.run){ const P=S.player; P.shield=Math.max(P.shield||0,Math.min((P.shield||0)+over,Math.round(pMax()*FEAST_CAP))); }   // Blood Feast: overhealing becomes Ward
   if(a.id==='p'&&over>0&&S.run) capOverheal(over);   // Blood Tithe
   h=Math.min(h,max-a.hp); if(h<=0) return 0;
-  a.hp+=h; mark(a,0,h);
+  faithHealed(a,a.hp,h); a.hp+=h; mark(a,0,h);
   if(a.id==='p'&&hasMod('sanguine','b')) a.mana=Math.min(pMana(),a.mana+Math.round(h*CLEAR_MIND));   // Clear Mind
   return h;
 }
@@ -2391,7 +2400,7 @@ function checkDeaths(){
     if(e.elite) tally('elites');
     studyFoe(e.base);
     r.pending+=killXp(e); if(!e.stash) r.loot.push(...rollDrops(e)); killLoot(e,r);   // a stolen body drops no gear: the body is the reward
-    killPowers(); capKill(e);
+    killPowers(); capKill(e); faithKill(e,r);
     if(!e.rival){ const c=corpseOf(e); if(e.stash) rivalReclaim(e,c); r.corpses.push(c); }   // the rival leaves no body: they retreat
     if(e.boss) bossSpeaks(e,'bye');
     log(e.rival?e.name+' is beaten.':e.name+' falls.'); sfx('kill'); fxe('death',e);
@@ -2444,7 +2453,7 @@ function act(kind){
     else if(hasFlag('cleave')){ const o=liveFoes().filter(x=>x!==t); if(o.length) hurtFoe(pick(o),Math.round(d*.6)); }
   }else if(kind==='siphon'){
     if(P.mana<siphonCost()) return;
-    P.mana-=siphonCost(); const low=t.hp<t.maxHp*SIPHON_LOW; let d=hit(pSiph()*pierceMul(SIPHON_PIERCE)*hexK(P)*shadowK()); if(low) d*=2; SIPHONING=true; hurtFoe(t,d,'shad'); SIPHONING=false;   // pierces a quarter of armor; devours the weak
+    P.mana-=siphonCost(); const low=t.hp<t.maxHp*SIPHON_LOW; let d=hit(pSiph()*pierceMul(SIPHON_PIERCE)*hexK(P)*shadowK()*faithSiph()); if(low) d*=2; deed('choir',1); SIPHONING=true; hurtFoe(t,d,'shad'); SIPHONING=false;   // pierces a quarter of armor; devours the weak
     if(hasFlag('chorus')) for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.5),'shad');
     const h=healAlly(P,Math.round(d*(hasFlag('lifedrain')?SIPHON_HEAL_LD:SIPHON_HEAL))); const got=gainSoul();
     log('Soul Siphon '+(low?'devours ':'drains ')+t.name+' for '+d+(h?', you recover '+h:'')+(got?' and harvest a Soul ('+S.run.souls+'/'+SOUL_MAX+')':'')+'.'); fxe('siphon',t);
@@ -2539,6 +2548,7 @@ function gateCleared(r){   // the boss room of a gate is won: story, clear talli
   }
   if(r.mod){ tally('cur_'+r.mod); tally('cursed'); }
   if(!r.hurt) tally('flawless');
+  if(!r.lostN) deed('hon',10); faithHarvest(r);   /* Morrow: a clear with no minion lost; Ulm's Harvest Home (game-pantheon.js) */
   return Math.round(RK[di].clear*fk);
 }
 function roomWon(){
@@ -2551,7 +2561,7 @@ function roomWon(){
     if(m.hp<=0) r.downs=(r.downs||0)+1;   /* downed this room: a Trial's score counts them */
     if(m.hp>0){ if(minionXp(m,share)) r.events.push({m:m.nick+' reaches level '+m.lvl+'.',c:'ok'}); continue; }
     const ch=shatterOdds(m);
-    if(Math.random()*100<ch&&!secondHand(m,r)){ returnGear(m); S.army=S.army.filter(x=>x!==m); downs.push({m:m.nick+', '+theName(mName(m))+', shattered and is gone ('+ch+'% chance).',c:'bad'}); memorialize(m,r.tw?{f:r.tw}:r.rift?{rd:r.rift}:{g:r.di}); }
+    if(Math.random()*100<ch&&!secondHand(m,r)){ r.lostN=(r.lostN||0)+1; returnGear(m); S.army=S.army.filter(x=>x!==m); downs.push({m:m.nick+', '+theName(mName(m))+', shattered and is gone ('+ch+'% chance).',c:'bad'}); memorialize(m,r.tw?{f:r.tw}:r.rift?{rd:r.rift}:{g:r.di}); }
     else{ m.hp=Math.ceil(m.maxHp*BIND_HP); bound.push(m); }
   }
   if(bound.length){ const ch=Math.max(...bound.map(shatterOdds)); downs.push({m:'Downed but bound back together at '+Math.round(BIND_HP*100)+'% HP: '+bound.map(m=>m.nick).join(', ')+'. '+(ch?'The chance to shatter was '+ch+'%.':'None of them could shatter.'),c:'down'}); }
@@ -2664,7 +2674,7 @@ function raiseChance(c){
   if(soulBound(c)) return 0;
   if(firstRaise()) return 100;
   let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+4*sk('mastery')+B_OSS*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*RAISE_LV-RK[c.rankI].pen;
-  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+(hasInsc('many')?INSC_RAISE:0)+incRaise()+townRaise(c)+rgRaise(c)+twoBooks();
+  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+(hasInsc('many')?INSC_RAISE:0)+incRaise()+townRaise(c)+rgRaise(c)+twoBooks()+faithRaiseK(c);
   return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
 }
 const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*(hasFlag('cheapraise')?.5:1)*(hasMod('mastery','b')?.75:1)*(1-.06*sk('thrift')));
@@ -2699,7 +2709,7 @@ function tryRaise(id,salt,bench){   // bench: raise to the Reserve, only when th
     m.lvl0=m.lvl; m.stage=0; m.traits=[c.cd&&CORPSE_CONDS[c.cd]?CORPSE_CONDS[c.cd].trait:rollTrait([])]; if(c.boss) m.traits.push(rollTrait(m.traits)); if(c.cd&&CORPSE_CONDS[c.cd]) m.cd=c.cd; if(c.recl){ m.recl=1; tally('reclaimed'); }   // bosses rise with two traits; how the body died replaces the random one
     if(c.aff&&c.aff.length){ const t=AFFIX[pick(c.aff)].trait; if(!m.traits.includes(t)) m.traits.push(t); }   // an elite keeps one of its affixes
     if(rollCommand(m)) tally('commanders');
-    syncMinion(m); m.hp=m.maxHp; if(toRes){ S.reserve.push(m); c.res=1; } else S.army.push(m); r.raised++; S.firstRaise=0; S.ti=S.ti||{}; S.ti.raised=(S.ti.raised||0)+1; if(m.armed) S.ti.armed=(S.ti.armed||0)+1;
+    syncMinion(m); m.hp=m.maxHp; if(toRes){ S.reserve.push(m); c.res=1; } else S.army.push(m); r.raised++; faithRaised(c); if(faithOf()==='hon'&&r.raised>MORROW_RAISE) vowBreak('hon','body '+r.raised+' raised in one run'); S.firstRaise=0; S.ti=S.ti||{}; S.ti.raised=(S.ti.raised||0)+1; if(m.armed) S.ti.armed=(S.ti.armed||0)+1;
     if(!r.siege){ dread(DREAD_RAISE); orderEv('raise',c); } if(c.free) tally('straggler'); if(c.boss) tally('raisedBoss'); c.result='raised'; if(c.boss||c.elite) moment(m.nick+' rises: '+(c.boss?'a boss':'an elite')+' serves you','ok'); c.minion=m.nick+' ('+m.traits.map(t=>TRAITS[t].name).join(', ')+')'; sfx('raise'); fxe('raise',c);
   }else{ c.result='failed'; sfx('fail'); fxe('rfail',c); if(hasMod('thrift','a')&&cost>0){ const back=Math.floor(cost*FRUGAL); P.mana=Math.min(pMana(),P.mana+back); r.events.push({m:'Frugal Rites: '+back+' mana comes back.',c:'ok'}); } }   // Frugal Rites
 }
@@ -2770,13 +2780,13 @@ function canUse(id){
 function useSkill(id,t){
   if(!canUse(id)) return false;
   const s=SKILL[id], rk=sk(id), r=S.run, P=S.player;
-  const mg=marginReady(); P.mana-=skCost(s); marginSkill(r,t,mg); hfSkill(); r.naveU=1; r.lastSk=id; r.cd=r.cd||{}; r.cd[id]=s.cd+1; tally('sk_'+id);   // +1: the end-of-turn tick runs this same turn
+  const mg=marginReady(); P.mana-=skCost(s); marginSkill(r,t,mg); hfSkill(); r.naveU=1; r.lastSk=id; r.cd=r.cd||{}; r.cd[id]=s.cd+1-(id==='blast'?faithBlastCd():0); tally('sk_'+id);   // +1: the end-of-turn tick runs this same turn
   if(id==='spear'){ const fb=frozenChilled(t), d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(hasMod('spear','a')?1:.5)*skMul()*(fb?FROSTBREAK:1)); hurtFoe(t,d,'phys'); log('Bone Spear impales '+t.name+' for '+d+'.'); fxe('spear',t); if(fb&&t.hp>0) frostbreak(t);
     if(hasMod('spear','b')){ const o=liveFoes().filter(x=>x!==t); if(o.length){ const o2=pick(o), d2=Math.round(d*.5); hurtFoe(o2,d2,'phys'); log('A splinter tears into '+o2.name+' for '+d2+'.'); } } }
   else if(id==='blast'){ const c=freeCorpse(); c.tried=true; c.result='exploded'; const base=pSiph()*(.6+.2*rk)*pierceMul(1)*(hasMod('blast','a')?1.3:1)*skMul()*shadowK(); let tot=0;
     const rot=Math.max(c.bl||0,...liveFoes().map(o=>o.dots&&o.dots.blight?o.dots.blight.d:0)), spread=[];   // Spreading Rot: a blighted body, or blight already in the room
     for(const o of liveFoes()){ const d=hit(base); hurtFoe(o,d,'rot'); fxe('burst',o); tot+=d; if(rot&&o.hp>0&&!(o.dots&&o.dots.blight)){ addDot(o,'blight',rot,2); if(o.dots&&o.dots.blight) spread.push(o); } if(hasMod('blast','a')) addSt(o,'sundered',2); if(hasMod('blast','b')){ addDot(o,'poison',pSiph()*.15,3); addDot(o,'blight',pSiph()*.1,3); } } log('The body of '+c.name+' bursts apart, dealing '+tot+' damage across the room.');
-    if(spread.length) combo('rot',spread,'Spreading Rot: the blight spreads to '+spread.length+' foe'+(spread.length>1?'s':'')+'.'); }
+    deed('ulm',2); if(spread.length) combo('rot',spread,'Spreading Rot: the blight spreads to '+spread.length+' foe'+(spread.length>1?'s':'')+'.'); }
   else if(id==='mend'){
     let tot=0;
     const cured=allies().some(a=>a.dots);
@@ -2794,7 +2804,7 @@ function useSkill(id,t){
     if(rk>=3) for(const o of (hasMod('curse','b')?liveFoes():[t])) addSt(o,'hexed',2); }   // rank 3: the curse also hexes
   else if(id==='chill'){ const d=hit(pSiph()*.5*dmgMul()*skMul()*shadowK()); hurtFoe(t,d,'frost'); fxe('ward',t); const held=!t.boss||Math.random()*100<40+10*rk+(hasMod('chill','a')?20:0);
     if(rk>=2&&t.hp>0) addSt(t,'chilled',2);   // rank 2: Chilled, resisted or not
-    if(held&&t.hp>0){ t.stun=rk>=3?2:1; tally('frozen'); log('Grave Chill hits '+t.name+' for '+d+' and freezes it solid.'); } else log('Grave Chill hits '+t.name+' for '+d+', but it shakes off the frost.'); }
+    if(held&&t.hp>0){ t.stun=(rk>=3?2:1)+faithFrozen(t); tally('frozen'); log('Grave Chill hits '+t.name+' for '+d+' and freezes it solid.'); } else log('Grave Chill hits '+t.name+' for '+d+', but it shakes off the frost.'); }
   else if(id==='frenzy'){ r.frenzy=hasMod('frenzy','a')?5:3; r.frenzyMul=1+(.2+.15*rk); if(hasMod('frenzy','b')) for(const m of S.army) if(m.hp>0) healAlly(m,Math.round(m.maxHp*.15)); if(rk>=3) for(const m of S.army) if(m.hp>0) addSt(m,'hasted',2); log('Unholy Frenzy: your army surges with '+Math.round((r.frenzyMul-1)*100)+'% more damage.','ok'); }
   else if(id==='reap'){ const low=t.hp<t.maxHp*reapLow(); let d=hit(pSiph()*(1.2+.3*rk)*pierceMul(1)*skMul()*shadowK()); if(low) d*=2; else if(hasMod('reap','a')) d=Math.round(d*MOON_HIGH); const fb=frozenChilled(t); if(fb) d=Math.round(d*FROSTBREAK); KILL='reap'; hurtFoe(t,d,'shad'); KILL=null; fxe('strike',t,{crit:1});
     if(hasMod('reap','b')){ healAlly(P,Math.round(d*SOUL_REAP_HEAL)); if(t.hp<=0) P.mana=Math.min(pMana(),P.mana+SOUL_REAP_MANA); }   // Soul Reap
@@ -2846,7 +2856,7 @@ function killLoot(e,r){   // called once per kill, from checkDeaths
   r.gold=(r.gold||0)+coin;
   if(omen()==='boneharvest'&&!r.trial&&(e.boss||Math.random()<HARVEST_DUST)) r.bdust=(r.bdust||0)+(e.boss?HARVEST_DUST_BOSS:1);   // Bone Harvest: bone dust from the dead
   const key=trophyKey(e); if(!TROPHY[key]||e.stash) return;
-  const har=omen()==='boneharvest', tch=.6*(har?1+HARVEST_TRO:1)+(hasMod('robber','b')?KEEN_TRO:0);   // Bone Harvest and Keen Eye
+  const har=omen()==='boneharvest', tch=(.6*(har?1+HARVEST_TRO:1)+(hasMod('robber','b')?KEEN_TRO:0))*faithTro();   /* Ulm (game-pantheon.js) */   // Bone Harvest and Keen Eye
   const n=(e.boss?(1+(e.secret&&hasInsc('masters')?1:0))*(e.ledger?LEDGER_HEART:1):e.elite?2+(har?1:0):(Math.random()<tch?1:0))*cursed;
   if(n){ const q=quillK(r,n); r.troph=r.troph||{}; r.troph[key]=(r.troph[key]||0)+n*q; }   /* Pickpocket: the first trophy of a room drops twice (game-rival-arc.js) */
 }
@@ -2891,7 +2901,7 @@ function buyStock(i){
   if(S.gold<cost||S.inv.length>=bagMax()) return false;
   S.gold-=cost; s.sold=true; addItem(s.id,s.ro||null); sfx('coin'); return true;
 }
-function sellTrophy(k,all){ const n=S.trophies[k]||0; if(!n||!TROPHY[k]||S.mode!=='town') return 0; const q=all?n:1; S.trophies[k]-=q; if(!S.trophies[k]) delete S.trophies[k]; const g=q*TROPHY[k].value; S.gold+=g; tally('soldTro',q); sfx('coin'); return g; }
+function sellTrophy(k,all){ const n=S.trophies[k]||0; if(!n||!TROPHY[k]||S.mode!=='town') return 0; const q=all?n:1; S.trophies[k]-=q; if(!S.trophies[k]) delete S.trophies[k]; const g=q*TROPHY[k].value; S.gold+=g; tally('soldTro',q); faithSold(); sfx('coin'); return g; }   /* Ulm's vow (game-pantheon.js) */
 function sellAllTrophies(){ let g=0; for(const k of Object.keys(S.trophies)){ const keep=k.startsWith('b:')?heartsKept(k):0; if(!keep) g+=sellTrophy(k,true); else for(let n=S.trophies[k]-keep;n>0;n--) g+=sellTrophy(k); } return g; }   // keeps the hearts your uniques still need to awaken
 // Gold sinks: the Bone Altar levels a minion up (never past the usual cap of your level + 2), bag upgrades add space, salts help raising.
 const empowerCost=m=>Math.round(mneed(m.lvl)*.6*(1-B_ALT_COST*bl('altar'))*empowerK());   /* Bone Altar spec (game-town2.js) */
@@ -3162,13 +3172,13 @@ const TIPS=[
   {id:'salvage',t:'Salvage and enchant', m:'Gear you will not wear can be salvaged into bone dust on the Gear tab. Dust enchants gear (add or re-roll a bonus line) and builds the higher levels of town buildings.', when:()=>S.mode==='town'&&ui.tab==='gear'&&S.inv.length>=6&&workOpen()},
   {id:'townopen',t:'The town opens', m:'A Town tab has appeared: build up the necropolis and fuse minions in the Flesh Pit. A bounty board in the side panel now holds up to three contracts, with a new one each dawn.', when:()=>S.mode==='town'&&townOpen()},
   {id:'reserve',t:'The Reserve', m:'Your army list now has a Reserve below it: a bench for minions you want to keep but not take along. Benched minions do not fight or grow. Moving one in or out is free, in town. When your army is full, a raised body can go straight to the Reserve.', when:()=>S.mode==='town'&&reserveOpen()},
-  {id:'faith',  t:'The Old Shrine', m:'The Old Shrine on the Town tab now takes an oath: Honored One or Dishonored One. Each path gives a bonus and takes something in return.', when:()=>S.mode==='town'&&townOpen()&&faithOpen()&&!faithOf()},
+  {id:'faith',  t:'The Pantheon', m:'The Pantheon on the Town tab now takes an oath to one of four Old Gods, or to none. Each god grows with the deeds it likes, gives a boon at every rank and asks a vow.', when:()=>S.mode==='town'&&townOpen()&&faithOpen()&&!faithOf()},
   {id:'ult',    t:'Your ultimate awaits', m:'At level 20 you can choose an ultimate on the Skills tab. Soul Siphon, elites and bosses give Souls; with five, press R in battle to unleash it.', when:()=>S.mode==='town'&&S.player.lvl>=ULT_LV&&!S.player.ult},
   {id:'siege',  t:'A siege is coming', m:'The living march on the necropolis tomorrow at dusk. When the day ends you defend it in three waves. Each building lends a perk (Town tab), and a raid ordered for tonight marches before they come. Hold, and the town pays; fall, and a building burns until you repair it.', when:()=>S.mode==='town'&&siegeWarned()},
   {id:'raid',   t:'A Commander', m:'One of your minions can lead. Open the War table under the Gates tab to order it and a squad against a gate you have cleared. They fight beside you until nightfall, march when the day ends and come back at dawn.', when:()=>S.mode==='town'&&raidPool().some(isCommander)},
   {id:'rift',   t:'The Rift', m:'The Rift is open, under the Gates tab. Every depth is harder than the last, and there is no bottom.', when:()=>S.mode==='town'&&riftOpen()},
   {id:'heat',   t:'Harder gates', m:'You have cleared a gate, so its card now offers Hard difficulty: stronger foes for more XP, gold and gear. Clear each level to open the next. On a cursed day the two stack.', when:()=>S.mode==='town'&&!T_('heat1')&&DUNGEONS.some((D,i)=>heatMax(i)>0)},
-  {id:'bless',  t:'Full devotion', m:'You have kept your oath long enough: its blessing is now active. The Old Shrine on the Town tab shows what it does.', when:()=>S.mode==='town'&&!!faithOf()&&blessed(faithOf())},
+  {id:'bless',  t:'Full devotion', m:'Your god has granted its fifth rank and its last boon. The Pantheon on the Town tab shows what it does.', when:()=>S.mode==='town'&&!!faithOf()&&blessed(faithOf())},
   {id:'records',t:'Records', m:'The Ledger tab keeps your best: deepest floor, biggest hit, most kills, and the fastest clear of each gate. Beat one and you will hear about it.', when:()=>S.mode==='town'&&S.runs>=10},
   {id:'nightmare',t:'Nightmare', m:'A gate now offers Nightmare: foes three times as strong, rewards to match, and a title of its own for the clear.', when:()=>S.mode==='town'&&DUNGEONS.some((D,i)=>heatMax(i)>=3)},
   {id:'omen',   t:'An omen', m:'Some days carry an omen that touches every gate and the Tower. Today\'s is shown above the gates.', when:()=>S.mode==='town'&&!!omen()},
@@ -3238,7 +3248,7 @@ function fireAbility(e,mv){
     });
     log(e.name+' unleashes a Cinder Wave for '+tot+' damage across your side.','bad');
   }
-  else if(mv==='hymn'){ r.silence=3; foes.forEach(f=>{ f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*.1)); }); log(e.name+' sings the Hymn of Silence. Your skills are silenced for 2 turns and every foe mends.','bad'); }
+  else if(mv==='hymn'){ r.silence=silenceT(3); foes.forEach(f=>{ f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*.1)); }); log(e.name+' sings the Hymn of Silence. Your skills are silenced for 2 turns and every foe mends.','bad'); }
   else if(mv==='seedfall'){ foes.forEach(f=>{ f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*.15)); }); const a=summonAdd(e); if(a&&e.kit) a.seed=r.turn; log(e.name+' scatters Seedfall. Every foe mends'+(a?' and '+a.name+' sprouts from the ground':'')+'.','bad'); }
   else if(mv==='decree'){ const d=Math.round(pMax()*.45*enrage(e)); hurtAlly(P,d); fxe('hurt',P,{crit:1}); log(e.name+' speaks a Royal Decree. It strikes you for '+d+'.','bad'); }
   else if(fireKitMove(e,mv)){}   /* the move sets' new moves (game-boss-kits.js) */
@@ -3436,9 +3446,9 @@ function hasteStrikes(){   // the end of the turn: every Hasted unit strikes onc
 function tickDots(){
   let foeD=0, ourD=0;
   const tick=(u,hurt)=>{ if(!u.dots) return; for(const k of Object.keys(u.dots)){ const o=u.dots[k]; if(u.hp>0) hurt(u,o.d,k); if(--o.t<=0) delete u.dots[k]; } if(!Object.keys(u.dots).length) delete u.dots; };
-  for(const e of S.run.enemies) tick(e,(u,d,k)=>{ const h=u.hp; KILL=k; hurtFoe(u,k==='blight'?Math.round(d*shadowK()):d,DOT_TYPE[k]); KILL=null; foeD+=h-u.hp; });   // Black Eclipse feeds your blight
+  for(const e of S.run.enemies) tick(e,(u,d,k)=>{ const h=u.hp; KILL=k; hurtFoe(u,k==='blight'?Math.round(d*shadowK()*faithRot()):d,DOT_TYPE[k]); KILL=null; foeD+=h-u.hp; });   // Black Eclipse feeds your blight
   const dg=S.run.dirge>S.run.turn?2:1;   /* a Dirge: your side's wounds bleed twice as fast */
-  for(const a of allies()) tick(a,(u,d,k)=>{ d*=dg; { const rs=allyRes(u,DOT_TYPE[k]); if(rs) d=Math.max(1,Math.round(d*(1-rs))); } const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u,n,0); if(u.id==='p'){ S.run.hurt=true; S.run.blow={k:'dot',dot:k}; } } ourD+=n; if(u.hp<=0&&u.id!=='p'&&!stitchUp(u)){ log(u.nick+' succumbs.','bad'); fxe('death',u); } });
+  for(const a of allies()) tick(a,(u,d,k)=>{ d*=dg; { const rs=allyRes(u,DOT_TYPE[k]); if(rs) d=Math.max(1,Math.round(d*(1-rs))); } const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u,n,0); if(u.id==='p'){ S.run.hurt=true; S.run.blow={k:'dot',dot:k}; } } ourD+=n; if(u.hp<=0&&u.id!=='p'&&!stitchUp(u)&&!faithSave(u)){ log(u.nick+' succumbs.','bad'); fxe('death',u); } });
   capFester(foeD);
   if(foeD) log('Poison eats '+foeD+' HP from your foes.','ok');
   if(ourD) log('Bleeding and burns cost your side '+ourD+' HP.','bad');
@@ -3451,13 +3461,18 @@ const EVENTS={
   shrine:   {name:'A blood shrine',     text:'Old blood crusts a stone basin. Feed it, and it sharpens every blow for the rest of this gate.', opts:[['bleed','Feed it 20% of your max HP'],['pass','Walk past']]},
   pedlar:   {name:'A wandering pedlar', text:'A hooded dead man rattles a tray of bottles and asks half the market price.', opts:[['buy','Buy'],['pass','Wave him off']]},
   coffer:   {name:'A sealed coffer',    text:'An iron box, chained shut. It might hold gold and gear, or a trap.', opts:[['open','Force it open'],['pass','Leave it']]},
-  oldgods:  {name:'A shrine of the Old Gods',faith:'hon',text:'A clean stone in a dirty place, still warm. The Old Gods know an Honored One.', opts:[['pray','Pray (heal 30% HP, refill mana)'],['pass','Walk past']]},
-  defiled:  {name:'A defiled altar',   faith:'dis',text:'Someone gutted the old altar and left the offerings. A Dishonored One takes what is owed.', opts:[['take','Take the offerings (lose 10% HP, gain gold and a Soul)'],['pass','Walk past']]},
+  oldgods:  {name:'A shrine of Morrow',faith:'hon',text:'A clean stone in a dirty place, still warm with the Last Light. Morrow knows its own.', opts:[['pray','Pray (heal 30% HP, refill mana, +20 devotion)'],['pass','Walk past']]},
+  defiled:  {name:'A defiled altar',   faith:'dis',text:'Someone gutted the old altar and left the offerings. The Profane take what is owed.', opts:[['take','Take the offerings (lose 10% HP, gain gold, a Soul and 20 devotion)'],['pass','Walk past']]},
+  vshrine:  {name:'A shrine of Vesh',  faith:'vesh',text:'A block of old ice with a body asleep inside it, unspoiled. The Cold Mother knows her own.', opts:[['pray','Pray (heal 30% HP, refill mana, +20 devotion)'],['pass','Walk past']]},
+  ushrine:  {name:'A shrine of Ulm',   faith:'ulm',text:'A ring of bones planted like seed, and something green growing from them. Ulm knows his own.', opts:[['pray','Pray (heal 30% HP, refill mana, +20 devotion)'],['pass','Walk past']]},
+  cshrine:  {name:'A shrine of the Choir',faith:'choir',text:'A hollow stone that hums with many voices, very softly. The Choir knows its own.', opts:[['pray','Pray (heal 30% HP, refill mana, +20 devotion)'],['pass','Walk past']]},
+  godshrine:{name:'Another god\'s shrine',faith:'*',text:'A shrine to a god you did not swear to. Its keeper is long dead, but the god is listening.', opts:[['convert','Convert to this god (keep half your devotion)'],['desecrate','Desecrate it (the Profane only: gold and 10 devotion)'],['pass','Walk past']],off:k=>k==='desecrate'&&faithOf()!=='dis'},
   straggler:{name:'A wounded straggler',text:'One of the gate\'s dead drags itself away from the fight, broken.', opts:[['raise','Take it as it is (free raise, +25%)'],['finish','Finish it (bonus XP)']]}
 };
 const STRAGGLER_BONUS=25;
-const FAITH_EVENT=.25;   // a sworn necromancer meets a shrine true to the oath in a quarter of events
-function rollEvent(){ { const cd=chainDue(); if(cd) return {id:cd}; } const fe=Object.keys(EVENTS).find(k=>EVENTS[k].faith&&EVENTS[k].faith===faithOf()), id=fe&&Math.random()<FAITH_EVENT?fe:pick(Object.keys(EVENTS).filter(k=>!EVENTS[k].faith&&chainOk(k))), ev={id:id!=='pedlar'&&dreadBand().id==='calm'&&Math.random()<1/Object.keys(EVENTS).length?'pedlar':id};   /* Calm: pedlars twice as common (game-dread.js) */ if(ev.id==='pedlar'){ ev.pot=pick(Object.keys(POTIONS)); ev.price=Math.ceil(POTIONS[ev.pot].price()/2); } return ev; }
+const FAITH_EVENT=.25, SHRINE_OTHER=.3;   // SHRINE_OTHER: of those, another god's shrine (conversion)
+   // a sworn necromancer meets a shrine true to the oath in a quarter of events
+function rollEvent(){ { const cd=chainDue(); if(cd) return {id:cd}; } const fe=Object.keys(EVENTS).find(k=>EVENTS[k].faith&&EVENTS[k].faith===faithOf()), id=fe&&Math.random()<FAITH_EVENT?(Math.random()<SHRINE_OTHER?'godshrine':fe):pick(Object.keys(EVENTS).filter(k=>!EVENTS[k].faith&&chainOk(k))), ev={id:id!=='pedlar'&&dreadBand().id==='calm'&&Math.random()<1/Object.keys(EVENTS).length?'pedlar':id};   /* Calm: pedlars twice as common (game-dread.js) */ if(ev.id==='godshrine') ev.g=pick(GODS.filter(g=>g!==faithOf())); if(ev.id==='pedlar'){ ev.pot=pick(Object.keys(POTIONS)); ev.price=Math.ceil(POTIONS[ev.pot].price()/2); } return ev; }
 function corpseOf(e){ const c={id:'c'+e.id,armed:isArmed(e.base),name:e.name,base:e.base,role:e.role,rankI:e.rankI,lvl:e.lvl,hf:e.hf,af:e.af,tw:e.tw,boss:e.boss,elite:e.elite,tried:false,result:null,minion:null}; if(e.aff&&e.aff.length) c.aff=e.aff.slice(); if(e.dots&&e.dots.blight) c.bl=e.dots.blight.d; if(e.cd&&e.hp<=0) c.cd=e.cd; return c; }   // bl: it died Blighted (Spreading Rot); cd: how it died (CORPSE_CONDS)
 // Corpse conditions: how a foe died marks its body. First match in this order; raise: % added before the clamp; trait: what it rises with
 // in place of the random trait (a boss still rolls its second one, an elite still keeps an affix).
@@ -3486,8 +3501,10 @@ function resolveEvent(ch){
       if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } findPage('coffer',r); m='Inside: '+g+' gold'+(it?' and '+withArticle(ITEM[it.id].name)+'.':'. There was gear too, but your bag is full.'); c='ok'; sfx('coin'); }
     else { const d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*.25))); P.hp-=d; tally('trap'); m='A needle trap. You lose '+d+' HP and find nothing.'; c='bad'; sfx('hurt'); }
   }
-  else if(ev.id==='oldgods'&&ch==='pray'){ const h=healAlly(P,Math.round(pMax()*.3)); P.mana=pMana(); tally('prayed'); m='The Old Gods hear you. You recover '+h+' HP and your mana is full.'; c='ok'; sfx('coin'); }
-  else if(ev.id==='defiled'&&ch==='take'){ const d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*.1))), g=Math.round((10+P.lvl*3)*(1+r.di)*ngpReward()); P.hp-=d; S.gold+=g; r.goldTot=(r.goldTot||0)+g; const got=gainSoul(); tally('defiled');
+  else if(['oldgods','vshrine','ushrine','cshrine'].includes(ev.id)&&ch==='pray'){ const h=healAlly(P,Math.round(pMax()*.3)); P.mana=pMana(); tally('prayed'); deed(faithOf(),DEV_SHRINE/DEED_K[faithOf()]/templeDev()); m=FAITH[faithOf()].short.replace(/^the /,'The ')+' hears you. You recover '+h+' HP, your mana is full and your devotion grows.'; c='ok'; sfx('coin'); }
+  else if(ev.id==='godshrine'&&ch==='convert'){ const g=ev.g; if(!convert(g)) return false; m='You kneel to '+FAITH[g].name+'. Half your devotion comes with you.'; c='ok'; sfx('raise'); }
+  else if(ev.id==='godshrine'&&ch==='desecrate'){ if(faithOf()!=='dis') return false; const g=Math.round((10+P.lvl*3)*(1+r.di)*ngpReward()); S.gold+=g; r.goldTot=(r.goldTot||0)+g; deed('dis',10/DEED_K.dis/templeDev()); tally('desecrated'); m='You break the shrine of '+FAITH[ev.g].name+' and take '+g+' gold from its offerings.'; c='ok'; sfx('coin'); }
+  else if(ev.id==='defiled'&&ch==='take'){ const d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*.1))), g=Math.round((10+P.lvl*3)*(1+r.di)*ngpReward()); P.hp-=d; S.gold+=g; r.goldTot=(r.goldTot||0)+g; const got=gainSoul(); tally('defiled'); deed('dis',DEV_SHRINE/DEED_K.dis/templeDev());
     m='You take the offerings: '+g+' gold'+(got?' and a Soul ('+r.souls+'/'+SOUL_MAX+')':'')+'. The altar takes '+d+' HP in return.'; c='ok'; sfx('coin'); }
   else if(ev.id==='straggler'&&ch==='raise'){ const e=makeEnemy(r.di,lvl,false), cp=corpseOf(e); cp.free=true; r.corpses.push(cp); m=e.name+' waits with the other bodies. Raising it costs no mana.'; c='ok'; }
   else if(ev.id==='straggler'&&ch==='finish'){ const e=makeEnemy(r.di,lvl,false), xp=Math.round(killXp(e)*1.5); r.gained+=xp; r.ups+=addXp(xp); m='You finish '+theName(e.name)+'. +'+xp+' XP.'; c='ok'; }
@@ -4095,7 +4112,7 @@ function fireKitMove2(e,mv){   // the masters' and wardens' moves (fireKitMove h
   else if(mv==='breath'){ let tot=0; allies().filter(a=>hittable(a)&&rowOf(a)==='f').forEach(a=>{ tot+=bossHit(e,a,1.2,'fire',mv); }); log(e.name+' breathes fire down your front row for '+tot+'.','bad'); }
   else if(mv==='molten'){ e.molten=r.turn+3; log(e.name+'\'s scales run molten.','bad'); }
   else if(mv==='tail'){ let tot=0; allies().filter(a=>hittable(a)&&rowOf(a)==='b').forEach(a=>{ tot+=bossHit(e,a,.8,'phys',mv); }); log(e.name+' sweeps your back row with its tail for '+tot+'.','bad'); }
-  else if(mv==='verse'){ r.silence=3; e.verses=(e.verses||0)+1; log(e.name+' sings a Verse of Binding. Your skills are silenced for 2 turns.','bad'); }
+  else if(mv==='verse'){ r.silence=silenceT(3); e.verses=(e.verses||0)+1; log(e.name+' sings a Verse of Binding. Your skills are silenced for 2 turns.','bad'); }
   else if(mv==='crescendo'){ const d=Math.round(pMax()*(.08+.04*(e.verses||0))); BLOW={n:e.name,k:'sig',mv}; hurtAlly(P,d,'shad'); BLOW=null; fxe('hurt',P,{crit:1}); log(e.name+' swells into a Crescendo for '+d+'.','bad'); }
   else if(mv==='echoes'){ const got=[]; for(let i=0;i<2;i++){ const a=summonAdd(e,'Hollow Chorister','striker'); if(a) got.push(a); } log(got.length?e.name+' echoes: '+got.map(x=>x.name).join(' and ')+' join the song.':e.name+' echoes, but no voice answers.','bad'); }
   else if(mv==='spread'){ const L=S.army.filter(hittable).sort((a,b)=>b.atk-a.atk).slice(0,2); L.forEach(m=>{ m.root=r.turn+3; }); log(L.length?e.name+' spreads its roots: '+L.map(m=>m.nick).join(' and ')+' are rooted for 2 turns.':e.name+' spreads its roots, but no minion stands.','bad'); }
@@ -4152,28 +4169,7 @@ function bossChip2(e){   // state chips for masters and wardens
   if(e.chainT){ const m=S.army.find(x=>fxKey(x)===e.chainT&&x.hp>0); if(m) h+=' &middot; <span class="kit" title="'+BOSS_ABIL.chain.desc+'">Chained to '+m.nick+'</span>'; }
   return h+hungerChip(e);
 }
-// ===== FAITH =====
-// From level 8 the Old Shrine (Town tab) takes your oath: Honored One or Dishonored One. Each path has a buff and a debuff.
-// Devotion grows with the days you keep the oath (buff x1.5 after 10 days, x2 after 25); the debuff stays as it is.
-// Renouncing costs gold and devotion starts over.
-const FAITH={
-  hon:{name:'Honored One',   vow:'Swear to the Old Gods of the valley. They keep your body whole, and ask for restraint.', buff:{hpp:10,healp:25},debuff:{dmgp:-8,goldp:-15}},
-  dis:{name:'Dishonored One',vow:'Spit on the Old Gods and take what the grave owes you. Power and plunder, paid for in flesh.',buff:{dmgp:12,goldp:20},debuff:{hpp:-10,healp:-25}}
-};
-const FAITH_LV=8, DEVOTION=[0,10,25], DEVOTION_MUL=[1,1.5,2];
-// At full devotion (3/3) each path also grants a blessing, once per run.
-const GRACE_HP=.25, TITHE_SOULS=3;   /* measured: Grace in the Tower too was worth ~11 floors to an Honored bot, so it guards gate runs only */
-FAITH.hon.bless={name:'Grace of the Old Gods',desc:'Once per gate run, a killing blow leaves you at '+GRACE_HP*100+'% HP instead (not in the Tower).'};
-FAITH.dis.bless={name:'Tithe of Souls',desc:'Every run begins with '+TITHE_SOULS+' Souls already harvested.'};
-const blessed=id=>faithOf()===id&&devotion()>=DEVOTION.length-1;
-function titheSouls(){ if(blessed('dis')&&S.run){ S.run.souls=Math.max(S.run.souls||0,Math.min(SOUL_MAX,TITHE_SOULS)); } }
-const faithOf=()=>(S&&S.faith&&FAITH[S.faith.id])?S.faith.id:null;
-const devotion=()=>{ if(!faithOf()) return 0; const d=(S.day-S.faith.day)*templeDev(); return d>=DEVOTION[2]?2:d>=DEVOTION[1]||hasInsc('faithful')?1:0; };   /* Of the Faithful: a new oath starts at the second rank */
-const faithBuff=id=>{ const F=FAITH[id], m=(faithOf()===id?DEVOTION_MUL[devotion()]:1)*(faithOf()===id?templeBuff():1), o={}; for(const k in F.buff) o[k]=Math.round(F.buff[k]*m); return o; };
-const faithB=k=>{ const id=faithOf(); if(!id) return 0; return (faithBuff(id)[k]||0)+(FAITH[id].debuff[k]||0); };
-const renounceCost=()=>100*S.player.lvl;
-function swear(id){ if(S.mode!=='town'||!FAITH[id]||faithOf()||!faithOpen()) return false; vitals(()=>{ S.faith={id,day:S.day}; }); tally('sworn'); return true; }
-function renounce(){ if(S.mode!=='town'||!faithOf()) return false; const c=renounceCost(); if(S.gold<c) return false; S.gold-=c; tally('renounced'); vitals(()=>{ delete S.faith; }); S.player.hp=Math.min(S.player.hp,pMax()); return true; }
+// ===== FAITH: see game-pantheon.js (R8) =====
 const xb=k=>titleB(k)+(k==='goldp'?titleColB():0)+setB(k)+usetB(k)+faithB(k)+skB(k);   // the worn title, the title collection (gold only), gate sets, unique sets, faith and the small passive skills
 
 // ===== SKILL UPGRADES =====
@@ -4218,7 +4214,7 @@ const skB=k=>{ if(!S||!S.player) return 0;
 const skMod=id=>(sk(id)>=SK_MAX&&S.player.skMod&&S.player.skMod[id])||null;
 const hasMod=(id,c)=>skMod(id)===c;
 function chooseMod(id,c){ const P=S.player; if(S.mode!=='town'||!SKILL_MODS[id]||!SKILL_MODS[id][c]||sk(id)<SK_MAX||skMod(id)) return false; vitals(()=>{ P.skMod=P.skMod||{}; P.skMod[id]=c; }); return true; }
-const skCost=s=>(hasMod('deathless','a')?Math.round(s.cost*DEEP_WELL):s.cost)*(S&&S.mode==='battle'&&S.run?naveK():1)*(marginReady()||hfFree()?0:1)*skillK();   /* Blood Altar (game-town2.js) */   // Deep Well; the Bishop's Echoing nave; Marginalia (game-abbey.js)   // Deep Well; the Bishop's Echoing nave
+const skCost=s=>Math.max(0,(hasMod('deathless','a')?Math.round(s.cost*DEEP_WELL):s.cost)-faithChill(s))*(S&&S.mode==='battle'&&S.run?naveK():1)*(marginReady()||hfFree()?0:1)*skillK();   /* Blood Altar (game-town2.js) */   // Deep Well; the Bishop's Echoing nave; Marginalia (game-abbey.js)   // Deep Well; the Bishop's Echoing nave
 const siphonCost=()=>hasMod('soulwell','b')?6:8;   // Soul Siphon: see the SOULS block for its armor piercing and Souls
 
 // ===== MINION COMMANDS =====
@@ -4524,7 +4520,141 @@ const mausN=()=>S&&S.memorial?Math.min(MAUS_MAX,S.memorial.filter(e=>e.maus).len
 const mausCost=()=>MAUS_COST[mausN()]||0;
 const canMaus=e=>!!e&&!e.maus&&S.mode==='town'&&mausN()<MAUS_MAX&&S.gold>=mausCost();
 function raiseMaus(i){ const e=(S.memorial||[])[i]; if(!canMaus(e)) return false; S.gold-=mausCost(); e.maus=1; tally('maus'); syncArmy(); sfx('raise'); return true; }
-const extraMul=(m,k)=>(k==='atk'?bondMul(m):(1+headBonus()+fallenK())*townHpK(m))*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K+(rivalBook()?BOOK_K:0):1);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
+const extraMul=(m,k)=>(k==='atk'?bondMul(m):(1+headBonus()+fallenK())*townHpK(m))*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K+(rivalBook()?BOOK_K:0):1)*(k==='atk'?choirK():1);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
+// ===== THE PANTHEON (R8 PR A) =====
+// From level 8 and 3 clears the Pantheon (the Town tab) takes an oath to one of four Old Gods or to none (the Profane path).
+// S.faith = {id, day, dev, dd, dday, vb, cv}: the god, the day sworn, devotion points, points earned on day dday (dd), the
+// last day the vow broke (vb) and conversions this oath (cv). Devotion grows by DEEDS the god likes; every DEV_STEP points is a
+// rank, five ranks, and each rank opens a boon. Breaking the vow costs a rank and that day's points (once a day).
+// Ids: 'hon' is Morrow and 'dis' the Profane path, so saves from the old two-oath faith keep their oath.
+const VESH_ROT=3;   // Vesh's vow: it breaks when this many bodies rot (die Blighted) in one run
+const FAITH={
+  hon:  {name:'Morrow, the Last Light',short:'Morrow',domain:'Mercy and endings',type:'fire',sig:'sun',
+         vow:'Never raise more than '+10+' bodies in one run.',
+         about:'The god of the last light at the end of a life. Morrow keeps your body whole and asks for restraint.',
+         deeds:'A foe slain by fire (1), a minion healed from under 25% HP (2), a gate cleared with no minion lost (10).'},
+  vesh: {name:'Vesh, the Cold Mother',short:'Vesh',domain:'Sleep and preservation',type:'frost',sig:'snow',
+         vow:'Let no bodies rot: '+VESH_ROT+' foes dying Blighted in one run breaks it (your minions\' blight counts).',
+         about:'She who keeps the dead as they were. Vesh wants your bodies whole and your foes asleep.',
+         deeds:'A foe frozen (1), a boss frozen (5), a Preserved body raised (5).'},
+  ulm:  {name:'Ulm of the Furrow',short:'Ulm',domain:'Harvest and rot',type:'rot',sig:'wheat',
+         vow:'Never sell a trophy: use them.',
+         about:'The god of what grows from the dead. Ulm wants every part used and nothing wasted.',
+         deeds:'A trophy used in a brew, a heart-forge or a commission (1 each), a foe killed by rot (1), a body exploded (2).'},
+  choir:{name:'The Hollow Choir',short:'the Choir',domain:'Voices of the dead',type:'shad',sig:'mouth',
+         vow:'Never lose a named minion (an Elder, or one with a mark).',
+         about:'Every voice the Ledger ever silenced, singing together. The Choir wants you to drink souls and remember the fallen.',
+         deeds:'Soul Siphon cast (1), a headstone tier carved (10), a fallen minion honoured in the Memorial (5).'},
+  dis:  {name:'The Profane',short:'the Profane',domain:'Defiance',type:'phys',sig:'horns',
+         vow:'None. Devotion is spent fast: it fades '+5+' points a day.',
+         about:'No god at all: spit on the Old Gods and take what the grave owes you.',
+         deeds:'An elite or boss killed (2). Devotion fades 5 a day.'}
+};
+const GODS=['hon','vesh','ulm','choir','dis'];
+const FAITH_LV=8, DEV_STEP=100, DEV_RANKS=5, DEV_SHRINE=20, PROFANE_DECAY=5, MORROW_RAISE=10, CONVERT_KEEP=.5;
+const DEED_K={hon:.4,vesh:1,ulm:.4,choir:3,dis:1};   // per-god deed multipliers, tuned on the full bot so each god ranks up at about the same pace
+// The boons, one per rank. stats: added through xb (faithB), scaled by the Temple; the rest are hooks named below.
+const BOONS={
+  hon:  [{t:'+15% healing received',s:{healp:15}},{t:'+8% max HP',s:{hpp:8}},{t:'Fire kills scorch the foes beside them for 20% of the blow'},
+         {t:'The first minion to fall each room stands again at 10% HP'},{t:'Grace: once a gate run a killing blow leaves you at 25% HP; once a run a fallen minion rises at 30%'}],
+  vesh: [{t:'Grave Chill costs 3 less mana'},{t:'Frozen foes take 10% more damage'},{t:'Preserved bodies are 10% easier to raise'},
+         {t:'Grave Chill freezes a foe that is not a boss one turn longer'},{t:'Hibernation: a frozen boss cannot enter its second phase'}],
+  ulm:  [{t:'+15% trophy drops'},{t:'Blight ticks 15% harder'},{t:'A kill leaves rot behind: another foe is Blighted'},
+         {t:'Corpse Explosion is ready a turn sooner'},{t:'Harvest Home: a gate\'s last room pays its trophies twice'}],
+  choir:[{t:'Soul Siphon +1% per living minion (up to 10%)'},{t:'Silences on you last a turn less'},{t:'A Memorial honour lasts two days'},
+         {t:'+2% army damage per name with a headstone (up to 10%)'},{t:'Requiem Chorus: +1% army damage per name in the Memorial (up to 15%)'}],
+  dis:  [{t:'+8% damage',s:{dmgp:8}},{t:'+15% gold',s:{goldp:15}},{t:'+1 Soul held past the ultimate\'s five'},
+         {t:'+12% damage, -10% max HP',s:{dmgp:12,hpp:-10}},{t:'Tithe of Souls: every run begins with 3 Souls'}]
+};
+const GRACE_HP=.25, TITHE_SOULS=3, MORROW_STAND=.1, MORROW_RISE=.3, MORROW_SCORCH=.2, VESH_CHILL=3, VESH_FROZEN=1.1, VESH_PRES=10, ULM_TRO=1.15, ULM_ROT=1.15, ULM_POOL=.15,
+  CHOIR_SIPH=.01, CHOIR_SIPH_MAX=.1, CHOIR_STONE=.02, CHOIR_STONE_MAX=.1, CHOIR_REQ=.01, CHOIR_REQ_MAX=.15;
+const faithOf=()=>(S&&S.faith&&FAITH[S.faith.id])?S.faith.id:null;
+const faithDev=()=>faithOf()?Math.max(0,S.faith.dev||0):0;
+const faithRank=g=>{ const id=faithOf(); if(!id||(g&&g!==id)) return 0; return Math.min(DEV_RANKS,Math.floor(faithDev()/DEV_STEP)); };
+const devotion=()=>faithRank();   // the old name, used by the endings' inscriptions
+const blessed=id=>faithOf()===id&&faithRank()>=DEV_RANKS;
+function titheSouls(){ if(blessed('dis')&&S.run){ S.run.souls=Math.max(S.run.souls||0,Math.min(soulCap(),TITHE_SOULS)); } }
+const soulCap=()=>SOUL_MAX+(faithRank('dis')>=3?1:0);
+const faithBuff=id=>{ const o={}; if(faithOf()!==id) return o; const k=templeBuff(); BOONS[id].slice(0,faithRank()).forEach(b=>{ if(b.s) for(const s in b.s) o[s]=(o[s]||0)+b.s[s]; }); for(const s in o) o[s]=Math.round(o[s]*(o[s]>0?k:1)); return o; };
+const faithB=k=>{ const id=faithOf(); return id?(faithBuff(id)[k]||0):0; };
+const renounceCost=()=>100*S.player.lvl;
+function swear(id){ if(S.mode!=='town'||!FAITH[id]||faithOf()||!faithOpen()) return false; vitals(()=>{ S.faith={id,day:S.day,dev:hasInsc('faithful')?DEV_STEP:0,dd:0,dday:S.day,vb:0,cv:0}; }); tally('sworn'); tally('sw_'+id); return true; }   /* Of the Faithful: a new oath starts at rank 1 */
+function renounce(){ if(S.mode!=='town'||!faithOf()) return false; const c=renounceCost(); if(S.gold<c) return false; S.gold-=c; tally('renounced'); vitals(()=>{ delete S.faith; }); S.player.hp=Math.min(S.player.hp,pMax()); return true; }
+// ----- devotion: deeds, ranks, the vow
+function deed(g,pts){   // a deed your god likes: points (x the god's pace and the Temple), a rank-up notice, a passage at ranks 1 and 5
+  const id=faithOf(); if(!id||id!==g||!(pts>0)) return 0; const f=S.faith, r0=faithRank(), p=pts*DEED_K[id]*templeDev();
+  if(f.dday!==S.day){ f.dday=S.day; f.dd=0; } f.dev=(f.dev||0)+p; f.dd+=p; tally('devPts',p);
+  const r1=faithRank(); if(r1>r0){ vitals(()=>{}); tally('rankUps'); const b=BOONS[id][r1-1]; notify(FAITH[id].short.replace(/^the /,'The ')+' grants you rank '+r1+': '+b.t+'.','ok'); if(r1===1||r1===DEV_RANKS) unlockStory(godStory(id,r1),S.run&&S.mode==='battle'?S.run:null); if(r1===DEV_RANKS) tally('r5_'+id); }
+  return p;
+}
+function vowBreak(g,why){   // the vow breaks: a rank and today's points, once a day
+  const id=faithOf(); if(!id||id!==g||id==='dis') return false; const f=S.faith; if(f.vb===S.day) return false;
+  const r0=faithRank(); f.vb=S.day; f.dev=Math.max(0,(f.dev||0)-(f.dday===S.day?f.dd||0:0)-DEV_STEP); f.dd=0; f.dday=S.day; tally('vowsBroken');
+  if(faithRank()<r0) vitals(()=>{}); const m='You broke your vow to '+FAITH[id].short+(why?' ('+why+')':'')+'. You lose a rank of devotion and today\'s.';
+  if(S.run&&S.run.events&&S.mode==='battle') log(m,'bad'); else notify(m,'bad'); return true;
+}
+const vowWarn=k=>k==='raise'?faithOf()==='hon'&&!!S.run&&(S.run.raised||0)>=MORROW_RAISE&&S.faith.vb!==S.day:k==='sell'?faithOf()==='ulm'&&S.faith.vb!==S.day:false;   // the UI asks once before an action that breaks the vow
+function faithDawn(){   // closeDay: the Profane path's devotion fades
+  const f=S.faith; if(!f||faithOf()!=='dis') return; const r0=faithRank(); f.dev=Math.max(0,(f.dev||0)-PROFANE_DECAY); if(faithRank()<r0) vitals(()=>{});
+}
+// ----- the deed and vow hooks (called from the systems they watch)
+function faithKill(e,r){   // checkDeaths, after a foe falls
+  const id=faithOf(); if(!id) return;
+  if(id==='hon'&&e.lt==='fire'){ deed('hon',1); if(faithRank()>=3&&e.kb>0) morrowScorch(e,r); }
+  if(id==='ulm'&&e.cd==='rot') deed('ulm',1);
+  if(id==='vesh'&&e.cd==='rot'&&r&&(r.vrot=(r.vrot||0)+1)>=VESH_ROT) vowBreak('vesh',VESH_ROT+' bodies rotted in one run');
+  if(id==='dis'&&(e.elite||e.boss)) deed('dis',2);
+  if(id==='ulm'&&faithRank()>=3){ const o=liveFoes().filter(x=>x!==e&&!(x.dots&&x.dots.blight)); if(o.length) addDot(pick(o),'blight',Math.max(1,pSiph()*ULM_POOL),2); }
+}
+function morrowScorch(e,r){ if(r.scorching) return; r.scorching=1; try{ const i=r.enemies.indexOf(e), d=Math.max(1,Math.round(e.kb*MORROW_SCORCH));
+  for(const o of [r.enemies[i-1],r.enemies[i+1]]) if(o&&o.hp>0){ hurtFoe(o,d,'fire'); log('Morrow\'s light scorches '+o.name+' for '+d+'.','ok'); } } finally { r.scorching=0; } }
+function faithSave(a){   // hurtAlly / tickDots: a minion at 0 HP (Morrow ranks 4 and 5)
+  if(!a||a.id==='p'||a.thrall||faithOf()!=='hon'||!S.run) return false; const r=S.run, k=faithRank();
+  if(k>=4&&r.mst!==r.room+':'+(r.tw||0)){ r.mst=r.room+':'+(r.tw||0); a.hp=Math.max(1,Math.round(a.maxHp*MORROW_STAND)); tally('morrowStand'); log('Morrow will not let '+a.nick+' fall yet. It stands at '+a.hp+' HP.','ok'); return true; }
+  if(k>=5&&!r.mrise){ r.mrise=1; a.hp=Math.max(1,Math.round(a.maxHp*MORROW_RISE)); tally('morrowStand'); log(a.nick+' rises in the Last Light at '+a.hp+' HP.','ok'); return true; }
+  return false;
+}
+const faithHealed=(a,before,h)=>{ if(h>0&&a&&a.id!=='p'&&before<a.maxHp*.25) deed('hon',2); };   // healAlly
+const faithFrozen=t=>{ deed('vesh',t.boss?5:1); return faithRank('vesh')>=4&&!t.boss?1:0; };   // Grave Chill froze t: the deed, and Vesh's extra turn
+const faithRaised=c=>{ if(c.cd==='preserved') deed('vesh',5); };
+const faithRaiseK=c=>c&&c.cd==='preserved'&&faithRank('vesh')>=3?VESH_PRES:0;   // raiseChance
+const faithHit=e=>e&&e.stun>0&&faithRank('vesh')>=2?VESH_FROZEN:1;   // hurtFoe
+const hibernates=e=>e.stun>0&&faithRank('vesh')>=5;   // checkPhase
+const faithChill=s=>s===SKILL.chill&&faithRank('vesh')>=1?VESH_CHILL:0;   // skCost
+const faithTro=()=>faithRank('ulm')>=1?ULM_TRO:1;   // killLoot
+const faithRot=()=>faithRank('ulm')>=2?ULM_ROT:1;   // tickDots (blight)
+const faithBlastCd=()=>faithRank('ulm')>=4?1:0;   // useSkill (blast)
+const faithUsed=n=>{ if(n>0) deed('ulm',n); };   // trophies spent on a brew, a heart-forge or a commission
+function faithHarvest(r){ if(faithRank('ulm')<5||!r.troph) return; for(const k in r.troph) r.troph[k]*=2; tally('harvestHome'); r.events.push({m:'Harvest Home: Ulm doubles this gate\'s trophies.',c:'ok'}); }   // gateCleared
+const faithSiph=()=>faithRank('choir')>=1?1+Math.min(CHOIR_SIPH_MAX,CHOIR_SIPH*S.army.filter(m=>m.hp>0).length):1;   // Soul Siphon
+const silenceT=t=>Math.max(1,t-(faithRank('choir')>=2?1:0));   // a silence laid on you
+const honourDays=()=>faithRank('choir')>=3?2:1;   // remembered()
+const choirK=()=>{ if(faithOf()!=='choir') return 1; const k=faithRank(), mem=S.memorial||[]; let v=0; if(k>=4) v+=Math.min(CHOIR_STONE_MAX,CHOIR_STONE*mem.filter(e=>(e.hs|0)>0).length); if(k>=5) v+=Math.min(CHOIR_REQ_MAX,CHOIR_REQ*mem.length); return 1+v; };   // extraMul: army attack
+const named=m=>!!m&&!m.thrall&&((m.stage||0)>=2||(Array.isArray(m.marks)&&m.marks.length>0));
+const faithLost=m=>{ if(named(m)) vowBreak('choir',m.nick+' was lost'); };   // memorialize
+const faithSold=()=>vowBreak('ulm','a trophy sold');   // sellTrophy
+// ----- shrines (the events between rooms) and conversion
+function convert(id){   // another god's shrine: change god, keep half the points
+  const f=S.faith; if(!f||!FAITH[id]||id===f.id) return false; const cv=(f.cv||0)+1;
+  vitals(()=>{ S.faith={id,day:S.day,dev:Math.floor((f.dev||0)*CONVERT_KEEP),dd:0,dday:S.day,vb:0,cv}; }); tally('converted'); return true;
+}
+// ----- save
+function faithFix(g){   // normalizeSave: an old two-oath faith becomes Morrow or the Profane at the rank its days earned (10 days: 2, 25: 4)
+  if(g.faith===undefined) return; const o=g.faith; if(!o||typeof o!=='object'||!FAITH[o.id]||typeof o.day!=='number'){ delete g.faith; return; }
+  const n=(v,d)=>typeof v==='number'&&isFinite(v)?v:d, day=Math.floor(n(g.day,1));
+  let dev=n(o.dev,null); if(dev==null){ const d=day-o.day; dev=d>=25?4*DEV_STEP:d>=10?2*DEV_STEP:0; }
+  g.faith={id:o.id,day:Math.floor(o.day),dev:clamp(dev,0,DEV_STEP*DEV_RANKS*4),dd:Math.max(0,n(o.dd,0)),dday:Math.floor(n(o.dday,day)),vb:Math.max(0,Math.floor(n(o.vb,0))),cv:Math.max(0,Math.floor(n(o.cv,0)))};
+}
+// ----- story: a passage per god at ranks 1 and 5 (Morrow's and the Profane's rank-5 passages are the old blessings)
+STORY.push(
+  {act:2,id:'g_vesh1',when:()=>faithRank('vesh')>=1,t:'The Cold Mother',m:'You knelt in the frost and something vast and patient looked at you without blinking. Vesh does not want your love. She wants your dead kept as they were, and your enemies quiet. You find the cold does not bite you any more.'},
+  {act:3,id:'g_vesh5',when:()=>faithRank('vesh')>=5,t:'Hibernation',m:'The Cold Mother has closed your eyes and opened them again. Bosses freeze in your hands now and stay as they were, halfway through a breath. The Ledger writes them down slowly, the way you would write in ice.'},
+  {act:2,id:'g_ulm1',when:()=>faithRank('ulm')>=1,t:'The Furrow',m:'Ulm answered with the smell of turned earth. Nothing is wasted in his field: the hide, the heart, the rot. You understand that every trophy you sold was a seed thrown away, and you are a little ashamed.'},
+  {act:3,id:'g_ulm5',when:()=>faithRank('ulm')>=5,t:'Harvest Home',m:'The field is full. Every gate you clear now gives twice what it holds, and the rot in your hands is Ulm\'s own. The farmers in the valley have started leaving their old tools at your gate. You have not asked them why.'},
+  {act:2,id:'g_choir1',when:()=>faithRank('choir')>=1,t:'Many voices',m:'When you swore, every name in the Memorial spoke at once, softly, as if from the next room. The Hollow Choir is made of the silenced. It asks you to drink souls and to remember, and it promises that you will never again be the only voice in the dark.'},
+  {act:3,id:'g_choir5',when:()=>faithRank('choir')>=5,t:'Requiem',m:'The Choir sings through your army now. Every name you carved and every name you lost adds a voice, and the dead fight to the tune. The Ledger has started to hum while you write. You hope it is a hymn.'});
+['g_vesh1','g_vesh5','g_ulm1','g_ulm5','g_choir1','g_choir5'].forEach(id=>{ STORY_BY[id]=STORY.find(s=>s.id===id); });
+const godStory=(id,k)=>({hon1:'oath_hon',dis1:'oath_dis',hon5:'bless_hon',dis5:'bless_dis'})[id+k]||'g_'+id+k;
 // ===== BOSS PHASES =====
 // At half HP a boss (gate or Tower) enters its second phase: its moves come a turn sooner, every move is announced a turn
 // ahead, and it adds Sundering Blow. Taunt turns that blow onto a vanguard; a Focus crit or Grave Chill breaks any charging move.
@@ -4539,7 +4669,7 @@ const PHASE_LINES={
 };
 function checkPhase(){
   if(!S.run) return;
-  for(const e of liveFoes()) if(e.boss&&e.abil&&!e.phase2&&!e.hunger&&(e.tw||e.rival||e.rankI>=1||runHeat()>=2)&&e.hp<=e.maxHp*phaseAt()){   // the Rat King, a new player's first boss, keeps one phase
+  for(const e of liveFoes()) if(e.boss&&e.abil&&!e.phase2&&!e.hunger&&(e.tw||e.rival||e.rankI>=1||runHeat()>=2)&&e.hp<=e.maxHp*phaseAt()&&!hibernates(e)){   /* Vesh's Hibernation (game-pantheon.js) */   // the Rat King, a new player's first boss, keeps one phase
     e.phase2=true; e.fast=(e.fast||0)+1; e.alt=true; e.abilT=Math.min(e.abilT,2); if(e.reck) reckLastPage(e);   /* The Last Page (game-rival-arc.js) */   // Sundering Blow comes first (a boss with a move set has a twist instead)
     const l=PHASE_LINES[e.base]; log(e.name+(l?': "'+l+'"':' rises in fury.'),'boss'); const tw=bossTwist(e);
     log(tw?e.name+' enters its second phase: '+tw.name+'. '+tw.desc+' It moves faster and warns before every move.':e.name+' enters its second phase. It moves faster, warns before every move, and adds Sundering Blow.','bad'); sfx('phase'); tally('phases'); moment(e.name+' enters its second phase','bad');
@@ -4661,17 +4791,17 @@ function memorialize(m,at){
   if(!m||m.thrall) return null;
   const e=Object.assign({nick:m.nick,kind:m.kind||m.name,name:m.name,rk:m.rankI|0,lvl:m.lvl,st:m.stage||0,tr:(m.traits||[]).slice(),role:m.role,day:S.day},m.boss?{boss:1}:{},m.elite?{elite:1}:{},at||{});
   { const bd=bondFall(m,at); if(bd) e.bd=bd; }
-  S.memorial=[e].concat(S.memorial||[]); while(S.memorial.length>MEM_MAX){ const j=S.memorial.map(x=>!x.maus&&!x.hs).lastIndexOf(true); S.memorial.splice(j<0?MEM_MAX:j,1); }   /* a mausoleum's or headstone's name is never dropped */
+  faithLost(m); S.memorial=[e].concat(S.memorial||[]); while(S.memorial.length>MEM_MAX){ const j=S.memorial.map(x=>!x.maus&&!x.hs).lastIndexOf(true); S.memorial.splice(j<0?MEM_MAX:j,1); }   /* a mausoleum's or headstone's name is never dropped */
   notify(m.nick+' '+theName(mName(m)).replace(/^The /,'the ')+' is written into the Memorial.','');
   return e;
 }
 const memWhere=e=>e.raid!=null&&DUNGEONS[e.raid]?'Fell on a raid to the '+DUNGEONS[e.raid].name:e.f?'Shattered in the Hell Tower, floor '+e.f:e.rd?'Shattered in the Rift, depth '+e.rd:DUNGEONS[e.g]?'Shattered in the '+DUNGEONS[e.g].name:'Shattered';
 const honourCost=e=>Math.round(mneed(e.lvl)*MEM_COST);   // about one Bone Altar level at its level (before the Altar building's discount)
-const remembered=()=>!!(S&&S.honor&&S.honor.day===S.day);
+const remembered=()=>!!(S&&S.honor&&S.honor.day<=S.day&&S.honor.day>S.day-honourDays());   /* the Choir: two days (game-pantheon.js) */
 const canHonour=e=>!!e&&e.st>=1&&S.mode==='town'&&!remembered()&&S.gold>=honourCost(e);
 function honour(i){
   const e=(S.memorial||[])[i]; if(!canHonour(e)) return false;
-  S.gold-=honourCost(e); S.honor={day:S.day,nick:e.nick}; syncArmy(); S.army.concat(S.reserve||[]).forEach(m=>{ m.hp=Math.min(m.hp,m.maxHp); }); sfx('raise'); return true;
+  S.gold-=honourCost(e); S.honor={day:S.day,nick:e.nick}; deed('choir',5); syncArmy(); S.army.concat(S.reserve||[]).forEach(m=>{ m.hp=Math.min(m.hp,m.maxHp); }); sfx('raise'); return true;
 }
 // HEADSTONES: an uncapped late gold sink. In town, carve a headstone over any name in the Memorial (the released are never written
 // there) and raise it tier by tier; the next tier of a stone costs HEAD_GOLD*HEAD_GROW^(its tier). Each tier of every stone adds about
@@ -4681,7 +4811,7 @@ const headTiers=()=>S&&S.memorial?S.memorial.reduce((t,e)=>t+(e.hs|0),0):0;
 const headBonus=()=>HEAD_CAP*(1-Math.exp(-HEAD_K*headTiers()/HEAD_CAP));   // extraMul (syncMinion): max HP
 const headCost=e=>Math.round(HEAD_GOLD*Math.pow(HEAD_GROW,e.hs|0));
 const canHead=e=>!!e&&S.mode==='town'&&(e.hs|0)<HEAD_TOP&&S.gold>=headCost(e);
-function carveHead(i){ const e=(S.memorial||[])[i]; if(!canHead(e)) return false; const c=headCost(e); S.gold-=c; e.hs=(e.hs|0)+1; tally('headG',c); syncArmy(); sfx('carve'); return true; }
+function carveHead(i){ const e=(S.memorial||[])[i]; if(!canHead(e)) return false; const c=headCost(e); S.gold-=c; e.hs=(e.hs|0)+1; tally('headG',c); deed('choir',10); syncArmy(); sfx('carve'); return true; }
 function memorialFix(g){   // normalizeSave: keep well-formed entries only
   const ok=e=>e&&typeof e==='object'&&typeof e.nick==='string'&&typeof e.name==='string';
   g.memorial=Array.isArray(g.memorial)?g.memorial.filter(ok).slice(0,MEM_MAX).map(e=>{ const o={nick:cleanNick(e.nick)||'Nameless',kind:cleanText(typeof e.kind==='string'?e.kind:e.name),name:cleanText(e.name),rk:clamp(Math.floor(num(e.rk,0)),0,RANKS.length-1),
@@ -4794,13 +4924,13 @@ const ULTS={
   rise:  {name:'Unholy Resurrection',  desc:'Every downed minion rises at full HP and the rest heal fully; you heal 40% of your max HP, and your army deals 50% more damage for 3 turns.'},
   prison:{name:'Soul Prison',          desc:'Every foe is frozen for 2 turns (bosses 1), breaking any charging move, and takes 30% more damage for 3 turns.'}
 };
-function gainSoul(){ const r=S.run; if(!r) return false; r.souls=r.souls||0; if(r.souls>=SOUL_MAX) return false; r.souls++; r.soulT=(r.soulT||0)+1;   // soulT: souls harvested this run, for the lifetime count
+function gainSoul(){ const r=S.run; if(!r) return false; r.souls=r.souls||0; if(r.souls>=soulCap()) return false; r.souls++; r.soulT=(r.soulT||0)+1;   // soulT: souls harvested this run, for the lifetime count
   if(hasMod('soulwell','a')) S.player.mana=Math.min(pMana(),S.player.mana+OVERFLOW_MANA);   // Overflow
   return true; }
 const canUlt=()=>S.mode==='battle'&&!!S.run&&S.player.lvl>=ULT_LV&&!!ULTS[S.player.ult]&&(S.run.souls||0)>=SOUL_MAX;
 function chooseUlt(id){ if(S.mode!=='town'||!ULTS[id]||S.player.lvl<ULT_LV) return false; S.player.ult=id; return true; }
 function useUlt(t){
-  if(!canUlt()) return false; const r=S.run, P=S.player, id=P.ult; r.souls=0; tally('ults');
+  if(!canUlt()) return false; const r=S.run, P=S.player, id=P.ult; r.souls=Math.max(0,r.souls-SOUL_MAX); tally('ults');
   if(id==='toll'){ let tot=0, slain=0; for(const o of liveFoes()){ const d=hit(pSiph()*TOLL_MUL*pierceMul(1)); hurtFoe(o,d,'shad'); tot+=d; if(o.hp>0&&!o.boss&&o.hp<o.maxHp*TOLL_EXEC){ mark(o,o.hp,0); o.hp=0; slain++; } }
     log("Death's Toll: every foe takes the Ledger's due, "+tot+' damage in all'+(slain?', and '+slain+' fall where they stand':'')+'.','ok'); }
   else if(id==='rise'){ let n=0; for(const m of S.army){ if(m.hp<=0){ m.hp=m.maxHp; n++; } else healAlly(m,m.maxHp); } healAlly(P,Math.round(pMax()*.4)); r.frenzy=Math.max(r.frenzy||0,3); r.frenzyMul=Math.max(r.frenzyMul||1,1.5);
@@ -5535,7 +5665,7 @@ const INSCRIPTIONS={
   fallen:  {name:'Of the Fallen',  need:'20 headstones in the Memorial',        desc:'Each minion in the Memorial gives your army +1% max HP, up to 10%.', ok:()=>headstones()>=20},
   tower:   {name:'Of the Tower',   need:'Hell Tower floor 100',                 desc:'The Tower can start at floor 11 from the first climb.',      ok:()=>((S.tower&&S.tower.best)||0)>=100},
   masters: {name:'Of the Masters', need:'all six secret masters slain',         desc:'A secret master drops one heart more.',                      ok:()=>mastersSlain()>=SECRET.length},
-  faithful:{name:'Of the Faithful',need:'an oath kept the whole cycle',         desc:'A new oath starts at the second rank of devotion.',          ok:()=>!!faithOf()&&devotion()>=2&&cyc('renounced')===0},
+  faithful:{name:'Of the Faithful',need:'an oath kept the whole cycle',         desc:'A new oath starts at rank 1 of devotion.',          ok:()=>!!faithOf()&&faithRank()>=4&&cyc('renounced')===0},
   rival:   {name:'Of the Rival',   need:'the rival beaten 5 times in the cycle',desc:'The rival comes to steal half as often.',                    ok:()=>cyc('rivalWins')>=5}
 };
 const INSC_IDS=Object.keys(INSCRIPTIONS);
@@ -5672,7 +5802,7 @@ function hfCan(boss,slot,lines){
 function heartforge(boss,slot,lines,force){   // returns the item, or null; force: spend a heart a unique still needs
   if(!hfCan(boss,slot,lines)||(hfGuard(boss)&&!force)) return null;
   const I=hfInfo(boss), pool=Object.values(ITEM).filter(d=>!d.uq&&!d.tower&&d.set===I.set&&d.slot===slot); if(!pool.length) return null;
-  S.gold-=Math.round(I.gold); S.dust-=I.dust; const k=hfKey(boss); S.trophies[k]--; if(!S.trophies[k]) delete S.trophies[k];
+  S.gold-=Math.round(I.gold); S.dust-=I.dust; const k=hfKey(boss); S.trophies[k]--; if(!S.trophies[k]) delete S.trophies[k]; faithUsed(1);
   const it=addItem(pick(pool).id,lines.map(l=>[l,hfLineVal(I,l)])); it.hf=boss; if(I.pw) it.pw=I.pw;
   tally('heartforged'); tally('hfGold',Math.round(I.gold)); sfx('level'); return it;
 }
@@ -5755,6 +5885,7 @@ function brewCan(id){
 }
 function brewIt(id){   // spends the parts (cheapest first) or spare hearts (lowest first) and the gold
   if(!brewCan(id)) return false; const B=BREWS[id], free=freeBrew(); S.gold-=brewGold(id); if(free) S.freeBrew=S.day;
+  faithUsed(B.hearts||Object.values(B.parts).reduce((a,n)=>a+n,0));   /* Ulm's deed (game-pantheon.js) */
   if(B.hearts){ let need=B.hearts; for(const [k,n] of spareHearts()){ const t=Math.min(n,need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
   else for(const r of Object.keys(B.parts)){ let need=B.parts[r]; for(const k of partKeys(r,B.g)){ const t=Math.min(S.trophies[k],need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
   const n=brewTwice()?2:1;   /* the Distillery (game-town2.js) */
@@ -5828,7 +5959,7 @@ function commCan(i){ const c=commissions()[i]; if(!c||c.done||S.mode!=='town') r
   if(c.k==='hf') return !!commItem(c); return !!commMinion(c); }
 function commFill(i){
   if(!commCan(i)) return false; const c=S.comm.list[i], p=commPay(c);
-  if(c.k==='tro'){ let need=c.n; for(const k of trosOf(c.role,c.g)){ const t=Math.min(S.trophies[k],need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
+  if(c.k==='tro'){ faithUsed(c.n); let need=c.n; for(const k of trosOf(c.role,c.g)){ const t=Math.min(S.trophies[k],need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
   else if(c.k==='hf'){ const it=commItem(c); S.inv=S.inv.filter(x=>x!==it); }
   else { const m=commMinion(c); returnGear(m); S.army=S.army.filter(x=>x!==m); bondsClean(); syncArmy(); }
   S.gold+=p.g; S.dust=(S.dust||0)+p.d; c.done=1; dread(-DREAD_COMM); orderEv('comm'); tally('commissions'); tally('commG',p.g); sfx('coin'); return p;
@@ -10889,6 +11020,78 @@ TR_RX.unshift([/^Reflection of (.+)$/,"$1 Yansıması"],[/^(.+?)'s Lieutenant$/,
  [/^(.+?) will wait for you again in (\d+) days\.?$/,"$1 seni $2 gün sonra yeniden bekleyecek"],
  [/^(.+?) offers a trade:$/,"$1 bir takas öneriyor:"],
  [/^their (.+?) \((\w+)\) for one of your Reserve of the same rank\.?$/,"onların $1 ($2) cesedi, aynı rütbedeki Yedek yaratıklarından biri karşılığında"]);
+// R8 PR A: the pantheon (src/game-pantheon.js)
+[["Morrow, the Last Light","Morrow, the Last Light"],["Vesh, the Cold Mother","Vesh, the Cold Mother"],["Ulm of the Furrow","Ulm of the Furrow"],["The Hollow Choir","The Hollow Choir"],["The Profane","Kâfirler"],["the Profane","Kâfirler"],
+ ["Vow","Yemin"],["Deeds","İşler"],["Boons","Lütuflar"],["The Pantheon","Panteon"],["Broken today","Bugün bozuldu"],["Today: +#","Bugün: +#"],["rank #/#","rütbe #/#"],["Devotion rank # of #","Bağlılık rütbesi #/#"],
+ ["Mercy and endings","Merhamet ve sonlar"],["Sleep and preservation","Uyku ve koruma"],["Harvest and rot","Hasat ve çürüme"],["Voices of the dead","Ölülerin sesleri"],["Defiance","Meydan okuma"],
+ ["The god of the last light at the end of a life. Morrow keeps your body whole and asks for restraint","Bir hayatın sonundaki son ışığın tanrısı. Morrow bedenini bütün tutar ve ölçülü olmanı ister"],
+ ["She who keeps the dead as they were. Vesh wants your bodies whole and your foes asleep","Ölüleri oldukları gibi saklayan. Vesh cesetlerini bütün, düşmanlarını uykuda ister"],
+ ["The god of what grows from the dead. Ulm wants every part used and nothing wasted","Ölülerden büyüyenin tanrısı. Ulm her parçanın kullanılmasını, hiçbir şeyin israf edilmemesini ister"],
+ ["Every voice the Ledger ever silenced, singing together. The Choir wants you to drink souls and remember the fallen","Defter'in susturduğu her ses, hep birlikte şarkı söylüyor. Koro ruh içmeni ve düşenleri hatırlamanı ister"],
+ ["No god at all: spit on the Old Gods and take what the grave owes you","Hiç tanrı yok: Eski Tanrılara tükür ve mezarın sana borçlu olduğunu al"],
+ ["Never raise more than # bodies in one run","Bir akında asla #'dan fazla ceset diriltme"],["Let no bodies rot: # foes dying Blighted in one run breaks it (your minions' blight counts)","Hiçbir cesedin çürümesine izin verme: bir akında Çürümüş olarak ölen # düşman yemini bozar (minyonlarının çürütmesi de sayılır)"],
+ ["Never sell a trophy: use them","Asla ganimet satma: onları kullan"],["Never lose a named minion (an Elder, or one with a mark)","Adı olan bir yaratığı asla kaybetme (bir Kadim ya da nişanı olan biri)"],
+ ["None. Devotion is spent fast: it fades # points a day","Yok. Bağlılık çabuk harcanır: günde # puan söner"],
+ ["A foe slain by fire (#), a minion healed from under #% HP (#), a gate cleared with no minion lost (#)","Ateşle öldürülen bir düşman (#), canı %#'in altındayken iyileştirilen bir yaratık (#), hiç yaratık kaybetmeden temizlenen bir kapı (#)"],
+ ["A foe frozen (#), a boss frozen (#), a Preserved body raised (#)","Dondurulan bir düşman (#), dondurulan bir boss (#), diriltilen Korunmuş bir ceset (#)"],
+ ["A trophy used in a brew, a heart-forge or a commission (# each), a foe killed by rot (#), a body exploded (#)","Bir demlemede, kalp dövmede ya da siparişte kullanılan ganimet (her biri #), çürümeyle öldürülen bir düşman (#), patlatılan bir ceset (#)"],
+ ["Soul Siphon cast (#), a headstone tier carved (#), a fallen minion honoured in the Memorial (#)","Ruh Emme (#), oyulan bir mezar taşı kademesi (#), Anıt'ta onurlandırılan düşmüş bir yaratık (#)"],
+ ["An elite or boss killed (#). Devotion fades # a day","Öldürülen bir seçkin ya da boss (#). Bağlılık günde # söner"],
+ ["#% healing received","%# daha fazla alınan iyileştirme"],["#% max HP","%# daha fazla azami can"],["Fire kills scorch the foes beside them for #% of the blow","Ateşle öldürmeler yanlarındaki düşmanları darbenin %#'i kadar kavurur"],
+ ["The first minion to fall each room stands again at #% HP","Her odada düşen ilk yaratık %# canla yeniden ayağa kalkar"],["Grace: once a gate run a killing blow leaves you at #% HP; once a run a fallen minion rises at #%","Lütuf: kapı akınında bir kez öldürücü darbe seni %# canla bırakır; akında bir kez düşen bir yaratık %# canla kalkar"],
+ ["Grave Chill costs # less mana","Mezar Ayazı # daha az mana harcar"],["Frozen foes take #% more damage","Donmuş düşmanlar %# daha fazla hasar alır"],["Preserved bodies are #% easier to raise","Korunmuş cesetler %# daha kolay dirilir"],
+ ["Grave Chill freezes a foe that is not a boss one turn longer","Mezar Ayazı boss olmayan bir düşmanı bir tur daha uzun dondurur"],["Hibernation: a frozen boss cannot enter its second phase","Kış Uykusu: donmuş bir boss ikinci evresine giremez"],
+ ["#% trophy drops","%# daha fazla ganimet düşmesi"],["Blight ticks #% harder","Kokuşma %# daha sert işler"],["A kill leaves rot behind: another foe is Blighted","Bir öldürme ardında çürüme bırakır: başka bir düşman Kokuşur"],
+ ["Corpse Explosion is ready a turn sooner","Ceset Patlatma bir tur daha erken hazır olur"],["Harvest Home: a gate's last room pays its trophies twice","Hasat Bayramı: bir kapının son odası ganimetlerini iki kez öder"],
+ ["Soul Siphon +#% per living minion (up to #%)","Ruh Emme, yaşayan her yaratık için +%# (en fazla %#)"],["Silences on you last a turn less","Sana yapılan susturmalar bir tur daha kısa sürer"],["A Memorial honour lasts two days","Anıt onurlandırması iki gün sürer"],
+ ["#% army damage per name with a headstone (up to #%)","%# ordu hasarı, mezar taşı olan her isim için (en fazla %#)"],["Requiem Chorus: +#% army damage per name in the Memorial (up to #%)","Ağıt Korosu: Anıt'taki her isim için ordu hasarı +%# (en fazla %#)"],
+ ["#% damage","%# daha fazla hasar"],["#% gold","%# daha fazla altın"],["# Soul held past the ultimate's five","# Ruh daha, nihai gücün beşinin ötesinde tutulur"],["#% damage, -#% max HP","%# daha fazla hasar, azami can -%#"],["Tithe of Souls: every run begins with # Souls","Ruh Öşrü: her akın # Ruhla başlar"],
+ ["Once # gates are cleared, from level #, the Pantheon on the Town tab takes an oath to one of four Old Gods, or to none (the Profane path). Devotion is earned by deeds your god likes; every # points is a rank, up to #, and each rank opens a boon. Each god asks a vow: break it and you lose a rank and that day's devotion (once a day). Renouncing costs # gold per level and starts devotion over. Swearing and renouncing happen in town",
+  "# kapı temizlendikten sonra, #. seviyeden itibaren Kasaba sekmesindeki Panteon dört Eski Tanrıdan birine ya da hiçbirine (Kâfir yolu) yemin alır. Bağlılık tanrının sevdiği işlerle kazanılır; her # puan bir rütbedir, en fazla #, ve her rütbe bir lütuf açar. Her tanrı bir yemin ister: bozarsan bir rütbeni ve o günün bağlılığını kaybedersin (günde bir kez). Yeminden dönmek seviye başına # altına mal olur ve bağlılığı sıfırlar. Yemin etmek ve dönmek kasabada olur"],
+ ["In about #% of the events between rooms a sworn necromancer meets a shrine: their own god's (pray: heal, refill mana, +# devotion), or another god's, which offers a conversion (that god, keeping #% of your devotion points). The Profane may desecrate another god's shrine instead",
+  "Odalar arasındaki olayların yaklaşık %#'inde yeminli bir ölü çağırıcı bir sunakla karşılaşır: kendi tanrısınınki (dua: iyileşme, mana dolumu, +# bağlılık) ya da başka bir tanrınınki, ki o bir din değiştirme sunar (o tanrıya, bağlılık puanlarının %#'ini koruyarak). Kâfirler bunun yerine başka bir tanrının sunağına saygısızlık edebilir"],
+ ["A ring of cracked altars at the edge of town. They will hear an oath once # gates are cleared, from a necromancer of level # or more","Kasabanın kenarında bir çember çatlak sunak. # kapı temizlendiğinde, # ya da daha yüksek seviyede bir ölü çağırıcının yeminini dinlerler"],
+ ["Swear to a god. Devotion grows with the deeds they like, each rank opens a boon, and each god asks a vow. Renouncing costs gold and starts devotion over","Bir tanrıya yemin et. Bağlılık sevdikleri işlerle büyür, her rütbe bir lütuf açar ve her tanrı bir yemin ister. Yeminden dönmek altına mal olur ve bağlılığı sıfırlar"],
+ ["The Pantheon on the Town tab now takes an oath to one of four Old Gods, or to none. Each god grows with the deeds it likes, gives a boon at every rank and asks a vow","Kasaba sekmesindeki Panteon artık dört Eski Tanrıdan birine ya da hiçbirine yemin alıyor. Her tanrı sevdiği işlerle büyür, her rütbede bir lütuf verir ve bir yemin ister"],
+ ["Your god has granted its fifth rank and its last boon. The Pantheon on the Town tab shows what it does","Tanrın beşinci rütbesini ve son lütfunu verdi. Kasaba sekmesindeki Panteon ne yaptığını gösterir"],
+ ["Once # gates are cleared, from level #, the Pantheon (Town tab) takes an oath to one of four Old Gods or to none: devotion grows with deeds, every rank gives a boon, and each god asks a vow","# kapı temizlendikten sonra, #. seviyeden itibaren Panteon (Kasaba sekmesi) dört Eski Tanrıdan birine ya da hiçbirine yemin alır: bağlılık işlerle büyür, her rütbe bir lütuf verir ve her tanrı bir yemin ister"],
+ ["A new oath starts at rank # of devotion","Yeni bir yemin #. bağlılık rütbesinden başlar"],
+ ["A shrine of Morrow","Morrow'un sunağı"],["A shrine of Vesh","Vesh'in sunağı"],["A shrine of Ulm","Ulm'un sunağı"],["A shrine of the Choir","Koro'nun sunağı"],["Another god's shrine","Başka bir tanrının sunağı"],
+ ["A clean stone in a dirty place, still warm with the Last Light. Morrow knows its own","Kirli bir yerde temiz bir taş, Son Işık'la hâlâ sıcak. Morrow kendininkini tanır"],
+ ["Someone gutted the old altar and left the offerings. The Profane take what is owed","Biri eski sunağı deşmiş ve adakları bırakmış. Kâfirler borçlu olunanı alır"],
+ ["A block of old ice with a body asleep inside it, unspoiled. The Cold Mother knows her own","İçinde bozulmadan uyuyan bir ceset olan eski bir buz kütlesi. Soğuk Ana kendininkini tanır"],
+ ["A ring of bones planted like seed, and something green growing from them. Ulm knows his own","Tohum gibi ekilmiş bir halka kemik ve içlerinden büyüyen yeşil bir şey. Ulm kendininkini tanır"],
+ ["A hollow stone that hums with many voices, very softly. The Choir knows its own","Pek çok sesle, çok usulca mırıldanan oyuk bir taş. Koro kendininkini tanır"],
+ ["A shrine to a god you did not swear to. Its keeper is long dead, but the god is listening","Yemin etmediğin bir tanrının sunağı. Bekçisi çoktan öldü ama tanrı dinliyor"],
+ ["Pray (heal #% HP, refill mana, +# devotion)","Dua et (%# can iyileştir, manayı doldur, +# bağlılık)"],["Take the offerings (lose #% HP, gain gold, a Soul and # devotion)","Adakları al (%# can kaybet, altın, bir Ruh ve # bağlılık kazan)"],
+ ["Convert to this god (keep half your devotion)","Bu tanrıya geç (bağlılığının yarısını koru)"],["Desecrate it (the Profane only: gold and # devotion)","Saygısızlık et (yalnızca Kâfirler: altın ve # bağlılık)"],
+ ["Only for a sworn necromancer, in about #% of events","Yalnızca yeminli bir ölü çağırıcı için, olayların yaklaşık %#'inde"],
+ ["Harvest Home: Ulm doubles this gate's trophies","Hasat Bayramı: Ulm bu kapının ganimetlerini ikiye katlıyor"],["Half your devotion comes with you","Bağlılığının yarısı seninle geliyor"],
+ ["You lose a rank of devotion and today's","Bir bağlılık rütbesini ve bugününkini kaybediyorsun"],["your mana is full and your devotion grows","manan dolu ve bağlılığın büyüyor"],
+ ["Bearer of the Last Light","Son Işığın Taşıyıcısı"],["Child of the Cold Mother","Soğuk Ana'nın Çocuğu"],["Keeper of the Furrow","Saban İzinin Bekçisi"],["Voice of the Choir","Koro'nun Sesi"],["Wholly Profane","Tümüyle Kâfir"],["Godless","Tanrısız"],["Turncoat","Dönek"],
+ ["Reach rank # with Morrow","Morrow ile #. rütbeye ulaş"],["Reach rank # with Vesh","Vesh ile #. rütbeye ulaş"],["Reach rank # with Ulm","Ulm ile #. rütbeye ulaş"],["Reach rank # with the Hollow Choir","Hollow Choir ile #. rütbeye ulaş"],["Reach rank # on the Profane path","Kâfir yolunda #. rütbeye ulaş"],
+ ["Finish a cycle on the Profane path (begin New Game+ while Profane)","Bir döngüyü Kâfir yolunda bitir (Kâfirken Yeni Oyun+ başlat)"],["Convert to another god at their shrine # times","Başka bir tanrıya sunağında # kez geç"],
+ ["The Cold Mother","Soğuk Ana"],["Hibernation","Kış Uykusu"],["The Furrow","Saban İzi"],["Harvest Home","Hasat Bayramı"],["Many voices","Pek çok ses"],["Requiem","Ağıt"],
+ ["You knelt in the frost and something vast and patient looked at you without blinking. Vesh does not want your love. She wants your dead kept as they were, and your enemies quiet. You find the cold does not bite you any more","Ayazda diz çöktün ve uçsuz bucaksız, sabırlı bir şey gözünü kırpmadan sana baktı. Vesh sevgini istemiyor. Ölülerinin oldukları gibi saklanmasını ve düşmanlarının sessiz kalmasını istiyor. Soğuğun artık seni ısırmadığını fark ediyorsun"],
+ ["The Cold Mother has closed your eyes and opened them again. Bosses freeze in your hands now and stay as they were, halfway through a breath. The Ledger writes them down slowly, the way you would write in ice","Soğuk Ana gözlerini kapatıp yeniden açtı. Bosslar artık ellerinde donuyor ve bir nefesin yarısında oldukları gibi kalıyor. Defter onları yavaşça yazıyor, buza yazar gibi"],
+ ["Ulm answered with the smell of turned earth. Nothing is wasted in his field: the hide, the heart, the rot. You understand that every trophy you sold was a seed thrown away, and you are a little ashamed","Ulm sürülmüş toprak kokusuyla cevap verdi. Onun tarlasında hiçbir şey israf edilmez: post, kalp, çürük. Sattığın her ganimetin atılmış bir tohum olduğunu anlıyorsun ve biraz utanıyorsun"],
+ ["The field is full. Every gate you clear now gives twice what it holds, and the rot in your hands is Ulm's own. The farmers in the valley have started leaving their old tools at your gate. You have not asked them why","Tarla dolu. Temizlediğin her kapı artık tuttuğunun iki katını veriyor ve ellerindeki çürük Ulm'un kendisinin. Vadideki çiftçiler eski aletlerini kapına bırakmaya başladı. Nedenini onlara sormadın"],
+ ["When you swore, every name in the Memorial spoke at once, softly, as if from the next room. The Hollow Choir is made of the silenced. It asks you to drink souls and to remember, and it promises that you will never again be the only voice in the dark","Yemin ettiğinde Anıt'taki her isim aynı anda, usulca, sanki yan odadan konuştu. Hollow Choir susturulanlardan yapılmıştır. Senden ruh içmeni ve hatırlamanı ister ve karanlıkta bir daha asla tek ses olmayacağına söz verir"],
+ ["The Choir sings through your army now. Every name you carved and every name you lost adds a voice, and the dead fight to the tune. The Ledger has started to hum while you write. You hope it is a hymn","Koro artık ordunun içinden şarkı söylüyor. Oyduğun ve kaybettiğin her isim bir ses ekliyor ve ölüler o ezgiyle savaşıyor. Sen yazarken Defter mırıldanmaya başladı. Bunun bir ilahi olmasını umuyorsun"]
+].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+TR_RX.unshift([/^(.+?) grants you rank (\d+): (.+?)\.?$/,"$1 sana $2. rütbeyi veriyor: {t3}"],
+ [/^You broke your vow to (.+?)( \((.+?)\))?\. You lose a rank of devotion and today's\.?$/,"$1 tanrısına verdiğin yemini bozdun. Bir bağlılık rütbesini ve bugününkini kaybediyorsun"],
+ [/^Morrow's light scorches (.+?) for (\d+)\.?$/,"Morrow'un ışığı $1 düşmanını $2 kavuruyor"],[/^Morrow will not let (\S+) fall yet\. It stands at (\d+) HP\.?$/,"Morrow $1 yaratığının henüz düşmesine izin vermiyor. $2 canla ayakta"],
+ [/^(\S+) rises in the Last Light at (\d+) HP\.?$/,"$1 Son Işık'ta $2 canla kalkıyor"],
+ [/^(.+?) hears you\. You recover (\d+) HP, your mana is full and your devotion grows\.?$/,"$1 seni duyuyor. $2 can kazanıyorsun, manan dolu ve bağlılığın büyüyor"],
+ [/^You kneel to (.+?)\. Half your devotion comes with you\.?$/,"$1 önünde diz çöküyorsun. Bağlılığının yarısı seninle geliyor"],
+ [/^You break the shrine of (.+?) and take (\d+) gold from its offerings\.?$/,"$1 sunağını kırıyor ve adaklarından $2 altın alıyorsun"],
+ [/^It belongs to (.+?): ([^.]+?)\. Vow: (.+)$/,"$1 tanrısına ait: {t2}. Yemin: {t3}"],
+ [/^Only for those sworn to (.+?), in about (\d+)% of events\.?$/,"Yalnızca $1 tanrısına yemin edenler için, olayların yaklaşık %$2'inde"],
+ [/^(\d+) of (\d+) devotion for rank (\d+)\.?$/,"$3. rütbe için $1/$2 bağlılık"],[/^Your devotion is complete \((\d+) points\)\.?$/,"Bağlılığın tamamlandı ($1 puan)"],
+ [/^(.+?) · (\d)$/,"$1 · $2"]);
+[["Raising another body breaks your vow to Morrow (no more than # in a run). Press again to raise anyway","Bir ceset daha diriltmek Morrow'a verdiğin yemini bozar (akında en fazla #). Yine de diriltmek için tekrar bas"],
+ ["Selling a trophy breaks your vow to Ulm. Press again to sell anyway","Ganimet satmak Ulm'a verdiğin yemini bozar. Yine de satmak için tekrar bas"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -11986,7 +12189,7 @@ function statusHTML(){
   const rows=[['strength','Strength','Strike damage, crit chance, armor piercing, minion attack, Command',['atk','crit','pierce','matk']],['constitution','Constitution','Max HP, damage taken, healing received, minion HP, Command',['hp','dr','heal','mhp']],['intelligence','Intelligence','Mana, Siphon, Ward, skill damage, minion attack, Command',['mana','siph','ward','skill','matk']],['will','Will','Mana, army slots, raise odds, minion bond',['mana','slot','raise','mpow']]];
   const canAlloc=P.pts>0&&S.mode!=='battle';
   return '<section class="win" aria-labelledby="h-status"><h2 class="win-h" id="h-status">Status</h2>'
-   +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(faithOf()?'<div class="faith-l '+faithOf()+'">'+FAITH[faithOf()].name+'</div>':'')+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+'</div></div></div>'
+   +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(faithOf()?'<div class="faith-l '+faithOf()+'" title="Devotion rank '+faithRank()+' of '+DEV_RANKS+'">'+FAITH[faithOf()].name+' &middot; '+faithRank()+'</div>':'')+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+'</div></div></div>'
    +'<div class="vials">'+vial('HP',P.hp,pMax(),'hp')+vial('Mana',P.mana,pMana(),'mp')+'</div>'+'<div class="xp-eng">'+meter('XP',P.xp,need(P.lvl),'xp')+'</div>'
    +((P.pts>0||P.sp>0)?'<div class="chips">'+(P.pts>0?'<span class="chip pts">'+P.pts+' unspent point'+(P.pts>1?'s':'')+'</span>':'')+(P.sp>0?'<span class="chip pts">'+P.sp+' skill point'+(P.sp>1?'s':'')+'</span>':'')+'</div>':'')
    +(remembered()?'<div class="chips"><span class="chip mem-buff" title="Honoured a fallen minion today">Remembered: +'+Math.round(MEM_HP*100)+'% minion max HP until dawn</span></div>':'')
@@ -12285,7 +12488,7 @@ const FIRST_STEPS=[
 const HELP_LATER=()=>[
   ['Town and bounties','Once '+OPEN_AT.town+' gates are cleared: buildings, the Flesh Pit, the Reserve (a bench of '+RESERVE_BASE+' places for spare minions) and a board of up to three contracts.',townOpen()],
   ['Salvage and enchanting','At level 6 or once you have bone dust: break spare gear into dust and add bonus lines.',workOpen()],
-  ['Faith','Once '+OPEN_AT.faith+' gates are cleared, from level '+FAITH_LV+', the Old Shrine (Town tab) takes an oath: Honored One or Dishonored One, each with a gift and a price.',faithOpen()],
+  ['Faith','Once '+OPEN_AT.faith+' gates are cleared, from level '+FAITH_LV+', the Pantheon (Town tab) takes an oath to one of four Old Gods or to none: devotion grows with deeds, every rank gives a boon, and each god asks a vow.',faithOpen()],
   ['The Hell Tower','Once '+OPEN_AT.tower+' gates are cleared, from level '+TW.unlock+': one fight per floor and a unique on every tenth floor.',towerOpen()],
   ['Harder gates','A cleared gate offers Hard, then Brutal and Nightmare: stronger foes, bigger rewards.',DUNGEONS.some((D,i)=>heatMax(i)>0)],
   ['Cursed gates','Each day one cleared gate is cursed: harder, and pays more.',DUNGEONS.some((D,i)=>S.ti&&S.ti.clr&&S.ti.clr[i])],
@@ -12554,9 +12757,9 @@ function codexSection(k){
     +cxList([cxRow('Army slots','1, plus one per 2.5 Will, one per 4 levels, gear and the Crypt. At most '+ARMY_CAP+', plus the Crypt\'s levels.'),cxRow('Gear-bearers','Armed foes (marked Armed) can wear a weapon, armor and relic from your bag once raised.'),cxRow('Bone Altar','Gold raises a minion one level at once, never past your level + 2.'),
       cxRow('Reserve','Opens with the Town tab: '+RESERVE_BASE+' places, +'+RESERVE_CRYPT+' per Crypt level. Benched minions do not fight, take damage or earn XP, and keep their gear. Moving one is free, in town; a full army can raise straight into it.')])
     +'<div class="btns"><button class="btn small" data-a="cx" data-k="army">Army</button><button class="btn small" data-a="cx" data-k="reserve">Reserve</button><button class="btn small" data-a="cx" data-k="fusion">Fusion</button></div>';
-  if(k==='faith') return cxP('Once '+OPEN_AT.faith+' gates are cleared, from level '+FAITH_LV+', the Old Shrine on the Town tab takes an oath. Devotion grows with the days you keep it: the gift grows x'+DEVOTION_MUL[1]+' after '+DEVOTION[1]+' days and x'+DEVOTION_MUL[2]+' after '+DEVOTION[2]+'; the price stays as it is. Renouncing costs 100 gold per level and starts devotion over. Swearing and renouncing happen in town.')
-    +cxP('In about '+pct(FAITH_EVENT)+' of the events between rooms, a sworn necromancer meets a shrine of their own path instead: the Honored One may pray at a shrine of the Old Gods (heal 30% HP and refill mana), the Dishonored One may loot a defiled altar (gold and a Soul for 10% of their HP).')
-    +cxList(Object.keys(FAITH).map(k=>cxRow(FAITH[k].name,FAITH[k].vow+'<br><b>Gives:</b> '+buffTxt(FAITH[k].buff)+'<br><b>Costs:</b> '+buffTxt(FAITH[k].debuff)+'<br><b>At devotion 3:</b> '+FAITH[k].bless.name+'. '+FAITH[k].bless.desc,faithOf()===k?'Sworn':'')));
+  if(k==='faith') return cxP('Once '+OPEN_AT.faith+' gates are cleared, from level '+FAITH_LV+', the Pantheon on the Town tab takes an oath to one of four Old Gods, or to none (the Profane path). Devotion is earned by deeds your god likes; every '+DEV_STEP+' points is a rank, up to '+DEV_RANKS+', and each rank opens a boon. Each god asks a vow: break it and you lose a rank and that day\'s devotion (once a day). Renouncing costs 100 gold per level and starts devotion over. Swearing and renouncing happen in town.')
+    +cxP('In about '+pct(FAITH_EVENT)+' of the events between rooms a sworn necromancer meets a shrine: their own god\'s (pray: heal, refill mana, +'+DEV_SHRINE+' devotion), or another god\'s, which offers a conversion (that god, keeping '+pct(CONVERT_KEEP)+' of your devotion points). The Profane may desecrate another god\'s shrine instead.')
+    +cxList(GODS.map(k=>{ const F=FAITH[k]; return cxRow(F.name,F.domain+'. '+F.about+'<br><b>Vow:</b> '+F.vow+'<br><b>Deeds:</b> '+F.deeds+BOONS[k].map((b,i)=>'<br><b>Rank '+(i+1)+':</b> '+b.t+'.').join(''),faithOf()===k?'Sworn':''); }));
   if(k==='omens') return cxP('Once you have cleared a gate, about '+pct(OMEN_CHANCE)+' of dawns bring an omen. It lasts the whole day and touches every gate, the Tower and the Rift, but never a siege or a Trial. Today: '+(omen()?OMENS[omen()].name:'no omen')+'.')
     +cxList(Object.keys(OMENS).map(o=>cxRow(OMENS[o].name,OMENS[o].desc,omen()===o?'Today':'')));
   if(k==='roles') return cxP('Every creature, yours or the enemy\'s, has one of four roles.')+cxList(Object.keys(ROLES).map(r=>cxRow(ROLES[r].label,ROLES[r].text+' '+CDX_ROLE[r])))
@@ -12654,7 +12857,7 @@ function codexSection(k){
   if(k==='rooms') return '<p class="group-h">Doors</p>'+cxP('After each gate room you choose the next from two or three doors. The first is always an ordinary fight; the room before the boss leads only to the boss.')
     +cxList(Object.keys(DOORS).map(d=>cxRow(DOORS[d].name,DOORS[d].desc)))
     +'<p class="group-h">Between rooms</p>'+cxP('After '+pct(EVENT_CHANCE)+' of gate and Rift rooms (never the last, never in the Tower, a siege or a Trial) you find something. Walking past is always safe.')
-    +cxList(Object.keys(EVENTS).filter(e=>!EVENTS[e].chain).map(e=>cxRow(EVENTS[e].name,EVENTS[e].text+' Choices: '+EVENTS[e].opts.map(o=>o[1]).join(' or ')+'.'+(EVENTS[e].faith?' Only for the '+FAITH[EVENTS[e].faith].name+', in about '+pct(FAITH_EVENT)+' of events.':''))));
+    +cxList(Object.keys(EVENTS).filter(e=>!EVENTS[e].chain).map(e=>cxRow(EVENTS[e].name,EVENTS[e].text+' Choices: '+EVENTS[e].opts.map(o=>o[1]).join(' or ')+'.'+(EVENTS[e].faith==='*'?' Only for a sworn necromancer, in about '+pct(FAITH_EVENT*SHRINE_OTHER)+' of events.':EVENTS[e].faith?' Only for those sworn to '+FAITH[EVENTS[e].faith].name+', in about '+pct(FAITH_EVENT*(1-SHRINE_OTHER))+' of events.':''))));
   if(k==='raids') return cxP('A raised elite can rise as a Commander ('+pct(CMD_ELITE)+'; a boss '+pct(CMD_BOSS)+'), and may become one when it evolves. Only elites and bosses can hold it, even through fusion. From the War table on the Gates tab, a Commander leads one to '+RAID_SQUAD+' followers (+1 per evolution, +1 for a boss) against a gate you have cleared. A raid is an order for tonight: the squad fights the rest of the day\'s runs with you and marches when the day ends, with whoever is still standing (no Commander, no raid). You can cancel the order any time before nightfall. Away overnight they keep their places in the army or the Reserve, so a siege raise cannot fill them, and at dawn they step back in. Only if those places are gone (a burned Crypt) do they wait at the gate.')
     +cxList([cxRow('Odds','Taken when the squad marches: its total attack and HP against the gate\'s foes, raised 10% per Commander evolution and 15% for a boss. Between '+pct(RAID_MIN)+' and '+pct(RAID_MAX)+'.'),cxRow('A night won at a gate',RAID_GOLD+'x a gate\'s gold, two or three pieces of gear from its table (never a unique) and '+(RAID_XP===.75?'three quarters':RAID_XP===.5?'half':pct(RAID_XP))+' of a level of XP for each member.'),cxRow('Loss','Each follower falls '+pct(RAID_LOSS)+' of the time (Grave-bound never do); its gear returns to your bag. The Commander always comes home.'),
       cxRow('Steps','Each night has three steps, each at the cube root of the odds: the Approach ('+pct(EXP_NO_VAN)+' less with no vanguard), the Fight ('+pct(EXP_NO_FIGHT)+' less with no striker or reaper; '+pct(EXP_FIGHTER)+' more per striker or reaper, at most '+pct(EXP_FIGHT_MAX)+'; '+pct(EXP_TYPE)+' more or less per minion whose type the gate is weak to or resists; '+pct(EXP_BOND)+' more for a bonded pair) and the Haul. A failed Approach loses the night and nothing else. A failed Fight ends the night: each follower may fall, but the Commander shields the first, once an expedition. A failed Haul halves what the squad carries; with no mender, each night\'s take is halved. A step stays between '+pct(EXP_STEP_MIN)+' and '+pct(EXP_STEP_MAX)+'.'),
@@ -12781,17 +12984,19 @@ function codexHTML(){
    +(cxQuery()?cxSearchHTML():(fresh=>'<div class="chips cx-nav" role="tablist">'+CODEX.map(c=>'<button class="btn small'+(c[0]===k?' primary':'')+'" role="tab" data-a="cx" data-k="'+c[0]+'" aria-selected="'+(c[0]===k)+'">'+c[1]+(fresh.includes(c[0])?'<span class="cx-new" title="Changed since you last read it">new</span>':'')+'</button>').join('')+'</div>')(cxFresh(k))
    +codexSection(k))+'</section>';
 }
+function boonList(k,rank){ return '<ol class="boons">'+BOONS[k].map((b,i)=>'<li class="'+(i<rank?'ok':'dim')+'">'+b.t+'</li>').join('')+'</ol>'; }
 function faithHTML(){
-  const P=S.player, id=faithOf();
-  let h='<p class="group-h">The Old Shrine &middot; faith</p>';
-  if(!faithOpen()) return h+'<p class="lede">A cracked altar at the edge of town. It will hear an oath once '+OPEN_AT.faith+' gates are cleared, from a necromancer of level '+FAITH_LV+' or more.</p>';
-  if(id){ const F=FAITH[id], dv=devotion(), nx=DEVOTION[dv+1];
-    return h+'<div class="items"><div class="tt-row on"><div><h4>'+F.name+' <span class="u-tag">devotion '+(dv+1)+'/3</span></h4><div class="u-sub">Gives '+buffTxt(faithBuff(id))+'; costs '+buffTxt(F.debuff)+'.</div>'
-      +'<div class="u-sub">'+'<div class="u-sub'+(blessed(id)?' ok':'')+'"><b>'+F.bless.name+'</b> (devotion 3): '+F.bless.desc+(blessed(id)?'':' Not yet.')+'</div>'+'<div class="u-sub">'+(nx!=null?'Keep the oath until day '+(S.faith.day+nx)+' for devotion '+(dv+2)+' (the gift grows x'+DEVOTION_MUL[dv+1]+').':'Your devotion is complete.')+'</div></div>'
+  const id=faithOf();
+  let h='<p class="group-h">The Pantheon &middot; faith</p>';
+  if(!faithOpen()) return h+'<p class="lede">A ring of cracked altars at the edge of town. They will hear an oath once '+OPEN_AT.faith+' gates are cleared, from a necromancer of level '+FAITH_LV+' or more.</p>';
+  if(id){ const F=FAITH[id], k=faithRank(), dv=Math.floor(faithDev()), nx=k<DEV_RANKS?(k+1)*DEV_STEP:null, pc=nx?Math.round((dv-k*DEV_STEP)/DEV_STEP*100):100;
+    return h+'<div class="items"><div class="tt-row on god-'+id+'"><div><h4>'+F.name+' <span class="u-tag">rank '+k+'/'+DEV_RANKS+'</span></h4><div class="u-sub">'+F.domain+'. '+F.about+'</div>'
+      +'<div class="dev-bar" title="'+dv+' devotion"><i style="width:'+pc+'%"></i></div><div class="u-sub">'+(nx?dv+' of '+nx+' devotion for rank '+(k+1)+'.':'Your devotion is complete ('+dv+' points).')+(S.faith.dday===S.day&&S.faith.dd?' Today: +'+Math.round(S.faith.dd)+'.':'')+'</div>'
+      +'<div class="u-sub"><b>Vow:</b> '+F.vow+(S.faith.vb===S.day?' <span class="bad">Broken today.</span>':'')+'</div><div class="u-sub"><b>Deeds:</b> '+F.deeds+'</div>'+boonList(id,k)+'</div>'
       +'<button class="btn small warn" data-a="renounce"'+(S.gold<renounceCost()?' disabled':'')+'>'+(ui.confirm==='renounce'?'Confirm: renounce for '+renounceCost()+' gold':'Renounce &middot; '+gold(renounceCost()))+'</button></div></div>';
   }
-  return h+brief('faith','Swear an oath. Each path gives and takes. Devotion grows with the days you keep it; renouncing costs gold and starts it over.','q-note')+'<div class="items">'
-   +Object.keys(FAITH).map(k=>{ const F=FAITH[k]; return '<div class="tt-row"><div><h4>'+F.name+'</h4><div class="u-sub">'+F.vow+'</div><div class="u-sub"><span class="ok">Gives '+buffTxt(F.buff)+'</span> &middot; <span class="bad">costs '+buffTxt(F.debuff)+'</span></div><div class="u-sub">At devotion 3: <b>'+F.bless.name+'</b>. '+F.bless.desc+'</div></div>'
+  return h+brief('faith','Swear to a god. Devotion grows with the deeds they like, each rank opens a boon, and each god asks a vow. Renouncing costs gold and starts devotion over.','q-note')+'<div class="items">'
+   +GODS.map(k=>{ const F=FAITH[k]; return '<div class="tt-row god-'+k+'"><div><h4>'+F.name+'</h4><div class="u-sub">'+F.domain+'. '+F.about+'</div><div class="u-sub"><b>Vow:</b> '+F.vow+'</div><div class="u-sub"><b>Deeds:</b> '+F.deeds+'</div>'+boonList(k,0)+'</div>'
      +'<button class="btn small primary" data-a="swear" data-k="'+k+'">'+(ui.confirm==='swear'+k?'Confirm the oath':'Swear')+'</button></div>'; }).join('')+'</div>';
 }
 function buildHTML(){
@@ -13574,7 +13779,7 @@ function eventHTML(){
   const E=EVENTS[ev.id], P=S.player;
   const label=(k,t)=>ev.id==='pedlar'&&k==='buy'?'Buy '+withArticle(POTIONS[ev.pot].name)+' &middot; '+gold(ev.price):t;
   const off=k=>(ev.id==='pedlar'&&k==='buy'&&(S.gold<ev.price||S.belt[ev.pot]>=beltMax()))||!!(E.off&&E.off(k));
-  return '<div class="event-box"><h4>'+E.name+'</h4><p>'+E.text+'</p>'+(ev.id==='shrine'&&P.hp<=1?'<p class="q-note">You have no blood to spare.</p>':'')
+  return '<div class="event-box"><h4>'+E.name+'</h4><p>'+E.text+'</p>'+(ev.g&&FAITH[ev.g]?'<p class="q-note">It belongs to '+FAITH[ev.g].name+': '+FAITH[ev.g].domain.toLowerCase()+'. Vow: '+FAITH[ev.g].vow+'</p>':'')+(ev.id==='shrine'&&P.hp<=1?'<p class="q-note">You have no blood to spare.</p>':'')
    +'<div class="btns" style="margin:0">'+E.opts.map((o,i)=>'<button class="btn small'+(i===0?' primary':'')+'" data-a="event" data-k="'+o[0]+'"'+(off(o[0])||(ev.id==='shrine'&&o[0]==='bleed'&&P.hp<=1)?' disabled':'')+'>'+label(o[0],o[1])+'</button>').join('')+'</div></div>';
 }
 function spoilsHTML(){
@@ -13698,9 +13903,9 @@ const ACTIONS={
   sound:()=>{ SFX.on=!SFX.on; try{ localStorage.setItem('lotd-sound',SFX.on?'on':'off'); }catch(e){} if(SFX.on) sfx('coin'); },
   buypot:k=>{ const c=POTIONS[k].price(); ui.msg=buyPotion(k)?{mk:1,m:'Bought a '+POTIONS[k].name+' for '+c+' gold.',c:'ok'}:null; },
   buyitem:k=>{ const s=shopStock()[+k], c=s&&shopPrice(ITEM[s.id]); ui.msg=buyStock(+k)?{mk:1,m:'Bought '+ITEM[s.id].name+' for '+c+' gold. It is in your bag.',c:'ok'}:null; },
-  selltro:k=>{ const g=sellTrophy(k,false); ui.msg=g?{mk:1,m:'Sold '+TROPHY[k].name+' for '+g+' gold.',c:'ok'}:null; },
-  selltroall:k=>{ const n=S.trophies[k], g=sellTrophy(k,true); ui.msg=g?{mk:1,m:'Sold '+n+' '+TROPHY[k].name+' for '+g+' gold.',c:'ok'}:null; },
-  sellalltro:()=>{ const g=sellAllTrophies(); ui.msg=g?{mk:1,m:'Sold every trophy for '+g+' gold.',c:'ok'}:null; },
+  selltro:k=>{ if(vowAsk('sell')) return; const g=sellTrophy(k,false); ui.msg=g?{mk:1,m:'Sold '+TROPHY[k].name+' for '+g+' gold.',c:'ok'}:null; },
+  selltroall:k=>{ if(vowAsk('sell')) return; const n=S.trophies[k], g=sellTrophy(k,true); ui.msg=g?{mk:1,m:'Sold '+n+' '+TROPHY[k].name+' for '+g+' gold.',c:'ok'}:null; },
+  sellalltro:()=>{ if(vowAsk('sell')) return; const g=sellAllTrophies(); ui.msg=g?{mk:1,m:'Sold every trophy for '+g+' gold.',c:'ok'}:null; },
   buysalt:()=>{ const c=saltPrice(); ui.msg=buySalt()?{mk:1,m:'Bought Grave Salts for '+c+' gold.',c:'ok'}:null; },
   buysaltmax:()=>{ const r=buySaltMax(); ui.msg=r.n?{mk:1,m:'Bought '+r.n+' Grave Salts for '+r.g+' gold.',c:'ok'}:null; },
   buybag:()=>{ const c=BAG_COST[S.bagLv||0]; ui.msg=buyBag()?{mk:1,m:'Your bag now holds '+bagMax()+' items. Paid '+c+' gold.',c:'ok'}:null; },
@@ -13726,7 +13931,7 @@ const ACTIONS={
   comm:k=>{ const p=commFill(+k); ui.msg=p?{mk:1,m:'Commission filled: +'+p.g+' gold and +'+p.d+' bone dust.',c:'ok'}:null; },
   bmt:k=>{ const a=k.split('|'), got=bmTrade(a[0],a[1]); ui.msg=got?{mk:1,m:'The black market deals: you get '+got+'.',c:'ok'}:null; },
   brew:k=>{ ui.msg=brew(k)?{mk:1,m:'You brew a '+POTIONS[k].name+' from four trophies.',c:'ok'}:null; },
-  raisesalt:k=>tryRaise(k,true), raisebest:()=>{ raiseBest(); }, raiseres:k=>tryRaise(k,false,true), raiseressalt:k=>tryRaise(k,true,true),
+  raisesalt:k=>{ if(!vowAsk('raise')) tryRaise(k,true); }, raisebest:()=>{ if(!vowAsk('raise')) raiseBest(); }, raiseres:k=>{ if(!vowAsk('raise')) tryRaise(k,false,true); }, raiseressalt:k=>{ if(!vowAsk('raise')) tryRaise(k,true,true); },
   mark:k=>{ const a=k.split('|'); chooseMark(+a[0],a[1]); },
   tores:k=>{ toReserve(+k); }, toarmy:k=>{ toArmy(+k); }, swapo:k=>{ ui.swap=ui.swap===+k?null:+k; }, swap:k=>{ const a=k.split('|'); if(swapReserve(+a[0],+a[1])) ui.swap=null; },
   rsort:k=>{ sortReserve(k); }, gatearmy:k=>{ fromGate(+k,'army'); }, gateres:k=>{ fromGate(+k,'reserve'); },
@@ -13805,7 +14010,7 @@ const ACTIONS={
   act:k=>act(k),
   target:k=>setTarget(k), logall:()=>{ ui.logAll=!ui.logAll; },
   flee:()=>flee(),
-  raise:k=>tryRaise(k), descend:()=>descend(), town:()=>returnTown(), retry:()=>{ retryRoom(); }, rest:()=>restDay(),
+  raise:k=>{ if(!vowAsk('raise')) tryRaise(k); }, descend:()=>descend(), town:()=>returnTown(), retry:()=>{ retryRoom(); }, rest:()=>restDay(),
   release:k=>{ if(ui.confirm===+k){ release(+k); ui.confirm=null; } else ui.confirm=+k; },
   ending:k=>{ if(ui.confirm==='end:'+k){ ui.confirm=null; if(chooseEnding(k)) ui.lpJust=1; } else ui.confirm='end:'+k; },
   inscribe:k=>{ inscribe(k); },
@@ -13814,6 +14019,8 @@ const ACTIONS={
   newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); OPEN_HELP.on=false; ui.tab='gates'; ui.gsub='open'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
 };
 function settled(){ sgTipHide(); if(S&&S.mode==='town') cmdSync(); checkTitles(); try{ loreCheck(); }catch(e){} render(); }   // after an action: award titles and lore passages, then draw
+// the vow warning (game-pantheon.js): the first press says what breaks; the next one goes ahead (ui.vowOk for the rest of the day)
+function vowAsk(k){ if(!vowWarn(k)||ui.vowOk===k+S.day) return false; ui.vowOk=k+S.day; ui.msg={m:k==='raise'?'Raising another body breaks your vow to Morrow (no more than '+MORROW_RAISE+' in a run). Press again to raise anyway.':'Selling a trophy breaks your vow to Ulm. Press again to sell anyway.',c:'bad'}; return true; }
 const CONFIRM_ACTS=['release','respec','cross','ending','hforge','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
 document.addEventListener('click',e=>{
   MUSIC.armed=true;
