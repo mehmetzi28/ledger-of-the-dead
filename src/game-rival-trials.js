@@ -26,11 +26,11 @@ function rivalWant(){   // the role your army leans on: the most minions, then t
   const n={}; for(const m of S.army||[]) if(ROLES[m.role]) n[m.role]=(n[m.role]||0)+1000+(m.lvl||0);
   let best=null; for(const k in n) if(!best||n[k]>n[best]) best=k; return best;
 }
-const arcDef=()=>({ch:1,op:{},wg:null,ww:0,wl:0,rs:0,rw:0,f:0,sw:0});   // the rival's war (game-rival-arc.js)
+const arcDef=()=>({ch:1,op:{},wg:null,ww:0,wl:0,rs:0,rw:0,f:0,sw:0,gu:0,gr:0,rd:0,pick:0,end:null,ed:0});   // the rival's war (game-rival-arc.js)
 const rivalDef=()=>({name:'',met:0,enc:0,wins:0,losses:0,thefts:0,page:-1,step:0,next:0,gi:-1,warned:0,done:0,steal:0,stash:[],arc:arcDef()});
 const rv=()=>{ if(!S.rival) S.rival=rivalDef(); return S.rival; };
 const distinctClears=()=>Object.keys((S.ti&&S.ti.clr)||{}).filter(k=>S.ti.clr[k]).length;
-let rivalOpen=()=>!!S&&!!S.player&&(distinctClears()>=RIVAL_AT||(!!(S.rival&&S.rival.met)&&distinctClears()>=3));   // let: the balance bot switches the rival off with "off":["rival"]
+let rivalOpen=()=>!!S&&!!S.player&&!(S.rival&&S.rival.arc&&S.rival.arc.end)&&(distinctClears()>=RIVAL_AT||(!!(S.rival&&S.rival.met)&&distinctClears()>=3));   /* an ended or spared rival steals no more (game-rival-arc.js) */   // let: the balance bot switches the rival off with "off":["rival"]
 function dayHash(){ let a=0x9e3779b9; for(const x of arguments){ a=Math.imul(a^(x|0),2654435761)>>>0; a^=a>>>15; } a=Math.imul(a,2246822519)>>>0; return (a^(a>>>13))>>>0; }
 const rivalGap=salt=>RIVAL_GAP[0]+dayHash(S.day,salt,T_('rivalWins'),S.ngp||0,11)%(RIVAL_GAP[1]-RIVAL_GAP[0]+1);
 const theftGap=()=>(RIVAL_THEFT[0]+dayHash(S.day,T_('rivalThefts'),S.ngp||0,23)%(RIVAL_THEFT[1]-RIVAL_THEFT[0]+1))*(hasInsc('rival')?2:1)*spyK();   /* Of the Rival; the Spy Network (game-town2.js) */
@@ -98,7 +98,7 @@ function rivalLost(r){   // you fell or fled with the rival standing: a page is 
 }
 const rivalStanding=r=>!!(r&&r.rival&&r.enemies.some(e=>e.rival&&e.hp>0));
 function rivalTheft(r){   // on a gate run, before you act on a room's bodies: the most valuable one of the role your army leans on (else any), never a boss, never from fewer than two
-  if(!rivalOpen()||!r||r.tw||r.rift||r.siege||r.trial||r.room===0) return null; const g=rv(); if(!g.name||!g.met||!g.steal||S.day<g.steal) return null;
+  if(!rivalOpen()||!r||r.tw||r.rift||r.siege||r.trial||r.rg||r.rk||r.room===0) return null; const g=rv(); if(!g.name||!g.met||!g.steal||S.day<g.steal) return null;
   const open=r.corpses.filter(c=>!c.tried); if(open.length<2) return null;
   const w=rivalWant(), c=open.filter(x=>!x.boss).sort((a,b)=>(b.role===w)-(a.role===w)||bodyValue(b)-bodyValue(a))[0]; if(!c) return null;
   c.tried=true; c.result='taken'; c.taken=g.name; g.thefts++; tally('rivalThefts'); g.steal=S.day+theftGap();
@@ -122,7 +122,7 @@ function rivalFix(g){   // normalizeSave
     x.di=RK[n(b.di,-1)]?n(b.di,0):x.rankI; if(typeof b.mine==='string'&&b.mine) x.mine=cleanNick(b.mine); const a=Array.isArray(b.aff)?b.aff.filter(k=>AFFIX[k]):[]; if(a.length) x.aff=a; if(CORPSE_CONDS[b.cd]) x.cd=b.cd; return x; }).slice(-RIVAL_STASH);
   out.arc=arcFix(o.arc,out); g.rival=out;
 }
-const rivalNgp=o=>Object.assign(rivalDef(),o?{name:o.name,met:o.met,enc:o.enc,wins:o.wins,losses:o.losses,thefts:o.thefts,page:o.page}:{});   // New Game+: the name and record stay
+const rivalNgp=o=>Object.assign(rivalDef(),o?{name:o.name,met:o.met,enc:o.enc,wins:o.wins,losses:o.losses,thefts:o.thefts,page:o.page}:{},o&&o.arc&&o.arc.end?{arc:Object.assign(arcDef(),{ch:5,end:o.arc.end,ed:o.arc.ed})}:{});   // New Game+: the name and record stay; an ended or spared rival stays so   // New Game+: the name and record stay
 // Gold and bone dust worth about one clear of a gate (the siege's yardstick: about 20 kills of coin at the gate's level).
 const clearGold=di=>Math.round(20*(1+(RK[di].lv+1)*.5)*(1+di*.5)*ngpReward());
 const clearDust=di=>Math.round((6+Math.floor(S.player.lvl/4))*(1+BOUNTY_GATE*di));

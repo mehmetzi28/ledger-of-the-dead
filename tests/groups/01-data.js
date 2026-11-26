@@ -8,8 +8,8 @@ test('Data: every gate has 7 enemies with known roles and a reaper boss',()=>{
     eq(D.mobs.filter(m=>m[1]==='mender').length,2,D.name+' menders'); ok(ARMED.has(D.mobs[6][0]),D.name+' gear-bearer'); });
 });
 test('Data: enemy names are unique across gates and the Tower',()=>{ const a=allNames(); eq(new Set(a).size,a.length); });
-test('Data: 68 items, each with a slot, tier and real stats',()=>{
-  eq(Object.keys(ITEM).length,68);
+test('Data: 71 items, each with a slot, tier and real stats',()=>{
+  eq(Object.keys(ITEM).length,71);
   for(const d of Object.values(ITEM)){ ok(SLOTS[d.slot],d.id+' slot'); ok(d.tier>=0&&d.tier<TIERS.length,d.id+' tier'); ok(d.name&&!BAD_TEXT.test(d.name),d.id+' name');
     for(const k in d.stats){ ok(STATL[k],d.id+' unknown stat '+k); finite(d.stats[k],d.id+'.'+k); ok(d.stats[k]>=0,d.id+'.'+k+' negative'); }
     ok(Object.values(d.stats).some(v=>v>0),d.id+' has no stats'); if(d.flag) ok(FLAGS[d.flag],d.id+' flag text'); }

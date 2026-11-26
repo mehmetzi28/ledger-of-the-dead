@@ -78,6 +78,7 @@ const ACTIONS={
   tores:k=>{ toReserve(+k); }, toarmy:k=>{ toArmy(+k); }, swapo:k=>{ ui.swap=ui.swap===+k?null:+k; }, swap:k=>{ const a=k.split('|'); if(swapReserve(+a[0],+a[1])) ui.swap=null; },
   rsort:k=>{ sortReserve(k); }, gatearmy:k=>{ fromGate(+k,'army'); }, gateres:k=>{ fromGate(+k,'reserve'); },
   event:k=>{ resolveEvent(k); }, door:k=>{ descend(k); }, cmd:k=>{ command(k); }, rally:k=>{ rally(k); }, wager:k=>{ if(!wager(k==='none'?null:+k)) ui.msg={m:'They will not take that one.',c:'bad'}; },
+  rgate:()=>{ startRivalGate(); }, reck:()=>{ startReckoning(); }, rend:k=>{ arcEnd(k); }, atrade:k=>{ if(!allyTrade(+k)) ui.msg={m:'They will not take that one.',c:'bad'}; },   /* the rival's end (game-rival-arc.js) */
   skmod:k=>{ const a=k.split('|'); chooseMod(a[0],a[1]); },
   build:k=>{ const c=buildCost(k); ui.msg=build(k)?{mk:1,m:BUILD[k].name+' raised to level '+bl(k)+' for '+c[0]+' gold'+(c[1]?' and '+c[1]+' bone dust':'')+'.',c:'ok'}:null; },
   claimb:k=>{ const r=claimBounty(+k); if(r) notify('Bounty claimed: '+r+'.','ok'); },

@@ -84,7 +84,7 @@
 (function(){
   const STAT_ORDER=['intelligence','constitution','will','intelligence','constitution','strength'];
   const SKILL_ORDER=['spear','bonearmor','mend','blast','soulwell','curse','gravepact','chill','frenzy','edge','mastery','reap','robber','scholar','calcify','sanguine','thrift','deathless'];   // the small passives last: actives come first
-  const itemScore=d=>d.tier*10+(d.uq?25:0)+(d.set||0);
+  const itemScore=d=>d.tier*10+(d.uq?25:0)+(d.rival?6.5:d.set||0);   // the rival's book: worn over the gate and Tower uniques
   const cval=c=>c.rankI*100+c.lvl+(c.boss?40:0)+(c.elite?15:0);
   function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 
@@ -353,6 +353,16 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
     const r=S.run, x={di:p.di,t:p.tier,lvl,done:!!(r&&r.trialRes)}; if(x.done){ x.s=r.trialRes.s; x.tt=r.trialRes.turns; x.downs=r.trialRes.downs; x.par=TRIAL_PAR; x.hearts=r.trialRes.h||0; }
     out.push(x); if(S.mode!=='town') returnTown();
   }
+  function playArc(B){   // R7 PR B ('full'): the rival's gate while it is open, the Reckoning when it waits; ends them unless opts.rival is 'spare'
+    if(!B.full||typeof rgReady!=='function') return; const go=rgReady()?startRivalGate():reckReady()?startReckoning():false; if(!go) return; const rk=!!S.run.rk; let guard=0;
+    while(S.mode!=='town'&&guard++<2000){
+      if(S.mode==='battle'){ act(decide(B)); continue; }
+      if(S.mode==='raise'){ raisePhase(B); if(S.run.cleared){ returnTown(); break; } const P=S.player, live=S.army.filter(m=>m.hp>0).length;
+        if(P.hp+pMax()*DIFF.heal>=pMax()*.5||(P.hp>=pMax()*.3&&live>=2)) descend(); else { returnTown(); break; } continue; }
+      if(S.mode==='defeat'){ returnTown(); break; }
+      break; }
+    if(S.mode!=='town') returnTown(); if(rk&&arc().pick) arcEnd(B.rival==='spare'?'spare':'end');
+  }
   function simBot(seed,B,days){
     Math.random=mulberry32(seed); newGame(); B.lastDay=days; B.statI=0; B.hw={}; B.hwDay={}; if(typeof BOSS_KITS_ON!=='undefined') BOSS_KITS_ON=!B.off.bosskits;   /* 'bosskits' off: the old single boss moves */
     let abbeyDay=null; HFC.n=0; HFC.g=0; TW2C.n=0; TW2C.spec=0; TW2C.emb=0; TW2C.omen=0; TW2C.ord=0; BRC.n=0; BRC.g=0; BRC.comm=0; BRC.commG=0; BRC.bm=0; const rec=[], lvAt={}, firstClear={}, loreAt={}, tiers=[], trials=[], goldAt={}, gl={earn:0,spend:0,S:null};
@@ -361,7 +371,8 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
       goldWatch();
       if(B.tiers&&S.watches===WATCHES&&S.day%(B.tiers.every||2)===0) tierProbe(B,seed,tiers);
       if(S.mode==='siege') fightSiege(B);
-      town(B); const d=S.day; if(B.full&&!B.off.trials&&typeof trialReady==='function'&&trialReady()&&!trialBestWeek()&&(B.trw&&B.trw.w===trialWeek()?B.trw.n:0)<3){ B.trw=B.trw&&B.trw.w===trialWeek()?B.trw:{w:trialWeek(),n:0}; B.trw.n++; playTrial(B,trials); town(B); }   // until it completes the week's Trial, at most 3 tries a week
+      town(B); const d=S.day; if(B.full&&!B.off.trials&&typeof trialReady==='function'&&trialReady()&&!trialBestWeek()&&(B.trw&&B.trw.w===trialWeek()?B.trw.n:0)<3){ B.trw=B.trw&&B.trw.w===trialWeek()?B.trw:{w:trialWeek(),n:0}; B.trw.n++; playTrial(B,trials); town(B); }
+      if(B.full&&S.watches>0){ playArc(B); if(S.mode==='siege') fightSiege(B); town(B); }   // until it completes the week's Trial, at most 3 tries a week
       playRun(B,rec); if(S.mode==='siege') fightSiege(B);
       const last=rec[rec.length-1]; if(last&&last.cleared&&firstClear[last.gate]==null) firstClear[last.gate]=d;
       if(abbeyDay==null&&S.abbey&&S.abbey.open) abbeyDay=d;
@@ -382,7 +393,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
     const rival={met:T_('rivalMet'),wins:T_('rivalWins'),losses:T_('rivalLosses'),thefts:T_('rivalThefts'),day:(S.rival&&S.rival.met)||0};
     const head=typeof headBonus==='function'?{g:T_('headG'),t:headTiers(),b:headBonus()}:null;
     const awk={g:T_('awakenG'),n:T_('awakened')};   // awakening ranks bought and their gold
-    return {arc:{ch:(S.rival&&S.rival.arc&&S.rival.arc.ch)||0,d2:(S.rival&&S.rival.arc&&S.rival.arc.op[2])||0,d3:(S.rival&&S.rival.arc&&S.rival.arc.op[3])||0,ww:T_('wagerWins'),wl:T_('wagerLosses'),sw:T_('rivalSiegeWins'),sl:T_('rivalSiegeLosses'),rec:T_('reclaimed')},exp:{nights:T_('expNights'),won:T_('expNightsWon'),clean:T_('expClean'),long:T_('expLong'),hunt:T_('exp_hunt'),curse:T_('exp_curse'),band:T_('exp_band'),scav:T_('exp_scav'),gate:T_('exp_gate'),rallies:T_('rallies'),camps:T_('expCamps')},town2:{n:TW2C.n,spec:TW2C.spec,emb:TW2C.emb,omen:TW2C.omen,yard:T_('yardSold'),ord:T_('orders'),pick:TW2C.ord,hunts:T_('ord_hunt'),claims:(S.ti&&S.ti.claims)||0,dread:typeof dreadOf==='function'?dreadOf():0,upk:T_('upkeepG'),tithes:T_('tithes'),bands:['calm','uneasy','afraid','terror'].map(b=>T_('band_'+b)),lv:Object.fromEntries(Object.keys(BUILD).map(k=>[k,blRaw(k)]))},hf:{n:HFC.n,g:HFC.g},brew:{n:BRC.n,g:BRC.g,comm:BRC.comm,commG:BRC.commG,bm:BRC.bm,prep:T_('prepUsed')},abbeyDay,abbeyEnd,abbeyProbe,trials,ev:B.ev||{},chainsEnded:T_('chains'),head,awk,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
+    return {arc:{ch:(S.rival&&S.rival.arc&&S.rival.arc.ch)||0,d2:(S.rival&&S.rival.arc&&S.rival.arc.op[2])||0,d3:(S.rival&&S.rival.arc&&S.rival.arc.op[3])||0,ww:T_('wagerWins'),wl:T_('wagerLosses'),sw:T_('rivalSiegeWins'),sl:T_('rivalSiegeLosses'),rec:T_('reclaimed'),d4:(S.rival&&S.rival.arc&&S.rival.arc.op[4])||0,d5:(S.rival&&S.rival.arc&&S.rival.arc.op[5])||0,ed:(S.rival&&S.rival.arc&&S.rival.arc.ed)||0,rgR:T_('rgRuns'),rgC:T_('rgClears'),rkT:T_('reckTries'),rkW:T_('reckWins'),uq:typeof RIVAL_UQ!=='undefined'?RIVAL_UQ.filter(id=>GEAR_SLOTS.some(sl=>S.equip[sl]&&S.equip[sl].id===id)).length:0},exp:{nights:T_('expNights'),won:T_('expNightsWon'),clean:T_('expClean'),long:T_('expLong'),hunt:T_('exp_hunt'),curse:T_('exp_curse'),band:T_('exp_band'),scav:T_('exp_scav'),gate:T_('exp_gate'),rallies:T_('rallies'),camps:T_('expCamps')},town2:{n:TW2C.n,spec:TW2C.spec,emb:TW2C.emb,omen:TW2C.omen,yard:T_('yardSold'),ord:T_('orders'),pick:TW2C.ord,hunts:T_('ord_hunt'),claims:(S.ti&&S.ti.claims)||0,dread:typeof dreadOf==='function'?dreadOf():0,upk:T_('upkeepG'),tithes:T_('tithes'),bands:['calm','uneasy','afraid','terror'].map(b=>T_('band_'+b)),lv:Object.fromEntries(Object.keys(BUILD).map(k=>[k,blRaw(k)]))},hf:{n:HFC.n,g:HFC.g},brew:{n:BRC.n,g:BRC.g,comm:BRC.comm,commG:BRC.commG,bm:BRC.bm,prep:T_('prepUsed')},abbeyDay,abbeyEnd,abbeyProbe,trials,ev:B.ev||{},chainsEnded:T_('chains'),head,awk,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
   }
 
   // ----- reporting
@@ -416,7 +427,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
     gold.maus=avg(res.map(r=>r.maus||0)); gold.bonds=avg(res.map(r=>r.bonds||0));   // mausoleums raised and bonded pairs at the end
     { const f=res.map(r=>r.hf).filter(Boolean); if(f.some(x=>x.n)) gold.hforge={n:avg(f.map(x=>x.n)),spent:Math.round(avg(f.map(x=>x.g)))}; }
     { const f=res.map(r=>r.brew).filter(Boolean); if(f.some(x=>x.n||x.comm)) gold.brew={n:avg(f.map(x=>x.n)),spent:Math.round(avg(f.map(x=>x.g))),comm:avg(f.map(x=>x.comm)),commG:Math.round(avg(f.map(x=>x.commG))),bm:avg(f.map(x=>x.bm)),prep:avg(f.map(x=>x.prep))}; }
-    { const f=res.map(r=>r.arc).filter(Boolean); if(f.length&&f.some(x=>x.ch>0)){ const d=k=>{ const v=f.map(x=>x[k]).filter(x=>x>0); return v.length?avg(v)+' ('+v.length+' bots)':'-'; }; gold.arc={ch:avg(f.map(x=>x.ch)),d2:d('d2'),d3:d('d3'),ww:avg(f.map(x=>x.ww)),wl:avg(f.map(x=>x.wl)),sw:f.reduce((a,x)=>a+x.sw,0),sl:f.reduce((a,x)=>a+x.sl,0),rec:avg(f.map(x=>x.rec))}; } }
+    { const f=res.map(r=>r.arc).filter(Boolean); if(f.length&&f.some(x=>x.ch>0)){ const d=k=>{ const v=f.map(x=>x[k]).filter(x=>x>0); return v.length?avg(v)+' ('+v.length+' bots)':'-'; }; gold.arc={ch:avg(f.map(x=>x.ch)),d2:d('d2'),d3:d('d3'),ww:avg(f.map(x=>x.ww)),wl:avg(f.map(x=>x.wl)),sw:f.reduce((a,x)=>a+x.sw,0),sl:f.reduce((a,x)=>a+x.sl,0),rec:avg(f.map(x=>x.rec)),d4:d('d4'),d5:d('d5'),ed:d('ed'),rgR:f.reduce((a,x)=>a+(x.rgR||0),0),rgC:f.reduce((a,x)=>a+(x.rgC||0),0),rkT:f.reduce((a,x)=>a+(x.rkT||0),0),rkW:f.reduce((a,x)=>a+(x.rkW||0),0),uq:avg(f.map(x=>x.uq||0))}; } }
     { const f=res.map(r=>r.exp).filter(Boolean); if(f.length&&f.some(x=>x.nights||x.rallies)){ gold.exp={}; for(const k in f[0]) gold.exp[k]=avg(f.map(x=>x[k])); } }
     { const f=res.map(r=>r.town2).filter(Boolean); if(f.length&&f.some(x=>x.n||x.spec)) gold.town2={n:avg(f.map(x=>x.n)),spec:avg(f.map(x=>x.spec)),emb:avg(f.map(x=>x.emb)),omen:avg(f.map(x=>x.omen)),ord:avg(f.map(x=>x.ord||0)),hunts:avg(f.map(x=>x.hunts||0)),claims:avg(f.map(x=>x.claims||0)),pick:avg(f.map(x=>x.pick||0)),dread:avg(f.map(x=>x.dread||0)),upk:Math.round(avg(f.map(x=>x.upk||0))),tithes:avg(f.map(x=>x.tithes||0)),bands:[0,1,2,3].map(i=>avg(f.map(x=>(x.bands||[])[i]||0))).join('/'),lv:Object.keys(f[0].lv).map(k=>k+' '+avg(f.map(x=>x.lv[k]||0))).join(', ')}; }
     { const a=res.map(r=>r.awk).filter(Boolean); if(a.some(x=>x.n)) gold.awaken={spent:Math.round(avg(a.map(x=>x.g))),ranks:avg(a.map(x=>x.n))}; }
@@ -446,7 +457,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
         if(keep.siegeOpen) siegeOpen=(opts.off||[]).includes('siege')?()=>false:keep.siegeOpen;   // "off":["siege"]: the living never come
         if(keep.rivalOpen) rivalOpen=(!full||(opts.off||[]).includes('rival'))?()=>false:keep.rivalOpen;   // the rival plays only in 'full'; "off":["rival"] switches it off there
         if(keep.rivalArcOn) rivalArcOn=(opts.off||[]).includes('rivalarc')?()=>false:keep.rivalArcOn;   // "off":["rivalarc"]: the rival stays in chapter 1
-        const res=[]; for(let b=0;b<opts.bots;b++) res.push(simBot(opts.seed+b,{skills,market,full,push:opts.push,dread:opts.dread,faith:opts.faith||(full?(b%2?'dis':'hon'):null),ult:opts.ult,heat:opts.heat!=null?opts.heat:(full?1:0),tiers:opts.tiers,stats:opts.stats,mods:opts.mods,mod:opts.mod,off:Object.fromEntries((opts.off||[]).map(k=>[k,1]))},opts.days));
+        const res=[]; for(let b=0;b<opts.bots;b++) res.push(simBot(opts.seed+b,{skills,market,full,push:opts.push,dread:opts.dread,faith:opts.faith||(full?(b%2?'dis':'hon'):null),ult:opts.ult,heat:opts.heat!=null?opts.heat:(full?1:0),tiers:opts.tiers,stats:opts.stats,mods:opts.mods,mod:opts.mod,rival:opts.rival,off:Object.fromEntries((opts.off||[]).map(k=>[k,1]))},opts.days));
         out[name]=summarize(res,opts.days);
       }
     } finally {

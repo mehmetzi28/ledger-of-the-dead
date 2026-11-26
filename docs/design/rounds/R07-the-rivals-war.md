@@ -156,5 +156,37 @@ Chapters 1-3, 2026-11-26. src/game-rival-arc.js (after game-exp.js); `S.rival.ar
 - **Bot**: stakes its weakest eligible Reserve body on a challenge morning; `"off":["rivalarc"]` keeps chapter 1.
 - **Measured**: see 04-balance (chapter 3 by day ~60, their siege held 68-85%).
 - **Tests**: 97-rival-arc (8); 807 in all; fuzz 12/12 clean.
-- **PR B**: their gate (chapter 4), the Reckoning (chapter 5), End them / Spare them, the three rival uniques and set,
-  the NG+ ally, the other three titles and passages.
+
+## As built (PR B, #21)
+
+Chapters 4-5 and the endings, 2026-11-26. `S.rival.arc` gains `gu, gr` (their gate open until / reopens on), `rd` (the
+duel's day), `pick` (kneeling), `end` ('ended' | 'spared'), `ed`; `S.ally` holds the spared rival.
+
+- **Chapter 4, Their Own Gate**: opens when their siege has been fought, won or lost. The Rival's Ledger is on the Gates
+  tab for 7 days (ARC_GATE_DAYS), then closed 10 (ARC_GATE_WAIT), then open again. A run `{rg:1}` of four rooms at your
+  deepest open gate, never below your level, every foe x1.4 (ARC_GATE_K): room 1 their newest stolen dead, room 2 the
+  bodies that were yours (`b.mine`), room 3 their best body as an elite, room 4 a lieutenant boss shaped like your
+  strongest minion ("Reflection of ...", Sundering Blow). No doors, events or thefts. A stolen body killed there rises
+  +25% (ARC_RECL_RAISE, `rgRaise` in raiseChance). Clearing it opens chapter 5.
+- **Chapter 5, the Reckoning**: from the next day, a one-room run `{rk:1}`: the rival with every move (Royal Decree and
+  all four RIVAL_MOVE) at x0.9 a challenge (ARC_DUEL_K; their whole kit is the danger) and their stash followers. Their
+  second phase turns **The Last Page**: every follower still standing burns (it leaves the stash) and heals them 6% of
+  max HP each (ARC_LAST_HEAL). Fall or flee: the weakest Reserve minion goes into their book and the duel waits 7 days
+  (ARC_DUEL_WAIT). No Retry. A won duel does not count as a challenge win.
+- **The endings** (the Gates tab, after the duel): **End them**: The Thief's Quill, the Margin-Stitched Coat and The
+  Other Ledger (set "The Rival's Book": 2 pieces +10 mpow +5% raise, 3 pieces +8% damage +6% HP; with all three
+  Reclaimed minions take a further +10%, BOOK_K) and every stash body comes home Reclaimed. **Spare them**: `S.ally`
+  for the next cycle: one body trade a week (a Reserve minion of the same rank) and the first wave of one siege a cycle
+  held alone (`allyAid`). Either way `rivalOpen` is false from then on (no thefts, no challenges), and New Game+ keeps
+  the ending (`rivalNgp`). Finishing with fewer than 5 thefts ever counts as clean.
+- **Uniques**: Pickpocket (the first trophy a room drops for you drops twice), Second Hand (once a run a minion that would
+  shatter binds instead), Two Books (+1% raise per body ever won back, up to 15%). Set 5 for prices, tempering and
+  awakening (their hearts are the Pale Sovereign's); they count only toward their own set. Stats sit near Tower floors
+  60-70 (first 24/120/20, which no bot ever wore).
+- **Titles** (3 more, 176): Last Word (end them), Mercy in Red Ink (spare them), Not in Their Book (clean). Passages:
+  *A gate of my own dead*, *Torn pages*, *The pen taken*, *Written in red*; the rival's voice for chapters 4-5.
+- **Bot**: enters their gate whenever it is open and faces the Reckoning when it waits (playArc, before the day's run),
+  ends them unless `"rival":"spare"`; its item score ranks the rival's book over other uniques.
+- **Measured**: the arc ends on day ~70 in every full bot (chapter 4 ~65); their gate cleared 80 of 81 runs (a lead-in,
+  not a wall); the Reckoning won 69%/65% (x1.25 gave 43%, x1 58%, x.85 73-77%). See 04-balance.
+- **Tests**: 98-rival-end (9); 816 in all; fuzz 12/12 clean.

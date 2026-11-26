@@ -13,7 +13,7 @@ const PHASE_LINES={
 function checkPhase(){
   if(!S.run) return;
   for(const e of liveFoes()) if(e.boss&&e.abil&&!e.phase2&&!e.hunger&&(e.tw||e.rival||e.rankI>=1||runHeat()>=2)&&e.hp<=e.maxHp*phaseAt()){   // the Rat King, a new player's first boss, keeps one phase
-    e.phase2=true; e.fast=(e.fast||0)+1; e.alt=true; e.abilT=Math.min(e.abilT,2);   // Sundering Blow comes first (a boss with a move set has a twist instead)
+    e.phase2=true; e.fast=(e.fast||0)+1; e.alt=true; e.abilT=Math.min(e.abilT,2); if(e.reck) reckLastPage(e);   /* The Last Page (game-rival-arc.js) */   // Sundering Blow comes first (a boss with a move set has a twist instead)
     const l=PHASE_LINES[e.base]; log(e.name+(l?': "'+l+'"':' rises in fury.'),'boss'); const tw=bossTwist(e);
     log(tw?e.name+' enters its second phase: '+tw.name+'. '+tw.desc+' It moves faster and warns before every move.':e.name+' enters its second phase. It moves faster, warns before every move, and adds Sundering Blow.','bad'); sfx('phase'); tally('phases'); moment(e.name+' enters its second phase','bad');
   }
@@ -354,7 +354,7 @@ function temper(u,i){
 const AWAKEN_MAX=5, AWAKEN_K=.08, AWAKEN_GOLD=4000, AWAKEN_GROW=2, AWAKEN_DUST=20, AWAKEN_FLAT={slot:1,regen:1};
 const AWAKEN_TXT='Each rank adds '+Math.round(AWAKEN_K*100)+'% to the unique\'s own stats (army slots and mana per turn excepted), up to '+AWAKEN_MAX+' ranks. It costs gold, bone dust and hearts of the boss or warden that drops it.';
 const AWAKEN_RN=['','I','II','III','IV','V'];
-function uniqHeart(id){ const d=ITEM[id]; if(!d||!d.uq) return null; return 'b:'+(d.tower?TW_BOSS[clamp(Math.round(d.floor/10)-1,0,TW_BOSS.length-1)]:DUNGEONS[d.set].boss[0]); }   // the trophy key of its boss's heart
+function uniqHeart(id){ const d=ITEM[id]; if(!d||!d.uq) return null; return 'b:'+(d.rival?DUNGEONS[5].boss[0]:d.tower?TW_BOSS[clamp(Math.round(d.floor/10)-1,0,TW_BOSS.length-1)]:DUNGEONS[d.set].boss[0]); }   // the trophy key of its boss's heart
 const awakenScale=d=>d.tower?1+d.floor/50:1+d.set*.2;
 function awakenCost(it){ const d=ITEM[it&&it.id]; if(!d||!d.uq||(it.aw|0)>=AWAKEN_MAX) return null; const n=it.aw|0, k=awakenScale(d);
   return {g:Math.round(AWAKEN_GOLD*k*Math.pow(AWAKEN_GROW,n)/100)*100, d:Math.round(AWAKEN_DUST*k*(n+1)), h:n+1, key:uniqHeart(it.id)}; }
@@ -462,7 +462,7 @@ function beginSiege(){
   if(S.mode!=='siege') return false; const di=siegeGate();
   S.run={siege:1,di,room:0,rooms:SIEGE_WAVES,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:null,heat:0,fallen:[]};
   const g=sg(), w=wallPool().filter(m=>(g.wall||[]).includes(m.uid)).slice(0,SIEGE_WALL); S.reserve=(S.reserve||[]).filter(m=>!w.includes(m)); w.forEach(m=>{ m.wall=true; S.army.push(m); });
-  S.mode='battle'; syncArmy(); S.army.forEach(m=>{ m.hp=m.maxHp; }); titheSouls();
+  S.mode='battle'; syncArmy(); S.army.forEach(m=>{ m.hp=m.maxHp; }); titheSouls(); allyAid(S.run);   /* the spared rival holds the first wave (game-rival-arc.js) */
   spawnSiege(); return true;
 }
 function nextWave(){   // between waves: the usual between-room heal, then the next wave at once

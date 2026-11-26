@@ -52,7 +52,7 @@ test('Their siege lost: they carry off your weakest Reserve minion; saves keep t
   S.run={siege:1,di:1,rivalSiege:1,events:[]}; siegeLost(false); eq(arc().rs,3); ok(!S.reserve.includes(w),'the weakest'); ok(S.reserve.includes(s)); ok(g.stash.some(b=>b.mine===w.nick));
   const o=normalizeSave(JSON.parse(JSON.stringify(S))); eq(JSON.stringify(o.rival.arc),JSON.stringify(g.arc));
   const old=JSON.parse(JSON.stringify(S)); delete old.rival.arc; old.rival.enc=ARC_FIGHTS; eq(normalizeSave(old).rival.arc.ch,2,'an old save after enough encounters');
-  const bad=JSON.parse(JSON.stringify(S)); bad.rival.arc={ch:9,rs:7,wg:{uid:'x'},op:'z',ww:-3}; const f=normalizeSave(bad).rival.arc; eq(f.ch,3); eq(f.rs,3); eq(f.wg,null); eq(f.ww,0);
+  const bad=JSON.parse(JSON.stringify(S)); bad.rival.arc={ch:9,rs:7,wg:{uid:'x'},op:'z',ww:-3}; const f=normalizeSave(bad).rival.arc; eq(f.ch,5); eq(f.rs,3); eq(f.wg,null); eq(f.ww,0);
 });
 test('Rival\'s war: the Rival page shows the chapters; the Codex states it; Turkish for the new words',()=>{
   fresh(); const g=meet(); g.arc=arcFix({ch:2,op:{2:1}},g); ok(/arc-track/.test(rivalCardHTML())&&/The Open Hand/.test(rivalCardHTML())); ok(/Wagers/.test(cdx('rival'))&&/Their siege/.test(cdx('rival')));

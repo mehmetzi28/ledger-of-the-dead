@@ -24,6 +24,14 @@ to each constant in `src/` and in `claude.md`; this page is the summary to read 
 
 ## 4.2 Latest measurements (2026-11-26, seeds 7700 and 9100, 40 bots x 100 days)
 
+**After the rival's end, chapters 4-5 (R7 PR B)**: market unchanged (89/90%, Tower 78.6/77.1, Rift 16.8/16.6). full
+90/90%, Tower 87.8/87.0 (was ~85: the rival's book is worn from day ~70), Rift 20.8/20.2 (was ~15.5), sieges held 80/78%.
+The arc ends on day 70-71 in every bot (chapter 4 on day ~65, chapter 5 ~66); their gate cleared 80 of 81 runs; the
+Reckoning won 40/58 and 40/62 (69/65%; ARC_DUEL_K x1.25 gave 43%, x1 58%, x.85 73-77%, so x.9; The Last Page's heal
+10% -> 6%). Challenges won fell to 46% only because the 40-odd late challenges (day 70-100, nearly all won) no longer
+happen once the rival is ended; the rate before day 70 is unchanged. The rival's uniques were first at Tower-floor-30
+strength and no bot wore them; now near floors 60-70, all three are worn.
+
 **After the rival's war, chapters 1-3 (R7 PR A)**: market unchanged (89%, Tower 78.6, Rift 16.8). full 90/91%, Tower
 84.7/85.4, Rift 15.6/15.4, sieges held 77/80%, rival challenges won 63/65%. Chapter 2 opens on day ~50 (it took ~67 with
 three challenges, so two), chapter 3 on day ~60; ~1.2 wagers won a bot (the bot stakes its weakest Reserve body on a
@@ -180,6 +188,7 @@ Gold at day 100 (before Awakening and headstones): ~33-39k average held, ~1.1M l
 | `RAISE_*`, `SHATTER_*` | `game-runs.js` | Army growth and loss |
 | `SIEGE_*` | `game-phases-town.js` | Siege strength and pay |
 | `RIVAL_*` | `game-rival-trials.js` | Rival strength, schedule, stash |
+| `ARC_*`, `RECL_K`, `BOOK_K` | `game-rival-arc.js` | The rival's war: chapters, their siege, their gate, the Reckoning |
 | `TRIAL_*` | `game-rival-trials.js` | Trial strength, par, hearts |
 | `AWAKEN_*`, `TEMPER_*`, `HEAD_*`, `MAUS_*` | `game-phases-town.js`, `game-faith-story.js` | Late gold sinks |
 | `COMPOUNDS`, `MARK`, `CORPSE_CONDS` | `game-skills-market.js`, `game-gate-rules.js` | Army depth |

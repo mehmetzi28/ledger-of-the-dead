@@ -1779,7 +1779,7 @@ function freshState(){
      player:{id:'p',name:'You',lvl:1,xp:0,pts:3,hp:0,mana:0,shield:0,stats:{strength:4,constitution:4,intelligence:4,will:4},sp:0,skills:{},skMod:{},cmd:{a:0,h:0}},
      army:[],quest:{kills:0,rooms:0,clears:0,claimed:false},gold:0,trophies:{},belt:{hp:0,mp:0},stash:{},prep:{},comm:null,bm:null,spec:{},embalm:[],dread:DREAD_START,orders:null,unpaid:{},shop:null,bagLv:0,salts:0,tips:{},ngp:0,firstRaise:1,
      mod:null,hist:[],story:{},life:Object.fromEntries(LIFE_KEYS.map(k=>[k,0])),build:{},dust:0,bounty:null,heat:{},heatMax:{},raids:[],raidOrders:[],raidLog:[],abbey:abbeyFix(null),inscriptions:[],endHist:[],ending:null,lastPage:0,cycle:null,rift:{best:0},siege:{next:0,pending:false,dmg:null,warned:0},reserve:[],waiting:[],
-     memorial:[],honor:null,loadouts:[{n:'',s:null},{n:'',s:null},{n:'',s:null}],rival:rivalDef(),trials:trialDef(),pacts:[]};
+     memorial:[],honor:null,loadouts:[{n:'',s:null},{n:'',s:null},{n:'',s:null}],rival:rivalDef(),trials:trialDef(),pacts:[],ally:null};
 }
 const OPEN_HELP={on:false};   // a brand-new game opens on the Gates tab, with a link to How to play at the top
 function newGame(){
@@ -1792,7 +1792,7 @@ const canNGP=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]);
 const ownedUniques=()=>[...new Set(S.inv.concat(Object.values(S.equip)).filter(it=>it&&ITEM[it.id]&&ITEM[it.id].uq).map(it=>it.id))];
 function startNGP(carry,pacts){
   if(S.mode!=='town'||!canNGP()) return false;
-  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts)}; ngpEnding(keep);   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
+  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts),ally:S.ally||null}; ngpEnding(keep);   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
   newGame(); Object.assign(S,keep); S.ti.clr={}; ngpEndingStart();   // titles stay earned; New Game+ again needs another Throne of Ash clear
   S.watches=WATCHES-pactWatch(); S.notices=[]; if(carry&&own.includes(carry)){ const it=addItem(carry,null); if(it&&carryAw) it.aw=carryAw; }   /* an awakened unique keeps its ranks */ unlockStory('ngp');
   notify('New Game+ '+S.ngp+' begins. Foes have '+Math.round(NGP_FOE*S.ngp*100)+'% more HP and attack, and pay '+Math.round(NGP_REWARD*S.ngp*100)+'% more XP and gold.'+(carry&&own.includes(carry)?' '+ITEM[carry].name+' is in your bag.':''),'ok');
@@ -1916,7 +1916,7 @@ function normalizeSave(src){
   { const c=g.player.cmd; if(!hadCmd||!(obj(c)&&c.a>=0&&c.h>=0&&isFinite(c.a)&&isFinite(c.h))) g.player.cmd=cmdPow(Array.isArray(g.army)?g.army:[]); else g.player.cmd={a:Math.round(c.a),h:Math.round(c.h)}; }   // Command: an old or damaged save measures its army again
   const okB=b=>obj(b)&&BOUNTIES[b.id]&&typeof b.n==='number'&&typeof b.base==='number'&&obj(b.rw)&&typeof b.claimed==='boolean';
   g.bounty=(obj(g.bounty)&&typeof g.bounty.day==='number'&&Array.isArray(g.bounty.list)&&g.bounty.list.every(okB))?g.bounty:null;
-  memorialFix(g); loadoutsFix(g); rivalFix(g); trialsFix(g); bondsFix(g); chainsFix(g);
+  memorialFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
   return g;
 }
 function validSave(g){ return !!normalizeSave(g); }
@@ -2073,6 +2073,9 @@ const roll3=()=>S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&!
  ['x_rally','Deeds','Rallying Cry','Rally your dead 100 times.',()=>T_('rallies')>=100,{mpow:4,dmgp:3}],
  ['r_stakes','Deeds','High Stakes','Win 5 wagers against the rival.',()=>T_('wagerWins')>=5,{goldp:4,mpow:3}],
  ['r_reclaim','Deeds','Reclaimer','Win back 10 bodies the rival stole.',()=>T_('reclaimed')>=10,{mpow:5}],
+ ['r_end','Deeds','Last Word','End the rival after the Reckoning.',()=>T_('rivalEnded')>=1,{dmgp:4,mpow:3}],
+ ['r_spare','Deeds','Mercy in Red Ink','Spare the rival after the Reckoning.',()=>T_('rivalSpared')>=1,{hpp:4,mpow:3}],
+ ['r_clean','Deeds','Not in Their Book','Finish the rival\'s story with fewer than 5 bodies ever stolen.',()=>T_('arcClean')>=1,{raise:4}],
  ['r_5','Deeds','Rift-Walker','Clear depth 5 of the Rift.',()=>riftBest()>=5,{dmgp:4}],
  ['r_15','Deeds','Riftborn','Clear depth 15 of the Rift.',()=>riftBest()>=15,{dmgp:5,hpp:4}],
  ['r_30','Deeds','Lord of the Torn Sky','Clear depth 30 of the Rift.',()=>riftBest()>=30,{dmgp:6,mpow:6}],
@@ -2163,7 +2166,7 @@ function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // d
 // rarer ones stay hidden ("???") until earned. Rarity follows how hard a title is: bot runs measured the reachable ones,
 // and deeds the bots skip (events, forging) were judged by hand.
 const TITLE_RARITY={hd1:1,hd2:2,nm0:3,nm1:3,nm2:3,nm3:4,nm4:4,nm5:5,dm3:5,sb0:5,sb1:5,sb2:5,sb3:5,sb4:5,sb5:5,g0:0,g1:0,d_raise1:0,d_kill100:0,d_death:0,d_armed1:0,d_lv10:0,d_study:0,s_venom:0,f_crit:0,d_tower1:0,d_quest7:0,d_army:0,g2:1,t10:1,t20:1,d_raise50:1,d_cancel:1,d_evolve:1,d_uq:1,d_gold:1,m0:1,m1:1,c_drought:1,c_fury:1,c_bulwark:1,c_horde:1,c_volatile:1,p_25:1,k_spear:1,k_blast:1,k_chill:1,g_items:1,g_sold:1,f_flawless:1,f_last:1,a_boss:1,e_strag:1,e_pedlar:1,e_trap:1,d_death10:1,g3:2,g4:2,t30:2,t40:2,t50:2,d_kill1000:2,d_lv25:2,d_raise200:2,d_tower50:2,d_cancel10:2,d_trophy500:2,d_altar:2,d_elder:2,m2:2,m3:2,d_armed3:2,d_master:2,d_bag:2,c_25:2,e_shrine:2,e_coffer:2,s_poison:2,s_cure:2,k_reap:2,k_master3:2,k_all:2,f_boss25:2,f_elite100:2,g_gold:2,g_roll3:2,a_traits:2,a_elders:2,e_day100:2,e_runs100:2,g_reforge:2,g5:3,t60:3,t70:3,m4:3,m5:3,tw75:3,d_lv50:3,p_100:3,f_crit1000:3,e_rooms1000:3,twruns:3,d_ngp:3,d_tower110:3,t80:4,t90:4,t100:4,d_kill5000:4,d_all:4,d_tower150:4,a_raise500:4,e_lv75:4,tw200:5,d_ngp3:5,d_tuq:5,a_ancient:3,a_eternal:4,a_raid1:1,a_raid25:3,r_5:3,r_15:4,r_30:5};
-Object.assign(TITLE_RARITY,{x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
+Object.assign(TITLE_RARITY,{x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
 const RARITY_MUL=[1,1,1.25,1.5,2,3], HIDDEN_FROM=3;
 TITLES.forEach(t=>{ t.r=TITLE_RARITY[t.id]!=null?TITLE_RARITY[t.id]:1; const m=RARITY_MUL[t.r]; for(const k in t.b) t.b[k]=Math.max(t.b[k],Math.round(t.b[k]*m)); });
 const titleHidden=t=>t.r>=HIDDEN_FROM&&!(S&&S.ti&&S.ti.got&&S.ti.got[t.id]);
@@ -2280,7 +2283,8 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
   const extra=hasRunMod('horde')?1:0, R0=Math.random;
   if(r.trial) Math.random=trialRng(r.tseed,room);   // a Trial: the same rooms and foes for every attempt this week (src/game-rival-trials.js)
   try{
-    if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true)); const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
+    if(r.rg) rgRoom(list,di,room,lvl); else if(r.rk) reckRoom(list,di,lvl);   /* the rival's own gate and the duel (game-rival-arc.js) */
+    else if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true)); const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
     else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
     heatRoom(list,di); ledgerRoom(list,di); brewRoom(r); foeScale(list,foeAtkMul(di)); if(r.trial) trialPow(list,di); bulwark(list); riftScale(list);
     heatScale(list);
@@ -2394,7 +2398,7 @@ function checkDeaths(){
     const page=e.secret?'secret':e.boss?(e.tw?'warden':'boss'):e.elite?'elite':null;   // who may carry a torn page
     if(page&&!r.trial&&!e.rival) findPage(page,r);
     if(e.secret) slaySecret(e,r);
-    if(e.rival){ if(e.rsiege) rivalSiegeDown(e,r); else rivalBeaten(e,r); }
+    if(e.rival){ if(e.rsiege) rivalSiegeDown(e,r); else if(e.reck) reckDown(e,r); else rivalBeaten(e,r); }
     if(hasRunMod('volatile')) volatileBurst(e);
     if(hasAff(e,'splitting')) splitFoe(e);
   }
@@ -2547,7 +2551,7 @@ function roomWon(){
     if(m.hp<=0) r.downs=(r.downs||0)+1;   /* downed this room: a Trial's score counts them */
     if(m.hp>0){ if(minionXp(m,share)) r.events.push({m:m.nick+' reaches level '+m.lvl+'.',c:'ok'}); continue; }
     const ch=shatterOdds(m);
-    if(Math.random()*100<ch){ returnGear(m); S.army=S.army.filter(x=>x!==m); downs.push({m:m.nick+', '+theName(mName(m))+', shattered and is gone ('+ch+'% chance).',c:'bad'}); memorialize(m,r.tw?{f:r.tw}:r.rift?{rd:r.rift}:{g:r.di}); }
+    if(Math.random()*100<ch&&!secondHand(m,r)){ returnGear(m); S.army=S.army.filter(x=>x!==m); downs.push({m:m.nick+', '+theName(mName(m))+', shattered and is gone ('+ch+'% chance).',c:'bad'}); memorialize(m,r.tw?{f:r.tw}:r.rift?{rd:r.rift}:{g:r.di}); }
     else{ m.hp=Math.ceil(m.maxHp*BIND_HP); bound.push(m); }
   }
   if(bound.length){ const ch=Math.max(...bound.map(shatterOdds)); downs.push({m:'Downed but bound back together at '+Math.round(BIND_HP*100)+'% HP: '+bound.map(m=>m.nick).join(', ')+'. '+(ch?'The chance to shatter was '+ch+'%.':'None of them could shatter.'),c:'down'}); }
@@ -2556,12 +2560,12 @@ function roomWon(){
     const f=r.tw; S.tower.best=Math.max(S.tower.best,f); recBest('floor',f); towerSplit(r); for(const k of [10,25,40,50,60,75,90,100]) if(S.tower.best>=k) unlockStory('t'+k,r);
     if(f%10===0){ xp+=120*f; S.quest.clears++; towerBossLoot(f,r); }
     if(f===100) r.cleared=true;   // floor 100 ends the first climb; floor 101 onward is the endless abyss
-  } else if(last){ xp+=r.siege?siegeWon(r):r.rift?riftCleared(r):r.trial?trialCleared(r):gateCleared(r); if(!r.siege&&!r.rift&&!r.trial) rivalMeet(r); }
+  } else if(last){ xp+=r.siege?siegeWon(r):r.rift?riftCleared(r):r.trial?trialCleared(r):r.rg?rgCleared(r):r.rk?reckCleared(r):gateCleared(r); if(!r.siege&&!r.rift&&!r.trial&&!r.rg&&!r.rk) rivalMeet(r); }
   if(r.trial){ r.loot=[]; r.gold=0; r.troph={}; r.corpses=[]; }   /* a Trial pays only its first completion each week: no gear, gold, trophies or bodies */
   for(const id of r.loot){ const it=addItem(id); if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name); } r.loot=[];
-  bankLoot(r); r.won=(r.won||0)+1; S.quest.rooms=(S.quest.rooms||0)+1; tally('rooms'); if(r.tw){ tally('floors'); orderEv('floor'); } else if(!r.siege&&!r.rift&&!r.trial) orderEv('room',{ok:(r.downs||0)===dn0,di:r.di}); if(P.hp>0&&P.hp<=pMax()*.1) tally('lastBreath');
-  r.event=(!r.tw&&!r.siege&&!r.trial&&!last&&Math.random()<EVENT_CHANCE)?rollEvent():null;   // something waits between rooms
-  r.doors=(!r.tw&&!r.siege&&!r.trial&&!last)?rollDoors(r):null;   // which way next
+  bankLoot(r); r.won=(r.won||0)+1; S.quest.rooms=(S.quest.rooms||0)+1; tally('rooms'); if(r.tw){ tally('floors'); orderEv('floor'); } else if(!r.siege&&!r.rift&&!r.trial&&!r.rg&&!r.rk) orderEv('room',{ok:(r.downs||0)===dn0,di:r.di}); if(P.hp>0&&P.hp<=pMax()*.1) tally('lastBreath');
+  r.event=(!r.tw&&!r.siege&&!r.trial&&!r.rg&&!r.rk&&!last&&Math.random()<EVENT_CHANCE)?rollEvent():null;   // something waits between rooms
+  r.doors=(!r.tw&&!r.siege&&!r.trial&&!r.rg&&!r.rk&&!last)?rollDoors(r):null;   // which way next
   r.gained+=xp; r.lastXp=xp;
   r.ups+=addXp(xp); preRooms(r);   // after the level-up: the rooms behind the doors stand at the level you will enter them at
   if(r.siege&&!last){ nextWave(); return; }   // a siege goes straight on to its next wave
@@ -2572,7 +2576,7 @@ function defeat(){
   const r=S.run; if(r.siege){ r.pending=0; r.loot=[]; S.mode='defeat'; S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); }); siegeLost(false); return; }   // a lost siege costs no XP; the town pays instead
   S.ti=S.ti||{}; S.ti.deaths=(S.ti.deaths||0)+1; r.pending=0; r.gold=0; r.troph={}; r.bdust=0; S.mode='defeat'; S.player.xp=Math.max(0,S.player.xp-Math.round(need(S.player.lvl)*DIFF.deathXp));
   S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); });
-  if(rivalStanding(r)) rivalLost(r);
+  if(rivalStanding(r)) rivalLost(r); if(reckStanding(r)) reckLost(r);
   if(r.blow) r.felled=r.blow;
   notify('You were dragged out of '+(r.tw?'the Hell Tower on floor '+r.tw:'the '+DUNGEONS[r.di].name)+'. That room\'s spoils are lost, and you lose '+Math.round(DIFF.deathXp*100)+'% of a level in XP.','bad');
 }
@@ -2594,7 +2598,7 @@ function blowCounters(b){   // the answers to a blow you have and have not used,
 function snapRoom(){ const r=S.run; if(!r) return; delete r.blow; delete r.felled;   // the start of a fight room: what Instant Retry restores
   ROOM0=(r.siege||r.trial)?null:{r,j:JSON.stringify(r),s:JSON.stringify({p:['hp','mana','shield','st','dots'].map(k=>S.player[k]),a:S.army.map(m=>[m.uid,m.hp,m.st,m.dots])})}; }
 // Not for sieges (a lost siege is the town's loss, at once), Trials (the score counts each attempt) or a room the rival stood in (the loss is already theirs to keep).
-const canRetry=()=>S.mode==='defeat'&&!!ROOM0&&ROOM0.r===S.run&&!S.run.siege&&!S.run.trial&&!S.run.enemies.some(e=>e.rival);
+const canRetry=()=>S.mode==='defeat'&&!!ROOM0&&ROOM0.r===S.run&&!S.run.siege&&!S.run.trial&&!S.run.rk&&!S.run.enemies.some(e=>e.rival);
 function retryRoom(){   // the room again as it began: same foes at full HP, you and your army as you entered; no watch, the XP loss stands, potions drunk stay drunk
   if(!canRetry()) return false;
   const r=S.run, o=JSON.parse(ROOM0.j), s=JSON.parse(ROOM0.s), P=S.player;
@@ -2625,7 +2629,7 @@ function returnTown(){
   save();
 }
 function flee(){ if(S.mode!=='battle') return; if(S.run.siege){ S.run.fled=true; S.run.pending=0; S.run.loot=[]; S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); }); siegeLost(true); S.mode='defeat'; return; }   /* fleeing a siege counts as a defeat */
-  S.run.fled=true; if(rivalStanding(S.run)) rivalLost(S.run); notify('You fled the gate and left the room\'s spoils behind.','bad'); returnTown(); }
+  S.run.fled=true; if(rivalStanding(S.run)) rivalLost(S.run); if(reckStanding(S.run)) reckLost(S.run); notify('You fled the gate and left the room\'s spoils behind.','bad'); returnTown(); }
 
 
 // ----- items: bag and equipment
@@ -2660,7 +2664,7 @@ function raiseChance(c){
   if(soulBound(c)) return 0;
   if(firstRaise()) return 100;
   let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+4*sk('mastery')+B_OSS*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*RAISE_LV-RK[c.rankI].pen;
-  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+(hasInsc('many')?INSC_RAISE:0)+incRaise()+townRaise(c);
+  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+(hasInsc('many')?INSC_RAISE:0)+incRaise()+townRaise(c)+rgRaise(c)+twoBooks();
   return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
 }
 const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*(hasFlag('cheapraise')?.5:1)*(hasMod('mastery','b')?.75:1)*(1-.06*sk('thrift')));
@@ -2844,7 +2848,7 @@ function killLoot(e,r){   // called once per kill, from checkDeaths
   const key=trophyKey(e); if(!TROPHY[key]||e.stash) return;
   const har=omen()==='boneharvest', tch=.6*(har?1+HARVEST_TRO:1)+(hasMod('robber','b')?KEEN_TRO:0);   // Bone Harvest and Keen Eye
   const n=(e.boss?(1+(e.secret&&hasInsc('masters')?1:0))*(e.ledger?LEDGER_HEART:1):e.elite?2+(har?1:0):(Math.random()<tch?1:0))*cursed;
-  if(n){ r.troph=r.troph||{}; r.troph[key]=(r.troph[key]||0)+n; }
+  if(n){ const q=quillK(r,n); r.troph=r.troph||{}; r.troph[key]=(r.troph[key]||0)+n*q; }   /* Pickpocket: the first trophy of a room drops twice (game-rival-arc.js) */
 }
 function bankLoot(r){     // called when a room is won
   r.lastGold=r.gold||0; if(r.lastGold) sfx('coin'); r.lastTroph=r.troph||{};
@@ -3661,7 +3665,7 @@ function doorBoss(di){   // the boss door, once its master is Ledgered: the sign
 // Two or three pieces from the same gate's set (its uniques count too) give a bonus. Tower gear belongs to no set.
 const SET_NAMES=['Scavenger\'s Kit','Drowned Vigil','Ember Rite','Choir of Bones','Ironbark','Pale Court','The Scribe\'s Regalia'];
 const SET_BONUS=[{2:{hp:15},3:{goldp:10}},{2:{mana:20},3:{manap:8}},{2:{strength:3},3:{dmgp:5}},{2:{will:3},3:{mpow:10}},{2:{constitution:4},3:{drp:5}},{2:{mpow:8},3:{dmgp:6,drp:3}},{2:{sdmg:10,studyp:10},3:{margin:1}}];   /* the Scribe's Regalia: 3 pieces write Marginalia (game-abbey.js) */
-const setCount=si=>(S&&S.equip)?GEAR_SLOTS.filter(sl=>{ const it=S.equip[sl], d=it&&ITEM[it.id]; return d&&!d.tower&&d.set===si; }).length:0;
+const setCount=si=>(S&&S.equip)?GEAR_SLOTS.filter(sl=>{ const it=S.equip[sl], d=it&&ITEM[it.id]; return d&&!d.tower&&!d.rival&&d.set===si; }).length:0;   /* the rival's uniques count only toward their own set */
 const setB=k=>{ let n=0; for(let i=0;i<SET_BONUS.length;i++){ const c=setCount(i); if(c>=2) n+=SET_BONUS[i][2][k]||0; if(c>=3) n+=SET_BONUS[i][3][k]||0; } return n; };
 // ===== UNIQUE SETS =====
 // The uniques form six sets of three (a weapon, an armor and a relic each): two from the gate bosses, four from the Tower
@@ -4520,7 +4524,7 @@ const mausN=()=>S&&S.memorial?Math.min(MAUS_MAX,S.memorial.filter(e=>e.maus).len
 const mausCost=()=>MAUS_COST[mausN()]||0;
 const canMaus=e=>!!e&&!e.maus&&S.mode==='town'&&mausN()<MAUS_MAX&&S.gold>=mausCost();
 function raiseMaus(i){ const e=(S.memorial||[])[i]; if(!canMaus(e)) return false; S.gold-=mausCost(); e.maus=1; tally('maus'); syncArmy(); sfx('raise'); return true; }
-const extraMul=(m,k)=>(k==='atk'?bondMul(m):(1+headBonus()+fallenK())*townHpK(m))*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K:1);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
+const extraMul=(m,k)=>(k==='atk'?bondMul(m):(1+headBonus()+fallenK())*townHpK(m))*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K+(rivalBook()?BOOK_K:0):1);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
 // ===== BOSS PHASES =====
 // At half HP a boss (gate or Tower) enters its second phase: its moves come a turn sooner, every move is announced a turn
 // ahead, and it adds Sundering Blow. Taunt turns that blow onto a vanguard; a Focus crit or Grave Chill breaks any charging move.
@@ -4536,7 +4540,7 @@ const PHASE_LINES={
 function checkPhase(){
   if(!S.run) return;
   for(const e of liveFoes()) if(e.boss&&e.abil&&!e.phase2&&!e.hunger&&(e.tw||e.rival||e.rankI>=1||runHeat()>=2)&&e.hp<=e.maxHp*phaseAt()){   // the Rat King, a new player's first boss, keeps one phase
-    e.phase2=true; e.fast=(e.fast||0)+1; e.alt=true; e.abilT=Math.min(e.abilT,2);   // Sundering Blow comes first (a boss with a move set has a twist instead)
+    e.phase2=true; e.fast=(e.fast||0)+1; e.alt=true; e.abilT=Math.min(e.abilT,2); if(e.reck) reckLastPage(e);   /* The Last Page (game-rival-arc.js) */   // Sundering Blow comes first (a boss with a move set has a twist instead)
     const l=PHASE_LINES[e.base]; log(e.name+(l?': "'+l+'"':' rises in fury.'),'boss'); const tw=bossTwist(e);
     log(tw?e.name+' enters its second phase: '+tw.name+'. '+tw.desc+' It moves faster and warns before every move.':e.name+' enters its second phase. It moves faster, warns before every move, and adds Sundering Blow.','bad'); sfx('phase'); tally('phases'); moment(e.name+' enters its second phase','bad');
   }
@@ -4877,7 +4881,7 @@ function temper(u,i){
 const AWAKEN_MAX=5, AWAKEN_K=.08, AWAKEN_GOLD=4000, AWAKEN_GROW=2, AWAKEN_DUST=20, AWAKEN_FLAT={slot:1,regen:1};
 const AWAKEN_TXT='Each rank adds '+Math.round(AWAKEN_K*100)+'% to the unique\'s own stats (army slots and mana per turn excepted), up to '+AWAKEN_MAX+' ranks. It costs gold, bone dust and hearts of the boss or warden that drops it.';
 const AWAKEN_RN=['','I','II','III','IV','V'];
-function uniqHeart(id){ const d=ITEM[id]; if(!d||!d.uq) return null; return 'b:'+(d.tower?TW_BOSS[clamp(Math.round(d.floor/10)-1,0,TW_BOSS.length-1)]:DUNGEONS[d.set].boss[0]); }   // the trophy key of its boss's heart
+function uniqHeart(id){ const d=ITEM[id]; if(!d||!d.uq) return null; return 'b:'+(d.rival?DUNGEONS[5].boss[0]:d.tower?TW_BOSS[clamp(Math.round(d.floor/10)-1,0,TW_BOSS.length-1)]:DUNGEONS[d.set].boss[0]); }   // the trophy key of its boss's heart
 const awakenScale=d=>d.tower?1+d.floor/50:1+d.set*.2;
 function awakenCost(it){ const d=ITEM[it&&it.id]; if(!d||!d.uq||(it.aw|0)>=AWAKEN_MAX) return null; const n=it.aw|0, k=awakenScale(d);
   return {g:Math.round(AWAKEN_GOLD*k*Math.pow(AWAKEN_GROW,n)/100)*100, d:Math.round(AWAKEN_DUST*k*(n+1)), h:n+1, key:uniqHeart(it.id)}; }
@@ -4985,7 +4989,7 @@ function beginSiege(){
   if(S.mode!=='siege') return false; const di=siegeGate();
   S.run={siege:1,di,room:0,rooms:SIEGE_WAVES,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:null,heat:0,fallen:[]};
   const g=sg(), w=wallPool().filter(m=>(g.wall||[]).includes(m.uid)).slice(0,SIEGE_WALL); S.reserve=(S.reserve||[]).filter(m=>!w.includes(m)); w.forEach(m=>{ m.wall=true; S.army.push(m); });
-  S.mode='battle'; syncArmy(); S.army.forEach(m=>{ m.hp=m.maxHp; }); titheSouls();
+  S.mode='battle'; syncArmy(); S.army.forEach(m=>{ m.hp=m.maxHp; }); titheSouls(); allyAid(S.run);   /* the spared rival holds the first wave (game-rival-arc.js) */
   spawnSiege(); return true;
 }
 function nextWave(){   // between waves: the usual between-room heal, then the next wave at once
@@ -5055,11 +5059,11 @@ function rivalWant(){   // the role your army leans on: the most minions, then t
   const n={}; for(const m of S.army||[]) if(ROLES[m.role]) n[m.role]=(n[m.role]||0)+1000+(m.lvl||0);
   let best=null; for(const k in n) if(!best||n[k]>n[best]) best=k; return best;
 }
-const arcDef=()=>({ch:1,op:{},wg:null,ww:0,wl:0,rs:0,rw:0,f:0,sw:0});   // the rival's war (game-rival-arc.js)
+const arcDef=()=>({ch:1,op:{},wg:null,ww:0,wl:0,rs:0,rw:0,f:0,sw:0,gu:0,gr:0,rd:0,pick:0,end:null,ed:0});   // the rival's war (game-rival-arc.js)
 const rivalDef=()=>({name:'',met:0,enc:0,wins:0,losses:0,thefts:0,page:-1,step:0,next:0,gi:-1,warned:0,done:0,steal:0,stash:[],arc:arcDef()});
 const rv=()=>{ if(!S.rival) S.rival=rivalDef(); return S.rival; };
 const distinctClears=()=>Object.keys((S.ti&&S.ti.clr)||{}).filter(k=>S.ti.clr[k]).length;
-let rivalOpen=()=>!!S&&!!S.player&&(distinctClears()>=RIVAL_AT||(!!(S.rival&&S.rival.met)&&distinctClears()>=3));   // let: the balance bot switches the rival off with "off":["rival"]
+let rivalOpen=()=>!!S&&!!S.player&&!(S.rival&&S.rival.arc&&S.rival.arc.end)&&(distinctClears()>=RIVAL_AT||(!!(S.rival&&S.rival.met)&&distinctClears()>=3));   /* an ended or spared rival steals no more (game-rival-arc.js) */   // let: the balance bot switches the rival off with "off":["rival"]
 function dayHash(){ let a=0x9e3779b9; for(const x of arguments){ a=Math.imul(a^(x|0),2654435761)>>>0; a^=a>>>15; } a=Math.imul(a,2246822519)>>>0; return (a^(a>>>13))>>>0; }
 const rivalGap=salt=>RIVAL_GAP[0]+dayHash(S.day,salt,T_('rivalWins'),S.ngp||0,11)%(RIVAL_GAP[1]-RIVAL_GAP[0]+1);
 const theftGap=()=>(RIVAL_THEFT[0]+dayHash(S.day,T_('rivalThefts'),S.ngp||0,23)%(RIVAL_THEFT[1]-RIVAL_THEFT[0]+1))*(hasInsc('rival')?2:1)*spyK();   /* Of the Rival; the Spy Network (game-town2.js) */
@@ -5127,7 +5131,7 @@ function rivalLost(r){   // you fell or fled with the rival standing: a page is 
 }
 const rivalStanding=r=>!!(r&&r.rival&&r.enemies.some(e=>e.rival&&e.hp>0));
 function rivalTheft(r){   // on a gate run, before you act on a room's bodies: the most valuable one of the role your army leans on (else any), never a boss, never from fewer than two
-  if(!rivalOpen()||!r||r.tw||r.rift||r.siege||r.trial||r.room===0) return null; const g=rv(); if(!g.name||!g.met||!g.steal||S.day<g.steal) return null;
+  if(!rivalOpen()||!r||r.tw||r.rift||r.siege||r.trial||r.rg||r.rk||r.room===0) return null; const g=rv(); if(!g.name||!g.met||!g.steal||S.day<g.steal) return null;
   const open=r.corpses.filter(c=>!c.tried); if(open.length<2) return null;
   const w=rivalWant(), c=open.filter(x=>!x.boss).sort((a,b)=>(b.role===w)-(a.role===w)||bodyValue(b)-bodyValue(a))[0]; if(!c) return null;
   c.tried=true; c.result='taken'; c.taken=g.name; g.thefts++; tally('rivalThefts'); g.steal=S.day+theftGap();
@@ -5151,7 +5155,7 @@ function rivalFix(g){   // normalizeSave
     x.di=RK[n(b.di,-1)]?n(b.di,0):x.rankI; if(typeof b.mine==='string'&&b.mine) x.mine=cleanNick(b.mine); const a=Array.isArray(b.aff)?b.aff.filter(k=>AFFIX[k]):[]; if(a.length) x.aff=a; if(CORPSE_CONDS[b.cd]) x.cd=b.cd; return x; }).slice(-RIVAL_STASH);
   out.arc=arcFix(o.arc,out); g.rival=out;
 }
-const rivalNgp=o=>Object.assign(rivalDef(),o?{name:o.name,met:o.met,enc:o.enc,wins:o.wins,losses:o.losses,thefts:o.thefts,page:o.page}:{});   // New Game+: the name and record stay
+const rivalNgp=o=>Object.assign(rivalDef(),o?{name:o.name,met:o.met,enc:o.enc,wins:o.wins,losses:o.losses,thefts:o.thefts,page:o.page}:{},o&&o.arc&&o.arc.end?{arc:Object.assign(arcDef(),{ch:5,end:o.arc.end,ed:o.arc.ed})}:{});   // New Game+: the name and record stay; an ended or spared rival stays so   // New Game+: the name and record stay
 // Gold and bone dust worth about one clear of a gate (the siege's yardstick: about 20 kills of coin at the gate's level).
 const clearGold=di=>Math.round(20*(1+(RK[di].lv+1)*.5)*(1+di*.5)*ngpReward());
 const clearDust=di=>Math.round((6+Math.floor(S.player.lvl/4))*(1+BOUNTY_GATE*di));
@@ -6310,6 +6314,7 @@ function rallyHTML(){ if(!rallyCmdrs().length) return ''; const used=S.run.cmd&&
 // arc = {ch, op:{ch:day}, wg:{uid,sk,day}|null, ww, wl, rs (their siege: 0 none, 1 coming, 2 won, 3 lost), rw, f, sw}
 const ARC_CH=['','Margins','The Open Hand','Fire at the Walls','Their Own Gate','The Reckoning'];
 const ARC_FIGHTS=2, ARC_SIEGE_DAYS=10, ARC_SIEGE_BACK=2, ARC_SIEGE_K=1.25, RECL_K=.05, RECL_LV=3;
+const ARC_GATE_DAYS=7, ARC_GATE_WAIT=10, ARC_GATE_K=1.4, ARC_RECL_RAISE=25, ARC_DUEL_K=.9, ARC_DUEL_WAIT=7, ARC_LAST_HEAL=.06, ARC_CLEAN=5, BOOK_K=.1, TWO_BOOKS_MAX=15;
 let rivalArcOn=()=>true;   // let: the balance bot keeps chapter 1 with "off":["rivalarc"]
 const arc=()=>{ const g=rv(); if(!g.arc||typeof g.arc!=='object') g.arc=arcDef(); return g.arc; };
 const ARC_VOICE={   // one line of each rival's own voice as a chapter opens
@@ -6323,8 +6328,8 @@ const stashKey=b=>b.day+':'+b.di+':'+b.name;
 const gateMob=k=>{ for(const D of DUNGEONS.slice(0,GATE_N)){ const m=D.mobs.find(x=>x[0]===k); if(m) return m; } return null; };
 function arcOpen(n,r){   // a chapter opens: the day, a passage and the rival's line
   const a=arc(); if(a.ch>=n) return false; a.ch=n; a.op[n]=S.day; tally('arcCh'+n);
-  if(n===2) a.sw=T_('siegeWins'); if(n===3) a.rs=1;
-  const m='The rival\'s war, chapter '+n+': '+ARC_CH[n]+'. '+(n===2?'Before a challenge you may now stake a Reserve minion against one of their stolen bodies (the Gates tab).':n===3?'Their next siege is coming, and the rival walks with it.':'');
+  if(n===2) a.sw=T_('siegeWins'); if(n===3) a.rs=1; if(n===4) a.gu=S.day+ARC_GATE_DAYS; if(n===5) a.rd=S.day+1;
+  const m='The rival\'s war, chapter '+n+': '+ARC_CH[n]+'. '+(n===2?'Before a challenge you may now stake a Reserve minion against one of their stolen bodies (the Gates tab).':n===3?'Their next siege is coming, and the rival walks with it.':n===4?'The Rival\'s Ledger, a gate built from the dead they stole, is open on the Gates tab for '+ARC_GATE_DAYS+' days.':n===5?'Their gate has fallen. From tomorrow '+rv().name+' waits for the last duel (the Gates tab).':'');
   if(r&&r.events) r.events.push({m,c:'bad'}); else notify(m,'bad'); const v=arcVoice(n); if(v){ if(r&&r.events) r.events.push({m:v,c:'bad'}); else notify(v,'bad'); }
   unlockStory('rarc'+n,r&&r.events?r:null); return true;
 }
@@ -6333,6 +6338,8 @@ function arcTick(r){   // dawn, after a challenge and after a siege: the next ch
   if(a.wg&&(a.wg.day<S.day||!wagerLive())) a.wg=null;
   if(a.ch<2&&a.f>=ARC_FIGHTS) arcOpen(2,r);
   if(a.ch===2&&S.day>=(a.op[2]||0)+ARC_SIEGE_DAYS&&T_('siegeWins')>a.sw&&siegeOpen()) arcOpen(3,r);
+  if(a.ch===3&&a.rs>=2) arcOpen(4,r);
+  if(a.ch===4){ if(a.gu&&S.day>=a.gu){ a.gu=0; a.gr=S.day+ARC_GATE_WAIT; notify('The Rival\'s Ledger closes. '+g.name+' will open it again in '+ARC_GATE_WAIT+' days.','bad'); } else if(!a.gu&&a.gr&&S.day>=a.gr){ a.gr=0; a.gu=S.day+ARC_GATE_DAYS; notify('The Rival\'s Ledger opens again on the Gates tab for '+ARC_GATE_DAYS+' days.','bad'); } }
   if(a.ch===3&&a.rs===1&&siegeWarned()&&a.rw!==sg().next){ a.rw=sg().next; notify(g.name+' has paid the living. Their siege comes with the rival and their stolen dead in the Captain\'s place.','bad'); }
 }
 // ----- Wagers (chapter 2+)
@@ -6386,7 +6393,7 @@ function rivalSiegeLost(r){   // siegeLost: they take one of your Reserve as wel
 }
 function arcFix(o,g){   // rivalFix: the arc; a save from before it starts in chapter 2 after three encounters
   const d=arcDef(), n=(v,def)=>typeof v==='number'&&isFinite(v)?Math.floor(v):def; if(!o||typeof o!=='object'||Array.isArray(o)){ if(g.enc>=ARC_FIGHTS){ d.ch=2; d.f=g.enc; d.op={2:Math.max(1,g.met||1)}; } return d; }
-  d.ch=clamp(n(o.ch,1),1,3); for(const k of ['ww','wl','rw','f','sw']) d[k]=Math.max(0,n(o[k],0)); d.rs=clamp(n(o.rs,0),0,3); if(d.ch<3) d.rs=0; else if(!d.rs) d.rs=1;
+  d.ch=clamp(n(o.ch,1),1,5); for(const k of ['ww','wl','rw','f','sw','gu','gr','rd','ed']) d[k]=Math.max(0,n(o[k],0)); d.pick=d.ch===5&&o.pick?1:0; d.end=d.ch===5&&(o.end==='ended'||o.end==='spared')?o.end:null; if(d.end) d.pick=0; if(d.ch!==4){ d.gu=0; d.gr=0; } if(d.ch!==5) d.rd=0; if(!d.end) d.ed=0; d.rs=clamp(n(o.rs,0),0,3); if(d.ch<3) d.rs=0; else if(!d.rs) d.rs=1;
   if(o.op&&typeof o.op==='object') for(let c=2;c<=d.ch;c++) if(n(o.op[c],0)>0) d.op[c]=n(o.op[c],0);
   if(o.wg&&typeof o.wg==='object'&&typeof o.wg.uid==='number'&&typeof o.wg.sk==='string'&&d.ch>=2) d.wg={uid:o.wg.uid,sk:o.wg.sk.slice(0,80),day:Math.max(0,n(o.wg.day,0))};
   return d;
@@ -6410,6 +6417,106 @@ STORY.push(
   {act:5,id:'rarc3',t:'They came with torches and a friend',m:'The living have found an ally. The pedlar at the back gate swears the town\'s captain dined with a stranger in red, who paid in coins from your own crypt. Tonight the torches on the hill road will have someone else\'s dead marching behind them.'},
   {act:5,id:'rarc3w',t:'The walls and the margins',m:'They came with torches and with stolen dead, and both broke on your walls. In the morning you found two of your old names lying among the living, and they rose for you as if they had never been away. The Ledger wrote them in again, in the first ink.'});
 ['rarc2','rarc3','rarc3w'].forEach(id=>{ STORY_BY[id]=STORY.find(s=>s.id===id); });
+// ===== R7 PR B: their gate, the reckoning, the endings, the rival uniques, the ally =====
+// ----- The Rival's Ledger (chapter 4): four rooms built from what they stole, open ARC_GATE_DAYS days, again after ARC_GATE_WAIT
+const rgOpen=()=>!!S&&rivalArcOn()&&!!S.rival&&arc().ch===4&&arc().gu>0&&S.day<arc().gu;
+const rgReady=()=>rgOpen()&&S.mode==='town'&&S.watches>0;
+function startRivalGate(){
+  if(!rgReady()) return false; const di=topGate(); S.watches--; S.runs++; S.notices=[]; tally('rgRuns');
+  S.run={di,rg:1,room:0,rooms:4,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:null,heat:0};
+  S.mode='battle'; titheSouls(); log('You open the Rival\'s Ledger. Every page is a body they took from you.'); spawnRoom(); return true;
+}
+function stashFoe(b,lvl,sg,elite){ const s=mobStats(sg,lvl,b.hf,b.af,false,elite||b.elite);
+  const e={id:'e'+(++S.uid),name:b.name,base:b.base,role:b.role,rankI:b.rankI,lvl,hf:b.hf,af:b.af,boss:false,elite:!!(elite||b.elite),follower:true,stash:1,sk:stashKey(b),maxHp:s.hp,hp:s.hp,atk:s.atk,dead:false};
+  if(b.aff) e.aff=b.aff.slice(); if(b.cd) e.scd=b.cd; return e; }
+function rgRoom(list,di,room,lvl){   // makeRoom for the Rival's Ledger: their followers, their winnings, their best, their lieutenant
+  lvl=Math.max(lvl,S.player.lvl+Math.floor(room/2)+(room===3?1:0));   /* their gate keeps pace with you: never below your level */
+  const r=S.run, g=rv(), sg=Math.max(di,topGate()), used=r.rgUsed=r.rgUsed||[], free=()=>g.stash.filter(b=>!used.includes(stashKey(b))), top=()=>free().sort((a,b)=>b.rankI-a.rankI||(b.elite-a.elite))[0], take=b=>{ used.push(stashKey(b)); return b; };
+  const fill=n=>{ while(list.length<n) spawnOne(list,di,lvl); };
+  if(room===0){ const t=top(); free().filter(b=>!b.mine&&b!==t).slice(-3).forEach(b=>list.push(stashFoe(take(b),lvl,sg))); fill(3); }
+  else if(room===1){ const t=top(), mine=free().filter(b=>b.mine&&b!==t), rest=free().filter(b=>!b.mine&&b!==t); mine.concat(rest).slice(0,3).forEach(b=>list.push(stashFoe(take(b),lvl,sg))); fill(3); }
+  else if(room===2){ const best=top(); if(best) list.push(stashFoe(take(best),lvl+1,sg,true)); else spawnOne(list,di,lvl+1); if(!best) list[0].elite=true; fill(3); }
+  else { const m=S.army.filter(x=>!x.thrall&&!x.wall).sort((a,b)=>b.atk*b.maxHp-a.atk*a.maxHp)[0], s=mobStats(sg,lvl+2,m?m.hf:1,m?m.af:1,true,false);
+    const e={id:'e'+(++S.uid),name:m?'Reflection of '+m.nick:g.name+'\'s Lieutenant',base:m?m.kind||m.name:RIVAL_KIND,role:m?m.role:'reaper',rankI:sg,lvl:lvl+2,hf:m?m.hf:1,af:m?m.af:1,boss:true,elite:false,rgLt:1,maxHp:s.hp,hp:s.hp,atk:s.atk,dead:false};
+    giveAbility(e,'sunder'); list.push(e); free().slice(-2).forEach(b=>list.push(stashFoe(take(b),lvl,sg))); fill(3); }
+  for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*ARC_GATE_K); e.atk=Math.max(1,Math.round(e.atk*ARC_GATE_K)); }
+}
+function rgCleared(r){   // the lieutenant's room falls: chapter 5
+  const a=arc(); r.cleared=true; a.gu=0; a.gr=0; tally('rgClears'); r.events.push({m:'The Rival\'s Ledger is closed for good. Its last page names '+rv().name+'.',c:'ok'}); arcOpen(5,r); return Math.round(RK[r.di].clear);
+}
+const rgRaise=c=>S.run&&S.run.rg&&c&&c.recl?ARC_RECL_RAISE:0;   // raiseChance: a stolen body is easier to take back in their own gate
+// ----- The Reckoning (chapter 5): the duel with their whole book
+const reckReady=()=>!!S&&rivalArcOn()&&!!S.rival&&arc().ch===5&&!arc().end&&!arc().pick&&S.day>=arc().rd&&S.mode==='town'&&S.watches>0;
+function startReckoning(){
+  if(!reckReady()) return false; const di=topGate(); S.watches--; S.runs++; S.notices=[]; tally('reckTries');
+  S.run={di,rk:1,room:0,rooms:1,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:null,heat:0};
+  S.mode='battle'; titheSouls(); unlockStory('rarc5d'); log('Torn pages cover the floor, one for every body '+rv().name+' ever took from you.'); spawnRoom(); return true;
+}
+function reckRoom(list,di,lvl){ const riv=makeRival(di,lvl); riv.reck=1; riv.maxHp=riv.hp=Math.round(riv.maxHp*ARC_DUEL_K); riv.atk=Math.round(riv.atk*ARC_DUEL_K); giveKit(riv,[RIVAL_ABIL].concat(Object.values(RIVAL_MOVE))); list.push(riv); rivalFollowersAdd(list,di,riv); }
+function reckLastPage(e){   // checkPhase: The Last Page, they burn their own followers to heal 10% each
+  const r=S.run, burn=r.enemies.filter(x=>x!==e&&x.hp>0&&x.follower); if(!burn.length) return;
+  const g=rv(); burn.forEach(x=>{ if(x.sk) g.stash=g.stash.filter(b=>stashKey(b)!==x.sk); }); r.enemies=r.enemies.filter(x=>!burn.includes(x));
+  const h=Math.round(e.maxHp*ARC_LAST_HEAL*burn.length); e.hp=Math.min(e.maxHp,e.hp+h); log('The Last Page: '+e.name+' burns '+burn.length+' of their own dead and heals '+h+'.','bad');
+}
+function reckDown(e,r){ arc().pick=1; tally('reckWins'); r.reckWon=1; moment(e.name+' kneels','gold'); log(e.name+' kneels in the torn pages. Their fate is yours to write.','story'); }
+function reckCleared(r){ r.cleared=true; r.events.push({m:rv().name+' kneels. Choose their fate on the Gates tab: end them, or spare them.',c:'ok'}); return Math.round(RK[r.di].clear); }
+function reckLost(r){   // fell or fled with the rival standing: one more body, and the duel again in a week
+  const a=arc(), g=rv(); a.rd=S.day+ARC_DUEL_WAIT; tally('reckLosses'); const m=(S.reserve||[]).filter(x=>!x.lk&&!x.boss&&!x.tw&&gateMob(x.kind||x.name)).sort((x,y)=>x.lvl-y.lvl)[0];
+  notify(g.name+' stands over you in the torn pages.'+(m?' They take '+m.nick+' from your Reserve.':'')+' They will wait for you again in '+ARC_DUEL_WAIT+' days.','bad'); if(m) minionBody(m);
+}
+const reckStanding=r=>!!(r&&r.rk&&r.enemies.some(e=>e.reck&&e.hp>0));
+// ----- The endings
+const RIVAL_UQ=['r1','r2','r3'];
+function arcEnd(k){   // after the duel: 'end' or 'spare'
+  const a=arc(), g=rv(); if(!a.pick||a.end||S.mode!=='town'||(k!=='end'&&k!=='spare')) return false; a.pick=0; a.ed=S.day; if(g.thefts<ARC_CLEAN) tally('arcClean');
+  if(k==='end'){ a.end='ended'; tally('rivalEnded'); const got=RIVAL_UQ.filter(id=>addItem(id,null)).map(id=>ITEM[id].name), back=g.stash.map(b=>bodyMinion(b).m.nick); g.stash=[];
+    notify('You end '+g.name+'. Their ledger is yours: '+got.join(', ')+'.'+(back.length?' '+back.length+' stolen bodies come home Reclaimed.':''),'ok'); unlockStory('rend'); }
+  else { a.end='spared'; tally('rivalSpared'); S.ally=allyFix({name:g.name,ngp:S.ngp||0,week:0,aid:-1,stash:g.stash.slice()}); g.stash=[];
+    notify('You spare '+g.name+'. They close their ledger and kneel. In the next cycle they will stand with you.','ok'); unlockStory('rspare'); }
+  checkTitles(); return true;
+}
+// ----- The ally (New Game+ after sparing): a weekly body trade, and the first siege of each cycle's first wave
+const allyOn=()=>!!S&&!!S.ally&&(S.ngp||0)>S.ally.ngp;
+function allyOffer(){ if(!allyOn()||S.ally.week===trialWeek()||!S.ally.stash.length) return null; return S.ally.stash[dayHash(trialWeek(),S.ngp||0,61)%S.ally.stash.length]; }
+const allyCan=m=>{ const b=allyOffer(); return !!b&&!!m&&(S.reserve||[]).includes(m)&&!m.lk&&!m.boss&&!m.tw&&!!gateMob(m.kind||m.name)&&m.rankI===b.rankI; };
+function allyTrade(uid){ if(S.mode!=='town') return false; const m=(S.reserve||[]).find(x=>x.uid===uid), b=allyOffer(); if(!allyCan(m)) return false;
+  S.ally.stash=S.ally.stash.filter(x=>x!==b); const mb=minionBody(m); rv().stash=rv().stash.filter(x=>x!==mb); delete mb.mine; S.ally.stash.push(mb); S.ally=allyFix(S.ally);
+  const p=bodyMinion(b); S.ally.week=trialWeek(); tally('allyTrades'); notify(S.ally.name+' takes '+m.nick+' and gives you '+p.m.nick+', once '+withArticle(b.base)+'.','ok'); return true; }
+function allyAid(r){   // beginSiege: they hold the first wave alone, once a cycle
+  if(!allyOn()||S.ally.aid===(S.ngp||0)) return false; S.ally.aid=S.ngp||0; r.room=1; tally('allyAid'); log(S.ally.name+' holds the first wave alone. Their dead meet the living at the outer wall.','ok'); return true; }
+function allyFix(o){ if(!o||typeof o!=='object'||typeof o.name!=='string'||!RIVAL_NAMES.includes(o.name)) return null; const n=(v,d)=>typeof v==='number'&&isFinite(v)?Math.floor(v):d;
+  const st=(Array.isArray(o.stash)?o.stash:[]).filter(b=>b&&typeof b==='object'&&gateMob(b.base)).map(b=>{ const k=gateMob(b.base); return {base:k[0],name:typeof b.name==='string'&&b.name?b.name.slice(0,60):k[0],role:k[1],rankI:RK[n(b.rankI,-1)]?n(b.rankI,0):0,hf:k[2],af:k[3],elite:!!b.elite,di:RK[n(b.di,-1)]?n(b.di,0):0,day:Math.max(0,n(b.day,0))}; }).slice(-RIVAL_STASH);
+  return {name:o.name,ngp:Math.max(0,n(o.ngp,0)),week:Math.max(0,n(o.week,0)),aid:n(o.aid,-1),stash:st}; }
+// ----- The rival uniques and their set
+ITEM.r1={id:'r1',name:"The Thief's Quill",slot:'weapon',glyph:'i_rquill',stats:{atk:70,crit:20,intelligence:12},flag:'quill',set:5,tier:5,uq:true,kind:'u',rival:true};
+ITEM.r2={id:'r2',name:'Margin-Stitched Coat',slot:'armor',glyph:'i_rcoat',stats:{hp:360,constitution:12,mpow:20,ward:30},flag:'secondhand',set:5,tier:5,uq:true,kind:'u',rival:true};
+ITEM.r3={id:'r3',name:'The Other Ledger',slot:'relic',glyph:'i_rledger',stats:{mpow:32,will:14,mana:180,raise:16},flag:'twobooks',set:5,tier:5,uq:true,kind:'u',rival:true};
+Object.assign(FLAGS,{quill:'Pickpocket: the first trophy a room drops for you drops twice.',secondhand:'Second Hand: once per run, a minion that would shatter is stolen back and binds instead.',twobooks:'Two Books: +1% raise chance for every body you have won back from the rival, up to 15%.'});
+USET.push({name:"The Rival's Book",from:'The rival, ended',ids:RIVAL_UQ.slice(),b:{2:{mpow:10,raise:5},3:{dmgp:8,hpp:6}}}); RIVAL_UQ.forEach(id=>{ ITEM[id].uset=USET.length-1; });
+const rivalBook=()=>usetCount(USET.length-1)>=3;   // extraMul: Reclaimed minions take another 10% with all three worn
+const quillK=(r,n)=>n&&hasFlag('quill')&&r.qr!==r.room?(r.qr=r.room,2):1;
+function secondHand(m,r){ if(!hasFlag('secondhand')||r.shU) return false; r.shU=1; tally('secondHand'); r.events.push({m:'Second Hand: '+m.nick+' is stolen back from the dark.',c:'ok'}); return true; }
+const twoBooks=()=>hasFlag('twobooks')?Math.min(TWO_BOOKS_MAX,T_('reclaimed')):0;
+// ----- UI for chapters 4-5, the endings and the ally (the Gates tab)
+function arcGateHTML(){
+  if(!S||S.mode!=='town'||!S.rival||!rivalArcOn()) return ''; const a=arc(), g=rv(); let h='';
+  if(rgOpen()) h+='<div class="rival-line arc"><b>The Rival\'s Ledger</b> is open for '+(a.gu-S.day)+' more day'+(a.gu-S.day===1?'':'s')+': four rooms of the dead '+g.name+' took, '+(g.stash||[]).length+' of them yours once. Stolen bodies killed there rise '+ARC_RECL_RAISE+'% easier. <button class="btn small primary" data-a="rgate"'+(S.watches>0?'':' disabled')+'>Enter (1 watch)</button></div>';
+  else if(a.ch===4&&a.gr) h+='<div class="rival-line arc">The Rival\'s Ledger is closed. It opens again in '+(a.gr-S.day)+' days.</div>';
+  if(a.ch===5&&!a.end&&!a.pick) h+='<div class="rival-line arc"><b>The Reckoning.</b> '+(S.day>=a.rd?g.name+' waits with their whole book: every move their stolen roles give, and a last page at half HP. <button class="btn small primary" data-a="reck"'+(S.watches>0?'':' disabled')+'>Face them (1 watch)</button>':g.name+' will wait for you again in '+(a.rd-S.day)+' days.')+'</div>';
+  if(a.pick) h+='<div class="rival-line arc"><b>'+g.name+' kneels.</b> End them: their three uniques and every body they hold come to you. Spare them: they stand with you in the next cycle (a weekly body trade, the first wave of a siege). <button class="btn small warn" data-a="rend" data-k="end">End them</button><button class="btn small" data-a="rend" data-k="spare">Spare them</button></div>';
+  const b=allyOffer(); if(b){ const ok=(S.reserve||[]).filter(allyCan); h+='<div class="rival-line arc"><b>'+S.ally.name+' offers a trade:</b> their '+b.name+' ('+RANKS[b.rankI]+') for one of your Reserve of the same rank.'+(ok.length?'<div class="chips">'+ok.map(m=>'<button class="btn small" data-a="atrade" data-k="'+m.uid+'">'+m.nick+'</button>').join('')+'</div>':' <span class="dim">No Reserve minion of that rank.</span>')+'</div>'; }
+  return h;
+}
+STORY.push(
+  {act:5,id:'rarc4',t:'A gate of my own dead',m:'There is a new door in the valley, and it is not in any map the Ledger keeps. Behind it the rival has built a gate out of what they stole: your old names, standing in rows, waiting to be read aloud by someone else.'},
+  {act:5,id:'rarc5d',t:'Torn pages',m:'The floor is paper. Every page is a body they took, and every one of them is turned toward you. The rival has stopped smiling. Whatever happens here, one of the two books will not be opened again.'},
+  {act:5,id:'rend',t:'The pen taken',m:'You took the pen from their hand and wrote the last line in their ledger yourself. It was short. The book shut on it like a door, and the dead it held turned and came home. The Ledger was quiet for a long time afterwards.'},
+  {act:5,id:'rspare',t:'Written in red',m:'You let them keep their book and their breath. They closed the ledger and set it at your feet, and did not pick it up again. The Ledger wrote the mercy in red, which it has never done for anything before.'});
+['rarc4','rarc5d','rend','rspare'].forEach(id=>{ STORY_BY[id]=STORY.find(s=>s.id===id); });
+Object.assign(ARC_VOICE,{4:{'Morwen Ashgrave':'Walk my gate. Count your old names. I counted them every night.','Corvin Hale':'I built it from your leftovers. It is the finest thing I own.','Isolde Vey':'Every stone is someone you lost. Mind your step.',
+  'Silas Marrow':'A gate of my own. Interest, on what you owed me.','Edric Thorne':'Come in. Your dead have missed you. Mine have not.','Agna Wexley':'Seven days. Then I close the book on them.'},
+ 5:{'Morwen Ashgrave':'One book closes tonight. I have made my peace with which.','Corvin Hale':'No more wagers. Everything on the table.','Isolde Vey':'I am tired, scribe. Let us finish it.',
+  'Silas Marrow':'All debts come due. Even mine. Even yours.','Edric Thorne':'Bring everything. I have.','Agna Wexley':'The last page. I wrote it years ago. Come and read it.'}});
 //==UI==
 
 // ----- sound: tiny synthesized effects (Web Audio, no files). Off/on lives in Settings and is remembered per browser, not in the save.
@@ -10732,6 +10839,56 @@ TR_RX.push([/^The rival's war, chapter (\d+): (.+?)\. (.+)$/,"Rakibin savaşı, 
  [/^(.+?) comes through the smoke with your stolen dead\.?$/,"$1 çalınmış ölülerinle dumanın içinden geliyor"],[/^(.+?) falls back from the walls, and their dead fight on without them\.?$/,"$1 surlardan geri çekiliyor ve ölüleri onsuz savaşmayı sürdürüyor"],
  [/^(.+?)'s siege is broken\. (.+?) comes? back to you Reclaimed\. Their next theft will wait\.?$/,"$1 kuşatması kırıldı. $2 sana Geri alınmış olarak dönüyor. Sıradaki hırsızlıkları bekleyecek"],[/^(.+?)'s siege is broken\. Their next theft will wait\.?$/,"$1 kuşatması kırıldı. Sıradaki hırsızlıkları bekleyecek"],
  [/^(.+?) carries (\S+) away from your Reserve in the smoke\.?$/,"$1 dumanın içinde Yedeğinden $2 yaratığını götürüyor"]);
+// R7 PR B: their gate, the Reckoning, the endings, the ally (src/game-rival-arc.js)
+[["Their gate","Kapıları"],["The end","Son"],["The ally","Müttefik"],["The Last Page","Son Sayfa"],["End them","Onları bitir"],["Spare them","Onları bağışla"],["Enter (# watch)","Gir (# nöbet)"],["Face them (# watch)","Onlarla yüzleş (# nöbet)"],
+ ["Pickpocket","Yankesici"],["The first trophy a room drops for you drops twice","Bir odanın sana düşürdüğü ilk ganimet iki kez düşer"],["the first trophy a room drops for you drops twice","bir odanın sana düşürdüğü ilk ganimet iki kez düşer"],
+ ["Second Hand","İkinci El"],["Once per run, a minion that would shatter is stolen back and binds instead","Her akında bir kez, parçalanacak bir yaratık geri çalınır ve onun yerine yeniden bağlanır"],["once per run, a minion that would shatter is stolen back and binds instead","her akında bir kez, parçalanacak bir yaratık geri çalınır ve onun yerine yeniden bağlanır"],
+ ["Two Books","İki Defter"],["#% raise chance for every body you have won back from the rival, up to #%","%# diriltme şansı: rakipten geri kazandığın her ceset için, en fazla %#"],
+ ["The rival, ended","Bitirilen rakip"],
+ ["Last Word","Son Söz"],["Mercy in Red Ink","Kırmızı Mürekkeple Merhamet"],["Not in Their Book","Onların Defterinde Yok"],["End the rival after the Reckoning","Hesaplaşmadan sonra rakibi bitir"],["Spare the rival after the Reckoning","Hesaplaşmadan sonra rakibi bağışla"],
+ ["Finish the rival's story with fewer than # bodies ever stolen","Rakibin hikâyesini, çalınan ceset sayısı hiç #'i bulmadan bitir"],
+ ["Their gate has fallen","Kapıları düştü"],["The Rival's Ledger opens again on the Gates tab for # days","Rakibin Defteri Kapılar sekmesinde # günlüğüne yeniden açılıyor"],
+ ["The Rival's Ledger, a gate built from the dead they stole, is open on the Gates tab for # days","Çaldıkları ölülerden kurulmuş bir kapı olan Rakibin Defteri, Kapılar sekmesinde # gün açık"],
+ ["You open the Rival's Ledger","Rakibin Defterini açıyorsun"],["Every page is a body they took from you","Her sayfa senden aldıkları bir ceset"],["The Rival's Ledger is closed for good","Rakibin Defteri sonsuza dek kapandı"],
+ ["Their fate is yours to write","Kaderlerini sen yazacaksın"],["They close their ledger and kneel","Defterlerini kapatıp diz çöküyorlar"],["In the next cycle they will stand with you","Sonraki döngüde seninle birlikte duracaklar"],
+ ["Their dead meet the living at the outer wall","Ölüleri yaşayanları dış surda karşılıyor"],["No Reserve minion of that rank","O rütbede Yedek yaratık yok"],
+ ["End them: their three uniques and every body they hold come to you","Onları bitir: üç eşsiz eşyaları ve ellerindeki her ceset sana gelir"],["Spare them: they stand with you in the next cycle (a weekly body trade, the first wave of a siege)","Onları bağışla: sonraki döngüde seninle dururlar (haftalık bir ceset takası, bir kuşatmanın ilk dalgası)"],
+ ["The Rival's Ledger","Rakibin Defteri"],
+ ["A gate of my own dead","Kendi ölülerimden bir kapı"],["Torn pages","Yırtık sayfalar"],["The pen taken","Alınan kalem"],["Written in red","Kırmızıyla yazılmış"],
+ ["There is a new door in the valley, and it is not in any map the Ledger keeps. Behind it the rival has built a gate out of what they stole: your old names, standing in rows, waiting to be read aloud by someone else","Vadide yeni bir kapı var ve Defter'in tuttuğu hiçbir haritada yok. Ardında rakip, çaldıklarından bir kapı kurmuş: eski adların sıra sıra dikilmiş, başkası tarafından yüksek sesle okunmayı bekliyor"],
+ ["The floor is paper. Every page is a body they took, and every one of them is turned toward you. The rival has stopped smiling. Whatever happens here, one of the two books will not be opened again","Zemin kâğıt. Her sayfa aldıkları bir ceset ve hepsi sana dönük. Rakip gülümsemeyi bıraktı. Burada ne olursa olsun, iki defterden biri bir daha açılmayacak"],
+ ["You took the pen from their hand and wrote the last line in their ledger yourself. It was short. The book shut on it like a door, and the dead it held turned and came home. The Ledger was quiet for a long time afterwards","Kalemi elinden alıp defterlerinin son satırını kendin yazdın. Kısaydı. Defter bir kapı gibi üzerine kapandı ve içindeki ölüler dönüp eve geldi. Defter ardından uzun süre sessiz kaldı"],
+ ["You let them keep their book and their breath. They closed the ledger and set it at your feet, and did not pick it up again. The Ledger wrote the mercy in red, which it has never done for anything before","Defterlerini de nefeslerini de bırakmalarına izin verdin. Defteri kapatıp ayaklarının dibine koydular ve bir daha almadılar. Defter merhameti kırmızıyla yazdı; bunu daha önce hiçbir şey için yapmamıştı"],
+ ["Walk my gate. Count your old names. I counted them every night","Kapımda yürü. Eski adlarını say. Ben her gece saydım"],["I built it from your leftovers. It is the finest thing I own","Onu artıklarından kurdum. Sahip olduğum en güzel şey"],["Every stone is someone you lost. Mind your step","Her taş kaybettiğin biri. Adımına dikkat et"],
+ ["A gate of my own. Interest, on what you owed me","Kendime ait bir kapı. Bana borçlu olduğunun faizi"],["Come in. Your dead have missed you. Mine have not","Gir. Ölülerin seni özledi. Benimkiler özlemedi"],["Seven days. Then I close the book on them","Yedi gün. Sonra onların defterini kapatırım"],
+ ["One book closes tonight. I have made my peace with which","Bu gece bir defter kapanıyor. Hangisi olduğuyla barıştım"],["No more wagers. Everything on the table","Artık bahis yok. Her şey masada"],["I am tired, scribe. Let us finish it","Yoruldum, kâtip. Bitirelim şunu"],
+ ["All debts come due. Even mine. Even yours","Bütün borçların vadesi gelir. Benimki bile. Seninki bile"],["Bring everything. I have","Her şeyini getir. Ben getirdim"],["The last page. I wrote it years ago. Come and read it","Son sayfa. Onu yıllar önce yazdım. Gel de oku"],
+ ["Once their siege has been fought, won or lost, Their Own Gate opens: the Rival's Ledger, on the Gates tab for # days (closed, it opens again # days later). Four rooms at your deepest open gate and never below your level, every foe #% stronger: their newest stolen dead, the ones that were yours, their best body as an elite, and a lieutenant in the shape of your strongest minion. No doors, no events, no thefts. A stolen body killed there rises #% easier","Kuşatmaları savaşıldığında, kazanılsın ya da kaybedilsin, Kendi Kapıları açılır: Rakibin Defteri, Kapılar sekmesinde # gün (kapanınca # gün sonra yeniden açılır). En derin açık kapında ve asla seviyenin altında olmayan dört oda, her düşman %# daha güçlü: en yeni çalınmış ölüleri, bir zamanlar senin olanlar, seçkin olarak en iyi cesetleri ve en güçlü yaratığının suretinde bir yardımcı. Kapı yok, olay yok, hırsızlık yok. Orada öldürülen çalıntı bir ceset %# daha kolay dirilir"],
+ ["Clear their gate and the last chapter opens the next day: the rival waits with every move their stolen roles give, #% weaker than a challenge (their whole book is the danger), and their stolen dead. At half HP they turn The Last Page: every follower still standing burns and heals them #% of their HP each. Fall or flee and they take your weakest Reserve minion and wait # days. No Retry","Kapılarını temizle, son bölüm ertesi gün açılır: rakip, çaldığı rollerin verdiği her hamleyle, bir meydan okumadan %# daha zayıf (asıl tehlike bütün defterleri) ve çaldığı ölülerle bekler. Canı yarıya inince Son Sayfa'yı çevirir: ayakta kalan her takipçi yanar ve her biri canının %#'unu iyileştirir. Düşer ya da kaçarsan en zayıf Yedek yaratığını alır ve # gün beklerler. Yeniden deneme yok"],
+ ["Beaten, they kneel, and you choose on the Gates tab. End them: The Thief's Quill, the Margin-Stitched Coat and The Other Ledger (the Rival's Book set) are yours, and every body they hold comes home Reclaimed. Spare them: they close their book and stand with you in the next cycle. Either way their thefts and challenges end for good","Yenilince diz çökerler ve seçimi Kapılar sekmesinde yaparsın. Onları bitir: The Thief's Quill, Margin-Stitched Coat ve The Other Ledger (The Rival's Book seti) senindir ve ellerindeki her ceset Geri alınmış olarak eve döner. Onları bağışla: defterlerini kapatır ve sonraki döngüde seninle dururlar. Her iki durumda da hırsızlıkları ve meydan okumaları sonsuza dek biter"],
+ ["Spared, from the next cycle on they offer one trade a week (a body of theirs for a Reserve minion of the same rank) and hold the first wave of one siege a cycle alone","Bağışlanırlarsa sonraki döngüden itibaren haftada bir takas önerirler (onların bir cesedi karşılığında aynı rütbede bir Yedek yaratık) ve her döngüde bir kuşatmanın ilk dalgasını tek başlarına tutarlar"]
+].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+TR_RX.unshift([/^Reflection of (.+)$/,"$1 Yansıması"],[/^(.+?)'s Lieutenant$/,"$1 Yardımcısı"],
+ [/^The Rival's Ledger closes\. (.+?) will open it again in (\d+) days?\.?$/,"Rakibin Defteri kapanıyor. $1 onu $2 gün sonra yeniden açacak"],
+ [/^From tomorrow (.+?) waits for the last duel \(the Gates tab\)\.?$/,"$1 yarından itibaren son düello için bekliyor (Kapılar sekmesi)"],
+ [/^Its last page names (.+?)\.?$/,"Son sayfası $1 adını taşıyor"],
+ [/^Torn pages cover the floor, one for every body (.+?) ever took from you\.?$/,"Zemini yırtık sayfalar kaplıyor; $1 senden aldığı her ceset için bir tane"],
+ [/^The Last Page: (.+?) burns (\d+) of their own dead and heals (\d+)\.?$/,"Son Sayfa: $1 kendi ölülerinden $2 tanesini yakıyor ve $3 iyileşiyor"],
+ [/^(.+?) kneels in the torn pages\. Their fate is yours to write\.?$/,"$1 yırtık sayfaların arasında diz çöküyor. Kaderlerini sen yazacaksın"],
+ [/^(.+?) kneels\. Choose their fate on the Gates tab: end them, or spare them\.?$/,"$1 diz çöküyor. Kaderlerini Kapılar sekmesinde seç: onları bitir ya da bağışla"],
+ [/^(.+?) kneels\.?$/,"$1 diz çöküyor"],
+ [/^(.+?) stands over you in the torn pages\.( They take (\S+) from your Reserve\.)? They will wait for you again in (\d+) days\.?$/,"$1 yırtık sayfaların arasında başında dikiliyor. Seni $4 gün sonra yeniden bekleyecekler"],
+ [/^You end ([^.]+?)\. Their ledger is yours: (.+?)\.( (\d+) stolen bodies come home Reclaimed\.)?$/,"$1 bitti. Defterleri senin: $2. Çalınan cesetler Geri alınmış olarak eve dönüyor"],
+ [/^You spare ([^.]+?)\. They close their ledger and kneel\. In the next cycle they will stand with you\.?$/,"$1 bağışlandı. Defterlerini kapatıp diz çöküyorlar. Sonraki döngüde seninle birlikte duracaklar"],
+ [/^(.+?) takes (\S+) and gives you (\S+), once (.+?)\.?$/,"$1, $2 yaratığını alıp sana bir zamanlar $4 olan $3 yaratığını veriyor"],
+ [/^(.+?) holds the first wave alone\. Their dead meet the living at the outer wall\.?$/,"$1 ilk dalgayı tek başına tutuyor. Ölüleri yaşayanları dış surda karşılıyor"],
+ [/^Second Hand: (\S+) is stolen back from the dark\.?$/,"İkinci El: $1 karanlıktan geri çalındı"],
+ [/^is open for (\d+) more days?: four rooms of the dead (.+?) took, (\d+) of them yours once\. Stolen bodies killed there rise (\d+)% easier\.?$/,"$1 gün daha açık: $2 adlı rakibin aldığı ölülerden dört oda, $3 tanesi bir zamanlar senindi. Orada öldürülen çalıntı cesetler %$4 daha kolay dirilir"],
+ [/^The Rival's Ledger is closed\. It opens again in (\d+) days\.?$/,"Rakibin Defteri kapalı. $1 gün sonra yeniden açılıyor"],
+ [/^(.+?) waits with their whole book: every move their stolen roles give, and a last page at half HP\.?$/,"$1 bütün defteriyle bekliyor: çaldığı rollerin verdiği her hamle ve can yarıya inince bir son sayfa"],
+ [/^(.+?) will wait for you again in (\d+) days\.?$/,"$1 seni $2 gün sonra yeniden bekleyecek"],
+ [/^(.+?) offers a trade:$/,"$1 bir takas öneriyor:"],
+ [/^their (.+?) \((\w+)\) for one of your Reserve of the same rank\.?$/,"onların $1 ($2) cesedi, aynı rütbedeki Yedek yaratıklarından biri karşılığında"]);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -11050,7 +11207,7 @@ const IMAT={'i_0-wb':['bone','#b9ad94'],'i_0-aa':['chitin','#3d4a3c'],'i_0-ab':[
  'i_3-wa':['stone','#6a665e'],'i_3-aa':['stone','#6a665e'],'i_3-ab':['cloth','#5a2a24'],'i_3-ta':['glass','#2a2622'],
  'i_4-wa':['wood','#5a4a36'],'i_4-wb':['wood','#5a4632'],'i_4-aa':['wood','#4e4234'],'i_4-ab':['cloth','#6a4630'],'i_4-ta':['wood','#6a5032'],'i_4-tb':['glass','#8a3a22'],'i_4-tc':['metal','#5a5650'],
  'i_5-ab':['cloth','#3a3632'],
- 'i_6-wa':['bone','#d8cdb0'],'i_6-wb':['metal','#8a7040'],'i_6-aa':['cloth','#3a3440'],'i_6-ab':['cloth','#5a5048'],'i_6-ta':['metal','#5a5650'],'i_6-tb':['glass','#6a6050'],'i_6-tc':['stone','#8a2a24'],i_ledgerchain:['bone','#a8987a'],
+ 'i_6-wa':['bone','#d8cdb0'],'i_6-wb':['metal','#8a7040'],'i_6-aa':['cloth','#3a3440'],'i_6-ab':['cloth','#5a5048'],'i_6-ta':['metal','#5a5650'],'i_6-tb':['glass','#6a6050'],'i_6-tc':['stone','#8a2a24'],i_ledgerchain:['bone','#a8987a'],i_rquill:['bone','#c8b89a'],i_rcoat:['cloth','#3a2a2a'],i_rledger:['cloth','#5a2a24'],
  i_cinderplate:['metal','#3a3532'],i_paleshroud:['cloth','#a8a090'],i_houndfang:['fur','#6a5a48'],i_embermantle:['cloth','#5a3226'],i_flychitin:['chitin','#3a4232'],i_collar:['metal','#4a4642'],i_hellplate:['metal','#4a2a24'],i_lastmantle:['cloth','#4a2a26']};   // gear that is not worn steel: its own material and colour
 const iglyph=d=>d.glyph&&IC[d.glyph]?d.glyph:IC['i_'+d.id]?'i_'+d.id:'i_'+d.kind;   // own shape first; the old shared kind glyphs are the fallback
 IC['Necromancer']=P('M32 14C20 14 14 24 13 36C12 46 8 54 4 64H60C56 54 52 46 51 36C50 24 44 14 32 14Z','m')
@@ -11476,6 +11633,9 @@ IC['i_6-ta']=CHN(10)+P('M16 34C16 28 48 28 48 34V46C48 52 16 52 16 46Z','m')+L('
 IC['i_6-tb']=T('M44 42L58 58',3.4,'#6a5a3e')+P(ANN(30,30,16,12),'gd')+'<circle cx="30" cy="30" r="12" fill="#a8d8e8" opacity=".28"/><path d="M22 24C24 20 28 18 32 18" stroke="#fff" stroke-width="1.6" fill="none" opacity=".6"/>'+L('M24 32H36M24 36H33',.8);
 IC['i_6-tc']=P('M32 10C44 10 52 18 52 30C52 34 54 36 56 38C52 40 50 44 50 48C44 52 38 54 32 54C20 54 12 46 12 34C12 20 20 10 32 10Z','gd')+D(CIR(32,32,12))+P('M26 26L32 22L38 26L36 36H28Z','gd')+L('M29 40L35 40',1.2);
 IC.i_ledgerchain=CHN(8)+P('M14 30H50V58H14Z','bn')+P('M14 30H50V36H14Z','m')+L('M32 30V58',1.6)+L('M18 40H29M18 44H29M18 48H27M35 40H46M35 44H46M35 48H44',.8)+'<path d="M50 44C56 44 60 40 60 34M50 52C58 52 62 46 62 38" fill="none" stroke="#a9a090" stroke-width="2.4" stroke-dasharray="3 1.3"/>'+GEM(32,54,2.2,'#e8c060');
+IC.i_rquill=SWD(-30,QUILLP(32,26,1.5)+'<path d="M32 44L29 58L32 62L35 58Z" fill="#2a1a18"/>'+'<path d="M32 46V60" stroke="#8a2a24" stroke-width="1.6"/>'+GEM(32,40,1.8,'#c0302a'));   // The Thief's Quill: a red-tipped pen, sharpened to a blade
+IC.i_rcoat=P(ROBE)+'<path d="M20 14V60M44 14V60" stroke="#8a2a24" stroke-width="1.6" stroke-dasharray="2.4 1.6" fill="none"/>'+L('M24 24H30M24 30H31M24 36H29M34 24H40M33 30H40M35 36H40',.8)+FOLD('M17 40L15 58M47 40L49 58',1.1)+P(CIR(32,18,2.4),'gd');   // Margin-Stitched Coat: notes in the margins, stitched in red
+IC.i_rledger=P('M10 26H32V58H10Z','bn')+P('M32 26H54V58H32Z','bn')+P('M10 22H32V28H10ZM32 22H54V28H32Z','m')+L('M32 22V58',1.8)+L('M14 34H28M14 38H28M14 42H26',.8)+'<path d="M36 34H50M36 38H50M36 42H47M36 48L50 34" stroke="#a8281e" stroke-width="1.2" fill="none"/>'+GEM(32,60,2.2,'#c0302a');   // The Other Ledger: their book, every line struck through in red
 SECRET.forEach((B,i)=>{ IC[B.name]=IC[DUNGEONS[i].boss[0]]; });   // a secret master wears its gate boss's shape, drawn in a darker light (CSS .secret)
 // Natural colour and material for each creature (fur, chitin, flesh, bone, cloth, metal, stone, wood, spirit, glass).
 // The rank colour stays on the frame; the creature is painted in its own colours, textured and lit by the #paint filter.
@@ -12857,7 +13017,11 @@ function cxRivalHTML(){
      cxRow('The rival\'s war','Their story runs in five chapters, shown on their page in Records: Margins (as above); The Open Hand, once you have fought '+ARC_FIGHTS+' challenges; Fire at the Walls, '+ARC_SIEGE_DAYS+' days later once you have held a siege; then their own gate and the reckoning.'),
      cxRow('Wagers','From The Open Hand, on the day before a challenge and the day itself, you may stake a Reserve minion (from the gates, unlocked) against the stolen body they name: the closest of theirs at its rank or higher. Win the challenge and their body joins you Reclaimed; lose or flee and yours goes into their book, and they will raise it against you. A wager lapses if the challenge is not fought.'),
      cxRow('Their siege','In Fire at the Walls the next siege is theirs: the last wave is the rival, as strong as a challenge, with their stolen dead instead of the Inquisitor Captain. Broken, it gives back '+ARC_SIEGE_BACK+' stolen bodies Reclaimed and their next theft waits; lost, they also carry off your weakest Reserve minion.'),
-     cxRow('Reclaimed','A body won back from the rival (a wager, their siege, or a stolen body you kill and raise) rises Reclaimed: '+Math.round(RECL_K*100)+'% more HP and attack.')])
+     cxRow('Reclaimed','A body won back from the rival (a wager, their siege, or a stolen body you kill and raise) rises Reclaimed: '+Math.round(RECL_K*100)+'% more HP and attack.'),
+     cxRow('Their gate','Once their siege has been fought, won or lost, Their Own Gate opens: the Rival\'s Ledger, on the Gates tab for '+ARC_GATE_DAYS+' days (closed, it opens again '+ARC_GATE_WAIT+' days later). Four rooms at your deepest open gate and never below your level, every foe '+pct(ARC_GATE_K-1)+' stronger: their newest stolen dead, the ones that were yours, their best body as an elite, and a lieutenant in the shape of your strongest minion. No doors, no events, no thefts. A stolen body killed there rises '+ARC_RECL_RAISE+'% easier.'),
+     cxRow('The Reckoning','Clear their gate and the last chapter opens the next day: the rival waits with every move their stolen roles give, '+(ARC_DUEL_K>1?pct(ARC_DUEL_K-1)+' stronger than':ARC_DUEL_K<1?pct(1-ARC_DUEL_K)+' weaker than':'as strong as')+' a challenge (their whole book is the danger), and their stolen dead. At half HP they turn The Last Page: every follower still standing burns and heals them '+pct(ARC_LAST_HEAL)+' of their HP each. Fall or flee and they take your weakest Reserve minion and wait '+ARC_DUEL_WAIT+' days. No Retry.'),
+     cxRow('The end','Beaten, they kneel, and you choose on the Gates tab. End them: The Thief\'s Quill, the Margin-Stitched Coat and The Other Ledger (the Rival\'s Book set) are yours, and every body they hold comes home Reclaimed. Spare them: they close their book and stand with you in the next cycle. Either way their thefts and challenges end for good.'),
+     cxRow('The ally','Spared, from the next cycle on they offer one trade a week (a body of theirs for a Reserve minion of the same rank) and hold the first wave of one siege a cycle alone.')])
    +(g.name&&g.met?cxP(g.name+': '+g.enc+' encounters, '+g.wins+' won, '+g.losses+' lost.'):'');
 }
 function cxTrialsHTML(){
@@ -12956,7 +13120,7 @@ function townHTML(){
   h+=lastPageBanner();
   h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'+gateArmyHTML()
    +((n=>n<FIRST_STEPS.length&&!(S.tips&&S.tips.off)?'<p class="q-note guide-link"><button class="linkbtn" data-a="tab" data-k="help">How to play &middot; first steps '+n+'/'+FIRST_STEPS.length+'</button></p>':'')(stepsDone()))   /* for a new player; gone once every step is done or tips are switched off */
-   +(omen()?'<div class="omen-line" title="It touches every gate and the Tower until dawn."><b>Omen today: '+OMENS[omen()].name+'.</b> '+OMENS[omen()].desc+'</div>':'')+rivalWarnHTML()
+   +(omen()?'<div class="omen-line" title="It touches every gate and the Tower until dawn."><b>Omen today: '+OMENS[omen()].name+'.</b> '+OMENS[omen()].desc+'</div>':'')+rivalWarnHTML()+arcGateHTML()
    +prepHTML()+'<div class="gates">'+DUNGEONS.map((d,i)=>gateHTML(i)).join('')+'</div>'
    +'<div class="btns"><button class="btn small" data-a="rest">Rest until dawn</button></div></section>';
   return h;
@@ -13567,6 +13731,7 @@ const ACTIONS={
   tores:k=>{ toReserve(+k); }, toarmy:k=>{ toArmy(+k); }, swapo:k=>{ ui.swap=ui.swap===+k?null:+k; }, swap:k=>{ const a=k.split('|'); if(swapReserve(+a[0],+a[1])) ui.swap=null; },
   rsort:k=>{ sortReserve(k); }, gatearmy:k=>{ fromGate(+k,'army'); }, gateres:k=>{ fromGate(+k,'reserve'); },
   event:k=>{ resolveEvent(k); }, door:k=>{ descend(k); }, cmd:k=>{ command(k); }, rally:k=>{ rally(k); }, wager:k=>{ if(!wager(k==='none'?null:+k)) ui.msg={m:'They will not take that one.',c:'bad'}; },
+  rgate:()=>{ startRivalGate(); }, reck:()=>{ startReckoning(); }, rend:k=>{ arcEnd(k); }, atrade:k=>{ if(!allyTrade(+k)) ui.msg={m:'They will not take that one.',c:'bad'}; },   /* the rival's end (game-rival-arc.js) */
   skmod:k=>{ const a=k.split('|'); chooseMod(a[0],a[1]); },
   build:k=>{ const c=buildCost(k); ui.msg=build(k)?{mk:1,m:BUILD[k].name+' raised to level '+bl(k)+' for '+c[0]+' gold'+(c[1]?' and '+c[1]+' bone dust':'')+'.',c:'ok'}:null; },
   claimb:k=>{ const r=claimBounty(+k); if(r) notify('Bounty claimed: '+r+'.','ok'); },
