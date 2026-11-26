@@ -22,8 +22,8 @@ test('Safety: a pasted save code cannot put markup into the page (notices, memor
   ok(importCode('LOTD1:'+btoa(unescape(encodeURIComponent(JSON.stringify(g))))),'imports'); eq(S.notices[0].c,'info');
   ok(!/<img/.test(notesHTML()),'notices'); ok(!/<svg onload/.test(memorialHTML()),'memorial');
 });
-test('Unique sets: six trios of one weapon, armor and relic; every unique belongs to exactly one',()=>{
-  eq(USET.length,6); const all=Object.values(ITEM).filter(d=>d.uq).map(d=>d.id), used=USET.flatMap(u=>u.ids);
+test('Unique sets: six trios of one weapon, armor and relic; every unique but the abbey\'s Ledger-Chain belongs to exactly one',()=>{
+  eq(USET.length,6); const all=Object.values(ITEM).filter(d=>d.uq&&d.id!=='u'+ABBEY).map(d=>d.id), used=USET.flatMap(u=>u.ids);
   eq(new Set(used).size,used.length,'no unique in two sets'); eq(used.slice().sort().join(),all.slice().sort().join(),'every unique is in a set');
   USET.forEach(u=>{ eq(u.ids.map(id=>ITEM[id].slot).sort().join(),'armor,relic,weapon',u.name); eq(ITEM[u.ids[0]].uset,USET.indexOf(u)); ok(buffTxt(u.b[2])&&buffTxt(u.b[3]),u.name+' text'); });
 });

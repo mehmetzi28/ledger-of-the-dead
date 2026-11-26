@@ -212,6 +212,41 @@ page; an Endings row in the Records.
 - **PR A**: the gate (keys, foes, loot, Scriptorium), the Hunger without R2 moves, act VI up to the fight, tests 86-87.
 - **PR B**: the choice, both New Game+ variants, inscriptions, titles, epilogues, test 88, docs.
 
+### As built (PR A)
+
+- Code in `src/game-abbey.js` (after game-progression.js, before tr.js). `GATE_N`=6 counts the valley's gates and
+  `ABBEY`=6 is the new index; every "pick a gate" rule (curses, raids, rival gates, Trials, the Rift, shop stock, `topGate`,
+  gate titles, the objective) loops `i<GATE_N`. `gateLocked(i)` replaces the level check in `startRun` and the gate card.
+- Keys: `ABBEY_KEYS` (deep: Throne, Tower floor `ABBEY_TOWER`, `ABBEY_PAGES` pages; secret: Throne and all six masters,
+  counted from the `secret_i` tallies of the whole save). `abbeyCheck` runs in `checkTitles`. `S.abbey={keys,open}`
+  (`abbeyFix` on load; old saves load sealed). The card stays hidden until the Throne falls, then shows the sealed door
+  with both key slots and their parts ticked off.
+- Five rooms (`ABBEY_ROOMS`), the Scriptorium forced as the only door before the boss room (`rollDoors`, quiet door
+  `script`). The raise screen lists the army and Reserve with "Cross out" (two presses); `scriptCross` returns gear,
+  removes the minion without a Memorial entry, sets `r.crossed` and `r.lbless` (its top trait: a compound, else a death or
+  affix trait, else the newest). `ledgerBless` makes `hasTrait` true for every minion in the boss room only.
+- Kits: `unwritten` and `recite` live in `KITS` but not in `KIT_IDS` (no other gate rolls them; the bestiary and the
+  doors show them). Unwritten is checked first in `hurtFoe` (`abbeyMiss`); minions retarget away from an un-inked
+  Unwritten foe (`abbeyTarget`). Recitation is an intent (`read`, shown as "Reads X aloud").
+- The Hunger: `hungerSetup` gives it the boss-kit rotation without `BOSS_KITS_ON` (it always has its pages);
+  `checkPhase` skips it. Moves in `BOSS_ABIL` (erase, hollow, hunger, remember "Call the Fallen", readaloud, writename,
+  devour; the last two telegraph). Echoes are `makeEnemy` foes of the abbey kind of their role, at `HUNGER_ECHO` of the
+  stats with the Memorial entry's tier (capped at Elder) and its traits Thick, Vicious and Unmarred applied; they leave no
+  body (`echoFades`). Stand-ins for an empty Memorial share one name. Gold ink: `.u-name.echo`.
+- Simplifications: Read Aloud mutes the trait for the fight (it Hexes the strongest minion when there is none to read)
+  instead of Silencing; the defeat recap names the echo through the usual blow note; Erase removes the Ward and Unholy
+  Frenzy, else every minion's Bone Shield (there is no general buff list to pick "the highest" from); Normal and Hard are
+  not limited on the first opening (difficulties unlock by clears like every gate).
+- Loot: set 6 (the Scribe's Regalia, tier 4, `SET_BONUS[6]` sdmg/studyp, then Marginalia) and `UNIQ[6]` Oswin's
+  Ledger-Chain (`chainK` in `extraMul`, `chainSpear` from `hurtAlly`). The Hunger's heart is The Hunger's Tooth.
+- Story: act VI (seven passages), three abbey-only pages (21-23; `nextPage` only offers them inside an abbey run), boss
+  and phase lines, five titles (Riverturner, Scriptor, Echo-Breaker, Unwritten, Seven Seals). The Last Keeper, The Hand
+  That Writes and Both Endings come with PR B.
+- Tests: `86-abbey` (9) and `87-hunger` (8).
+- Bot: `pickGate` honours `gateLocked`; it records `abbeyDay`. The bot climbs the Tower only after its days, so the deep
+  route mostly opens then: after the final climb it checks the keys and plays up to 8 abbey runs (opening a still-sealed
+  door for measuring only, reported apart). The tier probe can fight the sealed abbey.
+
 ## 14. Risks
 
 - **Late content nobody reaches**: if `abbeyDay` is past 100 for most bots, the secret route is the fix (it needs no Tower

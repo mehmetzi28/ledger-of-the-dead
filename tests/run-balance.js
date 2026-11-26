@@ -16,6 +16,7 @@ for(const m of ['noSkills','skills','market','full']){
   if(r.heat&&r.heat.length>1) console.log('  difficulty: '+r.heat.join(' | '));
   if(r.raise) console.log('  raises: '+r.raise+' attempts answered');
   if(r.sweeps) console.log('  sweeps: '+r.sweeps.n+' ('+r.sweeps.perBot+' a bot, '+r.sweeps.stopped+' stopped by a master)');
+  if(r.abbey) console.log('  vane abbey: opened by '+r.abbey.open+' bots ('+r.abbey.inSim+' within the days, on day '+r.abbey.day+' on average; the rest after the final Tower climb; '+r.abbey.probed+' still sealed, opened anyway for the measuring runs in the SS row)');
   if(r.sec) console.log('  secret masters: met '+r.sec.met+', slain '+r.sec.slain);
   if(r.lore) console.log('  lore: '+Object.entries(r.lore).map(([d,v])=>d+' '+v).join(' | '));
   if(r.sieges&&r.sieges.fought) console.log('  sieges: fought '+r.sieges.fought+', held '+r.sieges.won+' ('+Math.round(r.sieges.won/r.sieges.fought*100)+'%)');

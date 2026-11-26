@@ -12,7 +12,7 @@ const PHASE_LINES={
 };
 function checkPhase(){
   if(!S.run) return;
-  for(const e of liveFoes()) if(e.boss&&e.abil&&!e.phase2&&(e.tw||e.rival||e.rankI>=1||runHeat()>=2)&&e.hp<=e.maxHp*phaseAt()){   // the Rat King, a new player's first boss, keeps one phase
+  for(const e of liveFoes()) if(e.boss&&e.abil&&!e.phase2&&!e.hunger&&(e.tw||e.rival||e.rankI>=1||runHeat()>=2)&&e.hp<=e.maxHp*phaseAt()){   // the Rat King, a new player's first boss, keeps one phase
     e.phase2=true; e.fast=(e.fast||0)+1; e.alt=true; e.abilT=Math.min(e.abilT,2);   // Sundering Blow comes first (a boss with a move set has a twist instead)
     const l=PHASE_LINES[e.base]; log(e.name+(l?': "'+l+'"':' rises in fury.'),'boss'); const tw=bossTwist(e);
     log(tw?e.name+' enters its second phase: '+tw.name+'. '+tw.desc+' It moves faster and warns before every move.':e.name+' enters its second phase. It moves faster, warns before every move, and adds Sundering Blow.','bad'); sfx('phase'); tally('phases'); moment(e.name+' enters its second phase','bad');
@@ -245,7 +245,7 @@ function makeBounties(add){   // add: post that many new contracts onto the bank
 function bounties(){ if(!S.bounty||!Array.isArray(S.bounty.list)) makeBounties(); else if(S.bounty.day!==S.day) makeBounties(Math.max(0,S.day-S.bounty.day)); return S.bounty.list; }
 const bountyGot=b=>Math.max(0,bountyVal(b.id)-b.base);
 const bountyDone=b=>bountyGot(b)>=b.n;
-const topGate=()=>{ let g=0; for(let i=0;i<RK.length;i++) if(S.player.lvl>=RK[i].unlock) g=i; return g; };
+const topGate=()=>{ let g=0; for(let i=0;i<GATE_N;i++) if(S.player.lvl>=RK[i].unlock) g=i; return g; };
 function claimBounty(i){
   const b=bounties()[i]; if(!b||b.claimed||!bountyDone(b)||S.mode!=='town') return null;
   if(b.rw.gear&&S.inv.length>=bagMax()) return null;

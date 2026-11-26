@@ -62,7 +62,8 @@ const BOSS_THEME={
   'The Pale Executioner':[41.2,'loc',68,'sawtooth',.7,.02],'Archdevil Vael':[46.2,'hm',96,'sawtooth',.75,.06],'The Hollow Seraph':[51.9,'dor',54,'triangle',.25,.02],
   'Abaddon, King of Hell':[36.7,'phr',100,'sawtooth',.85,.07],
   'The Plague Matriarch':[51.9,'loc',88,'square',.6,.08],'The Drowned Abbot':[41.2,'aeo',52,'triangle',.45,.05],'The Cinder Wyrm':[43.7,'hm',104,'sawtooth',.8,.06],
-  'The Choir Eternal':[49,'dor',48,'triangle',.2,.01],'The Rootking':[38.9,'phr',82,'square',.65,.04],'The Nameless Sovereign':[34.6,'loc',90,'sawtooth',.9,.05]
+  'The Choir Eternal':[49,'dor',48,'triangle',.2,.01],'The Rootking':[38.9,'phr',82,'square',.65,.04],'The Nameless Sovereign':[34.6,'loc',90,'sawtooth',.9,.05],
+  'The Hunger':[32.7,'aeo',50,'sawtooth',.7,.09]
 };
 const liveBoss=()=>S.mode==='battle'&&S.run?liveFoes().find(e=>e.boss)||null:null;
 const musicScene=()=>{ const b=liveBoss(); if(b&&BOSS_THEME[b.base]) return 'boss:'+b.base; return S.mode==='town'?(ui.tab==='tower'?'tower':'town'):(S.run&&S.run.tw?'tower':S.run&&S.run.rift?'rift':'gate'); };
@@ -110,7 +111,8 @@ const BOSS_LOOK={
   'The Pale Executioner':['#200808','#b8b0a0','rays'],'Archdevil Vael':['#2a0606','#e83a1e','rays'],'The Hollow Seraph':['#24200e','#e8c860','rings'],
   'Abaddon, King of Hell':['#140404','#ff3a1a','mist'],'Inquisitor Captain':['#1e1206','#d8862a','rays'],
   'The Plague Matriarch':['#14180a','#7aa02a','mist'],'The Drowned Abbot':['#0e1a16','#3a8a6a','drip'],'The Cinder Wyrm':['#200a04','#ff6a1a','rays'],
-  'The Choir Eternal':['#1a1814','#f0e6c8','rings'],'The Rootking':['#141a0a','#6a8a2a','drip'],'The Nameless Sovereign':['#0a0a0a','#e8564a','rings']
+  'The Choir Eternal':['#1a1814','#f0e6c8','rings'],'The Rootking':['#141a0a','#6a8a2a','drip'],'The Nameless Sovereign':['#0a0a0a','#e8564a','rings'],
+  'The Hunger':['#140e0c','#e8c060','drip']
 };
 function bossBg(){
   const el=document.getElementById('bossbg'); if(!el) return; const b=liveBoss(), BL=b&&BOSS_LOOK[b.base];
@@ -364,6 +366,14 @@ const BACKDROPS={
     +scRuin(120,900,200,260,'#0b0a09')+scRuin(1480,900,190,240,'#0b0a09',1)
     +scMotes(r,80,'#cfc4b0',0,900,'sc-ash');
     return o+scFog(720,.13,'#b8b0a0',1100); },
+  g6:()=>{ const r=scRand(6); let o='<defs>'+scSky('skV','#06080a','#10161a','#1a1e1c')+'</defs><rect width="1600" height="900" fill="url(#skV)"/>'+scGlow(800,380,300,'#e8c060',.1)
+    +scPar(scArcade(720,300,140,'#070a0b',.5,12))+scPillars(5,720,'#080b0c',120)
+    +scSway(scChain(300,0,380,'#0a0d0e',3)+scChain(1300,0,360,'#0a0d0e',3)+scChain(560,0,220,'#0a0d0e',2.4)+scChain(1040,0,240,'#0a0d0e',2.4))
+    +'<g fill="#0a0c0c">'+[[360,640],[560,660],[1040,660],[1240,640]].map(([x,y])=>'<path d="M'+(x-70)+' '+y+'H'+(x+70)+'L'+(x+60)+' '+(y+16)+'H'+(x-60)+'ZM'+(x-54)+' '+(y+16)+'V'+(y+70)+'H'+(x-46)+'V'+(y+16)+'ZM'+(x+46)+' '+(y+16)+'V'+(y+70)+'H'+(x+54)+'V'+(y+16)+'Z"/><path d="M'+(x-30)+' '+(y-30)+'C'+(x-30)+' '+(y-60)+' '+(x+30)+' '+(y-60)+' '+(x+30)+' '+(y-30)+'V'+y+'H'+(x-30)+'Z"/>'+scFlame(x+50,y-6,1)).join('')+'</g>'
+    +'<path d="M700 720L740 560H860L900 720Z" fill="#08090a"/><path d="M720 560H880L860 540H740Z" fill="#e8c060" opacity=".22"/><path d="M748 548H852" stroke="#e8c060" stroke-opacity=".5" stroke-width="2"/>'
+    +'<path d="M0 700H1600V900H0Z" fill="#081012"/>'+'<g stroke="#8ab8c0" stroke-opacity=".12" stroke-width="3" fill="none">'+Array.from({length:12},(_,i)=>'<path class="sc-fog'+(i%2?' d2':'')+'" d="M'+(r()*1400).toFixed(0)+' '+(720+i*14)+'q60 -8 120 0t120 0"/>').join('')+'</g>'
+    +scPar(scMist('mV',640,170,'#8ab8c0',.08),1)+scMotes(r,50,'#e8c060',0,900,'sc-mote');
+    return o+scFog(720,.14,'#8ab8c0',1100); },
   rift:()=>{ const r=scRand(13); let o='<defs><radialGradient id="rf" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#3a120c"/><stop offset=".5" stop-color="#120706"/><stop offset="1" stop-color="#040202"/></radialGradient></defs><rect width="1600" height="900" fill="url(#rf)"/>'+scStars(r,110,900)
       +[[420,300,260,'#4a140e'],[1180,560,300,'#3a100a'],[800,140,220,'#5a1a10'],[300,700,240,'#2a0c08']].map(([x,y,w,c])=>'<ellipse class="sc-fog" cx="'+x+'" cy="'+y+'" rx="'+w+'" ry="'+(w*.45)+'" fill="'+c+'" opacity=".45" filter="url(#scB)"/>').join('');
     let d='M800 40', pts=[[800,40]]; for(let y=100;y<=860;y+=60){ const x=800+(r()-.5)*(y<450?150:210); d+='L'+x.toFixed(0)+' '+y; pts.push([x,y]); }
@@ -546,10 +556,16 @@ const ARENAS={
      +'<path d="M700 290L720 220L750 270L800 200L850 270L880 220L900 290Z" fill="#0a0606" stroke="#e8564a" stroke-opacity=".6" stroke-width="2"/>';
    return o; },[36,'#e8564a','sc-ember'])
 };
+ARENAS['The Hunger']=(r)=>arFrame('The Hunger',r,(c1,c2)=>{ let o='<path d="M500 760Q520 300 800 260Q1080 300 1100 760Z" fill="#050403"/>';   // an open book standing on its spine, pages drifting out of it into gold ink
+  o+='<path d="M800 300L560 360V720L800 680ZM800 300L1040 360V720L800 680Z" fill="#0c0908"/><path d="M800 300V680" stroke="'+c2+'" stroke-opacity=".5" stroke-width="3"/>';
+  for(let i=0;i<10;i++){ const y=400+i*28; o+='<path d="M590 '+(y+6)+'L780 '+y+'M820 '+y+'L1010 '+(y+6)+'" stroke="'+c2+'" stroke-opacity=".18" stroke-width="2"/>'; }
+  for(let i=0;i<24;i++){ const x=200+r()*1200, y=120+r()*520, a=(r()*80-40).toFixed(0); o+='<g transform="rotate('+a+' '+x.toFixed(0)+' '+y.toFixed(0)+')" class="sc-fog'+(i%2?' d2':'')+'"><path d="M'+(x-14).toFixed(0)+' '+(y-18).toFixed(0)+'h26l4 4v32h-30z" fill="#d8ccb0" opacity=".16"/></g>'; }
+  o+='<g fill="#e3d6b8" opacity=".5">'+Array.from({length:12},(_,i)=>{ const x=640+i*29; return '<path d="M'+x+' 640l8 -40l8 40z"/>'; }).join('')+'</g>'+arEyes(r,18,c2,200,700);
+  return o; },[40,'#e8c060']);
 function scGear(cx,cy,rr,c){ let o='<circle cx="'+cx+'" cy="'+cy+'" r="'+rr+'" fill="'+c+'"/>'; for(let i=0;i<10;i++){ const a=i*Math.PI/5; o+='<rect x="'+(cx-8)+'" y="'+(cy-rr-14)+'" width="16" height="20" fill="'+c+'" transform="rotate('+(a*180/Math.PI).toFixed(0)+' '+cx+' '+cy+')"/>'; } return o+'<circle cx="'+cx+'" cy="'+cy+'" r="'+(rr*.35)+'" fill="#050403"/>'; }
 // Shared atmosphere laid over every backdrop and arena: high cloud drifting, soft light falling from above, a slow pulse of
 // light behind the focus, and a grade (cooler and darker above, warmer below) so every place reads with depth.
-const SC_TINT={town:'#e8c890',g0:'#e0b060',g1:'#80c0a8',g2:'#ff7a3c',g3:'#f0d098',g4:'#c8c870',g5:'#e8dec6',rift:'#e8564a',tower:'#ff5a2a'};
+const SC_TINT={town:'#e8c890',g0:'#e0b060',g1:'#80c0a8',g2:'#ff7a3c',g3:'#f0d098',g4:'#c8c870',g5:'#e8dec6',g6:'#e8c060',rift:'#e8564a',tower:'#ff5a2a'};
 function scAtmos(k){
   const tint=k.startsWith('b:')?((BOSS_LOOK[k.slice(2)]||[])[1]||'#c8b890'):(SC_TINT[k]||'#c8b890'), r=scRand(k.length*31+7);
   let o='<defs><linearGradient id="atR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+tint+'" stop-opacity=".16"/><stop offset="1" stop-color="'+tint+'" stop-opacity="0"/></linearGradient>'

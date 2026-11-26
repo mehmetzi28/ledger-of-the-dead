@@ -1,7 +1,8 @@
 'use strict';
 //==LOGIC==
 const SAVE_KEY = 'ledger-of-the-dead-v1';
-const RANKS = ['E','D','C','B','A','S'];
+const RANKS = ['E','D','C','B','A','S','SS'];
+const GATE_N=6, ABBEY=6;   // the six gates of the valley; the seventh, Vane Abbey (rank SS), opens only by its keys (game-abbey.js)
 // hp/atk: stat multiplier by rank. pen: raise-chance penalty. clear: bonus xp. unlock: player level needed. lv: enemy base level.
 const RK = [
   {hp:1,   atk:1,   xp:1,   pen:0,  clear:40,   unlock:1,  lv:1},
@@ -9,7 +10,8 @@ const RK = [
   {hp:2.6, atk:2.4, xp:1.9, pen:8,  clear:190,  unlock:8,  lv:8},
   {hp:3.8, atk:3.3, xp:2.6, pen:12, clear:380,  unlock:12, lv:12},
   {hp:5.2, atk:4.4, xp:3.5, pen:16, clear:720,  unlock:17, lv:17},
-  {hp:7.5, atk:6,   xp:5,   pen:20, clear:1400, unlock:23, lv:23}
+  {hp:7.5, atk:6,   xp:5,   pen:20, clear:1400, unlock:23, lv:23},
+  {hp:10,  atk:7.8, xp:6.6, pen:24, clear:2600, unlock:29, lv:29}   // Vane Abbey: opened by its keys, not by level (abbeyOpen)
 ];
 const ROLES = {
   vanguard:{label:'Vanguard', text:'Draws enemy blows.'},
@@ -34,7 +36,10 @@ const DUNGEONS = [
   {name:'Iron Orchard', blurb:'Rusted trees bear fruit that screams when it falls.',
     mobs:[['Thorn Troll','vanguard',1.45,.9],['Rust Knight','striker',.95,1.3],['Sap Weaver','mender',.8,.8]], boss:['The Orchard Mother','reaper']},
   {name:'Throne of Ash', blurb:'A king died here and refused to stay dead. His court agreed.',
-    mobs:[['Throne Guard','vanguard',1.4,.9],['Ash Revenant','striker',.95,1.3],['Whisper Choir','mender',.8,.8]], boss:['The Pale Sovereign','reaper']}
+    mobs:[['Throne Guard','vanguard',1.4,.9],['Ash Revenant','striker',.95,1.3],['Whisper Choir','mender',.8,.8]], boss:['The Pale Sovereign','reaper']},
+  {name:'Vane Abbey', blurb:'Under the drowned chapel where the book was found. Oswin Vane wrote here until the plague outran his pen.',
+    mobs:[['Plague-Year Mourner','vanguard',1.4,.9],['Drowned Novice','striker',.95,1.3],['Brother of the Binding','mender',.8,.8],['Ink Wraith','reaper',1,1.15],
+      ['Chained Lector','vanguard',1.35,.95],['Censer-Bearer','striker',.9,1.25],['Weeping Unnamed','reaper',1,1.1]], boss:['The Hunger','reaper']}
 ];
 
 
@@ -75,22 +80,22 @@ const SECRET_CHANCE=.01, SECRET_HEAT=.01, SECRET_PITY=.0005,   /* about 41 boss 
 // The roll for a cleared gate's boss room. Each boss room without the secret master makes the next a little likelier (S.sbPity), so it stays rare but never out of reach.
 const secretChance=di=>SECRET_CHANCE+SECRET_HEAT*runHeat()+SECRET_PITY*((S.sbPity&&S.sbPity[di])||0);
 function secretRoll(di){
-  if(!(S.ti&&S.ti.clr&&S.ti.clr[di])) return false;
+  if(!SECRET[di]||!(S.ti&&S.ti.clr&&S.ti.clr[di])) return false;   /* Vane Abbey hides no master */
   S.sbPity=S.sbPity||{}; const hit=Math.random()<secretChance(di);
   if(hit) delete S.sbPity[di]; else S.sbPity[di]=(S.sbPity[di]||0)+1;
   return hit;
 }
 const secretOf=n=>SECRET.findIndex(x=>x.name===n);
 const SECRET_HINT=10;   // after this many clears of a gate, the Ledger hints that something older waits there (never its name)
-const secretHinted=i=>T_('clrN'+i)>=SECRET_HINT&&!((S.kills||{})[SECRET[i].name]>0);
+const secretHinted=i=>!!SECRET[i]&&T_('clrN'+i)>=SECRET_HINT&&!((S.kills||{})[SECRET[i].name]>0);
 const GEAR_SLOTS=['weapon','armor','relic'];
 
 
 // ===== ITEMS =====
 const TIERS=['Common','Uncommon','Rare','Epic','Legendary','Unique'];
 const SLOTS={weapon:'Weapon',armor:'Armor',relic:'Relic'};
-const TM=[1,1.8,3,4.8,7.5,9.4];      // stat multiplier per item set (one set per gate)
-const SET_TIER=[0,1,2,3,4,4];        // tier of each gate's item set
+const TM=[1,1.8,3,4.8,7.5,9.4,11.5];      // stat multiplier per item set (one set per gate)
+const SET_TIER=[0,1,2,3,4,4,4];        // tier of each gate's item set
 const KINDS=['wa','wb','aa','ab','ta','tb','tc'];
 const KSLOT={wa:'weapon',wb:'weapon',aa:'armor',ab:'armor',ta:'relic',tb:'relic',tc:'relic'};
 const NAMES=[
@@ -99,7 +104,8 @@ const NAMES=[
  ['Wight-Bone Blade','Pyre-Witch Staff','Ashplate Cuirass','Cinder-Weave Robe','Ember Locket','Cinder Rosary','Barrow Torque'],
  ['Gargoyle-Fang Sword',"Chorister's Bell Staff",'Gargoyle Plate','Vestments of the Choir','Stained-Glass Relic','Nave Reliquary',"Bishop's Tooth Pendant"],
  ['Thornblade','Heartwood Scepter','Ironbark Hauberk','Raiment of Rust',"Mother's Seed Pendant",'Sapblood Rosary','Iron Fruit Talisman'],
- ["Sovereign's Cinderblade",'Choir-Song Scepter','Throne-Guard Plate','Revenant Pall','Ashen Crown Shard','Whisper Locket','Court Signet']
+ ["Sovereign's Cinderblade",'Choir-Song Scepter','Throne-Guard Plate','Revenant Pall','Ashen Crown Shard','Whisper Locket','Court Signet'],
+ ["Scribe's Quill",'Censer Staff',"Scribe's Cowl",'Inkstained Robe','Chain of the Wrist','Reading Glass','Wax Seal']
 ];
 function kindStats(k,m){ const r=Math.round,f=Math.floor; switch(k){
   case 'wa':return {atk:r(3*m),crit:r(.8*m)};
@@ -118,7 +124,8 @@ const UNIQ=[
  {name:"Ember Knight's Cinderplate",slot:'armor',glyph:'i_cinderplate',stats:{hp:130,constitution:6,ward:14,strength:3},flag:'undying'},
  {name:"Bishop's Tithe-Staff",slot:'weapon',glyph:'i_tithestaff',stats:{atk:14,siph:42,intelligence:7,mana:50},flag:'lifedrain'},
  {name:"Mother's Seedheart",slot:'relic',glyph:'i_u4',stats:{mana:90,regen:2,raise:14,will:5},flag:'soulharvest'},
- {name:'Funeral Shroud of the Pale Sovereign',slot:'armor',glyph:'i_paleshroud',stats:{hp:100,mpow:28,will:8,intelligence:6,raise:10},flag:'cheapraise'}
+ {name:'Funeral Shroud of the Pale Sovereign',slot:'armor',glyph:'i_paleshroud',stats:{hp:100,mpow:28,will:8,intelligence:6,raise:10},flag:'cheapraise'},
+ {name:"Oswin's Ledger-Chain",slot:'relic',glyph:'i_ledgerchain',stats:{mpow:24,will:8,mana:80,raise:8},flag:'ledgerchain'}
 ];
 UNIQ.forEach((u,i)=>{ ITEM['u'+i]=Object.assign({id:'u'+i,set:i,tier:5,uq:true,kind:'u'},u); });
 const FLAGS={
@@ -139,15 +146,16 @@ const FLAGS={
  halo:'Halo: at the end of each turn you and your minions heal 4% of max HP.',
  ruin:'Ruin: all damage dealt by you and your minions is increased by 25%.',
  hellfire:'Hellfire: Strike also scorches every other foe for 40% of the damage.',
- deathless:'Deathless: twice per run, a killing blow leaves you at 50% HP.'
+ deathless:'Deathless: twice per run, a killing blow leaves you at 50% HP.',
+ ledgerchain:'Ledger-Chain: your minions gain 1% to all stats for each headstone in the Memorial, up to 20%. When a minion of yours is downed, you strike its last blow back as a free Bone Spear (once a room).'
 };
 const STATL={atk:['Strike',''],crit:['Crit chance','%'],siph:['Siphon',''],hp:['Max HP',''],mana:['Max mana',''],ward:['Ward',''],strength:['Strength',''],constitution:['Constitution',''],intelligence:['Intelligence',''],will:['Will',''],raise:['Raise chance','%'],mpow:['Minion power','%'],fres:['Fire resistance','%'],frres:['Frost resistance','%'],rres:['Rot resistance','%'],sres:['Shadow resistance','%'],fdmg:['Fire damage','%'],frdmg:['Frost damage','%'],rdmg:['Rot damage','%'],sdmg:['Shadow damage','%'],regen:['Mana per turn',''],slot:['Army slots','']};
 
 // ===== DROP TABLES =====
 // Share of each tier in a gate's drops [common, uncommon, rare, epic, legendary]. Each gate leans on its own tier and sometimes the next.
-const TIER_W=[[78,19,3,0,0],[8,68,22,2,0],[0,10,68,20,2],[0,0,10,68,22],[0,0,0,12,88],[0,0,0,0,100]];
+const TIER_W=[[78,19,3,0,0],[8,68,22,2,0],[0,10,68,20,2],[0,0,10,68,22],[0,0,0,12,88],[0,0,0,0,100],[0,0,0,0,100]];
 // Share of a boss's drops that is its unique (per drop). Ordinary enemies of the gate drop it at UQ_MOB (1/100) of this.
-const UQ=[1,.85,.75,.6,.5,.35];   // halved twice: a gate's unique should be a long chase, not a day-3 find
+const UQ=[1,.85,.75,.6,.5,.35,.3];   // halved twice: a gate's unique should be a long chase, not a day-3 find
 // Signature item of each ordinary enemy (4x as likely as its siblings).
 const SIG={'Tunnel Rat':'0-ta','Grave Beetle':'0-aa','Marrow Mite':'0-tc','Skeleton Guard':'1-wa','Crypt Ghoul':'1-ab','Drowned Priest':'1-wb','Ash Husk':'2-aa','Barrow Wight':'2-wa','Pyre Witch':'2-wb','Stone Gargoyle':'3-aa','Nave Stalker':'3-wa','Hollow Chorister':'3-wb','Thorn Troll':'4-aa','Rust Knight':'4-wa','Sap Weaver':'4-tb','Throne Guard':'5-aa','Ash Revenant':'5-wa','Whisper Choir':'5-tb'};
 Object.assign(SIG,{'Warren Bandit':'0-wa','Crypt Legionnaire':'1-aa','Barrow Champion':'2-wa','Cathedral Templar':'3-aa','Orchard Marshal':'4-aa','Ash Praetorian':'5-aa',
@@ -156,7 +164,8 @@ Object.assign(SIG,{'Warren Bandit':'0-wa','Crypt Legionnaire':'1-aa','Barrow Cha
  'Barrow Thrall':'2-tc','Ember Stalker':'2-ta','Cinder Weaver':'2-ab',
  'Glass Sentinel':'3-ta','Tooth Collector':'3-tc','Vestment Wraith':'3-ab',
  'Iron Scarecrow':'4-ab','Fruit Reaver':'4-tc','Grove Shepherd':'4-wb',
- 'Ember Herald':'5-tc','Crownless Duelist':'5-ta','Pallbearer':'5-ab'});
+ 'Ember Herald':'5-tc','Crownless Duelist':'5-ta','Pallbearer':'5-ab',
+ 'Plague-Year Mourner':'6-aa','Drowned Novice':'6-wa','Brother of the Binding':'6-tb','Ink Wraith':'6-ab','Chained Lector':'6-ta','Censer-Bearer':'6-wb','Weeping Unnamed':'6-tc'});
 const ROLE_BIAS={vanguard:{armor:1.8},striker:{weapon:1.8},mender:{relic:1.8},reaper:{weapon:1.3,armor:1.3}};
 const tcache={}, UQ_MOB=.01;   // ordinary foes carry a gate's unique at 1% of a boss's odds (elites twice that)
 function tableFor(di,role,boss,elite,sig,mob){   // mob: an elite of the difficulty rules, with an ordinary foe's unique odds
@@ -352,20 +361,20 @@ const enrage=e=>(e.tw&&e.boss)?1+Math.max(0,S.run.turn-8)*(e.tw===100?.12:.07):1
 // gate[0] .85->.68 and armor[1] .78->.74 in the early-game pass: a new player died in ~1 of 5 Rat Warren runs and a third of Sunken Crypt runs.
 // 2026-11-19, after the lower raise chance, smaller mastery and stronger stat scaling (market bot cleared D 62%, B/A/S 91-95%): gate[1] 1.65->1.5,
 // foeAtk D 1.3->.85, B 2.1->2.8, A 1.38->2.2, S .8->1.55. Later the same day, after the stat rebalance (market B 73-78%, A 74-81%): foeAtk B 2.8->2.6, A 2.2->2.1.
-const DIFF={hp:2.2,atk:2.0,gate:[0.68,1.5,2.2,1.9,1.7,2.45],xpBase:64,xpExp:1.85,heal:.15,mana:.25,mheal:.2,deathXp:.15};
+const DIFF={hp:2.2,atk:2.0,gate:[0.68,1.5,2.2,1.9,1.7,2.45,2.9],xpBase:64,xpExp:1.85,heal:.15,mana:.25,mheal:.2,deathXp:.15};
 // 2026-11-26, the Soul Tether (a lone blow takes at most half your HP while your front holds): B/A/S deaths were ~97% one blow at full HP, so their
 // foe attack barely mattered; with the tether it does. foeAtk B 2.6->5.2, A 2.1->4.2, S 1.55->4.5 and S armor .85->.94 (S rooms took 1.5 turns once
 // nothing one-shot the hero) put the market bot's clear-by-level curve back where it was (B 88% at Lv16, A 80% at 19, S 74/80% at 26/27).
 // 2026-11-21: foeAtk E 1->1.2, D .85->.95 (market E 93->89-91%, D 86-91->82-86%). The S gate stays ~91% when farmed 15 levels over: foes only 4 levels below the hero did not move it.
 // SAFE: the hero level the balance bot (tests/balance-test.js) starts entering each gate at, and the reference level of the farming falloff (farmK)
 // and of secret-master growth (SB_GROW). Rules and bot only: what the player is told is gateRec (below), which is measured and follows the tuning.
-const SAFE=[1,6,10,15,19,25];   // A and S were 22/28, which the XP from B could not reach (players stalled near level 20); they were balanced at 19/25
+const SAFE=[1,6,10,15,19,25,31];   // A and S were 22/28, which the XP from B could not reach (players stalled near level 20); they were balanced at 19/25
 // Foe armor: the share of damage living foes shrug off, per gate (TW.armor in the Tower). It makes fights last more turns without
 // inflating any numbers, and the extra turns are what make a room dangerous. Minions use the same stat formula as enemies, so
 // DIFF.hp/atk and DIFF.gate move both sides; armor and foeAtk affect living foes only. Tuned with tests/balance-test.js.
 // Target: a bot that learns skills, entering each gate at its Recommended level, clears ~80% of runs (A and S were tuned entering 3 levels early,
 // because the XP curve stalls the fair bot near level 20). The no-skill bot dies noticeably more often.
-DIFF.armor=[0.30,0.66,0.88,0.85,0.89,0.94]; DIFF.foeAtk=[1.0,0.9,1.0,7.0,5.7,6.1];   // retuned after boss abilities, altar, salts, and minion traits/evolution (D, A, S raised); xpBase 70->64 keeps the leveling pace (S first cleared ~day 64)   A 1.5->1.38 after status effects (bleeding from its strikers)   D 1.2->1.1 and C 1.2->1.0: the bots cleared C 69% (market) and D 71% (full), now about 80% and 76%   D armor .74->.66 with foeAtk 1.1->1.3: same danger, shorter rooms (bots: 7.5->5.8 turns per room market, 9.6->7.1 full)
+DIFF.armor=[0.30,0.66,0.88,0.85,0.89,0.94,0.95]; DIFF.foeAtk=[1.0,0.9,1.0,7.0,5.7,6.1,7.2];   // retuned after boss abilities, altar, salts, and minion traits/evolution (D, A, S raised); xpBase 70->64 keeps the leveling pace (S first cleared ~day 64)   A 1.5->1.38 after status effects (bleeding from its strikers)   D 1.2->1.1 and C 1.2->1.0: the bots cleared C 69% (market) and D 71% (full), now about 80% and 76%   D armor .74->.66 with foeAtk 1.1->1.3: same danger, shorter rooms (bots: 7.5->5.8 turns per room market, 9.6->7.1 full)
 // Farming far below you on Normal pays less: kill XP, kill gold and the clear bonus are full up to FARM_FROM levels past a gate's SAFE level,
 // then ramp down to FARM_MIN at FARM_TO and beyond. Hard and up, cursed gates, a gate's first clear, drops, the Tower, the Rift, raids, bounties and quests pay in full.
 DIFF.farmFrom=8; DIFF.farmTo=20; DIFF.farmMin=.5;
@@ -377,7 +386,7 @@ const farmK=(di,lvl)=>{ const t=clamp(((lvl-SAFE[di])-DIFF.farmFrom)/(DIFF.farmT
 // DIFF.gate or foe level RK.lv shifts the advice by the number of foe levels (LV_HP/LV_ATK growth) that changes that product as much.
 // A test fails once the shift passes REC_DRIFT levels: then re-measure and update REC_BASE and REC_AT together.
 const LV_HP=.16, LV_ATK=.12;   // foe and minion growth per level (mobStats)
-const REC_BASE=[1,5,9,16,19,27], REC_AT=[[.30,1.0,.68,1],[.66,.9,1.5,4],[.88,1,2.2,8],[.85,7.0,1.9,12],[.89,5.7,1.7,17],[.94,6.1,2.45,23]], REC_DRIFT=2;   // REC_AT per gate: [armor, foeAtk, gate, RK.lv]. Re-measured 2026-11-26 after foe kits and the E/D foeAtk 1.2/.95 -> 1.0/.9 (market, byLvl and push, seeds 7700 and 9100): D 87% at Lv5, C 78% at 9, B 79-89% at 14-15, A 77-85% at 19, S 86-89% at 26, so REC_BASE stands. Re-measured 2026-11-26 after Command and the B/A/S foeAtk 5.2/4.2/4.5 -> 7/5.7/6.1 (market, seed 7700, byLvl): B 87% at Lv16, A 83% at 19, S 79/91% at 26/27, so REC_BASE stands. Re-measured 2026-11-26 after the Soul Tether and the B/A/S retune (market, seed 7700, byLvl): B 68/88% at Lv 15/16, A 80% at 19, S 74/80% at 26/27, so REC_BASE stands. Re-measured 2026-11-19 after the retune (market bot, seed 7700, byLvl and push): the bot first reached ~75% at 1/5/9/15/19/27 (1/7/11/16/20/25 on 2026-11-15); again after the stat rebalance the same day: 1/5/9/16/19/27
+const REC_BASE=[1,5,9,16,19,27,31], REC_AT=[[.30,1.0,.68,1],[.66,.9,1.5,4],[.88,1,2.2,8],[.85,7.0,1.9,12],[.89,5.7,1.7,17],[.94,6.1,2.45,23],[.95,7.2,2.9,29]], REC_DRIFT=2;   // REC_AT per gate: [armor, foeAtk, gate, RK.lv]. Re-measured 2026-11-26 after foe kits and the E/D foeAtk 1.2/.95 -> 1.0/.9 (market, byLvl and push, seeds 7700 and 9100): D 87% at Lv5, C 78% at 9, B 79-89% at 14-15, A 77-85% at 19, S 86-89% at 26, so REC_BASE stands. Re-measured 2026-11-26 after Command and the B/A/S foeAtk 5.2/4.2/4.5 -> 7/5.7/6.1 (market, seed 7700, byLvl): B 87% at Lv16, A 83% at 19, S 79/91% at 26/27, so REC_BASE stands. Re-measured 2026-11-26 after the Soul Tether and the B/A/S retune (market, seed 7700, byLvl): B 68/88% at Lv 15/16, A 80% at 19, S 74/80% at 26/27, so REC_BASE stands. Re-measured 2026-11-19 after the retune (market bot, seed 7700, byLvl and push): the bot first reached ~75% at 1/5/9/15/19/27 (1/7/11/16/20/25 on 2026-11-15); again after the stat rebalance the same day: 1/5/9/16/19/27
 function recShift(di,f){   // f: a difficulty's foe multiplier (HEAT[h].foe); spawnRoom scales foe HP and attack by it alike, so danger goes by f squared
   const a=REC_AT[di], k=(g,ar,fa)=>g*g*fa/(1-ar), grow=t=>(1+LV_HP*t)*(1+LV_ATK*t);   // t = foe level - 1
   const R=k(DIFF.gate[di],DIFF.armor[di],DIFF.foeAtk[di])/k(a[2],a[0],a[1])*grow(RK[di].lv+1)*(f||1)*(f||1), A=LV_HP*LV_ATK, B=LV_HP+LV_ATK;   // mid-run foes stand 2 levels above RK.lv
@@ -409,8 +418,8 @@ const foeArmor=()=>{ if(!S.run) return 0; const a=S.run.tw?TW.armor:DIFF.armor[S
 // those bonus lines are the *res and *dmg roll keys. Strikers hit with their place's type (GATE_HITS); vanguards and menders hit physical.
 const DTYPE={phys:{name:'Physical',res:null,dmg:null},shad:{name:'Shadow',res:'sres',dmg:'sdmg'},frost:{name:'Frost',res:'frres',dmg:'frdmg'},fire:{name:'Fire',res:'fres',dmg:'fdmg'},rot:{name:'Rot',res:'rres',dmg:'rdmg'}};
 const DT_IDS=Object.keys(DTYPE);
-const GATE_RES=[{fire:-.25,rot:.25},{frost:-.25,fire:.25},{frost:-.25,fire:.5},{phys:-.25,shad:.25},{rot:-.25,phys:.25},{frost:-.25,fire:.25,shad:.25}];
-const GATE_HITS=['rot','frost','fire','shad','phys','shad'];
+const GATE_RES=[{fire:-.25,rot:.25},{frost:-.25,fire:.25},{frost:-.25,fire:.5},{phys:-.25,shad:.25},{rot:-.25,phys:.25},{frost:-.25,fire:.25,shad:.25},{fire:-.25,shad:.25}];
+const GATE_HITS=['rot','frost','fire','shad','phys','shad','shad'];
 const TOWER_RES={frost:-.25,fire:.5}, TOWER_HITS='fire', SIEGE_RES={shad:-.25}, SIEGE_HITS='phys';
 const RES_CAP=.5, FOE_RES_MAX=.9, IRON_PHYS=.15, STORM_SHAD=1.1;   // RES_CAP: your own resistance to one type; Iron Rain: foes resist physical; Soul Storm: your shadow damage
 const riftRes=n=>{ const w=DT_IDS[(n*7+2)%5], r=DT_IDS[(n*3+(n>>2)+4)%5]; const o={}; o[w]=-.25; if(r!==w) o[r]=.25; else o[DT_IDS[(DT_IDS.indexOf(w)+2)%5]]=.25; return o; };   // one weakness and one resistance per depth, the same every time

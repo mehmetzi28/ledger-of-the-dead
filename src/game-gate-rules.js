@@ -26,7 +26,8 @@ function chargeInfo(e){   // a charging boss: the move it lands next turn, what 
   if(!e||!e.charging||e.hp<=0) return null; const mv=e.move||e.abil, A=BOSS_ABIL[mv]; if(!A) return null;
   if(mv==='sunder') return {mv,name:A.name,hint:'Taunt it onto a vanguard, or freeze it',ans:['vanguard','chill','striker']};
   if(mv==='edict'){ const m=S.army&&S.army.find(x=>fxKey(x)===e.edictT); return {mv,name:A.name,hint:(m?m.nick+' is named. ':'')+'Guard, Taunt onto another vanguard, or freeze it',ans:['guard','vanguard','chill','striker']}; }
-  if(mv==='lance'||mv==='called'||mv==='plague'||mv==='breath'||mv==='nothing') return {mv,name:A.name,hint:'Ward or freeze it',ans:['ward','chill','striker']};
+  if(mv==='lance'||mv==='called'||mv==='plague'||mv==='breath'||mv==='nothing'||mv==='writename') return {mv,name:A.name,hint:'Ward or freeze it',ans:['ward','chill','striker']};
+  if(mv==='devour') return {mv,name:A.name,hint:'Guard, or freeze it',ans:['guard','chill','striker']};
   if(mv==='block'){ const m=S.army&&S.army.find(x=>fxKey(x)===e.blockT); return {mv,name:A.name,hint:(m?m.nick+' is marked. ':'')+'Mend it over 40% HP, or freeze it',ans:['mend','chill','striker']}; }   /* Taunt sends the blow at a vanguard */
   if(mv==='cinder'||mv==='decree') return {mv,name:A.name,hint:'Ward or freeze it',ans:['ward','chill','striker']};   /* a blow: a ward soaks it */
   return {mv,name:A.name,hint:'Freeze it or Focus-crit it',ans:['chill','striker']};   /* no damage to soak: only breaking the focus stops it */
@@ -99,7 +100,7 @@ function addSt(u,k,t){ if(!u||!(u.hp>0)||!CONDS[k]||stImmune(u,k)) return false;
 const hasSt=(u,k)=>!!(u&&u.st&&u.st[k]>0);
 const hexK=u=>hasSt(u,'hexed')?HEX_MUL:1;
 const clearSt=u=>{ if(u) delete u.st; };
-const clearAll=u=>{ clearDots(u); clearSt(u); if(u){ delete u.mw; delete u.lock; delete u.root; delete u.unw; if(u.prow!=null){ if(u.prow) u.row=u.prow; else delete u.row; delete u.prow; } } };   /* unw, prow: Unwriting and Moth Light */   /* lock, root: a boss's Keymaster's Lock and Iron Thorns */   /* mw: a Warden's ward on a minion */   // leaving a room: every status ends
+const clearAll=u=>{ clearDots(u); clearSt(u); if(u){ delete u.mw; delete u.lock; delete u.root; delete u.unw; delete u.read; delete u.readBy; if(u.prow!=null){ if(u.prow) u.row=u.prow; else delete u.row; delete u.prow; } } };   /* unw, prow: Unwriting and Moth Light */   /* lock, root: a boss's Keymaster's Lock and Iron Thorns */   /* mw: a Warden's ward on a minion */   // leaving a room: every status ends
 function tickSt(){ const r=S.run; if(!r) return; for(const u of r.enemies.concat(allies())){ if(!u.st) continue; for(const k of Object.keys(u.st)) if(--u.st[k]<=0) delete u.st[k]; if(!Object.keys(u.st).length) delete u.st; } }
 function foeTarget(alive){ const w=alive.map(a=>a.role==='vanguard'?5:2); let roll=Math.random()*w.reduce((x,y)=>x+y,0), tg=alive[0];   // vanguards draw the eye
   for(let i=0;i<alive.length;i++){ roll-=w[i]; if(roll<=0){ tg=alive[i]; break; } } return tg; }
@@ -113,7 +114,7 @@ const rowOf=u=>u.id==='p'?'b':u.id!=null?((u.boss||u.rival||MELEE[u.role])&&!kit
 const rowK=m=>MELEE[m.role]&&rowOf(m)==='b'?BACK_MELEE:1;   // a minion's damage factor from its row
 const frontOf=L=>L.filter(u=>u.hp>0&&rowOf(u)==='f');
 const foeReach=(e,alive)=>{ const t=tauntPool(alive); if(t!==alive||!MELEE[e.role]||e.boss) return t; const f=frontOf(alive); return f.length?f:alive; };   // whom a foe may strike: Taunt first, then the row rule
-function minionTarget(m){ const t=currentTarget(); if(!t||!MELEE[m.role]||rowOf(t)==='f') return t; return frontOf(liveFoes()).sort((a,b)=>a.hp-b.hp)[0]||t; }   // a melee minion hits your target if it can reach it, else the weakest foe in front
+function minionTarget(m){ const t=abbeyTarget(m,currentTarget()); if(!t||!MELEE[m.role]||rowOf(t)==='f') return t; return frontOf(liveFoes()).sort((a,b)=>a.hp-b.hp)[0]||t; }   // a melee minion hits your target if it can reach it, else the weakest foe in front
 function setRow(uid){ if(S.mode==='battle') return; const m=S.army.concat(S.reserve||[]).find(x=>x.uid===uid); if(m&&!m.wall) m.row=rowOf(m)==='f'?'b':'f'; }   // out of battle only, so a fight's foe intents never shift under you
 // ===== FOE INTENTS =====
 // Each foe's next action (e.it: {k:'atk', t: the fxKey of you or a minion} or {k:'heal', t: a foe id}) is rolled when your turn starts
@@ -157,6 +158,7 @@ function planTxt(e,it){   // the words for a planned attack or heal
   if(it.k==='cleanse'){ const h=S.run.enemies.find(x=>x.id===it.t); if(!h) return null; return {k:'heal',txt:h===e?'Cleanses itself':'Cleanses '+h.name,tip:KITS.purify.rule}; }
   if(it.k==='call'){ const h=S.run.enemies.find(x=>x.id===it.t); if(!h) return null; return {k:'abil',txt:'Calls back '+h.name,tip:KITS.call.rule+' Burst the body or freeze the caller to stop it.'}; }
   if(it.k==='burrow') return {k:'abil',txt:'Burrows',tip:KITS.burrow.rule};
+  if(it.k==='read'){ const m=readable(); return m?{k:'abil',txt:'Reads '+m.nick+' aloud',tip:KITS.recite.rule}:null; }   /* the Chained Lector (game-abbey.js) */
   if(it.k==='mark'){ const m=allies().find(a=>fxKey(a)===it.t); if(!m) return null; return {k:'abil',txt:'Marks '+nameOf(m),tip:KITS.marker.rule}; }
   const tg=allies().find(a=>fxKey(a)===it.t); if(!tg) return null;
   if(it.bw) return {k:'atk',tg,txt:'Attacks '+nameOf(tg),tip:'Bulwark: '+nameOf(tg)+' steps in front of a blow meant for your back row.'};
@@ -190,6 +192,7 @@ function sigBlow(e,mv){   // what a damaging boss move deals (fireAbility): {you
   if(mv==='cinder'){ const d=Math.round(e.atk*(e.secret?.45:.7)*k); return {you:afterWard(P,allyDr(P,d)),army:S.army.filter(m=>m.hp>0).reduce((s,m)=>s+allyDr(m,d),0)}; }
   if(mv==='decree') return {you:afterWard(P,allyDr(P,Math.round(pMax()*.45*k)))};
   if(mv==='nothing') return {you:afterWard(P,allyDr(P,Math.round(pMax()*.4*k)))};
+  if(mv==='writename') return {you:P.shield>0?0:Math.max(0,P.hp-1)};   /* the Hunger's pen: a ward takes it whole */
   if(mv==='lance'||mv==='called'){ const d=Math.round(e.atk*(mv==='lance'?1.6:1.8)*k); return S.army.some(m=>hittable(m)&&rowOf(m)==='b')?{army:d}:{you:afterWard(P,allyDr(P,d))}; }   /* the back row: you, if no minion stands there */
   if(mv==='sunder'){ const v=S.run.taunt>0&&S.army.find(m=>m.role==='vanguard'&&m.hp>0); return v?{van:allyDr(v,Math.round(e.atk*2.2*k))}:{you:afterWard(P,allyDr(P,Math.round(pMax()*.35*k)))}; }
   return null;
@@ -321,7 +324,7 @@ const MODS={
 const MOD_XP=1.25, MOD_GOLD=2, MOD_DROP=1.5, MOD_REWARD='Foes +15% HP and attack. Double gold and trophies, +25% XP, +50% gear.';
 function dayMod(){
   if(!S.mod||S.mod.day!==S.day){
-    const cl=DUNGEONS.map((D,i)=>i).filter(i=>S.ti&&S.ti.clr&&S.ti.clr[i]&&S.player.lvl>=RK[i].unlock);
+    const cl=DUNGEONS.map((D,i)=>i).filter(i=>i<GATE_N&&S.ti&&S.ti.clr&&S.ti.clr[i]&&S.player.lvl>=RK[i].unlock);
     S.mod=cl.length?{day:S.day,gi:pick(cl),id:pick(Object.keys(MODS))}:{day:S.day,gi:-1,id:null};
   }
   return S.mod;
@@ -443,6 +446,7 @@ const DOORS={
   boss:    {name:'The boss chamber',desc:'The master of this gate.'}
 };
 function rollDoors(r){
+  if(scriptRoom(r)&&r.quiet!=='script'&&r.room+1===r.rooms-2) return ['script'];   /* Vane Abbey: the Scriptorium before the boss (game-abbey.js) */
   if(r.room+1>=r.rooms-1) return ['boss'];
   let pool=['elite','elite','elite','rest','rest','treasure']; const out=['fight'], n=Math.random()<.4?2:1;   // weighted: elite 3, rest 2, treasure 1
   while(out.length<1+n&&pool.length){ const k=pick(pool); out.push(k); pool=pool.filter(x=>x!==k); }
@@ -454,6 +458,7 @@ function quietRoom(kind){   // a rest or treasure room: no fight, then the doors
   r.corpses=[]; r.spoils=[]; r.lostLoot=[]; r.events=[]; r.lastXp=0; r.lastGold=0; r.lastTroph={}; r.enemies=[];
   if(kind==='rest'){ P.hp=Math.min(pMax(),P.hp+Math.round(pMax()*REST_HEAL)); P.mana=Math.min(pMana(),P.mana+Math.round(pMana()*REST_HEAL)); S.army.forEach(x=>{ x.hp=Math.min(x.maxHp,x.hp+Math.round(x.maxHp*REST_HEAL)); });
     m='You rest among the bones. You and your army recover.'; sfx('heal'); }
+  else if(kind==='script'){ m='The Scriptorium. Rows of drowned scribes, and the Ledger open at the page of your dead. You may cross out one name, or walk on.'; unlockStory('abbey4',r); sfx('skill'); }
   else { const g=Math.round((15+P.lvl*5)*(1+r.di)*ngpReward()*(1+xb('goldp')/100)); S.gold+=g; r.goldTot=(r.goldTot||0)+g; r.lastGold=g; const it=addItem(pickRow(tableFor(r.di,'vanguard',true,false)));
     if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } m='The vault gives up '+g+' gold'+(it?' and '+withArticle(ITEM[it.id].name):'')+'.'; sfx('coin'); }
   r.events.push({m,c:'ok'}); r.quiet=kind; r.doors=rollDoors(r); preRooms(r); S.mode='raise';
@@ -475,8 +480,8 @@ function doorBoss(di){   // the boss door, once its master is Ledgered: the sign
 
 // ===== GEAR SETS =====
 // Two or three pieces from the same gate's set (its uniques count too) give a bonus. Tower gear belongs to no set.
-const SET_NAMES=['Scavenger\'s Kit','Drowned Vigil','Ember Rite','Choir of Bones','Ironbark','Pale Court'];
-const SET_BONUS=[{2:{hp:15},3:{goldp:10}},{2:{mana:20},3:{manap:8}},{2:{strength:3},3:{dmgp:5}},{2:{will:3},3:{mpow:10}},{2:{constitution:4},3:{drp:5}},{2:{mpow:8},3:{dmgp:6,drp:3}}];
+const SET_NAMES=['Scavenger\'s Kit','Drowned Vigil','Ember Rite','Choir of Bones','Ironbark','Pale Court','The Scribe\'s Regalia'];
+const SET_BONUS=[{2:{hp:15},3:{goldp:10}},{2:{mana:20},3:{manap:8}},{2:{strength:3},3:{dmgp:5}},{2:{will:3},3:{mpow:10}},{2:{constitution:4},3:{drp:5}},{2:{mpow:8},3:{dmgp:6,drp:3}},{2:{sdmg:10,studyp:10},3:{margin:1}}];   /* the Scribe's Regalia: 3 pieces write Marginalia (game-abbey.js) */
 const setCount=si=>(S&&S.equip)?GEAR_SLOTS.filter(sl=>{ const it=S.equip[sl], d=it&&ITEM[it.id]; return d&&!d.tower&&d.set===si; }).length:0;
 const setB=k=>{ let n=0; for(let i=0;i<SET_BONUS.length;i++){ const c=setCount(i); if(c>=2) n+=SET_BONUS[i][2][k]||0; if(c>=3) n+=SET_BONUS[i][3][k]||0; } return n; };
 // ===== UNIQUE SETS =====
