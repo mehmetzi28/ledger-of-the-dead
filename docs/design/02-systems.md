@@ -300,6 +300,17 @@ Reforging re-rolls values (80-100%) but never the lines; a second heart of the s
 (two presses) before it spends a heart a held unique still needs for Awakening. **Tower forge**: 6 Tower trophies and
 3,000 gold forge a Throne-set piece, 20% of the time with an extra line.
 
+**Brewing** (`src/game-brew.js`, the market's Brewing section). Recipes take trophy parts of a role (every trophy kind
+carries its creature's role: striker, reaper, mender, vanguard) from a gate of a given rank or deeper (Tower trophies count as
+the deepest), plus 60 gold per gate step; bone charms take two spare boss hearts. Weapon oils (5, one per damage type, C+):
+the army deals that type for a run, +10% against foes weak to it. Incense (Low D+ +5% raise, Grave B+ +10%, Abbot's A+ a
+Soul at the boss room). Bone charms: Second Draft (rise once at 30%), Open Door (an elite door at every choice), Extra Order
+(one order twice in a room), Lantern (door sight +1), Quiet Grave (burned in town: the next siege three days later). War
+banners (B+): Courage +10% raid odds, Host +1 follower, Spoils +50% raid gold. Draughts on the belt: Iron Draught (your side
+takes 25% less for 2 turns, key E), Bloodwine (your side mends 15%, key T). Brews wait in a stash (5 each); on the Gates
+tab you arm one oil, incense and charm (each gate run takes one of each) and a banner (each raid ordered takes one).
+**Belt**: 3 of each drinkable, +1 at Forge 2 and Forge 3 (cap 5).
+
 **Bag**: 30 slots, +5 per upgrade (four upgrades, 250 to 3500 gold).
 
 ## 2.6 Economy and town
@@ -320,6 +331,12 @@ upgrades, and the Bone Altar (pay gold to level a minion, up to your level + 2).
 **Bounty board** (`BOUNTIES`): up to 3 contracts, one new each dawn, never expiring: kills, elites, raises, rooms,
 bosses, the cursed gate, a flawless clear, arches, orders, Tower floors, poisonings. Pay gold, salts, dust or gear,
 growing with your deepest gate.
+
+**Commissions**: three town orders a week on the bounty board (trophy parts of a role from a gate, a heartforged piece,
+a Greater-or-better minion of a role); they pay gold and dust and lapse at the week's end. **Black market**: a market
+section open every seventh day from day 7; each trade once a week: 3 spare lower hearts for a cleared gate's heart, 30
+gate-C+ trophies for 50 dust, 8 Tower trophies for a warden's heart, a master's heart for a set piece of your best gate,
+1,500 gold and 5 dust for a Soul on your next run.
 
 **Sinks, in the order a player meets them**: potions and salts, bag, Bone Altar, reforging, buildings, fusion,
 tempering, honour, Awakening, heart-forging, mausoleums, headstones (the only uncapped one).

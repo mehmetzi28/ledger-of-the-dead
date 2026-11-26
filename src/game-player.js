@@ -71,7 +71,7 @@ function notify(m,c){ S.notices.unshift({m,c:c||'info'}); S.notices.length=Math.
 function freshState(){
   return {v:2,day:1,watches:WATCHES,uid:0,mode:'town',run:null,notices:[],runs:0,kills:{},tower:{best:0,got:{}},inv:[],equip:{weapon:null,armor:null,relic:null},
      player:{id:'p',name:'You',lvl:1,xp:0,pts:3,hp:0,mana:0,shield:0,stats:{strength:4,constitution:4,intelligence:4,will:4},sp:0,skills:{},skMod:{},cmd:{a:0,h:0}},
-     army:[],quest:{kills:0,rooms:0,clears:0,claimed:false},gold:0,trophies:{},belt:{hp:0,mp:0},shop:null,bagLv:0,salts:0,tips:{},ngp:0,firstRaise:1,
+     army:[],quest:{kills:0,rooms:0,clears:0,claimed:false},gold:0,trophies:{},belt:{hp:0,mp:0},stash:{},prep:{},comm:null,bm:null,shop:null,bagLv:0,salts:0,tips:{},ngp:0,firstRaise:1,
      mod:null,hist:[],story:{},life:Object.fromEntries(LIFE_KEYS.map(k=>[k,0])),build:{},dust:0,bounty:null,heat:{},heatMax:{},raids:[],raidOrders:[],raidLog:[],abbey:abbeyFix(null),inscriptions:[],endHist:[],ending:null,lastPage:0,cycle:null,rift:{best:0},siege:{next:0,pending:false,dmg:null,warned:0},reserve:[],waiting:[],
      memorial:[],honor:null,loadouts:[{n:'',s:null},{n:'',s:null},{n:'',s:null}],rival:rivalDef(),trials:trialDef(),pacts:[]};
 }
@@ -156,10 +156,10 @@ function normalizeSave(src){
   let top=num(g.uid,0);   // next id must stay above every id in use, or two items/minions would share one
   g.inv.concat(Object.values(g.equip),...g.army.map(m=>m.eq?Object.values(m.eq):[])).forEach(it=>{ if(it) top=Math.max(top,it.u); });
   g.army.forEach(m=>{ top=Math.max(top,num(m.uid,0)); }); g.army.forEach(m=>{ if(typeof m.uid!=='number') m.uid=++top; });
-  g.raids=RA.map((x,i)=>Object.assign({di:x.di,day:Math.floor(num(x.day,g.day)),units:g.army.filter(m=>m._raid===i)},Array.isArray(x.res)?{res:x.res.filter(u=>typeof u==='number')}:{},typeof x.odds==='number'&&isFinite(x.odds)?{odds:clamp(x.odds,RAID_MIN,RAID_MAX)}:{})).filter(x=>x.units.length);
+  g.raids=RA.map((x,i)=>Object.assign({di:x.di,day:Math.floor(num(x.day,g.day)),units:g.army.filter(m=>m._raid===i)},Array.isArray(x.res)?{res:x.res.filter(u=>typeof u==='number')}:{},typeof x.odds==='number'&&isFinite(x.odds)?{odds:clamp(x.odds,RAID_MIN,RAID_MAX)}:{},BREWS[x.bn]?{bn:x.bn}:{})).filter(x=>x.units.length);
   for(const k of ['reserve','waiting']) g[k]=g.army.filter(m=>m._raid===k);
   g.army=g.army.filter(m=>m._raid==null); g.raids.forEach(x=>x.units.forEach(m=>{ delete m._raid; })); g.reserve.concat(g.waiting).forEach(m=>{ delete m._raid; });
-  g.raidOrders=Array.isArray(g.raidOrders)?g.raidOrders.filter(o=>obj(o)&&RK[o.di]&&fin(o.cu)&&Array.isArray(o.uids)).map(o=>({di:o.di,day:Math.floor(num(o.day,g.day)),cu:o.cu,uids:o.uids.filter(fin).slice(0,12)})):[];   // tonight's raid orders: uids only (the squad stays in the army until nightfall)
+  g.raidOrders=Array.isArray(g.raidOrders)?g.raidOrders.filter(o=>obj(o)&&RK[o.di]&&fin(o.cu)&&Array.isArray(o.uids)).map(o=>Object.assign({di:o.di,day:Math.floor(num(o.day,g.day)),cu:o.cu,uids:o.uids.filter(fin).slice(0,12)},BREWS[o.bn]&&BREWS[o.bn].kind==='banner'?{bn:o.bn}:{})):[];   // tonight's raid orders: uids only (the squad stays in the army until nightfall)
   g.raidLog=Array.isArray(g.raidLog)?g.raidLog.filter(x=>obj(x)&&RK[x.di]&&typeof x.nick==='string').slice(0,RAID_LOG).map(x=>({day:Math.floor(num(x.day,1)),di:x.di,won:!!x.won,nick:cleanNick(x.nick)||'Nameless',lost:Math.max(0,Math.floor(num(x.lost,0)))})):[];
   g.abbey=abbeyFix(g.abbey);   /* Vane Abbey's door (game-abbey.js) */
   endingFix(g);   /* the last page, the endings and the inscriptions (game-abbey.js) */
@@ -167,7 +167,7 @@ function normalizeSave(src){
   g.uid=top; g.mode='town'; g.run=null;
   g.gold=Math.max(0,Math.floor(num(g.gold,0)));
   const tr={}; if(obj(g.trophies)) for(const k in g.trophies){ const n=Math.floor(num(g.trophies[k],0)); if(TROPHY[k]&&n>0) tr[k]=n; } g.trophies=tr;
-  const b=obj(g.belt)?g.belt:{}; g.belt={hp:clamp(Math.floor(num(b.hp,0)),0,BELT_MAX),mp:clamp(Math.floor(num(b.mp,0)),0,BELT_MAX)};
+  const b=obj(g.belt)?g.belt:{}; g.belt={}; const bf=obj(g.build)?Math.floor(num(g.build.forge,0)):0, bm=Math.min(BELT_CAP,BELT_MAX+(bf>=2?1:0)+(bf>=3?1:0)); DRINK_IDS.forEach(k=>{ const n=clamp(Math.floor(num(b[k],0)),0,bm); if(n||POTIONS[k]||b[k]!=null) g.belt[k]=n; });   /* draughts only once brewed */ brewFix(g);   /* the stash, run prep, commissions, the black market (game-brew.js) */
   if('ti' in g&&!obj(g.ti)) g.ti={};   // deed counters, earned titles {id:day}, cleared gates, the worn title, fusion compounds found
   if(obj(g.ti)){ const T=g.ti; for(const k in T) if(!['got','clr','sel','compounds'].includes(k)&&!(fin(T[k])||T[k]===true)) delete T[k];
     for(const k of ['got','clr']) if(k in T&&!obj(T[k])) T[k]={}; if(T.got) for(const k in T.got) if(!(fin(T.got[k])&&T.got[k]>0)) delete T.got[k];

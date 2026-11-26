@@ -261,7 +261,7 @@ function bountyHTML(){
      return '<div class="b-row'+(b.claimed?' claimed':done?' done':'')+'"><span>'+BOUNTIES[b.id].t(b.n)+'</span><span class="num">'+got+'/'+b.n+'</span>'
       +'<span class="u-sub">'+(b.claimed?'Claimed.':'Pays '+rw(b.rw))+'</span>'
       +(done&&!b.claimed&&town?'<button class="btn small primary" data-a="claimb" data-k="'+i+'"'+(b.rw.gear&&S.inv.length>=bagMax()?' disabled title="Your bag is full"':'')+'>Claim</button>':'')+'</div>'; }).join('')
-   +brief('bty','Up to '+BOUNTY_N+' contracts; a new one goes up each dawn while there is room. They never expire. Claim finished ones in town.','q-note')+'</section>';
+   +brief('bty','Up to '+BOUNTY_N+' contracts; a new one goes up each dawn while there is room. They never expire. Claim finished ones in town.','q-note')+commHTML()+'</section>';
 }
 const NOTE_N=2;
 function notesHTML(){
@@ -404,7 +404,7 @@ function towerHTML(){
 }
 const COIN='<svg class="coin" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="currentColor"/><circle cx="8" cy="8" r="4.3" fill="none" stroke="#5a4420" stroke-width="1.1"/><path d="M8 5.2v5.6M6.4 6.6h3.2" stroke="#5a4420" stroke-width="1.1"/></svg>';
 const gold=n=>'<span class="gold-n">'+COIN+n.toLocaleString()+'</span>';
-const MK_SECS=[['buy','Buy'],['forge','Forge'],['altar','Altar and bag'],['sell','Sell']];
+const MK_SECS=[['buy','Buy'],['forge','Forge'],['brew','Brewing'],['altar','Altar and bag'],['sell','Sell'],['bm','Black market']];
 function marketHTML(){
   const P=S.player, stock=shopStock(), tk=Object.keys(S.trophies).sort((a,b)=>TROPHY[b].value-TROPHY[a].value||TROPHY[a].name.localeCompare(TROPHY[b].name));
   const tTotal=tk.reduce((a,k)=>a+S.trophies[k]*TROPHY[k].value,0), bagFull=S.inv.length>=bagMax();
@@ -415,8 +415,8 @@ function marketHTML(){
   h+='<div class="chips sub-nav" role="tablist">'+MK_SECS.map(x=>'<button class="btn small'+(x[0]===sec?' primary':'')+'" role="tab" data-a="mk" data-k="'+x[0]+'" aria-selected="'+(x[0]===sec)+'">'+x[1]+'</button>').join('')+'</div>';
   if(sec==='buy'){
   // supplies
-  h+='<p class="group-h">Supplies &middot; carry up to '+BELT_MAX+' of each</p><div class="items">'+Object.keys(POTIONS).map(k=>{ const p=POTIONS[k], c=p.price(), full=S.belt[k]>=BELT_MAX;
-    return '<div class="tt-row"><div><h4>'+p.name+' <span class="u-tag">'+S.belt[k]+'/'+BELT_MAX+'</span></h4><div class="u-sub">'+p.desc+' Key '+p.key+' in battle.</div></div>'
+  h+='<p class="group-h">Supplies &middot; carry up to '+beltMax()+' of each</p><div class="items">'+Object.keys(POTIONS).map(k=>{ const p=POTIONS[k], c=p.price(), full=S.belt[k]>=beltMax();
+    return '<div class="tt-row"><div><h4>'+p.name+' <span class="u-tag">'+S.belt[k]+'/'+beltMax()+'</span></h4><div class="u-sub">'+p.desc+' Key '+p.key+' in battle.</div></div>'
      +'<button class="btn small primary" data-a="buypot" data-k="'+k+'"'+(full||S.gold<c?' disabled':'')+'>'+(full?'Belt full':'Buy &middot; '+gold(c))+'</button></div>'; }).join('')+'</div>';
   // merchant stock
   h+='<p class="group-h">Merchant\'s wares &middot; day '+S.day+'</p>'+(bagFull?'<p class="q-note bad">Your bag is full. Sell or discard something first.</p>':'')
@@ -438,8 +438,10 @@ function marketHTML(){
   { const n=towerTrophies(), ok=n>=TW_FORGE_N&&S.gold>=TW_FORGE_GOLD&&!bagFull; if(n) h+='<div class="items"><div class="tt-row"><div><h4>Hell Tower forge <span class="u-tag">'+Math.min(n,99)+'/'+TW_FORGE_N+' Tower trophies</span></h4><div class="u-sub">Throne of Ash gear, '+Math.round(TW_EXTRA*100)+'% with an extra line &middot; costs '+gold(TW_FORGE_GOLD)+'</div></div><div class="btns" style="margin:0">'+GEAR_SLOTS.map(sl=>'<button class="btn small'+(ok?' primary':'')+'" data-a="twforge" data-k="'+sl+'"'+(ok?'':' disabled')+'>'+SLOTS[sl]+'</button>').join('')+'</div></div></div>'; }
   h+=heartforgeHTML(bagFull);
   { const n=Object.values(S.trophies).reduce((a,b)=>a+b,0);
-    h+='<div class="btns">'+Object.keys(POTIONS).map(k=>'<button class="btn small" data-a="brew" data-k="'+k+'"'+(n<BREW_N||S.belt[k]>=BELT_MAX?' disabled':'')+'>Brew '+POTIONS[k].name+' &middot; '+BREW_N+' trophies</button>').join('')+'</div>'; }
+    h+='<div class="btns">'+Object.keys(POTIONS).map(k=>'<button class="btn small" data-a="brew" data-k="'+k+'"'+(n<BREW_N||S.belt[k]>=beltMax()?' disabled':'')+'>Brew '+POTIONS[k].name+' &middot; '+BREW_N+' trophies</button>').join('')+'</div>'; }
   }
+  if(sec==='brew') h+=brewHTML();
+  if(sec==='bm') h+=bmHTML(bagFull);
   if(sec==='altar'){
   // bone altar
   h+='<p class="group-h">Bone Altar</p>'+brief('altar','Pour gold on the altar to raise a minion one level at once. Minions still stop at your level + 2.','q-note');
@@ -700,4 +702,35 @@ function histHTML(){
      +'</td><td class="res-'+x.res+'">'+(x.siege&&x.res==='cleared'?'Held':RES[x.res]||x.res)+(x.bo&&!x.sec?'<div class="u-sub h-bo">'+(x.bo[1]?'&#9760; ':'')+cleanText(x.bo[0])+'</div>':'')+'</td><td class="num">'+(x.tt?x.tt:'&ndash;')+'</td><td class="num">'+x.rooms+'</td><td class="num">'+x.kills+'</td><td class="num">'
      +n(x.xp)+'</td><td class="num">'+n(x.gold)+'</td><td class="num">'+x.items+'</td><td class="num">'+x.raised+'</td></tr>').join('')
    +'</tbody></table></div></section>';
+}
+
+// ----- brewing, run prep, commissions and the black market (game-brew.js)
+const partsTxt=B=>B.hearts?B.hearts+' spare boss hearts':Object.keys(B.parts).map(r=>B.parts[r]+' '+r).join(' + ')+' parts'+(B.g?' from a gate of rank '+RANKS[B.g]+' or deeper':'');
+function brewHTML(){
+  let h='<p class="group-h">Brewing</p>'+brief('brew2','Recipes take trophy parts of a role (the part words: Fang, Hide, Relic...) from a gate or deeper, plus a little gold. Tower trophies count as the deepest gate. Oils, incense and charms wait in your stash for the Gates tab, banners for tonight\'s raids; draughts go on your belt.','q-note');
+  h+='<p class="q-note">Your parts: '+['striker','reaper','mender','vanguard'].map(r=>partCount(r,0)+' '+r).join(' &middot; ')+' &middot; spare hearts '+spareHearts().reduce((a,[,n])=>a+n,0)+'</p>';
+  for(const kind of BREW_KINDS){ h+='<p class="group-h">'+BREW_KIND_NAME[kind]+'</p><div class="items">'+BREW_IDS.filter(id=>BREWS[id].kind===kind).map(id=>{ const B=BREWS[id], n=B.belt?(S.belt[B.belt]||0):stashN(id), cap=B.belt?beltMax():BREW_STASH;
+    return '<div class="tt-row"><div><h4>'+B.name+' <span class="u-tag">'+n+'/'+cap+'</span></h4><div class="u-sub">'+B.desc+' Needs '+partsTxt(B)+'.</div></div><button class="btn small primary" data-a="brewx" data-k="'+id+'"'+(brewCan(id)?'':' disabled')+'>Brew &middot; '+gold(brewGold(id))+'</button></div>'; }).join('')+'</div>'; }
+  return h;
+}
+function prepHTML(){   // the Gates tab: arm one oil, incense and charm for the next gate run, and a banner for tonight's raids
+  if(S.mode!=='town') return ''; const have=id=>stashN(id)>0, p=S.prep||{};
+  const rows=PREP_KINDS.map(kind=>{ const ids=BREW_IDS.filter(id=>BREWS[id].kind===kind&&!BREWS[id].use&&(have(id)||p[kind]===id)); if(!ids.length) return '';
+    return '<div class="chips"><span class="u-sub">'+BREW_KIND_NAME[kind]+':</span>'+ids.map(id=>'<button class="btn small'+(p[kind]===id?' primary':'')+'" data-a="prep" data-k="'+kind+'|'+id+'" aria-pressed="'+(p[kind]===id)+'">'+BREWS[id].name+' &times;'+stashN(id)+'</button>').join('')+'</div>'; }).join('');
+  const burn=stashN('ch_quiet')?'<div class="chips"><button class="btn small" data-a="burn" data-k="ch_quiet"'+(siegeOpen()&&sg().next?'':' disabled')+'>Burn a Quiet Grave &times;'+stashN('ch_quiet')+'</button></div>':'';
+  if(!rows&&!burn&&!p.soul) return '';
+  return '<div class="prep"><p class="group-h">Run prep</p>'+brief('prep','Armed brews go with your next gate run, one of each kind, while your stash lasts. A banner goes with each raid you order tonight.','q-note')+rows+burn+(p.soul?'<p class="q-note">A Soul from the black market waits for your next run.</p>':'')+'</div>';
+}
+function commHTML(){
+  if(!townOpen()) return ''; const list=commissions(), town=S.mode==='town';
+  return '<p class="group-h">Commissions &middot; this week</p>'+list.map((c,i)=>{ const p=commPay(c);
+    return '<div class="b-row'+(c.done?' claimed':commCan(i)?' done':'')+'"><span>'+commTxt(c)+'</span><span class="u-sub">'+(c.done?'Filled.':'Pays '+gold(p.g)+' + '+dust(p.d))+'</span>'+(!c.done&&town&&commCan(i)?'<button class="btn small primary" data-a="comm" data-k="'+i+'">Fill</button>':'')+'</div>'; }).join('')
+   +brief('comm','The town posts three orders each week. They lapse when the week ends.','q-note');
+}
+function bmHTML(bagFull){
+  let h='<p class="group-h">Black market</p>'+brief('bm','A stall that opens every seventh day and trades without gold (but for one trade). Each trade once a week.','q-note');
+  if(!bmOpen()) return h+'<p class="q-note">The stall is shut. It opens on day '+Math.max(BM_DAY,Math.ceil((S.day+1)/BM_DAY)*BM_DAY)+'.</p>';
+  return h+'<div class="items">'+Object.keys(BM_TRADES).map(k=>{ const T=BM_TRADES[k], used=bmUsed(k), ok=!used&&T.can();
+    const btn=k==='piece'?GEAR_SLOTS.map(sl=>'<button class="btn small'+(ok?' primary':'')+'" data-a="bmt" data-k="piece|'+sl+'"'+(ok?'':' disabled')+'>'+SLOTS[sl]+'</button>').join(''):'<button class="btn small primary" data-a="bmt" data-k="'+k+'"'+(ok?'':' disabled')+'>'+(used?'Traded':'Trade')+'</button>';
+    return '<div class="tt-row"><div><h4>'+T.name+'</h4><div class="u-sub">For '+T.take+'.'+(used?' Traded this week.':'')+'</div></div><div class="btns" style="margin:0">'+btn+'</div></div>'; }).join('')+'</div>';
 }

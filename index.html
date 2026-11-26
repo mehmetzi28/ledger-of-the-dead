@@ -1695,7 +1695,7 @@ const TRAIT_RES={rimeborn:['frost',.25],cinderborn:['fire',.25],necrotic:['rot',
 function allyRes(a,ty){ if(!ty||ty==='phys') return 0; if(a.id==='p'){ const k=DTYPE[ty].res; return k?Math.min(RES_CAP,G(k)/100):0; } let v=0; for(const t in TRAIT_RES) if(TRAIT_RES[t][0]===ty&&hasTrait(a,t)) v=Math.max(v,TRAIT_RES[t][1]); return v; }
 const DOT_TYPE={poison:'rot',blight:'rot',burn:'fire',bleed:'phys'};
 const foeHitType=e=>hasAff(e,'frosty')?'frost':hasAff(e,'burning')?'fire':e.role!=='striker'?'phys':S.run&&S.run.siege?SIEGE_HITS:S.run&&S.run.tw?TOWER_HITS:GATE_HITS[S.run?S.run.di:0]||'phys';
-function minionType(m){ if(hasTrait(m,'shatterwrought')) return m.swt?'fire':'frost'; if(hasTrait(m,'rimeborn')) return 'frost'; if(hasTrait(m,'cinderborn')) return 'fire'; if(hasTrait(m,'venom')||hasTrait(m,'necrotic')) return 'rot'; if(hasTrait(m,'bloodfiend')) return 'shad'; return 'phys'; }   // compounds count as both halves (hasTrait)
+function minionType(m){ { const o=oilType(); if(o) return o; }   /* a weapon oil (game-brew.js) */ if(hasTrait(m,'shatterwrought')) return m.swt?'fire':'frost'; if(hasTrait(m,'rimeborn')) return 'frost'; if(hasTrait(m,'cinderborn')) return 'fire'; if(hasTrait(m,'venom')||hasTrait(m,'necrotic')) return 'rot'; if(hasTrait(m,'bloodfiend')) return 'shad'; return 'phys'; }   // compounds count as both halves (hasTrait)
 const resWord=v=>v<=-.5?'very weak':v<0?'weak':v>=.5?'resists strongly':'resists';
 let S = null;
 const rnd = (a,b)=>a+Math.random()*(b-a);
@@ -1777,7 +1777,7 @@ function notify(m,c){ S.notices.unshift({m,c:c||'info'}); S.notices.length=Math.
 function freshState(){
   return {v:2,day:1,watches:WATCHES,uid:0,mode:'town',run:null,notices:[],runs:0,kills:{},tower:{best:0,got:{}},inv:[],equip:{weapon:null,armor:null,relic:null},
      player:{id:'p',name:'You',lvl:1,xp:0,pts:3,hp:0,mana:0,shield:0,stats:{strength:4,constitution:4,intelligence:4,will:4},sp:0,skills:{},skMod:{},cmd:{a:0,h:0}},
-     army:[],quest:{kills:0,rooms:0,clears:0,claimed:false},gold:0,trophies:{},belt:{hp:0,mp:0},shop:null,bagLv:0,salts:0,tips:{},ngp:0,firstRaise:1,
+     army:[],quest:{kills:0,rooms:0,clears:0,claimed:false},gold:0,trophies:{},belt:{hp:0,mp:0},stash:{},prep:{},comm:null,bm:null,shop:null,bagLv:0,salts:0,tips:{},ngp:0,firstRaise:1,
      mod:null,hist:[],story:{},life:Object.fromEntries(LIFE_KEYS.map(k=>[k,0])),build:{},dust:0,bounty:null,heat:{},heatMax:{},raids:[],raidOrders:[],raidLog:[],abbey:abbeyFix(null),inscriptions:[],endHist:[],ending:null,lastPage:0,cycle:null,rift:{best:0},siege:{next:0,pending:false,dmg:null,warned:0},reserve:[],waiting:[],
      memorial:[],honor:null,loadouts:[{n:'',s:null},{n:'',s:null},{n:'',s:null}],rival:rivalDef(),trials:trialDef(),pacts:[]};
 }
@@ -1862,10 +1862,10 @@ function normalizeSave(src){
   let top=num(g.uid,0);   // next id must stay above every id in use, or two items/minions would share one
   g.inv.concat(Object.values(g.equip),...g.army.map(m=>m.eq?Object.values(m.eq):[])).forEach(it=>{ if(it) top=Math.max(top,it.u); });
   g.army.forEach(m=>{ top=Math.max(top,num(m.uid,0)); }); g.army.forEach(m=>{ if(typeof m.uid!=='number') m.uid=++top; });
-  g.raids=RA.map((x,i)=>Object.assign({di:x.di,day:Math.floor(num(x.day,g.day)),units:g.army.filter(m=>m._raid===i)},Array.isArray(x.res)?{res:x.res.filter(u=>typeof u==='number')}:{},typeof x.odds==='number'&&isFinite(x.odds)?{odds:clamp(x.odds,RAID_MIN,RAID_MAX)}:{})).filter(x=>x.units.length);
+  g.raids=RA.map((x,i)=>Object.assign({di:x.di,day:Math.floor(num(x.day,g.day)),units:g.army.filter(m=>m._raid===i)},Array.isArray(x.res)?{res:x.res.filter(u=>typeof u==='number')}:{},typeof x.odds==='number'&&isFinite(x.odds)?{odds:clamp(x.odds,RAID_MIN,RAID_MAX)}:{},BREWS[x.bn]?{bn:x.bn}:{})).filter(x=>x.units.length);
   for(const k of ['reserve','waiting']) g[k]=g.army.filter(m=>m._raid===k);
   g.army=g.army.filter(m=>m._raid==null); g.raids.forEach(x=>x.units.forEach(m=>{ delete m._raid; })); g.reserve.concat(g.waiting).forEach(m=>{ delete m._raid; });
-  g.raidOrders=Array.isArray(g.raidOrders)?g.raidOrders.filter(o=>obj(o)&&RK[o.di]&&fin(o.cu)&&Array.isArray(o.uids)).map(o=>({di:o.di,day:Math.floor(num(o.day,g.day)),cu:o.cu,uids:o.uids.filter(fin).slice(0,12)})):[];   // tonight's raid orders: uids only (the squad stays in the army until nightfall)
+  g.raidOrders=Array.isArray(g.raidOrders)?g.raidOrders.filter(o=>obj(o)&&RK[o.di]&&fin(o.cu)&&Array.isArray(o.uids)).map(o=>Object.assign({di:o.di,day:Math.floor(num(o.day,g.day)),cu:o.cu,uids:o.uids.filter(fin).slice(0,12)},BREWS[o.bn]&&BREWS[o.bn].kind==='banner'?{bn:o.bn}:{})):[];   // tonight's raid orders: uids only (the squad stays in the army until nightfall)
   g.raidLog=Array.isArray(g.raidLog)?g.raidLog.filter(x=>obj(x)&&RK[x.di]&&typeof x.nick==='string').slice(0,RAID_LOG).map(x=>({day:Math.floor(num(x.day,1)),di:x.di,won:!!x.won,nick:cleanNick(x.nick)||'Nameless',lost:Math.max(0,Math.floor(num(x.lost,0)))})):[];
   g.abbey=abbeyFix(g.abbey);   /* Vane Abbey's door (game-abbey.js) */
   endingFix(g);   /* the last page, the endings and the inscriptions (game-abbey.js) */
@@ -1873,7 +1873,7 @@ function normalizeSave(src){
   g.uid=top; g.mode='town'; g.run=null;
   g.gold=Math.max(0,Math.floor(num(g.gold,0)));
   const tr={}; if(obj(g.trophies)) for(const k in g.trophies){ const n=Math.floor(num(g.trophies[k],0)); if(TROPHY[k]&&n>0) tr[k]=n; } g.trophies=tr;
-  const b=obj(g.belt)?g.belt:{}; g.belt={hp:clamp(Math.floor(num(b.hp,0)),0,BELT_MAX),mp:clamp(Math.floor(num(b.mp,0)),0,BELT_MAX)};
+  const b=obj(g.belt)?g.belt:{}; g.belt={}; const bf=obj(g.build)?Math.floor(num(g.build.forge,0)):0, bm=Math.min(BELT_CAP,BELT_MAX+(bf>=2?1:0)+(bf>=3?1:0)); DRINK_IDS.forEach(k=>{ const n=clamp(Math.floor(num(b[k],0)),0,bm); if(n||POTIONS[k]||b[k]!=null) g.belt[k]=n; });   /* draughts only once brewed */ brewFix(g);   /* the stash, run prep, commissions, the black market (game-brew.js) */
   if('ti' in g&&!obj(g.ti)) g.ti={};   // deed counters, earned titles {id:day}, cleared gates, the worn title, fusion compounds found
   if(obj(g.ti)){ const T=g.ti; for(const k in T) if(!['got','clr','sel','compounds'].includes(k)&&!(fin(T[k])||T[k]===true)) delete T[k];
     for(const k of ['got','clr']) if(k in T&&!obj(T[k])) T[k]={}; if(T.got) for(const k in T.got) if(!(fin(T.got[k])&&T.got[k]>0)) delete T.got[k];
@@ -2274,7 +2274,7 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
   try{
     if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true)); const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
     else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
-    heatRoom(list,di); ledgerRoom(list,di); foeScale(list,foeAtkMul(di)); if(r.trial) trialPow(list,di); bulwark(list); riftScale(list);
+    heatRoom(list,di); ledgerRoom(list,di); brewRoom(r); foeScale(list,foeAtkMul(di)); if(r.trial) trialPow(list,di); bulwark(list); riftScale(list);
     heatScale(list);
     if(!boss&&kind==='elite') for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*ELITE_ROOM); e.atk=Math.max(1,Math.round(e.atk*ELITE_ROOM)); }
     affixAll(list);
@@ -2303,7 +2303,7 @@ function startRun(di){
   if(S.mode!=='town'||S.watches<=0||!RK[di]||gateLocked(di)) return;
   S.watches--; S.runs++; S.notices=[];
   S.run={di,room:0,rooms:di===ABBEY?ABBEY_ROOMS:4,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:gateMod(di),heat:heatOf(di)};
-  S.mode='battle'; titheSouls();
+  S.mode='battle'; titheSouls(); prepTake(S.run); prepSoul(S.run);   /* run prep, the black market's Soul (game-brew.js) */
   log('You step through the '+DUNGEONS[di].name+' gate.'+(S.run.mod?' It is cursed today: '+MODS[S.run.mod].name+'.':''));
   if(di===ABBEY) unlockStory('abbey3',S.run);
   spawnRoom();
@@ -2316,7 +2316,7 @@ function mark(u,d,h){ const id=fxKey(u); if(id==null) return; const f=S.run.fx[i
 function hit(b){ return Math.max(1,Math.round(b*rnd(.85,1.15))); }
 function hurtFoe(e,d,ty){ if(abbeyMiss(e)) return; ty=MARGIN||(DTYPE[ty]?ty:'phys');   /* an Unwritten foe; a Marginalia skill (game-abbey.js) */ if(e.curse) d=Math.round(d*e.curse.mul); { const mk=masteryDmg(e.base); if(mk) d=Math.round(d*(1+mk/100)); }   /* bestiary mastery: every hit from you and your army, once */ if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25); if(e.stun>0&&capOn('frost1')) d=Math.round(d*CAP_RIME);
   if(hasSt(e,'sundered')) d=Math.round(d*SUNDER_MUL); if(hasSt(e,'chilled')) d=Math.round(d*CHILL_MUL);   // conditions (game-gate-rules.js)
-  { const k=(1-foeRes(e,ty))*typeDmg(ty); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
+  { const k=(1-foeRes(e,ty))*typeDmg(ty)*oilK(e,ty); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
   e.lt=ty;   /* the type of the last hit it took (a weakness kill) */
   d=bossTaken(e,kitTaken(e,d));   /* Heartwood (game-boss-kits.js) */   /* Bulwark stance, a Banner-bearer beside it (game-kits.js) */
   if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e,0,0); return; } }   // Bone Wall shield soaks damage first
@@ -2327,7 +2327,7 @@ function hurtAlly(a,d,ty){
   if(a.id==='p'&&BLOW){ const v=guardBlow(a,d); if(v) return hurtAlly(v,Math.round(d*SB_TAKE),ty); }   // Guard, for boss moves (plain hits swap their target before this)
   if(a.id==='p'&&S.run) S.run.blow=BLOW?blowNote(BLOW):null;
   hfScales(a,d);   /* Scales (game-forge.js) */   // what hits you, for the defeat recap (before the ward soaks it)
-  d=allyDr(a,d); { const rs=allyRes(a,ty); if(rs) d=Math.max(1,Math.round(d*(1-rs))); }   /* damage types: your resistance lines, a minion's typed trait */
+  d=allyDr(a,d); { const ik=brewDr(a); if(ik!==1) d=Math.round(d*ik); }   /* Iron Draught (game-brew.js) */ { const rs=allyRes(a,ty); if(rs) d=Math.max(1,Math.round(d*(1-rs))); }   /* damage types: your resistance lines, a minion's typed trait */
   if(a.id==='p'){ const sk=SAP?KIT_SAP:1, s=Math.min(S.player.shield,d*sk); S.player.shield-=s; d-=Math.round(s/sk); if(BLOW&&d>0) d=tetherBlow(d); /* the Soul Tether (game-faith-story.js) */ } else if(a.mw>0){ const sk=SAP?KIT_SAP:1, s=Math.min(a.mw,d*sk); a.mw-=s; d-=Math.round(s/sk); }   // a Warden's ward on a minion
   d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a,d,0); if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p'&&!echoCall(a)&&!stitchUp(a)){ fxe('death',a); chainSpear(); }
   return d;
@@ -2590,7 +2590,7 @@ const canRetry=()=>S.mode==='defeat'&&!!ROOM0&&ROOM0.r===S.run&&!S.run.siege&&!S
 function retryRoom(){   // the room again as it began: same foes at full HP, you and your army as you entered; no watch, the XP loss stands, potions drunk stay drunk
   if(!canRetry()) return false;
   const r=S.run, o=JSON.parse(ROOM0.j), s=JSON.parse(ROOM0.s), P=S.player;
-  for(const k of ['kills','dt','dd','mh','hurt','soulT','tt','recF','grace','revives']) if(r[k]!==undefined) o[k]=r[k]; else delete o[k];   /* what happened in the fall still happened: run stats, records, turns, Grace and armor revives spent */
+  for(const k of ['kills','dt','dd','mh','hurt','soulT','tt','recF','grace','revives','draftU','xordU','abbotU']) if(r[k]!==undefined) o[k]=r[k]; else delete o[k];   /* what happened in the fall still happened: run stats, records, turns, Grace and armor revives spent */
   o.retries=(r.retries||0)+1; S.run=ROOM0.r=o;
   ['hp','mana','shield','st','dots'].forEach((k,i)=>{ if(s.p[i]==null) delete P[k]; else P[k]=s.p[i]; });
   for(const m of S.army){ delete m.sx; delete m.mw; const x=s.a.find(y=>y[0]===m.uid); if(!x) continue;   /* a room begins with Stitched unused and no Warden ward */ m.hp=Math.min(m.maxHp,x[1]); if(x[2]) m.st=x[2]; else delete m.st; if(x[3]) m.dots=x[3]; else delete m.dots; }
@@ -2652,7 +2652,7 @@ function raiseChance(c){
   if(soulBound(c)) return 0;
   if(firstRaise()) return 100;
   let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+4*sk('mastery')+B_OSS*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*RAISE_LV-RK[c.rankI].pen;
-  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+(hasInsc('many')?INSC_RAISE:0);
+  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+(hasInsc('many')?INSC_RAISE:0)+incRaise();
   return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
 }
 const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*(hasFlag('cheapraise')?.5:1)*(hasMod('mastery','b')?.75:1)*(1-.06*sk('thrift')));
@@ -2819,10 +2819,10 @@ const TROPHY_VAL=[3,7,14,26,45,75,110];          // sell value of an ordinary tr
 const TROPHY={};                             // key -> {name, value, ico, rankI}
 (function(){
   const h=s=>{ let x=0; for(const c of s) x=(x*31+c.charCodeAt(0))|0; return Math.abs(x); };
-  const add=(key,name,value,ico,rankI,gate)=>{ if(!TROPHY[key]) TROPHY[key]={name,value,ico,rankI,gate}; };
+  const add=(key,name,value,ico,rankI,gate,role)=>{ if(!TROPHY[key]) TROPHY[key]={name,value,ico,rankI,gate,role}; };   // role: the part's role, for brewing (game-brew.js)
   const part=(n,role)=>{ const p=TROPHY_PART[role]||TROPHY_PART.vanguard; return n+' '+p[h(n)%p.length]; };
-  DUNGEONS.forEach((D,i)=>{ D.mobs.forEach(m=>add(m[0],part(m[0],m[1]),TROPHY_VAL[i],m[0],i,i)); add('b:'+D.boss[0],i===ABBEY?'The Hunger\'s Tooth':'Heart of '+D.boss[0],TROPHY_VAL[i]*10,D.boss[0],i,i); });
-  TW_MOBS.forEach(m=>add('t:'+m[0],part(m[0],m[1]),40,m[0],4));
+  DUNGEONS.forEach((D,i)=>{ D.mobs.forEach(m=>add(m[0],part(m[0],m[1]),TROPHY_VAL[i],m[0],i,i,m[1])); add('b:'+D.boss[0],i===ABBEY?'The Hunger\'s Tooth':'Heart of '+D.boss[0],TROPHY_VAL[i]*10,D.boss[0],i,i); });
+  TW_MOBS.forEach(m=>add('t:'+m[0],part(m[0],m[1]),40,m[0],4,undefined,m[1]));
   TW_BOSS.forEach((n,i)=>add('b:'+n,'Heart of '+n,120*(i+1),n,5));
   SECRET.forEach((B,i)=>add('b:'+B.name,'Heart of '+B.name.replace(/^The /,''),TROPHY_VAL[i]*40,B.name,i,i));
 })();
@@ -2852,6 +2852,7 @@ const POTIONS={
 };
 function drink(k){
   const P=S.player; if(!S.belt[k]||pactOn('dry')) return false;   // the Dry Throat pact
+  if(DRAUGHTS[k]) return drinkDraught(k);   /* Iron Draught, Bloodwine (game-brew.js) */
   if(k==='hp'){ if(P.hp>=pMax()&&!P.dots) return false; S.belt.hp--; const h=healAlly(P,Math.round(pMax()*.35)), cured=!!P.dots; clearDots(P); tally('drank'); if(cured) tally('cures'); log('You drink a Healing Draught and recover '+h+' HP'+(cured?'. Your wounds close':'')+'.','ok'); }
   else { if(P.mana>=pMana()) return false; S.belt.mp--; tally('drank'); const m=Math.min(pMana()-P.mana,Math.round(pMana()*.4)); P.mana+=m; mark('p',0,0); log('You drink a Mana Tonic and recover '+m+' mana.','ok'); }
   return true;
@@ -2871,7 +2872,7 @@ function shopStock(){   // four pieces of gear from your highest unlocked gate (
   }
   return S.shop.stock;
 }
-function buyPotion(k){ const p=POTIONS[k], cost=p&&p.price(); if(!p||S.mode!=='town'||S.belt[k]>=BELT_MAX||S.gold<cost) return false; S.gold-=cost; S.belt[k]++; sfx('coin'); return true; }
+function buyPotion(k){ const p=POTIONS[k], cost=p&&p.price(); if(!p||S.mode!=='town'||S.belt[k]>=beltMax()||S.gold<cost) return false; S.gold-=cost; S.belt[k]++; sfx('coin'); return true; }
 function buyStock(i){
   const s=shopStock()[i]; if(!s||s.sold||S.mode!=='town') return false; const d=ITEM[s.id], cost=buyPrice(d);
   if(S.gold<cost||S.inv.length>=bagMax()) return false;
@@ -2910,7 +2911,7 @@ function forgeGear(gi,slot){
 }
 function brew(k){
   const n=Object.values(S.trophies).reduce((a,b)=>a+b,0);
-  if(S.mode!=='town'||!POTIONS[k]||S.belt[k]>=BELT_MAX||n<BREW_N) return false;
+  if(S.mode!=='town'||!POTIONS[k]||S.belt[k]>=beltMax()||n<BREW_N) return false;
   spendTrophies(Object.keys(S.trophies),BREW_N,()=>1); S.belt[k]++; sfx('heal'); return true;
 }
 
@@ -3055,7 +3056,7 @@ const raidN=()=>((S&&S.raids)||[]).reduce((a,x)=>a+x.units.length,0);
 const raidHeld=res=>((S&&S.raids)||[]).reduce((a,x)=>a+(Array.isArray(x.res)?x.units.filter(m=>x.res.includes(m.uid)===res).length:0),0);   // places marched raiders keep overnight: army places, or Reserve places (res)
 const armyUsed=()=>S.army.filter(m=>!m.thrall&&!m.wall).length+raidHeld(false);   /* a siege thrall or a minion on the wall holds no slot */   // raiders march at nightfall and keep their places overnight, so a siege raise cannot fill them; at dawn they step back in
 const raidPool=()=>S.army.concat(S.reserve||[]);   // a squad may be picked from the army and the Reserve
-const squadMax=m=>1+RAID_SQUAD+(m.stage||0)+(m.boss?1:0);   // the Commander and its followers
+const squadMax=m=>1+RAID_SQUAD+(m.stage||0)+(m.boss?1:0)+bannerSquad();   /* Banner of the Host (game-brew.js) */   // the Commander and its followers
 const raidGates=()=>DUNGEONS.map((D,i)=>i).filter(i=>i<GATE_N&&S.ti&&S.ti.clr&&S.ti.clr[i]);
 function gateThreat(di){ const lv=RK[di].lv+2, f=mobStats(di,lv,1,1,false,false), b=mobStats(di,lv+2,1,1,true,false); return {hp:f.hp*13+b.hp,atk:f.atk*3+b.atk*.5}; }
 function bestSquad(){ const P=raidPool(), c=P.filter(isCommander).sort((a,b)=>b.atk*b.maxHp-a.atk*a.maxHp)[0]; if(!c) return null;
@@ -3071,7 +3072,7 @@ const orderSquad=o=>{ const P=raidPool(), c=P.find(m=>m.uid===o.cu); return c?[c
 function sendRaid(cu,di,uids){   // order a raid for tonight: nobody leaves until the day ends
   if(S.mode!=='town') return false; const P=raidPool(), c=P.find(m=>m.uid===cu); if(!isCommander(c)||!raidGates().includes(di)||inOrder(c)) return false;
   const fol=[...new Set(uids||[])].map(u=>P.find(m=>m.uid===u&&m!==c)); if(fol.some(m=>!m||inOrder(m))||!fol.length||fol.length>squadMax(c)-1) return false;   // a Commander never marches alone
-  S.raidOrders=raidOrders().concat([{di,day:S.day,cu:c.uid,uids:fol.map(m=>m.uid)}]); tally('raidsSent'); sfx('raise'); return true;
+  const o={di,day:S.day,cu:c.uid,uids:fol.map(m=>m.uid)}; bannerTake(o); S.raidOrders=raidOrders().concat([o]); tally('raidsSent'); sfx('raise'); return true;
 }
 function recallRaid(i){ if(S.mode!=='town'||!S.raidOrders||!S.raidOrders[i]) return false; S.raidOrders.splice(i,1); return true; }   // cancel tonight's order: free, any time before nightfall
 function marchRaids(){   // nightfall: every standing order marches with the squad as it now is
@@ -3081,12 +3082,12 @@ function marchRaids(){   // nightfall: every standing order marches with the squ
     if(units.length<2){ notify('Tonight\'s raid on the '+DUNGEONS[o.di].name+' lapses: '+c.nick+' has no one left to lead.','bad'); continue; }
     const res=units.filter(m=>inReserve(m)).map(m=>m.uid);   // where each marched from: its place waits for it
     S.army=S.army.filter(m=>!units.includes(m)); if(S.reserve) S.reserve=S.reserve.filter(m=>!units.includes(m)); units.forEach(m=>{ m.hp=m.maxHp; delete m.dots; delete m.st; });
-    S.raids=(S.raids||[]).concat([{di:o.di,day:S.day,units,res,odds:raidOdds(units,o.di)}]); }
+    S.raids=(S.raids||[]).concat([Object.assign({di:o.di,day:S.day,units,res,odds:bannerOdds(o,raidOdds(units,o.di))},o.bn?{bn:o.bn}:{})]); }
 }
 function resolveRaid(x){
   const D=DUNGEONS[x.di], lead=x.units[0], won=Math.random()<(typeof x.odds==='number'?x.odds:raidOdds(x.units,x.di));   /* odds as they marched */ let msg, lost=[];
   if(won){
-    const g=Math.round((15+S.player.lvl*4)*(1+x.di)*RAID_GOLD*ngpReward()); S.gold+=g; let items=0, full=0;
+    const g=Math.round((15+S.player.lvl*4)*(1+x.di)*RAID_GOLD*ngpReward()*bannerGold(x)); S.gold+=g; let items=0, full=0;
     for(let i=0;i<3;i++){ if(i===2&&Math.random()>=RAID_ITEM3) break; const id=pickNorm(tableFor(x.di,'vanguard',i===0,false).filter(r=>!ITEM[r.id].uq)); if(addItem(id)) items++; else full++; }
     x.units.forEach(m=>minionXp(m,Math.round(mneed(m.lvl)*RAID_XP))); tally('raidWins');
     msg=lead.nick+' is back from the '+D.name+' in triumph: +'+g+' gold'+(items?', '+items+' piece'+(items>1?'s':'')+' of gear':'')+(full?' ('+full+' left behind: your bag is full)':'')+'.';
@@ -3253,6 +3254,7 @@ function playerFalls(){   // the player hit 0 HP: revive from gear if possible, 
   const r=S.run, P=S.player, lim=hasFlag('deathless')?2:hasFlag('undying')?1:0;
   if((r.revives||0)<lim){ r.revives=(r.revives||0)+1; P.hp=Math.round(pMax()*(hasFlag('deathless')?.5:.3)); log('Your armor refuses to break. You rise at '+P.hp+' HP.','ok'); return false; }
   if(blessed('hon')&&!r.tw&&!r.grace){ r.grace=true; P.hp=Math.max(1,Math.round(pMax()*GRACE_HP)); tally('graced'); log('The Old Gods will not let you fall. You rise at '+P.hp+' HP.','story'); moment('Grace','gold'); return false; }
+  if(brewFall()) return false;   /* Second Draft (game-brew.js) */
   defeat(); return true;
 }
 function sellItem(u){ if(S.mode!=='town') return 0; const i=S.inv.findIndex(x=>x.u===u); if(i<0) return 0; const it=S.inv[i], d=ITEM[it.id]; if(d.uq||it.lk) return 0; S.inv.splice(i,1); const g=sellValue(it); S.gold+=g; tally('soldItems'); sfx('coin'); return g; }
@@ -3481,7 +3483,7 @@ function resolveEvent(ch){
   if(EVENTS[ev.id].chain){ const o=chainResolve(ev,ch); if(!o) return false; m=o.m; c=o.c; }
   else if(ch==='pass') m='You leave it be.';
   else if(ev.id==='shrine'&&ch==='bleed'){ if(P.hp<=1) return false; const d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*.2))); P.hp-=d; r.bless=true; tally('shrine'); m='The shrine drinks '+d+' HP. You and your army hit 15% harder for the rest of this gate.'; c='ok'; }
-  else if(ev.id==='pedlar'&&ch==='buy'){ if(S.gold<ev.price||S.belt[ev.pot]>=BELT_MAX) return false; S.gold-=ev.price; S.belt[ev.pot]++; tally('pedlar'); m='You buy a '+POTIONS[ev.pot].name+' for '+ev.price+' gold.'; c='ok'; sfx('coin'); }
+  else if(ev.id==='pedlar'&&ch==='buy'){ if(S.gold<ev.price||S.belt[ev.pot]>=beltMax()) return false; S.gold-=ev.price; S.belt[ev.pot]++; tally('pedlar'); m='You buy a '+POTIONS[ev.pot].name+' for '+ev.price+' gold.'; c='ok'; sfx('coin'); }
   else if(ev.id==='coffer'&&ch==='open'){ tally('coffer');
     if(Math.random()<.6){ const g=Math.round((10+P.lvl*4)*(1+r.di)*ngpReward()); S.gold+=g; r.goldTot=(r.goldTot||0)+g; const it=addItem(pickRow(tableFor(r.di,'vanguard',false,true)));
       if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } findPage('coffer',r); m='Inside: '+g+' gold'+(it?' and '+withArticle(ITEM[it.id].name)+'.':'. There was gear too, but your bag is full.'); c='ok'; sfx('coin'); }
@@ -3634,7 +3636,7 @@ function rollDoors(r){
   if(r.room+1>=r.rooms-1) return ['boss'];
   let pool=['elite','elite','elite','rest','rest','treasure']; const out=['fight'], n=Math.random()<.4?2:1;   // weighted: elite 3, rest 2, treasure 1
   while(out.length<1+n&&pool.length){ const k=pick(pool); out.push(k); pool=pool.filter(x=>x!==k); }
-  return out;
+  return brewDoors(r,out);   /* Open Door (game-brew.js) */
 }
 const roomKind=()=>(S.run&&!S.run.tw&&S.run.roomKind)||null;
 function quietRoom(kind){   // a rest or treasure room: no fight, then the doors again
@@ -3652,7 +3654,7 @@ function quietRoom(kind){   // a rest or treasure room: no fight, then the doors
 function preRooms(r){ r.pre=null; for(const k of r.doors||[]) if(k==='fight'||k==='elite'){ r.pre=r.pre||{}; r.pre[k]=buildRoom(r.room+1,k); } }
 function doorSight(di){   // 2: most of the gate's kinds Known (rows and levels too), 1: most Studied (names, elites and affixes), 0: nothing. Most: at least 2.
   const ms=DUNGEONS[di].mobs, need=Math.min(2,ms.length), n=id=>{ const at=MASTERY.findIndex(t=>t.id===id); return ms.filter(m=>MASTERY.indexOf(masteryOf(m[0]))>=at).length; };
-  return n('known')>=need?2:n('studied')>=need?1:0;
+  return brewSight(di,n('known')>=need?2:n('studied')>=need?1:0);   /* Lantern (game-brew.js) */
 }
 const DOOR_TIP={swarm:'At most '+SUMMON_CAP+' answer it in one fight',bonewall:"A shield holds at most 40% of a foe's HP",seedfall:'At most '+SUMMON_CAP+' sprout in one fight'};   // moves that are not telegraphed: what limits them
 function doorBoss(di){   // the boss door, once its master is Ledgered: the signature move and what answers it (the same answers as a charging boss: chargeInfo)
@@ -3854,7 +3856,7 @@ const SWEEP_LV=12, SWEEP_CLEARS=5, SWEEP_XP=.8;
 const sweepOk=di=>!!S&&S.mode==='town'&&S.watches>0&&!!(S.ti&&S.ti.clr&&S.ti.clr[di])&&T_('clrN'+di)>=SWEEP_CLEARS&&!heatOf(di)&&!gateMod(di)&&S.player.lvl>=gateRec(di)+SWEEP_LV&&!rivalHere(di);
 function sweep(di){
   if(!sweepOk(di)) return false;
-  startRun(di); const r=S.run; r.sweep=1; r.hurt=true; r.swSp=[]; tally('sweeps');
+  PREP_SKIP=true; try{ startRun(di); } finally{ PREP_SKIP=false; }   /* a sweep takes no brews (game-brew.js) */ const r=S.run; r.sweep=1; r.hurt=true; r.swSp=[]; tally('sweeps');
   for(let guard=0;guard<20;guard++){
     if(r.enemies.some(e=>e.secret||e.rival)){ r.sweepStop=1; delete r.sweep; notify('The sweep stops at the boss room: '+r.enemies.find(e=>e.secret||e.rival).name+' waits there. Fight it.','bad'); return true; }
     if(S.mode==='battle'){ for(let n=0;n<10&&liveFoes().length;n++){ for(const e of liveFoes()){ e.lt=null; e.hp=0; } checkDeaths(); }
@@ -4230,10 +4232,10 @@ const CMDS={
   mender:  {name:'Bone Shield',desc:'Each mender wards you for 150% of its attack.'},
   reaper:  {name:'Execute',    desc:'This turn your reapers deal double damage to foes below 40% HP.'}
 };
-const canCommand=role=>S.mode==='battle'&&!!CMDS[role]&&!(S.run.cmd&&S.run.cmd[role])&&S.army.some(m=>m.role===role&&m.hp>0);
+const canCommand=role=>S.mode==='battle'&&!!CMDS[role]&&(!(S.run.cmd&&S.run.cmd[role])||xOrder(role))&&S.army.some(m=>m.role===role&&m.hp>0);
 function command(role){
   if(!canCommand(role)) return false;
-  const r=S.run, P=S.player, mine=S.army.filter(m=>m.role===role&&m.hp>0); r.cmd=r.cmd||{}; r.cmd[role]=true; tally('commands');
+  const r=S.run, P=S.player, mine=S.army.filter(m=>m.role===role&&m.hp>0); r.cmd=r.cmd||{}; if(r.cmd[role]){ r.xordU=1; log('Extra Order: the charm crumbles.','ok'); } r.cmd[role]=true; tally('commands');
   if(role==='vanguard'){ r.taunt=2; log('Taunt: your vanguards bellow, and every foe turns on them.','ok'); }
   else if(role==='striker'){ r.focus=true; log('Focus: your strikers pick their spots.','ok'); }
   else if(role==='mender'){ const w=mine.reduce((a,m)=>a+Math.round(m.atk*1.5),0); P.shield=Math.min(Math.round(pMax()*.6),P.shield+w); mark('p',0,0); log('Bone Shield: your menders ward you. You hold '+P.shield+' ward.','ok'); }
@@ -5698,6 +5700,172 @@ const hfFree=()=>{ const r=S&&S.run; if(!r||S.mode!=='battle') return false; ret
 function hfSkill(){ const r=S.run; if(!r) return; if(hfPow('mirror')) r.mirU=1; if(hfPow('verse')) r.verseN=(r.verseN||0)+1; }   // useSkill, after the cost is paid
 function hfKill(e){ if(hfPow('hungry')&&S.player.hp>0) healAlly(S.player,Math.round(pMax()*.03)); }   // killLoot: Hungry Page
 function hfFix(it){ if(!it) return; if(it.hf!=null&&!HF_LINES[it.hf]) delete it.hf; if(it.pw!=null&&!(HF_POW[it.pw]&&it.hf)) delete it.pw; }   // normalizeSave
+// ===== BREWING 2.0, THE BELT, RUN PREP, COMMISSIONS AND THE BLACK MARKET (R4 PR B) =====
+// Brewing names trophy **parts** by role (TROPHY[k].role: striker, reaper, mender, vanguard) and a gate minimum, so every
+// role's trophies and the low gates' trophies keep a use. Brews go to a stash (S.stash, id -> count, BREW_STASH each).
+// Before a gate run you arm one oil, one incense and one bone charm (S.prep); each run takes one of each armed kind from the
+// stash. War banners arm for tonight's raids. Draughts go on the belt and are drunk in battle like potions. The belt holds
+// BELT_MAX of each drinkable, one more at Forge level 2 and 3 (beltMax). Commissions (S.comm) are three weekly town orders
+// for trophies, a heartforged piece or a grown minion. The black market (S.bm) opens every seventh day and trades without gold.
+const BELT_CAP=5, BREW_STASH=5, BREW_GOLD=60;
+const beltMax=()=>Math.min(BELT_CAP,BELT_MAX+(bl('forge')>=2?1:0)+(bl('forge')>=3?1:0));
+const OIL_WEAK=.1, INC_LOW=5, INC_GRAVE=10, DRAFT_HP=.3, DOOR_SIGHT=1, QUIET_DAYS=3, IRON_DR=.25, IRON_TURNS=2, BLOOD_HEAL=.15;
+const BANNER_ODDS=.1, BANNER_GOLD=1.5;
+// recipes: parts {role:n}, the lowest gate a part may come from (Tower trophies count as gate 5), or hearts: boss hearts
+const BREWS={
+  oil_phys: {kind:'oil',   ty:'phys', name:'Oil of the Edge',   parts:{striker:3,reaper:1},g:2, desc:'Your army\'s blows deal physical damage this run, 10% more against foes weak to it.'},
+  oil_fire: {kind:'oil',   ty:'fire', name:'Oil of Embers',     parts:{striker:3,reaper:1},g:2, desc:'Your army\'s blows deal fire damage this run, 10% more against foes weak to it.'},
+  oil_frost:{kind:'oil',   ty:'frost',name:'Oil of Rime',       parts:{striker:3,reaper:1},g:2, desc:'Your army\'s blows deal frost damage this run, 10% more against foes weak to it.'},
+  oil_rot:  {kind:'oil',   ty:'rot',  name:'Oil of Blight',     parts:{striker:3,reaper:1},g:2, desc:'Your army\'s blows deal rot damage this run, 10% more against foes weak to it.'},
+  oil_shad: {kind:'oil',   ty:'shad', name:'Oil of Dusk',       parts:{striker:3,reaper:1},g:2, desc:'Your army\'s blows deal shadow damage this run, 10% more against foes weak to it.'},
+  inc_low:  {kind:'inc',   name:'Low Incense',      parts:{mender:3},g:1, desc:'+5% raise chance this run.'},
+  inc_grave:{kind:'inc',   name:'Grave Incense',    parts:{mender:3},g:3, desc:'+10% raise chance this run.'},
+  inc_abbot:{kind:'inc',   name:'Abbot\'s Incense', parts:{mender:3},g:4, desc:'You start the boss room with a Soul.'},
+  ch_draft: {kind:'charm', name:'Second Draft',     hearts:2, desc:'If you fall this run, you rise once at 30% HP.'},
+  ch_door:  {kind:'charm', name:'Open Door',        hearts:2, desc:'Every choice of doors this run offers an elite room.'},
+  ch_order: {kind:'charm', name:'Extra Order',      hearts:2, desc:'Once this run, give an order a second time in the same room.'},
+  ch_lantern:{kind:'charm',name:'Lantern',          hearts:2, desc:'You read the doors of this run one step better.'},
+  ch_quiet: {kind:'charm', name:'Quiet Grave',      hearts:2, use:true, desc:'Burn it in town: the next siege comes three days later.'},
+  bn_courage:{kind:'banner',name:'Banner of Courage',parts:{vanguard:4},g:3, desc:'Tonight\'s raids are 10% likelier to win.'},
+  bn_host:  {kind:'banner',name:'Banner of the Host',parts:{vanguard:4},g:3, desc:'A Commander leads one more follower tonight.'},
+  bn_spoils:{kind:'banner',name:'Banner of Spoils', parts:{vanguard:4},g:3, desc:'Tonight\'s won raids bring back half again as much gold.'},
+  dr_iron:  {kind:'draught',belt:'iron', name:'Iron Draught',parts:{vanguard:4},g:0, desc:'Your whole side takes 25% less damage for 2 turns. Drinking it uses your turn.'},
+  dr_blood: {kind:'draught',belt:'blood',name:'Bloodwine',  parts:{reaper:2,mender:2},g:0, desc:'Heals you and every minion for 15% of max HP. Drinking it uses your turn.'}
+};
+const BREW_IDS=Object.keys(BREWS), BREW_KINDS=['oil','inc','charm','banner','draught'], PREP_KINDS=['oil','inc','charm','banner'];
+const BREW_KIND_NAME={oil:'Weapon oils',inc:'Incense',charm:'Bone charms',banner:'War banners',draught:'Draughts'};
+const DRAUGHTS={iron:{name:'Iron Draught',key:'E',desc:BREWS.dr_iron.desc},blood:{name:'Bloodwine',key:'T',desc:BREWS.dr_blood.desc}};
+const DRINK_IDS=['hp','mp','iron','blood'], drinkDef=k=>POTIONS[k]||DRAUGHTS[k];
+const partGate=k=>k.startsWith('t:')?5:trophyGate(k);
+const partKeys=(role,g)=>Object.keys(S.trophies||{}).filter(k=>!k.startsWith('b:')&&TROPHY[k]&&TROPHY[k].role===role&&partGate(k)>=g&&S.trophies[k]>0).sort((a,b)=>TROPHY[a].value-TROPHY[b].value);
+const partCount=(role,g)=>partKeys(role,g).reduce((a,k)=>a+S.trophies[k],0);
+const spareHearts=()=>Object.keys(S.trophies||{}).filter(k=>k.startsWith('b:')&&TROPHY[k]).map(k=>[k,S.trophies[k]-heartsKept(k)]).filter(([,n])=>n>0).sort((a,b)=>TROPHY[a[0]].value-TROPHY[b[0]].value);
+const brewGold=id=>{ const B=BREWS[id]; return B.hearts?BREW_GOLD*10:BREW_GOLD*((B.g||0)+1); };
+const stashN=id=>(S.stash&&S.stash[id])||0;
+function brewCan(id){
+  const B=BREWS[id]; if(!B||S.mode!=='town'||S.gold<brewGold(id)) return false;
+  if(B.belt){ if((S.belt[B.belt]||0)>=beltMax()) return false; } else if(stashN(id)>=BREW_STASH) return false;
+  if(B.hearts) return spareHearts().reduce((a,[,n])=>a+n,0)>=B.hearts;
+  return Object.keys(B.parts).every(r=>partCount(r,B.g)>=B.parts[r]);
+}
+function brewIt(id){   // spends the parts (cheapest first) or spare hearts (lowest first) and the gold
+  if(!brewCan(id)) return false; const B=BREWS[id]; S.gold-=brewGold(id);
+  if(B.hearts){ let need=B.hearts; for(const [k,n] of spareHearts()){ const t=Math.min(n,need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
+  else for(const r of Object.keys(B.parts)){ let need=B.parts[r]; for(const k of partKeys(r,B.g)){ const t=Math.min(S.trophies[k],need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
+  if(B.belt) S.belt[B.belt]=(S.belt[B.belt]||0)+1; else { S.stash=S.stash||{}; S.stash[id]=stashN(id)+1; }
+  tally('brewed'); tally('brewG',brewGold(id)); sfx('heal'); return true;
+}
+// ----- run prep: what a gate run takes from the stash
+function prepSet(kind,id){   // arm (or, with the same id or null, disarm) one brew of a kind
+  if(S.mode!=='town'||!PREP_KINDS.includes(kind)) return false; S.prep=S.prep||{};
+  if(id==null||S.prep[kind]===id){ delete S.prep[kind]; return true; }
+  const B=BREWS[id]; if(!B||B.kind!==kind||B.use) return false; S.prep[kind]=id; return true;
+}
+let PREP_SKIP=false;   // a sweep (game-kits.js) leaves the stash alone
+function prepTake(r){   // startRun: one of each armed oil, incense and charm goes into the run
+  if(PREP_SKIP) return; const p=S.prep||{}; for(const kind of ['oil','inc','charm']){ const id=p[kind]; if(!id||!stashN(id)) continue; S.stash[id]--; if(!S.stash[id]) delete S.stash[id]; r[kind]=id; tally('prepUsed'); }
+  if(r.oil) log('Your army\'s blades are oiled: '+BREWS[r.oil].name+'.','ok'); if(r.inc) log(BREWS[r.inc].name+' burns at the gate.','ok'); if(r.charm) log('You carry a bone charm: '+BREWS[r.charm].name+'.','ok');
+}
+function useCharm(id){   // a charm burned in town (Quiet Grave)
+  const B=BREWS[id]; if(!B||!B.use||S.mode!=='town'||!stashN(id)) return false;
+  if(id==='ch_quiet'){ if(!siegeOpen()) return false; const g=sg(); if(!g.next) return false; g.next+=QUIET_DAYS; if(g.warned&&g.warned>=S.day) g.warned=0; }
+  S.stash[id]--; if(!S.stash[id]) delete S.stash[id]; tally('charmsBurned'); sfx('skill'); return true;
+}
+// ----- the hooks
+const runBrew=(k,id)=>!!(S&&S.run&&S.run[k]===id);
+const oilType=()=>S&&S.run&&S.run.oil&&!S.run.tw?BREWS[S.run.oil].ty:null;   // minionType: an oiled army deals the oil's type
+const oilK=(e,ty)=>{ const o=oilType(); return o&&ty===o&&HITTER&&HITTER.uid!=null&&foeRes(e,ty)<0?1+OIL_WEAK:1; };   // hurtFoe
+const incRaise=()=>runBrew('inc','inc_low')?INC_LOW:runBrew('inc','inc_grave')?INC_GRAVE:0;   // raiseChance
+function brewRoom(r){ if(r.inc==='inc_abbot'&&r.room===r.rooms-1&&!r.abbotU){ r.abbotU=1; if(gainSoul()) log('Abbot\'s Incense: you enter the boss room with a Soul.','ok'); } }   // spawnRoom
+function brewFall(){ const r=S.run, P=S.player; if(r&&r.charm==='ch_draft'&&!r.draftU){ r.draftU=1; P.hp=Math.max(1,Math.round(pMax()*DRAFT_HP)); log('Second Draft: the page rewrites itself. You rise at '+P.hp+' HP.','ok'); tally('drafted'); return true; } return false; }   // playerFalls
+const brewDoors=(r,out)=>{ if(r.charm==='ch_door'&&out[0]==='fight'&&!out.includes('elite')) out.push('elite'); return out; };   // rollDoors
+const brewSight=(di,v)=>S.run&&S.run.charm==='ch_lantern'&&S.run.di===di?Math.min(2,v+DOOR_SIGHT):v;   // doorSight
+const xOrder=role=>{ const r=S.run; return !!(r&&r.charm==='ch_order'&&!r.xordU&&r.cmd&&r.cmd[role]); };   // canCommand: a second order of a kind
+const brewDr=a=>{ const r=S.run; return r&&r.iron>=r.turn&&(a.id==='p'||a.uid!=null)?1-IRON_DR:1; };   // hurtAlly
+function drinkDraught(k){
+  const P=S.player, r=S.run; if(!r||!(S.belt[k]>0)) return false;
+  if(k==='iron'){ S.belt.iron--; r.iron=r.turn+IRON_TURNS-1; log('You drink an Iron Draught: your side takes 25% less damage for '+IRON_TURNS+' turns.','ok'); }
+  else if(k==='blood'){ const all=allies().filter(u=>u.hp>0); if(all.every(u=>u.hp>=(u.id==='p'?pMax():u.maxHp))) return false; S.belt.blood--; let h=0; all.forEach(u=>{ h+=healAlly(u,Math.round((u.id==='p'?pMax():u.maxHp)*BLOOD_HEAL))||0; }); log('You drink Bloodwine: your side mends '+h+' HP.','ok'); }
+  else return false;
+  tally('drank'); return true;
+}
+// banners: armed for tonight; each raid ordered takes one
+const bannerOn=id=>!!(S.prep&&S.prep.banner===id&&stashN(id)>0);
+function bannerTake(o){ const id=S.prep&&S.prep.banner; if(!id||!stashN(id)) return; S.stash[id]--; if(!S.stash[id]) delete S.stash[id]; o.bn=id; tally('bannersRaised'); }
+const bannerSquad=()=>bannerOn('bn_host')?1:0;   // squadMax
+const bannerOdds=(o,p)=>o&&o.bn==='bn_courage'?Math.min(RAID_MAX,p+BANNER_ODDS):p;   // marchRaids
+const bannerGold=x=>x&&x.bn==='bn_spoils'?BANNER_GOLD:1;   // resolveRaid
+// ----- commissions: three town orders a week
+const COMM_N=3, COMM_TRO_K=3, COMM_HF_GOLD=3000, COMM_MIN_GOLD=2500;
+const weekOf=d=>Math.floor((d-1)/7);
+function makeComm(){
+  const list=[], top=topGate(), roles=['vanguard','striker','mender','reaper'], used=new Set();
+  for(let i=0;i<COMM_N;i++){ const r=Math.random();
+    if(r<.2&&T_('heartforged')>0&&!used.has('hf')){ used.add('hf'); list.push({k:'hf',slot:pick(GEAR_SLOTS)}); continue; }
+    if(r<.4&&S.army.length>=3&&!used.has('min')){ used.add('min'); list.push({k:'min',role:pick(roles.filter(x=>x!=='reaper'||S.army.some(m=>m.role==='reaper'))),st:1+(Math.random()<.3?1:0)}); continue; }
+    const g=Math.floor(Math.random()*(top+1)), role=pick(roles.filter(ro=>DUNGEONS[g].mobs.some(m=>m[1]===ro))||roles), n=4+Math.floor(Math.random()*5);
+    list.push({k:'tro',role,g,n}); }
+  S.comm={week:weekOf(S.day),list};
+}
+function commissions(){ if(!S.comm||!Array.isArray(S.comm.list)||S.comm.week!==weekOf(S.day)) makeComm(); return S.comm.list; }
+const trosOf=(role,g)=>Object.keys(S.trophies||{}).filter(k=>!k.startsWith('b:')&&TROPHY[k]&&TROPHY[k].role===role&&trophyGate(k)===g&&S.trophies[k]>0).sort((a,b)=>TROPHY[a].value-TROPHY[b].value);
+function commPay(c){
+  if(c.k==='tro') return {g:Math.round(TROPHY_VAL[c.g]*c.n*COMM_TRO_K)+50*(c.g+1),d:5*(c.g+1)};
+  if(c.k==='hf') return {g:COMM_HF_GOLD+1000*topGate(),d:30};
+  return {g:COMM_MIN_GOLD*c.st+100*S.player.lvl,d:20};
+}
+const commItem=c=>c.k==='hf'?S.inv.find(it=>it.hf&&!it.lk&&ITEM[it.id].slot===c.slot):null;
+const commMinion=c=>c.k==='min'?S.army.filter(m=>m.role===c.role&&(m.stage||0)>=c.st&&!m.lk&&!m.wall&&!m.thrall).sort((a,b)=>a.lvl-b.lvl)[0]:null;
+function commCan(i){ const c=commissions()[i]; if(!c||c.done||S.mode!=='town') return false;
+  if(c.k==='tro') return trosOf(c.role,c.g).reduce((a,k)=>a+S.trophies[k],0)>=c.n;
+  if(c.k==='hf') return !!commItem(c); return !!commMinion(c); }
+function commFill(i){
+  if(!commCan(i)) return false; const c=S.comm.list[i], p=commPay(c);
+  if(c.k==='tro'){ let need=c.n; for(const k of trosOf(c.role,c.g)){ const t=Math.min(S.trophies[k],need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
+  else if(c.k==='hf'){ const it=commItem(c); S.inv=S.inv.filter(x=>x!==it); }
+  else { const m=commMinion(c); returnGear(m); S.army=S.army.filter(x=>x!==m); }
+  S.gold+=p.g; S.dust=(S.dust||0)+p.d; c.done=1; tally('commissions'); tally('commG',p.g); sfx('coin'); return p;
+}
+function commTxt(c){ if(c.k==='tro') return c.n+' '+c.role+' parts from the '+DUNGEONS[c.g].name;
+  if(c.k==='hf') return 'A heartforged '+SLOTS[c.slot].toLowerCase()+' piece'; return 'A '+c.role+' minion at '+STAGES[c.st].trim()+' or beyond'; }
+// ----- the black market: every seventh day from day 7, each trade once a week
+const BM_DAY=7, BM_SOUL_GOLD=1500, BM_SOUL_DUST=5, BM_DUST=50, BM_DUST_TRO=30, BM_TW=8;
+const bmOpen=()=>!!S&&S.day>=BM_DAY&&S.day%BM_DAY===0&&S.mode==='town';
+function bmState(){ const w=weekOf(S.day); if(!S.bm||S.bm.week!==w) S.bm={week:w,used:{}}; return S.bm; }
+const bmUsed=k=>!!bmState().used[k];
+const clearedGates=()=>{ const out=[]; for(let i=0;i<GATE_N;i++) if(S.ti&&S.ti.clr&&S.ti.clr[i]) out.push(i); return out; };
+function bmHeartGate(){ const lo=g=>Object.keys(S.trophies).filter(k=>{ const i=DUNGEONS.findIndex(D=>'b:'+D.boss[0]===k); return i>=0&&i<g; }).reduce((a,k)=>a+Math.max(0,S.trophies[k]-heartsKept(k)),0);
+  return clearedGates().filter(g=>g>=1&&lo(g)>=3).pop(); }
+const bmDustTro=()=>Object.keys(S.trophies).filter(k=>!k.startsWith('b:')&&partGate(k)>=2&&!k.startsWith('t:'));
+const bmWarden=()=>{ const f=Math.min(TW_BOSS.length,Math.floor(((S.tower&&S.tower.best)||0)/10)); return f>=1?TW_BOSS[f-1]:null; };
+const bmMaster=()=>Object.keys(S.trophies).find(k=>SECRET.some(B=>'b:'+B.name===k)&&S.trophies[k]>heartsKept(k));
+const BM_TRADES={
+  heart: {name:'A heart of a gate you cleared',take:'3 spare hearts of lower gates', can:()=>bmHeartGate()!=null},
+  dust:  {name:BM_DUST+' bone dust',          take:BM_DUST_TRO+' trophies of gate C or deeper', can:()=>bmDustTro().reduce((a,k)=>a+S.trophies[k],0)>=BM_DUST_TRO},
+  warden:{name:'A warden\'s heart',           take:BM_TW+' Tower trophies', can:()=>towerTrophies()>=BM_TW&&!!bmWarden()},
+  piece: {name:'A set piece of your best gate',take:'1 secret-master heart', can:()=>!!bmMaster()&&S.inv.length<bagMax()},
+  soul:  {name:'A Soul for your next run',    take:BM_SOUL_GOLD+' gold and '+BM_SOUL_DUST+' dust', can:()=>S.gold>=BM_SOUL_GOLD&&(S.dust||0)>=BM_SOUL_DUST&&!(S.prep&&S.prep.soul)}
+};
+function bmTrade(k,slot){
+  const T=BM_TRADES[k]; if(!T||!bmOpen()||bmUsed(k)||!T.can()) return null; let got;
+  const take=(keys,need)=>{ for(const x of keys){ const t=Math.min(Math.max(0,S.trophies[x]-(x.startsWith('b:')?heartsKept(x):0)),need); S.trophies[x]-=t; need-=t; if(!S.trophies[x]) delete S.trophies[x]; if(!need) break; } };
+  if(k==='heart'){ const g=bmHeartGate(); take(Object.keys(S.trophies).filter(x=>{ const i=DUNGEONS.findIndex(D=>'b:'+D.boss[0]===x); return i>=0&&i<g; }).sort((a,b)=>TROPHY[a].value-TROPHY[b].value),3); const key='b:'+DUNGEONS[g].boss[0]; S.trophies[key]=(S.trophies[key]||0)+1; got=TROPHY[key].name; }
+  else if(k==='dust'){ take(bmDustTro().sort((a,b)=>TROPHY[a].value-TROPHY[b].value),BM_DUST_TRO); S.dust=(S.dust||0)+BM_DUST; got=BM_DUST+' bone dust'; }
+  else if(k==='warden'){ spendTrophies(Object.keys(S.trophies).filter(x=>x.startsWith('t:')),BM_TW,()=>1); const key='b:'+bmWarden(); S.trophies[key]=(S.trophies[key]||0)+1; got=TROPHY[key].name; }
+  else if(k==='piece'){ const key=bmMaster(); S.trophies[key]--; if(!S.trophies[key]) delete S.trophies[key]; const g=Math.min(5,Math.max(0,...clearedGates(),topGate())), sl=SLOTS[slot]?slot:pick(GEAR_SLOTS);
+    const pool=Object.values(ITEM).filter(d=>!d.uq&&!d.tower&&d.set===g&&d.slot===sl); const it=addItem(pick(pool).id); got=it?ITEM[it.id].name:'nothing'; }
+  else { S.gold-=BM_SOUL_GOLD; S.dust-=BM_SOUL_DUST; S.prep=S.prep||{}; S.prep.soul=1; got='a Soul, waiting for your next run'; }
+  bmState().used[k]=1; tally('bmTrades'); sfx('coin'); return got;
+}
+function prepSoul(r){ if(!PREP_SKIP&&S.prep&&S.prep.soul){ delete S.prep.soul; if(gainSoul()) log('The Soul from the black market goes with you.','ok'); } }   // startRun
+// ----- save
+function brewFix(g){
+  const st={}; if(g.stash&&typeof g.stash==='object') for(const k in g.stash){ const n=Math.floor(+g.stash[k]||0); if(BREWS[k]&&!BREWS[k].belt&&n>0) st[k]=Math.min(BREW_STASH,n); } g.stash=st;
+  const p={}; if(g.prep&&typeof g.prep==='object'){ for(const kind of PREP_KINDS){ const id=g.prep[kind]; if(BREWS[id]&&BREWS[id].kind===kind&&!BREWS[id].use) p[kind]=id; } if(g.prep.soul) p.soul=1; } g.prep=p;
+  if(!(g.comm&&Array.isArray(g.comm.list)&&isFinite(g.comm.week))) g.comm=null;
+  else g.comm.list=g.comm.list.filter(c=>c&&((c.k==='tro'&&TROPHY_PART[c.role]&&DUNGEONS[c.g]&&c.n>0)||(c.k==='hf'&&SLOTS[c.slot])||(c.k==='min'&&TROPHY_PART[c.role]&&STAGES[c.st]))).slice(0,COMM_N);
+  if(!(g.bm&&isFinite(g.bm.week)&&g.bm.used&&typeof g.bm.used==='object')) g.bm=null;
+}
 //==UI==
 
 // ----- sound: tiny synthesized effects (Web Audio, no files). Off/on lives in Settings and is remembered per browser, not in the save.
@@ -9797,6 +9965,53 @@ TR_RX.push([/^Heartforged from (.+)$/,"$1 kalbinden dövüldü"],[/^Pick (\d+) l
  [/^A heart of (.+?) swaps one line for another of its list$/,"$1 kalbi bir satırı listesindeki bir başkasıyla değiştirir"],
  [/^The heart burns down to (.+?), heartforged\. It is in your bag\.?$/,"Kalp yanıp $1 oluyor, kalpte dövülmüş. Çantanda"],
  [/^(An extra line! )?The Tower trophies forge (.+?)\. It is in your bag\.?$/,"{t1}Kule ganimetleri $2 döver. Çantanda"]);
+// R4 PR B: brewing, draughts, the belt, run prep, commissions and the black market (src/game-brew.js)
+[["Iron Draught","Demir İksiri"],["Bloodwine","Kan Şarabı"],["Brewed only","Yalnızca demlenir"],["Brewing","Demleme"],["Belt","Kemer"],
+ ["Your whole side takes 25% less damage for 2 turns. Drinking it uses your turn","Tüm tarafın 2 tur boyunca %25 daha az hasar alır. İçmek turunu harcar"],["Your whole side takes #% less damage for # turns. Drinking it uses your turn","Tüm tarafın # tur boyunca %# daha az hasar alır. İçmek turunu harcar"],
+ ["Heals you and every minion for 15% of max HP. Drinking it uses your turn","Seni ve her hizmetkârı azami canın %15'i kadar iyileştirir. İçmek turunu harcar"],["Heals you and every minion for #% of max HP. Drinking it uses your turn","Seni ve her hizmetkârı azami canın %#'i kadar iyileştirir. İçmek turunu harcar"],
+ ["Carry up to # of each drinkable, one more at Forge level # and at level # (at most #)","Her içecekten en çok # taşı; Demirhane # ve # seviyesinde birer fazla (en çok #)"],
+ ["Weapon oils","Silah yağları"],["Incense","Tütsü"],["Bone charms","Kemik tılsımları"],["War banners","Savaş sancakları"],["Draughts","İksirler"],
+ ["Oil of the Edge","Keskinlik Yağı"],["Oil of Embers","Kor Yağı"],["Oil of Rime","Kırağı Yağı"],["Oil of Blight","Küf Yağı"],["Oil of Dusk","Alacakaranlık Yağı"],
+ ["Low Incense","Alçak Tütsü"],["Grave Incense","Mezar Tütsüsü"],["Abbot's Incense","Başrahip Tütsüsü"],
+ ["Second Draft","İkinci Taslak"],["Open Door","Açık Kapı"],["Extra Order","Ek Emir"],["Lantern","Fener"],["Quiet Grave","Sessiz Mezar"],
+ ["Banner of Courage","Cesaret Sancağı"],["Banner of the Host","Ordu Sancağı"],["Banner of Spoils","Ganimet Sancağı"],
+ ["Your army's blows deal physical damage this run, #% more against foes weak to it","Ordunun darbeleri bu akında fiziksel hasar verir, buna zayıf düşmanlara %# fazla"],
+ ["Your army's blows deal fire damage this run, #% more against foes weak to it","Ordunun darbeleri bu akında ateş hasarı verir, buna zayıf düşmanlara %# fazla"],
+ ["Your army's blows deal frost damage this run, #% more against foes weak to it","Ordunun darbeleri bu akında ayaz hasarı verir, buna zayıf düşmanlara %# fazla"],
+ ["Your army's blows deal rot damage this run, #% more against foes weak to it","Ordunun darbeleri bu akında çürüme hasarı verir, buna zayıf düşmanlara %# fazla"],
+ ["Your army's blows deal shadow damage this run, #% more against foes weak to it","Ordunun darbeleri bu akında gölge hasarı verir, buna zayıf düşmanlara %# fazla"],
+ ["#% raise chance this run","bu akında %# diriltme şansı"],["You start the boss room with a Soul","Boss odasına bir Ruhla başlarsın"],
+ ["If you fall this run, you rise once at #% HP","Bu akında düşersen bir kez %# canla kalkarsın"],["Every choice of doors this run offers an elite room","Bu akında her kapı seçimi bir seçkin oda sunar"],
+ ["Once this run, give an order a second time in the same room","Bu akında bir kez, aynı odada bir emri ikinci kez ver"],["You read the doors of this run one step better","Bu akının kapılarını bir adım daha iyi okursun"],
+ ["Burn it in town: the next siege comes three days later","Kasabada yak: sonraki kuşatma üç gün sonra gelir"],
+ ["Tonight's raids are #% likelier to win","Bu geceki akınların kazanma ihtimali %# daha yüksek"],["A Commander leads one more follower tonight","Bir Komutan bu gece bir takipçi fazla yönetir"],["Tonight's won raids bring back half again as much gold","Bu gece kazanılan akınlar yarısı kadar fazla altın getirir"],
+ ["Recipes at the market take trophy parts of a role (striker, reaper, mender, vanguard: the part word in a trophy's name) from a gate of a given rank or deeper, and a little gold; bone charms take spare boss hearts instead (never those a unique you hold still needs). Tower trophies count as the deepest gate. Up to # of each brew wait in your stash. On the Gates tab you arm one oil, one incense and one charm; each gate run takes one of each from the stash. A banner armed goes with each raid you order that day","Pazardaki tarifler belirli bir rütbedeki ya da daha derin bir kapıdan bir role ait ganimet parçaları (vurucu, biçici, şifacı, öncü: ganimetin adındaki parça sözcüğü) ve biraz altın ister; kemik tılsımları bunun yerine yedek boss kalpleri ister (elindeki bir eşsizin hâlâ ihtiyaç duyduklarını asla). Kule ganimetleri en derin kapı sayılır. Her demlemeden en çok # tanesi zulanda bekler. Kapılar sekmesinde bir yağ, bir tütsü ve bir tılsım kuşanırsın; her kapı akını zuladan her birinden birini alır. Kuşanılmış bir sancak o gün emrettiğin her akınla gider"],
+ ["Commissions","Siparişler"],["Black market","Kara pazar"],["Commissions and black market","Siparişler ve kara pazar"],
+ ["Once the town opens, the bounty board also carries # commissions each week: trophy parts from a gate, a heartforged piece, or a grown minion of a role. Filling one pays gold and bone dust; trophy orders pay # times the trophies' price and more. They lapse when the week ends, filled or not","Kasaba açılınca ödül panosunda her hafta # sipariş de olur: bir kapıdan ganimet parçaları, kalpte dövülmüş bir parça ya da bir rolden gelişmiş bir hizmetkâr. Birini karşılamak altın ve kemik tozu öder; ganimet siparişleri ganimetlerin fiyatının # katından fazlasını öder. Hafta bitince, karşılansın ya da karşılanmasın, düşerler"],
+ ["A stall in the market that opens every seventh day from day #. It trades without gold, but for one trade, and each trade once a week","Pazarda, # . günden itibaren her yedinci gün açılan bir tezgâh. Bir takas dışında altınsız takas yapar ve her takas haftada bir kez"],
+ ["A heart of a gate you cleared","Temizlediğin bir kapının kalbi"],["# bone dust","# kemik tozu"],["A warden's heart","Bir muhafız kalbi"],["A set piece of your best gate","En iyi kapının bir takım parçası"],["A Soul for your next run","Sonraki akının için bir Ruh"],
+ ["For # spare hearts of lower gates","Alt kapıların # yedek kalbine karşılık"],["For # trophies of gate C or deeper","C ya da daha derin kapının # ganimetine karşılık"],["For # Tower trophies","# Kule ganimetine karşılık"],["For # secret-master heart","# gizli efendi kalbine karşılık"],["For # gold and # dust","# altın ve # toza karşılık"],
+ ["Run prep","Akın hazırlığı"],["Armed brews go with your next gate run, one of each kind, while your stash lasts. A banner goes with each raid you order tonight","Kuşanılmış demlemeler zulan yettikçe her türden biri olmak üzere sonraki kapı akınınla gider. Bu gece emrettiğin her akınla bir sancak gider"],
+ ["A Soul from the black market waits for your next run","Kara pazardan bir Ruh sonraki akınını bekliyor"],
+ ["Recipes take trophy parts of a role (the part words: Fang, Hide, Relic...) from a gate or deeper, plus a little gold. Tower trophies count as the deepest gate. Oils, incense and charms wait in your stash for the Gates tab, banners for tonight's raids; draughts go on your belt","Tarifler bir kapıdan ya da daha derinden bir role ait ganimet parçaları (parça sözcükleri: Fang, Hide, Relic...) ve biraz altın ister. Kule ganimetleri en derin kapı sayılır. Yağlar, tütsüler ve tılsımlar Kapılar sekmesi için zulanda, sancaklar bu geceki akınlar için bekler; iksirler kemerine gider"],
+ ["The town posts three orders each week. They lapse when the week ends","Kasaba her hafta üç sipariş asar. Hafta bitince düşerler"],["Commissions · this week","Siparişler · bu hafta"],["Filled","Karşılandı"],["Fill","Karşıla"],
+ ["A stall that opens every seventh day and trades without gold (but for one trade). Each trade once a week","Her yedinci gün açılan ve (bir takas dışında) altınsız takas yapan bir tezgâh. Her takas haftada bir kez"],
+ ["Traded","Takas edildi"],["Trade","Takas et"],["Traded this week","Bu hafta takas edildi"],["Weapon oils:","Silah yağları:"],["Incense:","Tütsü:"],["Bone charms:","Kemik tılsımları:"],["War banners:","Savaş sancakları:"],
+ ["Brew","Demle"],["It is on your belt","Kemerinde"],["It waits in your stash","Zulanda bekliyor"],
+].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+TR_RX.push([/^Needs (\d+) spare boss hearts$/,"$1 yedek boss kalbi gerekir"],[/^Needs (.+?) parts from a gate of rank ([A-Z]+) or deeper$/,"$2 rütbesi ya da daha derin bir kapıdan {t1} parçası gerekir"],[/^Needs (.+?) parts$/,"{t1} parçası gerekir"],
+ [/^(\d+) (striker|reaper|mender|vanguard)( \+ (\d+) (striker|reaper|mender|vanguard))?$/,"$1 {t2}{t3}"],[/^ \+ (\d+) (striker|reaper|mender|vanguard)$/," + $1 {t2}"],
+ [/^(.+?) Needs (.+)$/,"{t1} {t2}"],[/^(\d+) (striker|reaper|mender|vanguard) parts from the (.+)$/,"$3 kapısından $1 {t2} parçası"],
+ [/^A heartforged (weapon|armor|relic) piece$/,"Kalpte dövülmüş bir {t1} parçası"],[/^A (striker|reaper|mender|vanguard) minion at (Greater|Elder|Ancient|Eternal) or beyond$/,"{t2} ya da ötesinde bir {t1} hizmetkâr"],
+ [/^The stall is shut\. It opens on day (\d+)\.?$/,"Tezgâh kapalı. $1. gün açılır"],[/^Pays (.+)$/,"Öder: $1"],
+ [/^You brew (.+?)\. (.+)$/,"{t1} demlendi. {t2}"],[/^Commission filled: \+(\d+) gold and \+(\d+) bone dust\.?$/,"Sipariş karşılandı: +$1 altın ve +$2 kemik tozu"],
+ [/^The black market deals: you get (.+?)\.?$/,"Kara pazar anlaşıyor: $1 alıyorsun"],[/^The charm burns down\. The next siege comes (\d+) days later\.?$/,"Tılsım yanıp bitiyor. Sonraki kuşatma $1 gün sonra gelir"],
+ [/^Burn a Quiet Grave$/,"Bir Sessiz Mezar yak"],[/^Your parts: (.+)$/,"Parçaların: $1"],
+ [/^You drink an Iron Draught: your side takes 25% less damage for (\d+) turns\.?$/,"Bir Demir İksiri içiyorsun: tarafın $1 tur %25 daha az hasar alıyor"],[/^You drink Bloodwine: your side mends (\d+) HP\.?$/,"Kan Şarabı içiyorsun: tarafın $1 can onarıyor"],
+ [/^Second Draft: the page rewrites itself\. You rise at (\d+) HP\.?$/,"İkinci Taslak: sayfa kendini yeniden yazıyor. $1 canla kalkıyorsun"],[/^Extra Order: the charm crumbles\.?$/,"Ek Emir: tılsım ufalanıyor"],
+ [/^Abbot's Incense: you enter the boss room with a Soul\.?$/,"Başrahip Tütsüsü: boss odasına bir Ruhla giriyorsun"],[/^The Soul from the black market goes with you\.?$/,"Kara pazardan gelen Ruh seninle geliyor"],
+ [/^Your army's blades are oiled: (.+?)\.?$/,"Ordunun kılıçları yağlandı: {t1}"],[/^(.+?) burns at the gate\.?$/,"{t1} kapıda yanıyor"],[/^You carry a bone charm: (.+?)\.?$/,"Bir kemik tılsımı taşıyorsun: {t1}"]);
+[["striker","vurucu"],["reaper","biçici"],["mender","şifacı"],["vanguard","öncü"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -10918,7 +11133,7 @@ function bountyHTML(){
      return '<div class="b-row'+(b.claimed?' claimed':done?' done':'')+'"><span>'+BOUNTIES[b.id].t(b.n)+'</span><span class="num">'+got+'/'+b.n+'</span>'
       +'<span class="u-sub">'+(b.claimed?'Claimed.':'Pays '+rw(b.rw))+'</span>'
       +(done&&!b.claimed&&town?'<button class="btn small primary" data-a="claimb" data-k="'+i+'"'+(b.rw.gear&&S.inv.length>=bagMax()?' disabled title="Your bag is full"':'')+'>Claim</button>':'')+'</div>'; }).join('')
-   +brief('bty','Up to '+BOUNTY_N+' contracts; a new one goes up each dawn while there is room. They never expire. Claim finished ones in town.','q-note')+'</section>';
+   +brief('bty','Up to '+BOUNTY_N+' contracts; a new one goes up each dawn while there is room. They never expire. Claim finished ones in town.','q-note')+commHTML()+'</section>';
 }
 const NOTE_N=2;
 function notesHTML(){
@@ -11061,7 +11276,7 @@ function towerHTML(){
 }
 const COIN='<svg class="coin" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="currentColor"/><circle cx="8" cy="8" r="4.3" fill="none" stroke="#5a4420" stroke-width="1.1"/><path d="M8 5.2v5.6M6.4 6.6h3.2" stroke="#5a4420" stroke-width="1.1"/></svg>';
 const gold=n=>'<span class="gold-n">'+COIN+n.toLocaleString()+'</span>';
-const MK_SECS=[['buy','Buy'],['forge','Forge'],['altar','Altar and bag'],['sell','Sell']];
+const MK_SECS=[['buy','Buy'],['forge','Forge'],['brew','Brewing'],['altar','Altar and bag'],['sell','Sell'],['bm','Black market']];
 function marketHTML(){
   const P=S.player, stock=shopStock(), tk=Object.keys(S.trophies).sort((a,b)=>TROPHY[b].value-TROPHY[a].value||TROPHY[a].name.localeCompare(TROPHY[b].name));
   const tTotal=tk.reduce((a,k)=>a+S.trophies[k]*TROPHY[k].value,0), bagFull=S.inv.length>=bagMax();
@@ -11072,8 +11287,8 @@ function marketHTML(){
   h+='<div class="chips sub-nav" role="tablist">'+MK_SECS.map(x=>'<button class="btn small'+(x[0]===sec?' primary':'')+'" role="tab" data-a="mk" data-k="'+x[0]+'" aria-selected="'+(x[0]===sec)+'">'+x[1]+'</button>').join('')+'</div>';
   if(sec==='buy'){
   // supplies
-  h+='<p class="group-h">Supplies &middot; carry up to '+BELT_MAX+' of each</p><div class="items">'+Object.keys(POTIONS).map(k=>{ const p=POTIONS[k], c=p.price(), full=S.belt[k]>=BELT_MAX;
-    return '<div class="tt-row"><div><h4>'+p.name+' <span class="u-tag">'+S.belt[k]+'/'+BELT_MAX+'</span></h4><div class="u-sub">'+p.desc+' Key '+p.key+' in battle.</div></div>'
+  h+='<p class="group-h">Supplies &middot; carry up to '+beltMax()+' of each</p><div class="items">'+Object.keys(POTIONS).map(k=>{ const p=POTIONS[k], c=p.price(), full=S.belt[k]>=beltMax();
+    return '<div class="tt-row"><div><h4>'+p.name+' <span class="u-tag">'+S.belt[k]+'/'+beltMax()+'</span></h4><div class="u-sub">'+p.desc+' Key '+p.key+' in battle.</div></div>'
      +'<button class="btn small primary" data-a="buypot" data-k="'+k+'"'+(full||S.gold<c?' disabled':'')+'>'+(full?'Belt full':'Buy &middot; '+gold(c))+'</button></div>'; }).join('')+'</div>';
   // merchant stock
   h+='<p class="group-h">Merchant\'s wares &middot; day '+S.day+'</p>'+(bagFull?'<p class="q-note bad">Your bag is full. Sell or discard something first.</p>':'')
@@ -11095,8 +11310,10 @@ function marketHTML(){
   { const n=towerTrophies(), ok=n>=TW_FORGE_N&&S.gold>=TW_FORGE_GOLD&&!bagFull; if(n) h+='<div class="items"><div class="tt-row"><div><h4>Hell Tower forge <span class="u-tag">'+Math.min(n,99)+'/'+TW_FORGE_N+' Tower trophies</span></h4><div class="u-sub">Throne of Ash gear, '+Math.round(TW_EXTRA*100)+'% with an extra line &middot; costs '+gold(TW_FORGE_GOLD)+'</div></div><div class="btns" style="margin:0">'+GEAR_SLOTS.map(sl=>'<button class="btn small'+(ok?' primary':'')+'" data-a="twforge" data-k="'+sl+'"'+(ok?'':' disabled')+'>'+SLOTS[sl]+'</button>').join('')+'</div></div></div>'; }
   h+=heartforgeHTML(bagFull);
   { const n=Object.values(S.trophies).reduce((a,b)=>a+b,0);
-    h+='<div class="btns">'+Object.keys(POTIONS).map(k=>'<button class="btn small" data-a="brew" data-k="'+k+'"'+(n<BREW_N||S.belt[k]>=BELT_MAX?' disabled':'')+'>Brew '+POTIONS[k].name+' &middot; '+BREW_N+' trophies</button>').join('')+'</div>'; }
+    h+='<div class="btns">'+Object.keys(POTIONS).map(k=>'<button class="btn small" data-a="brew" data-k="'+k+'"'+(n<BREW_N||S.belt[k]>=beltMax()?' disabled':'')+'>Brew '+POTIONS[k].name+' &middot; '+BREW_N+' trophies</button>').join('')+'</div>'; }
   }
+  if(sec==='brew') h+=brewHTML();
+  if(sec==='bm') h+=bmHTML(bagFull);
   if(sec==='altar'){
   // bone altar
   h+='<p class="group-h">Bone Altar</p>'+brief('altar','Pour gold on the altar to raise a minion one level at once. Minions still stop at your level + 2.','q-note');
@@ -11358,10 +11575,41 @@ function histHTML(){
      +n(x.xp)+'</td><td class="num">'+n(x.gold)+'</td><td class="num">'+x.items+'</td><td class="num">'+x.raised+'</td></tr>').join('')
    +'</tbody></table></div></section>';
 }
+
+// ----- brewing, run prep, commissions and the black market (game-brew.js)
+const partsTxt=B=>B.hearts?B.hearts+' spare boss hearts':Object.keys(B.parts).map(r=>B.parts[r]+' '+r).join(' + ')+' parts'+(B.g?' from a gate of rank '+RANKS[B.g]+' or deeper':'');
+function brewHTML(){
+  let h='<p class="group-h">Brewing</p>'+brief('brew2','Recipes take trophy parts of a role (the part words: Fang, Hide, Relic...) from a gate or deeper, plus a little gold. Tower trophies count as the deepest gate. Oils, incense and charms wait in your stash for the Gates tab, banners for tonight\'s raids; draughts go on your belt.','q-note');
+  h+='<p class="q-note">Your parts: '+['striker','reaper','mender','vanguard'].map(r=>partCount(r,0)+' '+r).join(' &middot; ')+' &middot; spare hearts '+spareHearts().reduce((a,[,n])=>a+n,0)+'</p>';
+  for(const kind of BREW_KINDS){ h+='<p class="group-h">'+BREW_KIND_NAME[kind]+'</p><div class="items">'+BREW_IDS.filter(id=>BREWS[id].kind===kind).map(id=>{ const B=BREWS[id], n=B.belt?(S.belt[B.belt]||0):stashN(id), cap=B.belt?beltMax():BREW_STASH;
+    return '<div class="tt-row"><div><h4>'+B.name+' <span class="u-tag">'+n+'/'+cap+'</span></h4><div class="u-sub">'+B.desc+' Needs '+partsTxt(B)+'.</div></div><button class="btn small primary" data-a="brewx" data-k="'+id+'"'+(brewCan(id)?'':' disabled')+'>Brew &middot; '+gold(brewGold(id))+'</button></div>'; }).join('')+'</div>'; }
+  return h;
+}
+function prepHTML(){   // the Gates tab: arm one oil, incense and charm for the next gate run, and a banner for tonight's raids
+  if(S.mode!=='town') return ''; const have=id=>stashN(id)>0, p=S.prep||{};
+  const rows=PREP_KINDS.map(kind=>{ const ids=BREW_IDS.filter(id=>BREWS[id].kind===kind&&!BREWS[id].use&&(have(id)||p[kind]===id)); if(!ids.length) return '';
+    return '<div class="chips"><span class="u-sub">'+BREW_KIND_NAME[kind]+':</span>'+ids.map(id=>'<button class="btn small'+(p[kind]===id?' primary':'')+'" data-a="prep" data-k="'+kind+'|'+id+'" aria-pressed="'+(p[kind]===id)+'">'+BREWS[id].name+' &times;'+stashN(id)+'</button>').join('')+'</div>'; }).join('');
+  const burn=stashN('ch_quiet')?'<div class="chips"><button class="btn small" data-a="burn" data-k="ch_quiet"'+(siegeOpen()&&sg().next?'':' disabled')+'>Burn a Quiet Grave &times;'+stashN('ch_quiet')+'</button></div>':'';
+  if(!rows&&!burn&&!p.soul) return '';
+  return '<div class="prep"><p class="group-h">Run prep</p>'+brief('prep','Armed brews go with your next gate run, one of each kind, while your stash lasts. A banner goes with each raid you order tonight.','q-note')+rows+burn+(p.soul?'<p class="q-note">A Soul from the black market waits for your next run.</p>':'')+'</div>';
+}
+function commHTML(){
+  if(!townOpen()) return ''; const list=commissions(), town=S.mode==='town';
+  return '<p class="group-h">Commissions &middot; this week</p>'+list.map((c,i)=>{ const p=commPay(c);
+    return '<div class="b-row'+(c.done?' claimed':commCan(i)?' done':'')+'"><span>'+commTxt(c)+'</span><span class="u-sub">'+(c.done?'Filled.':'Pays '+gold(p.g)+' + '+dust(p.d))+'</span>'+(!c.done&&town&&commCan(i)?'<button class="btn small primary" data-a="comm" data-k="'+i+'">Fill</button>':'')+'</div>'; }).join('')
+   +brief('comm','The town posts three orders each week. They lapse when the week ends.','q-note');
+}
+function bmHTML(bagFull){
+  let h='<p class="group-h">Black market</p>'+brief('bm','A stall that opens every seventh day and trades without gold (but for one trade). Each trade once a week.','q-note');
+  if(!bmOpen()) return h+'<p class="q-note">The stall is shut. It opens on day '+Math.max(BM_DAY,Math.ceil((S.day+1)/BM_DAY)*BM_DAY)+'.</p>';
+  return h+'<div class="items">'+Object.keys(BM_TRADES).map(k=>{ const T=BM_TRADES[k], used=bmUsed(k), ok=!used&&T.can();
+    const btn=k==='piece'?GEAR_SLOTS.map(sl=>'<button class="btn small'+(ok?' primary':'')+'" data-a="bmt" data-k="piece|'+sl+'"'+(ok?'':' disabled')+'>'+SLOTS[sl]+'</button>').join(''):'<button class="btn small primary" data-a="bmt" data-k="'+k+'"'+(ok?'':' disabled')+'>'+(used?'Traded':'Trade')+'</button>';
+    return '<div class="tt-row"><div><h4>'+T.name+'</h4><div class="u-sub">For '+T.take+'.'+(used?' Traded this week.':'')+'</div></div><div class="btns" style="margin:0">'+btn+'</div></div>'; }).join('')+'</div>';
+}
 // ----- the Codex: every rule and list in the game, read straight from the game's own tables so it never goes stale.
 // Enemies you have not met yet stay hidden, as in the bestiary.
 const CODEX=[['basics','Basics'],['raising','Raising'],['faith','Faith'],['omens','Omens'],['roles','Roles'],['traits','Traits'],['minions','Minion stats'],['army','Army'],['reserve','Reserve'],['fusion','Fusion'],['affixes','Elite affixes'],['bosses','Bosses'],['status','Status effects'],['types','Damage types'],['kits','Foe kits'],['skills','Skills'],['orders','Orders'],
-  ['gates','Gates'],['tower','Hell Tower'],['gear','Gear'],['forge','Heartforge'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['records','Records'],['endings','Endings']];
+  ['gates','Gates'],['tower','Hell Tower'],['gear','Gear'],['forge','Heartforge'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['trade','Commissions and black market'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['records','Records'],['endings','Endings']];
 const CDX_ROLE={
   vanguard:'When a foe picks a target, each vanguard counts 5 and everyone else (you included) counts 2, so vanguards draw most blows. They take Taunt orders and stand in front of a Sundering Blow.',
   striker:'This goes for your strikers and the enemy\'s. An enemy striker\'s crit also makes its target bleed. Focus makes your strikers crit every hit for a turn.',
@@ -11515,8 +11763,13 @@ function codexSection(k){
   if(k==='sets') return cxP('Each gate\'s gear is a set, and its unique counts toward it. Ordinary Tower gear belongs to no set.')+cxList(SET_NAMES.map((n,i)=>cxRow(n,'<b>2 pieces:</b> '+buffTxt(SET_BONUS[i][2])+'<br><b>3 pieces:</b> '+buffTxt(SET_BONUS[i][3]),DUNGEONS[i].name)))
     +'<p class="group-h">Unique sets</p>'+cxP('The uniques form six sets of three: a weapon, an armor and a relic. Their bonuses are bigger than a gate set\'s, and a gate unique counts toward both its gate set and its unique set.')
     +cxList(USET.map((U,i)=>{ return cxRow(U.name,'<b>Pieces:</b> '+U.ids.map(id=>ITEM[id].name).join(', ')+'<br><b>From:</b> '+U.from+'<br><b>2 pieces:</b> '+buffTxt(U.b[2])+'<br><b>3 pieces:</b> '+buffTxt(U.b[3]),'Worn '+usetCount(i)+'/3'); }));
-  if(k==='supplies') return cxList(Object.keys(POTIONS).map(p=>cxRow(POTIONS[p].name,POTIONS[p].desc+' Key '+POTIONS[p].key+'. Carry up to '+BELT_MAX+'.'))
-    .concat([cxRow('Grave Salts','+'+SALT_BONUS+'% chance on one raise. Carry up to '+SALT_MAX+'.'),cxRow('Brewing','Any '+BREW_N+' trophies brew a potion at the market.'),cxRow('Bone Altar','Pour gold on it to raise a minion one level, never past your level + 2.'),cxRow('Larger bag','+'+BAG_STEP+' slots per upgrade, '+BAG_COST.length+' upgrades. The bag starts at '+BAG_MAX+'.')]));
+  if(k==='supplies') return cxList(DRINK_IDS.map(p=>cxRow(drinkDef(p).name,drinkDef(p).desc+' Key '+drinkDef(p).key+'.'+(POTIONS[p]?'':' Brewed only.'))).concat([cxRow('Belt','Carry up to '+BELT_MAX+' of each drinkable, one more at Forge level 2 and at level 3 (at most '+BELT_CAP+').')]))
+    +'<p class="group-h">Brewing</p>'+cxP('Recipes at the market take trophy parts of a role (striker, reaper, mender, vanguard: the part word in a trophy\'s name) from a gate of a given rank or deeper, and a little gold; bone charms take spare boss hearts instead (never those a unique you hold still needs). Tower trophies count as the deepest gate. Up to '+BREW_STASH+' of each brew wait in your stash. On the Gates tab you arm one oil, one incense and one charm; each gate run takes one of each from the stash. A banner armed goes with each raid you order that day.')
+    +cxList(BREW_IDS.map(id=>cxRow(BREWS[id].name,BREWS[id].desc+' Needs '+partsTxt(BREWS[id])+'.')))
+    +cxList([cxRow('Grave Salts','+'+SALT_BONUS+'% chance on one raise. Carry up to '+SALT_MAX+'.'),cxRow('Brewing','Any '+BREW_N+' trophies brew a potion at the market.'),cxRow('Bone Altar','Pour gold on it to raise a minion one level, never past your level + 2.'),cxRow('Larger bag','+'+BAG_STEP+' slots per upgrade, '+BAG_COST.length+' upgrades. The bag starts at '+BAG_MAX+'.')]);
+  if(k==='trade') return '<p class="group-h">Commissions</p>'+cxP('Once the town opens, the bounty board also carries '+COMM_N+' commissions each week: trophy parts from a gate, a heartforged piece, or a grown minion of a role. Filling one pays gold and bone dust; trophy orders pay '+COMM_TRO_K+' times the trophies\' price and more. They lapse when the week ends, filled or not.')
+    +'<p class="group-h">Black market</p>'+cxP('A stall in the market that opens every seventh day from day '+BM_DAY+'. It trades without gold, but for one trade, and each trade once a week.')
+    +cxList(Object.keys(BM_TRADES).map(k=>cxRow(BM_TRADES[k].name,'For '+BM_TRADES[k].take+'.')));
   if(k==='rooms') return '<p class="group-h">Doors</p>'+cxP('After each gate room you choose the next from two or three doors. The first is always an ordinary fight; the room before the boss leads only to the boss.')
     +cxList(Object.keys(DOORS).map(d=>cxRow(DOORS[d].name,DOORS[d].desc)))
     +'<p class="group-h">Between rooms</p>'+cxP('After '+pct(EVENT_CHANCE)+' of gate and Rift rooms (never the last, never in the Tower, a siege or a Trial) you find something. Walking past is always safe.')
@@ -11948,7 +12201,7 @@ function townHTML(){
   h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'+gateArmyHTML()
    +((n=>n<FIRST_STEPS.length&&!(S.tips&&S.tips.off)?'<p class="q-note guide-link"><button class="linkbtn" data-a="tab" data-k="help">How to play &middot; first steps '+n+'/'+FIRST_STEPS.length+'</button></p>':'')(stepsDone()))   /* for a new player; gone once every step is done or tips are switched off */
    +(omen()?'<div class="omen-line" title="It touches every gate and the Tower until dawn."><b>Omen today: '+OMENS[omen()].name+'.</b> '+OMENS[omen()].desc+'</div>':'')+rivalWarnHTML()
-   +'<div class="gates">'+DUNGEONS.map((d,i)=>gateHTML(i)).join('')+'</div>'
+   +prepHTML()+'<div class="gates">'+DUNGEONS.map((d,i)=>gateHTML(i)).join('')+'</div>'
    +'<div class="btns"><button class="btn small" data-a="rest">Rest until dawn</button></div></section>';
   return h;
 }
@@ -12101,7 +12354,7 @@ function battleHTML(){
       return '<button class="btn'+(an?' answer':'')+'" data-a="act" data-k="sk:'+s.id+'" title="'+why+'"'+(canUse(s.id)?'':' disabled')+'>'+(an?ANS_M:'')+s.name+' '+manaCost(skCost(s))+(cd>0?' &middot; '+cd+'t':'')+(an?ANS_S:'')+(i<6?'<kbd>'+(i+4)+'</kbd>':'')+'</button>'; }).join('')+'</div>':'')
    )
    +grpHTML('Orders',cmdHTML())
-   +grpHTML('Potions',((S.belt.hp||S.belt.mp)?'<div class="btns">'+Object.keys(POTIONS).filter(k=>S.belt[k]&&!pactOn('dry')).map(k=>{ const p=POTIONS[k], full=k==='hp'?P.hp>=pMax()&&!P.dots:P.mana>=pMana();
+   +grpHTML('Potions',(DRINK_IDS.some(k=>S.belt[k])?'<div class="btns">'+DRINK_IDS.filter(k=>S.belt[k]&&!pactOn('dry')).map(k=>{ const p=drinkDef(k), full=k==='hp'?P.hp>=pMax()&&!P.dots:k==='mp'?P.mana>=pMana():k==='blood'?allies().filter(u=>u.hp>0).every(u=>u.hp>=(u.id==='p'?pMax():u.maxHp)):false;
       return '<button class="btn potion" data-a="act" data-k="pot:'+k+'"'+(full?' disabled title="Already full"':' title="'+p.desc+'"')+'>'+p.name+' &times;'+S.belt[k]+'<kbd>'+p.key+'</kbd></button>'; }).join('')+'</div>':'')
    )
    +'</div>'+logHTML(st)+'</div></div></section>';
@@ -12391,7 +12644,7 @@ function eventHTML(){
   const r=S.run, ev=r.event; if(!ev||ev.done) return '';
   const E=EVENTS[ev.id], P=S.player;
   const label=(k,t)=>ev.id==='pedlar'&&k==='buy'?'Buy '+withArticle(POTIONS[ev.pot].name)+' &middot; '+gold(ev.price):t;
-  const off=k=>(ev.id==='pedlar'&&k==='buy'&&(S.gold<ev.price||S.belt[ev.pot]>=BELT_MAX))||!!(E.off&&E.off(k));
+  const off=k=>(ev.id==='pedlar'&&k==='buy'&&(S.gold<ev.price||S.belt[ev.pot]>=beltMax()))||!!(E.off&&E.off(k));
   return '<div class="event-box"><h4>'+E.name+'</h4><p>'+E.text+'</p>'+(ev.id==='shrine'&&P.hp<=1?'<p class="q-note">You have no blood to spare.</p>':'')
    +'<div class="btns" style="margin:0">'+E.opts.map((o,i)=>'<button class="btn small'+(i===0?' primary':'')+'" data-a="event" data-k="'+o[0]+'"'+(off(o[0])||(ev.id==='shrine'&&o[0]==='bleed'&&P.hp<=1)?' disabled':'')+'>'+label(o[0],o[1])+'</button>').join('')+'</div></div>';
 }
@@ -12437,7 +12690,7 @@ function keysHTML(){   // every shortcut in one list; ? opens it, Esc closes it
    +'<h3>Between rooms</h3>'+row('1-4','Pick a door')+row('Space','Raise the best')
    +'<h3>In battle</h3>'+row('1','Strike')+row('2','Soul Siphon')+row('3','Bone Ward')+row('4-9','Your skills')+row('R','Ultimate')+row('[ ]','Change target')
    +Object.keys(CMDS).filter(k=>ORDER_KEY[k]).map(k=>row(ORDER_KEY[k],CMDS[k].name)).join('')+row('G','Guard (uses your turn)')
-   +Object.keys(POTIONS).map(k=>row(POTIONS[k].key,POTIONS[k].name)).join('')
+   +DRINK_IDS.map(k=>row(drinkDef(k).key,drinkDef(k).name)).join('')
    +'<h3>After a fall</h3>'+row('R','Retry the room')+row('?','Show or hide this list')+'</div></div>';
 }
 // ----- sieges: the War table note, the Town tab's banner and repair row, the intro screen
@@ -12529,6 +12782,11 @@ const ACTIONS={
   hforge:()=>{ const boss=ui.hfB&&hfHearts().includes(hfKey(ui.hfB))?ui.hfB:(hfHearts()[0]||'').slice(2), slot=SLOTS[ui.hfS]?ui.hfS:'weapon'; if(hfGuard(boss)&&ui.confirm!=='hf'){ ui.confirm='hf'; return; } const it=heartforge(boss,slot,(ui.hfL||[]),true); ui.confirm=null; ui.msg=it?{mk:1,m:'The heart burns down to '+ITEM[it.id].name+', heartforged. It is in your bag.',c:'ok'}:null; if(it) ui.hfL=[]; },
   twforge:k=>{ const res=forgeTower(k); ui.msg=res?{mk:1,m:(res.extra?'An extra line! ':'')+'The Tower trophies forge '+ITEM[res.it.id].name+'. It is in your bag.',c:'ok'}:null; },
   hfsw:k=>{ ui.hfsw=ui.hfsw===+k?null:+k; }, hfswap:k=>{ const a=k.split('|'); hfSwap(+a[0],+a[1],a[2]); ui.hfsw=null; },
+  brewx:k=>{ const B=BREWS[k]; ui.msg=brewIt(k)?{mk:1,m:'You brew '+B.name+'.'+(B.belt?' It is on your belt.':' It waits in your stash.'),c:'ok'}:null; },
+  prep:k=>{ const a=k.split('|'); prepSet(a[0],a[1]||null); },
+  burn:k=>{ ui.msg=useCharm(k)?{mk:1,m:'The charm burns down. The next siege comes '+QUIET_DAYS+' days later.',c:'ok'}:null; },
+  comm:k=>{ const p=commFill(+k); ui.msg=p?{mk:1,m:'Commission filled: +'+p.g+' gold and +'+p.d+' bone dust.',c:'ok'}:null; },
+  bmt:k=>{ const a=k.split('|'), got=bmTrade(a[0],a[1]); ui.msg=got?{mk:1,m:'The black market deals: you get '+got+'.',c:'ok'}:null; },
   brew:k=>{ ui.msg=brew(k)?{mk:1,m:'You brew a '+POTIONS[k].name+' from four trophies.',c:'ok'}:null; },
   raisesalt:k=>tryRaise(k,true), raisebest:()=>{ raiseBest(); }, raiseres:k=>tryRaise(k,false,true), raiseressalt:k=>tryRaise(k,true,true),
   mark:k=>{ const a=k.split('|'); chooseMark(+a[0],a[1]); },
@@ -12677,7 +12935,7 @@ document.addEventListener('keydown',e=>{
   const ord=ORDER_KEYS[e.key.toLowerCase()]; if(ord){ e.preventDefault(); if(command(ord)) settled(); return; }
   let k={'1':'strike','2':'siphon','3':'ward'}[e.key]; if(!k&&e.key.toLowerCase()==='r'&&canUlt()) k='ult';
   if(!k&&/^[4-9]$/.test(e.key)){ const s=activeSkills()[+e.key-4]; if(s) k='sk:'+s.id; }
-  if(!k){ const pk=Object.keys(POTIONS).find(x=>POTIONS[x].key.toLowerCase()===e.key.toLowerCase()); if(pk) k='pot:'+pk; }
+  if(!k){ const pk=DRINK_IDS.find(x=>drinkDef(x).key.toLowerCase()===e.key.toLowerCase()); if(pk) k='pot:'+pk; }
   if(k){ e.preventDefault(); act(k); settled(); }
 });
 

@@ -170,7 +170,7 @@ const SWEEP_LV=12, SWEEP_CLEARS=5, SWEEP_XP=.8;
 const sweepOk=di=>!!S&&S.mode==='town'&&S.watches>0&&!!(S.ti&&S.ti.clr&&S.ti.clr[di])&&T_('clrN'+di)>=SWEEP_CLEARS&&!heatOf(di)&&!gateMod(di)&&S.player.lvl>=gateRec(di)+SWEEP_LV&&!rivalHere(di);
 function sweep(di){
   if(!sweepOk(di)) return false;
-  startRun(di); const r=S.run; r.sweep=1; r.hurt=true; r.swSp=[]; tally('sweeps');
+  PREP_SKIP=true; try{ startRun(di); } finally{ PREP_SKIP=false; }   /* a sweep takes no brews (game-brew.js) */ const r=S.run; r.sweep=1; r.hurt=true; r.swSp=[]; tally('sweeps');
   for(let guard=0;guard<20;guard++){
     if(r.enemies.some(e=>e.secret||e.rival)){ r.sweepStop=1; delete r.sweep; notify('The sweep stops at the boss room: '+r.enemies.find(e=>e.secret||e.rival).name+' waits there. Fight it.','bad'); return true; }
     if(S.mode==='battle'){ for(let n=0;n<10&&liveFoes().length;n++){ for(const e of liveFoes()){ e.lt=null; e.hp=0; } checkDeaths(); }

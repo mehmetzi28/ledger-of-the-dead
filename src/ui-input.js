@@ -58,6 +58,11 @@ const ACTIONS={
   hforge:()=>{ const boss=ui.hfB&&hfHearts().includes(hfKey(ui.hfB))?ui.hfB:(hfHearts()[0]||'').slice(2), slot=SLOTS[ui.hfS]?ui.hfS:'weapon'; if(hfGuard(boss)&&ui.confirm!=='hf'){ ui.confirm='hf'; return; } const it=heartforge(boss,slot,(ui.hfL||[]),true); ui.confirm=null; ui.msg=it?{mk:1,m:'The heart burns down to '+ITEM[it.id].name+', heartforged. It is in your bag.',c:'ok'}:null; if(it) ui.hfL=[]; },
   twforge:k=>{ const res=forgeTower(k); ui.msg=res?{mk:1,m:(res.extra?'An extra line! ':'')+'The Tower trophies forge '+ITEM[res.it.id].name+'. It is in your bag.',c:'ok'}:null; },
   hfsw:k=>{ ui.hfsw=ui.hfsw===+k?null:+k; }, hfswap:k=>{ const a=k.split('|'); hfSwap(+a[0],+a[1],a[2]); ui.hfsw=null; },
+  brewx:k=>{ const B=BREWS[k]; ui.msg=brewIt(k)?{mk:1,m:'You brew '+B.name+'.'+(B.belt?' It is on your belt.':' It waits in your stash.'),c:'ok'}:null; },
+  prep:k=>{ const a=k.split('|'); prepSet(a[0],a[1]||null); },
+  burn:k=>{ ui.msg=useCharm(k)?{mk:1,m:'The charm burns down. The next siege comes '+QUIET_DAYS+' days later.',c:'ok'}:null; },
+  comm:k=>{ const p=commFill(+k); ui.msg=p?{mk:1,m:'Commission filled: +'+p.g+' gold and +'+p.d+' bone dust.',c:'ok'}:null; },
+  bmt:k=>{ const a=k.split('|'), got=bmTrade(a[0],a[1]); ui.msg=got?{mk:1,m:'The black market deals: you get '+got+'.',c:'ok'}:null; },
   brew:k=>{ ui.msg=brew(k)?{mk:1,m:'You brew a '+POTIONS[k].name+' from four trophies.',c:'ok'}:null; },
   raisesalt:k=>tryRaise(k,true), raisebest:()=>{ raiseBest(); }, raiseres:k=>tryRaise(k,false,true), raiseressalt:k=>tryRaise(k,true,true),
   mark:k=>{ const a=k.split('|'); chooseMark(+a[0],a[1]); },
@@ -206,7 +211,7 @@ document.addEventListener('keydown',e=>{
   const ord=ORDER_KEYS[e.key.toLowerCase()]; if(ord){ e.preventDefault(); if(command(ord)) settled(); return; }
   let k={'1':'strike','2':'siphon','3':'ward'}[e.key]; if(!k&&e.key.toLowerCase()==='r'&&canUlt()) k='ult';
   if(!k&&/^[4-9]$/.test(e.key)){ const s=activeSkills()[+e.key-4]; if(s) k='sk:'+s.id; }
-  if(!k){ const pk=Object.keys(POTIONS).find(x=>POTIONS[x].key.toLowerCase()===e.key.toLowerCase()); if(pk) k='pot:'+pk; }
+  if(!k){ const pk=DRINK_IDS.find(x=>drinkDef(x).key.toLowerCase()===e.key.toLowerCase()); if(pk) k='pot:'+pk; }
   if(k){ e.preventDefault(); act(k); settled(); }
 });
 
