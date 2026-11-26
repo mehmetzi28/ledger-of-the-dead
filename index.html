@@ -1221,6 +1221,7 @@ details.brief>summary .more-l,details.brief>summary .more-h{margin-left:0}detail
 .lp-choice{border:1px solid var(--line);padding:12px;background:rgba(10,9,7,.55)}.lp-choice h4{margin:0 0 6px;color:var(--gold)}
 .lp-line{font-style:italic}.lp-text{max-width:62ch;line-height:1.6}.insc-list{display:flex;flex-direction:column;gap:6px;align-items:flex-start;margin:6px 0}
 .lp-banner{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.lp-banner .btn{margin-left:auto}
+.i-hf{font-size:12px;color:#e0a060;margin-top:2px}
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
@@ -1440,7 +1441,7 @@ function tableFor(di,role,boss,elite,sig,mob){   // mob: an elite of the difficu
   const uqp=UQ[di]*(boss?1:UQ_MOB)*(elite&&!mob?2:1), scale=(100-uqp)/100, rows=[];
   for(let t=0;t<5;t++){
     if(!tw[t]) continue;
-    const el=Object.values(ITEM).filter(d=>!d.uq&&d.tier===t);
+    const el=Object.values(ITEM).filter(d=>!d.uq&&d.tier===t&&(d.set!==ABBEY||di===ABBEY));   /* the Scribe's Regalia drops only in Vane Abbey */
     const raw=el.map(d=>(bias[d.slot]||1)*(d.set===di?3:1)*(d.id===sig?4:1)), sum=raw.reduce((a,b)=>a+b,0);
     el.forEach((d,i)=>rows.push({id:d.id,p:tw[t]*scale*raw[i]/sum/100}));
   }
@@ -1457,7 +1458,7 @@ function rollDrops(e){
   for(const c of dropChances(e.boss,e.elite)) if(Math.random()<c*more){ let id=pickRow(rows);
     if(ITEM[id].uq&&(ownsItem(id)||out.includes(id))) id=pickNorm(rows.filter(r=>!ITEM[r.id].uq));   // a unique you already carry becomes ordinary gear instead
     out.push(id); }
-  if(e.secret) for(let i=0;i<2;i++) out.push(pick(Object.values(ITEM).filter(d=>!d.uq&&d.tier===4)).id);   // a secret master always leaves two legendaries
+  if(e.secret) for(let i=0;i<2;i++) out.push(pick(Object.values(ITEM).filter(d=>!d.uq&&d.tier===4&&d.set!==ABBEY)).id);   // a secret master always leaves two legendaries
   return out;
 }
 const BAG_MAX=30, BAG_STEP=5, BAG_COST=[250,600,1500,3500];   // bag upgrades: +5 slots each, bought at the market
@@ -1587,7 +1588,7 @@ function spawnFloor(){
 const towerStarts=()=>{ const a=[1]; for(let k=1;k*10<=S.tower.best;k++) a.push(k*10+1); if(hasInsc('tower')&&!a.includes(11)) a.push(11); return a; };   /* Of the Tower (game-abbey.js) */   // a checkpoint after every tenth floor, endlessly past 100
 function towerBossLoot(f,r){
   if(f>100){   // the endless climb: every abyssal warden pays gold and a legendary
-    const g=40*f, pool=Object.values(ITEM).filter(d=>!d.uq&&d.tier===4); r.gold=(r.gold||0)+g; r.loot.push(pick(pool).id);
+    const g=40*f, pool=Object.values(ITEM).filter(d=>!d.uq&&d.tier===4&&d.set!==ABBEY); r.gold=(r.gold||0)+g; r.loot.push(pick(pool).id);
     r.events.push({m:'The abyssal warden of floor '+f+' leaves '+g+' gold and a legendary behind.',c:'ok'}); return;
   }
   for(const id of TW_IDS[f]||[]){
@@ -1610,7 +1611,7 @@ function towerTable(f,role,boss,elite){
   const bias=ROLE_BIAS[role]||{}, rows=[];
   for(let t=0;t<5;t++){
     if(!tw[t]) continue;
-    const el=Object.values(ITEM).filter(d=>!d.uq&&d.tier===t);
+    const el=Object.values(ITEM).filter(d=>!d.uq&&d.tier===t&&d.set!==ABBEY);
     const raw=el.map(d=>(bias[d.slot]||1)*(d.set===lo?3:1)), sum=raw.reduce((x,y)=>x+y,0);
     el.forEach((d,i)=>rows.push({id:d.id,p:tw[t]*raw[i]/sum/100}));
   }
@@ -1850,13 +1851,14 @@ function normalizeSave(src){
   const okItem=it=>!!(it&&ITEM[it.id]&&typeof it.u==='number');
   g.inv=g.inv.filter(okItem);
   for(const k in g.equip) if(!GEAR_SLOTS.includes(k)) delete g.equip[k]; for(const sl of GEAR_SLOTS) if(!okItem(g.equip[sl])) g.equip[sl]=null;
+  g.inv.concat(Object.values(g.equip)).forEach(hfFix);   /* heartforged marks (game-forge.js) */
   const RA=Array.isArray(g.raids)?g.raids.filter(x=>obj(x)&&RK[x.di]&&Array.isArray(x.units)):[];   // squads out raiding: repaired with the army, then split back out
   RA.forEach((x,i)=>x.units.forEach(m=>{ if(obj(m)){ m._raid=i; g.army.push(m); } }));
   for(const k of ['reserve','waiting']) (Array.isArray(g[k])?g[k]:[]).forEach(m=>{ if(obj(m)){ m._raid=k; g.army.push(m); } });   // the Reserve and minions waiting at the gate: repaired the same way, never trimmed
   g.army=g.army.filter(m=>m&&typeof m==='object'&&!m.thrall&&ROLES[m.role]&&typeof m.lvl==='number'&&(m.tw||RK[m.rankI]));
   for(const m of g.army){ m.hf=num(m.hf,1); m.af=num(m.af,1); m.xp=num(m.xp,0); m.hp=num(m.hp,1); m.nick=cleanNick(m.nick)||'Nameless'; m.name=cleanText(m.name); m.kind=cleanText(m.kind); if('fused' in m) m.fused=clamp(Math.floor(num(+m.fused,0)),0,FUSE_MAX); m.kind=m.kind||m.name; if(m.row!=='f'&&m.row!=='b') delete m.row; if(!RK[m.rankI]) m.rankI=twRank(Math.floor(num(m.tw,1)));   // tower minions store their tower rank
     m.traits=Array.isArray(m.traits)?m.traits.filter(t=>TRAITS[t]&&(t!=='commander'||canLead(m))):[]; m.stage=clamp(Math.floor(num(m.stage,0)),0,STAGE_MAX); m.lvl0=num(m.lvl0,m.lvl); if(m.cd&&!CORPSE_CONDS[m.cd]) delete m.cd; normMarks(m);   // minions from before traits keep no trait; cd: how its body died
-    if(m.armed){ m.eq=obj(m.eq)?m.eq:{}; for(const k in m.eq) if(!GEAR_SLOTS.includes(k)) delete m.eq[k]; for(const sl of GEAR_SLOTS) if(!okItem(m.eq[sl])) m.eq[sl]=null; } else if(m.eq!=null) m.eq=null; }
+    if(m.armed){ m.eq=obj(m.eq)?m.eq:{}; Object.values(m.eq).forEach(hfFix); for(const k in m.eq) if(!GEAR_SLOTS.includes(k)) delete m.eq[k]; for(const sl of GEAR_SLOTS) if(!okItem(m.eq[sl])) m.eq[sl]=null; } else if(m.eq!=null) m.eq=null; }
   let top=num(g.uid,0);   // next id must stay above every id in use, or two items/minions would share one
   g.inv.concat(Object.values(g.equip),...g.army.map(m=>m.eq?Object.values(m.eq):[])).forEach(it=>{ if(it) top=Math.max(top,it.u); });
   g.army.forEach(m=>{ top=Math.max(top,num(m.uid,0)); }); g.army.forEach(m=>{ if(typeof m.uid!=='number') m.uid=++top; });
@@ -2283,7 +2285,7 @@ function spawnRoom(){
   if(S.run.tw) return spawnFloor();
   const r=S.run, room=r.room, boss=room===r.rooms-1;
   const list=(!boss&&r.pre&&r.pre[r.roomKind])||buildRoom(room,r.roomKind); r.pre=null;   // a door's room was rolled with the doors: what it showed is what waits
-  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; delete r.lcU; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null; roomStart(list);
+  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; delete r.lcU; delete r.mirU; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null; roomStart(list);
   log(boss?(list[0].rival?list[0].name+' stands where the master should be, with their own dead around them.':list[0].secret?'The air turns wrong. This is not the master you came for.':'The air thickens. Something large waits ahead.'):(r.trial?'Trial, room ':'Room ')+(room+1)+' of '+r.rooms+(r.roomKind==='elite'?', behind the bloodied arch. These foes are stronger.':'.'));
   if(boss){ bossSpeaks(list[0],'hi'); fxe('boss',list[0]); }
   if(hasFlag('infernal')) infernalWard();
@@ -2323,7 +2325,8 @@ function hurtFoe(e,d,ty){ if(abbeyMiss(e)) return; ty=MARGIN||(DTYPE[ty]?ty:'phy
 function hurtAlly(a,d,ty){
   if(a.id==='p'&&S.run&&S.run.conf) d=Math.round(d*BK_CONFESS);   /* the Iron Inquisitor's Confession, until you ward */
   if(a.id==='p'&&BLOW){ const v=guardBlow(a,d); if(v) return hurtAlly(v,Math.round(d*SB_TAKE),ty); }   // Guard, for boss moves (plain hits swap their target before this)
-  if(a.id==='p'&&S.run) S.run.blow=BLOW?blowNote(BLOW):null;   // what hits you, for the defeat recap (before the ward soaks it)
+  if(a.id==='p'&&S.run) S.run.blow=BLOW?blowNote(BLOW):null;
+  hfScales(a,d);   /* Scales (game-forge.js) */   // what hits you, for the defeat recap (before the ward soaks it)
   d=allyDr(a,d); { const rs=allyRes(a,ty); if(rs) d=Math.max(1,Math.round(d*(1-rs))); }   /* damage types: your resistance lines, a minion's typed trait */
   if(a.id==='p'){ const sk=SAP?KIT_SAP:1, s=Math.min(S.player.shield,d*sk); S.player.shield-=s; d-=Math.round(s/sk); if(BLOW&&d>0) d=tetherBlow(d); /* the Soul Tether (game-faith-story.js) */ } else if(a.mw>0){ const sk=SAP?KIT_SAP:1, s=Math.min(a.mw,d*sk); a.mw-=s; d-=Math.round(s/sk); }   // a Warden's ward on a minion
   d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a,d,0); if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p'&&!echoCall(a)&&!stitchUp(a)){ fxe('death',a); chainSpear(); }
@@ -2509,7 +2512,7 @@ function act(kind){
   if(P.hp<hpBefore){ sfx('hurt'); if(hpBefore-P.hp>=pMax()*.2) ui.shake=true; }   // a heavy turn shakes the screen
   checkDeaths(); if(!liveFoes().length){ roomWon(); return; }
   r.turn++; if(!hasRunMod('drought')){ let g=1+G('regen')+sk('soulwell')+(hasMod('deathless','a')?DEEP_REGEN:0); if(omen()==='soulstorm'){ r.mf=(r.mf||0)+g*STORM_REGEN; const x=Math.floor(r.mf); r.mf-=x; g+=x; } P.mana=Math.min(pMana(),P.mana+g); } skillTick();   // Soul Storm: +20%, the fractions carried
-  echoTurn(); bossEndTurn();   /* Undone shieldbearers (game-kits.js), boss hazards (game-boss-kits.js) */
+  echoTurn(); bossEndTurn(); hfTurn();   /* Undone shieldbearers (game-kits.js), boss hazards (game-boss-kits.js) */
   if(hasFlag('halo')) allies().forEach(a=>{ if(a.hp>0) healAlly(a,Math.round((a.id==='p'?pMax():a.maxHp)*.04)); });
   if(r.turn===9&&liveFoes().some(e=>e.tw&&e.boss)) log('Wrath: the warden is enraged and hits harder every turn.','bad');
   planFoes();   // what every foe will do next turn, shown on its card
@@ -2624,7 +2627,7 @@ const reforgeCost=it=>Math.round(buyPrice(ITEM[it.id])*REFORGE_COST*(1-B_FORGE*b
 function reforge(u){   // re-roll a piece's bonus lines for gold; always leaves at least one line
   const it=findItem(u); if(!it||S.mode!=='town') return false; const d=ITEM[it.id]; if(d.uq) return false;
   const c=reforgeCost(it); if(S.gold<c) return false;
-  S.gold-=c; vitals(()=>{ it.ro=rollItem(it.id,true)||undefined; if(!it.ro) delete it.ro; }); tally('reforged'); sfx('level'); return true;
+  S.gold-=c; vitals(()=>{ if(it.hf){ hfReroll(it); return; } it.ro=rollItem(it.id,true)||undefined; if(!it.ro) delete it.ro; });   /* a heartforged piece keeps its lines (game-forge.js) */ tally('reforged'); sfx('level'); return true;
 }
 function vitals(fn){ const a=pMax(), b=pMana(); fn(); const P=S.player, a2=pMax(), b2=pMana(); P.hp=Math.min(a2,P.hp+Math.max(0,a2-a)); P.mana=Math.min(b2,P.mana+Math.max(0,b2-b)); syncArmy(); }
 function equip(u){
@@ -2755,7 +2758,7 @@ function canUse(id){
 function useSkill(id,t){
   if(!canUse(id)) return false;
   const s=SKILL[id], rk=sk(id), r=S.run, P=S.player;
-  const mg=marginReady(); P.mana-=skCost(s); marginSkill(r,t,mg); r.naveU=1; r.lastSk=id; r.cd=r.cd||{}; r.cd[id]=s.cd+1; tally('sk_'+id);   // +1: the end-of-turn tick runs this same turn
+  const mg=marginReady(); P.mana-=skCost(s); marginSkill(r,t,mg); hfSkill(); r.naveU=1; r.lastSk=id; r.cd=r.cd||{}; r.cd[id]=s.cd+1; tally('sk_'+id);   // +1: the end-of-turn tick runs this same turn
   if(id==='spear'){ const fb=frozenChilled(t), d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(hasMod('spear','a')?1:.5)*skMul()*(fb?FROSTBREAK:1)); hurtFoe(t,d,'phys'); log('Bone Spear impales '+t.name+' for '+d+'.'); fxe('spear',t); if(fb&&t.hp>0) frostbreak(t);
     if(hasMod('spear','b')){ const o=liveFoes().filter(x=>x!==t); if(o.length){ const o2=pick(o), d2=Math.round(d*.5); hurtFoe(o2,d2,'phys'); log('A splinter tears into '+o2.name+' for '+d2+'.'); } } }
   else if(id==='blast'){ const c=freeCorpse(); c.tried=true; c.result='exploded'; const base=pSiph()*(.6+.2*rk)*pierceMul(1)*(hasMod('blast','a')?1.3:1)*skMul()*shadowK(); let tot=0;
@@ -2825,8 +2828,9 @@ const TROPHY={};                             // key -> {name, value, ico, rankI}
 })();
 const trophyKey=e=>e.boss?'b:'+e.base:(e.tw?'t:':'')+e.base;
 function killLoot(e,r){   // called once per kill, from checkDeaths
+  hfKill(e);   /* Hungry Page (game-forge.js) */
   const cursed=runMod()?MOD_GOLD:1;
-  const coin=Math.max(1,Math.round((1+e.lvl*.5)*(1+e.rankI*.5)*(e.boss?5:1)*(e.secret?SB_REWARD:1)*(e.rival?RIVAL_GOLD:1)*(e.elite?2:1)*rnd(.7,1.3)*ngpReward()*cursed*heatK('gold')*(roomKind()==='elite'?ELITE_GOLD:1)*(1+xb('goldp')/100)*((e.boss||e.elite)&&hasMod('robber','a')?POCKETS:1)));   // Deep Pockets: elites and bosses
+  const coin=Math.max(1,Math.round((1+softLv(e.lvl)*.5)*(1+e.rankI*.5)*(e.boss?5:1)*(e.secret?SB_REWARD:1)*(e.rival?RIVAL_GOLD:1)*(e.elite?2:1)*rnd(.7,1.3)*ngpReward()*cursed*heatK('gold')*(roomKind()==='elite'?ELITE_GOLD:1)*(1+xb('goldp')/100)*((e.boss||e.elite)&&hasMod('robber','a')?POCKETS:1)));   // Deep Pockets: elites and bosses
   r.gold=(r.gold||0)+coin;
   if(omen()==='boneharvest'&&!r.trial&&(e.boss||Math.random()<HARVEST_DUST)) r.bdust=(r.bdust||0)+(e.boss?HARVEST_DUST_BOSS:1);   // Bone Harvest: bone dust from the dead
   const key=trophyKey(e); if(!TROPHY[key]||e.stash) return;
@@ -3126,7 +3130,7 @@ function riftScale(list){   // rift foes stand at the deepest gate's strength, a
 }
 function riftCleared(r){
   r.cleared=true; S.quest.clears++; tally('rifts'); S.rift=S.rift||{best:0};
-  if(r.rift>S.rift.best){ S.rift.best=r.rift; r.riftRec=true; recBest('rift',r.rift); const pool=Object.values(ITEM).filter(d=>!d.uq&&!d.tower&&d.tier===4); r.loot.push(pick(pool).id);
+  if(r.rift>S.rift.best){ S.rift.best=r.rift; r.riftRec=true; recBest('rift',r.rift); const pool=Object.values(ITEM).filter(d=>!d.uq&&!d.tower&&d.tier===4&&d.set!==ABBEY); r.loot.push(pick(pool).id);
     moment('Rift depth '+r.rift+' conquered','gold'); }
   if(!r.hurt) tally('flawless'); riftFast(r);
   return Math.round(RK[5].clear*(1+.15*r.rift));
@@ -3263,7 +3267,7 @@ function sellJunk(){ if(S.mode!=='town') return null; const list=S.inv.filter(is
 // a new dose refreshes it. They tick at the end of each turn, ignore ward and armor, and wear off when you leave a room.
 const DOTS={poison:{name:'Poisoned'},bleed:{name:'Bleeding'},burn:{name:'Burning'},blight:{name:'Blighted'}};   // blight: a rotting wound that also halves the healing its bearer receives
 DOTS.poison.tip='Venom eats HP at the end of each turn.'; DOTS.bleed.tip='An open wound bleeds at the end of each turn.'; DOTS.burn.tip='Fire burns at the end of each turn.'; DOTS.blight.tip='Rot eats HP at the end of each turn and halves the healing received.';
-function addDot(u,k,d,t){ d=Math.round(d); if(d<1||!(u.hp>0)||hasAff(u,'warded')||hasTrait(u,'warded')||(k==='burn'&&hasTrait(u,'cinderborn'))||(k==='poison'&&u.noPoison)) return;   /* noPoison: the Plague Matriarch */ u.dots=u.dots||{}; const o=u.dots[k]; u.dots[k]=o?{d:Math.max(o.d,d),t:Math.max(o.t,t)}:{d,t}; }
+function addDot(u,k,d,t){ d=Math.round(hfPoison(u,k,d)); if(d<1||!(u.hp>0)||hasAff(u,'warded')||hasTrait(u,'warded')||(k==='burn'&&hasTrait(u,'cinderborn'))||(k==='poison'&&u.noPoison)) return;   /* noPoison: the Plague Matriarch */ u.dots=u.dots||{}; const o=u.dots[k]; u.dots[k]=o?{d:Math.max(o.d,d),t:Math.max(o.t,t)}:{d,t}; }
 const clearDots=u=>{ if(u) delete u.dots; };
 const BLIGHT_HEAL=.5;   // a blighted unit receives half the healing
 const blightK=u=>(u&&u.dots&&u.dots.blight)?BLIGHT_HEAL:1;
@@ -3639,7 +3643,7 @@ function quietRoom(kind){   // a rest or treasure room: no fight, then the doors
   if(kind==='rest'){ P.hp=Math.min(pMax(),P.hp+Math.round(pMax()*REST_HEAL)); P.mana=Math.min(pMana(),P.mana+Math.round(pMana()*REST_HEAL)); S.army.forEach(x=>{ x.hp=Math.min(x.maxHp,x.hp+Math.round(x.maxHp*REST_HEAL)); });
     m='You rest among the bones. You and your army recover.'; sfx('heal'); }
   else if(kind==='script'){ m='The Scriptorium. Rows of drowned scribes, and the Ledger open at the page of your dead. You may cross out one name, or walk on.'; unlockStory('abbey4',r); sfx('skill'); }
-  else { const g=Math.round((15+P.lvl*5)*(1+r.di)*ngpReward()*(1+xb('goldp')/100)); S.gold+=g; r.goldTot=(r.goldTot||0)+g; r.lastGold=g; const it=addItem(pickRow(tableFor(r.di,'vanguard',true,false)));
+  else { const g=Math.round((15+softLv(P.lvl)*5)*(1+r.di)*ngpReward()*(1+xb('goldp')/100)); S.gold+=g; r.goldTot=(r.goldTot||0)+g; r.lastGold=g; const it=addItem(pickRow(tableFor(r.di,'vanguard',true,false)));
     if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } m='The vault gives up '+g+' gold'+(it?' and '+withArticle(ITEM[it.id].name):'')+'.'; sfx('coin'); }
   r.events.push({m,c:'ok'}); r.quiet=kind; r.doors=rollDoors(r); preRooms(r); S.mode='raise';
 }
@@ -4215,7 +4219,7 @@ const skB=k=>{ if(!S||!S.player) return 0;
 const skMod=id=>(sk(id)>=SK_MAX&&S.player.skMod&&S.player.skMod[id])||null;
 const hasMod=(id,c)=>skMod(id)===c;
 function chooseMod(id,c){ const P=S.player; if(S.mode!=='town'||!SKILL_MODS[id]||!SKILL_MODS[id][c]||sk(id)<SK_MAX||skMod(id)) return false; vitals(()=>{ P.skMod=P.skMod||{}; P.skMod[id]=c; }); return true; }
-const skCost=s=>(hasMod('deathless','a')?Math.round(s.cost*DEEP_WELL):s.cost)*(S&&S.mode==='battle'&&S.run?naveK():1)*(marginReady()?0:1);   // Deep Well; the Bishop's Echoing nave; Marginalia (game-abbey.js)   // Deep Well; the Bishop's Echoing nave
+const skCost=s=>(hasMod('deathless','a')?Math.round(s.cost*DEEP_WELL):s.cost)*(S&&S.mode==='battle'&&S.run?naveK():1)*(marginReady()||hfFree()?0:1);   // Deep Well; the Bishop's Echoing nave; Marginalia (game-abbey.js)   // Deep Well; the Bishop's Echoing nave
 const siphonCost=()=>hasMod('soulwell','b')?6:8;   // Soul Siphon: see the SOULS block for its armor piercing and Souls
 
 // ===== MINION COMMANDS =====
@@ -5103,7 +5107,7 @@ function rivalRoom(list,di,lvl){   // the boss room on a challenge day: the riva
   }
   g.done=S.day; S.run.rival=true; tally('rivalMet');
 }
-function rivalLegend(){ const rows=tableFor(topGate(),'reaper',true,false).filter(x=>ITEM[x.id].tier===4&&!ITEM[x.id].uq); return rows.length?pickNorm(rows):pick(Object.values(ITEM).filter(d=>!d.uq&&!d.tower&&d.tier===4)).id; }
+function rivalLegend(){ const rows=tableFor(topGate(),'reaper',true,false).filter(x=>ITEM[x.id].tier===4&&!ITEM[x.id].uq); return rows.length?pickNorm(rows):pick(Object.values(ITEM).filter(d=>!d.uq&&!d.tower&&d.tier===4&&d.set!==ABBEY)).id; }
 function rivalBeaten(e,r){   // the rival falls: a legendary, the gold (in killLoot), the page back, and the next challenge pushed back
   const g=rv(); g.wins++; g.enc++; g.step++; tally('rivalWins'); r.rivalWon=true;
   { const id=rivalLegend(), it=addItem(id,rollItem(id,true)); if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name); }   // in the bag at once: kept even if their followers win the room
@@ -5590,6 +5594,110 @@ function endingFix(g){   // normalizeSave
   g.cyc0=obj(g.cyc0)?Object.fromEntries(CYC_KEYS.map(k=>[k,Math.max(0,num(g.cyc0[k],0))])):undefined; if(!g.cyc0) delete g.cyc0;
 }
 const endedAs=k=>!!(S&&((S.ending&&S.ending.k===k)||(S.endHist||[]).some(e=>e.k===k)));   // titles
+// ===== HEART-FORGING AND THE LATE ECONOMY (R4 PR A) =====
+// Late gold bends instead of growing forever: past hero level GOLD_SOFT_LV the level part of kill and vault gold grows at
+// GOLD_SOFT_K of its rate (softLv). Boss, warden, secret-master and Hunger hearts forge **heartforged** pieces at the Forge
+// (the market's forge section): a piece of the boss's set in the slot you pick, with bonus lines you choose from the boss's
+// six (HF_LINES) instead of rolling them, at HF_VAL of the best roll. Secret masters and the Hunger add a third line and a
+// minor power (HF_POW, it.pw). Reforging a heartforged piece re-rolls its values, never its lines; a second heart of the same
+// boss swaps one line (hfSwap). Six Tower trophies forge Throne-set gear with a chance of an extra line (forgeTower).
+// Item fields: it.hf = the boss's name, it.ro the lines, it.pw a minor power.
+const GOLD_SOFT_LV=35, GOLD_SOFT_K=.33;
+const softLv=l=>l<=GOLD_SOFT_LV?l:GOLD_SOFT_LV+(l-GOLD_SOFT_LV)*GOLD_SOFT_K;
+const HF_VAL=1, HF_RE=[.8,1], HF_TW_K=.012;   // heartforged lines: at the top of the roll range; a reforge rolls 80-100%; a warden adds 1.2% per floor
+const HF_LINES={
+  'The Rat King':['raise','hp','atk','will','siph','frdmg'],
+  'The Crypt Warden':['ward','hp','constitution','frres','mana','raise'],
+  'The Ember Knight':['fdmg','fres','atk','crit','strength','hp'],
+  'The Bishop of Teeth':['mpow','sdmg','mana','intelligence','sres','siph'],
+  'The Orchard Mother':['rdmg','rres','hp','raise','will','mpow'],
+  'The Pale Sovereign':['atk','crit','mpow','sdmg','will','constitution'],
+  'The Hunger':['mpow','sdmg','raise','will','sres','mana'],
+  'The Gate Hound':['atk','crit','strength','fdmg','hp','siph'],
+  'Cinder Matron':['fdmg','fres','mpow','mana','intelligence','ward'],
+  'The Iron Inquisitor':['ward','constitution','hp','rres','atk','will'],
+  'Lord of Flies':['rdmg','rres','raise','siph','will','mana'],
+  'The Bone Cantor':['mpow','raise','will','sdmg','mana','hp'],
+  'Duke of Chains':['constitution','hp','ward','frres','strength','atk'],
+  'The Pale Executioner':['crit','atk','strength','sdmg','siph','hp'],
+  'Archdevil Vael':['mpow','intelligence','fdmg','mana','crit','sres'],
+  'The Hollow Seraph':['ward','mana','mpow','sres','will','hp'],
+  'Abaddon, King of Hell':['atk','mpow','crit','hp','fdmg','sdmg'],
+  'The Plague Matriarch':['rdmg','raise','will','hp','rres','siph'],
+  'The Drowned Abbot':['mana','frdmg','ward','frres','mpow','intelligence'],
+  'The Cinder Wyrm':['fdmg','fres','hp','constitution','atk','crit'],
+  'The Choir Eternal':['mpow','sdmg','mana','intelligence','sres','siph'],
+  'The Rootking':['hp','rres','constitution','raise','will','ward'],
+  'The Nameless Sovereign':['mpow','crit','atk','sdmg','will','siph']
+};
+const HF_POW={   // the minor powers of the secret masters and the Hunger (a third line on their heartforged pieces)
+  brood:  {boss:'The Plague Matriarch',  name:'Brood',      desc:'Poison your side lays on a foe deals 25% more.'},
+  tide:   {boss:'The Drowned Abbot',     name:'Tide',       desc:'Each turn of a fight you gain 2% of your max mana more, up to 10%.'},
+  scales: {boss:'The Cinder Wyrm',       name:'Scales',     desc:'A foe that strikes you takes 10% of the blow back as fire.'},
+  verse:  {boss:'The Choir Eternal',     name:'Verse',      desc:'Every third skill you cast costs no mana.'},
+  regrow: {boss:'The Rootking',          name:'Regrowth',   desc:'Your minions mend 2% of their max HP each turn.'},
+  mirror: {boss:'The Nameless Sovereign',name:'Mirror',     desc:'Your first skill in each room costs no mana.'},
+  hungry: {boss:'The Hunger',            name:'Hungry Page',desc:'Each foe that falls mends you for 3% of your max HP.'}
+};
+const powOf=boss=>Object.keys(HF_POW).find(k=>HF_POW[k].boss===boss)||null;
+const hfPow=id=>!!(S&&S.equip)&&Object.values(S.equip).some(it=>it&&it.pw===id);
+// where a heart comes from: its gate (the piece's set), its forging price and how many lines it gives
+function hfInfo(boss){
+  if(!HF_LINES[boss]) return null;
+  const gi=DUNGEONS.findIndex(D=>D.boss[0]===boss), tw=TW_BOSS.indexOf(boss), si=SECRET.findIndex(B=>B.name===boss);
+  if(gi===ABBEY) return {boss,set:ABBEY,m:TM[ABBEY],gold:40000,dust:150,n:3,pw:'hungry'};
+  if(gi>=0) return {boss,set:gi,m:TM[gi],gold:2000*(gi+1),dust:10*(gi+1),n:2};
+  if(tw>=0){ const f=(tw+1)*10; return {boss,set:5,m:TM[5]*(1+HF_TW_K*f),gold:6000+200*f/10,dust:40,n:2,floor:f}; }
+  if(si>=0) return {boss,set:5,m:TM[5],gold:20000,dust:80,n:3,pw:powOf(boss)};
+  return null;
+}
+const hfKey=boss=>'b:'+boss;
+const hfLinesFor=(boss,slot)=>(HF_LINES[boss]||[]).filter(k=>!ROLL_SLOT[k]||ROLL_SLOT[k].includes(slot));
+const hfLineVal=(I,k,q)=>Math.max(1,Math.round(ROLL_KEYS[k]*I.m*HF_VAL*(q==null?1:q)));
+const hfCost=boss=>{ const I=hfInfo(boss); return I?{g:Math.round(I.gold),d:I.dust}:null; };
+const hfHearts=()=>Object.keys(S.trophies||{}).filter(k=>k.startsWith('b:')&&S.trophies[k]>0&&hfInfo(k.slice(2)));
+const hfGuard=boss=>(S.trophies[hfKey(boss)]||0)-1<heartsKept(hfKey(boss));   // forging would dip into hearts a held unique still needs to awaken
+function hfCan(boss,slot,lines){
+  const I=hfInfo(boss); if(!I||S.mode!=='town'||!SLOTS[slot]||(S.trophies[hfKey(boss)]||0)<1) return false;
+  const ok=hfLinesFor(boss,slot), want=I.n-(I.pw?1:0); if(!Array.isArray(lines)||lines.length!==want||new Set(lines).size!==want||lines.some(k=>!ok.includes(k))) return false;
+  return S.gold>=Math.round(I.gold)&&(S.dust||0)>=I.dust&&S.inv.length<bagMax();
+}
+function heartforge(boss,slot,lines,force){   // returns the item, or null; force: spend a heart a unique still needs
+  if(!hfCan(boss,slot,lines)||(hfGuard(boss)&&!force)) return null;
+  const I=hfInfo(boss), pool=Object.values(ITEM).filter(d=>!d.uq&&!d.tower&&d.set===I.set&&d.slot===slot); if(!pool.length) return null;
+  S.gold-=Math.round(I.gold); S.dust-=I.dust; const k=hfKey(boss); S.trophies[k]--; if(!S.trophies[k]) delete S.trophies[k];
+  const it=addItem(pick(pool).id,lines.map(l=>[l,hfLineVal(I,l)])); it.hf=boss; if(I.pw) it.pw=I.pw;
+  tally('heartforged'); tally('hfGold',Math.round(I.gold)); sfx('level'); return it;
+}
+function hfReroll(it){ const I=hfInfo(it.hf); if(!I||!it.ro) return; it.ro=it.ro.map(([k])=>[k,hfLineVal(I,k,rnd(HF_RE[0],HF_RE[1]))]); }   // reforge: values only
+function hfSwap(u,i,k){   // a second heart of the same boss: swap one line for another of its list
+  const it=findItem(u); if(!it||!it.hf||S.mode!=='town') return false; const I=hfInfo(it.hf), key=hfKey(it.hf);
+  if(!I||!it.ro||!it.ro[i]||(S.trophies[key]||0)<1||!hfLinesFor(it.hf,ITEM[it.id].slot).includes(k)||it.ro.some(r=>r[0]===k)) return false;
+  vitals(()=>{ it.ro[i]=[k,hfLineVal(I,k)]; }); S.trophies[key]--; if(!S.trophies[key]) delete S.trophies[key]; tally('hfSwaps'); sfx('level'); return true;
+}
+// ----- the Tower trophies forge too
+const TW_FORGE_N=6, TW_FORGE_GOLD=3000, TW_EXTRA=.2;
+const towerTrophies=()=>Object.keys(S.trophies||{}).filter(k=>k.startsWith('t:')).reduce((a,k)=>a+S.trophies[k],0);
+function forgeTower(slot){
+  if(S.mode!=='town'||towerTrophies()<TW_FORGE_N||S.gold<TW_FORGE_GOLD||S.inv.length>=bagMax()||!SLOTS[slot]) return null;
+  const pool=Object.values(ITEM).filter(d=>!d.uq&&!d.tower&&d.set===5&&d.slot===slot); if(!pool.length) return null;
+  S.gold-=TW_FORGE_GOLD; spendTrophies(Object.keys(S.trophies).filter(k=>k.startsWith('t:')),TW_FORGE_N,()=>1);
+  const id=pick(pool).id; let ro=rollItem(id,true)||[]; const extra=Math.random()<TW_EXTRA;
+  if(extra){ const left=rollKeys(slot).filter(k=>!ro.some(r=>r[0]===k)); if(left.length){ const k=pick(left); ro=ro.concat([[k,Math.max(1,Math.round(ROLL_KEYS[k]*TM[5]*rnd(.5,1)))]]); } }
+  const it=addItem(id,ro.length?ro:null); sfx('level'); if(extra) tally('master'); return {it,extra};
+}
+// ----- the minor powers in a fight
+function hfTurn(){   // act(), at the end of every turn: Tide, Regrowth
+  const r=S.run, P=S.player; if(!r) return;
+  if(hfPow('tide')) P.mana=Math.min(pMana(),P.mana+Math.round(pMana()*Math.min(.1,.02*r.turn)));
+  if(hfPow('regrow')) S.army.forEach(m=>{ if(m.hp>0) healAlly(m,Math.round(m.maxHp*.02)); });
+}
+const hfPoison=(u,k,d)=>k==='poison'&&u&&u.id!=null&&u.id!=='p'&&u.uid==null&&hfPow('brood')?d*1.25:d;   // addDot: Brood
+function hfScales(a,d){ if(a.id==='p'&&d>0&&hfPow('scales')&&HITTER&&HITTER.hp>0&&HITTER.id!=='p'&&HITTER.uid==null&&S.run&&S.run.enemies.includes(HITTER)){ const h=HITTER; HITTER=S.player; hurtFoe(h,Math.max(1,Math.round(d*.1)),'fire'); HITTER=h; } }   // hurtAlly: Scales
+const hfFree=()=>{ const r=S&&S.run; if(!r||S.mode!=='battle') return false; return (hfPow('mirror')&&!r.mirU)||(hfPow('verse')&&(r.verseN||0)%3===2); };   // skCost: Mirror, Verse
+function hfSkill(){ const r=S.run; if(!r) return; if(hfPow('mirror')) r.mirU=1; if(hfPow('verse')) r.verseN=(r.verseN||0)+1; }   // useSkill, after the cost is paid
+function hfKill(e){ if(hfPow('hungry')&&S.player.hp>0) healAlly(S.player,Math.round(pMax()*.03)); }   // killLoot: Hungry Page
+function hfFix(it){ if(!it) return; if(it.hf!=null&&!HF_LINES[it.hf]) delete it.hf; if(it.pw!=null&&!(HF_POW[it.pw]&&it.hf)) delete it.pw; }   // normalizeSave
 //==UI==
 
 // ----- sound: tiny synthesized effects (Web Audio, no files). Off/on lives in Settings and is remembered per browser, not in the save.
@@ -9664,6 +9772,31 @@ TR_RX.push([/^Press again: (.+)$/,"Yeniden bas: {t1}"],[/^Title: (.+?)\. New Gam
  [/^Ledger inscriptions you carry: (.+?)\.?$/,"Taşıdığın Defter yazıtları: $1"],[/^cycle (\d+), day (\d+)$/,"döngü $1, gün $2"],
  [/^One more key part: Tower floor (\d+), (\d+) pages or the six masters$/,"Bir anahtar parçası daha: Kule kat $1, $2 sayfa ya da altı efendi"],
  [/^The Ledger remembers (.+?)\. It waits in (.+?) in Ledger form: in its second phase from the start, its heart paid twice\.?$/,"Defter $1 adını hatırlıyor. $2 içinde Defter biçiminde bekliyor: baştan ikinci evresinde, kalbi iki kez ödenir"]);
+// R4 PR A: the Heartforge, the Tower forge and late gold (src/game-forge.js)
+[["Heartforge","Kalp Ocağı"],["Hell Tower forge","Cehennem Kulesi ocağı"],["Late gold","Geç altın"],["Heartforged","Kalpte dövüldü"],
+ ["Brood","Kuluçka"],["Tide","Gelgit"],["Scales","Pullar"],["Verse","Dize"],["Regrowth","Yeniden Büyüme"],["Mirror","Ayna"],["Hungry Page","Aç Sayfa"],
+ ["Poison your side lays on a foe deals 25% more","Tarafının bir düşmana bulaştırdığı zehir %25 daha fazla vurur"],["Poison your side lays on a foe deals #% more","Tarafının bir düşmana bulaştırdığı zehir %# daha fazla vurur"],
+ ["Each turn of a fight you gain 2% of your max mana more, up to 10%","Bir dövüşün her turunda azami mananın %2 fazlasını kazanırsın, en çok %10"],["Each turn of a fight you gain #% of your max mana more, up to #%","Bir dövüşün her turunda azami mananın %# fazlasını kazanırsın, en çok %#"],
+ ["A foe that strikes you takes 10% of the blow back as fire","Sana vuran düşman darbenin %10'unu ateş olarak geri alır"],["A foe that strikes you takes #% of the blow back as fire","Sana vuran düşman darbenin %#'unu ateş olarak geri alır"],
+ ["Every third skill you cast costs no mana","Kullandığın her üçüncü beceri mana harcamaz"],
+ ["Your minions mend 2% of their max HP each turn","Hizmetkârların her tur azami canlarının %2'sini onarır"],["Your minions mend #% of their max HP each turn","Hizmetkârların her tur azami canlarının %#'sini onarır"],
+ ["Your first skill in each room costs no mana","Her odadaki ilk becerin mana harcamaz"],
+ ["Each foe that falls mends you for 3% of your max HP","Düşen her düşman seni azami canının %3'ü kadar onarır"],["Each foe that falls mends you for #% of your max HP","Düşen her düşman seni azami canının %#'ü kadar onarır"],
+ ["At the Forge (the Market) a boss, Tower warden, secret master or Hunger heart, gold and bone dust forge a heartforged piece: an item of that boss's set in the slot you pick, whose bonus lines you choose from the boss's six instead of rolling them, at the top of their range. Secret masters and the Hunger give three: two lines and a minor power. Reforging a heartforged piece re-rolls its values, never its lines; a second heart of the same boss swaps one line. The forge warns before it spends a heart a unique you hold still needs to awaken","Ocakta (Pazar) bir boss, Kule muhafızı, gizli efendi ya da Hunger kalbi, altın ve kemik tozu kalpte dövülmüş bir parça döver: o bossun takımından, seçtiğin yuvada bir eşya; ek satırlarını zar atmak yerine bossun altı satırı arasından seçersin, aralığın en üstünde. Gizli efendiler ve Hunger üç verir: iki satır ve küçük bir güç. Kalpte dövülmüş bir parçayı yeniden dövmek değerlerini yeniden atar, satırlarını asla; aynı bossun ikinci bir kalbi bir satırı değiştirir. Ocak, elindeki bir eşsizin uyanmak için hâlâ ihtiyaç duyduğu bir kalbi harcamadan önce uyarır"],
+ ["# lines. Costs # gold and # dust","# satır. Bedeli # altın ve # toz"],["# lines and a minor power. Costs # gold and # dust","# satır ve küçük bir güç. Bedeli # altın ve # toz"],
+ ["# Tower trophies and # gold forge a Throne of Ash piece in the slot you pick, #% of the time with an extra line","# Kule ganimeti ve # altın, seçtiğin yuvada bir Throne of Ash parçası döver; %# ihtimalle fazladan bir satırla"],
+ ["Past level # the level part of kill and vault gold grows at a third of its rate: later gold comes from difficulty, curses, pacts and what you sell","Seviye # sonrasında öldürme ve kasa altınının seviye payı hızının üçte biriyle büyür: sonraki altın zorluktan, lanetlerden, anlaşmalardan ve sattıklarından gelir"],
+ ["A boss, warden, secret master or Hunger heart, gold and bone dust forge a piece of its set in the slot you pick, with the bonus lines you choose from the boss's six, at the top of their range. Secret masters and the Hunger add a minor power. Reforging keeps the lines; a second heart swaps one","Bir boss, muhafız, gizli efendi ya da Hunger kalbi, altın ve kemik tozu seçtiğin yuvada takımından bir parça döver; ek satırlarını bossun altı satırı arasından seçersin, aralığın en üstünde. Gizli efendiler ve Hunger küçük bir güç ekler. Yeniden dövmek satırları korur; ikinci bir kalp birini değiştirir"],
+ ["You hold no heart that the forge can use yet","Ocağın kullanabileceği bir kalbin henüz yok"],["Your bag is full","Çantan dolu"],
+ ["Press again: a unique you hold still needs this heart","Yeniden bas: elindeki bir eşsizin hâlâ bu kalbe ihtiyacı var"],
+ ["Throne of Ash gear, #% with an extra line","Throne of Ash teçhizatı, %# ihtimalle fazladan satır"],["# Tower trophies","# Kule ganimeti"],["#/# Tower trophies","#/# Kule ganimeti"],
+ ["Pick # line","# satır seç"],["Pick # lines","# satır seç"],["Swap a line","Bir satır değiştir"],["1 heart (#)","1 kalp (#)"],["# heart (#)","# kalp (#)"],
+ ["An extra line","Fazladan bir satır"],
+].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+TR_RX.push([/^Heartforged from (.+)$/,"$1 kalbinden dövüldü"],[/^Pick (\d+) lines?, plus (.+?): (.+)$/,"$1 satır seç, artı {t2}: {t3}"],[/^Forge · (.+)$/,"Döv · $1"],
+ [/^A heart of (.+?) swaps one line for another of its list$/,"$1 kalbi bir satırı listesindeki bir başkasıyla değiştirir"],
+ [/^The heart burns down to (.+?), heartforged\. It is in your bag\.?$/,"Kalp yanıp $1 oluyor, kalpte dövülmüş. Çantanda"],
+ [/^(An extra line! )?The Tower trophies forge (.+?)\. It is in your bag\.?$/,"{t1}Kule ganimetleri $2 döver. Çantanda"]);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -10561,13 +10694,30 @@ function setLine(d){ if(d.tower||SET_NAMES[d.set]==null) return usetLine(d); con
 function itemCard(it,acts,cmp){
   const d=ITEM[it.id];
   return '<div class="item t'+d.tier+'">'+iico(d)+'<div class="i-body"><div class="i-top"><span class="i-name">'+d.name+'</span><span class="i-tag">'+TIERS[d.tier]+' &middot; '+SLOTS[d.slot]+(!d.uq&&!d.tower&&RANKS[d.set]?'<span class="sr"> &middot; gate '+RANKS[d.set]+' set</span>':'')+(d.tower?' &middot; <span class="i-floor">Hell Tower '+d.floor+'</span>':'')+(it.aw?' &middot; <span class="i-aw" title="'+AWAKEN_TXT+'">Awakened '+AWAKEN_RN[it.aw]+'</span>':'')+'</span></div>'
-   +'<div class="i-stats">'+statsHTML(d,it)+'</div>'+(d.flag?detl('fx'+d.flag,FLAGS[d.flag].split(':')[0],FLAGS[d.flag],'i-fx'):'')+setLine(d)+(cmp?cmpHTML(it):'')+'</div><div class="i-acts">'+(acts||'')+'</div></div>';
+   +'<div class="i-stats">'+statsHTML(d,it)+'</div>'+(it.hf?'<div class="i-hf">Heartforged from '+it.hf+(it.pw?' &middot; <b>'+HF_POW[it.pw].name+'</b>: '+HF_POW[it.pw].desc:'')+'</div>':'')+(d.flag?detl('fx'+d.flag,FLAGS[d.flag].split(':')[0],FLAGS[d.flag],'i-fx'):'')+setLine(d)+(cmp?cmpHTML(it):'')+'</div><div class="i-acts">'+(acts||'')+'</div></div>';
 }
 const lockBtn=it=>'<button class="btn small lockb'+(it.lk?' on':'')+'" data-a="lock" data-k="'+it.u+'" aria-pressed="'+!!it.lk+'" title="'+(it.lk?'Locked: never sold, salvaged or discarded. Press to unlock.':'Lock it so it is never sold, salvaged or discarded')+'">'+(it.lk?'Locked':'Lock')+'</button>';
 const reforgeBtn=it=>S.mode!=='town'?'':ITEM[it.id].uq?awakenBtn(it):'<button class="btn small" data-a="reforge" data-k="'+it.u+'"'+(S.gold<reforgeCost(it)?' disabled':'')+' title="Re-roll its bonus lines">Reforge &middot; '+gold(reforgeCost(it))+'</button>'+enchBtn(it);
 const dust=n=>'<span class="dust-n">'+n.toLocaleString()+' dust</span>';
+function hfSwapHTML(it){   // a heartforged piece: a second heart of its boss swaps one line (game-forge.js)
+  if(!it||!it.hf||S.mode!=='town'||!it.ro) return ''; const n=S.trophies[hfKey(it.hf)]||0, open=ui.hfsw===it.u;
+  let h='<button class="btn small" data-a="hfsw" data-k="'+it.u+'" aria-expanded="'+open+'"'+(n?'':' disabled')+' title="A heart of '+it.hf+' swaps one line for another of its list">Swap a line &middot; 1 heart ('+n+')</button>';
+  if(open&&n){ const left=hfLinesFor(it.hf,ITEM[it.id].slot).filter(k=>!it.ro.some(r=>r[0]===k));
+    h+='<div class="ench">'+it.ro.map((r,i)=>left.map(k=>'<button class="btn small" data-a="hfswap" data-k="'+it.u+'|'+i+'|'+k+'">'+statTxt(r[0],r[1])+' &rarr; '+statTxt(k,hfLineVal(hfInfo(it.hf),k))+'</button>').join('')).join('')+'</div>'; }
+  return h;
+}
+function heartforgeHTML(bagFull){   // the Heartforge (game-forge.js): pick a heart, a slot and its lines
+  const hs=hfHearts(); let h='<p class="group-h">Heartforge</p>'+brief('hforge','A boss, warden, secret master or Hunger heart, gold and bone dust forge a piece of its set in the slot you pick, with the bonus lines you choose from the boss\'s six, at the top of their range. Secret masters and the Hunger add a minor power. Reforging keeps the lines; a second heart swaps one.','q-note');
+  if(!hs.length) return h+'<p class="q-note">You hold no heart that the forge can use yet.</p>';
+  const boss=hs.includes(hfKey(ui.hfB))?ui.hfB:hs[0].slice(2), I=hfInfo(boss), slot=SLOTS[ui.hfS]?ui.hfS:'weapon', ok=hfLinesFor(boss,slot), want=I.n-(I.pw?1:0), sel=(ui.hfL||[]).filter(k=>ok.includes(k)).slice(0,want), c=hfCost(boss);
+  h+='<div class="chips">'+hs.map(k=>'<button class="btn small'+(k.slice(2)===boss?' primary':'')+'" data-a="hfb" data-k="'+k.slice(2)+'" aria-pressed="'+(k.slice(2)===boss)+'">'+TROPHY[k].name+' &times;'+S.trophies[k]+'</button>').join('')+'</div>';
+  h+='<div class="chips">'+GEAR_SLOTS.map(sl=>'<button class="btn small'+(sl===slot?' primary':'')+'" data-a="hfs" data-k="'+sl+'" aria-pressed="'+(sl===slot)+'">'+SLOTS[sl]+'</button>').join('')+'</div>';
+  h+='<p class="q-note">Pick '+want+' line'+(want>1?'s':'')+(I.pw?', plus '+HF_POW[I.pw].name+': '+HF_POW[I.pw].desc:'')+'</p><div class="chips">'+ok.map(k=>'<button class="btn small'+(sel.includes(k)?' primary':'')+'" data-a="hfl" data-k="'+k+'" aria-pressed="'+sel.includes(k)+'">'+statTxt(k,hfLineVal(I,k))+'</button>').join('')+'</div>';
+  const can=hfCan(boss,slot,sel), guard=hfGuard(boss), conf=ui.confirm==='hf';
+  return h+'<div class="btns"><button class="btn small '+(guard?'warn':'primary')+'" data-a="hforge"'+(can?'':' disabled')+'>'+(conf?'Press again: a unique you hold still needs this heart':'Forge &middot; '+gold(c.g)+' &middot; '+dust(c.d))+'</button>'+(bagFull?'<span class="q-note bad">Your bag is full.</span>':'')+'</div>';
+}
 function enchBtn(it){   // Enchant opens the choices: add a line (if there is room) or re-roll one line
-  if(ITEM[it.id].uq||S.mode!=='town'||!workOpen()) return '';
+  if(ITEM[it.id].uq||it.hf||S.mode!=='town'||!workOpen()) return hfSwapHTML(it);
   const open=ui.ench===it.u, c=enchCost(it), poor=(S.dust||0)<c, ro=it.ro||[];
   let h='<button class="btn small" data-a="ench" data-k="'+it.u+'" aria-expanded="'+open+'" title="Spend bone dust on its bonus lines">Enchant</button>';
   if(open) h+='<div class="ench">'+(ro.length<lineMax(it)?'<button class="btn small primary" data-a="enchadd" data-k="'+it.u+'"'+(poor?' disabled':'')+'>Add a line &middot; '+dust(c)+'</button>':'')
@@ -10942,6 +11092,8 @@ function marketHTML(){
   if(fg.length) h+='<div class="items">'+fg.map(i=>{ const pts=forgePoints(i), ok=pts>=FORGE_N&&S.gold>=forgeGold(i)&&!bagFull;
       return '<div class="tt-row"><div><h4>'+DUNGEONS[i].name+' forge <span class="u-tag">'+Math.min(pts,99)+'/'+FORGE_N+' trophies</span></h4><div class="u-sub">'+TIERS[SET_TIER[i]]+' gear &middot; costs '+gold(forgeGold(i))+'</div></div>'
        +'<div class="btns" style="margin:0">'+GEAR_SLOTS.map(sl=>'<button class="btn small'+(ok?' primary':'')+'" data-a="forge" data-k="'+i+'|'+sl+'"'+(ok?'':' disabled')+'>'+SLOTS[sl]+'</button>').join('')+'</div></div>'; }).join('')+'</div>';
+  { const n=towerTrophies(), ok=n>=TW_FORGE_N&&S.gold>=TW_FORGE_GOLD&&!bagFull; if(n) h+='<div class="items"><div class="tt-row"><div><h4>Hell Tower forge <span class="u-tag">'+Math.min(n,99)+'/'+TW_FORGE_N+' Tower trophies</span></h4><div class="u-sub">Throne of Ash gear, '+Math.round(TW_EXTRA*100)+'% with an extra line &middot; costs '+gold(TW_FORGE_GOLD)+'</div></div><div class="btns" style="margin:0">'+GEAR_SLOTS.map(sl=>'<button class="btn small'+(ok?' primary':'')+'" data-a="twforge" data-k="'+sl+'"'+(ok?'':' disabled')+'>'+SLOTS[sl]+'</button>').join('')+'</div></div></div>'; }
+  h+=heartforgeHTML(bagFull);
   { const n=Object.values(S.trophies).reduce((a,b)=>a+b,0);
     h+='<div class="btns">'+Object.keys(POTIONS).map(k=>'<button class="btn small" data-a="brew" data-k="'+k+'"'+(n<BREW_N||S.belt[k]>=BELT_MAX?' disabled':'')+'>Brew '+POTIONS[k].name+' &middot; '+BREW_N+' trophies</button>').join('')+'</div>'; }
   }
@@ -11209,7 +11361,7 @@ function histHTML(){
 // ----- the Codex: every rule and list in the game, read straight from the game's own tables so it never goes stale.
 // Enemies you have not met yet stay hidden, as in the bestiary.
 const CODEX=[['basics','Basics'],['raising','Raising'],['faith','Faith'],['omens','Omens'],['roles','Roles'],['traits','Traits'],['minions','Minion stats'],['army','Army'],['reserve','Reserve'],['fusion','Fusion'],['affixes','Elite affixes'],['bosses','Bosses'],['status','Status effects'],['types','Damage types'],['kits','Foe kits'],['skills','Skills'],['orders','Orders'],
-  ['gates','Gates'],['tower','Hell Tower'],['gear','Gear'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['records','Records'],['endings','Endings']];
+  ['gates','Gates'],['tower','Hell Tower'],['gear','Gear'],['forge','Heartforge'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['records','Records'],['endings','Endings']];
 const CDX_ROLE={
   vanguard:'When a foe picks a target, each vanguard counts 5 and everyone else (you included) counts 2, so vanguards draw most blows. They take Taunt orders and stand in front of a Sundering Blow.',
   striker:'This goes for your strikers and the enemy\'s. An enemy striker\'s crit also makes its target bleed. Focus makes your strikers crit every hit for a turn.',
@@ -11411,6 +11563,10 @@ function codexSection(k){
       cxRow('Gear','The consumed minion\'s gear returns to your bag.'),
       cxRow('Compounds','When a fusion brings together two traits that belong together, they fuse into one compound trait: one slot that counts as both, with something more besides. It happens before the trait limit, and only in the pit. Each trait joins at most one compound, and compounds never fuse further. The pit shows when something new will form.')])
     +'<p class="group-h">Compounds</p>'+cxList(COMPOUNDS.map(([c])=>compoundFound(c)?cxRow(TRAITS[c].name,TRAITS[c].desc+' '+TRAITS[c].story,'Found'):cxRow('???','Two traits that have not yet met in the pit.')));
+  if(k==='forge') return cxP('At the Forge (the Market) a boss, Tower warden, secret master or Hunger heart, gold and bone dust forge a heartforged piece: an item of that boss\'s set in the slot you pick, whose bonus lines you choose from the boss\'s six instead of rolling them, at the top of their range. Secret masters and the Hunger give three: two lines and a minor power. Reforging a heartforged piece re-rolls its values, never its lines; a second heart of the same boss swaps one line. The forge warns before it spends a heart a unique you hold still needs to awaken.')
+    +cxList(Object.keys(HF_LINES).filter(b=>metName(b)||(S.kills&&S.kills[b])).map(b=>{ const I=hfInfo(b), c=hfCost(b); return cxRow(b,HF_LINES[b].map(k=>'<span>'+statTxt(k,hfLineVal(I,k))+'</span>').join(' &middot; ')+'<br>'+(I.n-(I.pw?1:0))+' lines'+(I.pw?' and a minor power':'')+'. Costs '+c.g+' gold and '+c.d+' dust.'+(I.pw?'<br><b>'+HF_POW[I.pw].name+'</b>: '+HF_POW[I.pw].desc:'')); }))
+    +'<p class="group-h">Hell Tower forge</p>'+cxP(TW_FORGE_N+' Tower trophies and '+TW_FORGE_GOLD.toLocaleString()+' gold forge a Throne of Ash piece in the slot you pick, '+Math.round(TW_EXTRA*100)+'% of the time with an extra line.')
+    +'<p class="group-h">Late gold</p>'+cxP('Past level '+GOLD_SOFT_LV+' the level part of kill and vault gold grows at a third of its rate: later gold comes from difficulty, curses, pacts and what you sell.');
   if(k==='endings'){ if(!S.lastPage&&!(S.endHist||[]).length) return cxP('The Ledger keeps its last page shut until what waits under Vane Abbey has fallen. Open the drowned door with either of its keys, cross the Scriptorium and end the Hunger, and the book will ask you how it ends.');
     return cxP('When the Hunger falls the Ledger opens at its last page and asks once each cycle. The page waits on the Gates tab: you can answer later, and the gates stay open. Either answer lets you keep playing the cycle; it decides what New Game+ becomes.')
       +cxList(Object.values(ENDINGS).map(E=>cxRow(E.name,'&ldquo;'+E.line+'&rdquo; Title: '+E.title+'. New Game+ becomes '+E.cycle+': '+E.ngp)))
@@ -12368,6 +12524,11 @@ const ACTIONS={
   buybag:()=>{ const c=BAG_COST[S.bagLv||0]; ui.msg=buyBag()?{mk:1,m:'Your bag now holds '+bagMax()+' items. Paid '+c+' gold.',c:'ok'}:null; },
   empower:k=>{ const m=findMinion(+k), c=m&&empowerCost(m); ui.msg=empower(+k)?{mk:1,m:m.nick+' rises to level '+m.lvl+'. Paid '+c+' gold.',c:'ok'}:null; },
   forge:k=>{ const a=k.split('|'), res=forgeGear(+a[0],a[1]); ui.msg=res?{mk:1,m:(res.master?'Masterwork! ':'')+'The forge gives you '+ITEM[res.it.id].name+'. It is in your bag.',c:'ok'}:null; },
+  hfb:k=>{ ui.hfB=k; ui.hfL=[]; ui.confirm=null; }, hfs:k=>{ ui.hfS=k; ui.confirm=null; },
+  hfl:k=>{ const I=hfInfo(ui.hfB||(hfHearts()[0]||'').slice(2)); const want=I?I.n-(I.pw?1:0):2; let l=(ui.hfL||[]).slice(); l=l.includes(k)?l.filter(x=>x!==k):l.concat([k]).slice(-want); ui.hfL=l; ui.confirm=null; },
+  hforge:()=>{ const boss=ui.hfB&&hfHearts().includes(hfKey(ui.hfB))?ui.hfB:(hfHearts()[0]||'').slice(2), slot=SLOTS[ui.hfS]?ui.hfS:'weapon'; if(hfGuard(boss)&&ui.confirm!=='hf'){ ui.confirm='hf'; return; } const it=heartforge(boss,slot,(ui.hfL||[]),true); ui.confirm=null; ui.msg=it?{mk:1,m:'The heart burns down to '+ITEM[it.id].name+', heartforged. It is in your bag.',c:'ok'}:null; if(it) ui.hfL=[]; },
+  twforge:k=>{ const res=forgeTower(k); ui.msg=res?{mk:1,m:(res.extra?'An extra line! ':'')+'The Tower trophies forge '+ITEM[res.it.id].name+'. It is in your bag.',c:'ok'}:null; },
+  hfsw:k=>{ ui.hfsw=ui.hfsw===+k?null:+k; }, hfswap:k=>{ const a=k.split('|'); hfSwap(+a[0],+a[1],a[2]); ui.hfsw=null; },
   brew:k=>{ ui.msg=brew(k)?{mk:1,m:'You brew a '+POTIONS[k].name+' from four trophies.',c:'ok'}:null; },
   raisesalt:k=>tryRaise(k,true), raisebest:()=>{ raiseBest(); }, raiseres:k=>tryRaise(k,false,true), raiseressalt:k=>tryRaise(k,true,true),
   mark:k=>{ const a=k.split('|'); chooseMark(+a[0],a[1]); },
@@ -12455,7 +12616,7 @@ const ACTIONS={
   newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); OPEN_HELP.on=false; ui.tab='gates'; ui.gsub='open'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
 };
 function settled(){ sgTipHide(); if(S&&S.mode==='town') cmdSync(); checkTitles(); try{ loreCheck(); }catch(e){} render(); }   // after an action: award titles and lore passages, then draw
-const CONFIRM_ACTS=['release','cross','ending','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
+const CONFIRM_ACTS=['release','cross','ending','hforge','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
 document.addEventListener('click',e=>{
   MUSIC.armed=true;
   const b=e.target.closest('[data-a]'); if(!b||b.disabled) return;

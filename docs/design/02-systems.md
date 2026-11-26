@@ -290,11 +290,22 @@ with bigger bonuses.
 dust and its boss's hearts (1 to 5). Five ranks of a Throne unique cost ~250k gold. New Game+ carries one unique with
 its ranks.
 
+**Heart-forging** (`src/game-forge.js`, the market's Forge section). A boss, Tower warden, secret master or Hunger heart,
+gold and bone dust forge a **heartforged** piece of that boss's set (wardens and masters: the Throne set; the Hunger: the
+Scribe's Regalia) in the slot you pick, with bonus lines you choose from the boss's six (`HF_LINES`, slot rules respected)
+at the top of their range. Gate bosses 2,000 x (gate+1) gold and 10 x (gate+1) dust, two lines; wardens 6,000 + 200 x
+floor/10 and 40 dust, two lines, 1.2% stronger per floor; masters 20,000 and 80 dust, two lines and a minor power
+(`HF_POW`: Brood, Tide, Scales, Verse, Regrowth, Mirror); the Hunger 40,000 and 150 dust, two lines and the Hungry Page.
+Reforging re-rolls values (80-100%) but never the lines; a second heart of the same boss swaps one line. The forge warns
+(two presses) before it spends a heart a held unique still needs for Awakening. **Tower forge**: 6 Tower trophies and
+3,000 gold forge a Throne-set piece, 20% of the time with an extra line.
+
 **Bag**: 30 slots, +5 per upgrade (four upgrades, 250 to 3500 gold).
 
 ## 2.6 Economy and town
 
-**Gold** comes from kills (scaled by level, rank, boss/elite, curse, difficulty, gold bonuses), vaults, coffers,
+**Gold** comes from kills (scaled by level, rank, boss/elite, curse, difficulty, gold bonuses; past hero level 35 the level
+part grows at a third of its rate, `softLv`), vaults, coffers,
 bounties, raids, sieges, Trials and selling. **Trophies** (72 kinds) drop from kills into a pouch: sell, forge 6 points
 of one gate (a heart counts 5) into a piece of that gate's gear (20% masterwork from the next set), or brew any 4 into a
 potion. Boss hearts also pay for Awakening. **Bone dust** comes from salvage, bounties, sieges, Trials and the Bone
@@ -311,7 +322,7 @@ bosses, the cursed gate, a flawless clear, arches, orders, Tower floors, poisoni
 growing with your deepest gate.
 
 **Sinks, in the order a player meets them**: potions and salts, bag, Bone Altar, reforging, buildings, fusion,
-tempering, honour, Awakening, mausoleums, headstones (the only uncapped one).
+tempering, honour, Awakening, heart-forging, mausoleums, headstones (the only uncapped one).
 
 ## 2.7 Content and modes
 

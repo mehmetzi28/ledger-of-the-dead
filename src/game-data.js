@@ -176,7 +176,7 @@ function tableFor(di,role,boss,elite,sig,mob){   // mob: an elite of the difficu
   const uqp=UQ[di]*(boss?1:UQ_MOB)*(elite&&!mob?2:1), scale=(100-uqp)/100, rows=[];
   for(let t=0;t<5;t++){
     if(!tw[t]) continue;
-    const el=Object.values(ITEM).filter(d=>!d.uq&&d.tier===t);
+    const el=Object.values(ITEM).filter(d=>!d.uq&&d.tier===t&&(d.set!==ABBEY||di===ABBEY));   /* the Scribe's Regalia drops only in Vane Abbey */
     const raw=el.map(d=>(bias[d.slot]||1)*(d.set===di?3:1)*(d.id===sig?4:1)), sum=raw.reduce((a,b)=>a+b,0);
     el.forEach((d,i)=>rows.push({id:d.id,p:tw[t]*scale*raw[i]/sum/100}));
   }
@@ -193,7 +193,7 @@ function rollDrops(e){
   for(const c of dropChances(e.boss,e.elite)) if(Math.random()<c*more){ let id=pickRow(rows);
     if(ITEM[id].uq&&(ownsItem(id)||out.includes(id))) id=pickNorm(rows.filter(r=>!ITEM[r.id].uq));   // a unique you already carry becomes ordinary gear instead
     out.push(id); }
-  if(e.secret) for(let i=0;i<2;i++) out.push(pick(Object.values(ITEM).filter(d=>!d.uq&&d.tier===4)).id);   // a secret master always leaves two legendaries
+  if(e.secret) for(let i=0;i<2;i++) out.push(pick(Object.values(ITEM).filter(d=>!d.uq&&d.tier===4&&d.set!==ABBEY)).id);   // a secret master always leaves two legendaries
   return out;
 }
 const BAG_MAX=30, BAG_STEP=5, BAG_COST=[250,600,1500,3500];   // bag upgrades: +5 slots each, bought at the market
@@ -323,7 +323,7 @@ function spawnFloor(){
 const towerStarts=()=>{ const a=[1]; for(let k=1;k*10<=S.tower.best;k++) a.push(k*10+1); if(hasInsc('tower')&&!a.includes(11)) a.push(11); return a; };   /* Of the Tower (game-abbey.js) */   // a checkpoint after every tenth floor, endlessly past 100
 function towerBossLoot(f,r){
   if(f>100){   // the endless climb: every abyssal warden pays gold and a legendary
-    const g=40*f, pool=Object.values(ITEM).filter(d=>!d.uq&&d.tier===4); r.gold=(r.gold||0)+g; r.loot.push(pick(pool).id);
+    const g=40*f, pool=Object.values(ITEM).filter(d=>!d.uq&&d.tier===4&&d.set!==ABBEY); r.gold=(r.gold||0)+g; r.loot.push(pick(pool).id);
     r.events.push({m:'The abyssal warden of floor '+f+' leaves '+g+' gold and a legendary behind.',c:'ok'}); return;
   }
   for(const id of TW_IDS[f]||[]){
@@ -346,7 +346,7 @@ function towerTable(f,role,boss,elite){
   const bias=ROLE_BIAS[role]||{}, rows=[];
   for(let t=0;t<5;t++){
     if(!tw[t]) continue;
-    const el=Object.values(ITEM).filter(d=>!d.uq&&d.tier===t);
+    const el=Object.values(ITEM).filter(d=>!d.uq&&d.tier===t&&d.set!==ABBEY);
     const raw=el.map(d=>(bias[d.slot]||1)*(d.set===lo?3:1)), sum=raw.reduce((x,y)=>x+y,0);
     el.forEach((d,i)=>rows.push({id:d.id,p:tw[t]*raw[i]/sum/100}));
   }

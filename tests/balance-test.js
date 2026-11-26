@@ -114,6 +114,7 @@
       if(!B.off.salvage) for(const it of S.inv.slice()) if(!ITEM[it.id].uq&&ITEM[it.id].tier>=2) salvage(it.u);
     }
     if(B.market){   // sell everything not worn, buy better gear from the merchant, keep the potion belt full
+      if(B.full&&!B.off.forge&&typeof heartforge==='function') hfPolicy(B);   // heart-forging before the hearts are sold ("off":["forge"])
       sellAllTrophies(); for(const it of S.inv.slice()) if(!ITEM[it.id].uq) sellItem(it.u);
       shopStock().forEach((s,i)=>{ if(s.sold) return; const d=ITEM[s.id], cur=S.equip[d.slot];
         if((!cur||itemScore(d)>itemScore(ITEM[cur.id]))&&S.gold-buyPrice(d)>=POTIONS.hp.price()*2&&buyStock(i)){ const it=S.inv[S.inv.length-1]; equip(it.u); for(const x of S.inv.slice()) if(!ITEM[x.id].uq) sellItem(x.u); } });
@@ -210,7 +211,7 @@
     if(P.mana>=8+res&&pSiph()>=pAtk()) return 'siphon';
     return 'strike';
   }
-  const RZ={t:0,ok:0}, SWC={n:0,stop:0};
+  const RZ={t:0,ok:0}, SWC={n:0,stop:0}, HFC={n:0,g:0};
   const useRes=B=>B&&B.full&&!B.off.reserve&&typeof reserveOpen==='function'&&reserveOpen();   // the Reserve, switchable with "off":["reserve"]
   function raisePhase(B){
     const r=S.run, P=S.player;
@@ -239,6 +240,13 @@
     const E=EVENTS[ev.id], f={hp:S.player.hp/pMax(),room:S.army.length<slots(),can:k=>!E.off||!E.off(k)}, ch=(EVT_PICK[ev.id]||(()=>'pass'))(f);
     const got=resolveEvent(ch)?ch:resolveEvent('pass')?'pass':'none', last=r.events[r.events.length-1], k=(E.chain?'chain ':'')+ev.id+':'+got;   // a choice it cannot take falls back to walking past
     B.ev=B.ev||{}; B.ev[k]=(B.ev[k]||0)+1; if(got!=='none'&&last.c) B.ev[last.c]=(B.ev[last.c]||0)+1;   // also counts outcomes the log marks good (ok) or bad
+  }
+  function hfPolicy(B){   // forge a heartforged piece for a worn slot that is neither unique nor heartforged, from the best spare heart, keeping 3000 gold
+    const pref=['atk','mpow','crit','hp','will','raise','siph','ward','mana','constitution','strength','intelligence','fdmg','frdmg','rdmg','sdmg','fres','frres','rres','sres'];
+    for(const sl of GEAR_SLOTS){ const cur=S.equip[sl]; if(cur&&(ITEM[cur.id].uq||cur.hf)) continue; const cs=cur?ITEM[cur.id].set:-1;
+      const hs=hfHearts().filter(k=>(S.trophies[k]||0)-1>=heartsKept(k)).map(k=>k.slice(2)).filter(b=>hfInfo(b).set>=cs).sort((a,b)=>hfInfo(b).set-hfInfo(a).set||hfInfo(a).gold-hfInfo(b).gold);
+      for(const boss of hs){ const I=hfInfo(boss), c=hfCost(boss); if(S.gold-c.g<3000||(S.dust||0)<c.d) continue;
+        const lines=hfLinesFor(boss,sl).sort((a,b)=>pref.indexOf(a)-pref.indexOf(b)).slice(0,I.n-(I.pw?1:0)); const it=heartforge(boss,sl,lines); if(it){ equip(it.u); HFC.n++; HFC.g+=c.g; } break; } }
   }
   function playRun(B,rec){
     const duel=typeof rivalToday==='function'&&rivalToday()&&S.player.lvl>=RK[rv().gi].unlock, gi=duel?rv().gi:pickGate(B), lvl=S.player.lvl;   // a rival's challenge today: go and meet it (rivalOpen is off outside 'full')
@@ -304,7 +312,7 @@
   }
   function simBot(seed,B,days){
     Math.random=mulberry32(seed); newGame(); B.statI=0; B.hw={}; B.hwDay={}; if(typeof BOSS_KITS_ON!=='undefined') BOSS_KITS_ON=!B.off.bosskits;   /* 'bosskits' off: the old single boss moves */
-    let abbeyDay=null; const rec=[], lvAt={}, firstClear={}, loreAt={}, tiers=[], trials=[], goldAt={}, gl={earn:0,spend:0,S:null};
+    let abbeyDay=null; HFC.n=0; HFC.g=0; const rec=[], lvAt={}, firstClear={}, loreAt={}, tiers=[], trials=[], goldAt={}, gl={earn:0,spend:0,S:null};
     const goldWatch=()=>{ if(gl.S===S) return; gl.S=S; let v=S.gold||0; Object.defineProperty(S,'gold',{enumerable:true,configurable:true,get:()=>v,set:x=>{ if(x>v) gl.earn+=x-v; else gl.spend+=v-x; v=x; }}); };   // lifetime gold earned and spent
     while(S.day<=days){
       goldWatch();
@@ -331,7 +339,7 @@
     const rival={met:T_('rivalMet'),wins:T_('rivalWins'),losses:T_('rivalLosses'),thefts:T_('rivalThefts'),day:(S.rival&&S.rival.met)||0};
     const head=typeof headBonus==='function'?{g:T_('headG'),t:headTiers(),b:headBonus()}:null;
     const awk={g:T_('awakenG'),n:T_('awakened')};   // awakening ranks bought and their gold
-    return {abbeyDay,abbeyEnd,abbeyProbe,trials,ev:B.ev||{},chainsEnded:T_('chains'),head,awk,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
+    return {hf:{n:HFC.n,g:HFC.g},abbeyDay,abbeyEnd,abbeyProbe,trials,ev:B.ev||{},chainsEnded:T_('chains'),head,awk,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
   }
 
   // ----- reporting
@@ -363,6 +371,7 @@
     const med=a=>{ if(!a.length) return '-'; const b=a.slice().sort((x,y)=>x-y), m=b.length>>1; return Math.round(b.length%2?b[m]:(b[m-1]+b[m])/2); };
     const gold={}; [30,60,100,days].forEach(d=>{ if(d>days) return; const a=res.map(r=>r.goldAt&&r.goldAt[d]).filter(Boolean); if(a.length) gold['day'+d]={avg:Math.round(avg(a.map(x=>x[0]))),median:med(a.map(x=>x[0])),earned:Math.round(avg(a.map(x=>x[1]))),spent:Math.round(avg(a.map(x=>x[2])))}; });   // gold held at dusk, and lifetime earned vs spent
     gold.maus=avg(res.map(r=>r.maus||0)); gold.bonds=avg(res.map(r=>r.bonds||0));   // mausoleums raised and bonded pairs at the end
+    { const f=res.map(r=>r.hf).filter(Boolean); if(f.some(x=>x.n)) gold.hforge={n:avg(f.map(x=>x.n)),spent:Math.round(avg(f.map(x=>x.g)))}; }
     { const a=res.map(r=>r.awk).filter(Boolean); if(a.some(x=>x.n)) gold.awaken={spent:Math.round(avg(a.map(x=>x.g))),ranks:avg(a.map(x=>x.n))}; }
     { const h=res.map(r=>r.head).filter(Boolean); if(h.some(x=>x.g)) gold.headstones={spent:Math.round(avg(h.map(x=>x.g))),medianSpent:med(h.map(x=>x.g)),tiers:avg(h.map(x=>x.t)),hpBonus:avg(h.map(x=>x.b*100))+'%'}; }   // headstones ('full'): gold spent, tiers and the max HP bonus at the end, per bot
     const events={}; for(const r of res) for(const k in r.ev||{}) events[k]=(events[k]||0)+r.ev[k];   // events met by id:choice (summed over bots), and ok/bad outcomes

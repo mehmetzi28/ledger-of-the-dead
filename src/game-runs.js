@@ -50,7 +50,7 @@ function spawnRoom(){
   if(S.run.tw) return spawnFloor();
   const r=S.run, room=r.room, boss=room===r.rooms-1;
   const list=(!boss&&r.pre&&r.pre[r.roomKind])||buildRoom(room,r.roomKind); r.pre=null;   // a door's room was rolled with the doors: what it showed is what waits
-  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; delete r.lcU; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null; roomStart(list);
+  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; delete r.lcU; delete r.mirU; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null; roomStart(list);
   log(boss?(list[0].rival?list[0].name+' stands where the master should be, with their own dead around them.':list[0].secret?'The air turns wrong. This is not the master you came for.':'The air thickens. Something large waits ahead.'):(r.trial?'Trial, room ':'Room ')+(room+1)+' of '+r.rooms+(r.roomKind==='elite'?', behind the bloodied arch. These foes are stronger.':'.'));
   if(boss){ bossSpeaks(list[0],'hi'); fxe('boss',list[0]); }
   if(hasFlag('infernal')) infernalWard();
@@ -90,7 +90,8 @@ function hurtFoe(e,d,ty){ if(abbeyMiss(e)) return; ty=MARGIN||(DTYPE[ty]?ty:'phy
 function hurtAlly(a,d,ty){
   if(a.id==='p'&&S.run&&S.run.conf) d=Math.round(d*BK_CONFESS);   /* the Iron Inquisitor's Confession, until you ward */
   if(a.id==='p'&&BLOW){ const v=guardBlow(a,d); if(v) return hurtAlly(v,Math.round(d*SB_TAKE),ty); }   // Guard, for boss moves (plain hits swap their target before this)
-  if(a.id==='p'&&S.run) S.run.blow=BLOW?blowNote(BLOW):null;   // what hits you, for the defeat recap (before the ward soaks it)
+  if(a.id==='p'&&S.run) S.run.blow=BLOW?blowNote(BLOW):null;
+  hfScales(a,d);   /* Scales (game-forge.js) */   // what hits you, for the defeat recap (before the ward soaks it)
   d=allyDr(a,d); { const rs=allyRes(a,ty); if(rs) d=Math.max(1,Math.round(d*(1-rs))); }   /* damage types: your resistance lines, a minion's typed trait */
   if(a.id==='p'){ const sk=SAP?KIT_SAP:1, s=Math.min(S.player.shield,d*sk); S.player.shield-=s; d-=Math.round(s/sk); if(BLOW&&d>0) d=tetherBlow(d); /* the Soul Tether (game-faith-story.js) */ } else if(a.mw>0){ const sk=SAP?KIT_SAP:1, s=Math.min(a.mw,d*sk); a.mw-=s; d-=Math.round(s/sk); }   // a Warden's ward on a minion
   d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a,d,0); if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p'&&!echoCall(a)&&!stitchUp(a)){ fxe('death',a); chainSpear(); }
@@ -276,7 +277,7 @@ function act(kind){
   if(P.hp<hpBefore){ sfx('hurt'); if(hpBefore-P.hp>=pMax()*.2) ui.shake=true; }   // a heavy turn shakes the screen
   checkDeaths(); if(!liveFoes().length){ roomWon(); return; }
   r.turn++; if(!hasRunMod('drought')){ let g=1+G('regen')+sk('soulwell')+(hasMod('deathless','a')?DEEP_REGEN:0); if(omen()==='soulstorm'){ r.mf=(r.mf||0)+g*STORM_REGEN; const x=Math.floor(r.mf); r.mf-=x; g+=x; } P.mana=Math.min(pMana(),P.mana+g); } skillTick();   // Soul Storm: +20%, the fractions carried
-  echoTurn(); bossEndTurn();   /* Undone shieldbearers (game-kits.js), boss hazards (game-boss-kits.js) */
+  echoTurn(); bossEndTurn(); hfTurn();   /* Undone shieldbearers (game-kits.js), boss hazards (game-boss-kits.js) */
   if(hasFlag('halo')) allies().forEach(a=>{ if(a.hp>0) healAlly(a,Math.round((a.id==='p'?pMax():a.maxHp)*.04)); });
   if(r.turn===9&&liveFoes().some(e=>e.tw&&e.boss)) log('Wrath: the warden is enraged and hits harder every turn.','bad');
   planFoes();   // what every foe will do next turn, shown on its card
@@ -391,7 +392,7 @@ const reforgeCost=it=>Math.round(buyPrice(ITEM[it.id])*REFORGE_COST*(1-B_FORGE*b
 function reforge(u){   // re-roll a piece's bonus lines for gold; always leaves at least one line
   const it=findItem(u); if(!it||S.mode!=='town') return false; const d=ITEM[it.id]; if(d.uq) return false;
   const c=reforgeCost(it); if(S.gold<c) return false;
-  S.gold-=c; vitals(()=>{ it.ro=rollItem(it.id,true)||undefined; if(!it.ro) delete it.ro; }); tally('reforged'); sfx('level'); return true;
+  S.gold-=c; vitals(()=>{ if(it.hf){ hfReroll(it); return; } it.ro=rollItem(it.id,true)||undefined; if(!it.ro) delete it.ro; });   /* a heartforged piece keeps its lines (game-forge.js) */ tally('reforged'); sfx('level'); return true;
 }
 function vitals(fn){ const a=pMax(), b=pMana(); fn(); const P=S.player, a2=pMax(), b2=pMana(); P.hp=Math.min(a2,P.hp+Math.max(0,a2-a)); P.mana=Math.min(b2,P.mana+Math.max(0,b2-b)); syncArmy(); }
 function equip(u){

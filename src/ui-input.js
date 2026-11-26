@@ -53,6 +53,11 @@ const ACTIONS={
   buybag:()=>{ const c=BAG_COST[S.bagLv||0]; ui.msg=buyBag()?{mk:1,m:'Your bag now holds '+bagMax()+' items. Paid '+c+' gold.',c:'ok'}:null; },
   empower:k=>{ const m=findMinion(+k), c=m&&empowerCost(m); ui.msg=empower(+k)?{mk:1,m:m.nick+' rises to level '+m.lvl+'. Paid '+c+' gold.',c:'ok'}:null; },
   forge:k=>{ const a=k.split('|'), res=forgeGear(+a[0],a[1]); ui.msg=res?{mk:1,m:(res.master?'Masterwork! ':'')+'The forge gives you '+ITEM[res.it.id].name+'. It is in your bag.',c:'ok'}:null; },
+  hfb:k=>{ ui.hfB=k; ui.hfL=[]; ui.confirm=null; }, hfs:k=>{ ui.hfS=k; ui.confirm=null; },
+  hfl:k=>{ const I=hfInfo(ui.hfB||(hfHearts()[0]||'').slice(2)); const want=I?I.n-(I.pw?1:0):2; let l=(ui.hfL||[]).slice(); l=l.includes(k)?l.filter(x=>x!==k):l.concat([k]).slice(-want); ui.hfL=l; ui.confirm=null; },
+  hforge:()=>{ const boss=ui.hfB&&hfHearts().includes(hfKey(ui.hfB))?ui.hfB:(hfHearts()[0]||'').slice(2), slot=SLOTS[ui.hfS]?ui.hfS:'weapon'; if(hfGuard(boss)&&ui.confirm!=='hf'){ ui.confirm='hf'; return; } const it=heartforge(boss,slot,(ui.hfL||[]),true); ui.confirm=null; ui.msg=it?{mk:1,m:'The heart burns down to '+ITEM[it.id].name+', heartforged. It is in your bag.',c:'ok'}:null; if(it) ui.hfL=[]; },
+  twforge:k=>{ const res=forgeTower(k); ui.msg=res?{mk:1,m:(res.extra?'An extra line! ':'')+'The Tower trophies forge '+ITEM[res.it.id].name+'. It is in your bag.',c:'ok'}:null; },
+  hfsw:k=>{ ui.hfsw=ui.hfsw===+k?null:+k; }, hfswap:k=>{ const a=k.split('|'); hfSwap(+a[0],+a[1],a[2]); ui.hfsw=null; },
   brew:k=>{ ui.msg=brew(k)?{mk:1,m:'You brew a '+POTIONS[k].name+' from four trophies.',c:'ok'}:null; },
   raisesalt:k=>tryRaise(k,true), raisebest:()=>{ raiseBest(); }, raiseres:k=>tryRaise(k,false,true), raiseressalt:k=>tryRaise(k,true,true),
   mark:k=>{ const a=k.split('|'); chooseMark(+a[0],a[1]); },
@@ -140,7 +145,7 @@ const ACTIONS={
   newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); OPEN_HELP.on=false; ui.tab='gates'; ui.gsub='open'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
 };
 function settled(){ sgTipHide(); if(S&&S.mode==='town') cmdSync(); checkTitles(); try{ loreCheck(); }catch(e){} render(); }   // after an action: award titles and lore passages, then draw
-const CONFIRM_ACTS=['release','cross','ending','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
+const CONFIRM_ACTS=['release','cross','ending','hforge','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
 document.addEventListener('click',e=>{
   MUSIC.armed=true;
   const b=e.target.closest('[data-a]'); if(!b||b.disabled) return;

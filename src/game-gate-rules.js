@@ -83,7 +83,7 @@ function sellJunk(){ if(S.mode!=='town') return null; const list=S.inv.filter(is
 // a new dose refreshes it. They tick at the end of each turn, ignore ward and armor, and wear off when you leave a room.
 const DOTS={poison:{name:'Poisoned'},bleed:{name:'Bleeding'},burn:{name:'Burning'},blight:{name:'Blighted'}};   // blight: a rotting wound that also halves the healing its bearer receives
 DOTS.poison.tip='Venom eats HP at the end of each turn.'; DOTS.bleed.tip='An open wound bleeds at the end of each turn.'; DOTS.burn.tip='Fire burns at the end of each turn.'; DOTS.blight.tip='Rot eats HP at the end of each turn and halves the healing received.';
-function addDot(u,k,d,t){ d=Math.round(d); if(d<1||!(u.hp>0)||hasAff(u,'warded')||hasTrait(u,'warded')||(k==='burn'&&hasTrait(u,'cinderborn'))||(k==='poison'&&u.noPoison)) return;   /* noPoison: the Plague Matriarch */ u.dots=u.dots||{}; const o=u.dots[k]; u.dots[k]=o?{d:Math.max(o.d,d),t:Math.max(o.t,t)}:{d,t}; }
+function addDot(u,k,d,t){ d=Math.round(hfPoison(u,k,d)); if(d<1||!(u.hp>0)||hasAff(u,'warded')||hasTrait(u,'warded')||(k==='burn'&&hasTrait(u,'cinderborn'))||(k==='poison'&&u.noPoison)) return;   /* noPoison: the Plague Matriarch */ u.dots=u.dots||{}; const o=u.dots[k]; u.dots[k]=o?{d:Math.max(o.d,d),t:Math.max(o.t,t)}:{d,t}; }
 const clearDots=u=>{ if(u) delete u.dots; };
 const BLIGHT_HEAL=.5;   // a blighted unit receives half the healing
 const blightK=u=>(u&&u.dots&&u.dots.blight)?BLIGHT_HEAL:1;
@@ -459,7 +459,7 @@ function quietRoom(kind){   // a rest or treasure room: no fight, then the doors
   if(kind==='rest'){ P.hp=Math.min(pMax(),P.hp+Math.round(pMax()*REST_HEAL)); P.mana=Math.min(pMana(),P.mana+Math.round(pMana()*REST_HEAL)); S.army.forEach(x=>{ x.hp=Math.min(x.maxHp,x.hp+Math.round(x.maxHp*REST_HEAL)); });
     m='You rest among the bones. You and your army recover.'; sfx('heal'); }
   else if(kind==='script'){ m='The Scriptorium. Rows of drowned scribes, and the Ledger open at the page of your dead. You may cross out one name, or walk on.'; unlockStory('abbey4',r); sfx('skill'); }
-  else { const g=Math.round((15+P.lvl*5)*(1+r.di)*ngpReward()*(1+xb('goldp')/100)); S.gold+=g; r.goldTot=(r.goldTot||0)+g; r.lastGold=g; const it=addItem(pickRow(tableFor(r.di,'vanguard',true,false)));
+  else { const g=Math.round((15+softLv(P.lvl)*5)*(1+r.di)*ngpReward()*(1+xb('goldp')/100)); S.gold+=g; r.goldTot=(r.goldTot||0)+g; r.lastGold=g; const it=addItem(pickRow(tableFor(r.di,'vanguard',true,false)));
     if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } m='The vault gives up '+g+' gold'+(it?' and '+withArticle(ITEM[it.id].name):'')+'.'; sfx('coin'); }
   r.events.push({m,c:'ok'}); r.quiet=kind; r.doors=rollDoors(r); preRooms(r); S.mode='raise';
 }

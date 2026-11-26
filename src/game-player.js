@@ -145,13 +145,14 @@ function normalizeSave(src){
   const okItem=it=>!!(it&&ITEM[it.id]&&typeof it.u==='number');
   g.inv=g.inv.filter(okItem);
   for(const k in g.equip) if(!GEAR_SLOTS.includes(k)) delete g.equip[k]; for(const sl of GEAR_SLOTS) if(!okItem(g.equip[sl])) g.equip[sl]=null;
+  g.inv.concat(Object.values(g.equip)).forEach(hfFix);   /* heartforged marks (game-forge.js) */
   const RA=Array.isArray(g.raids)?g.raids.filter(x=>obj(x)&&RK[x.di]&&Array.isArray(x.units)):[];   // squads out raiding: repaired with the army, then split back out
   RA.forEach((x,i)=>x.units.forEach(m=>{ if(obj(m)){ m._raid=i; g.army.push(m); } }));
   for(const k of ['reserve','waiting']) (Array.isArray(g[k])?g[k]:[]).forEach(m=>{ if(obj(m)){ m._raid=k; g.army.push(m); } });   // the Reserve and minions waiting at the gate: repaired the same way, never trimmed
   g.army=g.army.filter(m=>m&&typeof m==='object'&&!m.thrall&&ROLES[m.role]&&typeof m.lvl==='number'&&(m.tw||RK[m.rankI]));
   for(const m of g.army){ m.hf=num(m.hf,1); m.af=num(m.af,1); m.xp=num(m.xp,0); m.hp=num(m.hp,1); m.nick=cleanNick(m.nick)||'Nameless'; m.name=cleanText(m.name); m.kind=cleanText(m.kind); if('fused' in m) m.fused=clamp(Math.floor(num(+m.fused,0)),0,FUSE_MAX); m.kind=m.kind||m.name; if(m.row!=='f'&&m.row!=='b') delete m.row; if(!RK[m.rankI]) m.rankI=twRank(Math.floor(num(m.tw,1)));   // tower minions store their tower rank
     m.traits=Array.isArray(m.traits)?m.traits.filter(t=>TRAITS[t]&&(t!=='commander'||canLead(m))):[]; m.stage=clamp(Math.floor(num(m.stage,0)),0,STAGE_MAX); m.lvl0=num(m.lvl0,m.lvl); if(m.cd&&!CORPSE_CONDS[m.cd]) delete m.cd; normMarks(m);   // minions from before traits keep no trait; cd: how its body died
-    if(m.armed){ m.eq=obj(m.eq)?m.eq:{}; for(const k in m.eq) if(!GEAR_SLOTS.includes(k)) delete m.eq[k]; for(const sl of GEAR_SLOTS) if(!okItem(m.eq[sl])) m.eq[sl]=null; } else if(m.eq!=null) m.eq=null; }
+    if(m.armed){ m.eq=obj(m.eq)?m.eq:{}; Object.values(m.eq).forEach(hfFix); for(const k in m.eq) if(!GEAR_SLOTS.includes(k)) delete m.eq[k]; for(const sl of GEAR_SLOTS) if(!okItem(m.eq[sl])) m.eq[sl]=null; } else if(m.eq!=null) m.eq=null; }
   let top=num(g.uid,0);   // next id must stay above every id in use, or two items/minions would share one
   g.inv.concat(Object.values(g.equip),...g.army.map(m=>m.eq?Object.values(m.eq):[])).forEach(it=>{ if(it) top=Math.max(top,it.u); });
   g.army.forEach(m=>{ top=Math.max(top,num(m.uid,0)); }); g.army.forEach(m=>{ if(typeof m.uid!=='number') m.uid=++top; });

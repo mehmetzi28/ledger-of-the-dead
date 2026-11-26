@@ -144,3 +144,23 @@ heart-forging rules in its bot policy only if they cost under a point.
 - **Heartforged pieces outclass uniques**: they have no unique power and at most three lines; uniques keep their powers and
   Awakening. If the bot drops uniques for heartforged pieces, cut line values to 80%.
 - **Brewing becomes a chore**: recipes show in one grid with a "brew best" button for the next run.
+
+### As built (PR A)
+
+- Code in `src/game-forge.js` (after `game-abbey.js`): `softLv`, `HF_LINES`, `HF_POW`, `hfInfo`, `heartforge`,
+  `hfReroll`, `hfSwap`, `forgeTower` and the power hooks (`hfTurn`, `hfPoison`, `hfScales`, `hfFree`, `hfSkill`,
+  `hfKill`). Items carry `it.hf` (the boss's name), `it.ro` (the chosen lines) and `it.pw` (a minor power); `hfFix`
+  cleans them on load. The Forge is a section of the market, not a new tab: heart chips, slot chips, line chips, then
+  Forge (two presses when a held unique still needs the heart).
+- Heartforged pieces are ordinary pieces of the boss's set (wardens and masters: the Throne set) with lines at the top
+  of the set's range (`HF_VAL` 1); wardens add 1.2% per floor. Lines are drawn from existing roll keys (raise, HP, ATK,
+  stats, damage and resist types, mana, ward, siphon), not new kit-specific effects such as "+Cinder Wave damage".
+- Minor powers, simplified: Brood is +25% poison damage (no mites), Verse makes every third skill free (no echo),
+  Mirror makes the first skill in each room free; Tide, Scales and Regrowth are as written; the Hunger's Hungry Page
+  mends 3% max HP per kill.
+- Tower trophies: 6 forge a Throne-set piece for 3,000 gold, 20% with an extra line. Abyssal trophies are not built yet.
+- Fix: the Scribe's Regalia (the abbey's set) no longer drops outside the abbey.
+- Bot: `hfPolicy` forges for a worn slot (not a unique or a heartforged piece) from spare hearts of a set at least as
+  high as the worn piece, keeping 3,000 gold; `"off":["forge"]`. Measured: 1.5-1.7 pieces a bot, ~20k gold, gold held
+  at day 100 ~20.5k, lifetime gold -2% from the soft cap (the spec hoped for 20-25%), gates and Tower unchanged (see 04).
+- Tests: `89-forge` (10).

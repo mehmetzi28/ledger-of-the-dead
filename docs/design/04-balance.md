@@ -24,6 +24,15 @@ to each constant in `src/` and in `claude.md`; this page is the summary to read 
 
 ## 4.2 Latest measurements (2026-11-26, seeds 7700 and 9100, 40 bots x 100 days)
 
+**After heart-forging and the gold soft cap (R4 PR A)**: market 89/90% gates, Tower 78.6/77.1; full 91/91%, Tower
+86.9/86.6, Rift 12/11.8, sieges 86/87%, rival 71/72%. A leak was fixed first: the Scribe's Regalia (the abbey's set)
+dropped from gate tables, the Tower, master legendaries and Rift records; it now drops only in the abbey, which alone
+took market lifetime gold from ~1.73M to ~1.54M (fewer high-value sales). The full bot forges 1.5-1.7 heartforged pieces
+a game (~20k gold) from spare hearts. The soft cap moves lifetime gold only ~2% (to ~1.15M in full), far from the spec's
+20-25%: most late gold is not the level part (difficulty, curses, bosses, sales). Gold held at day 100 ~20.5k, at the
+top of the 10-20k target, but the heart-forging sink is ~20k against a 150-250k target, because the bot holds few spare
+hearts; brewing, commissions and the black market (R4 PR B) are the larger sinks still to come.
+
 **After Vane Abbey (R3 PR A)**: the six gates are unchanged (market 90/89%, Tower 78.7/78.2, Rift 15.6/16.5; full
 92/92%, Tower 85.2/84.5, Rift 11.2/12.8, sieges 86/84%, rival 74/70%). The abbey opens for no bot inside 100 days: the
 bot climbs the Tower only after its days (85 floors on average) and holds the 20 valley pages only near day 100, and no
