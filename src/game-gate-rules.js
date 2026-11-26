@@ -311,6 +311,7 @@ const ECLIPSE_SHADOW=1.2, ECLIPSE_CRIT=.1, ECLIPSE_MISS=.1, HARVEST_TRO=.25, HAR
 const shadowK=()=>omen()==='eclipse'?ECLIPSE_SHADOW:1;   // Black Eclipse: Soul Siphon, the Siphon skills (Corpse Explosion, Grave Chill, Reap) and blight
 const foeCrit=()=>.25-(omen()==='eclipse'?ECLIPSE_CRIT:0);   // an enemy striker's crit chance
 function roomStart(list){   // a fresh room or floor: Soul Storm, the Swift affix and trait, and Ossified
+  cmdSync();   /* Command: measured as the room begins */
   foeRise(list);
   for(const m of S.army){ delete m.sx; if(m.hp>0&&hasTrait(m,'swift')) addSt(m,'hasted',2); }   // sx: Stitched used this room
   if(omen()==='soulstorm') gainSoul();

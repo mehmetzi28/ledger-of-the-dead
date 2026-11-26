@@ -388,7 +388,7 @@ function raidDayLine(rr){ if(!rr||!rr.length) return ''; const w=rr.filter(x=>x.
 // Endless endgame: from level 40, once the Throne of Ash has fallen. Each depth is a five-room run through a random gate's
 // dead, risen to your level and hardened by depth; rewards rise with it. Clearing your deepest depth opens the next and
 // leaves an extra legendary. RIFT_STEP .1->.3 on 2026-11-26: with the Soul Tether the market bot reached depth ~45 instead of ~23 (full ~18 instead of ~10).
-const RIFT_LV=40, RIFT_ROOMS=5, RIFT_STEP=.3, RIFT_DROP=.05, RIFT_DROP_MAX=2.5;
+const RIFT_LV=40, RIFT_ROOMS=5, RIFT_STEP=.55, RIFT_DROP=.05, RIFT_DROP_MAX=2.5;
 const riftOpen=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5])&&S.player.lvl>=RIFT_LV;
 const riftBest=()=>(S.rift&&S.rift.best)||0;
 const riftMul=n=>1+RIFT_STEP*(n-1);

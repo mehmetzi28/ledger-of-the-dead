@@ -353,7 +353,7 @@ function returnTown(){
   if(S.run&&S.run.siege){ siegeEnd(); save(); return; }   // back from the walls: then dawn
   const P=S.player;
   if(S.run){ recordRun(S,S.run,runResult(S.run)); recRun(S.run); }
-  P.hp=pMax(); P.mana=pMana(); P.shield=0; allies().forEach(clearAll); S.army.forEach(m=>m.hp=m.maxHp);
+  S.army.forEach(m=>m.hp=m.maxHp); cmdSync(); P.hp=pMax(); P.mana=pMana(); P.shield=0; allies().forEach(clearAll);
   S.run=null; S.mode='town';
   if(S.watches<=0) endDay();
   save();
