@@ -93,8 +93,23 @@ const guardFront=()=>frontOf(S.army).filter(m=>m.role==='vanguard').sort((a,b)=>
 const canGuard=()=>S.mode==='battle'&&!!S.run&&!(S.run.cmd&&S.run.cmd.guard)&&!!guardFront();
 function guard(){ if(!canGuard()) return false; const r=S.run; r.cmd=r.cmd||{}; r.cmd.guard=true; r.guard=r.turn; tally('commands'); log('Guard: '+guardFront().nick+' plants itself before you. The next blow that would kill you is its to take.','ok'); return true; }
 function guardBlow(tg,d){   // the vanguard that takes this blow on you instead, or null
-  const r=S.run, P=S.player; if(!r||tg.id!=='p'||r.guard!==r.turn||allyDr(P,d)-(P.shield||0)<P.hp) return null;
+  const r=S.run, P=S.player; if(!r||tg.id!=='p'||r.guard!==r.turn||afterWard(P,allyDr(P,d))<P.hp) return null;   /* the Soul Tether counts: a blow it holds under your HP is not a killing blow */
   const v=guardFront(); if(!v) return null; delete r.guard; log('Guard: '+v.nick+' steps in front of you and takes the killing blow.','ok'); sfx('guardblow'); return v; }
+// Soul Tether: while one of your minions stands in the front row, no single foe blow (a hit, a crit, a hasted strike or a boss move)
+// takes more than TETHER of your max HP once Bone Ward has soaked its share; the sturdiest front-row minion takes the rest (its own
+// damage reduction applies). Bleeding, burns and other damage over time are not blows and are never tethered.
+// Why: from the B gate on, foe blows outgrow your HP (0.8-1.1x your max HP at B to S, 1.6x in the Tower, 5x in the Rift), and the
+// balance bot found ~97% of deaths there were one blow at full health: luck, not the room. Now a lone blow cannot fell you while your
+// front holds, two can, and a broken front leaves you bare, so the army's front row is what keeps you alive (2026-11-26).
+const TETHER=.5;
+const TETHER_TXT='While a minion of yours stands in the front row, no single foe blow takes more than '+Math.round(TETHER*100)+'% of your max HP: the sturdiest front-row minion takes the rest. Bleeding, burns and other damage over time are not blows.';
+const tetherFront=()=>S.run?frontOf(S.army).sort((a,b)=>b.hp-a.hp)[0]||null:null;
+const tetherCap=d=>{ if(!S.run||!tetherFront()) return d; const cap=Math.max(1,Math.round(pMax()*TETHER)); return Math.min(d,cap); };   // what a blow of d (after your ward) can take from you
+function tetherBlow(d){   // hurtAlly, on you, during a foe blow: returns what still lands on you
+  const t=tetherFront(), cap=Math.max(1,Math.round(pMax()*TETHER)); if(!t||d<=cap) return d;
+  const took=hurtAlly(t,d-cap); tally('tethered'); log('Soul Tether: '+t.nick+' takes '+took+' of the blow for you.','ok'); fxe('hurt',t,{});
+  return cap;
+}
 
 // ===== STORY AND BOSS VOICES =====
 // The Ledger tells its story as you go: a passage for the first clear of each gate and for Tower milestones. Bosses speak.

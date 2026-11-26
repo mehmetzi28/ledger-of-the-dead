@@ -17,7 +17,7 @@ const TIER_MARK=TIERS.map((n,t)=>'<svg class="tmark" viewBox="0 0 '+(t>=5?8:t*5+
 function iico(d){ const set=!d.uq&&!d.tower&&RANKS[d.set]!=null, g=iglyph(d), M=IMAT[g]||['metal',ITEM_HUE[d.slot]||'#6a655c'];   // each gate's set has its own metal and its rank letter in the corner; each piece its own shape and material
   return '<span class="ico t'+d.tier+(set?' s'+d.set:'')+'" aria-hidden="true"><svg viewBox="0 0 64 64" class="mt-'+M[0]+'" style="color:'+M[1]+'"><g filter="url(#paint)">'+(IC[g]||IC._)+'</g>'+(d.tier>=4?GLINT:'')+'</svg>'+(set?'<span class="rb gl r'+d.set+'">'+RANKS[d.set]+'</span>':'')+(TIER_MARK[d.tier]||'')+'</span>'; }
 const statTxt=(k,v)=>(v>0?'+':'&minus;')+Math.abs(v)+STATL[k][1]+' '+STATL[k][0];
-function statsHTML(d,it){ return Object.keys(d.stats).filter(k=>d.stats[k]).map(k=>'<span>'+statG(k,d.stats[k])+'</span>').join('')
+function statsHTML(d,it){ return Object.keys(d.stats).filter(k=>d.stats[k]).map(k=>'<span>'+statG(k,baseStat(it,d,k))+'</span>').join('')
   +((it&&it.ro)||[]).map(r=>'<span class="roll" title="Bonus line">'+statG(r[0],r[1])+'</span>').join(''); }
 // A fold for long text: a native <details>, so it opens from the keyboard; ui.det remembers it across renders (ui-input.js). With keep the summary
 // stays when open (a heading); without it the summary (a short line) gives way to the body, which holds the full text.
@@ -36,11 +36,11 @@ function setLine(d){ if(d.tower||SET_NAMES[d.set]==null) return usetLine(d); con
   return detl('gs'+d.set,SET_NAMES[d.set]+' set'+(n?' ('+n+'/3 worn)':''),'<span class="'+(n>=2?'on':'')+'">2: '+buffTxt(B[2])+'</span> &middot; <span class="'+(n>=3?'on':'')+'">3: '+buffTxt(B[3])+'</span>','setl',1)+usetLine(d); }
 function itemCard(it,acts,cmp){
   const d=ITEM[it.id];
-  return '<div class="item t'+d.tier+'">'+iico(d)+'<div class="i-body"><div class="i-top"><span class="i-name">'+d.name+'</span><span class="i-tag">'+TIERS[d.tier]+' &middot; '+SLOTS[d.slot]+(!d.uq&&!d.tower&&RANKS[d.set]?'<span class="sr"> &middot; gate '+RANKS[d.set]+' set</span>':'')+(d.tower?' &middot; <span class="i-floor">Hell Tower '+d.floor+'</span>':'')+'</span></div>'
+  return '<div class="item t'+d.tier+'">'+iico(d)+'<div class="i-body"><div class="i-top"><span class="i-name">'+d.name+'</span><span class="i-tag">'+TIERS[d.tier]+' &middot; '+SLOTS[d.slot]+(!d.uq&&!d.tower&&RANKS[d.set]?'<span class="sr"> &middot; gate '+RANKS[d.set]+' set</span>':'')+(d.tower?' &middot; <span class="i-floor">Hell Tower '+d.floor+'</span>':'')+(it.aw?' &middot; <span class="i-aw" title="'+AWAKEN_TXT+'">Awakened '+AWAKEN_RN[it.aw]+'</span>':'')+'</span></div>'
    +'<div class="i-stats">'+statsHTML(d,it)+'</div>'+(d.flag?detl('fx'+d.flag,FLAGS[d.flag].split(':')[0],FLAGS[d.flag],'i-fx'):'')+setLine(d)+(cmp?cmpHTML(it):'')+'</div><div class="i-acts">'+(acts||'')+'</div></div>';
 }
 const lockBtn=it=>'<button class="btn small lockb'+(it.lk?' on':'')+'" data-a="lock" data-k="'+it.u+'" aria-pressed="'+!!it.lk+'" title="'+(it.lk?'Locked: never sold, salvaged or discarded. Press to unlock.':'Lock it so it is never sold, salvaged or discarded')+'">'+(it.lk?'Locked':'Lock')+'</button>';
-const reforgeBtn=it=>ITEM[it.id].uq||S.mode!=='town'?'':'<button class="btn small" data-a="reforge" data-k="'+it.u+'"'+(S.gold<reforgeCost(it)?' disabled':'')+' title="Re-roll its bonus lines">Reforge &middot; '+gold(reforgeCost(it))+'</button>'+enchBtn(it);
+const reforgeBtn=it=>S.mode!=='town'?'':ITEM[it.id].uq?awakenBtn(it):'<button class="btn small" data-a="reforge" data-k="'+it.u+'"'+(S.gold<reforgeCost(it)?' disabled':'')+' title="Re-roll its bonus lines">Reforge &middot; '+gold(reforgeCost(it))+'</button>'+enchBtn(it);
 const dust=n=>'<span class="dust-n">'+n.toLocaleString()+' dust</span>';
 function enchBtn(it){   // Enchant opens the choices: add a line (if there is room) or re-roll one line
   if(ITEM[it.id].uq||S.mode!=='town'||!workOpen()) return '';
@@ -51,6 +51,10 @@ function enchBtn(it){   // Enchant opens the choices: add a line (if there is ro
     +(!ro.length&&!lineMax(it)?'<span class="u-sub">Common gear has no room for a bonus line.</span>':'')+'</div>';
   return h;
 }
+function awakenBtn(it){   // a unique: gold, bone dust and its boss's hearts raise its own stats a rank (game-phases-town.js AWAKENING)
+  if(!workOpen()) return ''; const c=awakenCost(it); if(!c) return '<span class="u-sub">Fully awakened</span>';
+  const T=TROPHY[c.key], have=S.trophies[c.key]||0;
+  return '<button class="btn small" data-a="awaken" data-k="'+it.u+'"'+(canAwaken(it)?'':' disabled')+' title="'+AWAKEN_TXT+'">Awaken '+AWAKEN_RN[(it.aw|0)+1]+' &middot; '+gold(c.g)+' &middot; '+dust(c.d)+' &middot; '+(T?T.name:'hearts')+' '+have+'/'+c.h+'</button>'; }
 function temperBtn(it,i){ const r=it.ro[i], to=temperTo(it,i), mx=rollMax(it,r[0]), c=temperCost(it);   // gold moves a line toward its best roll
   return to==null?'<span class="u-sub">'+statTxt(r[0],r[1])+': at its best</span>':'<button class="btn small" data-a="temper" data-k="'+it.u+'|'+i+'"'+(S.gold<c?' disabled':'')+' title="Move this line a quarter of the way to its best roll">Temper: '+r[1]+' &rarr; '+to+' (max '+mx+') &middot; '+gold(c)+'</button>'; }
 const pc=p=>{ p*=100; return (p>=10?p.toFixed(0):p>=1?p.toFixed(1):p.toFixed(2))+'%'; };

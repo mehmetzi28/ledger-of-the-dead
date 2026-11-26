@@ -20,6 +20,8 @@
 // The ~80% target is for the 'market' bot (skills + shopping + altar). The early option is no longer needed: SAFE for A and S
 // now matches where they are balanced. Current numbers, averaged over seeds 7700 and 9100 (results swing ~±7 points per seed set):
 // LOTD_BALANCE.run({bots:40, days:100, seed:7700, modes:['market']})   (one mode per call, ~15 s in a browser), or in Node: node tests/run-balance.js
+//   2026-11-26 Soul Tether, one soul per boss, Awakening, B/A/S/Tower/Rift/rival/siege retune (seeds 7700/9100): market 89/90%, tower 78/79, rift 25/27;
+//   full 90/90%, tower 88/88, rift 12/12, sieges 84%, rival 71/68%; full awakens ~6.5 ranks (~60k gold). Tower by day (market): 35 ~43, 60 ~68, 100 ~78.
 //   2026-11-20 headstones and events in 'full' (seed 7700): market 87% (unchanged); full 89%, tower 86; "off":["events"] 88%, tower 82;
 //   ~264 events a bot (243 chain meetings, 120 chains ended over 40 bots). Headstones: ~186k gold a bot (median 156k), 28 tiers, +5% max HP;
 //   full gold held day 100 avg/median 20k/19k with them, 39k/32k with "off":["head"].
@@ -119,6 +121,9 @@
         if(typeof repairBuilding==='function'&&S.siege&&S.siege.dmg) repairBuilding();   // a building burned in a siege: repair it first
         if(townOpen()) for(const k of ['crypt','ossuary','altar','forge']){ const c=buildCost(k); if(!B.off[k]&&c&&S.gold-c[0]>=reserve) build(k); }
         if(!B.off.enchant) for(const sl of GEAR_SLOTS){ const it=S.equip[sl]; if(it&&!ITEM[it.id].uq) while((it.ro||[]).length<lineMax(it)&&enchant(it.u,-1)); }
+        if(!B.off.awaken&&typeof awaken==='function') for(let g=0;g<25;g++){   // awakening: the cheapest rank of a worn unique while 10000 gold stays in hand ("off":["awaken"])
+          const c=GEAR_SLOTS.map(sl=>S.equip[sl]).filter(it=>it&&canAwaken(it)).sort((a,b)=>awakenCost(a).g-awakenCost(b).g)[0];
+          if(!c||S.gold-awakenCost(c).g<10000||!awaken(c.u)) break; }
         if(!B.off.temper&&typeof temper==='function') for(let g=0;g<200&&S.gold>10000;g++){   // tempering: worn lines, cheapest first, keeping 10000 gold in hand
           const c=[]; for(const sl of GEAR_SLOTS){ const it=S.equip[sl]; if(it) (it.ro||[]).forEach((r,i)=>{ if(temperTo(it,i)!=null) c.push([temperCost(it),it,i]); }); }
           c.sort((a,b)=>a[0]-b[0]); if(!c.length||S.gold-c[0][0]<10000||!temper(c[0][1].u,c[0][2])) break; }
@@ -242,7 +247,7 @@
   }
   function climb(B,from){   // one tower climb (from floor 1 unless told otherwise), never retreating; returns the highest floor cleared
     S.watches=Math.max(1,S.watches); S.mode='town'; S.run=null; startTower(from||1); let guard=0;
-    while(S.mode!=='town'&&guard++<6000){
+    while(S.mode!=='town'&&guard++<60000){
       if(S.mode==='battle') act(decide(B));
       else if(S.mode==='raise'){ playEvent(B); raisePhase(B); if(S.run.cleared) break; descend(); }
       else break;
@@ -287,8 +292,8 @@
     }
     town(B);
     const tower=(typeof towerOpen==='function'?towerOpen():S.player.lvl>=TW.unlock)?climb(B):0;
-    let riftDeaths=0;   // the Rift: keep going one depth deeper until it has killed the bot 3 times (at most 40 runs)
-    if(typeof riftOpen==='function'&&riftOpen()&&!B.off.rift) for(let i=0;i<40&&riftDeaths<3;i++){
+    let riftDeaths=0;   // the Rift: keep going one depth deeper until it has killed the bot 3 times (at most 120 runs; 40 capped it once the Soul Tether came in)
+    if(typeof riftOpen==='function'&&riftOpen()&&!B.off.rift) for(let i=0;i<120&&riftDeaths<3;i++){
       S.mode='town'; S.run=null; S.watches=Math.max(1,S.watches); town(B); if(!startRift(riftBest()+1)) break; let guard=0;
       while(S.mode!=='town'&&guard++<4000){ if(S.mode==='battle') act(decide(B)); else if(S.mode==='raise'){ playEvent(B); raisePhase(B); if(S.run.cleared) break; descend(); } else break; }
       if(S.mode==='defeat') riftDeaths++; returnTown(); }
@@ -296,7 +301,8 @@
     const sec={met:T_('secretMet'),slain:SECRET.reduce((a,B,i)=>a+T_('secret_'+i),0)};
     const rival={met:T_('rivalMet'),wins:T_('rivalWins'),losses:T_('rivalLosses'),thefts:T_('rivalThefts'),day:(S.rival&&S.rival.met)||0};
     const head=typeof headBonus==='function'?{g:T_('headG'),t:headTiers(),b:headBonus()}:null;
-    return {ev:B.ev||{},chainsEnded:T_('chains'),head,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
+    const awk={g:T_('awakenG'),n:T_('awakened')};   // awakening ranks bought and their gold
+    return {ev:B.ev||{},chainsEnded:T_('chains'),head,awk,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
   }
 
   // ----- reporting
@@ -327,6 +333,7 @@
     const med=a=>{ if(!a.length) return '-'; const b=a.slice().sort((x,y)=>x-y), m=b.length>>1; return Math.round(b.length%2?b[m]:(b[m-1]+b[m])/2); };
     const gold={}; [30,60,100,days].forEach(d=>{ if(d>days) return; const a=res.map(r=>r.goldAt&&r.goldAt[d]).filter(Boolean); if(a.length) gold['day'+d]={avg:Math.round(avg(a.map(x=>x[0]))),median:med(a.map(x=>x[0])),earned:Math.round(avg(a.map(x=>x[1]))),spent:Math.round(avg(a.map(x=>x[2])))}; });   // gold held at dusk, and lifetime earned vs spent
     gold.maus=avg(res.map(r=>r.maus||0)); gold.bonds=avg(res.map(r=>r.bonds||0));   // mausoleums raised and bonded pairs at the end
+    { const a=res.map(r=>r.awk).filter(Boolean); if(a.some(x=>x.n)) gold.awaken={spent:Math.round(avg(a.map(x=>x.g))),ranks:avg(a.map(x=>x.n))}; }
     { const h=res.map(r=>r.head).filter(Boolean); if(h.some(x=>x.g)) gold.headstones={spent:Math.round(avg(h.map(x=>x.g))),medianSpent:med(h.map(x=>x.g)),tiers:avg(h.map(x=>x.t)),hpBonus:avg(h.map(x=>x.b*100))+'%'}; }   // headstones ('full'): gold spent, tiers and the max HP bonus at the end, per bot
     const events={}; for(const r of res) for(const k in r.ev||{}) events[k]=(events[k]||0)+r.ev[k];   // events met by id:choice (summed over bots), and ok/bad outcomes
     if(Object.keys(events).length){ const n=k=>Object.keys(events).filter(x=>k(x)).reduce((a,x)=>a+events[x],0); events.perBot=avg(res.map(r=>Object.keys(r.ev||{}).filter(x=>x.includes(':')).reduce((a,x)=>a+r.ev[x],0)));

@@ -342,6 +342,30 @@ function temper(u,i){
   const v=temperTo(it,i), c=temperCost(it); if(v==null||S.gold<c) return false;
   S.gold-=c; vitals(()=>{ const r=it.ro.slice(); r[i]=[r[i][0],v]; it.ro=r; }); it.tp=(it.tp||0)+1; tally('tempered'); sfx('level'); return true;
 }
+// ===== AWAKENING =====
+// Uniques take no bonus lines, so reforging, enchanting and tempering pass them by, and late gold had nothing left to buy that made you
+// stronger (the bots held 20-40k at day 100 with ~17k a day coming in). In town a unique can be awakened up to AWAKEN_MAX times: each rank
+// adds AWAKEN_K of its own stats (army slots and mana per turn excepted) and costs gold, bone dust and hearts of the boss or warden that
+// drops it, so a cleared gate's boss hearts and the Tower's wardens keep paying long after their first unique. it.aw = ranks.
+// Cost per rank n (0-based): gold AWAKEN_GOLD x scale x AWAKEN_GROW^n, dust AWAKEN_DUST x scale x (n+1), n+1 hearts; scale 1 for the Rat Warren's
+// unique up to 2 for the Throne's, and 1.2-3 up the Tower. Five ranks of a Throne unique cost ~250k gold.
+const AWAKEN_MAX=5, AWAKEN_K=.08, AWAKEN_GOLD=4000, AWAKEN_GROW=2, AWAKEN_DUST=20, AWAKEN_FLAT={slot:1,regen:1};
+const AWAKEN_TXT='Each rank adds '+Math.round(AWAKEN_K*100)+'% to the unique\'s own stats (army slots and mana per turn excepted), up to '+AWAKEN_MAX+' ranks. It costs gold, bone dust and hearts of the boss or warden that drops it.';
+const AWAKEN_RN=['','I','II','III','IV','V'];
+function uniqHeart(id){ const d=ITEM[id]; if(!d||!d.uq) return null; return 'b:'+(d.tower?TW_BOSS[clamp(Math.round(d.floor/10)-1,0,TW_BOSS.length-1)]:DUNGEONS[d.set].boss[0]); }   // the trophy key of its boss's heart
+const awakenScale=d=>d.tower?1+d.floor/50:1+d.set*.2;
+function awakenCost(it){ const d=ITEM[it&&it.id]; if(!d||!d.uq||(it.aw|0)>=AWAKEN_MAX) return null; const n=it.aw|0, k=awakenScale(d);
+  return {g:Math.round(AWAKEN_GOLD*k*Math.pow(AWAKEN_GROW,n)/100)*100, d:Math.round(AWAKEN_DUST*k*(n+1)), h:n+1, key:uniqHeart(it.id)}; }
+const awakenTotal=set=>{ let g=0; const it={id:'u'+set}; for(let n=0;n<AWAKEN_MAX;n++){ it.aw=n; g+=awakenCost(it).g; } return g; };   // the Codex's figure: all five ranks of a gate's unique
+const canAwaken=it=>{ const c=awakenCost(it); return !!c&&S.mode==='town'&&workOpen()&&S.gold>=c.g&&(S.dust||0)>=c.d&&(S.trophies[c.key]||0)>=c.h; };
+function awaken(u){
+  const it=findItem(u); if(!it||!canAwaken(it)) return false; const c=awakenCost(it);
+  S.gold-=c.g; S.dust-=c.d; S.trophies[c.key]-=c.h; if(!S.trophies[c.key]) delete S.trophies[c.key];
+  vitals(()=>{ it.aw=(it.aw|0)+1; }); tally('awakened'); tally('awakenG',c.g); sfx('level'); return true;
+}
+function heartsKept(k){   // hearts of this kind that the uniques you hold still need to reach their last rank ("Sell all" keeps these)
+  let n=0; for(const it of S.inv.concat(Object.values(S.equip))) if(it&&ITEM[it.id]&&ITEM[it.id].uq&&uniqHeart(it.id)===k) for(let r=(it.aw|0);r<AWAKEN_MAX;r++) n+=r+1;
+  return n; }
 function enchant(u,line){   // line < 0 adds a line; otherwise re-rolls that line
   const it=findItem(u); if(!it||S.mode!=='town'||ITEM[it.id].uq) return false;
   const c=enchCost(it), ro=it.ro||[]; if((S.dust||0)<c) return false;
@@ -373,7 +397,7 @@ function enchant(u,line){   // line < 0 adds a line; otherwise re-rolls that lin
 // HP x1.5 -> x1.4 the same day after the gate retune (harder S foes): held 79-81% -> 84% (seed 7700) and 81% (9100).
 // HP x1.4 -> x1.7, attack x1.5 -> x1.8 the same day after the stat rebalance (minions hit harder): held 91% -> 85% on both seeds.
 // HP x1.7 -> x2.4, attack x1.8 -> x2.5 the same day after rows, foe intents, bonds and mausoleums: held 91% -> 86% (7700) and 84% (9100).
-const SIEGE_BUILT=2, SIEGE_GAP=[7,10], SIEGE_WAVES=3, SIEGE_LV=1, SIEGE_HP=2.4, SIEGE_ATK=2.5, SIEGE_XP=.4, SIEGE_BOSS_LV=1, SIEGE_MOVE='decree',
+const SIEGE_BUILT=2, SIEGE_GAP=[7,10], SIEGE_WAVES=3, SIEGE_LV=1, SIEGE_HP=2.2, SIEGE_ATK=2.5, SIEGE_XP=.4, SIEGE_BOSS_LV=1, SIEGE_MOVE='decree',
   SIEGE_GOLD=1.5, SIEGE_DUST=1, SIEGE_DROP=.5, SIEGE_REPAIR=.5, SIEGE_FINE=.1, SIEGE_FINE_MAX=1,
   SIEGE_CRYPT=.05, SIEGE_OSS_GAP=2, SIEGE_ALT=.10, SIEGE_FORGE=.05, SIEGE_WALL=2;
 const SIEGE_FOES={vanguard:['Militia Spearman',1.3,.85],striker:['Crossbowman',.9,1.25],mender:['Chaplain',.8,.8],reaper:['Witch-hunter',1.1,1.2]};   // [name, hp factor, atk factor]

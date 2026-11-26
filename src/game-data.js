@@ -226,8 +226,9 @@ function rollItem(id,atLeast){
   }
   return out.length?out:null;
 }
-const itStat=(it,k)=>{ const d=ITEM[it.id]; let n=(d&&d.stats[k])||0; if(it.ro) for(const r of it.ro) if(r[0]===k) n+=r[1]; return n; };
-const itStats=it=>{ const o=Object.assign({},ITEM[it.id].stats); if(it.ro) for(const r of it.ro) o[r[0]]=(o[r[0]]||0)+r[1]; return o; };
+const baseStat=(it,d,k)=>{ const v=(d&&d.stats[k])||0; return v&&it&&it.aw&&d.uq&&!AWAKEN_FLAT[k]?Math.round(v*(1+AWAKEN_K*it.aw)):v; };   // an awakened unique's own stats (game-phases-town.js AWAKENING)
+const itStat=(it,k)=>{ const d=ITEM[it.id]; let n=baseStat(it,d,k); if(it.ro) for(const r of it.ro) if(r[0]===k) n+=r[1]; return n; };
+const itStats=it=>{ const d=ITEM[it.id], o={}; for(const k in d.stats) o[k]=baseStat(it,d,k); if(it.ro) for(const r of it.ro) o[r[0]]=(o[r[0]]||0)+r[1]; return o; };
 const G=k=>{ let n=0; if(S&&S.equip) for(const sl in S.equip){ const it=S.equip[sl]; if(it&&ITEM[it.id]) n+=itStat(it,k); } return n+xb(k); };   // gear plus the worn title
 const A=k=>S.player.stats[k]+G(k);
 const sk=id=>(S&&S.player&&S.player.skills&&S.player.skills[id])||0;   // learned rank of a skill (0 = not learned)
@@ -238,7 +239,10 @@ const hasFlag=f=>(!!(S&&S.equip)&&Object.values(S.equip).some(it=>it&&ITEM[it.id
 // 2026-11-19 after the stat rebalance the bots reached floor ~90 (market) / ~99 (full); hpG .025->.037 and atkG .021->.024 (health grows faster
 // than attack: that spread market and full the way they were) bring them back to ~72 / ~83, near the 71 / 82 before the stat rework.
 // The same day the new systems lifted them to ~73 / ~91; hpG .037->.042 brings them to ~71 / ~83 (seeds 7700/9100).
-const TW={unlock:10,hp0:4.7,hpG:.042,atk0:3.9,atkG:.024,repeat:.06,armor:.85,foeAtk:1.4};   // armor/foeAtk: enemy-only, see DIFF.armor
+// 2026-11-26, after the Soul Tether: nothing one-shots the hero, so a day-100 army walked all 100 floors (once the bot's step limit was lifted).
+// hpG .042->.06, atkG .024->.04 and a steeper climb past 60 keep the market bot's curve (floor ~43 on day 35, ~68 on day 60, ~78 on day 100;
+// it was 43/66/79) and bring the full bot from ~94 to ~88.
+const TW={unlock:10,hp0:4.7,hpG:.06,atk0:3.9,atkG:.04,repeat:.06,armor:.85,foeAtk:1.4};   // armor/foeAtk: enemy-only, see DIFF.armor
 const TW_MOBS=[['Imp','striker',.95,1.3],['Hellhound','striker',.95,1.3],['Chain Devil','vanguard',1.4,.9],['Pit Warden','vanguard',1.4,.9],['Soul Tender','mender',.8,.8],['Brimstone Chanter','mender',.8,.8]];
 TW_MOBS.push(['Hell Legionary','vanguard',1.4,.9],['Infernal Duelist','striker',.95,1.3]);
 const TW_BOSS=['The Gate Hound','Cinder Matron','The Iron Inquisitor','Lord of Flies','The Bone Cantor','Duke of Chains','The Pale Executioner','Archdevil Vael','The Hollow Seraph','Abaddon, King of Hell'];
@@ -261,9 +265,10 @@ const TW_IDS={};
 TW_UNIQ.forEach((u,i)=>{ const id='w'+(i+1); ITEM[id]=Object.assign({id,set:6,tier:5,uq:true,kind:'u',tower:true,floor:u.f},u); (TW_IDS[u.f]=TW_IDS[u.f]||[]).push(id); });
 const twLvl=f=>6+Math.round(f*.5);                       // enemy level on floor f
 const twRank=f=>Math.min(5,2+Math.floor(f/25));          // rank letter shown for tower enemies (C..S)
-// Above floor 60 the climb steepens more slowly (attack at half the rate, HP at 70%): the old curve one-shot level-70 players
-// on floor 90, so floor 100 was out of reach. The recommended level now also climbs faster up there, so it tells the truth.
-const twHpF=f=>f<=60?f:60+(f-60)*.7, twAtkF=f=>f<=60?f:60+(f-60)*.5;
+// Above floor 60 the climb steepens faster (HP and attack at 1.5x the rate). It used to slow down there (attack at half the rate, HP at 70%)
+// because the old curve one-shot level-70 players on floor 90; the Soul Tether ended one-shots, and the flatter top let a level-52 army
+// walk to floor 100. The recommended level climbs faster up there too, so it tells the truth.
+const twHpF=f=>f<=60?f:60+(f-60)*1.5, twAtkF=f=>f<=60?f:60+(f-60)*1.5;
 const recLv=f=>f<=60?10+Math.round(f*.5):40+Math.round((f-60)*1.2);   // level a decent player wants for floor f
 function towerStats(f,lvl,hf,af,boss,elite){
   let hp=14*TW.hp0*Math.pow(1+TW.hpG,twHpF(f)-1)*hf*DIFF.hp*(1+.16*(lvl-1));
@@ -340,6 +345,9 @@ const enrage=e=>(e.tw&&e.boss)?1+Math.max(0,S.run.turn-8)*(e.tw===100?.12:.07):1
 // 2026-11-19, after the lower raise chance, smaller mastery and stronger stat scaling (market bot cleared D 62%, B/A/S 91-95%): gate[1] 1.65->1.5,
 // foeAtk D 1.3->.85, B 2.1->2.8, A 1.38->2.2, S .8->1.55. Later the same day, after the stat rebalance (market B 73-78%, A 74-81%): foeAtk B 2.8->2.6, A 2.2->2.1.
 const DIFF={hp:2.2,atk:2.0,gate:[0.68,1.5,2.2,1.9,1.7,2.45],xpBase:64,xpExp:1.85,heal:.15,mana:.25,mheal:.2,deathXp:.15};
+// 2026-11-26, the Soul Tether (a lone blow takes at most half your HP while your front holds): B/A/S deaths were ~97% one blow at full HP, so their
+// foe attack barely mattered; with the tether it does. foeAtk B 2.6->5.2, A 2.1->4.2, S 1.55->4.5 and S armor .85->.94 (S rooms took 1.5 turns once
+// nothing one-shot the hero) put the market bot's clear-by-level curve back where it was (B 88% at Lv16, A 80% at 19, S 74/80% at 26/27).
 // 2026-11-21: foeAtk E 1->1.2, D .85->.95 (market E 93->89-91%, D 86-91->82-86%). The S gate stays ~91% when farmed 15 levels over: foes only 4 levels below the hero did not move it.
 // SAFE: the hero level the balance bot (tests/balance-test.js) starts entering each gate at, and the reference level of the farming falloff (farmK)
 // and of secret-master growth (SB_GROW). Rules and bot only: what the player is told is gateRec (below), which is measured and follows the tuning.
@@ -349,7 +357,7 @@ const SAFE=[1,6,10,15,19,25];   // A and S were 22/28, which the XP from B could
 // DIFF.hp/atk and DIFF.gate move both sides; armor and foeAtk affect living foes only. Tuned with tests/balance-test.js.
 // Target: a bot that learns skills, entering each gate at its Recommended level, clears ~80% of runs (A and S were tuned entering 3 levels early,
 // because the XP curve stalls the fair bot near level 20). The no-skill bot dies noticeably more often.
-DIFF.armor=[0.30,0.66,0.88,0.85,0.89,0.85]; DIFF.foeAtk=[1.2,0.95,1.0,2.6,2.1,1.55];   // retuned after boss abilities, altar, salts, and minion traits/evolution (D, A, S raised); xpBase 70->64 keeps the leveling pace (S first cleared ~day 64)   A 1.5->1.38 after status effects (bleeding from its strikers)   D 1.2->1.1 and C 1.2->1.0: the bots cleared C 69% (market) and D 71% (full), now about 80% and 76%   D armor .74->.66 with foeAtk 1.1->1.3: same danger, shorter rooms (bots: 7.5->5.8 turns per room market, 9.6->7.1 full)
+DIFF.armor=[0.30,0.66,0.88,0.85,0.89,0.94]; DIFF.foeAtk=[1.2,0.95,1.0,5.2,4.2,4.5];   // retuned after boss abilities, altar, salts, and minion traits/evolution (D, A, S raised); xpBase 70->64 keeps the leveling pace (S first cleared ~day 64)   A 1.5->1.38 after status effects (bleeding from its strikers)   D 1.2->1.1 and C 1.2->1.0: the bots cleared C 69% (market) and D 71% (full), now about 80% and 76%   D armor .74->.66 with foeAtk 1.1->1.3: same danger, shorter rooms (bots: 7.5->5.8 turns per room market, 9.6->7.1 full)
 // Farming far below you on Normal pays less: kill XP, kill gold and the clear bonus are full up to FARM_FROM levels past a gate's SAFE level,
 // then ramp down to FARM_MIN at FARM_TO and beyond. Hard and up, cursed gates, a gate's first clear, drops, the Tower, the Rift, raids, bounties and quests pay in full.
 DIFF.farmFrom=8; DIFF.farmTo=20; DIFF.farmMin=.5;
@@ -361,7 +369,7 @@ const farmK=(di,lvl)=>{ const t=clamp(((lvl-SAFE[di])-DIFF.farmFrom)/(DIFF.farmT
 // DIFF.gate or foe level RK.lv shifts the advice by the number of foe levels (LV_HP/LV_ATK growth) that changes that product as much.
 // A test fails once the shift passes REC_DRIFT levels: then re-measure and update REC_BASE and REC_AT together.
 const LV_HP=.16, LV_ATK=.12;   // foe and minion growth per level (mobStats)
-const REC_BASE=[1,5,9,16,19,27], REC_AT=[[.30,1.2,.68,1],[.66,.95,1.5,4],[.88,1,2.2,8],[.85,2.6,1.9,12],[.89,2.1,1.7,17],[.85,1.55,2.45,23]], REC_DRIFT=2;   // REC_AT per gate: [armor, foeAtk, gate, RK.lv]. Re-measured 2026-11-19 after the retune (market bot, seed 7700, byLvl and push): the bot first reached ~75% at 1/5/9/15/19/27 (1/7/11/16/20/25 on 2026-11-15); again after the stat rebalance the same day: 1/5/9/16/19/27
+const REC_BASE=[1,5,9,16,19,27], REC_AT=[[.30,1.2,.68,1],[.66,.95,1.5,4],[.88,1,2.2,8],[.85,5.2,1.9,12],[.89,4.2,1.7,17],[.94,4.5,2.45,23]], REC_DRIFT=2;   // REC_AT per gate: [armor, foeAtk, gate, RK.lv]. Re-measured 2026-11-26 after the Soul Tether and the B/A/S retune (market, seed 7700, byLvl): B 68/88% at Lv 15/16, A 80% at 19, S 74/80% at 26/27, so REC_BASE stands. Re-measured 2026-11-19 after the retune (market bot, seed 7700, byLvl and push): the bot first reached ~75% at 1/5/9/15/19/27 (1/7/11/16/20/25 on 2026-11-15); again after the stat rebalance the same day: 1/5/9/16/19/27
 function recShift(di,f){   // f: a difficulty's foe multiplier (HEAT[h].foe); spawnRoom scales foe HP and attack by it alike, so danger goes by f squared
   const a=REC_AT[di], k=(g,ar,fa)=>g*g*fa/(1-ar), grow=t=>(1+LV_HP*t)*(1+LV_ATK*t);   // t = foe level - 1
   const R=k(DIFF.gate[di],DIFF.armor[di],DIFF.foeAtk[di])/k(a[2],a[0],a[1])*grow(RK[di].lv+1)*(f||1)*(f||1), A=LV_HP*LV_ATK, B=LV_HP+LV_ATK;   // mid-run foes stand 2 levels above RK.lv
