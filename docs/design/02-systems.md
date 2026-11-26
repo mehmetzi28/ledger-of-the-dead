@@ -337,7 +337,20 @@ harder) and The Last Entry (Write Your Name sets you to 1 HP unless warded or fr
 strongest minion once unless Guarded; after six of your actions the book runs out and you win). Loot: the Scribe's
 Regalia (legendary set; 3 pieces give Marginalia: every third skill is free and lands as the target's weakest damage
 type) and Oswin's Ledger-Chain (+1% minion stats per headstone, up to 20%; a downed minion's last blow comes back as a
-free Bone Spear once a room). Five titles so far (Riverturner, Scriptor, Echo-Breaker, Unwritten, Seven Seals).
+free Bone Spear once a room). Eight titles (Riverturner, Scriptor, Echo-Breaker, Unwritten, Seven Seals, The Last Keeper, The Hand That Writes, Both
+Endings).
+
+**The last page** (R3 PR B, game-abbey.js). When the Hunger falls the Gates tab shows the Ledger's last page (it can be
+put off; a banner waits). **Close the book** or **Keep writing** sets `S.ending` (once a cycle; `S.endHist` keeps every
+ending), unlocks its epilogue (*The quiet valley* or *The open book*, with a closing paragraph varied by your oath, the
+rival, the Memorial's size and an Eternal in the army) and its title. Each ending writes one **Ledger inscription**
+earned that cycle (`INSCRIPTIONS`, permanent, at most 5): Of the Many (300 raises: +3% raise chance), Of the Fallen
+(20 headstones: +1% army max HP per Memorial name, up to 10%), Of the Tower (floor 100: the Tower can start at floor
+11), Of the Masters (all six masters: their hearts drop one more), Of the Faithful (an oath held at full devotion with no
+renouncing: a new oath starts at the second rank), Of the Rival (5 wins: thefts come half as often). New Game+ after an
+ending: **the Quiet Valley** (foes x0.85, no raising until the cycle's first gate clear, then *The book stirs*) or **the
+Keeper's Cycle** (one random gate boss in Ledger form: phase two from the start, heart x2; a third abbey key, the
+remembered way: the Throne and any one other key part).
 
 **Sweep** (`sweepOk`, `sweep`, R1 PR B). A gate cleared on Normal at least 5 times (`SWEEP_CLEARS`), Normal and uncursed
 today, with you at least 12 levels above its Recommended level (`SWEEP_LV`) and no rival there, offers Sweep on its card:
@@ -406,8 +419,8 @@ Six acts told by the Ledger (`STORY`, 60 passages; act VI is Vane Abbey's): firs
 passages (first raise, first fall, oaths, the town, curses, evolutions, raids, sieges, the Rift, the rival...). **Torn
 pages** (`LORE_PAGES`, 23): the Ledger's history from Oswin Vane to the blank page, found in order from bosses, wardens,
 elites, coffers and secret masters, each waiting for its level (page i at level 2 + 3i); the last three lie only in Vane Abbey. Bosses speak on entry, phase and
-death. The story builds to a choice ("write your own name and close the book, or keep writing") that the game does not yet
-let the player make.
+death. The story builds to a choice ("write your own name and close the book, or keep writing"), made on the last page after
+the Hunger (2.7).
 
 ## 2.10 Presentation and UX
 

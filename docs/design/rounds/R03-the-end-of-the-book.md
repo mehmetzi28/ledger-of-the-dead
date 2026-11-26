@@ -247,7 +247,24 @@ page; an Endings row in the Records.
   route mostly opens then: after the final climb it checks the keys and plays up to 8 abbey runs (opening a still-sealed
   door for measuring only, reported apart). The tier probe can fight the sealed abbey.
 
-## 14. Risks
+### As built (PR B)
+
+- Code at the end of `src/game-abbey.js`. `lastPageCheck` (from `abbeyCheck`) sets `S.lastPage` once Vane Abbey is
+  cleared this cycle. The page is drawn in place of the gate list (`lastPageHTML`), not as a popup; "Not yet" turns it
+  into a banner over the gates. `chooseEnding(k)` takes two presses.
+- `S.ending={k,day,cycle,v,army,deaths,ins}` for the cycle; `S.endHist` for the save (the Records row and the titles);
+  `S.inscriptions`, `S.cycle`, `S.ledgerBoss`, `S.quiet`, `S.cyc0` (deed counters at the cycle's start, so 300 raises
+  and 5 rival wins count this cycle only). `endingFix` normalizes all of them.
+- Simplifications: inscriptions follow one rule for both endings (each ending writes one earned inscription, cap 5,
+  instead of the Quiet Valley carrying one and the Keeper's Cycle adding one per cycle). New Game+ still starts at level
+  1 as it always has (the spec's "carries level" was not the game's rule). Of the Tower lets a climb start at floor 11
+  rather than skipping ten floors' rewards; Of the Faithful starts a new oath at the second devotion rank; Of the Masters
+  holds for masters slain in any cycle; Of the Rival halves theft frequency (a theft takes one body already). The Keeper's
+  Cycle's third key is "the remembered way": the Throne and any one part of the other keys (pages carry through New
+  Game+, so in practice the Throne). Act I "second reading" lines in the Quiet Valley are left for later; the rival does
+  not speak in *The last entry* yet (R7).
+- Tests: `88-endings` (7). The bot never reaches the ending (no gate numbers move: market 90%, full 92%, identical).
+
 
 - **Late content nobody reaches**: if `abbeyDay` is past 100 for most bots, the secret route is the fix (it needs no Tower
   100). Keep both keys.

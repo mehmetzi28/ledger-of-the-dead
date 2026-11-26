@@ -1,7 +1,7 @@
 // ----- the Codex: every rule and list in the game, read straight from the game's own tables so it never goes stale.
 // Enemies you have not met yet stay hidden, as in the bestiary.
 const CODEX=[['basics','Basics'],['raising','Raising'],['faith','Faith'],['omens','Omens'],['roles','Roles'],['traits','Traits'],['minions','Minion stats'],['army','Army'],['reserve','Reserve'],['fusion','Fusion'],['affixes','Elite affixes'],['bosses','Bosses'],['status','Status effects'],['types','Damage types'],['kits','Foe kits'],['skills','Skills'],['orders','Orders'],
-  ['gates','Gates'],['tower','Hell Tower'],['gear','Gear'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['records','Records']];
+  ['gates','Gates'],['tower','Hell Tower'],['gear','Gear'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['records','Records'],['endings','Endings']];
 const CDX_ROLE={
   vanguard:'When a foe picks a target, each vanguard counts 5 and everyone else (you included) counts 2, so vanguards draw most blows. They take Taunt orders and stand in front of a Sundering Blow.',
   striker:'This goes for your strikers and the enemy\'s. An enemy striker\'s crit also makes its target bleed. Focus makes your strikers crit every hit for a turn.',
@@ -203,6 +203,11 @@ function codexSection(k){
       cxRow('Gear','The consumed minion\'s gear returns to your bag.'),
       cxRow('Compounds','When a fusion brings together two traits that belong together, they fuse into one compound trait: one slot that counts as both, with something more besides. It happens before the trait limit, and only in the pit. Each trait joins at most one compound, and compounds never fuse further. The pit shows when something new will form.')])
     +'<p class="group-h">Compounds</p>'+cxList(COMPOUNDS.map(([c])=>compoundFound(c)?cxRow(TRAITS[c].name,TRAITS[c].desc+' '+TRAITS[c].story,'Found'):cxRow('???','Two traits that have not yet met in the pit.')));
+  if(k==='endings'){ if(!S.lastPage&&!(S.endHist||[]).length) return cxP('The Ledger keeps its last page shut until what waits under Vane Abbey has fallen. Open the drowned door with either of its keys, cross the Scriptorium and end the Hunger, and the book will ask you how it ends.');
+    return cxP('When the Hunger falls the Ledger opens at its last page and asks once each cycle. The page waits on the Gates tab: you can answer later, and the gates stay open. Either answer lets you keep playing the cycle; it decides what New Game+ becomes.')
+      +cxList(Object.values(ENDINGS).map(E=>cxRow(E.name,'&ldquo;'+E.line+'&rdquo; Title: '+E.title+'. New Game+ becomes '+E.cycle+': '+E.ngp)))
+      +'<p class="group-h">Ledger inscriptions</p>'+cxP('Each ending lets you write one inscription you earned in that cycle. Inscriptions are permanent and stay through every New Game+, at most '+INSC_MAX+'.')
+      +cxList(INSC_IDS.map(id=>{ const I=INSCRIPTIONS[id]; return cxRow(I.name,'Earned by '+I.need+'. '+I.desc+(hasInsc(id)?' Written.':'')); })); }
   if(k==='records') return cxP('The Records page on the Ledger tab keeps your personal bests through every New Game+. A new best flashes a banner, once per run and kind, but never for a first record.')
     +cxList(REC_NUM.map(r=>cxRow(REC_NAME[r].charAt(0).toUpperCase()+REC_NAME[r].slice(1),CDX_REC[r]||'')).concat([cxRow('Fastest clears','The fewest turns from the first room to the fallen boss, for each gate, on any difficulty.'),
       cxRow('Fastest Rift dives','The fewest turns to clear a dive, for each band of '+RIFT_BAND+' depths. A dive at depth 12 counts for 10 and deeper.'),cxRow('Secret masters','The day you first slew each one.')]))

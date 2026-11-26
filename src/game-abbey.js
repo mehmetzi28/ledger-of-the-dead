@@ -12,7 +12,7 @@ const ABBEY_TOWER=90, ABBEY_PAGES=20, ABBEY_ROOMS=5;
 const HUNGER_ECHO=.6, HUNGER_AT=[.6,.3], HUNGER_REGEN=.03, HUNGER_DR=.5, HUNGER_ACTS=6, HUNGER_ECHOES=3, HUNGER_HEAL=.05, ECHO_TIER_MAX=2, ECHO_BOND=1.3;
 const LECTOR_ATK=1.25, CHAIN_HEAD=.01, CHAIN_MAX=.2, CHAIN_SPEAR=.85;
 // ----- the door and its keys
-function abbeyFix(a){ const o={keys:{deep:0,secret:0},open:0}; if(a&&typeof a==='object'){ if(a.keys&&typeof a.keys==='object'){ o.keys.deep=a.keys.deep?1:0; o.keys.secret=a.keys.secret?1:0; } if(a.open) o.open=1; } return o; }   // normalizeSave
+function abbeyFix(a){ const o={keys:{deep:0,secret:0},open:0}; if(a&&typeof a==='object'){ if(a.keys&&typeof a.keys==='object'){ o.keys.deep=a.keys.deep?1:0; o.keys.secret=a.keys.secret?1:0; if(a.keys.remembered) o.keys.remembered=1; } if(a.open) o.open=1; } return o; }   // normalizeSave
 const abbeyState=()=>S.abbey||(S.abbey=abbeyFix(null));
 const abbeyOpen=()=>!!(S&&S.abbey&&S.abbey.open);
 const gateLocked=i=>i===ABBEY?!abbeyOpen():S.player.lvl<RK[i].unlock;   // the abbey opens by its keys, every other gate by level
@@ -23,10 +23,12 @@ const ABBEY_KEYS={
   secret:{name:'The secret route',parts:()=>[['The Throne of Ash cleared',throneDown()],['All six secret masters slain ('+mastersSlain()+'/'+SECRET.length+')',mastersSlain()>=SECRET.length]]}
 };
 const keyDone=k=>ABBEY_KEYS[k].parts().every(p=>p[1]);
+const abbeyKeyIds=()=>Object.keys(ABBEY_KEYS).filter(k=>!ABBEY_KEYS[k].only||ABBEY_KEYS[k].only());   // the Keeper's Cycle adds the remembered way
 function abbeyCheck(){   // after every action (checkTitles): a finished route turns its key; one key opens the door
   if(!S||!S.player||!S.ti) return; const A=abbeyState();
-  for(const k of ['deep','secret']) if(!A.keys[k]&&keyDone(k)){ A.keys[k]=1; notify('A key turns in the drowned door of Vane Abbey: '+ABBEY_KEYS[k].name+'.','story'); }
-  if(!A.open&&(A.keys.deep||A.keys.secret)){ A.open=1; tally('abbeyOpened'); moment('Vane Abbey opens','gold'); notify('The river turns back. Vane Abbey, the seventh gate, stands open on the Gates tab.','story'); }
+  lastPageCheck();
+  for(const k of abbeyKeyIds()) if(!A.keys[k]&&keyDone(k)){ A.keys[k]=1; notify('A key turns in the drowned door of Vane Abbey: '+ABBEY_KEYS[k].name+'.','story'); }
+  if(!A.open&&abbeyKeyIds().some(k=>A.keys[k])){ A.open=1; tally('abbeyOpened'); moment('Vane Abbey opens','gold'); notify('The river turns back. Vane Abbey, the seventh gate, stands open on the Gates tab.','story'); }
 }
 // ----- the Scriptorium: one name crossed out before the Hunger
 DOORS.script={name:'The Scriptorium',desc:'No fight. The Ledger lets you cross out one name: a minion leaves for good, the Hunger calls one echo fewer, and every minion of yours carries its trait in the boss fight.',s:'Cross out a name, or pass'};
@@ -213,3 +215,80 @@ STORY.push(
 ACTS[6]='Act VI · The seventh gate';
 BOSS_LINES['The Hunger']=['You brought me so many names. Let me read them back to you.','There... are no more pages...'];
 PHASE_LINES['The Hunger']='Every name you ever wrote, I can wear.';
+// ===== THE LAST PAGE: THE ENDING (R3 PR B) =====
+// When the Hunger falls the Ledger offers two answers (S.lastPage = the day; the page waits on the Gates tab until you answer):
+// Close the book (S.ending.k 'closed': New Game+ becomes the Quiet Valley) or Keep writing ('kept': the Keeper's Cycle).
+// Each ending writes one Ledger inscription you earned this cycle (S.inscriptions, kept forever, at most INSC_MAX).
+// S.endHist lists every ending of the save; S.cycle ('quiet'|'keeper'|null) and S.ledgerBoss (Keeper's Cycle: a gate boss in
+// Ledger form) belong to the current cycle; S.cyc0 holds the deed counters at the cycle's start; S.quiet: no raising yet.
+const INSC_MAX=5, QUIET_FOE=.85, INSC_RAISE=3, INSC_FALLEN=.01, INSC_FALLEN_MAX=10, LEDGER_HEART=2;
+const INSCRIPTIONS={
+  many:    {name:'Of the Many',    need:'300 raises in the cycle',              desc:'+3% raise chance.',                                            ok:()=>cyc('raised')>=300},
+  fallen:  {name:'Of the Fallen',  need:'20 headstones in the Memorial',        desc:'Each minion in the Memorial gives your army +1% max HP, up to 10%.', ok:()=>headstones()>=20},
+  tower:   {name:'Of the Tower',   need:'Hell Tower floor 100',                 desc:'The Tower can start at floor 11 from the first climb.',      ok:()=>((S.tower&&S.tower.best)||0)>=100},
+  masters: {name:'Of the Masters', need:'all six secret masters slain',         desc:'A secret master drops one heart more.',                      ok:()=>mastersSlain()>=SECRET.length},
+  faithful:{name:'Of the Faithful',need:'an oath kept the whole cycle',         desc:'A new oath starts at the second rank of devotion.',          ok:()=>!!faithOf()&&devotion()>=2&&cyc('renounced')===0},
+  rival:   {name:'Of the Rival',   need:'the rival beaten 5 times in the cycle',desc:'The rival comes to steal half as often.',                    ok:()=>cyc('rivalWins')>=5}
+};
+const INSC_IDS=Object.keys(INSCRIPTIONS);
+const CYC_KEYS=['raised','renounced','rivalWins'];
+const cyc=k=>Math.max(0,T_(k)-((S.cyc0&&S.cyc0[k])||0));   // a deed counter since this cycle began
+const hasInsc=id=>!!(S&&Array.isArray(S.inscriptions)&&S.inscriptions.includes(id));
+const inscOffer=()=>S.ending&&!S.ending.ins&&(S.inscriptions||[]).length<INSC_MAX?INSC_IDS.filter(id=>!hasInsc(id)&&INSCRIPTIONS[id].ok()):[];
+const fallenK=()=>hasInsc('fallen')?Math.min(INSC_FALLEN_MAX,(S.memorial||[]).length)*INSC_FALLEN:0;   // extraMul (max HP)
+const quietLocked=()=>!!(S&&S.quiet);   // the Quiet Valley: the Ledger is silent until the cycle's first gate clear
+const ENDINGS={
+  closed:{name:'Close the book',line:'Write your own name, and let the rest rest.',title:'The Last Keeper',cycle:'The Quiet Valley',
+    ngp:'Gates are '+Math.round((1-QUIET_FOE)*100)+'% gentler for the whole cycle, rewards unchanged. Nothing rises until your first gate clear of the cycle.'},
+  kept:  {name:'Keep writing',  line:'The Ledger is not finished with you. You are not finished with it.',title:'The Hand That Writes',cycle:'The Keeper\'s Cycle',
+    ngp:'The usual New Game+, and one gate boss returns in Ledger form: in its second phase from the start, its heart paid twice. Vane Abbey opens with the Throne and the way the book remembers.'}
+};
+function endingVariant(k){   // the epilogue's third paragraph: your oath, the rival, the size of the Memorial, an Eternal in the army
+  const L=[], f=faithOf(), mem=(S.memorial||[]).length, eternal=S.army.concat(S.reserve||[]).some(m=>m.stage>=4), rv=S.rival&&S.rival.wins>0;
+  L.push(f==='hon'?'The Old Gods you swore to are quiet tonight, as if they had been waiting to hear how it ends.':f?'The thing you swore to below the shrine laughs once, softly, and does not say whether it is pleased.':'You swore to no one, and no one comes to claim you.');
+  L.push(rv?'Somewhere in the valley the other scribe closes their own book unfinished. You beat them, and they know it.':'The other scribe is still out there, writing. Some day the two of you will meet over the same grave.');
+  L.push(mem>=30?'The Memorial is a city of names now.':mem>=10?'The Memorial holds more names than the town does.':'The Memorial is small. You were careful with them.');
+  if(eternal) L.push('One of yours stands at your shoulder, old enough to remember the first page.');
+  return L.join(' ');
+}
+function chooseEnding(k){   // the last page: answer once per cycle
+  if(!ENDINGS[k]||!S.lastPage||S.ending||S.mode!=='town') return false;
+  S.ending={k,day:S.day,cycle:S.ngp||0,v:endingVariant(k),army:S.army.length,deaths:L_('deaths')}; S.endHist=(S.endHist||[]).concat([{k,day:S.day,cycle:S.ngp||0}]);
+  tally(k==='closed'?'endClosed':'endKept'); unlockStory(k==='closed'?'end_closed':'end_kept'); moment(ENDINGS[k].name,'gold'); sfx('carve'); checkTitles();
+  return true;
+}
+function inscribe(id){ if(!inscOffer().includes(id)) return false; S.inscriptions=(S.inscriptions||[]).concat([id]); S.ending.ins=id; notify('The Ledger keeps an inscription: '+INSCRIPTIONS[id].name+'. '+INSCRIPTIONS[id].desc,'story'); return true; }
+function lastPageCheck(){ if(S.ti&&S.ti.clr&&S.ti.clr[ABBEY]&&!S.ending&&!S.lastPage) S.lastPage=S.day; if(S.quiet&&distinctClears()>0){ delete S.quiet; unlockStory('stir'); } }   /* abbeyCheck */
+function ngpEnding(keep){   // startNGP: what the ended cycle hands the next one
+  const E=S.ending; keep.inscriptions=(S.inscriptions||[]).slice(); keep.endHist=(S.endHist||[]).slice(); keep.cycle=E?(E.k==='closed'?'quiet':'keeper'):null;
+  keep.cyc0=Object.fromEntries(CYC_KEYS.map(k=>[k,T_(k)]));
+  return keep;
+}
+function ngpEndingStart(){   // after newGame in startNGP
+  if(S.cycle==='quiet') S.quiet=1;
+  if(S.cycle==='keeper'){ S.ledgerBoss=Math.floor(Math.random()*GATE_N); notify('The Ledger remembers '+DUNGEONS[S.ledgerBoss].boss[0]+'. It waits in '+DUNGEONS[S.ledgerBoss].name+' in Ledger form: in its second phase from the start, its heart paid twice.','story'); }
+}
+const ngpQuiet=()=>S&&S.cycle==='quiet'?QUIET_FOE:1;   // ngpFoe
+function ledgerRoom(list,di){   // spawnRoom: the Keeper's Cycle boss in Ledger form
+  const r=S.run; if(S.cycle!=='keeper'||S.ledgerBoss!==di||!r||r.trial||r.rift||r.tw||r.siege) return;
+  for(const e of list) if(e.boss&&!e.secret&&!e.rival&&e.base===DUNGEONS[di].boss[0]&&!e.ledger){ e.ledger=1; e.name='Ledger-Bound '+e.name.replace(/^The /,''); if(e.abil&&!e.phase2){ e.phase2=true; e.fast=(e.fast||0)+1; e.alt=true; e.abilT=Math.min(e.abilT,2); bossTwist(e); } }
+}
+Object.assign(ABBEY_KEYS,{remembered:{name:'The remembered way',parts:()=>[['The Throne of Ash cleared',throneDown()],['One more key part: Tower floor '+ABBEY_TOWER+', '+ABBEY_PAGES+' pages or the six masters',((S.tower&&S.tower.best)||0)>=ABBEY_TOWER||(S.pages||0)>=ABBEY_PAGES||mastersSlain()>=SECRET.length]],only:()=>S.cycle==='keeper'}});
+STORY.push(
+  {act:6,id:'end_closed',t:'The quiet valley',m:'You wrote your own name on the last page, in your own hand, and the Ledger closed on it like a door on a warm room. All over the valley the dead lay down. Not dead again: finished. The ones in your army looked at you once, the way a crew looks at a captain on the last morning, and then they were bones, and the bones were only bones. The town woke to a silence it had forgotten. Someone opened a window. Someone laughed. The river ran the right way, and no one could remember it ever running the other.'},
+  {act:6,id:'end_kept',t:'The open book',m:'You did not write your name. You turned the page instead, and the page was not blank any more: it had a line on it, in your hand, that you do not remember writing. The Ledger is not finished with you. Your dead felt it; they stood a little straighter. The valley will not rest, and neither will you, and somewhere under the river the thing that wanted to be everyone has learned that it will never be you. Write. The book is listening.'},
+  {act:6,id:'stir',t:'The book stirs',when:()=>false,m:'For days the Ledger lay shut in your pack like an ordinary book, and you almost believed it. Then, at the gate you cleared, the pages turned on their own to the place where your name was written, and below it, in fresh ink, a new line had begun.'}
+);
+['end_closed','end_kept','stir'].forEach(id=>{ STORY_BY[id]=STORY.find(s=>s.id===id); });
+function endingFix(g){   // normalizeSave
+  const num=(v,d)=>typeof v==='number'&&isFinite(v)?v:d, obj=o=>!!o&&typeof o==='object'&&!Array.isArray(o);
+  g.inscriptions=Array.isArray(g.inscriptions)?[...new Set(g.inscriptions.filter(id=>INSCRIPTIONS[id]))].slice(0,INSC_MAX):[];
+  g.endHist=Array.isArray(g.endHist)?g.endHist.filter(e=>obj(e)&&ENDINGS[e.k]).map(e=>({k:e.k,day:Math.max(1,Math.floor(num(e.day,1))),cycle:Math.max(0,Math.floor(num(e.cycle,0)))})):[];
+  g.ending=obj(g.ending)&&ENDINGS[g.ending.k]?{k:g.ending.k,day:Math.max(1,Math.floor(num(g.ending.day,1))),cycle:Math.max(0,Math.floor(num(g.ending.cycle,0))),v:typeof g.ending.v==='string'?g.ending.v.replace(/[<>&"]/g,''):'',army:Math.max(0,Math.floor(num(g.ending.army,0))),deaths:Math.max(0,Math.floor(num(g.ending.deaths,0))),ins:INSCRIPTIONS[g.ending.ins]?g.ending.ins:undefined}:null;
+  if(g.ending&&!g.ending.ins) delete g.ending.ins;
+  g.lastPage=Math.max(0,Math.floor(num(g.lastPage,0))); g.cycle=g.cycle==='quiet'||g.cycle==='keeper'?g.cycle:null;
+  if(g.cycle==='keeper'&&Number.isInteger(g.ledgerBoss)&&g.ledgerBoss>=0&&g.ledgerBoss<GATE_N); else delete g.ledgerBoss;
+  if(g.quiet&&g.cycle==='quiet') g.quiet=1; else delete g.quiet;
+  g.cyc0=obj(g.cyc0)?Object.fromEntries(CYC_KEYS.map(k=>[k,Math.max(0,num(g.cyc0[k],0))])):undefined; if(!g.cyc0) delete g.cyc0;
+}
+const endedAs=k=>!!(S&&((S.ending&&S.ending.k===k)||(S.endHist||[]).some(e=>e.k===k)));   // titles

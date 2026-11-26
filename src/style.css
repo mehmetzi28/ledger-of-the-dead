@@ -1206,3 +1206,7 @@ details.brief>summary .more-l,details.brief>summary .more-h{margin-left:0}detail
 .script-nm{font-weight:600;min-width:7em}.script-row .btn{margin-left:auto}
 .ink-x{text-decoration-color:#a02a20;text-decoration-thickness:2px}
 .u-name.echo,.echo-nm{color:#e3c46a;text-shadow:0 0 6px rgba(227,196,106,.45);font-style:italic}
+.last-page .lp-choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:12px 0}
+.lp-choice{border:1px solid var(--line);padding:12px;background:rgba(10,9,7,.55)}.lp-choice h4{margin:0 0 6px;color:var(--gold)}
+.lp-line{font-style:italic}.lp-text{max-width:62ch;line-height:1.6}.insc-list{display:flex;flex-direction:column;gap:6px;align-items:flex-start;margin:6px 0}
+.lp-banner{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.lp-banner .btn{margin-left:auto}

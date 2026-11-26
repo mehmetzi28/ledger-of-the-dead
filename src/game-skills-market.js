@@ -115,7 +115,7 @@ function killLoot(e,r){   // called once per kill, from checkDeaths
   if(omen()==='boneharvest'&&!r.trial&&(e.boss||Math.random()<HARVEST_DUST)) r.bdust=(r.bdust||0)+(e.boss?HARVEST_DUST_BOSS:1);   // Bone Harvest: bone dust from the dead
   const key=trophyKey(e); if(!TROPHY[key]||e.stash) return;
   const har=omen()==='boneharvest', tch=.6*(har?1+HARVEST_TRO:1)+(hasMod('robber','b')?KEEN_TRO:0);   // Bone Harvest and Keen Eye
-  const n=(e.boss?1:e.elite?2+(har?1:0):(Math.random()<tch?1:0))*cursed;
+  const n=(e.boss?(1+(e.secret&&hasInsc('masters')?1:0))*(e.ledger?LEDGER_HEART:1):e.elite?2+(har?1:0):(Math.random()<tch?1:0))*cursed;
   if(n){ r.troph=r.troph||{}; r.troph[key]=(r.troph[key]||0)+n; }
 }
 function bankLoot(r){     // called when a room is won

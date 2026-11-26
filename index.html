@@ -1217,6 +1217,10 @@ details.brief>summary .more-l,details.brief>summary .more-h{margin-left:0}detail
 .script-nm{font-weight:600;min-width:7em}.script-row .btn{margin-left:auto}
 .ink-x{text-decoration-color:#a02a20;text-decoration-thickness:2px}
 .u-name.echo,.echo-nm{color:#e3c46a;text-shadow:0 0 6px rgba(227,196,106,.45);font-style:italic}
+.last-page .lp-choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:12px 0}
+.lp-choice{border:1px solid var(--line);padding:12px;background:rgba(10,9,7,.55)}.lp-choice h4{margin:0 0 6px;color:var(--gold)}
+.lp-line{font-style:italic}.lp-text{max-width:62ch;line-height:1.6}.insc-list{display:flex;flex-direction:column;gap:6px;align-items:flex-start;margin:6px 0}
+.lp-banner{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.lp-banner .btn{margin-left:auto}
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
@@ -1580,7 +1584,7 @@ function spawnFloor(){
   if(hasFlag('infernal')) infernalWard();
   snapRoom();
 }
-const towerStarts=()=>{ const a=[1]; for(let k=1;k*10<=S.tower.best;k++) a.push(k*10+1); return a; };   // a checkpoint after every tenth floor, endlessly past 100
+const towerStarts=()=>{ const a=[1]; for(let k=1;k*10<=S.tower.best;k++) a.push(k*10+1); if(hasInsc('tower')&&!a.includes(11)) a.push(11); return a; };   /* Of the Tower (game-abbey.js) */   // a checkpoint after every tenth floor, endlessly past 100
 function towerBossLoot(f,r){
   if(f>100){   // the endless climb: every abyssal warden pays gold and a legendary
     const g=40*f, pool=Object.values(ITEM).filter(d=>!d.uq&&d.tier===4); r.gold=(r.gold||0)+g; r.loot.push(pick(pool).id);
@@ -1668,7 +1672,7 @@ const gateRec=di=>Math.max(1,Math.round(REC_BASE[di]+recShift(di)));
 const REC_TIER=[1,.2,.18,.13], REC_TIER_F=[1,1.8,2.5,3.6];
 const tierRaw=(di,h,f)=>REC_BASE[di]+recShift(di)+(REC_TIER[h]||1)*(recShift(di,f)-recShift(di));
 const tierRec=(di,h)=>{ let r=gateRec(di); for(let t=1;t<=(h||0)&&t<HEAT.length;t++) r=Math.max(r+1,Math.round(tierRaw(di,t,HEAT[t].foe))); return r; };   // each tier at least a level above the one below
-const NGP_FOE=.3, NGP_REWARD=.25, ngpFoe=()=>1+NGP_FOE*((S&&S.ngp)||0), ngpReward=()=>(1+NGP_REWARD*((S&&S.ngp)||0))*pactReward();   // New Game+: tougher foes, richer rewards
+const NGP_FOE=.3, NGP_REWARD=.25, ngpFoe=()=>(1+NGP_FOE*((S&&S.ngp)||0))*ngpQuiet(), ngpReward=()=>(1+NGP_REWARD*((S&&S.ngp)||0))*pactReward();   // New Game+: tougher foes, richer rewards
 function foeScale(list,a){ const n=ngpFoe(); for(const e of list){ if(n!==1){ e.maxHp=e.hp=Math.round(e.maxHp*n); } if(a*n!==1) e.atk=Math.max(1,Math.round(e.atk*a*n)); } }
 const foeArmor=()=>{ if(!S.run) return 0; const a=S.run.tw?TW.armor:DIFF.armor[S.run.trial?TRIAL_GATE:S.run.di]*(S.run.siege?siegeArmorK():1); return omen()==='ironrain'?1-(1-a)/IRON_ARMOR:a; };   // Iron Rain: foes 25% tougher to hurt
 // ===== DAMAGE TYPES =====
@@ -1773,7 +1777,7 @@ function freshState(){
   return {v:2,day:1,watches:WATCHES,uid:0,mode:'town',run:null,notices:[],runs:0,kills:{},tower:{best:0,got:{}},inv:[],equip:{weapon:null,armor:null,relic:null},
      player:{id:'p',name:'You',lvl:1,xp:0,pts:3,hp:0,mana:0,shield:0,stats:{strength:4,constitution:4,intelligence:4,will:4},sp:0,skills:{},skMod:{},cmd:{a:0,h:0}},
      army:[],quest:{kills:0,rooms:0,clears:0,claimed:false},gold:0,trophies:{},belt:{hp:0,mp:0},shop:null,bagLv:0,salts:0,tips:{},ngp:0,firstRaise:1,
-     mod:null,hist:[],story:{},life:Object.fromEntries(LIFE_KEYS.map(k=>[k,0])),build:{},dust:0,bounty:null,heat:{},heatMax:{},raids:[],raidOrders:[],raidLog:[],abbey:abbeyFix(null),rift:{best:0},siege:{next:0,pending:false,dmg:null,warned:0},reserve:[],waiting:[],
+     mod:null,hist:[],story:{},life:Object.fromEntries(LIFE_KEYS.map(k=>[k,0])),build:{},dust:0,bounty:null,heat:{},heatMax:{},raids:[],raidOrders:[],raidLog:[],abbey:abbeyFix(null),inscriptions:[],endHist:[],ending:null,lastPage:0,cycle:null,rift:{best:0},siege:{next:0,pending:false,dmg:null,warned:0},reserve:[],waiting:[],
      memorial:[],honor:null,loadouts:[{n:'',s:null},{n:'',s:null},{n:'',s:null}],rival:rivalDef(),trials:trialDef(),pacts:[]};
 }
 const OPEN_HELP={on:false};   // a brand-new game opens on the Gates tab, with a link to How to play at the top
@@ -1787,8 +1791,8 @@ const canNGP=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]);
 const ownedUniques=()=>[...new Set(S.inv.concat(Object.values(S.equip)).filter(it=>it&&ITEM[it.id]&&ITEM[it.id].uq).map(it=>it.id))];
 function startNGP(carry,pacts){
   if(S.mode!=='town'||!canNGP()) return false;
-  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts)};   // lifetime totals carry over too
-  newGame(); Object.assign(S,keep); S.ti.clr={};   // titles stay earned; New Game+ again needs another Throne of Ash clear
+  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts)}; ngpEnding(keep);   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
+  newGame(); Object.assign(S,keep); S.ti.clr={}; ngpEndingStart();   // titles stay earned; New Game+ again needs another Throne of Ash clear
   S.watches=WATCHES-pactWatch(); S.notices=[]; if(carry&&own.includes(carry)){ const it=addItem(carry,null); if(it&&carryAw) it.aw=carryAw; }   /* an awakened unique keeps its ranks */ unlockStory('ngp');
   notify('New Game+ '+S.ngp+' begins. Foes have '+Math.round(NGP_FOE*S.ngp*100)+'% more HP and attack, and pay '+Math.round(NGP_REWARD*S.ngp*100)+'% more XP and gold.'+(carry&&own.includes(carry)?' '+ITEM[carry].name+' is in your bag.':''),'ok');
   return true;
@@ -1862,6 +1866,7 @@ function normalizeSave(src){
   g.raidOrders=Array.isArray(g.raidOrders)?g.raidOrders.filter(o=>obj(o)&&RK[o.di]&&fin(o.cu)&&Array.isArray(o.uids)).map(o=>({di:o.di,day:Math.floor(num(o.day,g.day)),cu:o.cu,uids:o.uids.filter(fin).slice(0,12)})):[];   // tonight's raid orders: uids only (the squad stays in the army until nightfall)
   g.raidLog=Array.isArray(g.raidLog)?g.raidLog.filter(x=>obj(x)&&RK[x.di]&&typeof x.nick==='string').slice(0,RAID_LOG).map(x=>({day:Math.floor(num(x.day,1)),di:x.di,won:!!x.won,nick:cleanNick(x.nick)||'Nameless',lost:Math.max(0,Math.floor(num(x.lost,0)))})):[];
   g.abbey=abbeyFix(g.abbey);   /* Vane Abbey's door (game-abbey.js) */
+  endingFix(g);   /* the last page, the endings and the inscriptions (game-abbey.js) */
   g.rift=obj(g.rift)?{best:Math.max(0,Math.floor(num(g.rift.best,0)))}:{best:0};
   g.uid=top; g.mode='town'; g.run=null;
   g.gold=Math.max(0,Math.floor(num(g.gold,0)));
@@ -2115,6 +2120,9 @@ const masteredN=ids=>allNames().filter(n=>{ const t=masteryOf(n); return !!t&&id
  ['a_echo','Deeds','Echo-Breaker','Beat the Hunger\'s second phase without a minion of yours falling in it.',()=>T_('echoBreak')>0,{drp:3}],
  ['a_unwritten','Gates','Unwritten','Beat the Hunger on Nightmare.',()=>T_('nm6')>0,{dmgp:4,drp:3}],
  ['a_seven','Gates','Seven Seals','Clear all seven gates, Vane Abbey too.',()=>DUNGEONS.every((D,i)=>!!(S.ti&&S.ti.clr&&S.ti.clr[i])),{dmgp:4,hpp:4}],
+ ['a_keeper','Deeds','The Last Keeper','Close the book: write your own name on the last page.',()=>endedAs('closed'),{hpp:4,drp:2}],
+ ['a_hand','Deeds','The Hand That Writes','Keep writing: turn the last page and go on.',()=>endedAs('kept'),{dmgp:4,mpow:4}],
+ ['a_both','Deeds','Both Endings','End one cycle each way.',()=>endedAs('closed')&&endedAs('kept'),{xpp:5,goldp:5}],
 ].forEach(a=>TITLES.push({id:a[0],grp:a[1],name:a[2],req:a[3],ok:a[4],b:a[5]}));
 { const t=TITLES.find(x=>x.id==='x_eclipse'), u=TITLES.find(x=>x.id==='x_ftr'); Object.defineProperty(t,'req',{enumerable:true,get:()=>OMENS.eclipse?'Win 5 runs under the Eclipse.':'Win 15 runs under an omen.'}); Object.defineProperty(u,'req',{enumerable:true,get:()=>'Fuse a minion that carries '+FUSE_TRAITS+' traits.'}); }   // read when shown: OMENS and FUSE_TRAITS are defined further on
 // ----- title bonuses. Small, and only the title you wear counts. Stat keys add like gear; the rest are percentages.
@@ -2146,7 +2154,7 @@ function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // d
 // rarer ones stay hidden ("???") until earned. Rarity follows how hard a title is: bot runs measured the reachable ones,
 // and deeds the bots skip (events, forging) were judged by hand.
 const TITLE_RARITY={hd1:1,hd2:2,nm0:3,nm1:3,nm2:3,nm3:4,nm4:4,nm5:5,dm3:5,sb0:5,sb1:5,sb2:5,sb3:5,sb4:5,sb5:5,g0:0,g1:0,d_raise1:0,d_kill100:0,d_death:0,d_armed1:0,d_lv10:0,d_study:0,s_venom:0,f_crit:0,d_tower1:0,d_quest7:0,d_army:0,g2:1,t10:1,t20:1,d_raise50:1,d_cancel:1,d_evolve:1,d_uq:1,d_gold:1,m0:1,m1:1,c_drought:1,c_fury:1,c_bulwark:1,c_horde:1,c_volatile:1,p_25:1,k_spear:1,k_blast:1,k_chill:1,g_items:1,g_sold:1,f_flawless:1,f_last:1,a_boss:1,e_strag:1,e_pedlar:1,e_trap:1,d_death10:1,g3:2,g4:2,t30:2,t40:2,t50:2,d_kill1000:2,d_lv25:2,d_raise200:2,d_tower50:2,d_cancel10:2,d_trophy500:2,d_altar:2,d_elder:2,m2:2,m3:2,d_armed3:2,d_master:2,d_bag:2,c_25:2,e_shrine:2,e_coffer:2,s_poison:2,s_cure:2,k_reap:2,k_master3:2,k_all:2,f_boss25:2,f_elite100:2,g_gold:2,g_roll3:2,a_traits:2,a_elders:2,e_day100:2,e_runs100:2,g_reforge:2,g5:3,t60:3,t70:3,m4:3,m5:3,tw75:3,d_lv50:3,p_100:3,f_crit1000:3,e_rooms1000:3,twruns:3,d_ngp:3,d_tower110:3,t80:4,t90:4,t100:4,d_kill5000:4,d_all:4,d_tower150:4,a_raise500:4,e_lv75:4,tw200:5,d_ngp3:5,d_tuq:5,a_ancient:3,a_eternal:4,a_raid1:1,a_raid25:3,r_5:3,r_15:4,r_30:5};
-Object.assign(TITLE_RARITY,{a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
+Object.assign(TITLE_RARITY,{a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
 const RARITY_MUL=[1,1,1.25,1.5,2,3], HIDDEN_FROM=3;
 TITLES.forEach(t=>{ t.r=TITLE_RARITY[t.id]!=null?TITLE_RARITY[t.id]:1; const m=RARITY_MUL[t.r]; for(const k in t.b) t.b[k]=Math.max(t.b[k],Math.round(t.b[k]*m)); });
 const titleHidden=t=>t.r>=HIDDEN_FROM&&!(S&&S.ti&&S.ti.got&&S.ti.got[t.id]);
@@ -2264,7 +2272,7 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
   try{
     if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true)); const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
     else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
-    heatRoom(list,di); foeScale(list,foeAtkMul(di)); if(r.trial) trialPow(list,di); bulwark(list); riftScale(list);
+    heatRoom(list,di); ledgerRoom(list,di); foeScale(list,foeAtkMul(di)); if(r.trial) trialPow(list,di); bulwark(list); riftScale(list);
     heatScale(list);
     if(!boss&&kind==='elite') for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*ELITE_ROOM); e.atk=Math.max(1,Math.round(e.atk*ELITE_ROOM)); }
     affixAll(list);
@@ -2641,7 +2649,7 @@ function raiseChance(c){
   if(soulBound(c)) return 0;
   if(firstRaise()) return 100;
   let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+4*sk('mastery')+B_OSS*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*RAISE_LV-RK[c.rankI].pen;
-  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c);
+  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+(hasInsc('many')?INSC_RAISE:0);
   return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
 }
 const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*(hasFlag('cheapraise')?.5:1)*(hasMod('mastery','b')?.75:1)*(1-.06*sk('thrift')));
@@ -2661,6 +2669,7 @@ function tryRaise(id,salt,bench){   // bench: raise to the Reserve, only when th
   const r=S.run, P=S.player, c=r.corpses.find(x=>x.id===id); if(!c||c.tried) return;
   r.events=[];
   if(soulBound(c)){ r.events.push({m:c.name+'\'s soul is already bound to you.',c:'bad'}); return; }
+  if(quietLocked()){ r.events.push({m:'The Ledger is quiet. Nothing rises until your first gate clear of this cycle.',c:'bad'}); return; }   /* the Quiet Valley (game-abbey.js) */
   const toRes=!!bench&&armyUsed()>=slots()&&reserveRoom();
   if(armyUsed()>=slots()&&!toRes){ r.events.push({m:'Your army is full. Release someone first.',c:'bad'}); return; }
   const cost=raiseCost(c);
@@ -2822,7 +2831,7 @@ function killLoot(e,r){   // called once per kill, from checkDeaths
   if(omen()==='boneharvest'&&!r.trial&&(e.boss||Math.random()<HARVEST_DUST)) r.bdust=(r.bdust||0)+(e.boss?HARVEST_DUST_BOSS:1);   // Bone Harvest: bone dust from the dead
   const key=trophyKey(e); if(!TROPHY[key]||e.stash) return;
   const har=omen()==='boneharvest', tch=.6*(har?1+HARVEST_TRO:1)+(hasMod('robber','b')?KEEN_TRO:0);   // Bone Harvest and Keen Eye
-  const n=(e.boss?1:e.elite?2+(har?1:0):(Math.random()<tch?1:0))*cursed;
+  const n=(e.boss?(1+(e.secret&&hasInsc('masters')?1:0))*(e.ledger?LEDGER_HEART:1):e.elite?2+(har?1:0):(Math.random()<tch?1:0))*cursed;
   if(n){ r.troph=r.troph||{}; r.troph[key]=(r.troph[key]||0)+n; }
 }
 function bankLoot(r){     // called when a room is won
@@ -4156,12 +4165,12 @@ FAITH.dis.bless={name:'Tithe of Souls',desc:'Every run begins with '+TITHE_SOULS
 const blessed=id=>faithOf()===id&&devotion()>=DEVOTION.length-1;
 function titheSouls(){ if(blessed('dis')&&S.run){ S.run.souls=Math.max(S.run.souls||0,Math.min(SOUL_MAX,TITHE_SOULS)); } }
 const faithOf=()=>(S&&S.faith&&FAITH[S.faith.id])?S.faith.id:null;
-const devotion=()=>{ if(!faithOf()) return 0; const d=S.day-S.faith.day; return d>=DEVOTION[2]?2:d>=DEVOTION[1]?1:0; };
+const devotion=()=>{ if(!faithOf()) return 0; const d=S.day-S.faith.day; return d>=DEVOTION[2]?2:d>=DEVOTION[1]||hasInsc('faithful')?1:0; };   /* Of the Faithful: a new oath starts at the second rank */
 const faithBuff=id=>{ const F=FAITH[id], m=faithOf()===id?DEVOTION_MUL[devotion()]:1, o={}; for(const k in F.buff) o[k]=Math.round(F.buff[k]*m); return o; };
 const faithB=k=>{ const id=faithOf(); if(!id) return 0; return (faithBuff(id)[k]||0)+(FAITH[id].debuff[k]||0); };
 const renounceCost=()=>100*S.player.lvl;
 function swear(id){ if(S.mode!=='town'||!FAITH[id]||faithOf()||!faithOpen()) return false; vitals(()=>{ S.faith={id,day:S.day}; }); tally('sworn'); return true; }
-function renounce(){ if(S.mode!=='town'||!faithOf()) return false; const c=renounceCost(); if(S.gold<c) return false; S.gold-=c; vitals(()=>{ delete S.faith; }); S.player.hp=Math.min(S.player.hp,pMax()); return true; }
+function renounce(){ if(S.mode!=='town'||!faithOf()) return false; const c=renounceCost(); if(S.gold<c) return false; S.gold-=c; tally('renounced'); vitals(()=>{ delete S.faith; }); S.player.hp=Math.min(S.player.hp,pMax()); return true; }
 const xb=k=>titleB(k)+(k==='goldp'?titleColB():0)+setB(k)+usetB(k)+faithB(k)+skB(k);   // the worn title, the title collection (gold only), gate sets, unique sets, faith and the small passive skills
 
 // ===== SKILL UPGRADES =====
@@ -4512,7 +4521,7 @@ const mausN=()=>S&&S.memorial?Math.min(MAUS_MAX,S.memorial.filter(e=>e.maus).len
 const mausCost=()=>MAUS_COST[mausN()]||0;
 const canMaus=e=>!!e&&!e.maus&&S.mode==='town'&&mausN()<MAUS_MAX&&S.gold>=mausCost();
 function raiseMaus(i){ const e=(S.memorial||[])[i]; if(!canMaus(e)) return false; S.gold-=mausCost(); e.maus=1; tally('maus'); syncArmy(); sfx('raise'); return true; }
-const extraMul=(m,k)=>(k==='atk'?bondMul(m):1+headBonus())*(1+MAUS_K*mausN())*(1+chainK());   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
+const extraMul=(m,k)=>(k==='atk'?bondMul(m):1+headBonus()+fallenK())*(1+MAUS_K*mausN())*(1+chainK());   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
 // ===== BOSS PHASES =====
 // At half HP a boss (gate or Tower) enters its second phase: its moves come a turn sooner, every move is announced a turn
 // ahead, and it adds Sundering Blow. Taunt turns that blow onto a vanguard; a Focus crit or Grave Chill breaks any charging move.
@@ -5052,7 +5061,7 @@ const distinctClears=()=>Object.keys((S.ti&&S.ti.clr)||{}).filter(k=>S.ti.clr[k]
 let rivalOpen=()=>!!S&&!!S.player&&(distinctClears()>=RIVAL_AT||(!!(S.rival&&S.rival.met)&&distinctClears()>=3));   // let: the balance bot switches the rival off with "off":["rival"]
 function dayHash(){ let a=0x9e3779b9; for(const x of arguments){ a=Math.imul(a^(x|0),2654435761)>>>0; a^=a>>>15; } a=Math.imul(a,2246822519)>>>0; return (a^(a>>>13))>>>0; }
 const rivalGap=salt=>RIVAL_GAP[0]+dayHash(S.day,salt,T_('rivalWins'),S.ngp||0,11)%(RIVAL_GAP[1]-RIVAL_GAP[0]+1);
-const theftGap=()=>RIVAL_THEFT[0]+dayHash(S.day,T_('rivalThefts'),S.ngp||0,23)%(RIVAL_THEFT[1]-RIVAL_THEFT[0]+1);
+const theftGap=()=>(RIVAL_THEFT[0]+dayHash(S.day,T_('rivalThefts'),S.ngp||0,23)%(RIVAL_THEFT[1]-RIVAL_THEFT[0]+1))*(hasInsc('rival')?2:1);   /* Of the Rival */
 const rivalGates=()=>DUNGEONS.map((D,i)=>i).filter(i=>i<GATE_N&&S.ti&&S.ti.clr&&S.ti.clr[i]&&S.player.lvl>=RK[i].unlock);
 function rivalMeet(r){   // the third distinct clear: a name (once per save), a passage in the Ledger voice, a notice
   if(!rivalOpen()) return false; const g=rv(); if(g.name&&g.met) return false;
@@ -5301,7 +5310,7 @@ const ABBEY_TOWER=90, ABBEY_PAGES=20, ABBEY_ROOMS=5;
 const HUNGER_ECHO=.6, HUNGER_AT=[.6,.3], HUNGER_REGEN=.03, HUNGER_DR=.5, HUNGER_ACTS=6, HUNGER_ECHOES=3, HUNGER_HEAL=.05, ECHO_TIER_MAX=2, ECHO_BOND=1.3;
 const LECTOR_ATK=1.25, CHAIN_HEAD=.01, CHAIN_MAX=.2, CHAIN_SPEAR=.85;
 // ----- the door and its keys
-function abbeyFix(a){ const o={keys:{deep:0,secret:0},open:0}; if(a&&typeof a==='object'){ if(a.keys&&typeof a.keys==='object'){ o.keys.deep=a.keys.deep?1:0; o.keys.secret=a.keys.secret?1:0; } if(a.open) o.open=1; } return o; }   // normalizeSave
+function abbeyFix(a){ const o={keys:{deep:0,secret:0},open:0}; if(a&&typeof a==='object'){ if(a.keys&&typeof a.keys==='object'){ o.keys.deep=a.keys.deep?1:0; o.keys.secret=a.keys.secret?1:0; if(a.keys.remembered) o.keys.remembered=1; } if(a.open) o.open=1; } return o; }   // normalizeSave
 const abbeyState=()=>S.abbey||(S.abbey=abbeyFix(null));
 const abbeyOpen=()=>!!(S&&S.abbey&&S.abbey.open);
 const gateLocked=i=>i===ABBEY?!abbeyOpen():S.player.lvl<RK[i].unlock;   // the abbey opens by its keys, every other gate by level
@@ -5312,10 +5321,12 @@ const ABBEY_KEYS={
   secret:{name:'The secret route',parts:()=>[['The Throne of Ash cleared',throneDown()],['All six secret masters slain ('+mastersSlain()+'/'+SECRET.length+')',mastersSlain()>=SECRET.length]]}
 };
 const keyDone=k=>ABBEY_KEYS[k].parts().every(p=>p[1]);
+const abbeyKeyIds=()=>Object.keys(ABBEY_KEYS).filter(k=>!ABBEY_KEYS[k].only||ABBEY_KEYS[k].only());   // the Keeper's Cycle adds the remembered way
 function abbeyCheck(){   // after every action (checkTitles): a finished route turns its key; one key opens the door
   if(!S||!S.player||!S.ti) return; const A=abbeyState();
-  for(const k of ['deep','secret']) if(!A.keys[k]&&keyDone(k)){ A.keys[k]=1; notify('A key turns in the drowned door of Vane Abbey: '+ABBEY_KEYS[k].name+'.','story'); }
-  if(!A.open&&(A.keys.deep||A.keys.secret)){ A.open=1; tally('abbeyOpened'); moment('Vane Abbey opens','gold'); notify('The river turns back. Vane Abbey, the seventh gate, stands open on the Gates tab.','story'); }
+  lastPageCheck();
+  for(const k of abbeyKeyIds()) if(!A.keys[k]&&keyDone(k)){ A.keys[k]=1; notify('A key turns in the drowned door of Vane Abbey: '+ABBEY_KEYS[k].name+'.','story'); }
+  if(!A.open&&abbeyKeyIds().some(k=>A.keys[k])){ A.open=1; tally('abbeyOpened'); moment('Vane Abbey opens','gold'); notify('The river turns back. Vane Abbey, the seventh gate, stands open on the Gates tab.','story'); }
 }
 // ----- the Scriptorium: one name crossed out before the Hunger
 DOORS.script={name:'The Scriptorium',desc:'No fight. The Ledger lets you cross out one name: a minion leaves for good, the Hunger calls one echo fewer, and every minion of yours carries its trait in the boss fight.',s:'Cross out a name, or pass'};
@@ -5502,6 +5513,83 @@ STORY.push(
 ACTS[6]='Act VI · The seventh gate';
 BOSS_LINES['The Hunger']=['You brought me so many names. Let me read them back to you.','There... are no more pages...'];
 PHASE_LINES['The Hunger']='Every name you ever wrote, I can wear.';
+// ===== THE LAST PAGE: THE ENDING (R3 PR B) =====
+// When the Hunger falls the Ledger offers two answers (S.lastPage = the day; the page waits on the Gates tab until you answer):
+// Close the book (S.ending.k 'closed': New Game+ becomes the Quiet Valley) or Keep writing ('kept': the Keeper's Cycle).
+// Each ending writes one Ledger inscription you earned this cycle (S.inscriptions, kept forever, at most INSC_MAX).
+// S.endHist lists every ending of the save; S.cycle ('quiet'|'keeper'|null) and S.ledgerBoss (Keeper's Cycle: a gate boss in
+// Ledger form) belong to the current cycle; S.cyc0 holds the deed counters at the cycle's start; S.quiet: no raising yet.
+const INSC_MAX=5, QUIET_FOE=.85, INSC_RAISE=3, INSC_FALLEN=.01, INSC_FALLEN_MAX=10, LEDGER_HEART=2;
+const INSCRIPTIONS={
+  many:    {name:'Of the Many',    need:'300 raises in the cycle',              desc:'+3% raise chance.',                                            ok:()=>cyc('raised')>=300},
+  fallen:  {name:'Of the Fallen',  need:'20 headstones in the Memorial',        desc:'Each minion in the Memorial gives your army +1% max HP, up to 10%.', ok:()=>headstones()>=20},
+  tower:   {name:'Of the Tower',   need:'Hell Tower floor 100',                 desc:'The Tower can start at floor 11 from the first climb.',      ok:()=>((S.tower&&S.tower.best)||0)>=100},
+  masters: {name:'Of the Masters', need:'all six secret masters slain',         desc:'A secret master drops one heart more.',                      ok:()=>mastersSlain()>=SECRET.length},
+  faithful:{name:'Of the Faithful',need:'an oath kept the whole cycle',         desc:'A new oath starts at the second rank of devotion.',          ok:()=>!!faithOf()&&devotion()>=2&&cyc('renounced')===0},
+  rival:   {name:'Of the Rival',   need:'the rival beaten 5 times in the cycle',desc:'The rival comes to steal half as often.',                    ok:()=>cyc('rivalWins')>=5}
+};
+const INSC_IDS=Object.keys(INSCRIPTIONS);
+const CYC_KEYS=['raised','renounced','rivalWins'];
+const cyc=k=>Math.max(0,T_(k)-((S.cyc0&&S.cyc0[k])||0));   // a deed counter since this cycle began
+const hasInsc=id=>!!(S&&Array.isArray(S.inscriptions)&&S.inscriptions.includes(id));
+const inscOffer=()=>S.ending&&!S.ending.ins&&(S.inscriptions||[]).length<INSC_MAX?INSC_IDS.filter(id=>!hasInsc(id)&&INSCRIPTIONS[id].ok()):[];
+const fallenK=()=>hasInsc('fallen')?Math.min(INSC_FALLEN_MAX,(S.memorial||[]).length)*INSC_FALLEN:0;   // extraMul (max HP)
+const quietLocked=()=>!!(S&&S.quiet);   // the Quiet Valley: the Ledger is silent until the cycle's first gate clear
+const ENDINGS={
+  closed:{name:'Close the book',line:'Write your own name, and let the rest rest.',title:'The Last Keeper',cycle:'The Quiet Valley',
+    ngp:'Gates are '+Math.round((1-QUIET_FOE)*100)+'% gentler for the whole cycle, rewards unchanged. Nothing rises until your first gate clear of the cycle.'},
+  kept:  {name:'Keep writing',  line:'The Ledger is not finished with you. You are not finished with it.',title:'The Hand That Writes',cycle:'The Keeper\'s Cycle',
+    ngp:'The usual New Game+, and one gate boss returns in Ledger form: in its second phase from the start, its heart paid twice. Vane Abbey opens with the Throne and the way the book remembers.'}
+};
+function endingVariant(k){   // the epilogue's third paragraph: your oath, the rival, the size of the Memorial, an Eternal in the army
+  const L=[], f=faithOf(), mem=(S.memorial||[]).length, eternal=S.army.concat(S.reserve||[]).some(m=>m.stage>=4), rv=S.rival&&S.rival.wins>0;
+  L.push(f==='hon'?'The Old Gods you swore to are quiet tonight, as if they had been waiting to hear how it ends.':f?'The thing you swore to below the shrine laughs once, softly, and does not say whether it is pleased.':'You swore to no one, and no one comes to claim you.');
+  L.push(rv?'Somewhere in the valley the other scribe closes their own book unfinished. You beat them, and they know it.':'The other scribe is still out there, writing. Some day the two of you will meet over the same grave.');
+  L.push(mem>=30?'The Memorial is a city of names now.':mem>=10?'The Memorial holds more names than the town does.':'The Memorial is small. You were careful with them.');
+  if(eternal) L.push('One of yours stands at your shoulder, old enough to remember the first page.');
+  return L.join(' ');
+}
+function chooseEnding(k){   // the last page: answer once per cycle
+  if(!ENDINGS[k]||!S.lastPage||S.ending||S.mode!=='town') return false;
+  S.ending={k,day:S.day,cycle:S.ngp||0,v:endingVariant(k),army:S.army.length,deaths:L_('deaths')}; S.endHist=(S.endHist||[]).concat([{k,day:S.day,cycle:S.ngp||0}]);
+  tally(k==='closed'?'endClosed':'endKept'); unlockStory(k==='closed'?'end_closed':'end_kept'); moment(ENDINGS[k].name,'gold'); sfx('carve'); checkTitles();
+  return true;
+}
+function inscribe(id){ if(!inscOffer().includes(id)) return false; S.inscriptions=(S.inscriptions||[]).concat([id]); S.ending.ins=id; notify('The Ledger keeps an inscription: '+INSCRIPTIONS[id].name+'. '+INSCRIPTIONS[id].desc,'story'); return true; }
+function lastPageCheck(){ if(S.ti&&S.ti.clr&&S.ti.clr[ABBEY]&&!S.ending&&!S.lastPage) S.lastPage=S.day; if(S.quiet&&distinctClears()>0){ delete S.quiet; unlockStory('stir'); } }   /* abbeyCheck */
+function ngpEnding(keep){   // startNGP: what the ended cycle hands the next one
+  const E=S.ending; keep.inscriptions=(S.inscriptions||[]).slice(); keep.endHist=(S.endHist||[]).slice(); keep.cycle=E?(E.k==='closed'?'quiet':'keeper'):null;
+  keep.cyc0=Object.fromEntries(CYC_KEYS.map(k=>[k,T_(k)]));
+  return keep;
+}
+function ngpEndingStart(){   // after newGame in startNGP
+  if(S.cycle==='quiet') S.quiet=1;
+  if(S.cycle==='keeper'){ S.ledgerBoss=Math.floor(Math.random()*GATE_N); notify('The Ledger remembers '+DUNGEONS[S.ledgerBoss].boss[0]+'. It waits in '+DUNGEONS[S.ledgerBoss].name+' in Ledger form: in its second phase from the start, its heart paid twice.','story'); }
+}
+const ngpQuiet=()=>S&&S.cycle==='quiet'?QUIET_FOE:1;   // ngpFoe
+function ledgerRoom(list,di){   // spawnRoom: the Keeper's Cycle boss in Ledger form
+  const r=S.run; if(S.cycle!=='keeper'||S.ledgerBoss!==di||!r||r.trial||r.rift||r.tw||r.siege) return;
+  for(const e of list) if(e.boss&&!e.secret&&!e.rival&&e.base===DUNGEONS[di].boss[0]&&!e.ledger){ e.ledger=1; e.name='Ledger-Bound '+e.name.replace(/^The /,''); if(e.abil&&!e.phase2){ e.phase2=true; e.fast=(e.fast||0)+1; e.alt=true; e.abilT=Math.min(e.abilT,2); bossTwist(e); } }
+}
+Object.assign(ABBEY_KEYS,{remembered:{name:'The remembered way',parts:()=>[['The Throne of Ash cleared',throneDown()],['One more key part: Tower floor '+ABBEY_TOWER+', '+ABBEY_PAGES+' pages or the six masters',((S.tower&&S.tower.best)||0)>=ABBEY_TOWER||(S.pages||0)>=ABBEY_PAGES||mastersSlain()>=SECRET.length]],only:()=>S.cycle==='keeper'}});
+STORY.push(
+  {act:6,id:'end_closed',t:'The quiet valley',m:'You wrote your own name on the last page, in your own hand, and the Ledger closed on it like a door on a warm room. All over the valley the dead lay down. Not dead again: finished. The ones in your army looked at you once, the way a crew looks at a captain on the last morning, and then they were bones, and the bones were only bones. The town woke to a silence it had forgotten. Someone opened a window. Someone laughed. The river ran the right way, and no one could remember it ever running the other.'},
+  {act:6,id:'end_kept',t:'The open book',m:'You did not write your name. You turned the page instead, and the page was not blank any more: it had a line on it, in your hand, that you do not remember writing. The Ledger is not finished with you. Your dead felt it; they stood a little straighter. The valley will not rest, and neither will you, and somewhere under the river the thing that wanted to be everyone has learned that it will never be you. Write. The book is listening.'},
+  {act:6,id:'stir',t:'The book stirs',when:()=>false,m:'For days the Ledger lay shut in your pack like an ordinary book, and you almost believed it. Then, at the gate you cleared, the pages turned on their own to the place where your name was written, and below it, in fresh ink, a new line had begun.'}
+);
+['end_closed','end_kept','stir'].forEach(id=>{ STORY_BY[id]=STORY.find(s=>s.id===id); });
+function endingFix(g){   // normalizeSave
+  const num=(v,d)=>typeof v==='number'&&isFinite(v)?v:d, obj=o=>!!o&&typeof o==='object'&&!Array.isArray(o);
+  g.inscriptions=Array.isArray(g.inscriptions)?[...new Set(g.inscriptions.filter(id=>INSCRIPTIONS[id]))].slice(0,INSC_MAX):[];
+  g.endHist=Array.isArray(g.endHist)?g.endHist.filter(e=>obj(e)&&ENDINGS[e.k]).map(e=>({k:e.k,day:Math.max(1,Math.floor(num(e.day,1))),cycle:Math.max(0,Math.floor(num(e.cycle,0)))})):[];
+  g.ending=obj(g.ending)&&ENDINGS[g.ending.k]?{k:g.ending.k,day:Math.max(1,Math.floor(num(g.ending.day,1))),cycle:Math.max(0,Math.floor(num(g.ending.cycle,0))),v:typeof g.ending.v==='string'?g.ending.v.replace(/[<>&"]/g,''):'',army:Math.max(0,Math.floor(num(g.ending.army,0))),deaths:Math.max(0,Math.floor(num(g.ending.deaths,0))),ins:INSCRIPTIONS[g.ending.ins]?g.ending.ins:undefined}:null;
+  if(g.ending&&!g.ending.ins) delete g.ending.ins;
+  g.lastPage=Math.max(0,Math.floor(num(g.lastPage,0))); g.cycle=g.cycle==='quiet'||g.cycle==='keeper'?g.cycle:null;
+  if(g.cycle==='keeper'&&Number.isInteger(g.ledgerBoss)&&g.ledgerBoss>=0&&g.ledgerBoss<GATE_N); else delete g.ledgerBoss;
+  if(g.quiet&&g.cycle==='quiet') g.quiet=1; else delete g.quiet;
+  g.cyc0=obj(g.cyc0)?Object.fromEntries(CYC_KEYS.map(k=>[k,Math.max(0,num(g.cyc0[k],0))])):undefined; if(!g.cyc0) delete g.cyc0;
+}
+const endedAs=k=>!!(S&&((S.ending&&S.ending.k===k)||(S.endHist||[]).some(e=>e.k===k)));   // titles
 //==UI==
 
 // ----- sound: tiny synthesized effects (Web Audio, no files). Off/on lives in Settings and is remembered per browser, not in the save.
@@ -9538,6 +9626,44 @@ TR_RX.push([/^(.+?) reads (.+?)'s (.+?) aloud\. (.+?) forgets it, and the Lector
  [/^(.+?) turns a page: (.+?)\. (.+)$/,"$1 bir sayfa çeviriyor: {t2}. {t3}"],[/^(.+?) drinks the blank page and regains (\d+)\.?$/,"$1 boş sayfayı içiyor ve $2 geri kazanıyor"],
  [/^(.+?) reaches for the margin, but no minion stands in it\.?$/,"$1 kenara uzanıyor ama orada hiçbir hizmetkâr durmuyor"],[/^(.+?) plants itself in the margin\. (.+?) bites it for (\d+) and swallows nothing\.?$/,"$1 kenara dikiliyor. $2 onu $3 ısırıyor ve hiçbir şey yutamıyor"],
  [/^(.+?) devours (.+?) from the margin\.?$/,"$1, $2 hizmetkârını kenardan yutuyor"]);
+[ // the last page, the endings and the inscriptions (game-abbey.js, R3 PR B)
+ ["Endings","Sonlar"],["The last page","Son sayfa"],["The Ledger lies open, and the pen is in your hand","Defter açık duruyor ve kalem senin elinde"],
+ ["The Hunger is gone. What is left is a blank page and a choice Oswin never made. Answer now, or leave it: the page waits, and the gates stay open","Hunger gitti. Geriye boş bir sayfa ve Oswin'in hiç yapmadığı bir seçim kaldı. Şimdi yanıtla ya da bırak: sayfa bekler ve kapılar açık kalır"],
+ ["Close the book","Kitabı kapat"],["Keep writing","Yazmaya devam et"],["Write your own name, and let the rest rest","Kendi adını yaz ve gerisinin dinlenmesine izin ver"],
+ ["The Ledger is not finished with you. You are not finished with it","Defter seninle işini bitirmedi. Sen de onunla işini bitirmedin"],
+ ["The Last Keeper","Son Bekçi"],["The Hand That Writes","Yazan El"],["Both Endings","İki Son"],["The Quiet Valley","Sessiz Vadi"],["The Keeper's Cycle","Bekçinin Döngüsü"],
+ ["Gates are #% gentler for the whole cycle, rewards unchanged. Nothing rises until your first gate clear of the cycle","Kapılar tüm döngü boyunca %# daha yumuşak, ödüller aynı. Döngünün ilk kapı temizliğine dek hiçbir şey dirilmez"],
+ ["The usual New Game+, and one gate boss returns in Ledger form: in its second phase from the start, its heart paid twice. Vane Abbey opens with the Throne and the way the book remembers","Olağan Yeni Oyun+ ve bir kapı bossu Defter biçiminde döner: baştan ikinci evresinde, kalbi iki kez ödenir. Vane Abbey, Taht ve kitabın hatırladığı yolla açılır"],
+ ["Not yet","Henüz değil"],["Close the Ledger","Defteri kapat"],["The last page waits for your answer","Son sayfa yanıtını bekliyor"],["Open the Ledger","Defteri aç"],["An inscription waits to be written","Bir yazıt yazılmayı bekliyor"],
+ ["Write one inscription · it stays in the Ledger for every cycle to come","Bir yazıt yaz · gelecek her döngü için Defterde kalır"],
+ ["Close the book: write your own name on the last page","Kitabı kapat: son sayfaya kendi adını yaz"],["Keep writing: turn the last page and go on","Yazmaya devam et: son sayfayı çevir ve sürdür"],["End one cycle each way","Her iki yolla birer döngü bitir"],
+ ["Of the Many","Çokların"],["Of the Fallen","Düşenlerin"],["Of the Tower","Kulenin"],["Of the Masters","Efendilerin"],["Of the Faithful","Sadıkların"],["Of the Rival","Rakibin"],
+ ["# raises in the cycle","döngüde # diriltme"],["# headstones in the Memorial","Anıt'ta # mezar taşı"],["Hell Tower floor #","Cehennem Kulesi kat #"],["all six secret masters slain","altı gizli efendinin hepsi öldürüldü"],["an oath kept the whole cycle","tüm döngü boyunca tutulan bir yemin"],["the rival beaten # times in the cycle","rakip döngüde # kez yenildi"],
+ ["+#% raise chance","+%# diriltme şansı"],["Each minion in the Memorial gives your army +#% max HP, up to #%","Anıt'taki her hizmetkâr ordunun azami canına +%# verir, en çok %#"],["The Tower can start at floor # from the first climb","Kule ilk tırmanıştan itibaren kat #'den başlayabilir"],
+ ["A secret master drops one heart more","Bir gizli efendi bir kalp fazla düşürür"],["A new oath starts at the second rank of devotion","Yeni bir yemin bağlılığın ikinci derecesinden başlar"],["The rival comes to steal half as often","Rakip yarı sıklıkla çalmaya gelir"],
+ ["Written","Yazıldı"],["The remembered way","Hatırlanan yol"],
+ ["The Ledger is quiet","Defter sessiz"],["The Ledger is quiet. Nothing rises until your first gate clear of this cycle","Defter sessiz. Bu döngünün ilk kapı temizliğine dek hiçbir şey dirilmez"],["The Quiet Valley: nothing rises until your first gate clear of this cycle","Sessiz Vadi: bu döngünün ilk kapı temizliğine dek hiçbir şey dirilmez"],
+ ["The quiet valley","Sessiz vadi"],["The open book","Açık kitap"],["The book stirs","Kitap kıpırdıyor"],
+ ["You wrote your own name on the last page, in your own hand, and the Ledger closed on it like a door on a warm room. All over the valley the dead lay down. Not dead again: finished. The ones in your army looked at you once, the way a crew looks at a captain on the last morning, and then they were bones, and the bones were only bones. The town woke to a silence it had forgotten. Someone opened a window. Someone laughed. The river ran the right way, and no one could remember it ever running the other","Son sayfaya kendi adını, kendi elinle yazdın ve Defter sıcak bir odanın kapısı gibi üstüne kapandı. Vadinin her yanında ölüler uzandı. Yeniden ölü değil: tamamlanmış. Ordundakiler, bir tayfanın son sabah kaptanına baktığı gibi sana bir kez baktılar, sonra kemik oldular ve kemikler yalnızca kemikti. Kasaba unuttuğu bir sessizliğe uyandı. Biri bir pencere açtı. Biri güldü. Nehir doğru yöne aktı ve kimse onun hiç öteki yöne aktığını hatırlayamadı"],
+ ["You did not write your name. You turned the page instead, and the page was not blank any more: it had a line on it, in your hand, that you do not remember writing. The Ledger is not finished with you. Your dead felt it; they stood a little straighter. The valley will not rest, and neither will you, and somewhere under the river the thing that wanted to be everyone has learned that it will never be you. Write. The book is listening","Adını yazmadın. Onun yerine sayfayı çevirdin ve sayfa artık boş değildi: üstünde senin elinden, yazdığını hatırlamadığın bir satır vardı. Defter seninle işini bitirmedi. Ölülerin bunu hissetti; biraz daha dik durdular. Vadi dinlenmeyecek, sen de dinlenmeyeceksin ve nehrin altında bir yerde herkes olmak isteyen şey asla sen olamayacağını öğrendi. Yaz. Kitap dinliyor"],
+ ["For days the Ledger lay shut in your pack like an ordinary book, and you almost believed it. Then, at the gate you cleared, the pages turned on their own to the place where your name was written, and below it, in fresh ink, a new line had begun","Günlerce Defter çantanda sıradan bir kitap gibi kapalı durdu ve neredeyse inanacaktın. Sonra temizlediğin kapıda sayfalar kendiliğinden adının yazılı olduğu yere çevrildi ve altında, taze mürekkeple, yeni bir satır başlamıştı"],
+ ["The Old Gods you swore to are quiet tonight, as if they had been waiting to hear how it ends","Yemin ettiğin Eski Tanrılar bu gece sessiz, sanki nasıl biteceğini duymayı bekliyorlarmış gibi"],
+ ["The thing you swore to below the shrine laughs once, softly, and does not say whether it is pleased","Tapınağın altında yemin ettiğin şey bir kez, yumuşakça gülüyor ve memnun olup olmadığını söylemiyor"],
+ ["You swore to no one, and no one comes to claim you","Kimseye yemin etmedin ve kimse seni almaya gelmiyor"],
+ ["Somewhere in the valley the other scribe closes their own book unfinished. You beat them, and they know it","Vadinin bir yerinde öteki katip kendi kitabını bitirmeden kapatıyor. Onu yendin ve bunu biliyor"],
+ ["The other scribe is still out there, writing. Some day the two of you will meet over the same grave","Öteki katip hâlâ orada bir yerde yazıyor. Bir gün ikiniz aynı mezarın başında karşılaşacaksınız"],
+ ["The Memorial is a city of names now","Anıt artık bir adlar şehri"],["The Memorial holds more names than the town does","Anıt kasabadan daha çok ad taşıyor"],["The Memorial is small. You were careful with them","Anıt küçük. Onlara özen gösterdin"],
+ ["One of yours stands at your shoulder, old enough to remember the first page","Seninkilerden biri omzunun yanında duruyor, ilk sayfayı hatırlayacak kadar yaşlı"],
+ ["The Ledger keeps its last page shut until what waits under Vane Abbey has fallen. Open the drowned door with either of its keys, cross the Scriptorium and end the Hunger, and the book will ask you how it ends","Defter, Vane Abbey'nin altında bekleyen düşene dek son sayfasını kapalı tutar. Boğulmuş kapıyı anahtarlarından biriyle aç, Yazıhaneyi geç ve Hunger'ı bitir; kitap sana nasıl biteceğini soracak"],
+ ["When the Hunger falls the Ledger opens at its last page and asks once each cycle. The page waits on the Gates tab: you can answer later, and the gates stay open. Either answer lets you keep playing the cycle; it decides what New Game+ becomes","Hunger düştüğünde Defter son sayfasına açılır ve her döngüde bir kez sorar. Sayfa Kapılar sekmesinde bekler: sonra yanıtlayabilirsin ve kapılar açık kalır. Her iki yanıt da döngüyü oynamayı sürdürmene izin verir; Yeni Oyun+'ın ne olacağını belirler"],
+ ["Ledger inscriptions","Defter yazıtları"],["Each ending lets you write one inscription you earned in that cycle. Inscriptions are permanent and stay through every New Game+, at most #","Her son, o döngüde kazandığın bir yazıtı yazmana izin verir. Yazıtlar kalıcıdır ve her Yeni Oyun+ boyunca kalır, en çok #"]
+].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+TR_RX.push([/^Press again: (.+)$/,"Yeniden bas: {t1}"],[/^Title: (.+?)\. New Game\+ becomes (.+?): (.+)$/,"Unvan: {t1}. Yeni Oyun+ şu olur: {t2}: {t3}"],[/^“(.+)” Title: (.+?)\. New Game\+ becomes (.+?): (.+)$/,"“{t1}” Unvan: {t2}. Yeni Oyun+ şu olur: {t3}: {t4}"],
+ [/^Earned: (.+)$/,"Kazanıldı: {t1}"],[/^Earned by (.+?)\. (.+)$/,"Kazanma yolu: {t1}. {t2}"],[/^The Ledger keeps an inscription: (.+?)\. (.+)$/,"Defter bir yazıt saklıyor: {t1}. {t2}"],
+ [/^You can keep playing this cycle\. New Game\+ \(Ledger tab, Settings\) now begins (.+?)\.?$/,"Bu döngüyü oynamayı sürdürebilirsin. Yeni Oyun+ (Defter sekmesi, Ayarlar) artık {t1} ile başlar"],
+ [/^Ledger inscriptions you carry: (.+?)\.?$/,"Taşıdığın Defter yazıtları: $1"],[/^cycle (\d+), day (\d+)$/,"döngü $1, gün $2"],
+ [/^One more key part: Tower floor (\d+), (\d+) pages or the six masters$/,"Bir anahtar parçası daha: Kule kat $1, $2 sayfa ya da altı efendi"],
+ [/^The Ledger remembers (.+?)\. It waits in (.+?) in Ledger form: in its second phase from the start, its heart paid twice\.?$/,"Defter $1 adını hatırlıyor. $2 içinde Defter biçiminde bekliyor: baştan ikinci evresinde, kalbi iki kez ödenir"]);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -10669,12 +10795,27 @@ const HEAT_SKULL='<svg viewBox="0 0 10 10"><path d="M5 .8C2.5.8 1 2.5 1 4.6c0 1.
 const heatMarks=lv=>'<i class="hm h'+lv+'" aria-hidden="true">'+HEAT_SKULL.repeat(lv+1)+'</i>';
 const bossMet=i=>metName(DUNGEONS[i].boss[0])||!!(S.ti&&S.ti.clr&&S.ti.clr[i]);   // a gate's boss stays ??? on its card until you have met or beaten it
 const gateStars=i=>HEAT.map((x,lv)=>lv?!!(S.heatMax&&S.heatMax[i]>=lv):!!(S.ti&&S.ti.clr&&S.ti.clr[i]));   // cleared on Normal, Hard, Brutal, Nightmare
+function inscChips(){ const o=inscOffer(); return o.length?'<p class="group-h">Write one inscription &middot; it stays in the Ledger for every cycle to come</p><div class="insc-list">'+o.map(id=>{ const I=INSCRIPTIONS[id]; return '<button class="btn small" data-a="inscribe" data-k="'+id+'" title="Earned: '+I.need+'"><b>'+I.name+'</b> &middot; '+I.desc+'</button>'; }).join('')+'</div>':''; }
+function lastPageHTML(){   // the Hunger has fallen: the Ledger open at its last page (chooseEnding, inscribe in game-abbey.js)
+  if(!S.ending) return '<section class="win last-page" aria-labelledby="h-lp"><h2 class="win-h" id="h-lp">The last page</h2><h3 class="win-title">The Ledger lies open, and the pen is in your hand</h3>'
+    +'<p class="lede">The Hunger is gone. What is left is a blank page and a choice Oswin never made. Answer now, or leave it: the page waits, and the gates stay open.</p><div class="lp-choices">'
+    +Object.entries(ENDINGS).map(([k,E])=>'<div class="lp-choice"><h4>'+E.name+'</h4><p class="lp-line">&ldquo;'+E.line+'&rdquo;</p><p class="dim">Title: '+E.title+'. New Game+ becomes '+E.cycle+': '+E.ngp+'</p><button class="btn '+(ui.confirm==='end:'+k?'warn':'primary')+'" data-a="ending" data-k="'+k+'">'+(ui.confirm==='end:'+k?'Press again: '+E.name.toLowerCase():E.name)+'</button></div>').join('')
+    +'</div><div class="btns"><button class="btn small" data-a="lplater">Not yet</button></div></section>';
+  const st=STORY_BY[S.ending.k==='closed'?'end_closed':'end_kept'];
+  return '<section class="win last-page" aria-labelledby="h-lp"><h2 class="win-h" id="h-lp">'+ENDINGS[S.ending.k].name+'</h2><h3 class="win-title">'+st.t+'</h3><p class="lp-text">'+st.m+'</p><p class="lp-text">'+S.ending.v+'</p>'
+    +inscChips()+'<p class="q-note">You can keep playing this cycle. New Game+ (Ledger tab, Settings) now begins '+ENDINGS[S.ending.k].cycle+'.</p><div class="btns"><button class="btn primary" data-a="lpseen">Close the Ledger</button></div></section>';
+}
+function lastPageBanner(){
+  if(!S.lastPage||S.mode!=='town') return '';
+  if(!S.ending) return '<div class="note story lp-banner"><i>Ledger</i><span>The last page waits for your answer.</span><button class="btn small" data-a="lpopen">Open the Ledger</button></div>';
+  return inscOffer().length?'<div class="note story lp-banner"><i>Ledger</i><span>An inscription waits to be written.</span><button class="btn small" data-a="lpopen">Open the Ledger</button></div>':'';
+}
 function abbeyDoorHTML(){   // Vane Abbey while sealed (game-abbey.js): the drowned door and its two key slots, either one opens it
   const D=DUNGEONS[ABBEY], A=abbeyState(), GL=BOSS_LOOK[D.boss[0]]||['#1a1714','#5a4a3a'];
   const slot=k=>{ const K=ABBEY_KEYS[k], ps=K.parts(), n=ps.filter(p=>p[1]).length; return '<div class="key-slot'+(A.keys[k]?' on':'')+'"><b>'+K.name+'</b> <span class="dim num">'+n+'/'+ps.length+'</span><ul>'+ps.map(p=>'<li class="'+(p[1]?'ok':'dim')+'"><i aria-hidden="true">'+(p[1]?'&#10003;':'&#9675;')+'</i> '+p[0]+'</li>').join('')+'</ul></div>'; };
   return '<div class="gate locked abbey-door" style="--g1:'+GL[0]+';--g2:'+GL[1]+'"><div class="g-head gs-g'+ABBEY+'" aria-hidden="true">'+G_SEAL+'<span class="g-sealtxt">Sealed &middot; two keys</span></div>'
    +'<div class="badge r'+ABBEY+'">'+RANKS[ABBEY]+'</div><div class="g-body"><h3>'+D.name+'</h3><p>'+D.blurb+'</p>'
-   +'<p class="lede">A door in the riverbed, bound in chain. Either key opens it.</p><div class="key-slots">'+slot('deep')+slot('secret')+'</div></div>'
+   +'<p class="lede">A door in the riverbed, bound in chain. Either key opens it.</p><div class="key-slots">'+abbeyKeyIds().map(slot).join('')+'</div></div>'
    +'<button class="btn" disabled>Sealed</button></div>';
 }
 function gateHTML(i){
@@ -10869,6 +11010,8 @@ function ngpHTML(){
   h+='<div class="danger-zone"><p class="q-note" style="margin-top:0">Begin New Game+ '+n+': level 1, day 1, a fresh army, bag and gold. You keep your titles and bestiary, and one unique. Foes get '+Math.round(NGP_FOE*n*100)+'% more HP and attack and pay '+Math.round(NGP_REWARD*n*100)+'% more XP and gold.</p>';
   h+=own.length?'<p class="q-note">Choose the unique to carry:</p><div class="chips">'+own.map(id=>'<button class="btn small'+(sel===id?' primary':'')+'" data-a="ngppick" data-k="'+id+'" aria-pressed="'+(sel===id)+'">'+ITEM[id].name+'</button>').join('')+'</div>'
     :'<p class="q-note">You hold no unique to carry.</p>';
+  if(S.ending) h+='<p class="q-note"><b>'+ENDINGS[S.ending.k].cycle+'.</b> '+ENDINGS[S.ending.k].ngp+'</p>';   /* the ending you chose (game-abbey.js) */
+  if((S.inscriptions||[]).length) h+='<p class="q-note">Ledger inscriptions you carry: '+S.inscriptions.map(id=>INSCRIPTIONS[id].name).join(', ')+'.</p>';
   h+=pactPickHTML();   // New Game+ pacts (src/ui-progression.js)
   return h+'<div class="btns"><button class="btn small warn" data-a="ngp">'+(ui.confirm==='ngp'?'Press again: this replaces your current game':'Begin New Game+ '+n+(sel?' with '+ITEM[sel].name:''))+'</button></div></div>';
 }
@@ -10986,6 +11129,7 @@ function recordsHTML(){
   const row=(t,v)=>'<div class="tt-row"><div><h4>'+t+'</h4></div><div class="rec-v">'+v+'</div></div>';
   let h='<section class="win" aria-labelledby="h-rec"><h2 class="win-h" id="h-rec">Records</h2><h3 class="win-title">Your best, kept through every New Game+</h3>'
    +'<div class="items">'+row('Deepest Tower floor',Rc.floor?'<b>'+Rc.floor.v+'</b>'+(Rc.floor.v>100?' <span class="dim">(Abyss)</span>':'')+' <span class="dim">&middot; day '+Rc.floor.day+'</span>':'<span class="dim">not yet</span>')
+   +row('Endings',(S.endHist||[]).length?S.endHist.map(e=>'<b>'+ENDINGS[e.k].name+'</b> <span class="dim">&middot; cycle '+(e.cycle+1)+', day '+e.day+'</span>').join('<br>'):'<span class="dim">not yet</span>')
    +row('Biggest single hit',on(Rc.hit))+row('Most foes slain in one run',on(Rc.kills))+row('Most gold from one run',on(Rc.gold))
    +row('Souls spent on ultimates','<b>'+n(T_('ults')*SOUL_MAX)+'</b> <span class="dim">&middot; '+n(T_('ults'))+' ultimate'+(T_('ults')===1?'':'s')+'</span>')
    +row('Sieges fought / held','<b>'+n(T_('sieges'))+'</b> <span class="dim">&middot; '+n(T_('siegeWins'))+' held</span>')
@@ -11065,7 +11209,7 @@ function histHTML(){
 // ----- the Codex: every rule and list in the game, read straight from the game's own tables so it never goes stale.
 // Enemies you have not met yet stay hidden, as in the bestiary.
 const CODEX=[['basics','Basics'],['raising','Raising'],['faith','Faith'],['omens','Omens'],['roles','Roles'],['traits','Traits'],['minions','Minion stats'],['army','Army'],['reserve','Reserve'],['fusion','Fusion'],['affixes','Elite affixes'],['bosses','Bosses'],['status','Status effects'],['types','Damage types'],['kits','Foe kits'],['skills','Skills'],['orders','Orders'],
-  ['gates','Gates'],['tower','Hell Tower'],['gear','Gear'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['records','Records']];
+  ['gates','Gates'],['tower','Hell Tower'],['gear','Gear'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['records','Records'],['endings','Endings']];
 const CDX_ROLE={
   vanguard:'When a foe picks a target, each vanguard counts 5 and everyone else (you included) counts 2, so vanguards draw most blows. They take Taunt orders and stand in front of a Sundering Blow.',
   striker:'This goes for your strikers and the enemy\'s. An enemy striker\'s crit also makes its target bleed. Focus makes your strikers crit every hit for a turn.',
@@ -11267,6 +11411,11 @@ function codexSection(k){
       cxRow('Gear','The consumed minion\'s gear returns to your bag.'),
       cxRow('Compounds','When a fusion brings together two traits that belong together, they fuse into one compound trait: one slot that counts as both, with something more besides. It happens before the trait limit, and only in the pit. Each trait joins at most one compound, and compounds never fuse further. The pit shows when something new will form.')])
     +'<p class="group-h">Compounds</p>'+cxList(COMPOUNDS.map(([c])=>compoundFound(c)?cxRow(TRAITS[c].name,TRAITS[c].desc+' '+TRAITS[c].story,'Found'):cxRow('???','Two traits that have not yet met in the pit.')));
+  if(k==='endings'){ if(!S.lastPage&&!(S.endHist||[]).length) return cxP('The Ledger keeps its last page shut until what waits under Vane Abbey has fallen. Open the drowned door with either of its keys, cross the Scriptorium and end the Hunger, and the book will ask you how it ends.');
+    return cxP('When the Hunger falls the Ledger opens at its last page and asks once each cycle. The page waits on the Gates tab: you can answer later, and the gates stay open. Either answer lets you keep playing the cycle; it decides what New Game+ becomes.')
+      +cxList(Object.values(ENDINGS).map(E=>cxRow(E.name,'&ldquo;'+E.line+'&rdquo; Title: '+E.title+'. New Game+ becomes '+E.cycle+': '+E.ngp)))
+      +'<p class="group-h">Ledger inscriptions</p>'+cxP('Each ending lets you write one inscription you earned in that cycle. Inscriptions are permanent and stay through every New Game+, at most '+INSC_MAX+'.')
+      +cxList(INSC_IDS.map(id=>{ const I=INSCRIPTIONS[id]; return cxRow(I.name,'Earned by '+I.need+'. '+I.desc+(hasInsc(id)?' Written.':'')); })); }
   if(k==='records') return cxP('The Records page on the Ledger tab keeps your personal bests through every New Game+. A new best flashes a banner, once per run and kind, but never for a first record.')
     +cxList(REC_NUM.map(r=>cxRow(REC_NAME[r].charAt(0).toUpperCase()+REC_NAME[r].slice(1),CDX_REC[r]||'')).concat([cxRow('Fastest clears','The fewest turns from the first room to the fallen boss, for each gate, on any difficulty.'),
       cxRow('Fastest Rift dives','The fewest turns to clear a dive, for each band of '+RIFT_BAND+' depths. A dive at depth 12 counts for 10 and deeper.'),cxRow('Secret masters','The day you first slew each one.')]))
@@ -11638,6 +11787,8 @@ function townHTML(){
   if(sub==='war') return h+raidHTML()+armyBriefHTML();
   if(sub==='rift') return h+riftHTML()+armyBriefHTML();
   if(sub==='trial') return h+trialHTML()+armyBriefHTML();
+  if(S.lastPage&&S.mode==='town'&&((!S.ending&&!ui.lpLater)||ui.lpJust)) return h+lastPageHTML();   /* the last page (game-abbey.js): the Ledger itself, not a popup */
+  h+=lastPageBanner();
   h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'+gateArmyHTML()
    +((n=>n<FIRST_STEPS.length&&!(S.tips&&S.tips.off)?'<p class="q-note guide-link"><button class="linkbtn" data-a="tab" data-k="help">How to play &middot; first steps '+n+'/'+FIRST_STEPS.length+'</button></p>':'')(stepsDone()))   /* for a new player; gone once every step is done or tips are switched off */
    +(omen()?'<div class="omen-line" title="It touches every gate and the Tower until dawn."><b>Omen today: '+OMENS[omen()].name+'.</b> '+OMENS[omen()].desc+'</div>':'')+rivalWarnHTML()
@@ -12034,6 +12185,7 @@ function raiseHTML(){
     const ch=raiseChance(c), cost=raiseCost(c);
     let right;
     if(c.tried) right=c.result==='raised'?'<span class="ok num">'+(c.res?'Raised to the Reserve as ':'Raised as ')+c.minion+'</span>':c.result==='exploded'?'<span class="dim num">Burst apart</span>':c.result==='taken'?'<span class="dim num rival-took">Taken by '+c.taken+'</span>':'<span class="bad num">Crumbled</span>';
+    else if(quietLocked()) right='<span class="dim" title="The Quiet Valley: nothing rises until your first gate clear of this cycle.">The Ledger is quiet</span>';
     else if(soulBound(c)) right='<span class="dim num" title="'+SOUL_BOUND+'">Soul already bound</span>';
     else if(bench) right='<div class="btns" style="margin:0"><button class="btn primary small res-raise" data-a="raiseres" data-k="'+c.id+'"'+(P.mana<cost?' disabled':'')+' title="Your army is full: the minion goes to the Reserve">Raise to the Reserve &middot; '+ch+'% &middot; '+cost+' mana</button>'
       +(S.salts>0?'<button class="btn small" data-a="raiseressalt" data-k="'+c.id+'"'+(P.mana<cost?' disabled':'')+' title="Uses one Grave Salts ('+S.salts+' left)">With salts &middot; '+saltChance(c)+'%</button>':'')+'</div>';
@@ -12296,11 +12448,14 @@ const ACTIONS={
   flee:()=>flee(),
   raise:k=>tryRaise(k), descend:()=>descend(), town:()=>returnTown(), retry:()=>{ retryRoom(); }, rest:()=>restDay(),
   release:k=>{ if(ui.confirm===+k){ release(+k); ui.confirm=null; } else ui.confirm=+k; },
+  ending:k=>{ if(ui.confirm==='end:'+k){ ui.confirm=null; if(chooseEnding(k)) ui.lpJust=1; } else ui.confirm='end:'+k; },
+  inscribe:k=>{ inscribe(k); },
+  lplater:()=>{ ui.lpLater=1; ui.lpJust=0; }, lpopen:()=>{ ui.lpLater=0; ui.lpJust=S.ending?1:0; }, lpseen:()=>{ ui.lpJust=0; },
   cross:k=>{ if(ui.confirm==='x'+k){ scriptCross(+k); ui.confirm=null; } else ui.confirm='x'+k; },   /* the Scriptorium (game-abbey.js): a second press confirms */
   newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); OPEN_HELP.on=false; ui.tab='gates'; ui.gsub='open'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
 };
 function settled(){ sgTipHide(); if(S&&S.mode==='town') cmdSync(); checkTitles(); try{ loreCheck(); }catch(e){} render(); }   // after an action: award titles and lore passages, then draw
-const CONFIRM_ACTS=['release','cross','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
+const CONFIRM_ACTS=['release','cross','ending','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
 document.addEventListener('click',e=>{
   MUSIC.armed=true;
   const b=e.target.closest('[data-a]'); if(!b||b.disabled) return;
