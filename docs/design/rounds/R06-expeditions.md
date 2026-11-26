@@ -142,3 +142,44 @@ whole), *Hunt Master* (10 hunts), *Not a Scratch* (20 expeditions with no losses
 
 - **Expeditions become the best farm**: the pay target caps them at about a watch's worth; tune `EXP_PAY` per target.
 - **Too many dawn decisions**: a "same as last time" toggle per squad, and the bot's choice shown as a hint.
+
+## As built (PR #19)
+
+Shipped in one PR, src/game-exp.js (included after game-dread.js), 2026-11-26.
+
+- **Targets** (`expTargets`, `tValid`, `tName`): a cleared gate (1-2 nights), today's cursed gate (1-2 nights, steps
+  -5%, gold x1.25, two pieces of gear at most), ten Tower floors below your best once it reaches floor 20 (2 nights, Tower
+  trophies, half the gold, one piece, a warden's heart 20% of nights), a hunt for a kind you have **mastered** (1 night,
+  Fight -5%, three of its trophies, a boss's heart 25% of nights) and a scavenge near your deepest gate (1 night, no Fight,
+  bone dust and trophies, half the XP). Not built: difficulties as targets, Vane Abbey (3 nights), the rival's stash (R7).
+- **Odds**: each step is the cube root of the old raid odds (so a covered night is about the old raid's odds), then its
+  cover: Approach -10% with no vanguard; Fight -15% with no striker or reaper, +3% each up to +9%, +-3% per member the
+  gate is weak to or resists (GATE_RES, TOWER_RES for a band), +3% for a bonded pair, -5% on a hunt; the curse and
+  each pressed night -5% on every step; clamped 15-97%. War banners and the War Room act through the old odds
+  (`bannerOdds`, `warOdds`). The spec's new power formula and kit intel were not built.
+- **Nights and the dawn choice**: spoils are carried (`x.sp`) and banked by `expHome`; at each dawn with nights left the
+  squad waits in the field (`expOut`; the War table stays open for it and the hub says so) for press on (+50% spoils a
+  night pressed), the risky path (no Approach, spoils doubled, a lost Fight takes the weakest follower) or come home.
+  No 3-night expeditions, so *Long Road* asks for two nights.
+- **Losses**: a failed Approach loses the night only; a failed Fight rolls each follower (30%, Grave-bound never), the
+  Commander shielding the first once an expedition (`x.saved`); a failed Haul halves what is carried; no mender halves
+  each night's take.
+- **Road events** (10% of nights that hold): a lost patrol (the Embalmery keeps a militia body, or the town calms by 3),
+  an old camp (bone dust, not a lore page) and another keeper's squad (60%: spoils +50%; else a follower may fall). No
+  passages yet.
+- **Rally** (`rally`, `rallyK`, `rallyHTML`): a free order once a room from a living Commander: +20% minion damage this
+  turn (+25% with two Commanders) or one condition off every minion. Instead of "the first order lasts a turn longer",
+  an Elder Commander (stage 2+) makes Taunt last 3 turns and Bone Shield 25% stronger. No Warlord compound (R12).
+- **Save**: raids keep living in `S.raids`/`S.raidOrders` with `t`, `nights`, `night`, `sp`, `log`, `pick`, `pressed`,
+  `won`, `saved`, `lostN` (`expFix`, `expOrderFix`); a raid from before loads as a one-night gate expedition. The squad
+  keeps its places as raids always did, so no `m.away` flag was needed. `S.raidLog` rows gain `k` and `nights`.
+- **Titles** (4): Long Road, Hunt Master, Not a Scratch, Rallying Cry (171 titles).
+- **UI**: the War table shows squads in the field with a three-step strip and the three choices, target chips (a Hunts
+  group), Nights chips, the squad with roles, each step's odds and what is uncovered; the Codex raids page states it all.
+  Turkish for every new string.
+- **Bot**: squads of the weakest who cover the three steps; cursed gate first, then the deepest gate, a band, a scavenge,
+  at 55% a night or better; two nights at 80% with no siege within two days; presses on at 70%; Rally cleanse with two
+  or more afflicted minions, else damage. `"off":["exp"]` (plain gate raids), `"off":["rally"]`.
+- **Measured** (seeds 7700/9100): market unchanged; full 89/90%, Tower 83.7/85.4, Rift 17.2/15.0 (12.4 without
+  expeditions), sieges 81/82%, expedition nights held ~84%, Rally under a point. See 04-balance.
+- **Tests**: 95-expeditions (9), 96-rally (5); 799 in all; fuzz 12/12 clean.

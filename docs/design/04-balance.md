@@ -17,12 +17,22 @@ to each constant in `src/` and in `claude.md`; this page is the summary to read 
 | Hell Tower (full) | ~85-90 by day 100 | Floor 100 stays a real goal |
 | Sieges held (full) | 80-87% | A real threat to the town |
 | Rival challenges won (full) | ~65-75% | They should win sometimes |
-| Raids won (full) | ~75-80% | A reliable but risky order |
+| Expedition nights held (full) | ~75-80% (now ~84%) | A reliable but risky order |
 | Stat builds (Will + one other) | within ~4 points of each other on gates | No dead stat |
 | Rank-3 skill upgrades (a vs b) | within ~2 points | Both choices real |
 | Each system switched off (`"off"`) | costs about 1 point of clears or a few Tower floors | Every system pulls its weight |
 
 ## 4.2 Latest measurements (2026-11-26, seeds 7700 and 9100, 40 bots x 100 days)
+
+**After expeditions and Rally (R6)**: market unchanged to the digit (89/90%, Tower 78.6/77.1, Rift 16.8/16.6). full
+89/90%, Tower 83.7/85.4, Rift 17.2/15.0, sieges held 81/82%, rival 63/65%, levels 60-61 at day 100. The bot sends ~115
+expedition nights a game and holds ~84% of them (target 75-80%; it only sends at 55% or better and covers the steps),
+almost all to the day's cursed gate (gold x1.25, two pieces of gear); it presses on at 70% or better and takes two nights
+only with no siege within two days. Rally fires ~1,180 times a game and is worth under a point (`"off":["rally"]`: Tower
+84.5, Rift 16.3). Expeditions are the Rift's gain: `"off":["exp"]` (plain one-night gate raids, old squad choice) gives
+Rift 12.4, so the carried spoils and role-covered squads add ~4 depths without moving gates or the Tower; the cursed pay
+was cut from x1.5 and three pieces (Rift 17.0, gold earned +11%) to x1.25 and two. Sieges lose ~2 points because a squad
+in the field on a siege night is not on the wall. Left for R9 (the Rift's own retune).
 
 **After the town's dread, daily orders and upkeep (R5 PR B)**: market unchanged (89/90%, Tower 78.6/77.1). full 90/90%,
 Tower 84.8/85.3, Rift 11.3, sieges 85/82%, levels 61 at day 100. Daily orders cut the stat points from the day's work from

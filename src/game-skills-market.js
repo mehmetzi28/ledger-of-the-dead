@@ -351,40 +351,24 @@ function raidOdds(units,di){
 const raidOrders=()=>(S&&S.raidOrders)||[];
 const inOrder=m=>raidOrders().some(o=>o.cu===m.uid||o.uids.includes(m.uid));   // already promised to tonight's march
 const orderSquad=o=>{ const P=raidPool(), c=P.find(m=>m.uid===o.cu); return c?[c].concat(o.uids.map(u=>P.find(m=>m.uid===u&&m!==c)).filter(Boolean)):[]; };   // who would march now: the shattered and released are simply gone
-function sendRaid(cu,di,uids){   // order a raid for tonight: nobody leaves until the day ends
-  if(S.mode!=='town') return false; const P=raidPool(), c=P.find(m=>m.uid===cu); if(!isCommander(c)||!raidGates().includes(di)||inOrder(c)) return false;
+function sendRaid(cu,di,uids,t,nights){   // order an expedition for tonight: nobody leaves until the day ends (t: the target, game-exp.js; a plain gate by default)
+  t=t||{k:'gate',di}; di=t.di; if(S.mode!=='town') return false; const P=raidPool(), c=P.find(m=>m.uid===cu); if(!isCommander(c)||!tValid(t)||inOrder(c)) return false;
+  nights=expNights(t.k).includes(nights)?nights:expNights(t.k)[0];
   const fol=[...new Set(uids||[])].map(u=>P.find(m=>m.uid===u&&m!==c)); if(fol.some(m=>!m||inOrder(m))||!fol.length||fol.length>squadMax(c)-1) return false;   // a Commander never marches alone
-  const o={di,day:S.day,cu:c.uid,uids:fol.map(m=>m.uid)}; bannerTake(o); S.raidOrders=raidOrders().concat([o]); tally('raidsSent'); sfx('raise'); return true;
+  const o={di,day:S.day,cu:c.uid,uids:fol.map(m=>m.uid),t,nights}; bannerTake(o); S.raidOrders=raidOrders().concat([o]); tally('raidsSent'); sfx('raise'); return true;
 }
 function recallRaid(i){ if(S.mode!=='town'||!S.raidOrders||!S.raidOrders[i]) return false; S.raidOrders.splice(i,1); return true; }   // cancel tonight's order: free, any time before nightfall
 function marchRaids(){   // nightfall: every standing order marches with the squad as it now is
   const os=raidOrders(); S.raidOrders=[];
   for(const o of os){ const units=orderSquad(o), c=units[0];
-    if(!c||!isCommander(c)||!raidGates().includes(o.di)){ notify('Tonight\'s raid on the '+DUNGEONS[o.di].name+' lapses: its Commander is gone.','bad'); continue; }
+    const t=o.t||{k:'gate',di:o.di}; if(!c||!isCommander(c)||!raidGates().includes(t.di)&&t.k!=='band'){ notify('Tonight\'s raid on the '+DUNGEONS[o.di].name+' lapses: its Commander is gone.','bad'); continue; }
     if(units.length<2){ notify('Tonight\'s raid on the '+DUNGEONS[o.di].name+' lapses: '+c.nick+' has no one left to lead.','bad'); continue; }
     const res=units.filter(m=>inReserve(m)).map(m=>m.uid);   // where each marched from: its place waits for it
     S.army=S.army.filter(m=>!units.includes(m)); if(S.reserve) S.reserve=S.reserve.filter(m=>!units.includes(m)); units.forEach(m=>{ m.hp=m.maxHp; delete m.dots; delete m.st; });
-    S.raids=(S.raids||[]).concat([Object.assign({di:o.di,day:S.day,units,res,odds:bannerOdds(o,raidOdds(units,o.di))},o.bn?{bn:o.bn}:{})]); }
-}
-function resolveRaid(x){
-  const D=DUNGEONS[x.di], lead=x.units[0], won=Math.random()<(typeof x.odds==='number'?x.odds:raidOdds(x.units,x.di));   /* odds as they marched */ let msg, lost=[];
-  if(won){
-    const g=Math.round((15+S.player.lvl*4)*(1+x.di)*RAID_GOLD*ngpReward()*bannerGold(x)*warGold()); S.gold+=g; let items=0, full=0;
-    for(let i=0;i<3;i++){ if(i===2&&Math.random()>=RAID_ITEM3) break; const id=pickNorm(tableFor(x.di,'vanguard',i===0,false).filter(r=>!ITEM[r.id].uq)); if(addItem(id)) items++; else full++; }
-    x.units.forEach(m=>minionXp(m,Math.round(mneed(m.lvl)*RAID_XP))); tally('raidWins'); if(x.di<=1) dread(DREAD_RAID);
-    msg=lead.nick+' is back from the '+D.name+' in triumph: +'+g+' gold'+(items?', '+items+' piece'+(items>1?'s':'')+' of gear':'')+(full?' ('+full+' left behind: your bag is full)':'')+'.';
-  } else {
-    x.units.forEach((m,i)=>{ if(i>0&&!hasTrait(m,'gravebound')&&Math.random()<RAID_LOSS){ lost.push(m); returnGear(m); memorialize(m,{raid:x.di}); } });
-    x.units=x.units.filter(m=>!lost.includes(m)); x.units.forEach(m=>minionXp(m,Math.round(mneed(m.lvl)*RAID_XP*.25)));
-    msg=lead.nick+'\'s raid on the '+D.name+' was thrown back'+(lost.length?'. Fallen: '+lost.map(m=>m.nick).join(', '):'. Everyone made it home')+'.';
-  }
-  msg+=homeLine(x.units.map(m=>placeMinion(m,Array.isArray(x.res)&&x.res.includes(m.uid)))); /* back to the place each left */ notify(msg,won?'ok':'bad');
-  S.raidLog=[{day:S.day,di:x.di,won,nick:lead.nick,lost:lost.length}].concat(S.raidLog||[]).slice(0,RAID_LOG);
-  return {won,lost:lost.length};
+    S.raids=(S.raids||[]).concat([Object.assign({di:o.di,day:S.day,units,res,odds:bannerOdds(o,expBase(units,t)),t,nights:o.nights||1,night:0},o.bn?{bn:o.bn}:{})]); }
 }
 const homeLine=w=>{ const r=w.filter(x=>x==='reserve').length, g=w.filter(x=>x==='gate').length;   // where homecomers went when the army was full
   return (r?' '+r+' went to the Reserve: your army is full.':'')+(g?' '+g+' wait at the gate: your army and Reserve are full.':''); };
-function resolveRaids(){ const out=S.raids||[]; S.raids=[]; return out.map(resolveRaid); }
 function raidDayLine(rr){ if(!rr||!rr.length) return ''; const w=rr.filter(x=>x.won).length, b=rr.length-w, f=rr.reduce((a,x)=>a+x.lost,0);   // one line for the new-day message
   return ' Raids: '+[w?w+' won':'',b?b+' thrown back':'',f?f+' fallen':''].filter(Boolean).join(', ')+'.'; }
 

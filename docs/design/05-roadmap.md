@@ -23,8 +23,8 @@ substantial feature or rework; small fixes ride along inside one. Rounds name th
 | R2 | Masters worth remembering: boss kits | Shipped (#11, #12) | G3, G11 (part) | R1 | XL | [spec](rounds/R02-boss-kits.md) |
 | R3 | The end of the book: the seventh gate and the ending | Shipped (#13, #14) | G16, G21 (part) | R2 helps | XL | [spec](rounds/R03-the-end-of-the-book.md) |
 | R4 | Gold that means something: late economy and crafting | Shipped (#15, #16) | G10, G11, G14, B3 | | L | [spec](rounds/R04-late-economy-and-crafting.md) |
-| R5 | The necropolis grows: town expansion and the town's dread | P1 | G6, G12, G13, G15, B7 | R4 helps | XL | [spec](rounds/R05-the-necropolis-grows.md) |
-| R6 | Expeditions: raids rework and Commanders in battle | P2 | G17, G8 | R5 | L | [spec](rounds/R06-expeditions.md) |
+| R5 | The necropolis grows: town expansion and the town's dread | Shipped (#17, #18) | G6, G12, G13, G15, B7 | R4 helps | XL | [spec](rounds/R05-the-necropolis-grows.md) |
+| R6 | Expeditions: raids rework and Commanders in battle | Shipped (#19) | G17, G8 | R5 | L | [spec](rounds/R06-expeditions.md) |
 | R7 | The rival's war: an arc with an ending | P2 | G19 | R2 | L | [spec](rounds/R07-the-rivals-war.md) |
 | R8 | The pantheon: faith rework, gods and omens | P2 | G18, G20 | R5 | L | [spec](rounds/R08-the-pantheon.md) |
 | R9 | Rift sigils and Riftborn gear | P2 | G22, B4 | R2 | L | [spec](rounds/R09-rift-sigils.md) |

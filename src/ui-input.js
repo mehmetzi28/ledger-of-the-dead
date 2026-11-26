@@ -77,7 +77,7 @@ const ACTIONS={
   mark:k=>{ const a=k.split('|'); chooseMark(+a[0],a[1]); },
   tores:k=>{ toReserve(+k); }, toarmy:k=>{ toArmy(+k); }, swapo:k=>{ ui.swap=ui.swap===+k?null:+k; }, swap:k=>{ const a=k.split('|'); if(swapReserve(+a[0],+a[1])) ui.swap=null; },
   rsort:k=>{ sortReserve(k); }, gatearmy:k=>{ fromGate(+k,'army'); }, gateres:k=>{ fromGate(+k,'reserve'); },
-  event:k=>{ resolveEvent(k); }, door:k=>{ descend(k); }, cmd:k=>{ command(k); },
+  event:k=>{ resolveEvent(k); }, door:k=>{ descend(k); }, cmd:k=>{ command(k); }, rally:k=>{ rally(k); },
   skmod:k=>{ const a=k.split('|'); chooseMod(a[0],a[1]); },
   build:k=>{ const c=buildCost(k); ui.msg=build(k)?{mk:1,m:BUILD[k].name+' raised to level '+bl(k)+' for '+c[0]+' gold'+(c[1]?' and '+c[1]+' bone dust':'')+'.',c:'ok'}:null; },
   claimb:k=>{ const r=claimBounty(+k); if(r) notify('Bounty claimed: '+r+'.','ok'); },
@@ -109,11 +109,12 @@ const ACTIONS={
   reforge:k=>{ const it=findItem(+k), c=it&&reforgeCost(it); ui.msg=reforge(+k)?{mk:1,m:'Reforged '+ITEM[it.id].name+' for '+c+' gold.',c:'ok'}:null; },
   rift:k=>{ startRift(+k); }, gsub:k=>{ ui.gsub=['open','war','rift','trial'].includes(k)?k:'open'; ui.msg=null; }, trial:()=>{ startTrial(); },
   rdep:k=>{ const b=riftBest(); ui.rd=clamp((ui.rd||b+1)+(+k||0),1,b+1); },
-  rcmd:k=>{ ui.rc=+k; ui.rsq=[]; }, rgate:k=>{ ui.rg=+k; },
+  rcmd:k=>{ ui.rc=+k; ui.rsq=[]; }, rgate:k=>{ ui.rg=+k; ui.rt=tKey({k:'gate',di:+k}); }, rtgt:k=>{ ui.rt=String(k); }, rnight:k=>{ ui.rn=+k; },
+  expc:k=>{ const [i,c]=String(k).split('|'); expChoose(+i,c); },
   rsq:k=>{ const u=+k; ui.rsq=(ui.rsq||[]).includes(u)?ui.rsq.filter(x=>x!==u):(ui.rsq||[]).concat([u]); },
-  raid:()=>{ const pool=raidPool(), cmds=pool.filter(isCommander).filter(m=>!inOrder(m)), gates=raidGates(); const c=cmds.find(m=>m.uid===ui.rc)||cmds[0]; if(!c||!gates.length) return;
-    const di=gates.includes(ui.rg)?ui.rg:gates[gates.length-1], sel=(ui.rsq||[]).filter(u=>pool.some(m=>m.uid===u&&m!==c&&!inOrder(m))).slice(0,squadMax(c)-1);
-    if(sendRaid(c.uid,di,sel)){ ui.msg={mk:1,m:c.nick+' will march on the '+DUNGEONS[di].name+' tonight with '+sel.length+' at its back. They fight beside you until nightfall and return at dawn.',c:'ok'}; ui.rsq=[]; ui.rc=null; } },
+  raid:()=>{ const pool=raidPool(), cmds=pool.filter(isCommander).filter(m=>!inOrder(m)), T=expTargets(); const c=cmds.find(m=>m.uid===ui.rc)||cmds[0]; if(!c||!raidGates().length) return;
+    const t=T.find(x=>tKey(x)===ui.rt)||T.filter(x=>x.k==='gate').slice(-1)[0], NN=expNights(t.k), n=NN.includes(ui.rn)?ui.rn:NN[0], sel=(ui.rsq||[]).filter(u=>pool.some(m=>m.uid===u&&m!==c&&!inOrder(m))).slice(0,squadMax(c)-1);
+    if(sendRaid(c.uid,t.di,sel,t,n)){ ui.msg={mk:1,m:c.nick+' will march on '+tName(t)+' tonight with '+sel.length+' at its back. They fight beside you until nightfall.',c:'ok'}; ui.rsq=[]; ui.rc=null; } },
   recall:k=>{ recallRaid(+k); },
   siegego:()=>{ beginSiege(); }, sguard:k=>{ siegeGuard(k); }, swall:k=>{ siegeWallPick(+k); }, cxgo:k=>{ ui.tab='codex'; ui.cx=k; ui.cxq=''; },
   repair:()=>{ const g=sg(), k=g.dmg, c=repairCost(); if(!k) return; if(ui.confirm!=='repair'){ ui.confirm='repair'; return; } ui.confirm=null; ui.msg=repairBuilding()?{mk:1,m:'The '+BUILD[k].name+' is repaired for '+c+' gold. It works again.',c:'ok'}:null; },

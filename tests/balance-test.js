@@ -154,10 +154,18 @@
         if(!armyRoom()&&w&&cval(r)>cval(w)) release(w.uid);
         if(armyRoom()&&S.reserve.includes(r)) toArmy(r.uid); else if(armyRoom()&&S.waiting.includes(r)) fromGate(r.uid,'army'); else release(r.uid); }
     }
-    if(B.full&&!B.off.raid&&typeof sendRaid==='function'&&!(S.raidOrders||[]).length&&S.army.length>=5&&S.watches===1){   // before the day's last run, order a Commander and its two weakest companions at the deepest gate with fair odds
-      const c=S.army.filter(isCommander).sort((a,b)=>cval(b)-cval(a))[0];
-      if(c){ const fol=S.army.filter(m=>m!==c).sort((a,b)=>cval(a)-cval(b)).slice(0,Math.min(2,squadMax(c)-1)), units=[c].concat(fol);
-        const g=raidGates().slice().reverse().find(di=>raidOdds(units,di)>=.55); if(g!=null) sendRaid(c.uid,g,fol.map(m=>m.uid)); }
+    if(B.full&&!B.off.raid&&typeof expChoose==='function'&&!(B.off&&B.off.exp)) for(let i=(S.raids||[]).length-1;i>=0;i--){ const x=S.raids[i]; if(!(x.night>0)||x.night>=x.nights) continue;   // the dawn choice: press on at 70% or better, else come home
+      expChoose(i,expNightOdds(x.units,x.t,{pressed:x.pressed||0})>=.7?'press':'home'); }
+    if(B.full&&!B.off.raid&&typeof sendRaid==='function'&&!(S.raidOrders||[]).length&&S.army.length>=5&&S.watches===1){   // before the day's last run, order a Commander and its weakest companions
+      const c=S.army.filter(m=>isCommander(m)&&!inOrder(m)).sort((a,b)=>cval(b)-cval(a))[0];
+      if(c){ const pool=S.army.filter(m=>m!==c&&!inOrder(m)).sort((a,b)=>cval(a)-cval(b)), max=Math.min(2,squadMax(c)-1), fol=[];
+        if(B.off&&B.off.exp) fol.push(...pool.slice(0,max));
+        else { const need=[m=>m.role==='vanguard',m=>m.role==='striker'||m.role==='reaper',m=>m.role==='mender'];   // R6: the weakest who cover the three steps, then the weakest left
+          for(const f of need){ if(fol.length>=max) break; if(fol.some(f)||(f===need[0]&&c.role==='vanguard')||(f===need[1]&&(c.role==='striker'||c.role==='reaper'))) continue; const m=pool.find(y=>f(y)&&!fol.includes(y)); if(m) fol.push(m); }
+          for(const m of pool){ if(fol.length>=max) break; if(!fol.includes(m)) fol.push(m); } }
+        const units=[c].concat(fol), T=typeof expTargets==='function'&&!(B.off&&B.off.exp)?expTargets():raidGates().map(di=>({k:'gate',di})), od=t=>typeof expNightOdds==='function'?expNightOdds(units,t,{}):raidOdds(units,t.di);
+        const pick=T.filter(t=>t.k==='curse'&&od(t)>=.55)[0]||T.filter(t=>t.k==='gate').reverse().find(t=>od(t)>=.55)||T.find(t=>t.k==='band'&&od(t)>=.55)||T.find(t=>t.k==='scav'&&od(t)>=.55);
+        if(pick&&fol.length) sendRaid(c.uid,pick.di,fol.map(m=>m.uid),pick,(pick.k==='gate'||pick.k==='curse')&&od(pick)>=.8&&!(S.siege&&S.siege.next&&S.siege.next-S.day<=2)&&!(B.lastDay&&S.day>B.lastDay-2)?2:1); }   // two nights only with no siege close and days left
     }
     if(S.inv.length>20){ S.inv.sort((a,b)=>itemScore(ITEM[b.id])-itemScore(ITEM[a.id])); S.inv=S.inv.filter((it,i)=>i<12||ITEM[it.id].uq); }
   }
@@ -179,6 +187,7 @@
     if(its.some(e=>hasKit(e,'sapper'))) return false; if(its.some(e=>e.it.amb||e.it.sf)) return true; return want; };
   function decide(B){
     const P=S.player, t=chooseTarget(B), max=pMax(), res=Math.min(15,Math.round(pMana()*.2)), foes=liveFoes();
+    if(B.full&&!(B.off&&B.off.rally)&&typeof canRally==='function'&&canRally()){ const aff=S.army.filter(m=>m.hp>0&&(Object.keys(m.st||{}).length||Object.keys(m.dots||{}).length)).length; rally(aff>=2?'cleanse':'dmg'); }   // R6: a Commander's free Rally, once a room
     const charging=foes.find(e=>e.charging);   // a boss is winding up a telegraphed move: freeze it, or ward against the hit
     if(charging){
       const mv=charging.move||charging.abil;
@@ -344,7 +353,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
     out.push(x); if(S.mode!=='town') returnTown();
   }
   function simBot(seed,B,days){
-    Math.random=mulberry32(seed); newGame(); B.statI=0; B.hw={}; B.hwDay={}; if(typeof BOSS_KITS_ON!=='undefined') BOSS_KITS_ON=!B.off.bosskits;   /* 'bosskits' off: the old single boss moves */
+    Math.random=mulberry32(seed); newGame(); B.lastDay=days; B.statI=0; B.hw={}; B.hwDay={}; if(typeof BOSS_KITS_ON!=='undefined') BOSS_KITS_ON=!B.off.bosskits;   /* 'bosskits' off: the old single boss moves */
     let abbeyDay=null; HFC.n=0; HFC.g=0; TW2C.n=0; TW2C.spec=0; TW2C.emb=0; TW2C.omen=0; TW2C.ord=0; BRC.n=0; BRC.g=0; BRC.comm=0; BRC.commG=0; BRC.bm=0; const rec=[], lvAt={}, firstClear={}, loreAt={}, tiers=[], trials=[], goldAt={}, gl={earn:0,spend:0,S:null};
     const goldWatch=()=>{ if(gl.S===S) return; gl.S=S; let v=S.gold||0; Object.defineProperty(S,'gold',{enumerable:true,configurable:true,get:()=>v,set:x=>{ if(x>v) gl.earn+=x-v; else gl.spend+=v-x; v=x; }}); };   // lifetime gold earned and spent
     while(S.day<=days){
@@ -372,7 +381,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
     const rival={met:T_('rivalMet'),wins:T_('rivalWins'),losses:T_('rivalLosses'),thefts:T_('rivalThefts'),day:(S.rival&&S.rival.met)||0};
     const head=typeof headBonus==='function'?{g:T_('headG'),t:headTiers(),b:headBonus()}:null;
     const awk={g:T_('awakenG'),n:T_('awakened')};   // awakening ranks bought and their gold
-    return {town2:{n:TW2C.n,spec:TW2C.spec,emb:TW2C.emb,omen:TW2C.omen,yard:T_('yardSold'),ord:T_('orders'),pick:TW2C.ord,hunts:T_('ord_hunt'),claims:(S.ti&&S.ti.claims)||0,dread:typeof dreadOf==='function'?dreadOf():0,upk:T_('upkeepG'),tithes:T_('tithes'),bands:['calm','uneasy','afraid','terror'].map(b=>T_('band_'+b)),lv:Object.fromEntries(Object.keys(BUILD).map(k=>[k,blRaw(k)]))},hf:{n:HFC.n,g:HFC.g},brew:{n:BRC.n,g:BRC.g,comm:BRC.comm,commG:BRC.commG,bm:BRC.bm,prep:T_('prepUsed')},abbeyDay,abbeyEnd,abbeyProbe,trials,ev:B.ev||{},chainsEnded:T_('chains'),head,awk,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
+    return {exp:{nights:T_('expNights'),won:T_('expNightsWon'),clean:T_('expClean'),long:T_('expLong'),hunt:T_('exp_hunt'),curse:T_('exp_curse'),band:T_('exp_band'),scav:T_('exp_scav'),gate:T_('exp_gate'),rallies:T_('rallies'),camps:T_('expCamps')},town2:{n:TW2C.n,spec:TW2C.spec,emb:TW2C.emb,omen:TW2C.omen,yard:T_('yardSold'),ord:T_('orders'),pick:TW2C.ord,hunts:T_('ord_hunt'),claims:(S.ti&&S.ti.claims)||0,dread:typeof dreadOf==='function'?dreadOf():0,upk:T_('upkeepG'),tithes:T_('tithes'),bands:['calm','uneasy','afraid','terror'].map(b=>T_('band_'+b)),lv:Object.fromEntries(Object.keys(BUILD).map(k=>[k,blRaw(k)]))},hf:{n:HFC.n,g:HFC.g},brew:{n:BRC.n,g:BRC.g,comm:BRC.comm,commG:BRC.commG,bm:BRC.bm,prep:T_('prepUsed')},abbeyDay,abbeyEnd,abbeyProbe,trials,ev:B.ev||{},chainsEnded:T_('chains'),head,awk,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
   }
 
   // ----- reporting
@@ -406,6 +415,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
     gold.maus=avg(res.map(r=>r.maus||0)); gold.bonds=avg(res.map(r=>r.bonds||0));   // mausoleums raised and bonded pairs at the end
     { const f=res.map(r=>r.hf).filter(Boolean); if(f.some(x=>x.n)) gold.hforge={n:avg(f.map(x=>x.n)),spent:Math.round(avg(f.map(x=>x.g)))}; }
     { const f=res.map(r=>r.brew).filter(Boolean); if(f.some(x=>x.n||x.comm)) gold.brew={n:avg(f.map(x=>x.n)),spent:Math.round(avg(f.map(x=>x.g))),comm:avg(f.map(x=>x.comm)),commG:Math.round(avg(f.map(x=>x.commG))),bm:avg(f.map(x=>x.bm)),prep:avg(f.map(x=>x.prep))}; }
+    { const f=res.map(r=>r.exp).filter(Boolean); if(f.length&&f.some(x=>x.nights||x.rallies)){ gold.exp={}; for(const k in f[0]) gold.exp[k]=avg(f.map(x=>x[k])); } }
     { const f=res.map(r=>r.town2).filter(Boolean); if(f.length&&f.some(x=>x.n||x.spec)) gold.town2={n:avg(f.map(x=>x.n)),spec:avg(f.map(x=>x.spec)),emb:avg(f.map(x=>x.emb)),omen:avg(f.map(x=>x.omen)),ord:avg(f.map(x=>x.ord||0)),hunts:avg(f.map(x=>x.hunts||0)),claims:avg(f.map(x=>x.claims||0)),pick:avg(f.map(x=>x.pick||0)),dread:avg(f.map(x=>x.dread||0)),upk:Math.round(avg(f.map(x=>x.upk||0))),tithes:avg(f.map(x=>x.tithes||0)),bands:[0,1,2,3].map(i=>avg(f.map(x=>(x.bands||[])[i]||0))).join('/'),lv:Object.keys(f[0].lv).map(k=>k+' '+avg(f.map(x=>x.lv[k]||0))).join(', ')}; }
     { const a=res.map(r=>r.awk).filter(Boolean); if(a.some(x=>x.n)) gold.awaken={spent:Math.round(avg(a.map(x=>x.g))),ranks:avg(a.map(x=>x.n))}; }
     { const h=res.map(r=>r.head).filter(Boolean); if(h.some(x=>x.g)) gold.headstones={spent:Math.round(avg(h.map(x=>x.g))),medianSpent:med(h.map(x=>x.g)),tiers:avg(h.map(x=>x.t)),hpBonus:avg(h.map(x=>x.b*100))+'%'}; }   // headstones ('full'): gold spent, tiers and the max HP bonus at the end, per bot
