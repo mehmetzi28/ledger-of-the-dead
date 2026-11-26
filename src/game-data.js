@@ -292,7 +292,7 @@ function makeTowerEnemy(f,boss,adj){
   if(boss){ name=TW_BOSS[(f/10-1)%TW_BOSS.length]; role='reaper'; if(f>100) shown='Abyssal '+name.replace(/^The /,''); } else { const t=pick(TW_MOBS); name=t[0]; role=t[1]; hf=t[2]; af=t[3]; }
   const elite=!boss&&Math.random()<eliteChance(), s=towerStats(f,lvl,hf,af,boss,elite);
   const e={id:'e'+(++S.uid),name:shown||((elite?pick(ELITE)+' ':'')+name),base:name,role,rankI:twRank(f),tw:f,lvl,hf,af,boss,elite,maxHp:s.hp,hp:s.hp,atk:s.atk,dead:false};
-  if(boss) giveAbility(e,GATE_ABIL[(f/10-1)%GATE_ABIL.length],f>=50?1:0);   // wardens borrow the gate bosses' moves; from floor 50 they use them a turn sooner
+  if(boss){ giveAbility(e,GATE_ABIL[(f/10-1)%GATE_ABIL.length],f>=50?1:0); if(BOSS_KITS_ON) giveKit(e,wardenKit(f)); }   /* its signature beside the borrowed move (game-boss-kits.js) */   // wardens borrow the gate bosses' moves; from floor 50 they use them a turn sooner
   return e;
 }
 function spawnTowerOne(list,f,adj){   // same rule as the gates: one mender per room at most

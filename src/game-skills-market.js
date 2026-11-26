@@ -214,7 +214,7 @@ const STAGE_FX=[{hp:0,atk:0},{hp:.2,atk:.1},{hp:.1,atk:.2},{hp:.15,atk:.15},{hp:
 const stageMul=(m,k)=>{ let t=1; for(let i=1;i<=(m.stage||0)&&i<=STAGE_MAX;i++) t+=STAGE_FX[i][k]; return t; };
 const evoNext=m=>{ const st=m.stage||0; return st<STAGE_MAX&&m.lvl0!=null?m.lvl0+EVOLVE_AT[st+1]:null; };
 const fxText=f=>'+'+Math.round(f.hp*100)+'% HP, +'+Math.round(f.atk*100)+'% ATK';
-const hasTrait=(m,t)=>!!(m.traits&&(m.traits.includes(t)||m.traits.some(x=>COMPOUND[x]&&COMPOUND[x].includes(t))));   // a fusion compound counts as both its halves
+const hasTrait=(m,t)=>!m.unw&&!!(m.traits&&(m.traits.includes(t)||m.traits.some(x=>COMPOUND[x]&&COMPOUND[x].includes(t))));   // a fusion compound counts as both its halves
 const mName=m=>{ const s=STAGES[m.stage||0]; return m.name.startsWith('The ')?'The '+s+m.name.slice(4):s+m.name; };   // "The Elder Rat King", "Greater Crypt Ghoul"
 const withArticle=n=>n.startsWith('The ')?n:(/^[AEIOU]/i.test(n)?'an ':'a ')+n;
 const theName=n=>n.startsWith('The ')?n:'the '+n;

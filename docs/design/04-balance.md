@@ -24,6 +24,13 @@ to each constant in `src/` and in `claude.md`; this page is the summary to read 
 
 ## 4.2 Latest measurements (2026-11-26, seeds 7700 and 9100, 40 bots x 100 days)
 
+**After secret-master and warden kits (R2 PR B)**: no retune of the Tower. market 90/89% gates, Tower 78.3/78.4, Rift
+22.2/22.5; full 91/91%, Tower 85.8/85.5, Rift 11.3/11.7, sieges 84/86%, rival 71/71%; secret masters slain 88-90% of
+meetings (86% before). A duel probe (each cleared gate's boss room at fresh HP, day 50) first showed the Choir Eternal, the
+Rootking and the Nameless Sovereign near 0-10% for one seed; the cause was that seed's army (menders and a striker, no
+front row, so no Soul Tether), but the flood, regrowth, Crescendo, Decree of Nothing and repeated Edicts were softened
+anyway; on seeds 7701 and 9100 every master falls 100% at day 50 (5-11 actions, as before).
+
 **After boss kits for the gate bosses, the rival and the Captain (R2 PR A)**: no retune. market 89/88% gates (S 90 to 88%),
 Tower 78.0/77.7, Rift 22.3/22.2; full 91/91%, Tower 85.2/85.5, Rift 12.2/12.1, sieges 85/84%, rival 67/71% (was 71/72).
 `"off":["bosskits"]` gives back the R1 numbers exactly (90%, Tower 78.1, Rift 22.9), so the move sets cost about a point

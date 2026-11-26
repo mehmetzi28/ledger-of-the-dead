@@ -18,21 +18,22 @@ function bossTurn(e){   // true if the boss spent its turn on its ability (or on
   const gap=mv=>Math.max(2,BOSS_ABIL[mv].every-(e.fast||0)-(omen()==='ashfall'?1:0));
   if(e.charging){ const mv=e.move||e.abil; e.charging=false; e.move=null; BLOW={n:e.name,k:'sig',mv,w:1}; fireAbility(e,mv); BLOW=null; if(e.kit&&mv!=='sunder') nextMove(e); e.abilT=gap(mv); return true; }
   if(--e.abilT>0) return false;
-  const mv=sigMove(e), A=BOSS_ABIL[mv]; if(e.phase2&&!e.kit) e.alt=!e.alt;   // the second phase alternates with Sundering Blow
-  if(A.warn||e.phase2){ e.charging=true; e.move=mv; if(mv==='edict'){ const m=edictTarget(e); log(e.name+' raises the Edict of Ash against '+(m?m.nick:'no one')+'!','bad'); } log(e.name+' gathers itself for '+A.name+'! '+A.desc,'bad'); sfx('warn'); fxe('charge',e); return true; }
+  const mv=sigMove(e), A=BOSS_ABIL[mv]; if(e.phase2&&!e.twist) e.alt=!e.alt;   // the second phase alternates with Sundering Blow
+  if(A.warn||e.phase2){ e.charging=true; e.move=mv; if(mv==='block') blockTarget(e); if(mv==='edict'){ const m=edictTarget(e); log(e.name+' raises the Edict of Ash against '+(m?m.nick:'no one')+'!','bad'); } log(e.name+' gathers itself for '+A.name+'! '+A.desc,'bad'); sfx('warn'); fxe('charge',e); return true; }
   BLOW={n:e.name,k:'sig',mv}; fireAbility(e,mv); BLOW=null; if(e.kit) nextMove(e); e.abilT=gap(mv); return true;
 }
 function chargeInfo(e){   // a charging boss: the move it lands next turn, what answers it (from the rules here and in fireAbility), and the answer keys the action bar marks
   if(!e||!e.charging||e.hp<=0) return null; const mv=e.move||e.abil, A=BOSS_ABIL[mv]; if(!A) return null;
   if(mv==='sunder') return {mv,name:A.name,hint:'Taunt it onto a vanguard, or freeze it',ans:['vanguard','chill','striker']};
   if(mv==='edict'){ const m=S.army&&S.army.find(x=>fxKey(x)===e.edictT); return {mv,name:A.name,hint:(m?m.nick+' is named. ':'')+'Guard, Taunt onto another vanguard, or freeze it',ans:['guard','vanguard','chill','striker']}; }
-  if(mv==='lance'||mv==='called') return {mv,name:A.name,hint:'Ward or freeze it',ans:['ward','chill','striker']};   /* Taunt sends the blow at a vanguard */
+  if(mv==='lance'||mv==='called'||mv==='plague'||mv==='breath'||mv==='nothing') return {mv,name:A.name,hint:'Ward or freeze it',ans:['ward','chill','striker']};
+  if(mv==='block'){ const m=S.army&&S.army.find(x=>fxKey(x)===e.blockT); return {mv,name:A.name,hint:(m?m.nick+' is marked. ':'')+'Mend it over 40% HP, or freeze it',ans:['mend','chill','striker']}; }   /* Taunt sends the blow at a vanguard */
   if(mv==='cinder'||mv==='decree') return {mv,name:A.name,hint:'Ward or freeze it',ans:['ward','chill','striker']};   /* a blow: a ward soaks it */
   return {mv,name:A.name,hint:'Freeze it or Focus-crit it',ans:['chill','striker']};   /* no damage to soak: only breaking the focus stops it */
 }
-function summonAdd(e,kind){   // kind: a set kind of foe (the Pale Sovereign's Court Summons)
+function summonAdd(e,kind,role){   // kind: a set kind of foe (Court Summons, Brood, Echoes); role: a role for it (a summoned mite bites, it does not mend)
   if(e.summoned>=SUMMON_CAP||liveFoes().length>=5) return null;
-  const mk=()=>{ const a=e.tw?makeTowerEnemy(e.tw,false,-1):makeEnemy(S.run.rift?S.run.di:e.rankI,Math.max(1,e.lvl-2),false); if(kind) setKind(a,kind); return a; }, hasMender=liveFoes().some(x=>x.role==='mender');
+  const mk=()=>{ const a=e.tw?makeTowerEnemy(e.tw,false,-1):makeEnemy(S.run.rift?S.run.di:e.rankI,Math.max(1,e.lvl-2),false); if(kind) setKind(a,kind); if(role) a.role=role; return a; }, hasMender=liveFoes().some(x=>x.role==='mender');
   let a=mk(); for(let i=0;i<30&&hasMender&&a.role==='mender';i++) a=mk(); if(hasMender&&a.role==='mender') return null;   // never a second mender (bug found in play-testing)
   if(e.tw) foeScale([a],TW.foeAtk); else { foeScale([a],foeAtkMul(S.run.di)); bulwark([a]); riftScale([a]); heatScale([a]); }   /* as buildRoom scales a room's foes */
   affixAll([a]); foeRise([a]); e.summoned++; S.run.enemies.push(a); return a;
@@ -81,7 +82,7 @@ function sellJunk(){ if(S.mode!=='town') return null; const list=S.inv.filter(is
 // a new dose refreshes it. They tick at the end of each turn, ignore ward and armor, and wear off when you leave a room.
 const DOTS={poison:{name:'Poisoned'},bleed:{name:'Bleeding'},burn:{name:'Burning'},blight:{name:'Blighted'}};   // blight: a rotting wound that also halves the healing its bearer receives
 DOTS.poison.tip='Venom eats HP at the end of each turn.'; DOTS.bleed.tip='An open wound bleeds at the end of each turn.'; DOTS.burn.tip='Fire burns at the end of each turn.'; DOTS.blight.tip='Rot eats HP at the end of each turn and halves the healing received.';
-function addDot(u,k,d,t){ d=Math.round(d); if(d<1||!(u.hp>0)||hasAff(u,'warded')||hasTrait(u,'warded')||(k==='burn'&&hasTrait(u,'cinderborn'))) return; u.dots=u.dots||{}; const o=u.dots[k]; u.dots[k]=o?{d:Math.max(o.d,d),t:Math.max(o.t,t)}:{d,t}; }
+function addDot(u,k,d,t){ d=Math.round(d); if(d<1||!(u.hp>0)||hasAff(u,'warded')||hasTrait(u,'warded')||(k==='burn'&&hasTrait(u,'cinderborn'))||(k==='poison'&&u.noPoison)) return;   /* noPoison: the Plague Matriarch */ u.dots=u.dots||{}; const o=u.dots[k]; u.dots[k]=o?{d:Math.max(o.d,d),t:Math.max(o.t,t)}:{d,t}; }
 const clearDots=u=>{ if(u) delete u.dots; };
 const BLIGHT_HEAL=.5;   // a blighted unit receives half the healing
 const blightK=u=>(u&&u.dots&&u.dots.blight)?BLIGHT_HEAL:1;
@@ -98,7 +99,7 @@ function addSt(u,k,t){ if(!u||!(u.hp>0)||!CONDS[k]||stImmune(u,k)) return false;
 const hasSt=(u,k)=>!!(u&&u.st&&u.st[k]>0);
 const hexK=u=>hasSt(u,'hexed')?HEX_MUL:1;
 const clearSt=u=>{ if(u) delete u.st; };
-const clearAll=u=>{ clearDots(u); clearSt(u); if(u){ delete u.mw; delete u.lock; delete u.root; } };   /* lock, root: a boss's Keymaster's Lock and Iron Thorns */   /* mw: a Warden's ward on a minion */   // leaving a room: every status ends
+const clearAll=u=>{ clearDots(u); clearSt(u); if(u){ delete u.mw; delete u.lock; delete u.root; delete u.unw; if(u.prow!=null){ if(u.prow) u.row=u.prow; else delete u.row; delete u.prow; } } };   /* unw, prow: Unwriting and Moth Light */   /* lock, root: a boss's Keymaster's Lock and Iron Thorns */   /* mw: a Warden's ward on a minion */   // leaving a room: every status ends
 function tickSt(){ const r=S.run; if(!r) return; for(const u of r.enemies.concat(allies())){ if(!u.st) continue; for(const k of Object.keys(u.st)) if(--u.st[k]<=0) delete u.st[k]; if(!Object.keys(u.st).length) delete u.st; } }
 function foeTarget(alive){ const w=alive.map(a=>a.role==='vanguard'?5:2); let roll=Math.random()*w.reduce((x,y)=>x+y,0), tg=alive[0];   // vanguards draw the eye
   for(let i=0;i<alive.length;i++){ roll-=w[i]; if(roll<=0){ tg=alive[i]; break; } } return tg; }
@@ -164,7 +165,7 @@ function planTxt(e,it){   // the words for a planned attack or heal
   if(it.mk) return {k:'atk',tg,txt:'Strikes the marked '+nameOf(tg),tip:KITS.marker.rule};
   return {k:'atk',tg,txt:tg.id==='p'?'Attacks you':'Attacks '+nameOf(tg),tip:'Its next blow. Taunt turns it onto a vanguard; freezing it costs it the turn.'};
 }
-const sigMove=e=>e.phase2&&e.alt&&!e.kit?'sunder':e.abil, sigCharged=(e,mv)=>!!(BOSS_ABIL[mv].warn||e.phase2);
+const sigMove=e=>e.phase2&&e.alt&&!e.twist?'sunder':e.abil, sigCharged=(e,mv)=>!!(BOSS_ABIL[mv].warn||e.phase2);
 function intentInfo(e){   // what a foe card says it will do next: {k, txt, tip}, or null (a charging move has its own banner)
   if(!e||e.hp<=0||!S.run||e.charging) return null;
   if(e.stun>0) return {k:'frozen',txt:'Frozen',tip:'Frozen solid: it loses its next action.'};
@@ -188,6 +189,7 @@ function sigBlow(e,mv){   // what a damaging boss move deals (fireAbility): {you
   const P=S.player, k=enrage(e);
   if(mv==='cinder'){ const d=Math.round(e.atk*(e.secret?.45:.7)*k); return {you:afterWard(P,allyDr(P,d)),army:S.army.filter(m=>m.hp>0).reduce((s,m)=>s+allyDr(m,d),0)}; }
   if(mv==='decree') return {you:afterWard(P,allyDr(P,Math.round(pMax()*.45*k)))};
+  if(mv==='nothing') return {you:afterWard(P,allyDr(P,Math.round(pMax()*.4*k)))};
   if(mv==='lance'||mv==='called'){ const d=Math.round(e.atk*(mv==='lance'?1.6:1.8)*k); return S.army.some(m=>hittable(m)&&rowOf(m)==='b')?{army:d}:{you:afterWard(P,allyDr(P,d))}; }   /* the back row: you, if no minion stands there */
   if(mv==='sunder'){ const v=S.run.taunt>0&&S.army.find(m=>m.role==='vanguard'&&m.hp>0); return v?{van:allyDr(v,Math.round(e.atk*2.2*k))}:{you:afterWard(P,allyDr(P,Math.round(pMax()*.35*k)))}; }
   return null;
@@ -249,7 +251,8 @@ function tickDots(){
   let foeD=0, ourD=0;
   const tick=(u,hurt)=>{ if(!u.dots) return; for(const k of Object.keys(u.dots)){ const o=u.dots[k]; if(u.hp>0) hurt(u,o.d,k); if(--o.t<=0) delete u.dots[k]; } if(!Object.keys(u.dots).length) delete u.dots; };
   for(const e of S.run.enemies) tick(e,(u,d,k)=>{ const h=u.hp; KILL=k; hurtFoe(u,k==='blight'?Math.round(d*shadowK()):d,DOT_TYPE[k]); KILL=null; foeD+=h-u.hp; });   // Black Eclipse feeds your blight
-  for(const a of allies()) tick(a,(u,d,k)=>{ { const rs=allyRes(u,DOT_TYPE[k]); if(rs) d=Math.max(1,Math.round(d*(1-rs))); } const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u,n,0); if(u.id==='p'){ S.run.hurt=true; S.run.blow={k:'dot',dot:k}; } } ourD+=n; if(u.hp<=0&&u.id!=='p'&&!stitchUp(u)){ log(u.nick+' succumbs.','bad'); fxe('death',u); } });
+  const dg=S.run.dirge>S.run.turn?2:1;   /* a Dirge: your side's wounds bleed twice as fast */
+  for(const a of allies()) tick(a,(u,d,k)=>{ d*=dg; { const rs=allyRes(u,DOT_TYPE[k]); if(rs) d=Math.max(1,Math.round(d*(1-rs))); } const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u,n,0); if(u.id==='p'){ S.run.hurt=true; S.run.blow={k:'dot',dot:k}; } } ourD+=n; if(u.hp<=0&&u.id!=='p'&&!stitchUp(u)){ log(u.nick+' succumbs.','bad'); fxe('death',u); } });
   capFester(foeD);
   if(foeD) log('Poison eats '+foeD+' HP from your foes.','ok');
   if(ourD) log('Bleeding and burns cost your side '+ourD+' HP.','bad');

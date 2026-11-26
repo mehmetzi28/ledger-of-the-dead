@@ -187,8 +187,17 @@ last skill on you). Hazards (`HAZARDS`, while the boss stands): Smoke (Ember Kni
 first skill costs double), Roots (Orchard Mother, back-row minions take 5% rot a turn). The Inquisitor Captain: Royal
 Decree, Purge, Rally. The rival: Royal Decree plus a move from the main role of the bodies they stole (Bone Rampart, Called
 Shot, Black Mass, Harvest), named in the warning. Telegraphed moves charge a turn ahead and can be broken by a freeze or a
-focused crit. The Rat King keeps one phase on Normal. Secret masters and Tower wardens still use one gate move and
-alternate with Sundering Blow in phase two (until R2 PR B). Ledgered boss doors show the whole kit and each move's answer;
+focused crit. The Rat King keeps one phase on Normal. Secret masters (R2 PR B) have their own kits and enter in phase
+two, alternating their moves with Sundering Blow; at half HP a second rule wakes (`HALVES`): the Plague Matriarch (Brood
+mites that burst into poison, Plague Breath, Feed; immune to poison; The Swarm Remembers), the Drowned Abbot (Drown,
+Litany, a tide that floods the room at 5 unless frozen; Undertow), the Cinder Wyrm (Breath Line, Molten Scales, Tail
+Sweep; immune to fire; Wyrmfire), the Choir Eternal (Verse of Binding, Crescendo, Echoes; Last Note), the Rootking
+(Spreading Roots, Heartwood, regrowth unless it rots; Deep Roots), the Nameless Sovereign (the mirror, Unwriting, Decree of
+Nothing; The Name). Tower wardens carry a signature (`WARDEN_SIG`: Three Heads, Moth Light, Confession, Swarm Cloud, Dirge,
+Chain, Mark for the Block, Infernal Bargain, Halo) beside the gate move they borrow and keep Sundering Blow in phase two;
+Abaddon rotates every signature and The Other Half (steals your Souls); abyssal wardens roll two signatures. Titles: one
+per gate boss for beating its twist without a minion falling (`ub_*`), and Ten Faces (every warden beaten after showing its
+signature). Ledgered boss doors show the whole kit and each move's answer;
 Codex page "Bosses" is generated from `BOSS_KIT`.
 
 **Elite affixes** (`AFFIX`): Shielded, Splitting, Vampiric, Enraged, Warded, Plaguebearer, Sundering, Hexing, Swift,

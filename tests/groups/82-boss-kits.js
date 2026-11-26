@@ -5,14 +5,12 @@ const big=()=>{ const P=S.player; P.stats.constitution=3000; P.hp=pMax(); return
 const toPhase2=b=>{ b.hp=Math.floor(b.maxHp*.4); checkPhase(); return b; };
 const knownAt=n=>{ const t=MASTERY[1]; S.kills[n]=t.bossAt||t.at; };
 
-test('Boss kits: every gate boss and the Captain carry two or three moves, a twist and a personal resistance; secret masters, wardens and the kits-off switch keep one move',()=>{
+test('Boss kits: every gate boss and the Captain carry two or three moves, a twist and a personal resistance; the kits-off switch keeps one move',()=>{
   fresh(30);
   DUNGEONS.forEach((D,di)=>{ const K=BOSS_KIT[D.boss[0]]; ok(K&&K.moves.length>=2&&K.moves.length<=3,D.name); ok(K.moves.every(m=>BOSS_ABIL[m]),'known moves'); ok(TWISTS[K.twist],'a twist'); if(K.hazard) ok(HAZARDS[K.hazard]);
     const b=bossFight(di); eq(JSON.stringify(b.kit),JSON.stringify(K.moves)); eq(b.abil,K.moves[0]); for(const t in K.res) ok(foeRes(b,t)!==placeRes()[t]||0,'its own resistance '+t); });
   const b=bossFight(2); eq(foeRes(b,'fire'),Math.min(FOE_RES_MAX,(placeRes().fire||0)+.5));
   const c=siegeFoe('vanguard',20,5,true,false); eq(JSON.stringify(c.kit),JSON.stringify(['decree','purge','rally']));
-  const s=makeSecret(1,12); ok(!s.kit&&s.abil===GATE_ABIL[1]&&!s.res,'a secret master keeps its single move');
-  const w=makeTowerEnemy(10,true); ok(!w.kit,'a warden keeps its single move');
   BOSS_KITS_ON=false; const o=bossFight(3); ok(!o.kit&&o.abil==='hymn'); BOSS_KITS_ON=true;
 });
 test('Boss kits: moves come in rotation, each at its own pace; the card names the next move, and from Known the one after',()=>{
@@ -58,7 +56,7 @@ test('Boss kits: the Edict of Ash names a minion and executes it unless Guard or
 test('Boss kits: each gate boss\'s second phase has its own twist instead of Sundering Blow',()=>{
   fresh(30); setLvl(30);
   let b=bossFight(0); bossTwist(b); eq(b.twist,'crown'); fireAbility(b,'swarm'); const adds=S.run.enemies.filter(x=>x!==b); eq(adds.length,3,'three answer'); ok(adds.every(a=>kitOf(a)==='pack'),'Pack hunters');
-  b=bossFight(1); big(); toPhase2(b); eq(b.twist,'watch'); ok(!b.alt,'no Sundering Blow'); b.abilT=1; bossTurn(b); ok(b.move!=='sunder');
+  b=bossFight(1); big(); toPhase2(b); eq(b.twist,'watch'); eq(sigMove(b),b.abil,'no Sundering Blow'); b.abilT=1; bossTurn(b); ok(b.move!=='sunder');
   const m=mkMinion({lvl:30,role:'vanguard'}); m.hp=m.maxHp=1e6; const x=foe({hp:100}); x.shield=50; S.run.enemies.push(x); HITTER=m; hurtFoe(b,1000); HITTER=null; ok(m.hp<1e6,'the Last Watch bites back');
   x.shield=0; b.shield=0; m.hp=1e6; HITTER=m; hurtFoe(b,1000); HITTER=null; eq(m.hp,1e6,'with no shield standing it does not');
   b=bossFight(2); toPhase2(b); eq(b.imm,'fire'); eq(foeRes(b,'fire'),1); const h=b.hp; hurtFoe(b,5000,'fire'); eq(h-b.hp,1,'immune to fire'); eq(b.kit.filter(k=>k==='cinder').length,2,'Cinder Wave every second move');
