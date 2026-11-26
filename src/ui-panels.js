@@ -247,6 +247,7 @@ function statusHTML(){
    +'</section>';
 }
 function questHTML(){
+  if(ordersOn()) return ordersHTML();   /* daily orders (game-dread.js) */
   const q=S.quest, rows=[['Defeat foes',q.kills,QUEST.kills],['Clear rooms',q.rooms,QUEST.rooms],['Clear a dungeon',q.clears,QUEST.clears]];
   const done=questDone();
   return '<section class="win'+foldCls('quest')+'" aria-labelledby="h-quest"><h2 class="win-h" id="h-quest">Daily quest &middot; Day '+S.day+'<span class="fold-sum">'+(q.claimed?'claimed':done?'ready to claim':rows.filter(r=>r[1]>=r[2]).length+'/3')+'</span>'+foldBtn('quest')+'</h2>'
@@ -420,7 +421,7 @@ function marketHTML(){
      +'<button class="btn small primary" data-a="buypot" data-k="'+k+'"'+(full||S.gold<c?' disabled':'')+'>'+(full?'Belt full':'Buy &middot; '+gold(c))+'</button></div>'; }).join('')+'</div>';
   // merchant stock
   h+='<p class="group-h">Merchant\'s wares &middot; day '+S.day+'</p>'+(bagFull?'<p class="q-note bad">Your bag is full. Sell or discard something first.</p>':'')
-   +'<div class="items">'+stock.map((s,i)=>{ const d=ITEM[s.id], c=buyPrice(d);
+   +'<div class="items">'+stock.map((s,i)=>{ const d=ITEM[s.id], c=shopPrice(d);
      return itemCard({id:s.id,ro:s.ro,u:-1-i},s.sold?'<span class="u-tag">Sold</span>':'<button class="btn small primary" data-a="buyitem" data-k="'+i+'"'+(S.gold<c||bagFull?' disabled':'')+'>Buy &middot; '+gold(c)+'</button>',!s.sold); }).join('')+'</div>';
   // grave salts (raising aid)
   { const c=saltPrice(), full=S.salts>=SALT_MAX;

@@ -40,7 +40,21 @@ then a siege if one is due, then dawn: the quest resets, raids resolve, waiting 
 HP and mana refill, the siege and rival schedules tick, and a new curse, omen, shop stock and bounty arrive lazily.
 
 **Daily quest** (`QUEST`): 8 kills, 4 rooms, 1 clear. Pays 1 stat point and 15% of a level's XP, claimed automatically at
-dawn. In practice it is always completed.
+dawn. Once a building stands it gives way to **daily orders** (`src/game-dread.js`, `S.orders`): three drawn each dawn from
+a hash of the day (a Hunt about 60% of days; Plunder in Terror), you take one in town, and it pays once with 15% of a
+level: Hunt (clear the deepest gate or the one above it: +1 stat point), Harvest (raise 3 of a role: bone dust), Clean
+kill (a room with no minion downed: +5% raise chance tomorrow), Stand watch (spend a watch: the Charnel Yard trains
+twice), Tribute (fill a commission: dread -5), Climb (3 Tower floors: a Tower trophy), Old debt (claim a bounty: half its
+gold again), Plunder (half a siege's gold at once, dread +8).
+
+**The town's dread** (`S.dread`, 0-100 from 30, once sieges begin): raises in the gates +0.1 each, a raid won on gates
+E-D +3, a building level +2, a siege lost +10, unpaid upkeep +1; a siege won -6 (Toll of the Dead -12), a commission -3,
+a tithe at the Old Shrine (5% of held gold, once a day) -5; each dawn a point toward 40. Bands (`DREAD_BANDS`): Calm
+(0-19: prices -10%, pedlars twice as common, sieges every 9-12 days and 10% weaker, weekly mourners bring a body to the
+Embalmery), Uneasy (20-49: as before), Afraid (50-79: prices +10%, sieges every 6-9 days, 10% stronger, pay +15%, a
+weekly tribute), Terror (80+: prices +25%, no black market, sieges every 5-7 days, 15% stronger, the Captain brings two
+elites, pay +30%, the Plunder order). **Upkeep**: each building level past 2 costs 15 gold x (deepest gate + 1) at dawn;
+one that cannot be paid loses its top level (and a level-5 pick) until a dawn pays it.
 
 **A gate run** (`game-runs.js`: `startRun`, `spawnRoom`, `roomWon`, `descend`). Four rooms; the last holds the boss.
 Room 1 has 2 foes, room 2 has 3, later rooms 3-4; the boss brings 2-3 adds. Foe level is the gate's `RK.lv` plus half
@@ -353,7 +367,7 @@ gate-C+ trophies for 50 dust, 8 Tower trophies for a warden's heart, a master's 
 
 **Sinks, in the order a player meets them**: potions and salts, bag, Bone Altar, reforging, buildings, fusion,
 tempering, honour, Awakening, heart-forging, brewing, building levels 4-5, the Library respec, mausoleums, headstones
-(the only uncapped one).
+(the only uncapped one); upkeep and tithes run beside them.
 
 ## 2.7 Content and modes
 

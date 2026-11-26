@@ -66,11 +66,11 @@ const BUILD={
   altar:  {name:'Altar',   desc:'+'+b100(B_ALT_MANA)+'% max mana per level, and the Bone Altar costs '+b100(B_ALT_COST)+'% less per level.', now:n=>'+'+b100(B_ALT_MANA*n)+'% max mana, Bone Altar '+b100(B_ALT_COST*n)+'% cheaper'}
 };
 const BUILD_MAX=5, BUILD_COST=[[1500,0],[5000,30],[14000,90],[30000,180],[60000,300]], SIEGE_OSS_REF=3;   // [gold, bone dust] for levels 1-5 (4 and 5 after the Throne of Ash: game-town2.js); the Ossuary's siege rise is tuned on 3 levels
-const bl=k=>(S&&S.siege&&S.siege.dmg===k)?0:((S&&S.build&&S.build[k])||0);   // a building damaged in a siege works as if unbuilt until repaired
+const bl=k=>(S&&S.siege&&S.siege.dmg===k)?0:Math.max(0,((S&&S.build&&S.build[k])||0)-(S&&S.unpaid&&S.unpaid[k]?1:0));   /* unpaid upkeep: the top level is off (game-dread.js) */   // a building damaged in a siege works as if unbuilt until repaired
 const buildCost=k=>BUILD[k]&&blRaw(k)<BUILD_MAX&&!(S&&S.siege&&S.siege.dmg===k)?BUILD_COST[Math.max(0,blRaw(k)-(BUILD[k].step||0))]:null;
 function build(k){
   if(!S||S.mode!=='town'||!BUILD[k]||!bOpen(k)||!buildReady(k)) return false; const c=buildCost(k); if(!c||S.gold<c[0]||(S.dust||0)<c[1]) return false;
-  S.gold-=c[0]; S.dust=(S.dust||0)-c[1]; vitals(()=>{ S.build=S.build||{}; S.build[k]=blRaw(k)+1; }); tally('built'); sfx('level'); siegeTick(); return true;
+  S.gold-=c[0]; S.dust=(S.dust||0)-c[1]; vitals(()=>{ S.build=S.build||{}; S.build[k]=blRaw(k)+1; }); tally('built'); dread(DREAD_BUILD); sfx('level'); siegeTick(); return true;
 }
 
 // ===== WHAT IS OPEN YET =====
@@ -249,7 +249,7 @@ const topGate=()=>{ let g=0; for(let i=0;i<GATE_N;i++) if(S.player.lvl>=RK[i].un
 function claimBounty(i){
   const b=bounties()[i]; if(!b||b.claimed||!bountyDone(b)||S.mode!=='town') return null;
   if(b.rw.gear&&S.inv.length>=bagMax()) return null;
-  b.claimed=true; const out=[];
+  b.claimed=true; const out=[]; orderEv('bounty',b.rw.g||0);
   if(b.rw.g){ S.gold+=b.rw.g; out.push(b.rw.g+' gold'); }
   if(b.rw.salt){ if(S.salts<SALT_MAX){ S.salts++; out.push('Grave Salts'); } else { const g=saltPrice(); S.gold+=g; out.push(g+' gold in place of salts (your pouch is full)'); } }
   if(b.rw.dust){ S.dust=(S.dust||0)+b.rw.dust; out.push(b.rw.dust+' bone dust'); }
@@ -420,7 +420,7 @@ const siegeTonight=()=>!!S&&siegeOpen()&&sg().next>0&&S.day>=sg().next;
 const siegeWarned=()=>!!S&&siegeOpen()&&sg().next>0&&S.day>=sg().next-1;   // the day before and the day itself
 const siegeGate=()=>topGate();
 const siegeLvl=()=>Math.max(1,S.player.lvl-SIEGE_LV);
-function siegeGap(){ let a=(Math.imul(S.day+1,2654435761)^Math.imul(T_('sieges')+7,40503)^Math.imul((S.ngp||0)+3,97))>>>0; a^=a>>>15; a=Math.imul(a,2246822519)>>>0; a=(a^(a>>>13))>>>0; return SIEGE_GAP[0]+a%(SIEGE_GAP[1]-SIEGE_GAP[0]+1); }   // a hash of the day: Math.random is never touched
+function siegeGap(){ let a=(Math.imul(S.day+1,2654435761)^Math.imul(T_('sieges')+7,40503)^Math.imul((S.ngp||0)+3,97))>>>0; a^=a>>>15; a=Math.imul(a,2246822519)>>>0; a=(a^(a>>>13))>>>0; const G=dreadGap(); return G[0]+a%(G[1]-G[0]+1); }   /* the town's dread sets the gap (game-dread.js) */   // a hash of the day: Math.random is never touched
 function siegeTick(){   // dawn, load and building: schedule the next siege, and warn the dawn before it
   if(!S||!siegeOpen()) return; const g=sg();
   if(!g.next||g.next<S.day) g.next=S.day+siegeGap();
@@ -490,7 +490,7 @@ function siegeLost(fled){   // fell or fled: the town pays. Nothing is deleted; 
     m=why+'They fired the '+BUILD[k].name+': its effects are lost until you repair it in town for '+repairCost()+' gold.'+(gd?' The '+BUILD[gd].name+' you guarded was spared.':''); }
   else { const f=Math.round(Math.min(S.gold*SIEGE_FINE,siegeGoldPay()*SIEGE_FINE_MAX/SIEGE_GOLD)); S.gold-=f;
     m=why+(g.dmg?'With the '+BUILD[g.dmg].name+' still in ruins they took what they could carry instead: ':'With the '+BUILD[gd].name+' under guard they took what they could carry instead: ')+f+' gold.'; }
-  tally('sieges'); tally('siegeLosses'); g.pending=false; g.next=0; if(r){ r.siegeLoss=m; r.lost=true; } return m;
+  tally('sieges'); tally('siegeLosses'); dread(DREAD_SIEGE_LOST); g.pending=false; g.next=0; if(r){ r.siegeLoss=m; r.lost=true; } return m;
 }
 function siegeOverflow(){ const n=S.army.filter(m=>!m.thrall&&!m.wall).length-slots();   /* only those at home: raiders' places sort themselves out at dawn */ if(n<=0) return; const out=S.army.filter(m=>!m.thrall&&!m.wall).slice(-n); S.army=S.army.filter(m=>!out.includes(m)); const w=homeLine(out.map(placeMinion)); if(w) notify(('The Crypt burned: '+w).trim(),'bad'); }
 function siegeEnd(){   // back from the walls (won, fell or fled): thralls crumble, the record is written, then dawn

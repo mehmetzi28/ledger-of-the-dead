@@ -514,3 +514,4 @@ Ideas worth keeping that are not yet a round:
 | R4 PR A: heart-forging, minor powers, the Tower forge, the late gold soft cap; abbey gear stays in the abbey | #15 | 2026-11-26 |
 | R4 PR B: brewing from role parts, a growing belt, run prep, commissions, the black market | #16 | 2026-11-26 |
 | R5 PR A: seven new buildings, levels 4-5, forty specializations, the Charnel Yard, respec, the Embalmery | #17 | 2026-11-26 |
+| R5 PR B: the town's dread and its bands, daily orders, upkeep, Bell Tower defenses | #18 | 2026-11-26 |
