@@ -58,8 +58,9 @@ function brewIt(id){   // spends the parts (cheapest first) or spare hearts (low
 function prepSet(kind,id){   // arm (or, with the same id or null, disarm) one brew of a kind
   if(S.mode!=='town'||!PREP_KINDS.includes(kind)) return false; S.prep=S.prep||{};
   if(id==null||S.prep[kind]===id){ delete S.prep[kind]; return true; }
-  const B=BREWS[id]; if(!B||B.kind!==kind||B.use) return false; S.prep[kind]=id; return true;
+  const B=BREWS[id]; if(!B||B.kind!==kind||B.use) return false; S.prep[kind]=id; prepOrder(); return true;
 }
+function prepOrder(){ const p={}; for(const k of PREP_KINDS) if(S.prep[k]) p[k]=S.prep[k]; if(S.prep.soul) p.soul=1; S.prep=p; }   // the order brewFix writes, so a save round trip keeps the same object
 let PREP_SKIP=false;   // a sweep (game-kits.js) leaves the stash alone
 function prepTake(r){   // startRun: one of each armed oil, incense and charm goes into the run
   if(PREP_SKIP) return; const p=S.prep||{}; for(const kind of ['oil','inc','charm']){ const id=p[kind]; if(!id||!stashN(id)) continue; S.stash[id]--; if(!S.stash[id]) delete S.stash[id]; r[kind]=id; tally('prepUsed'); }
@@ -123,13 +124,13 @@ function commFill(i){
   if(c.k==='tro'){ let need=c.n; for(const k of trosOf(c.role,c.g)){ const t=Math.min(S.trophies[k],need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
   else if(c.k==='hf'){ const it=commItem(c); S.inv=S.inv.filter(x=>x!==it); }
   else { const m=commMinion(c); returnGear(m); S.army=S.army.filter(x=>x!==m); bondsClean(); syncArmy(); }
-  S.gold+=p.g; S.dust=(S.dust||0)+p.d; c.done=1; tally('commissions'); tally('commG',p.g); sfx('coin'); return p;
+  S.gold+=p.g; S.dust=(S.dust||0)+p.d; c.done=1; dread(-DREAD_COMM); orderEv('comm'); tally('commissions'); tally('commG',p.g); sfx('coin'); return p;
 }
 function commTxt(c){ if(c.k==='tro') return c.n+' '+c.role+' parts from the '+DUNGEONS[c.g].name;
   if(c.k==='hf') return 'A heartforged '+SLOTS[c.slot].toLowerCase()+' piece'; return 'A '+c.role+' minion at '+STAGES[c.st].trim()+' or beyond'; }
 // ----- the black market: every seventh day from day 7, each trade once a week
 const BM_DAY=7, BM_SOUL_GOLD=1500, BM_SOUL_DUST=5, BM_DUST=50, BM_DUST_TRO=30, BM_TW=8;
-const bmOpen=()=>!!S&&S.day>=BM_DAY&&S.day%BM_DAY===0&&S.mode==='town';
+const bmOpen=()=>!!S&&S.day>=BM_DAY&&S.day%BM_DAY===0&&S.mode==='town'&&dreadBand().id!=='terror';   /* Terror shuts the stall (game-dread.js) */
 function bmState(){ const w=weekOf(S.day); if(!S.bm||S.bm.week!==w) S.bm={week:w,used:{}}; return S.bm; }
 const bmUsed=k=>!!bmState().used[k];
 const clearedGates=()=>{ const out=[]; for(let i=0;i<GATE_N;i++) if(S.ti&&S.ti.clr&&S.ti.clr[i]) out.push(i); return out; };
@@ -153,7 +154,7 @@ function bmTrade(k,slot){
   else if(k==='warden'){ spendTrophies(Object.keys(S.trophies).filter(x=>x.startsWith('t:')),BM_TW,()=>1); const key='b:'+bmWarden(); S.trophies[key]=(S.trophies[key]||0)+1; got=TROPHY[key].name; }
   else if(k==='piece'){ const key=bmMaster(); S.trophies[key]--; if(!S.trophies[key]) delete S.trophies[key]; const g=Math.min(5,Math.max(0,...clearedGates(),topGate())), sl=SLOTS[slot]?slot:pick(GEAR_SLOTS);
     const pool=Object.values(ITEM).filter(d=>!d.uq&&!d.tower&&d.set===g&&d.slot===sl); const it=addItem(pick(pool).id); got=it?ITEM[it.id].name:'nothing'; }
-  else { S.gold-=BM_SOUL_GOLD; S.dust-=BM_SOUL_DUST; S.prep=S.prep||{}; S.prep.soul=1; got='a Soul, waiting for your next run'; }
+  else { S.gold-=BM_SOUL_GOLD; S.dust-=BM_SOUL_DUST; S.prep=S.prep||{}; S.prep.soul=1; prepOrder(); got='a Soul, waiting for your next run'; }
   bmState().used[k]=1; tally('bmTrades'); sfx('coin'); return got;
 }
 function prepSoul(r){ if(!PREP_SKIP&&S.prep&&S.prep.soul){ delete S.prep.soul; if(gainSoul()) log('The Soul from the black market goes with you.','ok'); } }   // startRun

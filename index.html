@@ -1777,7 +1777,7 @@ function notify(m,c){ S.notices.unshift({m,c:c||'info'}); S.notices.length=Math.
 function freshState(){
   return {v:2,day:1,watches:WATCHES,uid:0,mode:'town',run:null,notices:[],runs:0,kills:{},tower:{best:0,got:{}},inv:[],equip:{weapon:null,armor:null,relic:null},
      player:{id:'p',name:'You',lvl:1,xp:0,pts:3,hp:0,mana:0,shield:0,stats:{strength:4,constitution:4,intelligence:4,will:4},sp:0,skills:{},skMod:{},cmd:{a:0,h:0}},
-     army:[],quest:{kills:0,rooms:0,clears:0,claimed:false},gold:0,trophies:{},belt:{hp:0,mp:0},stash:{},prep:{},comm:null,bm:null,spec:{},embalm:[],shop:null,bagLv:0,salts:0,tips:{},ngp:0,firstRaise:1,
+     army:[],quest:{kills:0,rooms:0,clears:0,claimed:false},gold:0,trophies:{},belt:{hp:0,mp:0},stash:{},prep:{},comm:null,bm:null,spec:{},embalm:[],dread:DREAD_START,orders:null,unpaid:{},shop:null,bagLv:0,salts:0,tips:{},ngp:0,firstRaise:1,
      mod:null,hist:[],story:{},life:Object.fromEntries(LIFE_KEYS.map(k=>[k,0])),build:{},dust:0,bounty:null,heat:{},heatMax:{},raids:[],raidOrders:[],raidLog:[],abbey:abbeyFix(null),inscriptions:[],endHist:[],ending:null,lastPage:0,cycle:null,rift:{best:0},siege:{next:0,pending:false,dmg:null,warned:0},reserve:[],waiting:[],
      memorial:[],honor:null,loadouts:[{n:'',s:null},{n:'',s:null},{n:'',s:null}],rival:rivalDef(),trials:trialDef(),pacts:[]};
 }
@@ -1868,7 +1868,7 @@ function normalizeSave(src){
   g.raidOrders=Array.isArray(g.raidOrders)?g.raidOrders.filter(o=>obj(o)&&RK[o.di]&&fin(o.cu)&&Array.isArray(o.uids)).map(o=>Object.assign({di:o.di,day:Math.floor(num(o.day,g.day)),cu:o.cu,uids:o.uids.filter(fin).slice(0,12)},BREWS[o.bn]&&BREWS[o.bn].kind==='banner'?{bn:o.bn}:{})):[];   // tonight's raid orders: uids only (the squad stays in the army until nightfall)
   g.raidLog=Array.isArray(g.raidLog)?g.raidLog.filter(x=>obj(x)&&RK[x.di]&&typeof x.nick==='string').slice(0,RAID_LOG).map(x=>({day:Math.floor(num(x.day,1)),di:x.di,won:!!x.won,nick:cleanNick(x.nick)||'Nameless',lost:Math.max(0,Math.floor(num(x.lost,0)))})):[];
   g.abbey=abbeyFix(g.abbey);   /* Vane Abbey's door (game-abbey.js) */
-  townFix(g);   /* building levels, specializations, kept bodies (game-town2.js) */
+  townFix(g); dreadFix(g);   /* dread, orders, unpaid upkeep (game-dread.js) */   /* building levels, specializations, kept bodies (game-town2.js) */
   endingFix(g);   /* the last page, the endings and the inscriptions (game-abbey.js) */
   g.rift=obj(g.rift)?{best:Math.max(0,Math.floor(num(g.rift.best,0)))}:{best:0};
   g.uid=top; g.mode='town'; g.run=null;
@@ -2212,6 +2212,7 @@ function alloc(k){
 const questDone = ()=>S.quest.kills>=QUEST.kills&&S.quest.rooms>=QUEST.rooms&&S.quest.clears>=QUEST.clears;
 function claimQuest(){
   if(S.quest.claimed||!questDone()) return;
+  if(ordersOn()){ if(!(S.orders&&S.orders.day===S.day&&S.orders.done)) dayWork(); S.quest.claimed=true; return; }   /* daily orders replace the quest once a building stands; a day's work without one still pays its XP (game-dread.js) */
   const xp=Math.round(need(S.player.lvl)*QUEST_XP);
   S.quest.claimed=true; S.player.pts+=QUEST_PTS; addXp(xp); S.ti=S.ti||{}; S.ti.claims=(S.ti.claims||0)+1;
   notify('Daily quest complete: +'+QUEST_PTS+' stat point'+(QUEST_PTS>1?'s':'')+' and +'+xp+' XP.','ok');
@@ -2226,7 +2227,7 @@ function closeDay(){
   if(!S.quest.claimed&&questDone()) claimQuest();   // an unfinished quest simply lapses
   const hon=remembered(); S.day++; S.watches=WATCHES-pactWatch(); if(hon) syncArmy();   /* the Remembered buff ends at dawn */
   S.quest={kills:0,rooms:0,clears:0,claimed:false};
-  const rr=resolveRaids(); placeWaiting(); bondsDawn(); yardDawn(); embDawn();   /* the Charnel Yard, the Embalmery (game-town2.js) */
+  const rr=resolveRaids(); placeWaiting(); bondsDawn(); yardDawn(); embDawn(); upkeepDawn(); dreadDawn();   /* upkeep and the town's dread (game-dread.js) */   /* the Charnel Yard, the Embalmery (game-town2.js) */
   P.hp=pMax(); P.mana=pMana(); P.shield=0;
   S.army.forEach(m=>m.hp=m.maxHp);
   notify('Day '+S.day+' begins. You have '+S.watches+' watches.'+raidDayLine(rr));
@@ -2520,7 +2521,7 @@ function act(kind){
 }
 function gateCleared(r){   // the boss room of a gate is won: story, clear tallies (titles, difficulty, curses) and the secret-master hint; returns the clear bonus XP
   const di=r.di, fk=runFarm(); unlockStory('g'+di,r); r.cleared=true; S.quest.clears++;   /* fk before the clear is marked: a first clear pays in full */
-  S.ti=S.ti||{}; S.ti.clr=S.ti.clr||{}; S.ti.clr[di]=1; tally('clrN'+di);
+  S.ti=S.ti||{}; S.ti.clr=S.ti.clr||{}; S.ti.clr[di]=1; tally('clrN'+di); orderEv('clear',di);
   if(T_('clrN'+di)===SECRET_HINT&&secretHinted(di)) notify('A torn page in the Ledger: '+SECRET[di].hint,'');
   if(r.heat){
     S.heatMax=S.heatMax||{}; S.heatMax[di]=Math.max(S.heatMax[di]||0,r.heat); tally('heat'+r.heat); if(r.mod) tally('damned');
@@ -2532,7 +2533,7 @@ function gateCleared(r){   // the boss room of a gate is won: story, clear talli
 }
 function roomWon(){
   const r=S.run, P=S.player; r.events=[]; r.focus=false; r.execute=false; bondsRoom();   /* Focus and Execute end with the room even if no minion phase came */
-  let xp=r.pending; r.pending=0;
+  let xp=r.pending; r.pending=0; const dn0=r.downs||0;
   const last=r.room===r.rooms-1;
   const share=Math.round(xp*.5), downs=[], bound=[];   /* the downed come first on the screen after the fight: who is gone, who got back up */
   for(const m of S.army.slice()){
@@ -2552,7 +2553,7 @@ function roomWon(){
   } else if(last){ xp+=r.siege?siegeWon(r):r.rift?riftCleared(r):r.trial?trialCleared(r):gateCleared(r); if(!r.siege&&!r.rift&&!r.trial) rivalMeet(r); }
   if(r.trial){ r.loot=[]; r.gold=0; r.troph={}; r.corpses=[]; }   /* a Trial pays only its first completion each week: no gear, gold, trophies or bodies */
   for(const id of r.loot){ const it=addItem(id); if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name); } r.loot=[];
-  bankLoot(r); r.won=(r.won||0)+1; S.quest.rooms=(S.quest.rooms||0)+1; tally('rooms'); if(r.tw) tally('floors'); if(P.hp>0&&P.hp<=pMax()*.1) tally('lastBreath');
+  bankLoot(r); r.won=(r.won||0)+1; S.quest.rooms=(S.quest.rooms||0)+1; tally('rooms'); if(r.tw){ tally('floors'); orderEv('floor'); } else if(!r.siege&&!r.rift&&!r.trial) orderEv('room',{ok:(r.downs||0)===dn0,di:r.di}); if(P.hp>0&&P.hp<=pMax()*.1) tally('lastBreath');
   r.event=(!r.tw&&!r.siege&&!r.trial&&!last&&Math.random()<EVENT_CHANCE)?rollEvent():null;   // something waits between rooms
   r.doors=(!r.tw&&!r.siege&&!r.trial&&!last)?rollDoors(r):null;   // which way next
   r.gained+=xp; r.lastXp=xp;
@@ -2658,7 +2659,7 @@ function raiseChance(c){
 }
 const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*(hasFlag('cheapraise')?.5:1)*(hasMod('mastery','b')?.75:1)*(1-.06*sk('thrift')));
 function freeNick(){ const used=S.army.concat(benched(),...(S.raids||[]).map(x=>x.units)).map(m=>m.nick); const f=NICKS.filter(n=>!used.includes(n)); return f.length?pick(f):pick(NICKS)+' II'; }
-const SALT_BONUS=20, SALT_MAX=3, saltPrice=()=>10+S.player.lvl*3;   // Grave Salts: bought at the market, +20% on one raise
+const SALT_BONUS=20, SALT_MAX=3, saltPrice=()=>Math.round((10+S.player.lvl*3)*dreadPriceK());   // Grave Salts: bought at the market, +20% on one raise
 const RAISE_BASE=18, RAISE_WILL=1.1, RAISE_MIN=1, RAISE_MAX=80, SALT_CAP=95;   // salts may still reach 95%
 const RAISE_BOSS_EACH=10;   // less per boss already in the army or Reserve, so bosses do not snowball
 const RAISE_LV=3, RAISE_ELITE=10, RAISE_BOSS=15,SHATTER_BASE=50, SHATTER_WILL=1, SHATTER_MIN=20, BIND_HP=.4;   // % per level you stand above the body, the elite and boss penalties; a downed minion's shatter chance after a fight (% , less per Will point, never below the floor)
@@ -2689,7 +2690,7 @@ function tryRaise(id,salt,bench){   // bench: raise to the Reserve, only when th
     if(c.aff&&c.aff.length){ const t=AFFIX[pick(c.aff)].trait; if(!m.traits.includes(t)) m.traits.push(t); }   // an elite keeps one of its affixes
     if(rollCommand(m)) tally('commanders');
     syncMinion(m); m.hp=m.maxHp; if(toRes){ S.reserve.push(m); c.res=1; } else S.army.push(m); r.raised++; S.firstRaise=0; S.ti=S.ti||{}; S.ti.raised=(S.ti.raised||0)+1; if(m.armed) S.ti.armed=(S.ti.armed||0)+1;
-    if(c.free) tally('straggler'); if(c.boss) tally('raisedBoss'); c.result='raised'; if(c.boss||c.elite) moment(m.nick+' rises: '+(c.boss?'a boss':'an elite')+' serves you','ok'); c.minion=m.nick+' ('+m.traits.map(t=>TRAITS[t].name).join(', ')+')'; sfx('raise'); fxe('raise',c);
+    if(!r.siege){ dread(DREAD_RAISE); orderEv('raise',c); } if(c.free) tally('straggler'); if(c.boss) tally('raisedBoss'); c.result='raised'; if(c.boss||c.elite) moment(m.nick+' rises: '+(c.boss?'a boss':'an elite')+' serves you','ok'); c.minion=m.nick+' ('+m.traits.map(t=>TRAITS[t].name).join(', ')+')'; sfx('raise'); fxe('raise',c);
   }else{ c.result='failed'; sfx('fail'); fxe('rfail',c); if(hasMod('thrift','a')&&cost>0){ const back=Math.floor(cost*FRUGAL); P.mana=Math.min(pMana(),P.mana+back); r.events.push({m:'Frugal Rites: '+back+' mana comes back.',c:'ok'}); } }   // Frugal Rites
 }
 // Quicker raising: try every untouched body, most valuable first (salts on bosses and elites), until mana or slots run out.
@@ -2848,8 +2849,8 @@ function bankLoot(r){     // called when a room is won
 // Potions: carried on the belt, drunk in battle as your action.
 const BELT_MAX=3;
 const POTIONS={
-  hp:{name:'Healing Draught',key:'Q',desc:'Restores 35% of your max HP and cures bleeding, burns, poison and blight. Drinking it uses your turn.',price:()=>Math.round((15+S.player.lvl*5)*apoPotK())},
-  mp:{name:'Mana Tonic',key:'W',desc:'Restores 40% of your max mana. Drinking it uses your turn.',price:()=>Math.round((12+S.player.lvl*4)*apoPotK())}
+  hp:{name:'Healing Draught',key:'Q',desc:'Restores 35% of your max HP and cures bleeding, burns, poison and blight. Drinking it uses your turn.',price:()=>Math.round((15+S.player.lvl*5)*apoPotK()*dreadPriceK())},
+  mp:{name:'Mana Tonic',key:'W',desc:'Restores 40% of your max mana. Drinking it uses your turn.',price:()=>Math.round((12+S.player.lvl*4)*apoPotK()*dreadPriceK())}
 };
 function drink(k){
   const P=S.player; if(!S.belt[k]||pactOn('dry')) return false;   // the Dry Throat pact
@@ -2861,6 +2862,7 @@ function drink(k){
 // Market prices. Gear sells for a quarter of what the merchant asks. Uniques cannot be sold.
 const SET_PRICE=[30,80,200,480,1100,2400,4000];
 const buyPrice=d=>SET_PRICE[Math.min(d.set,SET_PRICE.length-1)];
+const shopPrice=d=>Math.round(buyPrice(d)*dreadPriceK());   // what the merchant asks: the town's dread moves it (game-dread.js)
 const sellPrice=d=>d.uq?0:Math.max(1,Math.round(buyPrice(d)*.25));
 const sellValue=it=>{ const d=ITEM[it.id]; return d.uq?0:Math.round(sellPrice(d)*(1+.25*((it.ro&&it.ro.length)||0))); };   // each bonus line adds a quarter
 const STOCK_N=4;
@@ -2875,7 +2877,7 @@ function shopStock(){   // four pieces of gear from your highest unlocked gate (
 }
 function buyPotion(k){ const p=POTIONS[k], cost=p&&p.price(); if(!p||S.mode!=='town'||S.belt[k]>=beltMax()||S.gold<cost) return false; S.gold-=cost; S.belt[k]++; sfx('coin'); return true; }
 function buyStock(i){
-  const s=shopStock()[i]; if(!s||s.sold||S.mode!=='town') return false; const d=ITEM[s.id], cost=buyPrice(d);
+  const s=shopStock()[i]; if(!s||s.sold||S.mode!=='town') return false; const d=ITEM[s.id], cost=shopPrice(d);
   if(S.gold<cost||S.inv.length>=bagMax()) return false;
   S.gold-=cost; s.sold=true; addItem(s.id,s.ro||null); sfx('coin'); return true;
 }
@@ -3090,7 +3092,7 @@ function resolveRaid(x){
   if(won){
     const g=Math.round((15+S.player.lvl*4)*(1+x.di)*RAID_GOLD*ngpReward()*bannerGold(x)*warGold()); S.gold+=g; let items=0, full=0;
     for(let i=0;i<3;i++){ if(i===2&&Math.random()>=RAID_ITEM3) break; const id=pickNorm(tableFor(x.di,'vanguard',i===0,false).filter(r=>!ITEM[r.id].uq)); if(addItem(id)) items++; else full++; }
-    x.units.forEach(m=>minionXp(m,Math.round(mneed(m.lvl)*RAID_XP))); tally('raidWins');
+    x.units.forEach(m=>minionXp(m,Math.round(mneed(m.lvl)*RAID_XP))); tally('raidWins'); if(x.di<=1) dread(DREAD_RAID);
     msg=lead.nick+' is back from the '+D.name+' in triumph: +'+g+' gold'+(items?', '+items+' piece'+(items>1?'s':'')+' of gear':'')+(full?' ('+full+' left behind: your bag is full)':'')+'.';
   } else {
     x.units.forEach((m,i)=>{ if(i>0&&!hasTrait(m,'gravebound')&&Math.random()<RAID_LOSS){ lost.push(m); returnGear(m); memorialize(m,{raid:x.di}); } });
@@ -3461,7 +3463,7 @@ const EVENTS={
 };
 const STRAGGLER_BONUS=25;
 const FAITH_EVENT=.25;   // a sworn necromancer meets a shrine true to the oath in a quarter of events
-function rollEvent(){ { const cd=chainDue(); if(cd) return {id:cd}; } const fe=Object.keys(EVENTS).find(k=>EVENTS[k].faith&&EVENTS[k].faith===faithOf()), id=fe&&Math.random()<FAITH_EVENT?fe:pick(Object.keys(EVENTS).filter(k=>!EVENTS[k].faith&&chainOk(k))), ev={id}; if(id==='pedlar'){ ev.pot=pick(Object.keys(POTIONS)); ev.price=Math.ceil(POTIONS[ev.pot].price()/2); } return ev; }
+function rollEvent(){ { const cd=chainDue(); if(cd) return {id:cd}; } const fe=Object.keys(EVENTS).find(k=>EVENTS[k].faith&&EVENTS[k].faith===faithOf()), id=fe&&Math.random()<FAITH_EVENT?fe:pick(Object.keys(EVENTS).filter(k=>!EVENTS[k].faith&&chainOk(k))), ev={id:id!=='pedlar'&&dreadBand().id==='calm'&&Math.random()<1/Object.keys(EVENTS).length?'pedlar':id};   /* Calm: pedlars twice as common (game-dread.js) */ if(ev.id==='pedlar'){ ev.pot=pick(Object.keys(POTIONS)); ev.price=Math.ceil(POTIONS[ev.pot].price()/2); } return ev; }
 function corpseOf(e){ const c={id:'c'+e.id,armed:isArmed(e.base),name:e.name,base:e.base,role:e.role,rankI:e.rankI,lvl:e.lvl,hf:e.hf,af:e.af,tw:e.tw,boss:e.boss,elite:e.elite,tried:false,result:null,minion:null}; if(e.aff&&e.aff.length) c.aff=e.aff.slice(); if(e.dots&&e.dots.blight) c.bl=e.dots.blight.d; if(e.cd&&e.hp<=0) c.cd=e.cd; return c; }   // bl: it died Blighted (Spreading Rot); cd: how it died (CORPSE_CONDS)
 // Corpse conditions: how a foe died marks its body. First match in this order; raise: % added before the clamp; trait: what it rises with
 // in place of the random trait (a boss still rolls its second one, an elite still keeps an affix).
@@ -4597,11 +4599,11 @@ const BUILD={
   altar:  {name:'Altar',   desc:'+'+b100(B_ALT_MANA)+'% max mana per level, and the Bone Altar costs '+b100(B_ALT_COST)+'% less per level.', now:n=>'+'+b100(B_ALT_MANA*n)+'% max mana, Bone Altar '+b100(B_ALT_COST*n)+'% cheaper'}
 };
 const BUILD_MAX=5, BUILD_COST=[[1500,0],[5000,30],[14000,90],[30000,180],[60000,300]], SIEGE_OSS_REF=3;   // [gold, bone dust] for levels 1-5 (4 and 5 after the Throne of Ash: game-town2.js); the Ossuary's siege rise is tuned on 3 levels
-const bl=k=>(S&&S.siege&&S.siege.dmg===k)?0:((S&&S.build&&S.build[k])||0);   // a building damaged in a siege works as if unbuilt until repaired
+const bl=k=>(S&&S.siege&&S.siege.dmg===k)?0:Math.max(0,((S&&S.build&&S.build[k])||0)-(S&&S.unpaid&&S.unpaid[k]?1:0));   /* unpaid upkeep: the top level is off (game-dread.js) */   // a building damaged in a siege works as if unbuilt until repaired
 const buildCost=k=>BUILD[k]&&blRaw(k)<BUILD_MAX&&!(S&&S.siege&&S.siege.dmg===k)?BUILD_COST[Math.max(0,blRaw(k)-(BUILD[k].step||0))]:null;
 function build(k){
   if(!S||S.mode!=='town'||!BUILD[k]||!bOpen(k)||!buildReady(k)) return false; const c=buildCost(k); if(!c||S.gold<c[0]||(S.dust||0)<c[1]) return false;
-  S.gold-=c[0]; S.dust=(S.dust||0)-c[1]; vitals(()=>{ S.build=S.build||{}; S.build[k]=blRaw(k)+1; }); tally('built'); sfx('level'); siegeTick(); return true;
+  S.gold-=c[0]; S.dust=(S.dust||0)-c[1]; vitals(()=>{ S.build=S.build||{}; S.build[k]=blRaw(k)+1; }); tally('built'); dread(DREAD_BUILD); sfx('level'); siegeTick(); return true;
 }
 
 // ===== WHAT IS OPEN YET =====
@@ -4780,7 +4782,7 @@ const topGate=()=>{ let g=0; for(let i=0;i<GATE_N;i++) if(S.player.lvl>=RK[i].un
 function claimBounty(i){
   const b=bounties()[i]; if(!b||b.claimed||!bountyDone(b)||S.mode!=='town') return null;
   if(b.rw.gear&&S.inv.length>=bagMax()) return null;
-  b.claimed=true; const out=[];
+  b.claimed=true; const out=[]; orderEv('bounty',b.rw.g||0);
   if(b.rw.g){ S.gold+=b.rw.g; out.push(b.rw.g+' gold'); }
   if(b.rw.salt){ if(S.salts<SALT_MAX){ S.salts++; out.push('Grave Salts'); } else { const g=saltPrice(); S.gold+=g; out.push(g+' gold in place of salts (your pouch is full)'); } }
   if(b.rw.dust){ S.dust=(S.dust||0)+b.rw.dust; out.push(b.rw.dust+' bone dust'); }
@@ -4951,7 +4953,7 @@ const siegeTonight=()=>!!S&&siegeOpen()&&sg().next>0&&S.day>=sg().next;
 const siegeWarned=()=>!!S&&siegeOpen()&&sg().next>0&&S.day>=sg().next-1;   // the day before and the day itself
 const siegeGate=()=>topGate();
 const siegeLvl=()=>Math.max(1,S.player.lvl-SIEGE_LV);
-function siegeGap(){ let a=(Math.imul(S.day+1,2654435761)^Math.imul(T_('sieges')+7,40503)^Math.imul((S.ngp||0)+3,97))>>>0; a^=a>>>15; a=Math.imul(a,2246822519)>>>0; a=(a^(a>>>13))>>>0; return SIEGE_GAP[0]+a%(SIEGE_GAP[1]-SIEGE_GAP[0]+1); }   // a hash of the day: Math.random is never touched
+function siegeGap(){ let a=(Math.imul(S.day+1,2654435761)^Math.imul(T_('sieges')+7,40503)^Math.imul((S.ngp||0)+3,97))>>>0; a^=a>>>15; a=Math.imul(a,2246822519)>>>0; a=(a^(a>>>13))>>>0; const G=dreadGap(); return G[0]+a%(G[1]-G[0]+1); }   /* the town's dread sets the gap (game-dread.js) */   // a hash of the day: Math.random is never touched
 function siegeTick(){   // dawn, load and building: schedule the next siege, and warn the dawn before it
   if(!S||!siegeOpen()) return; const g=sg();
   if(!g.next||g.next<S.day) g.next=S.day+siegeGap();
@@ -5021,7 +5023,7 @@ function siegeLost(fled){   // fell or fled: the town pays. Nothing is deleted; 
     m=why+'They fired the '+BUILD[k].name+': its effects are lost until you repair it in town for '+repairCost()+' gold.'+(gd?' The '+BUILD[gd].name+' you guarded was spared.':''); }
   else { const f=Math.round(Math.min(S.gold*SIEGE_FINE,siegeGoldPay()*SIEGE_FINE_MAX/SIEGE_GOLD)); S.gold-=f;
     m=why+(g.dmg?'With the '+BUILD[g.dmg].name+' still in ruins they took what they could carry instead: ':'With the '+BUILD[gd].name+' under guard they took what they could carry instead: ')+f+' gold.'; }
-  tally('sieges'); tally('siegeLosses'); g.pending=false; g.next=0; if(r){ r.siegeLoss=m; r.lost=true; } return m;
+  tally('sieges'); tally('siegeLosses'); dread(DREAD_SIEGE_LOST); g.pending=false; g.next=0; if(r){ r.siegeLoss=m; r.lost=true; } return m;
 }
 function siegeOverflow(){ const n=S.army.filter(m=>!m.thrall&&!m.wall).length-slots();   /* only those at home: raiders' places sort themselves out at dawn */ if(n<=0) return; const out=S.army.filter(m=>!m.thrall&&!m.wall).slice(-n); S.army=S.army.filter(m=>!out.includes(m)); const w=homeLine(out.map(placeMinion)); if(w) notify(('The Crypt burned: '+w).trim(),'bad'); }
 function siegeEnd(){   // back from the walls (won, fell or fled): thralls crumble, the record is written, then dawn
@@ -5762,8 +5764,9 @@ function brewIt(id){   // spends the parts (cheapest first) or spare hearts (low
 function prepSet(kind,id){   // arm (or, with the same id or null, disarm) one brew of a kind
   if(S.mode!=='town'||!PREP_KINDS.includes(kind)) return false; S.prep=S.prep||{};
   if(id==null||S.prep[kind]===id){ delete S.prep[kind]; return true; }
-  const B=BREWS[id]; if(!B||B.kind!==kind||B.use) return false; S.prep[kind]=id; return true;
+  const B=BREWS[id]; if(!B||B.kind!==kind||B.use) return false; S.prep[kind]=id; prepOrder(); return true;
 }
+function prepOrder(){ const p={}; for(const k of PREP_KINDS) if(S.prep[k]) p[k]=S.prep[k]; if(S.prep.soul) p.soul=1; S.prep=p; }   // the order brewFix writes, so a save round trip keeps the same object
 let PREP_SKIP=false;   // a sweep (game-kits.js) leaves the stash alone
 function prepTake(r){   // startRun: one of each armed oil, incense and charm goes into the run
   if(PREP_SKIP) return; const p=S.prep||{}; for(const kind of ['oil','inc','charm']){ const id=p[kind]; if(!id||!stashN(id)) continue; S.stash[id]--; if(!S.stash[id]) delete S.stash[id]; r[kind]=id; tally('prepUsed'); }
@@ -5827,13 +5830,13 @@ function commFill(i){
   if(c.k==='tro'){ let need=c.n; for(const k of trosOf(c.role,c.g)){ const t=Math.min(S.trophies[k],need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
   else if(c.k==='hf'){ const it=commItem(c); S.inv=S.inv.filter(x=>x!==it); }
   else { const m=commMinion(c); returnGear(m); S.army=S.army.filter(x=>x!==m); bondsClean(); syncArmy(); }
-  S.gold+=p.g; S.dust=(S.dust||0)+p.d; c.done=1; tally('commissions'); tally('commG',p.g); sfx('coin'); return p;
+  S.gold+=p.g; S.dust=(S.dust||0)+p.d; c.done=1; dread(-DREAD_COMM); orderEv('comm'); tally('commissions'); tally('commG',p.g); sfx('coin'); return p;
 }
 function commTxt(c){ if(c.k==='tro') return c.n+' '+c.role+' parts from the '+DUNGEONS[c.g].name;
   if(c.k==='hf') return 'A heartforged '+SLOTS[c.slot].toLowerCase()+' piece'; return 'A '+c.role+' minion at '+STAGES[c.st].trim()+' or beyond'; }
 // ----- the black market: every seventh day from day 7, each trade once a week
 const BM_DAY=7, BM_SOUL_GOLD=1500, BM_SOUL_DUST=5, BM_DUST=50, BM_DUST_TRO=30, BM_TW=8;
-const bmOpen=()=>!!S&&S.day>=BM_DAY&&S.day%BM_DAY===0&&S.mode==='town';
+const bmOpen=()=>!!S&&S.day>=BM_DAY&&S.day%BM_DAY===0&&S.mode==='town'&&dreadBand().id!=='terror';   /* Terror shuts the stall (game-dread.js) */
 function bmState(){ const w=weekOf(S.day); if(!S.bm||S.bm.week!==w) S.bm={week:w,used:{}}; return S.bm; }
 const bmUsed=k=>!!bmState().used[k];
 const clearedGates=()=>{ const out=[]; for(let i=0;i<GATE_N;i++) if(S.ti&&S.ti.clr&&S.ti.clr[i]) out.push(i); return out; };
@@ -5857,7 +5860,7 @@ function bmTrade(k,slot){
   else if(k==='warden'){ spendTrophies(Object.keys(S.trophies).filter(x=>x.startsWith('t:')),BM_TW,()=>1); const key='b:'+bmWarden(); S.trophies[key]=(S.trophies[key]||0)+1; got=TROPHY[key].name; }
   else if(k==='piece'){ const key=bmMaster(); S.trophies[key]--; if(!S.trophies[key]) delete S.trophies[key]; const g=Math.min(5,Math.max(0,...clearedGates(),topGate())), sl=SLOTS[slot]?slot:pick(GEAR_SLOTS);
     const pool=Object.values(ITEM).filter(d=>!d.uq&&!d.tower&&d.set===g&&d.slot===sl); const it=addItem(pick(pool).id); got=it?ITEM[it.id].name:'nothing'; }
-  else { S.gold-=BM_SOUL_GOLD; S.dust-=BM_SOUL_DUST; S.prep=S.prep||{}; S.prep.soul=1; got='a Soul, waiting for your next run'; }
+  else { S.gold-=BM_SOUL_GOLD; S.dust-=BM_SOUL_DUST; S.prep=S.prep||{}; S.prep.soul=1; prepOrder(); got='a Soul, waiting for your next run'; }
   bmState().used[k]=1; tally('bmTrades'); sfx('coin'); return got;
 }
 function prepSoul(r){ if(!PREP_SKIP&&S.prep&&S.prep.soul){ delete S.prep.soul; if(gainSoul()) log('The Soul from the black market goes with you.','ok'); } }   // startRun
@@ -5902,7 +5905,7 @@ const SPEC={
   yard:   {3:[['Drill Yard','The Yard trains 50% faster.'],['Bone Pits','The Yard trains up to your army\'s highest level.']],5:[['Yard of Heroes','The Yard also trains the three weakest minions of your army.'],['Grave Market','Sell a Reserve minion for gold.']]},
   library:{3:[['Reading Room','+1 stat point.'],['Archive','Study counts twice 50% more often.']],5:[['Forbidden Stacks','+1 skill point.'],['Grand Archive','Kinds you have Ledgered take 5% more damage from your side.']]},
   embalm: {3:[['Preservers','Bodies keep three days longer.'],['Body Thieves','Keep one more body from each run.']],5:[['Grand Embalmery','Kept bodies raise 15% more easily.'],['Grave Garden','A kept body rises three levels higher, never past your level + 2.']]},
-  bell:   {3:[['Watchtower','Attackers strike 5% softer.'],['Belfry','Sieges pay 20% more.']],5:[['Toll of the Dead','A siege won pays twice the bone dust.'],['Iron Bells','The Inquisitor Captain has 15% less HP.']]},
+  bell:   {3:[['Watchtower','Attackers strike 5% softer.'],['Belfry','Sieges pay 20% more.']],5:[['Toll of the Dead','A siege won pays twice the bone dust and calms the town twice as much.'],['Iron Bells','The Inquisitor Captain has 15% less HP.']]},
   apoth:  {3:[['Distillery','Each brew makes two.'],['Censer House','Incense gives twice the raise chance.']],5:[['Alchemist','Your first brew each day costs no gold.'],['Plague Kitchen','A Healing Draught also mends your minions for 15%.']]},
   war:    {3:[['Map Table','Won raids bring back 25% more gold.'],['Quartermaster','War banners cost no gold to brew.']],5:[['Generals\' Hall','Raids are another 5% likelier to win.'],['Spy Network','The rival comes to steal half as often.']]}
 };
@@ -5923,7 +5926,7 @@ const smithK=()=>hasSpec('forge',3,'a')?.1:0;   // forgeGear, forgeTower
 const temperK=()=>hasSpec('forge',3,'b')?.75:1;   // temperCost
 const temperStep=()=>hasSpec('forge',5,'b')?2:1;   // temperTo
 const hfTownK=()=>hasSpec('forge',5,'a')?.75:1;   // hfInfo
-function townRaise(c){ let n=0; if(c.elite&&hasSpec('ossuary',3,'a')) n+=10; if(c.boss&&hasSpec('ossuary',5,'a')) n+=10; if(hasSpec('ossuary',5,'b')) n+=5; if(EMB_RAISING) n+=EMB_RAISE*bl('embalm')+(hasSpec('embalm',5,'a')?15:0); return n; }   // raiseChance
+function townRaise(c){ let n=0; if(c.elite&&hasSpec('ossuary',3,'a')) n+=10; if(c.boss&&hasSpec('ossuary',5,'a')) n+=10; if(hasSpec('ossuary',5,'b')) n+=5; n+=cleanRaise(); if(EMB_RAISING) n+=EMB_RAISE*bl('embalm')+(hasSpec('embalm',5,'a')?15:0); return n; }   // raiseChance
 const skillK=()=>hasSpec('altar',3,'a')?.95:1;   // skCost
 const empowerK=()=>hasSpec('altar',3,'b')?.75:1;   // empowerCost
 const manaK=()=>hasSpec('altar',5,'a')?1.1:1;   // pMana
@@ -5957,12 +5960,12 @@ Object.assign(SIEGE_PERK,{
 });
 function townSiegeWave(list,r){   // spawnSiege, after scaling
   const hpK=(1-SIEGE_BELL*bl('bell')), atkK=hasSpec('bell',3,'a')?.95:1;
-  for(const e of list){ let k=hpK; if(e.boss) k*=(1-SIEGE_LIB*bl('library'))*(hasSpec('bell',5,'b')?.85:1); if(k!==1){ e.maxHp=e.hp=Math.max(1,Math.round(e.maxHp*k)); } if(atkK!==1) e.atk=Math.max(1,Math.round(e.atk*atkK)); }
-  if(r.room&&bl('apoth')){ const P=S.player, h=healAlly(P,Math.round(pMax()*SIEGE_APO*bl('apoth'))); if(h) log('The Apothecary\'s salves: +'+h+' HP.','ok'); }
+  dreadWave(list,r); for(const e of list){ let k=hpK; if(e.boss) k*=(1-SIEGE_LIB*bl('library'))*(hasSpec('bell',5,'b')?.85:1); if(k!==1){ e.maxHp=e.hp=Math.max(1,Math.round(e.maxHp*k)); } if(atkK!==1) e.atk=Math.max(1,Math.round(e.atk*atkK)); }
+  bellDefense(list,r); if(r.room&&bl('apoth')){ const P=S.player, h=healAlly(P,Math.round(pMax()*SIEGE_APO*bl('apoth'))); if(h) log('The Apothecary\'s salves: +'+h+' HP.','ok'); }
 }
-const siegePayK=()=>(1+SIEGE_WAR*bl('war'))*(hasSpec('bell',3,'b')?1.2:1);   // siegeGoldPay
+const siegePayK=()=>(1+SIEGE_WAR*bl('war'))*(hasSpec('bell',3,'b')?1.2:1)*dreadPayK();   // siegeGoldPay
 const siegeDustK=()=>hasSpec('bell',5,'a')?2:1;   // siegeWon
-function townSiegeWon(r){ if(!bl('embalm')||!r.fallen||!r.fallen.length) return; const c=pick(r.fallen.concat(r.corpses||[]).filter(x=>x&&!x.boss)); if(c&&embKeep(c,true)) r.events.push({m:'The Embalmery takes in '+withArticle(c.base||c.name)+' from the walls.',c:'ok'}); }
+function townSiegeWon(r){ dread(-DREAD_SIEGE_WON*tollK()); if(!bl('embalm')||!r.fallen||!r.fallen.length) return; const c=pick(r.fallen.concat(r.corpses||[]).filter(x=>x&&!x.boss)); if(c&&embKeep(c,true)) r.events.push({m:'The Embalmery takes in '+withArticle(c.base||c.name)+' from the walls.',c:'ok'}); }
 // ----- the Charnel Yard: dawn training
 function yardDawn(){
   const n=bl('yard'); if(!n) return 0; const top=Math.max(0,...S.army.map(m=>m.lvl)); if(!top) return 0;
@@ -6012,6 +6015,160 @@ function townFix(g){
   const sp={}; if(g.spec&&typeof g.spec==='object') for(const k in g.spec){ if(!SPEC[k]||!g.spec[k]) continue; for(const lv of [3,5]){ const c=g.spec[k][lv]; if((c==='a'||c==='b')&&((g.build&&g.build[k])||0)>=lv){ sp[k]=sp[k]||{}; sp[k][lv]=c; } } } g.spec=sp;
   g.embalm=Array.isArray(g.embalm)?g.embalm.filter(x=>x&&x.c&&typeof x.c.name==='string'&&isFinite(x.day)&&RK[x.c.rankI]).slice(0,8).map(x=>({c:Object.assign({},x.c,{lvl:Math.max(1,Math.floor(+x.c.lvl||1))}),day:Math.floor(x.day)})):[];
   for(const k of ['respecDay','omenCall','freeBrew']) if(g[k]!=null&&!isFinite(g[k])) delete g[k];
+}
+// ===== THE TOWN'S DREAD, DAILY ORDERS AND UPKEEP (R5 PR B) =====
+// Dread (S.dread, 0-100, from 30) is how much the living fear the necropolis. It wakes with the sieges (siegeOpen) and moves
+// with what you do: raising in the gates, raids on the near gates and new building levels raise it; sieges won, commissions
+// and a tithe calm it; each dawn it drifts a point toward 40. Its band sets market prices, the siege gap, wave strength and
+// pay, and brings its own dawn: Calm mourners bring a body, the Afraid leave a tribute, Terror shuts the black market and
+// offers the Plunder order. Daily orders (S.orders) replace the daily quest once a building stands: three drawn each dawn
+// from a hash of the day (Math.random is never touched), pick one, it pays once; only Hunt pays a stat point. Upkeep: every
+// building level past 2 costs gold at dawn; an unpaid building loses its top level (S.unpaid) until a dawn pays it.
+const DREAD_START=30, DREAD_REST=40, DREAD_RAISE=.1, DREAD_SIEGE_WON=6, DREAD_SIEGE_LOST=10, DREAD_RAID=3, DREAD_COMM=3,
+  DREAD_TITHE=5, TITHE_K=.05, DREAD_BUILD=2, DREAD_UNPAID=1, DREAD_PLUNDER=8, TRIBUTE_K=.25, UPKEEP=15, ORD_DUST=10, ORD_HUNT=.6,
+  CLEAN_RAISE=5, CALL_DAY=3, TRIBUTE_DAY=5;
+const DREAD_BANDS=[
+  {id:'calm',  name:'Calm',  min:0, price:.9,  gap:[9,12], wave:.9,  pay:1,    fx:'Market prices 10% lower, pedlars twice as common, sieges every 9-12 days and 10% weaker; once a week mourners bring a body to the Embalmery.'},
+  {id:'uneasy',name:'Uneasy',min:20,price:1,   gap:[7,10], wave:1,   pay:1,    fx:'Prices and sieges as usual (every 7-10 days).'},
+  {id:'afraid',name:'Afraid',min:50,price:1.1, gap:[6,9],  wave:1.1, pay:1.15, fx:'Market prices 10% higher; sieges every 6-9 days, 10% stronger, 15% better pay; once a week the living leave a tribute at the gate.'},
+  {id:'terror',name:'Terror',min:80,price:1.25,gap:[5,7],  wave:1.15,pay:1.3,  fx:'Market prices 25% higher, no black market; sieges every 5-7 days, 15% stronger, the Captain brings two elites, 30% better pay; the Plunder order.'}
+];
+const dreadOn=()=>!!S&&siegeOpen();
+const dreadOf=()=>S&&isFinite(S.dread)?S.dread:DREAD_START;
+function dreadBand(){ if(!dreadOn()) return DREAD_BANDS[1]; const d=dreadOf(); let b=DREAD_BANDS[0]; for(const x of DREAD_BANDS) if(d>=x.min) b=x; return b; }
+function dread(n){   // move the meter; a new band is announced
+  if(!dreadOn()||!n) return 0; const b0=dreadBand().id; S.dread=Math.round(clamp(dreadOf()+n,0,100)*10)/10; const b=dreadBand();
+  if(b.id!==b0){ notify('The town is '+b.name.toLowerCase()+' now. '+b.fx,b.min>=50?'bad':'ok'); tally('band_'+b.id); } return n;
+}
+const dreadPriceK=()=>dreadBand().price;   // stock, potions, salts
+const dreadGap=()=>dreadBand().gap;   // siegeGap
+const dreadPayK=()=>dreadBand().pay;   // siegePayK
+const tollK=()=>hasSpec('bell',5,'a')?2:1;   // Toll of the Dead
+function dreadWave(list,r){   // townSiegeWave: the band's strength; Terror's Captain brings two elites
+  const k=dreadBand().wave; if(k!==1) for(const e of list){ e.maxHp=e.hp=Math.max(1,Math.round(e.maxHp*k)); e.atk=Math.max(1,Math.round(e.atk*k)); }
+  if(dreadBand().id==='terror'&&list.some(e=>e.boss)) list.filter(e=>!e.boss&&!e.elite).slice(0,2).forEach(e=>{ e.elite=true; e.maxHp=e.hp=Math.round(e.maxHp*1.5); e.atk=Math.round(e.atk*1.25); });
+}
+const titheCost=()=>Math.max(100,Math.round(S.gold*TITHE_K));
+const titheReady=()=>dreadOn()&&S.mode==='town'&&S.titheDay!==S.day&&S.gold>=titheCost();
+function payTithe(){ if(!titheReady()) return 0; const c=titheCost(); S.gold-=c; S.titheDay=S.day; dread(-DREAD_TITHE); tally('tithes'); sfx('coin'); return c; }
+function dreadDawn(){   // closeDay: drift, then the band's own dawn
+  if(!dreadOn()) return; const d=dreadOf(); if(d!==DREAD_REST) dread(d>DREAD_REST?-Math.min(1,d-DREAD_REST):Math.min(1,DREAD_REST-d));
+  const b=dreadBand().id;
+  if(b==='calm'&&S.day%7===CALL_DAY&&bl('embalm')&&(S.embalm||[]).length<embHold()){ const g=topGate(), mob=pick(DUNGEONS[g].mobs);
+    const c={name:mob[0],base:mob[0],role:mob[1],rankI:g,lvl:Math.max(1,S.player.lvl-2),hf:mob[2]||1,af:mob[3]||1,boss:false,elite:false};
+    if(embKeep(c,true)){ tally('mourners'); notify('Mourners from the town leave '+withArticle(c.base)+' at the gate. The Embalmery takes it in.','ok'); } }
+  if(b==='afraid'&&S.day%7===TRIBUTE_DAY){ const g=Math.round(siegeGoldPay()*TRIBUTE_K); S.gold+=g; tally('tributes'); notify('The frightened living leave a tribute at the gate: +'+g+' gold.','ok'); }
+}
+// ----- the Bell Tower's wall defenses, one per level
+const BELL_DEF=[['Caltrops','wave 1 starts bleeding'],['Burning oil','wave 2 is scalded for 10% of its HP as fire'],['Great bells','the Captain acts a turn late'],['Arrow slits','each wave loses 5% of its HP'],['Sanctuary','you start each wave with a shield of 10% of your max HP']];
+function bellDefense(list,r){   // townSiegeWave, before the fight starts
+  const n=bl('bell'); if(!n||!r) return;
+  if(n>=1&&r.room===0) list.forEach(e=>addDot(e,'bleed',Math.max(1,Math.round(e.maxHp*.02)),3));
+  if(n>=2&&r.room===1) list.forEach(e=>{ e.hp=Math.max(1,e.hp-Math.round(e.maxHp*.1*(1-foeRes(e,'fire')))); });
+  if(n>=3) list.filter(e=>e.boss).forEach(e=>{ e.stun=Math.max(e.stun||0,1); });
+  if(n>=4) list.forEach(e=>{ e.hp=Math.max(1,e.hp-Math.round(e.maxHp*.05)); });
+  if(n>=5){ const P=S.player; P.shield=Math.max(P.shield||0,Math.round(pMax()*.1)); }
+}
+// ----- upkeep
+const upkeepOf=(k,lv)=>Math.max(0,(lv==null?blRaw(k):lv)-2)*UPKEEP*(topGate()+1);
+const upkeepAll=()=>Object.keys(BUILD).reduce((a,k)=>a+(sg().dmg===k?0:upkeepOf(k)),0);
+function upkeepDawn(){   // closeDay: pay each building in order; one that cannot be paid loses its top level until a dawn pays it
+  const was=S.unpaid||{}; S.unpaid={}; let paid=0; const left=[];
+  for(const k of Object.keys(BUILD)){ const c=sg().dmg===k?0:upkeepOf(k); if(!c) continue; if(S.gold>=c){ S.gold-=c; paid+=c; } else { S.unpaid[k]=1; left.push(BUILD[k].name); } }
+  if(paid) tally('upkeepG',paid);
+  if(left.length){ dread(DREAD_UNPAID); notify('Upkeep unpaid: '+left.join(', ')+' lose'+(left.length>1?'':'s')+' a level until a dawn can pay.','bad'); }
+  else if(Object.keys(was).length) notify('Upkeep paid: every building works again.','ok');
+  if(Object.keys(was).length!==Object.keys(S.unpaid).length) syncArmy();
+  return paid;
+}
+// ----- daily orders
+const ORDERS={
+  hunt:   {name:'Hunt',      t:o=>'Clear the '+DUNGEONS[o.g].name+' or a deeper gate',              pay:()=>'+'+QUEST_PTS+' stat point and '+b100(QUEST_XP)+'% of a level'},
+  harvest:{name:'Harvest',   t:o=>'Raise 3 '+ROLES[o.role].label.toLowerCase()+' minions',            pay:()=>ORD_DUST*(topGate()+3)+' bone dust', n:3},
+  clean:  {name:'Clean kill',t:o=>'Win a room in the '+DUNGEONS[o.g].name+' with no minion downed',     pay:()=>'+'+CLEAN_RAISE+'% raise chance tomorrow'},
+  watch:  {name:'Stand watch',t:()=>'Spend a watch in town with the Charnel Yard',                      pay:()=>'the Yard trains twice at once'},
+  tribute:{name:'Tribute',   t:()=>'Fill a commission',                                                pay:()=>'the town calms (dread -'+DREAD_TITHE+')'},
+  climb:  {name:'Climb',     t:()=>'Climb 3 floors of the Hell Tower',                                  pay:()=>'a Tower trophy', n:3},
+  debt:   {name:'Old debt',  t:()=>'Claim a bounty',                                                    pay:()=>'half its gold again'},
+  plunder:{name:'Plunder',   t:()=>'Take gold and bodies from the town',                                 pay:()=>plunderGold()+' gold at once, dread +'+DREAD_PLUNDER}
+};
+const ordersOn=()=>!!S&&builtLevels()>0;
+const plunderGold=()=>Math.round(siegeGoldPay()*.5);
+function ordHash(n){ let a=(Math.imul(S.day+11,2654435761)^Math.imul(n+5,40503)^Math.imul((S.ngp||0)+3,97))>>>0; a^=a>>>15; a=Math.imul(a,2246822519)>>>0; return ((a^(a>>>13))>>>0)/4294967296; }   // no Math.random
+function makeOrders(){
+  const g=topGate(), roles=Object.keys(ROLES), pool=['harvest','clean','debt'], out=[];
+  if(bl('yard')) pool.push('watch'); if(S.comm&&S.comm.week===weekOf(S.day)&&S.comm.list.some(c=>!c.done)) pool.push('tribute');   /* the week's board as it stands: drawing it here would touch Math.random */ if(towerOpen()) pool.push('climb');
+  if(ordHash(0)<ORD_HUNT) out.push({k:'hunt',g:Math.max(0,g-(ordHash(1)<.5?1:0))});
+  if(dreadBand().id==='terror') out.push({k:'plunder'});
+  let i=2; while(out.length<3&&pool.length){ const k=pool.splice(Math.floor(ordHash(i++)*pool.length),1)[0], o={k};
+    if(k==='harvest') o.role=roles[Math.floor(ordHash(i++)*roles.length)]; if(k==='clean') o.g=Math.max(0,g-1); out.push(o); }
+  return out;
+}
+function orders(){ if(!ordersOn()) return null; if(!S.orders||S.orders.day!==S.day) S.orders={day:S.day,list:makeOrders(),pick:-1,n:0,done:false}; return S.orders; }
+const orderNow=()=>{ const o=orders(); return o&&o.pick>=0&&!o.done?o.list[o.pick]:null; };
+function pickOrder(i){
+  const O=orders(); if(!O||O.pick>=0||S.mode!=='town'||!O.list[i]) return false; O.pick=i; tally('ordersPicked');
+  if(O.list[i].k==='plunder') orderDone(); return true;
+}
+function orderDone(){
+  const O=S.orders, o=O.list[O.pick]; O.done=true; S.ti=S.ti||{}; S.ti.claims=(S.ti.claims||0)+1; tally('orders'); tally('ord_'+o.k); let m='';
+  const xp=Math.round(need(S.player.lvl)*QUEST_XP); addXp(xp);   /* every order pays the old quest's XP; only a Hunt adds the stat point */
+  if(o.k==='hunt'){ S.player.pts+=QUEST_PTS; m='+'+QUEST_PTS+' stat point and +'+xp+' XP'; }
+  else if(o.k==='harvest'){ const d=ORD_DUST*(topGate()+3); S.dust=(S.dust||0)+d; m='+'+d+' bone dust'; }
+  else if(o.k==='clean'){ S.cleanDay=S.day+1; m='+'+CLEAN_RAISE+'% raise chance tomorrow'; }
+  else if(o.k==='watch'){ const n=yardDawn()+yardDawn(); m='the Charnel Yard trains twice ('+n+' level'+(n===1?'':'s')+')'; }
+  else if(o.k==='tribute'){ dread(-DREAD_TITHE); m='the town calms'; }
+  else if(o.k==='climb'){ const ks=Object.keys(TROPHY).filter(k=>k.startsWith('t:')), k=ks[Math.min(ks.length-1,Math.floor((S.tower.best||1)/25))]; if(k){ S.trophies[k]=(S.trophies[k]||0)+1; m='+1 '+TROPHY[k].name; } }
+  else if(o.k==='debt'){ const g=Math.round((O.bg||0)*.5)||100*(topGate()+1); S.gold+=g; m='+'+g+' gold'; }
+  else if(o.k==='plunder'){ const g=plunderGold(); S.gold+=g; dread(DREAD_PLUNDER); m='+'+g+' gold, and the town hates you more'; }
+  notify('Order fulfilled ('+ORDERS[o.k].name+'): '+m+(o.k==='hunt'?'':', +'+xp+' XP')+'.','ok'); sfx('coin');
+}
+function orderEv(k,x){   // progress, from the systems that do the work
+  const o=orderNow(); if(!o) return; const O=S.orders;
+  if(k==='clear'&&o.k==='hunt'&&x>=o.g) orderDone();
+  else if(k==='raise'&&o.k==='harvest'&&x&&x.role===o.role){ if(++O.n>=3) orderDone(); }
+  else if(k==='room'&&o.k==='clean'&&x&&x.ok&&x.di>=o.g) orderDone();
+  else if(k==='floor'&&o.k==='climb'){ if(++O.n>=3) orderDone(); }
+  else if(k==='comm'&&o.k==='tribute') orderDone();
+  else if(k==='bounty'&&o.k==='debt'){ O.bg=x||0; orderDone(); }
+}
+function standWatch(){ const o=orderNow(); if(!o||o.k!=='watch'||S.mode!=='town'||S.watches<1) return false; S.watches--; orderDone(); if(S.watches<=0) endDay(); return true; }
+function dayWork(){ const xp=Math.round(need(S.player.lvl)*QUEST_XP); addXp(xp); tally('dayWork'); notify('A day\'s work done without an order: +'+xp+' XP.',''); }   // claimQuest
+const cleanRaise=()=>S&&S.cleanDay===S.day?CLEAN_RAISE:0;   // townRaise
+function ordersTxt(o){ return ORDERS[o.k].name+': '+ORDERS[o.k].t(o); }
+// ----- save
+function dreadFix(g){
+  g.dread=isFinite(g.dread)?clamp(+g.dread,0,100):DREAD_START;
+  const u={}; if(g.unpaid&&typeof g.unpaid==='object') for(const k in g.unpaid) if(BUILD[k]&&g.unpaid[k]) u[k]=1; g.unpaid=u;
+  const O=g.orders; if(O&&typeof O==='object'&&isFinite(O.day)&&Array.isArray(O.list)){
+    const list=O.list.filter(o=>o&&ORDERS[o.k]&&(o.g==null||DUNGEONS[o.g])&&(o.k!=='harvest'||ROLES[o.role])&&(o.k!=='hunt'&&o.k!=='clean'||DUNGEONS[o.g])).slice(0,3);
+    g.orders={day:Math.floor(O.day),list,pick:Number.isInteger(O.pick)&&O.pick>=0&&O.pick<list.length?O.pick:-1,n:Math.max(0,Math.floor(+O.n||0)),done:!!O.done}; if(O.bg) g.orders.bg=Math.max(0,+O.bg||0);
+  } else g.orders=null;
+  for(const k of ['titheDay','cleanDay']) if(g[k]!=null&&!isFinite(g[k])) delete g[k];
+}
+// ----- UI: the orders panel (instead of the daily quest), the dread card and upkeep lines on the Town tab
+function ordersHTML(){
+  const O=orders(), town=S.mode==='town', o=O.pick>=0?O.list[O.pick]:null;
+  const prog=x=>ORDERS[x.k].n?' ('+Math.min(O.n,ORDERS[x.k].n)+'/'+ORDERS[x.k].n+')':'';
+  return '<section class="win'+foldCls('quest')+'" aria-labelledby="h-quest"><h2 class="win-h" id="h-quest">Daily orders &middot; Day '+S.day+'<span class="fold-sum">'+(O.done?'fulfilled':o?'in hand':'pick one')+'</span>'+foldBtn('quest')+'</h2>'
+   +O.list.map((x,i)=>'<div class="q-row'+(O.pick===i?' on':'')+'"><span class="box'+(O.pick===i&&O.done?' on':'')+'"></span><span><b>'+ORDERS[x.k].name+'</b>: '+ORDERS[x.k].t(x)+(O.pick===i?prog(x):'')+'<br><small class="u-sub">Pays '+ORDERS[x.k].pay(x)+'</small></span>'
+     +(O.pick<0&&town?'<button class="btn small" data-a="ord" data-k="'+i+'">Take</button>':'')
+     +(O.pick===i&&!O.done&&x.k==='watch'&&town?'<button class="btn small primary" data-a="standwatch"'+(S.watches<1?' disabled':'')+'>Stand watch</button>':'')+'</div>').join('')
+   +(O.done?'<p class="q-note ok">Today\'s order is fulfilled.</p>':o?'':'<p class="q-note">'+(town?'Take one order for today. Only a Hunt pays a stat point.':'Orders are taken in town.')+'</p>')
+   +brief('orders','Three orders are posted at dawn; you take one and it pays once when done, always with '+b100(QUEST_XP)+'% of a level. They lapse at dawn.','q-note')+'</section>';
+}
+function dreadHTML(){
+  if(!dreadOn()) return ''; const d=Math.round(dreadOf()), b=dreadBand(), up=upkeepAll();
+  return '<div class="dread-card note"><i>Dread</i><span><b>'+b.name+'</b> <span>('+d+'/100).</span> <span>'+b.fx+'</span></span>'
+   +'<div class="meter dread-m" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+d+'" aria-label="Dread"><i style="width:'+d+'%"></i></div>'
+   +(up?'<small class="u-sub">Upkeep: '+up+' gold a day at dawn.'+(Object.keys(S.unpaid||{}).length?' Unpaid: '+Object.keys(S.unpaid).map(k=>BUILD[k].name).join(', ')+'.':'')+'</small>':'')
+   +(S.mode==='town'?'<button class="btn small" data-a="tithe"'+(titheReady()?'':' disabled')+' title="Pay the Old Shrine '+b100(TITHE_K)+'% of your gold, once a day: dread -'+DREAD_TITHE+'">Pay a tithe ('+titheCost()+' gold)</button>':'')
+   +brief('dread','Raising in the gates, raids on the two nearest gates and new building levels frighten the town; sieges won, commissions and tithes calm it. Each dawn it drifts a point toward '+DREAD_REST+'.','q-note')+'</div>';
+}
+function upkeepLine(k){
+  const lv=blRaw(k), now=upkeepOf(k), nx=lv<BUILD_MAX?upkeepOf(k,lv+1):0;
+  return (now?'<div class="u-sub">Upkeep: '+now+' gold a day'+(S.unpaid&&S.unpaid[k]?' <span class="u-tag bad">Unpaid: a level is off</span>':'')+'.</div>':'')
+   +(nx>now?'<div class="u-sub">Level '+(lv+1)+' adds '+(nx-now)+' gold a day in upkeep.</div>':'');
 }
 //==UI==
 
@@ -10217,6 +10374,45 @@ TR_RX.push([/^Level (\d+): (.+?) \((.+?)\) or (.+?) \((.+?)\)$/,"Seviye $1: {t2}
 [["Your army and the Reserve are full","Ordun ve Yedek dolu"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
 [["# places in the Reserve","Yedekte # yer daha"],["# army slot, and the slot cap rises by one","# ordu yeri, ve yer sınırı bir artar"],["#% chance on every raise","her diriltmede %# şans"],["# stat point","# nitelik puanı"],["# skill point","# yetenek puanı"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
 [["The Reserve holds # more","Yedek # tane daha alır"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+// R5 PR B: the town's dread, daily orders, upkeep (src/game-dread.js)
+[["Calm","Sakin"],["Uneasy","Tedirgin"],["Afraid","Korkmuş"],["Terror","Dehşet"],["calm","sakin"],["uneasy","tedirgin"],["afraid","korkmuş"],["terror","dehşet içinde"],["Dread","Dehşet ölçeği"],
+ ["Market prices #% lower, pedlars twice as common, sieges every #-# days and #% weaker; once a week mourners bring a body to the Embalmery","Pazar fiyatları %# daha düşük, seyyar satıcılar iki kat sık, kuşatmalar #-# günde bir ve %# daha zayıf; haftada bir yas tutanlar Mumyahaneye bir ceset getirir"],
+ ["Prices and sieges as usual (every #-# days)","Fiyatlar ve kuşatmalar her zamanki gibi (#-# günde bir)"],
+ ["Market prices #% higher; sieges every #-# days, #% stronger, #% better pay; once a week the living leave a tribute at the gate","Pazar fiyatları %# daha yüksek; kuşatmalar #-# günde bir, %# daha güçlü, %# daha iyi ödül; haftada bir yaşayanlar kapıya haraç bırakır"],
+ ["Market prices #% higher, no black market; sieges every #-# days, #% stronger, the Captain brings two elites, #% better pay; the Plunder order","Pazar fiyatları %# daha yüksek, karaborsa yok; kuşatmalar #-# günde bir, %# daha güçlü, Yüzbaşı iki seçkin getirir, %# daha iyi ödül; Yağma emri"],
+ ["Upkeep paid: every building works again","Bakım ödendi: her yapı yeniden çalışıyor"],
+ ["Hunt","Av"],["Harvest","Hasat"],["Clean kill","Temiz av"],["Stand watch","Nöbet tut"],["Tribute","Haraç"],["Climb","Tırmanış"],["Old debt","Eski borç"],["Plunder","Yağma"],
+ ["Spend a watch in town with the Charnel Yard","Kasabada Leş Avlusu ile bir nöbet geçir"],["Fill a commission","Bir sipariş doldur"],["Climb # floors of the Hell Tower","Cehennem Kulesi'nin # katını tırman"],["Claim a bounty","Bir ödül al"],["Take gold and bodies from the town","Kasabadan altın ve ceset al"],
+ ["# stat point and #% of a level","# nitelik puanı ve bir seviyenin %#'i"],["#% raise chance tomorrow","yarın %# diriltme şansı"],["the Yard trains twice at once","Avlu hemen iki kez eğitir"],["the town calms (dread -#)","kasaba sakinleşir (dehşet -#)"],["a Tower trophy","bir Kule ganimeti"],["half its gold again","altınının yarısı daha"],
+ ["# gold at once, dread +#","hemen # altın, dehşet +#"],["# stat point and +# XP","# nitelik puanı ve +# TP"],["the town calms","kasaba sakinleşir"],
+ ["Daily orders · Day #","Günlük emirler · Gün #"],["Daily orders","Günlük emirler"],["Hide Daily orders","Günlük emirleri gizle"],["Show Daily orders","Günlük emirleri göster"],["fulfilled","yerine getirildi"],["in hand","elde"],["pick one","birini seç"],["Take","Al"],
+ ["Today's order is fulfilled","Bugünün emri yerine getirildi"],["Take one order for today. Only a Hunt pays a stat point","Bugün için bir emir al. Yalnızca Av nitelik puanı verir"],["Orders are taken in town","Emirler kasabada alınır"],
+ ["Three orders are posted at dawn; you take one and it pays once when done. They lapse at dawn","Şafakta üç emir asılır; birini alırsın ve bitince bir kez öder. Şafakta düşerler"],
+ ["Raising in the gates, raids on the two nearest gates and new building levels frighten the town; sieges won, commissions and tithes calm it. Each dawn it drifts a point toward #","Kapılarda diriltmek, en yakın iki kapıya baskınlar ve yeni yapı seviyeleri kasabayı korkutur; kazanılan kuşatmalar, siparişler ve öşürler onu sakinleştirir. Her şafak # değerine doğru bir puan kayar"],
+ ["Pay a tithe","Öşür öde"],["A siege won pays twice the bone dust and calms the town twice as much","Kazanılan kuşatma iki kat kemik tozu öder ve kasabayı iki kat sakinleştirir"],
+ ["Caltrops","Demir dikenler"],["wave 1 starts bleeding","1. dalga kanayarak başlar"],["Burning oil","Kızgın yağ"],["wave 2 is scalded for 10% of its HP as fire","2. dalga canının %10'u kadar ateşle haşlanır"],["Great bells","Büyük çanlar"],["the Captain acts a turn late","Yüzbaşı bir tur geç davranır"],["Arrow slits","Mazgallar"],["each wave loses 5% of its HP","her dalga canının %5'ini kaybeder"],["Sanctuary","Sığınak"],["you start each wave with a shield of 10% of your max HP","her dalgaya azami canının %10'u kadar kalkanla başlarsın"],
+ ["Wall defenses","Sur savunmaları"]
+].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+TR_RX.push([/^The town is (\w+) now\. (.+?)\.?$/,"Kasaba artık {t1}. {t2}"],[/^Mourners from the town leave (.+?) at the gate\. The Embalmery takes it in\.?$/,"Kasabadan yas tutanlar kapıya $1 bırakıyor. Mumyahane onu alıyor"],
+ [/^The frightened living leave a tribute at the gate: \+(\d+) gold\.?$/,"Korkmuş yaşayanlar kapıya haraç bırakıyor: +$1 altın"],[/^Upkeep unpaid: (.+?) loses? a level until a dawn can pay\.?$/,"Bakım ödenmedi: $1, bir şafak ödeyene dek bir seviye kaybeder"],
+ [/^Clear the (.+?) or a deeper gate$/,"$1 ya da daha derin bir kapıyı temizle"],[/^Raise 3 (\w+) minions$/,"3 {t1} yaratık dirilt"],[/^Win a room in the (.+?) with no minion downed$/,"$1 içinde hiçbir yaratık düşmeden bir oda kazan"],
+ [/^Pays (.+)$/,"Öder: {t1}"],[/^Order fulfilled \((.+?)\): (.+?)\.?$/,"Emir yerine getirildi ({t1}): {t2}"],[/^the Charnel Yard trains twice \((\d+) levels?\)$/,"Leş Avlusu iki kez eğitir ($1 seviye)"],
+ [/^(\d+) gold, and the town hates you more$/,"$1 altın, ve kasaba senden daha çok nefret ediyor"],[/^You pay the Old Shrine (\d+) gold\. The town breathes easier\.?$/,"Eski Tapınağa $1 altın ödüyorsun. Kasaba biraz rahatlıyor"],
+ [/^\((\d+)\/100\)\.?$/,"($1/100)."],[/^Upkeep: (\d+) gold a day at dawn\.?(.*)$/,"Bakım: şafakta günde $1 altın.$2"],[/^Upkeep: (\d+) gold a day\.?$/,"Bakım: günde $1 altın"],[/^Level (\d+) adds (\d+) gold a day in upkeep\.?$/,"Seviye $1 günde $2 altın bakım ekler"],
+ [/^Pay the Old Shrine (\d+)% of your gold, once a day: dread -(\d+)$/,"Eski Tapınağa altınının %$1'ini öde, günde bir kez: dehşet -$2"]);
+[["vanguard","öncü"],["striker","vurucu"],["mender","şifacı"],["reaper","biçici"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+TR_RX.push([/^Pay a tithe \((\d+) gold\)$/,"Öşür öde ($1 altın)"]);
+[["wave # starts bleeding","#. dalga kanayarak başlar"],["wave # is scalded for #% of its HP as fire","#. dalga canının %#'i kadar ateşle haşlanır"],["each wave loses #% of its HP","her dalga canının %#'ini kaybeder"],["you start each wave with a shield of #% of your max HP","her dalgaya azami canının %#'i kadar kalkanla başlarsın"],
+ ["The town's dread","Kasabanın dehşeti"],["Upkeep","Bakım"],["Bell Tower defenses","Çan Kulesi savunmaları"],
+ ["Once sieges begin, the town keeps a dread meter from # to #, starting at #. Every # raises in the gates add #, a raid won on the two nearest gates adds #, a new building level # and a siege lost #. A siege won takes off #, a commission # and a tithe at the Old Shrine (#% of your gold, once a day) #. Each dawn it drifts a point toward #","Kuşatmalar başlayınca kasaba #'dan #'e bir dehşet ölçeği tutar, # ile başlar. Kapılarda her # diriltme # ekler, en yakın iki kapıda kazanılan bir baskın #, yeni bir yapı seviyesi # ve kaybedilen bir kuşatma #. Kazanılan bir kuşatma # düşürür, bir sipariş # ve Eski Tapınakta bir öşür (altınının %#'i, günde bir kez) #. Her şafak # değerine doğru bir puan kayar"],
+ ["Once a building stands, the daily quest gives way to orders: three are posted at dawn, you take one, and it pays once when done. Only a Hunt pays a stat point","Bir yapı ayağa kalkınca günlük görev yerini emirlere bırakır: şafakta üç emir asılır, birini alırsın ve bitince bir kez öder. Yalnızca Av nitelik puanı verir"],
+ ["Every building level past # costs # gold a day per level past # per gate step of your deepest gate, paid at dawn. A building that cannot be paid loses its top level until a dawn pays it, and the town's dread rises by #","#. seviyeyi geçen her yapı seviyesi günde # altına mal olur (# sonrası her seviye ve en derin kapının her adımı başına), şafakta ödenir. Ödenemeyen bir yapı bir şafak ödeyene dek en üst seviyesini kaybeder ve kasabanın dehşeti # artar"]
+].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+[["Three orders are posted at dawn; you take one and it pays once when done, always with #% of a level. They lapse at dawn","Şafakta üç emir asılır; birini alırsın ve bitince bir kez öder, her zaman bir seviyenin %#'i ile. Şafakta düşerler"],
+ ["Once a building stands, the daily quest gives way to orders: three are posted at dawn, you take one, and it pays once when done, always with #% of a level. Only a Hunt pays a stat point","Bir yapı ayağa kalkınca günlük görev yerini emirlere bırakır: şafakta üç emir asılır, birini alırsın ve bitince bir kez öder, her zaman bir seviyenin %#'i ile. Yalnızca Av nitelik puanı verir"]
+].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+TR_RX.unshift([/^Order fulfilled \((.+?)\): (.+?), \+(\d+) XP\.?$/,"Emir yerine getirildi ({t1}): {t2}, +$3 TP"]);
+TR_RX.push([/^A day's work done without an order: \+(\d+) XP\.?$/,"Emirsiz bir günlük iş bitti: +$1 TP"]);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -11324,6 +11520,7 @@ function statusHTML(){
    +'</section>';
 }
 function questHTML(){
+  if(ordersOn()) return ordersHTML();   /* daily orders (game-dread.js) */
   const q=S.quest, rows=[['Defeat foes',q.kills,QUEST.kills],['Clear rooms',q.rooms,QUEST.rooms],['Clear a dungeon',q.clears,QUEST.clears]];
   const done=questDone();
   return '<section class="win'+foldCls('quest')+'" aria-labelledby="h-quest"><h2 class="win-h" id="h-quest">Daily quest &middot; Day '+S.day+'<span class="fold-sum">'+(q.claimed?'claimed':done?'ready to claim':rows.filter(r=>r[1]>=r[2]).length+'/3')+'</span>'+foldBtn('quest')+'</h2>'
@@ -11497,7 +11694,7 @@ function marketHTML(){
      +'<button class="btn small primary" data-a="buypot" data-k="'+k+'"'+(full||S.gold<c?' disabled':'')+'>'+(full?'Belt full':'Buy &middot; '+gold(c))+'</button></div>'; }).join('')+'</div>';
   // merchant stock
   h+='<p class="group-h">Merchant\'s wares &middot; day '+S.day+'</p>'+(bagFull?'<p class="q-note bad">Your bag is full. Sell or discard something first.</p>':'')
-   +'<div class="items">'+stock.map((s,i)=>{ const d=ITEM[s.id], c=buyPrice(d);
+   +'<div class="items">'+stock.map((s,i)=>{ const d=ITEM[s.id], c=shopPrice(d);
      return itemCard({id:s.id,ro:s.ro,u:-1-i},s.sold?'<span class="u-tag">Sold</span>':'<button class="btn small primary" data-a="buyitem" data-k="'+i+'"'+(S.gold<c||bagFull?' disabled':'')+'>Buy &middot; '+gold(c)+'</button>',!s.sold); }).join('')+'</div>';
   // grave salts (raising aid)
   { const c=saltPrice(), full=S.salts>=SALT_MAX;
@@ -11989,6 +12186,12 @@ function codexSection(k){
     +'<p class="group-h">Specializations</p>'+cxP('At levels 3 and 5 a building offers two specializations. You pick one, and it is final for this cycle.')
     +cxList(Object.keys(SPEC).map(b=>cxRow(BUILD[b].name,[3,5].map(lv=>'Level '+lv+': '+SPEC[b][lv].map(x=>x[0]+' ('+x[1].replace(/\.$/,'')+')').join(' or ')).join('. ')+'.')))
     +'<p class="group-h">Library and Embalmery</p>'+cxP('From Library level 2 you can take back every stat point you spent and spend them again: free the first time, then '+RESPEC_GOLD+' gold per level and '+RESPEC_DUST+' bone dust, once every '+RESPEC_DAYS+' days. The Embalmery keeps untried bodies from your gate runs (Keep for the Embalmery on the raise screen) and holds two plus its level; raise them in town with its bonus before they spoil.')
+    +'<p class="group-h">The town\'s dread</p>'+cxP('Once sieges begin, the town keeps a dread meter from 0 to 100, starting at '+DREAD_START+'. Every 20 raises in the gates add 2, a raid won on the two nearest gates adds '+DREAD_RAID+', a new building level '+DREAD_BUILD+' and a siege lost '+DREAD_SIEGE_LOST+'. A siege won takes off '+DREAD_SIEGE_WON+', a commission '+DREAD_COMM+' and a tithe at the Old Shrine ('+b100(TITHE_K)+'% of your gold, once a day) '+DREAD_TITHE+'. Each dawn it drifts a point toward '+DREAD_REST+'.')
+    +cxList(DREAD_BANDS.map(b=>cxRow(b.name,b.fx,b.min+'+')))
+    +'<p class="group-h">Daily orders</p>'+cxP('Once a building stands, the daily quest gives way to orders: three are posted at dawn, you take one, and it pays once when done, always with '+b100(QUEST_XP)+'% of a level. Only a Hunt pays a stat point.')
+    +cxList(Object.keys(ORDERS).map(k=>cxRow(ORDERS[k].name,ORDERS[k].pay())))
+    +'<p class="group-h">Upkeep</p>'+cxP('Every building level past 2 costs '+UPKEEP+' gold a day per level past 2 per gate step of your deepest gate, paid at dawn. A building that cannot be paid loses its top level until a dawn pays it, and the town\'s dread rises by '+DREAD_UNPAID+'.')
+    +'<p class="group-h">Bell Tower defenses</p>'+cxList(BELL_DEF.map((x,i)=>cxRow(x[0],x[1],'Level '+(i+1))))
     +'<p class="group-h">The Flesh Pit</p>'+cxP('Fuse two minions of the same role. The stronger survives with '+FUSE_LV+' more level (never past your level + 2), the higher evolution, and both sets of traits up to '+FUSE_TRAITS+'. A minion can take part in at most '+FUSE_MAX+' fusions. It costs '+FUSE_GOLD+' gold per level of the two minions together.')+'<div class="btns"><button class="btn small" data-a="cx" data-k="fusion">Fusion</button></div>';
   if(k==='sieges') return cxP('Once the Town tab is open and your buildings have '+SIEGE_BUILT+' levels between them, the living march on the necropolis every '+SIEGE_GAP[0]+' to '+SIEGE_GAP[1]+' days. The dawn before, a notice and a banner on the Town tab warn you. The siege comes when that day ends (your last watch, or Rest until dawn), after tonight\'s raids have marched, so a Commander sent raiding is not on the walls. It costs no watch and cannot be skipped. Closing the game does not stop it: it starts again from the first wave.')
     +cxList([cxRow('The fight',SIEGE_WAVES+' waves on the normal battle screen, with every skill, order, potion and ultimate. Between waves you heal as between rooms ('+pct(DIFF.heal)+' HP, '+pct(DIFF.mana)+' mana, your army '+pct(DIFF.mheal)+'); no doors, no events, no raising until the last wave falls. Downed minions never shatter. Curses, omens and difficulty do not apply.'),
@@ -12112,7 +12315,7 @@ function buildHTML(){
   let h='<section class="win" aria-labelledby="h-bld"><h2 class="win-h" id="h-bld">The town</h2><h3 class="win-title">You have '+gold(S.gold)+' and '+dust(S.dust||0)+'</h3>'
    +brief('town','Build up the necropolis. Each building has '+BUILD_MAX+' levels and its bonus lasts for the rest of this game. The higher levels need bone dust, which you get by salvaging gear on the Gear tab.','lede');
   if(ui.msg&&ui.msg.mk) h+='<div class="note '+(ui.msg.c||'')+'"><i>Town</i><span>'+ui.msg.m+'</span></div>';
-  h+=siegeTownHTML();
+  h+=siegeTownHTML()+dreadHTML();
   const so=siegeOpen(), keys=Object.keys(BUILD).filter(bOpen), sel=keys.includes(ui.bsel)?ui.bsel:sg().dmg||keys[0], list=!!ui.tlist; scThumbs();
   // the village: one painted building per BUILD entry, a button that opens that building's row below; List shows every row at once
   h+='<div class="village gs-vil'+(list?' listed':'')+'" role="group" aria-label="Buildings">'+keys.map(k=>{ const lv=blRaw(k), dmg=sg().dmg===k, c=buildCost(k), can=c&&!dmg&&S.gold>=c[0]&&(S.dust||0)>=c[1];
@@ -12234,7 +12437,7 @@ const mausBtn=(e,i)=>S.mode==='town'&&!e.maus&&mausN()<MAUS_MAX?'<button class="
 
 // ----- the necropolis grows (game-town2.js): specializations and what each new building lets you do
 function bldExtra(k){
-  if(!blRaw(k)) return ''; let h='';
+  if(!blRaw(k)) return ''; let h=upkeepLine(k);
   if(SPEC[k]){ const done=[3,5].filter(lv=>S.spec&&S.spec[k]&&S.spec[k][lv]).map(lv=>'<b>'+specName(k,lv,S.spec[k][lv])+'</b>: '+SPEC[k][lv][S.spec[k][lv]==='a'?0:1][1]);
     if(done.length) h+='<div class="u-sub b-now">'+done.join(' ')+'</div>';
     for(const lv of specPend(k)) h+='<p class="q-note">Level '+lv+': choose a specialization. It is final for this cycle.</p><div class="btns">'+['a','b'].map((c,i)=>'<button class="btn small" data-a="spec" data-k="'+k+'|'+lv+'|'+c+'" title="'+SPEC[k][lv][i][1]+'">'+SPEC[k][lv][i][0]+'</button>').join('')+'</div>'+'<p class="u-sub">'+SPEC[k][lv].map(x=>'<b>'+x[0]+'</b>: '+x[1]).join(' ')+'</p>'; }
@@ -12993,7 +13196,7 @@ const ACTIONS={
   tip:k=>dismissTip(k), tipsoff:()=>{ S.tips=S.tips||{}; S.tips.off=1; }, tipson:()=>{ S.tips=S.tips||{}; delete S.tips.off; }, tipsreset:()=>{ S.tips={}; },
   sound:()=>{ SFX.on=!SFX.on; try{ localStorage.setItem('lotd-sound',SFX.on?'on':'off'); }catch(e){} if(SFX.on) sfx('coin'); },
   buypot:k=>{ const c=POTIONS[k].price(); ui.msg=buyPotion(k)?{mk:1,m:'Bought a '+POTIONS[k].name+' for '+c+' gold.',c:'ok'}:null; },
-  buyitem:k=>{ const s=shopStock()[+k], c=s&&buyPrice(ITEM[s.id]); ui.msg=buyStock(+k)?{mk:1,m:'Bought '+ITEM[s.id].name+' for '+c+' gold. It is in your bag.',c:'ok'}:null; },
+  buyitem:k=>{ const s=shopStock()[+k], c=s&&shopPrice(ITEM[s.id]); ui.msg=buyStock(+k)?{mk:1,m:'Bought '+ITEM[s.id].name+' for '+c+' gold. It is in your bag.',c:'ok'}:null; },
   selltro:k=>{ const g=sellTrophy(k,false); ui.msg=g?{mk:1,m:'Sold '+TROPHY[k].name+' for '+g+' gold.',c:'ok'}:null; },
   selltroall:k=>{ const n=S.trophies[k], g=sellTrophy(k,true); ui.msg=g?{mk:1,m:'Sold '+n+' '+TROPHY[k].name+' for '+g+' gold.',c:'ok'}:null; },
   sellalltro:()=>{ const g=sellAllTrophies(); ui.msg=g?{mk:1,m:'Sold every trophy for '+g+' gold.',c:'ok'}:null; },
@@ -13012,6 +13215,9 @@ const ACTIONS={
   embkeep:k=>{ embKeepId(k); },
   embraise:k=>{ const r=embRaise(+k); ui.msg=r?{mk:1,m:r.ok?'The kept body rises: '+r.minion+'.':(r.m||'The kept body does not answer. It is gone.'),c:r.ok?'ok':'bad'}:{mk:1,m:'Your army and the Reserve are full.',c:'bad'}; },
   yardsell:k=>{ const g=yardSell(+k); ui.msg=g?{mk:1,m:'Sold at the Grave Market for '+g+' gold.',c:'ok'}:null; },
+  ord:k=>{ pickOrder(+k); },
+  tithe:()=>{ const c=payTithe(); ui.msg=c?{mk:1,m:'You pay the Old Shrine '+c+' gold. The town breathes easier.',c:'ok'}:null; },
+  standwatch:()=>{ standWatch(); },
   callomen:()=>{ const id=callOmen(); ui.msg=id?{mk:1,m:'The Temple calls a new omen: '+OMENS[id].name+'.',c:'ok'}:null; },
   brewx:k=>{ const B=BREWS[k]; ui.msg=brewIt(k)?{mk:1,m:'You brew '+B.name+'.'+(B.belt?' It is on your belt.':' It waits in your stash.'),c:'ok'}:null; },
   prep:k=>{ const a=k.split('|'); prepSet(a[0],a[1]||null); },

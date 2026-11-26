@@ -31,7 +31,7 @@ const SPEC={
   yard:   {3:[['Drill Yard','The Yard trains 50% faster.'],['Bone Pits','The Yard trains up to your army\'s highest level.']],5:[['Yard of Heroes','The Yard also trains the three weakest minions of your army.'],['Grave Market','Sell a Reserve minion for gold.']]},
   library:{3:[['Reading Room','+1 stat point.'],['Archive','Study counts twice 50% more often.']],5:[['Forbidden Stacks','+1 skill point.'],['Grand Archive','Kinds you have Ledgered take 5% more damage from your side.']]},
   embalm: {3:[['Preservers','Bodies keep three days longer.'],['Body Thieves','Keep one more body from each run.']],5:[['Grand Embalmery','Kept bodies raise 15% more easily.'],['Grave Garden','A kept body rises three levels higher, never past your level + 2.']]},
-  bell:   {3:[['Watchtower','Attackers strike 5% softer.'],['Belfry','Sieges pay 20% more.']],5:[['Toll of the Dead','A siege won pays twice the bone dust.'],['Iron Bells','The Inquisitor Captain has 15% less HP.']]},
+  bell:   {3:[['Watchtower','Attackers strike 5% softer.'],['Belfry','Sieges pay 20% more.']],5:[['Toll of the Dead','A siege won pays twice the bone dust and calms the town twice as much.'],['Iron Bells','The Inquisitor Captain has 15% less HP.']]},
   apoth:  {3:[['Distillery','Each brew makes two.'],['Censer House','Incense gives twice the raise chance.']],5:[['Alchemist','Your first brew each day costs no gold.'],['Plague Kitchen','A Healing Draught also mends your minions for 15%.']]},
   war:    {3:[['Map Table','Won raids bring back 25% more gold.'],['Quartermaster','War banners cost no gold to brew.']],5:[['Generals\' Hall','Raids are another 5% likelier to win.'],['Spy Network','The rival comes to steal half as often.']]}
 };
@@ -52,7 +52,7 @@ const smithK=()=>hasSpec('forge',3,'a')?.1:0;   // forgeGear, forgeTower
 const temperK=()=>hasSpec('forge',3,'b')?.75:1;   // temperCost
 const temperStep=()=>hasSpec('forge',5,'b')?2:1;   // temperTo
 const hfTownK=()=>hasSpec('forge',5,'a')?.75:1;   // hfInfo
-function townRaise(c){ let n=0; if(c.elite&&hasSpec('ossuary',3,'a')) n+=10; if(c.boss&&hasSpec('ossuary',5,'a')) n+=10; if(hasSpec('ossuary',5,'b')) n+=5; if(EMB_RAISING) n+=EMB_RAISE*bl('embalm')+(hasSpec('embalm',5,'a')?15:0); return n; }   // raiseChance
+function townRaise(c){ let n=0; if(c.elite&&hasSpec('ossuary',3,'a')) n+=10; if(c.boss&&hasSpec('ossuary',5,'a')) n+=10; if(hasSpec('ossuary',5,'b')) n+=5; n+=cleanRaise(); if(EMB_RAISING) n+=EMB_RAISE*bl('embalm')+(hasSpec('embalm',5,'a')?15:0); return n; }   // raiseChance
 const skillK=()=>hasSpec('altar',3,'a')?.95:1;   // skCost
 const empowerK=()=>hasSpec('altar',3,'b')?.75:1;   // empowerCost
 const manaK=()=>hasSpec('altar',5,'a')?1.1:1;   // pMana
@@ -86,12 +86,12 @@ Object.assign(SIEGE_PERK,{
 });
 function townSiegeWave(list,r){   // spawnSiege, after scaling
   const hpK=(1-SIEGE_BELL*bl('bell')), atkK=hasSpec('bell',3,'a')?.95:1;
-  for(const e of list){ let k=hpK; if(e.boss) k*=(1-SIEGE_LIB*bl('library'))*(hasSpec('bell',5,'b')?.85:1); if(k!==1){ e.maxHp=e.hp=Math.max(1,Math.round(e.maxHp*k)); } if(atkK!==1) e.atk=Math.max(1,Math.round(e.atk*atkK)); }
-  if(r.room&&bl('apoth')){ const P=S.player, h=healAlly(P,Math.round(pMax()*SIEGE_APO*bl('apoth'))); if(h) log('The Apothecary\'s salves: +'+h+' HP.','ok'); }
+  dreadWave(list,r); for(const e of list){ let k=hpK; if(e.boss) k*=(1-SIEGE_LIB*bl('library'))*(hasSpec('bell',5,'b')?.85:1); if(k!==1){ e.maxHp=e.hp=Math.max(1,Math.round(e.maxHp*k)); } if(atkK!==1) e.atk=Math.max(1,Math.round(e.atk*atkK)); }
+  bellDefense(list,r); if(r.room&&bl('apoth')){ const P=S.player, h=healAlly(P,Math.round(pMax()*SIEGE_APO*bl('apoth'))); if(h) log('The Apothecary\'s salves: +'+h+' HP.','ok'); }
 }
-const siegePayK=()=>(1+SIEGE_WAR*bl('war'))*(hasSpec('bell',3,'b')?1.2:1);   // siegeGoldPay
+const siegePayK=()=>(1+SIEGE_WAR*bl('war'))*(hasSpec('bell',3,'b')?1.2:1)*dreadPayK();   // siegeGoldPay
 const siegeDustK=()=>hasSpec('bell',5,'a')?2:1;   // siegeWon
-function townSiegeWon(r){ if(!bl('embalm')||!r.fallen||!r.fallen.length) return; const c=pick(r.fallen.concat(r.corpses||[]).filter(x=>x&&!x.boss)); if(c&&embKeep(c,true)) r.events.push({m:'The Embalmery takes in '+withArticle(c.base||c.name)+' from the walls.',c:'ok'}); }
+function townSiegeWon(r){ dread(-DREAD_SIEGE_WON*tollK()); if(!bl('embalm')||!r.fallen||!r.fallen.length) return; const c=pick(r.fallen.concat(r.corpses||[]).filter(x=>x&&!x.boss)); if(c&&embKeep(c,true)) r.events.push({m:'The Embalmery takes in '+withArticle(c.base||c.name)+' from the walls.',c:'ok'}); }
 // ----- the Charnel Yard: dawn training
 function yardDawn(){
   const n=bl('yard'); if(!n) return 0; const top=Math.max(0,...S.army.map(m=>m.lvl)); if(!top) return 0;

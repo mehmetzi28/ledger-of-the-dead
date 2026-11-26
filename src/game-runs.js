@@ -284,7 +284,7 @@ function act(kind){
 }
 function gateCleared(r){   // the boss room of a gate is won: story, clear tallies (titles, difficulty, curses) and the secret-master hint; returns the clear bonus XP
   const di=r.di, fk=runFarm(); unlockStory('g'+di,r); r.cleared=true; S.quest.clears++;   /* fk before the clear is marked: a first clear pays in full */
-  S.ti=S.ti||{}; S.ti.clr=S.ti.clr||{}; S.ti.clr[di]=1; tally('clrN'+di);
+  S.ti=S.ti||{}; S.ti.clr=S.ti.clr||{}; S.ti.clr[di]=1; tally('clrN'+di); orderEv('clear',di);
   if(T_('clrN'+di)===SECRET_HINT&&secretHinted(di)) notify('A torn page in the Ledger: '+SECRET[di].hint,'');
   if(r.heat){
     S.heatMax=S.heatMax||{}; S.heatMax[di]=Math.max(S.heatMax[di]||0,r.heat); tally('heat'+r.heat); if(r.mod) tally('damned');
@@ -296,7 +296,7 @@ function gateCleared(r){   // the boss room of a gate is won: story, clear talli
 }
 function roomWon(){
   const r=S.run, P=S.player; r.events=[]; r.focus=false; r.execute=false; bondsRoom();   /* Focus and Execute end with the room even if no minion phase came */
-  let xp=r.pending; r.pending=0;
+  let xp=r.pending; r.pending=0; const dn0=r.downs||0;
   const last=r.room===r.rooms-1;
   const share=Math.round(xp*.5), downs=[], bound=[];   /* the downed come first on the screen after the fight: who is gone, who got back up */
   for(const m of S.army.slice()){
@@ -316,7 +316,7 @@ function roomWon(){
   } else if(last){ xp+=r.siege?siegeWon(r):r.rift?riftCleared(r):r.trial?trialCleared(r):gateCleared(r); if(!r.siege&&!r.rift&&!r.trial) rivalMeet(r); }
   if(r.trial){ r.loot=[]; r.gold=0; r.troph={}; r.corpses=[]; }   /* a Trial pays only its first completion each week: no gear, gold, trophies or bodies */
   for(const id of r.loot){ const it=addItem(id); if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name); } r.loot=[];
-  bankLoot(r); r.won=(r.won||0)+1; S.quest.rooms=(S.quest.rooms||0)+1; tally('rooms'); if(r.tw) tally('floors'); if(P.hp>0&&P.hp<=pMax()*.1) tally('lastBreath');
+  bankLoot(r); r.won=(r.won||0)+1; S.quest.rooms=(S.quest.rooms||0)+1; tally('rooms'); if(r.tw){ tally('floors'); orderEv('floor'); } else if(!r.siege&&!r.rift&&!r.trial) orderEv('room',{ok:(r.downs||0)===dn0,di:r.di}); if(P.hp>0&&P.hp<=pMax()*.1) tally('lastBreath');
   r.event=(!r.tw&&!r.siege&&!r.trial&&!last&&Math.random()<EVENT_CHANCE)?rollEvent():null;   // something waits between rooms
   r.doors=(!r.tw&&!r.siege&&!r.trial&&!last)?rollDoors(r):null;   // which way next
   r.gained+=xp; r.lastXp=xp;
@@ -422,7 +422,7 @@ function raiseChance(c){
 }
 const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*(hasFlag('cheapraise')?.5:1)*(hasMod('mastery','b')?.75:1)*(1-.06*sk('thrift')));
 function freeNick(){ const used=S.army.concat(benched(),...(S.raids||[]).map(x=>x.units)).map(m=>m.nick); const f=NICKS.filter(n=>!used.includes(n)); return f.length?pick(f):pick(NICKS)+' II'; }
-const SALT_BONUS=20, SALT_MAX=3, saltPrice=()=>10+S.player.lvl*3;   // Grave Salts: bought at the market, +20% on one raise
+const SALT_BONUS=20, SALT_MAX=3, saltPrice=()=>Math.round((10+S.player.lvl*3)*dreadPriceK());   // Grave Salts: bought at the market, +20% on one raise
 const RAISE_BASE=18, RAISE_WILL=1.1, RAISE_MIN=1, RAISE_MAX=80, SALT_CAP=95;   // salts may still reach 95%
 const RAISE_BOSS_EACH=10;   // less per boss already in the army or Reserve, so bosses do not snowball
 const RAISE_LV=3, RAISE_ELITE=10, RAISE_BOSS=15,SHATTER_BASE=50, SHATTER_WILL=1, SHATTER_MIN=20, BIND_HP=.4;   // % per level you stand above the body, the elite and boss penalties; a downed minion's shatter chance after a fight (% , less per Will point, never below the floor)
@@ -453,7 +453,7 @@ function tryRaise(id,salt,bench){   // bench: raise to the Reserve, only when th
     if(c.aff&&c.aff.length){ const t=AFFIX[pick(c.aff)].trait; if(!m.traits.includes(t)) m.traits.push(t); }   // an elite keeps one of its affixes
     if(rollCommand(m)) tally('commanders');
     syncMinion(m); m.hp=m.maxHp; if(toRes){ S.reserve.push(m); c.res=1; } else S.army.push(m); r.raised++; S.firstRaise=0; S.ti=S.ti||{}; S.ti.raised=(S.ti.raised||0)+1; if(m.armed) S.ti.armed=(S.ti.armed||0)+1;
-    if(c.free) tally('straggler'); if(c.boss) tally('raisedBoss'); c.result='raised'; if(c.boss||c.elite) moment(m.nick+' rises: '+(c.boss?'a boss':'an elite')+' serves you','ok'); c.minion=m.nick+' ('+m.traits.map(t=>TRAITS[t].name).join(', ')+')'; sfx('raise'); fxe('raise',c);
+    if(!r.siege){ dread(DREAD_RAISE); orderEv('raise',c); } if(c.free) tally('straggler'); if(c.boss) tally('raisedBoss'); c.result='raised'; if(c.boss||c.elite) moment(m.nick+' rises: '+(c.boss?'a boss':'an elite')+' serves you','ok'); c.minion=m.nick+' ('+m.traits.map(t=>TRAITS[t].name).join(', ')+')'; sfx('raise'); fxe('raise',c);
   }else{ c.result='failed'; sfx('fail'); fxe('rfail',c); if(hasMod('thrift','a')&&cost>0){ const back=Math.floor(cost*FRUGAL); P.mana=Math.min(pMana(),P.mana+back); r.events.push({m:'Frugal Rites: '+back+' mana comes back.',c:'ok'}); } }   // Frugal Rites
 }
 // Quicker raising: try every untouched body, most valuable first (salts on bosses and elites), until mana or slots run out.

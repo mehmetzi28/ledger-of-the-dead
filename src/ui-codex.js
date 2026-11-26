@@ -176,6 +176,12 @@ function codexSection(k){
     +'<p class="group-h">Specializations</p>'+cxP('At levels 3 and 5 a building offers two specializations. You pick one, and it is final for this cycle.')
     +cxList(Object.keys(SPEC).map(b=>cxRow(BUILD[b].name,[3,5].map(lv=>'Level '+lv+': '+SPEC[b][lv].map(x=>x[0]+' ('+x[1].replace(/\.$/,'')+')').join(' or ')).join('. ')+'.')))
     +'<p class="group-h">Library and Embalmery</p>'+cxP('From Library level 2 you can take back every stat point you spent and spend them again: free the first time, then '+RESPEC_GOLD+' gold per level and '+RESPEC_DUST+' bone dust, once every '+RESPEC_DAYS+' days. The Embalmery keeps untried bodies from your gate runs (Keep for the Embalmery on the raise screen) and holds two plus its level; raise them in town with its bonus before they spoil.')
+    +'<p class="group-h">The town\'s dread</p>'+cxP('Once sieges begin, the town keeps a dread meter from 0 to 100, starting at '+DREAD_START+'. Every 20 raises in the gates add 2, a raid won on the two nearest gates adds '+DREAD_RAID+', a new building level '+DREAD_BUILD+' and a siege lost '+DREAD_SIEGE_LOST+'. A siege won takes off '+DREAD_SIEGE_WON+', a commission '+DREAD_COMM+' and a tithe at the Old Shrine ('+b100(TITHE_K)+'% of your gold, once a day) '+DREAD_TITHE+'. Each dawn it drifts a point toward '+DREAD_REST+'.')
+    +cxList(DREAD_BANDS.map(b=>cxRow(b.name,b.fx,b.min+'+')))
+    +'<p class="group-h">Daily orders</p>'+cxP('Once a building stands, the daily quest gives way to orders: three are posted at dawn, you take one, and it pays once when done, always with '+b100(QUEST_XP)+'% of a level. Only a Hunt pays a stat point.')
+    +cxList(Object.keys(ORDERS).map(k=>cxRow(ORDERS[k].name,ORDERS[k].pay())))
+    +'<p class="group-h">Upkeep</p>'+cxP('Every building level past 2 costs '+UPKEEP+' gold a day per level past 2 per gate step of your deepest gate, paid at dawn. A building that cannot be paid loses its top level until a dawn pays it, and the town\'s dread rises by '+DREAD_UNPAID+'.')
+    +'<p class="group-h">Bell Tower defenses</p>'+cxList(BELL_DEF.map((x,i)=>cxRow(x[0],x[1],'Level '+(i+1))))
     +'<p class="group-h">The Flesh Pit</p>'+cxP('Fuse two minions of the same role. The stronger survives with '+FUSE_LV+' more level (never past your level + 2), the higher evolution, and both sets of traits up to '+FUSE_TRAITS+'. A minion can take part in at most '+FUSE_MAX+' fusions. It costs '+FUSE_GOLD+' gold per level of the two minions together.')+'<div class="btns"><button class="btn small" data-a="cx" data-k="fusion">Fusion</button></div>';
   if(k==='sieges') return cxP('Once the Town tab is open and your buildings have '+SIEGE_BUILT+' levels between them, the living march on the necropolis every '+SIEGE_GAP[0]+' to '+SIEGE_GAP[1]+' days. The dawn before, a notice and a banner on the Town tab warn you. The siege comes when that day ends (your last watch, or Rest until dawn), after tonight\'s raids have marched, so a Commander sent raiding is not on the walls. It costs no watch and cannot be skipped. Closing the game does not stop it: it starts again from the first wave.')
     +cxList([cxRow('The fight',SIEGE_WAVES+' waves on the normal battle screen, with every skill, order, potion and ultimate. Between waves you heal as between rooms ('+pct(DIFF.heal)+' HP, '+pct(DIFF.mana)+' mana, your army '+pct(DIFF.mheal)+'); no doors, no events, no raising until the last wave falls. Downed minions never shatter. Curses, omens and difficulty do not apply.'),
@@ -299,7 +305,7 @@ function buildHTML(){
   let h='<section class="win" aria-labelledby="h-bld"><h2 class="win-h" id="h-bld">The town</h2><h3 class="win-title">You have '+gold(S.gold)+' and '+dust(S.dust||0)+'</h3>'
    +brief('town','Build up the necropolis. Each building has '+BUILD_MAX+' levels and its bonus lasts for the rest of this game. The higher levels need bone dust, which you get by salvaging gear on the Gear tab.','lede');
   if(ui.msg&&ui.msg.mk) h+='<div class="note '+(ui.msg.c||'')+'"><i>Town</i><span>'+ui.msg.m+'</span></div>';
-  h+=siegeTownHTML();
+  h+=siegeTownHTML()+dreadHTML();
   const so=siegeOpen(), keys=Object.keys(BUILD).filter(bOpen), sel=keys.includes(ui.bsel)?ui.bsel:sg().dmg||keys[0], list=!!ui.tlist; scThumbs();
   // the village: one painted building per BUILD entry, a button that opens that building's row below; List shows every row at once
   h+='<div class="village gs-vil'+(list?' listed':'')+'" role="group" aria-label="Buildings">'+keys.map(k=>{ const lv=blRaw(k), dmg=sg().dmg===k, c=buildCost(k), can=c&&!dmg&&S.gold>=c[0]&&(S.dust||0)>=c[1];
@@ -421,7 +427,7 @@ const mausBtn=(e,i)=>S.mode==='town'&&!e.maus&&mausN()<MAUS_MAX?'<button class="
 
 // ----- the necropolis grows (game-town2.js): specializations and what each new building lets you do
 function bldExtra(k){
-  if(!blRaw(k)) return ''; let h='';
+  if(!blRaw(k)) return ''; let h=upkeepLine(k);
   if(SPEC[k]){ const done=[3,5].filter(lv=>S.spec&&S.spec[k]&&S.spec[k][lv]).map(lv=>'<b>'+specName(k,lv,S.spec[k][lv])+'</b>: '+SPEC[k][lv][S.spec[k][lv]==='a'?0:1][1]);
     if(done.length) h+='<div class="u-sub b-now">'+done.join(' ')+'</div>';
     for(const lv of specPend(k)) h+='<p class="q-note">Level '+lv+': choose a specialization. It is final for this cycle.</p><div class="btns">'+['a','b'].map((c,i)=>'<button class="btn small" data-a="spec" data-k="'+k+'|'+lv+'|'+c+'" title="'+SPEC[k][lv][i][1]+'">'+SPEC[k][lv][i][0]+'</button>').join('')+'</div>'+'<p class="u-sub">'+SPEC[k][lv].map(x=>'<b>'+x[0]+'</b>: '+x[1]).join(' ')+'</p>'; }

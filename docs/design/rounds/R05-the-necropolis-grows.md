@@ -193,3 +193,39 @@ else the reward the bot values most that day.
   headstones before.
 - Tests: `92-buildings` (9) and `93-yard-reserve` (10).
 
+## As built (PR B)
+
+- Code in `src/game-dread.js` (after `game-town2.js`).
+- **Dread** (`S.dread`, 0-100, from `DREAD_START` 30) wakes with the sieges (`dreadOn` = `siegeOpen`), so the market bot
+  and the first hours are untouched. Moves: a raise in the gates +0.1 (2 per 20), a raid won on gates E-D +3, a building
+  level +2, a siege lost +10, unpaid upkeep +1; a siege won -6 (Toll of the Dead -12: its pick now also doubles this), a
+  commission -3, a tithe at the Old Shrine -5 (5% of held gold, at least 100, once a day; a button on the Town tab); each
+  dawn one point toward 40. The oath line of the table (kept or Dishonored) waits for R8.
+- **Bands** (`DREAD_BANDS`) as in section 5.2, with Terror's waves at +15% (+20% held 75-77% in the probe). Prices move
+  the merchant's stock (`shopPrice`; selling still uses `buyPrice`), potions and salts. The siege gap comes from the band
+  (`dreadGap`, still a hash of the day). Calm mourners (day 3 of each week) bring a body to the Embalmery if there is
+  room; the Afraid tribute (day 5) pays a quarter of a siege's gold; Terror shuts the black market and offers Plunder.
+- **Daily orders** (`S.orders`, `ORDERS`) once any building stands (`ordersOn`); before that the old quest stays. Three a
+  day from a hash of the day (`ordHash`; no Math.random): a Hunt on 60% of days (the deepest gate or the one above it),
+  Plunder in Terror, then two of Harvest, Clean kill, Old debt, Stand watch (with a Charnel Yard), Tribute (with an
+  unfilled commission on this week's board) and Climb (Tower open). Every order pays the old quest's 15% of a level;
+  only a Hunt adds the stat point. A day of the old quest's work with no order fulfilled still pays its XP at dawn
+  (`dayWork`): without it the bots ended 3 levels lower (58 at day 100 instead of 61).
+- **Upkeep** (`UPKEEP` 15): each building level past 2 costs 15 x (deepest gate + 1) gold at dawn, paid in building
+  order; an unpaid building loses its top level (`S.unpaid`, read by `bl`, so a level-5 pick turns off too) until a
+  dawn pays it. The Town tab shows the day's total and, on each building, its upkeep and what the next level adds.
+- **Bell Tower defenses** (`BELL_DEF`, `bellDefense`): L1 caltrops (wave 1 bleeds 2% of its HP for 3 turns), L2 burning
+  oil (wave 2 loses 10% of its HP as fire, after resistance), L3 great bells (the Captain is stunned for a turn), L4
+  arrow slits (every wave loses 5% of its HP), L5 sanctuary (a shield of 10% of your max HP each wave; the spec's revive
+  was already the between-wave rule).
+- Bot: takes an order before claiming bounties (Hunt first, then Old debt, Tribute, Harvest of a role it has, Clean
+  kill, Climb, Stand watch), tithes when dread is 45+ and it holds 20k; `"off":["orders"]`; `"dread":"calm"|"afraid"|
+  "terror"` holds the town in one band to measure it.
+- Measured (seeds 7700/9100, 40 bots x 100 days): market unchanged (89/90%, Tower 78.6/77.1). Full 90/90% (91 before),
+  Tower 84.8/85.3 (86.6), Rift 11.3/11.3, levels 61 at day 100, sieges held 85/82%. The bots take ~90 orders and fulfil
+  ~58 (48 Hunts: the stat points from the day's work fall from ~95 to ~48+, the spec's 50-60), and pay ~30k upkeep a
+  game. Dread sits at 41-44 at day 100, entering Afraid ~4 times a game. Per band (seed 7700): Calm sieges held 82%,
+  Afraid 80%, Terror 77% at +20% and 79% at +15%, Uneasy 85%.
+- Tests: `94-dread-orders` (11). Fuzz found a save round-trip bug from R4: `S.prep` keys came back in another order;
+  `prepOrder` now writes them in the order the loader does. Also from R4: a commission that took a minion left its bonds.
+

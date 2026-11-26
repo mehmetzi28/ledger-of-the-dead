@@ -66,7 +66,7 @@ flowchart LR
 | Town buildings | Gold, dust, clears, sieges, raids, oath | Slots, Reserve growth, raise %, mana, study, kept bodies, potions, brewing, raids, devotion, siege perks | Eleven buildings to level 5 with forty specializations (R5 PR A) |
 | Bounties | Tallies of any activity | Gold, salts, dust, gear | Good glue: reads many systems |
 | Raids | Commander minions, squad strength | Gold, gear, minion XP, Memorial | A dice roll (G17) |
-| Sieges | Town levels, calendar, Reserve wall, guard choice | Gold, dust, gear, building damage | Fixed roster (G23) |
+| Sieges | Town levels, calendar, dread band, Bell Tower defenses, Reserve wall, guard choice | Gold, dust, gear, building damage, dread | Fixed roster (G23) |
 | Rival | Calendar, your army's main role, your bodies | Legendary, gold, page loss or fine, story | No arc or end (G19) |
 | Trials | Throne clear, curses, tiers, seed | Gold, dust, hearts, records | Good: pays the Awakening economy |
 | Faith | Level, calendar | Static buffs, blessing, faith events, story | Binary and static (G18) |
@@ -144,13 +144,15 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
   Throne, 30k and 60k gold), forty specializations, and the new buildings touch study, bodies, potions, brewing, raids,
   the oath, the rival and every siege. (Was: four buildings, three levels, done by mid-game.) (Town, sieges, raids,
   faith, Reserve.)
-- **G13. The daily quest is not a choice.** 8 kills, 4 rooms, 1 clear is always done, so it is a hidden free stat point
-  per day. (Quest, calendar, bounties.)
+- ~~**G13. The daily quest is not a choice.**~~ Closed by R5 PR B: once a building stands, three daily orders replace
+  it; only a Hunt pays the stat point, the others pay dust, a raise bonus, Yard training, calm, a Tower trophy or gold.
+  (Was: 8 kills, 4 rooms, 1 clear, always done.) (Quest, calendar, bounties, commissions, the Tower, the Yard.)
 - ~~**G14. Consumables are thin.**~~ Closed by R4 PR B: oils, incense, bone charms, war banners and two draughts brewed
   from role parts, a growing belt and run prep on the Gates tab. (Was: two potions and salts, belts of three.)
   (Market, trophies, brewing, combat.)
-- **G15. The town's fear has no memory.** The story says the town fears you and sieges punish you, but prices, events and
-  siege strength never react to what you do. (Sieges, market, faith, story.)
+- ~~**G15. The town's fear has no memory.**~~ Closed by R5 PR B: the dread meter remembers raising, raids, building,
+  sieges, commissions and tithes, and its band moves prices, pedlars, the siege gap, strength and pay, the black market
+  and the dawn (mourners, tribute, Plunder). (Sieges, market, raids, commissions, events, the Embalmery.)
 
 **Content and modes**
 

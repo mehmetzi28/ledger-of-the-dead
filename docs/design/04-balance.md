@@ -24,6 +24,13 @@ to each constant in `src/` and in `claude.md`; this page is the summary to read 
 
 ## 4.2 Latest measurements (2026-11-26, seeds 7700 and 9100, 40 bots x 100 days)
 
+**After the town's dread, daily orders and upkeep (R5 PR B)**: market unchanged (89/90%, Tower 78.6/77.1). full 90/90%,
+Tower 84.8/85.3, Rift 11.3, sieges 85/82%, levels 61 at day 100. Daily orders cut the stat points from the day's work from
+~95 to ~48 (only Hunts pay one; target 50-60), which costs about a point of clears and 1.5 Tower floors; every order and
+an order-less day's work keep the XP, so levels did not move. Upkeep takes ~30k a game; gold held at day 100 ~16.7k. Dread
+ends at 41-44 and enters Afraid ~4 times a game. Sieges by band (`"dread"` probe, seed 7700): Calm 82%, Uneasy 85%,
+Afraid 80%, Terror 77% at +20% waves and 79% at +15%; all near the 80-87% target.
+
 **After the necropolis grows (R5 PR A)**: market unchanged (89/90%, Tower 78.6/77.1; the market bot does not build).
 full 91/91%, Tower 86.6/86.5, Rift 13.6/13.1, sieges 87/83%, rival 67/76%, raids 81/80%. The bot raises ~20 levels of the
 new buildings and picks 9-10 specializations a game; `"off":["town2","embalm"]` gives 91%, Tower 86.1, Rift 12.5, so the
@@ -138,7 +145,7 @@ Gold at day 100 (before Awakening and headstones): ~33-39k average held, ~1.1M l
 | B4 | The `full` bot's Rift depth (~13) is far below `market` (~31) because it spends days elsewhere | Measure the Rift with a dedicated probe, not the 100-day average | R9 |
 | B5 | Trial scores floor out for over-leveled players | Trials now use Throne strength and a fair level per tier; Trial foes carry kits since R1 PR B. Revisit with boss kits | R1, R2 |
 | B6 | Balance has never been checked by a human | Local play log export | R15 |
-| B7 | Daily quest is a free stat point a day (~100 points over a game) | Make it a choice or fold into bounties | R5 (ride-along) |
+| ~~B7~~ | Daily quest is a free stat point a day (~100 points over a game) | Closed by R5 PR B: daily orders, only a Hunt pays the point | R5 (ride-along) |
 | B8 | Hero could carry rooms alone, then fell far behind the army late | Closed by Command (PR #5): the hero draws on the army's power | R0 shipped |
 
 ## 4.5 Levers

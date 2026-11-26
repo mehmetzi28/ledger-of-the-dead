@@ -128,8 +128,8 @@ function bankLoot(r){     // called when a room is won
 // Potions: carried on the belt, drunk in battle as your action.
 const BELT_MAX=3;
 const POTIONS={
-  hp:{name:'Healing Draught',key:'Q',desc:'Restores 35% of your max HP and cures bleeding, burns, poison and blight. Drinking it uses your turn.',price:()=>Math.round((15+S.player.lvl*5)*apoPotK())},
-  mp:{name:'Mana Tonic',key:'W',desc:'Restores 40% of your max mana. Drinking it uses your turn.',price:()=>Math.round((12+S.player.lvl*4)*apoPotK())}
+  hp:{name:'Healing Draught',key:'Q',desc:'Restores 35% of your max HP and cures bleeding, burns, poison and blight. Drinking it uses your turn.',price:()=>Math.round((15+S.player.lvl*5)*apoPotK()*dreadPriceK())},
+  mp:{name:'Mana Tonic',key:'W',desc:'Restores 40% of your max mana. Drinking it uses your turn.',price:()=>Math.round((12+S.player.lvl*4)*apoPotK()*dreadPriceK())}
 };
 function drink(k){
   const P=S.player; if(!S.belt[k]||pactOn('dry')) return false;   // the Dry Throat pact
@@ -141,6 +141,7 @@ function drink(k){
 // Market prices. Gear sells for a quarter of what the merchant asks. Uniques cannot be sold.
 const SET_PRICE=[30,80,200,480,1100,2400,4000];
 const buyPrice=d=>SET_PRICE[Math.min(d.set,SET_PRICE.length-1)];
+const shopPrice=d=>Math.round(buyPrice(d)*dreadPriceK());   // what the merchant asks: the town's dread moves it (game-dread.js)
 const sellPrice=d=>d.uq?0:Math.max(1,Math.round(buyPrice(d)*.25));
 const sellValue=it=>{ const d=ITEM[it.id]; return d.uq?0:Math.round(sellPrice(d)*(1+.25*((it.ro&&it.ro.length)||0))); };   // each bonus line adds a quarter
 const STOCK_N=4;
@@ -155,7 +156,7 @@ function shopStock(){   // four pieces of gear from your highest unlocked gate (
 }
 function buyPotion(k){ const p=POTIONS[k], cost=p&&p.price(); if(!p||S.mode!=='town'||S.belt[k]>=beltMax()||S.gold<cost) return false; S.gold-=cost; S.belt[k]++; sfx('coin'); return true; }
 function buyStock(i){
-  const s=shopStock()[i]; if(!s||s.sold||S.mode!=='town') return false; const d=ITEM[s.id], cost=buyPrice(d);
+  const s=shopStock()[i]; if(!s||s.sold||S.mode!=='town') return false; const d=ITEM[s.id], cost=shopPrice(d);
   if(S.gold<cost||S.inv.length>=bagMax()) return false;
   S.gold-=cost; s.sold=true; addItem(s.id,s.ro||null); sfx('coin'); return true;
 }
@@ -370,7 +371,7 @@ function resolveRaid(x){
   if(won){
     const g=Math.round((15+S.player.lvl*4)*(1+x.di)*RAID_GOLD*ngpReward()*bannerGold(x)*warGold()); S.gold+=g; let items=0, full=0;
     for(let i=0;i<3;i++){ if(i===2&&Math.random()>=RAID_ITEM3) break; const id=pickNorm(tableFor(x.di,'vanguard',i===0,false).filter(r=>!ITEM[r.id].uq)); if(addItem(id)) items++; else full++; }
-    x.units.forEach(m=>minionXp(m,Math.round(mneed(m.lvl)*RAID_XP))); tally('raidWins');
+    x.units.forEach(m=>minionXp(m,Math.round(mneed(m.lvl)*RAID_XP))); tally('raidWins'); if(x.di<=1) dread(DREAD_RAID);
     msg=lead.nick+' is back from the '+D.name+' in triumph: +'+g+' gold'+(items?', '+items+' piece'+(items>1?'s':'')+' of gear':'')+(full?' ('+full+' left behind: your bag is full)':'')+'.';
   } else {
     x.units.forEach((m,i)=>{ if(i>0&&!hasTrait(m,'gravebound')&&Math.random()<RAID_LOSS){ lost.push(m); returnGear(m); memorialize(m,{raid:x.di}); } });
