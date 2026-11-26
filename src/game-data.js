@@ -383,8 +383,12 @@ const gateRec=di=>Math.max(1,Math.round(REC_BASE[di]+recShift(di)));
 // Re-checked 2026-11-19 after the retune (same probe): D 7/8/10, C 12/14/21, B 18/26/39, A 24/33/49, S 37/46/>52; the same shares still fit within a few levels.
 // Hard 1.4 -> 1.8 and Brutal 2 -> 2.5 later that day (the full bot farmed Hard ~91%; Brutal stays a clear step up). Re-measured (same probe,
 // heats [1] and [2]): Hard D 8, C 14, B 24, A 28, S 36; Brutal D 10, C 16, B 26, A 34, S 40; shares .55/.45 -> .4/.32.
+// Re-measured 2026-11-26 after the Soul Tether (same probe, market, heats [1,2,3], near 20): the old shares asked 4-12 levels too many (S Brutal
+// advised 42, the bot cleared it ~75% at 30). First ~75%: Hard D 8, C 13, B 18, A 24, S 28; Brutal D 9, C 14, B 22, A 26, S 30; Nightmare D 10, C 16,
+// B 24, A 28, S 34; shares .2/.18/.13 fit D-A within ~1 level and run ~4 high on S (least squares over all five gave .16/.14/.11, 2 low on C-A: advice that
+// errs high is the safer one).
 // REC_TIER_F holds HEAT's foe values at that measurement: a test fails once a HEAT change moves the advice past REC_DRIFT levels.
-const REC_TIER=[1,.4,.32,.18], REC_TIER_F=[1,1.8,2.5,3.6];
+const REC_TIER=[1,.2,.18,.13], REC_TIER_F=[1,1.8,2.5,3.6];
 const tierRaw=(di,h,f)=>REC_BASE[di]+recShift(di)+(REC_TIER[h]||1)*(recShift(di,f)-recShift(di));
 const tierRec=(di,h)=>{ let r=gateRec(di); for(let t=1;t<=(h||0)&&t<HEAT.length;t++) r=Math.max(r+1,Math.round(tierRaw(di,t,HEAT[t].foe))); return r; };   // each tier at least a level above the one below
 const NGP_FOE=.3, NGP_REWARD=.25, ngpFoe=()=>1+NGP_FOE*((S&&S.ngp)||0), ngpReward=()=>(1+NGP_REWARD*((S&&S.ngp)||0))*pactReward();   // New Game+: tougher foes, richer rewards
