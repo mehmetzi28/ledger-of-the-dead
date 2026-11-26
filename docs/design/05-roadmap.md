@@ -22,7 +22,7 @@ substantial feature or rework; small fixes ride along inside one. Rounds name th
 | R1 | Every foe is a puzzle: foe kits and damage types | Shipped (#9, #10) | G1, G2, G4, G5, B1, B2, B5 | | XL | [spec](rounds/R01-foe-kits-and-damage-types.md) |
 | R2 | Masters worth remembering: boss kits | Shipped (#11, #12) | G3, G11 (part) | R1 | XL | [spec](rounds/R02-boss-kits.md) |
 | R3 | The end of the book: the seventh gate and the ending | Shipped (#13, #14) | G16, G21 (part) | R2 helps | XL | [spec](rounds/R03-the-end-of-the-book.md) |
-| R4 | Gold that means something: late economy and crafting | PR A shipped (#15) | G10, G11, G14, B3 | | L | [spec](rounds/R04-late-economy-and-crafting.md) |
+| R4 | Gold that means something: late economy and crafting | Shipped (#15, #16) | G10, G11, G14, B3 | | L | [spec](rounds/R04-late-economy-and-crafting.md) |
 | R5 | The necropolis grows: town expansion and the town's dread | P1 | G6, G12, G13, G15, B7 | R4 helps | XL | [spec](rounds/R05-the-necropolis-grows.md) |
 | R6 | Expeditions: raids rework and Commanders in battle | P2 | G17, G8 | R5 | L | [spec](rounds/R06-expeditions.md) |
 | R7 | The rival's war: an arc with an ending | P2 | G19 | R2 | L | [spec](rounds/R07-the-rivals-war.md) |
@@ -512,3 +512,4 @@ Ideas worth keeping that are not yet a round:
 | R2 PR A: move sets, twists and hazards for the gate bosses; the rival's and the Captain's kits | #11 | 2026-11-26 |
 | R2 PR B: secret master kits with half-HP rules, warden signatures, boss titles | #12 | 2026-11-26 |
 | R4 PR A: heart-forging, minor powers, the Tower forge, the late gold soft cap; abbey gear stays in the abbey | #15 | 2026-11-26 |
+| R4 PR B: brewing from role parts, a growing belt, run prep, commissions, the black market | #16 | 2026-11-26 |

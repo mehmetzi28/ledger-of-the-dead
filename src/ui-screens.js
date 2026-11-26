@@ -40,7 +40,7 @@ function townHTML(){
   h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'+gateArmyHTML()
    +((n=>n<FIRST_STEPS.length&&!(S.tips&&S.tips.off)?'<p class="q-note guide-link"><button class="linkbtn" data-a="tab" data-k="help">How to play &middot; first steps '+n+'/'+FIRST_STEPS.length+'</button></p>':'')(stepsDone()))   /* for a new player; gone once every step is done or tips are switched off */
    +(omen()?'<div class="omen-line" title="It touches every gate and the Tower until dawn."><b>Omen today: '+OMENS[omen()].name+'.</b> '+OMENS[omen()].desc+'</div>':'')+rivalWarnHTML()
-   +'<div class="gates">'+DUNGEONS.map((d,i)=>gateHTML(i)).join('')+'</div>'
+   +prepHTML()+'<div class="gates">'+DUNGEONS.map((d,i)=>gateHTML(i)).join('')+'</div>'
    +'<div class="btns"><button class="btn small" data-a="rest">Rest until dawn</button></div></section>';
   return h;
 }
@@ -193,7 +193,7 @@ function battleHTML(){
       return '<button class="btn'+(an?' answer':'')+'" data-a="act" data-k="sk:'+s.id+'" title="'+why+'"'+(canUse(s.id)?'':' disabled')+'>'+(an?ANS_M:'')+s.name+' '+manaCost(skCost(s))+(cd>0?' &middot; '+cd+'t':'')+(an?ANS_S:'')+(i<6?'<kbd>'+(i+4)+'</kbd>':'')+'</button>'; }).join('')+'</div>':'')
    )
    +grpHTML('Orders',cmdHTML())
-   +grpHTML('Potions',((S.belt.hp||S.belt.mp)?'<div class="btns">'+Object.keys(POTIONS).filter(k=>S.belt[k]&&!pactOn('dry')).map(k=>{ const p=POTIONS[k], full=k==='hp'?P.hp>=pMax()&&!P.dots:P.mana>=pMana();
+   +grpHTML('Potions',(DRINK_IDS.some(k=>S.belt[k])?'<div class="btns">'+DRINK_IDS.filter(k=>S.belt[k]&&!pactOn('dry')).map(k=>{ const p=drinkDef(k), full=k==='hp'?P.hp>=pMax()&&!P.dots:k==='mp'?P.mana>=pMana():k==='blood'?allies().filter(u=>u.hp>0).every(u=>u.hp>=(u.id==='p'?pMax():u.maxHp)):false;
       return '<button class="btn potion" data-a="act" data-k="pot:'+k+'"'+(full?' disabled title="Already full"':' title="'+p.desc+'"')+'>'+p.name+' &times;'+S.belt[k]+'<kbd>'+p.key+'</kbd></button>'; }).join('')+'</div>':'')
    )
    +'</div>'+logHTML(st)+'</div></div></section>';
@@ -483,7 +483,7 @@ function eventHTML(){
   const r=S.run, ev=r.event; if(!ev||ev.done) return '';
   const E=EVENTS[ev.id], P=S.player;
   const label=(k,t)=>ev.id==='pedlar'&&k==='buy'?'Buy '+withArticle(POTIONS[ev.pot].name)+' &middot; '+gold(ev.price):t;
-  const off=k=>(ev.id==='pedlar'&&k==='buy'&&(S.gold<ev.price||S.belt[ev.pot]>=BELT_MAX))||!!(E.off&&E.off(k));
+  const off=k=>(ev.id==='pedlar'&&k==='buy'&&(S.gold<ev.price||S.belt[ev.pot]>=beltMax()))||!!(E.off&&E.off(k));
   return '<div class="event-box"><h4>'+E.name+'</h4><p>'+E.text+'</p>'+(ev.id==='shrine'&&P.hp<=1?'<p class="q-note">You have no blood to spare.</p>':'')
    +'<div class="btns" style="margin:0">'+E.opts.map((o,i)=>'<button class="btn small'+(i===0?' primary':'')+'" data-a="event" data-k="'+o[0]+'"'+(off(o[0])||(ev.id==='shrine'&&o[0]==='bleed'&&P.hp<=1)?' disabled':'')+'>'+label(o[0],o[1])+'</button>').join('')+'</div></div>';
 }
@@ -529,7 +529,7 @@ function keysHTML(){   // every shortcut in one list; ? opens it, Esc closes it
    +'<h3>Between rooms</h3>'+row('1-4','Pick a door')+row('Space','Raise the best')
    +'<h3>In battle</h3>'+row('1','Strike')+row('2','Soul Siphon')+row('3','Bone Ward')+row('4-9','Your skills')+row('R','Ultimate')+row('[ ]','Change target')
    +Object.keys(CMDS).filter(k=>ORDER_KEY[k]).map(k=>row(ORDER_KEY[k],CMDS[k].name)).join('')+row('G','Guard (uses your turn)')
-   +Object.keys(POTIONS).map(k=>row(POTIONS[k].key,POTIONS[k].name)).join('')
+   +DRINK_IDS.map(k=>row(drinkDef(k).key,drinkDef(k).name)).join('')
    +'<h3>After a fall</h3>'+row('R','Retry the room')+row('?','Show or hide this list')+'</div></div>';
 }
 // ----- sieges: the War table note, the Town tab's banner and repair row, the intro screen

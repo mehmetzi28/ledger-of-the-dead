@@ -164,3 +164,26 @@ heart-forging rules in its bot policy only if they cost under a point.
   high as the worn piece, keeping 3,000 gold; `"off":["forge"]`. Measured: 1.5-1.7 pieces a bot, ~20k gold, gold held
   at day 100 ~20.5k, lifetime gold -2% from the soft cap (the spec hoped for 20-25%), gates and Tower unchanged (see 04).
 - Tests: `89-forge` (10).
+
+### As built (PR B)
+
+- Code in `src/game-brew.js` (after `game-forge.js`). Every trophy kind now carries its creature's role
+  (`TROPHY[k].role`); recipes (`BREWS`) name parts by role and a lowest gate (`g`; Tower trophies count as gate 5) plus
+  60 gold per gate step; bone charms take two spare hearts (never those `heartsKept` protects). The old "any 4 trophies
+  brew a potion" stays.
+- Brews go to `S.stash` (5 each). `S.prep` arms one oil, incense, charm and banner; `prepTake` (startRun, not sweeps or
+  the Tower) moves one of each into `r.oil`, `r.inc`, `r.charm`. Hooks: `oilType` (minionType), `oilK` (hurtFoe),
+  `incRaise` (raiseChance), `brewRoom` (the Abbot's Soul), `brewFall` (Second Draft), `brewDoors`, `brewSight`,
+  `xOrder` (canCommand), `brewDr` (hurtAlly), banners on raid orders (`o.bn`: odds, squad, gold).
+- Simplifications against the spec: incense tiers by gate (Low D+, Grave B+, Abbot A+) instead of all D+; Grave Incense
+  does not preserve bodies; Second Draft is a rise at 30% HP rather than a free Retry (Retry is already free); Quiet
+  Grave pushes the next siege three days instead of skipping a "tick"; Banner of Spoils pays half again the raid's gold
+  instead of an extra body. Draughts sit on the belt beside the potions (`S.belt.iron`, `S.belt.blood`, keys E and T);
+  the belt is per kind as before (3, +1 at Forge 2 and 3, cap 5), not a shared 5-slot belt.
+- Commissions (`S.comm`, three a week on the bounty board): trophy parts of a role from a gate (3x their price plus a
+  little), a heartforged piece of a slot, or a Greater+ minion of a role. Town standing waits for R5.
+- Black market (`S.bm`, a market section every seventh day from day 7, each trade weekly): the spec's trades, but 8 Tower
+  trophies buy a warden's heart (abyssal trophies are not built) and the Soul waits for the next run (`S.prep.soul`).
+- Bot: `brewPolicy` (`"off":["brew"]`), measured in 04: ~160 brews and ~40k gold a game, about a Tower floor more and
+  about a point fewer gate clears.
+- Tests: `90-brewing` (8), `91-trade` (5).

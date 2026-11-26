@@ -24,6 +24,15 @@ to each constant in `src/` and in `claude.md`; this page is the summary to read 
 
 ## 4.2 Latest measurements (2026-11-26, seeds 7700 and 9100, 40 bots x 100 days)
 
+**After brewing, commissions and the black market (R4 PR B)**: market unchanged (89/90% gates, Tower 78.6/77.1:
+the market bot does not brew). full 91/91%, Tower 86.9/87.1, Rift 12/11.9, sieges 86/83%, rival 68/75%. The full bot
+brews ~160 times a game (~40k gold: an oil for the gate's weakness, incense, a Second Draft and a banner armed, draughts
+kept on the belt; ~80 brews carried into runs), fills ~9.5 trophy commissions (+~6.8k gold) and makes 1.4-1.8
+black-market trades (it sells its pouch each visit, so it rarely holds 30 deep trophies). With `"off":["brew"]`: 92/92%,
+Tower 86.3/85.6, so brewing buys about a Tower floor and costs about a point of gate clears (the gold goes to brews instead
+of headstones and the Bone Altar). Lifetime gold ~1.1M; gold held at day 100 ~17.5k (target 10-20k); forging plus
+brewing spend ~60k a game against the spec's ~180-280k target, so G10 is narrowed, not closed.
+
 **After heart-forging and the gold soft cap (R4 PR A)**: market 89/90% gates, Tower 78.6/77.1; full 91/91%, Tower
 86.9/86.6, Rift 12/11.8, sieges 86/87%, rival 71/72%. A leak was fixed first: the Scribe's Regalia (the abbey's set)
 dropped from gate tables, the Tower, master legendaries and Rift records; it now drops only in the abbey, which alone

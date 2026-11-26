@@ -115,6 +115,7 @@
     }
     if(B.market){   // sell everything not worn, buy better gear from the merchant, keep the potion belt full
       if(B.full&&!B.off.forge&&typeof heartforge==='function') hfPolicy(B);   // heart-forging before the hearts are sold ("off":["forge"])
+      if(B.full&&!B.off.brew&&typeof brewIt==='function') brewPolicy(B);   // brewing, commissions and the black market before the pouch is sold ("off":["brew"])
       sellAllTrophies(); for(const it of S.inv.slice()) if(!ITEM[it.id].uq) sellItem(it.u);
       shopStock().forEach((s,i)=>{ if(s.sold) return; const d=ITEM[s.id], cur=S.equip[d.slot];
         if((!cur||itemScore(d)>itemScore(ITEM[cur.id]))&&S.gold-buyPrice(d)>=POTIONS.hp.price()*2&&buyStock(i)){ const it=S.inv[S.inv.length-1]; equip(it.u); for(const x of S.inv.slice()) if(!ITEM[x.id].uq) sellItem(x.u); } });
@@ -194,6 +195,8 @@
       if(u==='toll'&&foes.length>=2) return 'ult';
       if(u==='rise'&&(down>=2||P.hp<max*.4||(down>=1&&t.boss))) return 'ult';
       if(u==='prison'&&(t.boss||foes.length>=3||charging)) return 'ult'; }
+    if(B.full&&!B.off.brew&&S.belt.iron&&charging&&charging.charging&&!(S.run.iron>=S.run.turn)) return 'pot:iron';   /* an Iron Draught under a telegraphed blow */
+    if(B.full&&!B.off.brew&&S.belt.blood&&S.army.filter(m=>m.hp>0).length>=2&&S.army.filter(m=>m.hp>0).reduce((a,m)=>a+m.hp/m.maxHp,0)/S.army.filter(m=>m.hp>0).length<.45) return 'pot:blood';
     if(B.market&&P.hp<max*.3&&S.belt.hp) return 'pot:hp';
     if(B.market&&P.mana<10&&P.hp<max*.6&&S.belt.mp) return 'pot:mp';
     if(P.hp<max*.35&&P.mana>=8) return 'siphon';
@@ -211,7 +214,7 @@
     if(P.mana>=8+res&&pSiph()>=pAtk()) return 'siphon';
     return 'strike';
   }
-  const RZ={t:0,ok:0}, SWC={n:0,stop:0}, HFC={n:0,g:0};
+  const RZ={t:0,ok:0}, SWC={n:0,stop:0}, HFC={n:0,g:0}, BRC={n:0,g:0,comm:0,commG:0,bm:0};
   const useRes=B=>B&&B.full&&!B.off.reserve&&typeof reserveOpen==='function'&&reserveOpen();   // the Reserve, switchable with "off":["reserve"]
   function raisePhase(B){
     const r=S.run, P=S.player;
@@ -248,12 +251,23 @@
       for(const boss of hs){ const I=hfInfo(boss), c=hfCost(boss); if(S.gold-c.g<3000||(S.dust||0)<c.d) continue;
         const lines=hfLinesFor(boss,sl).sort((a,b)=>pref.indexOf(a)-pref.indexOf(b)).slice(0,I.n-(I.pw?1:0)); const it=heartforge(boss,sl,lines); if(it){ equip(it.u); HFC.n++; HFC.g+=c.g; } break; } }
   }
+  function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), incense, a Second Draft and a Banner of Courage armed; draughts on the belt; fill trophy commissions; trade dust, wardens and a Soul at the black market
+    const keep=3000, mk=id=>{ if(S.gold-brewGold(id)<keep) return false; const g=S.gold; if(brewIt(id)){ BRC.n++; BRC.g+=g-S.gold; return true; } return false; };
+    commissions().forEach((c,i)=>{ if(c.k==='tro'){ const p=commFill(i); if(p){ BRC.comm++; BRC.commG+=p.g; } } });
+    if(bmOpen()){ for(const k of ['dust','warden']) if(bmTrade(k)) BRC.bm++; if(S.gold>20000&&bmTrade('soul')) BRC.bm++; }
+    const weakOf=gi=>{ const res=GATE_RES[gi]||{}, w=Object.keys(res).filter(t=>res[t]<0)[0]; return w?'oil_'+w:null; };
+    for(const gi of [topGate(),Math.max(0,topGate()-1)]){ const o=weakOf(gi); if(o&&stashN(o)<1) mk(o); }   // the oils for the two deepest gates; playRun arms the one that fits
+    const want=[['inc_grave','inc'],['inc_low','inc'],['ch_draft','charm'],['bn_courage','banner']];
+    for(const [id,kind] of want){ if(!id||!BREWS[id]) continue; if(S.prep&&S.prep[kind]&&stashN(S.prep[kind])>0) continue; if(stashN(id)<1) mk(id); if(stashN(id)>0) prepSet(kind,id); }
+    for(const id of ['dr_iron','dr_blood']) while((S.belt[BREWS[id].belt]||0)<2&&mk(id));
+  }
   function playRun(B,rec){
     const duel=typeof rivalToday==='function'&&rivalToday()&&S.player.lvl>=RK[rv().gi].unlock, gi=duel?rv().gi:pickGate(B), lvl=S.player.lvl;   // a rival's challenge today: go and meet it (rivalOpen is off outside 'full')
     if(B.heat&&B.hw&&B.hw[gi]!=null&&S.day-B.hwDay[gi]>=3) delete B.hw[gi];   // try again a few days later
     if(B.heat){ B.hw=B.hw||{}; setHeat(gi,Math.min(B.heat,heatMax(gi),B.hw[gi]==null?9:B.hw[gi])); }   // opts.heat: the highest difficulty the bot picks; it steps down a level after each death there
     if(!duel&&!B.off.sweep&&typeof sweepOk==='function'&&sweepOk(gi)){ sweep(gi); SWC.n++;   /* an outgrown gate is swept; only a stopped sweep (a secret master) is fought, and left out of the table */
       if(S.mode==='raise'){ returnTown(); return; } SWC.stop++; let g=0; while(S.mode==='battle'&&g++<400) act(decide(B)); if(S.mode==='raise'){ raisePhase(B); } returnTown(); return; }
+    if(B.full&&!B.off.brew&&typeof prepSet==='function'){ const res=GATE_RES[gi]||{}, w=Object.keys(res).filter(t=>res[t]<0)[0], o=w?'oil_'+w:null; S.prep=S.prep||{}; if(o&&stashN(o)>0) S.prep.oil=o; else delete S.prep.oil; }   // arm the oil of this gate's weakness, or none
     startRun(gi);
     if(S.mode!=='battle'){ S.watches=0; endDay(); return; }
     const run={gate:gi,lvl,diff:lvl-SAFE[gi],heat:S.run.heat||0,cleared:false,died:false,left:false,rooms:0,turns:0,hpEnd:[]}; if(duel) run.rival=1; let guard=0;   // a challenge run is left out of the gate table (reported on the rival line)
@@ -312,7 +326,7 @@
   }
   function simBot(seed,B,days){
     Math.random=mulberry32(seed); newGame(); B.statI=0; B.hw={}; B.hwDay={}; if(typeof BOSS_KITS_ON!=='undefined') BOSS_KITS_ON=!B.off.bosskits;   /* 'bosskits' off: the old single boss moves */
-    let abbeyDay=null; HFC.n=0; HFC.g=0; const rec=[], lvAt={}, firstClear={}, loreAt={}, tiers=[], trials=[], goldAt={}, gl={earn:0,spend:0,S:null};
+    let abbeyDay=null; HFC.n=0; HFC.g=0; BRC.n=0; BRC.g=0; BRC.comm=0; BRC.commG=0; BRC.bm=0; const rec=[], lvAt={}, firstClear={}, loreAt={}, tiers=[], trials=[], goldAt={}, gl={earn:0,spend:0,S:null};
     const goldWatch=()=>{ if(gl.S===S) return; gl.S=S; let v=S.gold||0; Object.defineProperty(S,'gold',{enumerable:true,configurable:true,get:()=>v,set:x=>{ if(x>v) gl.earn+=x-v; else gl.spend+=v-x; v=x; }}); };   // lifetime gold earned and spent
     while(S.day<=days){
       goldWatch();
@@ -339,7 +353,7 @@
     const rival={met:T_('rivalMet'),wins:T_('rivalWins'),losses:T_('rivalLosses'),thefts:T_('rivalThefts'),day:(S.rival&&S.rival.met)||0};
     const head=typeof headBonus==='function'?{g:T_('headG'),t:headTiers(),b:headBonus()}:null;
     const awk={g:T_('awakenG'),n:T_('awakened')};   // awakening ranks bought and their gold
-    return {hf:{n:HFC.n,g:HFC.g},abbeyDay,abbeyEnd,abbeyProbe,trials,ev:B.ev||{},chainsEnded:T_('chains'),head,awk,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
+    return {hf:{n:HFC.n,g:HFC.g},brew:{n:BRC.n,g:BRC.g,comm:BRC.comm,commG:BRC.commG,bm:BRC.bm,prep:T_('prepUsed')},abbeyDay,abbeyEnd,abbeyProbe,trials,ev:B.ev||{},chainsEnded:T_('chains'),head,awk,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
   }
 
   // ----- reporting
@@ -372,6 +386,7 @@
     const gold={}; [30,60,100,days].forEach(d=>{ if(d>days) return; const a=res.map(r=>r.goldAt&&r.goldAt[d]).filter(Boolean); if(a.length) gold['day'+d]={avg:Math.round(avg(a.map(x=>x[0]))),median:med(a.map(x=>x[0])),earned:Math.round(avg(a.map(x=>x[1]))),spent:Math.round(avg(a.map(x=>x[2])))}; });   // gold held at dusk, and lifetime earned vs spent
     gold.maus=avg(res.map(r=>r.maus||0)); gold.bonds=avg(res.map(r=>r.bonds||0));   // mausoleums raised and bonded pairs at the end
     { const f=res.map(r=>r.hf).filter(Boolean); if(f.some(x=>x.n)) gold.hforge={n:avg(f.map(x=>x.n)),spent:Math.round(avg(f.map(x=>x.g)))}; }
+    { const f=res.map(r=>r.brew).filter(Boolean); if(f.some(x=>x.n||x.comm)) gold.brew={n:avg(f.map(x=>x.n)),spent:Math.round(avg(f.map(x=>x.g))),comm:avg(f.map(x=>x.comm)),commG:Math.round(avg(f.map(x=>x.commG))),bm:avg(f.map(x=>x.bm)),prep:avg(f.map(x=>x.prep))}; }
     { const a=res.map(r=>r.awk).filter(Boolean); if(a.some(x=>x.n)) gold.awaken={spent:Math.round(avg(a.map(x=>x.g))),ranks:avg(a.map(x=>x.n))}; }
     { const h=res.map(r=>r.head).filter(Boolean); if(h.some(x=>x.g)) gold.headstones={spent:Math.round(avg(h.map(x=>x.g))),medianSpent:med(h.map(x=>x.g)),tiers:avg(h.map(x=>x.t)),hpBonus:avg(h.map(x=>x.b*100))+'%'}; }   // headstones ('full'): gold spent, tiers and the max HP bonus at the end, per bot
     const events={}; for(const r of res) for(const k in r.ev||{}) events[k]=(events[k]||0)+r.ev[k];   // events met by id:choice (summed over bots), and ok/bad outcomes

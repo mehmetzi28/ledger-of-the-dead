@@ -39,7 +39,7 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
   try{
     if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true)); const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
     else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
-    heatRoom(list,di); ledgerRoom(list,di); foeScale(list,foeAtkMul(di)); if(r.trial) trialPow(list,di); bulwark(list); riftScale(list);
+    heatRoom(list,di); ledgerRoom(list,di); brewRoom(r); foeScale(list,foeAtkMul(di)); if(r.trial) trialPow(list,di); bulwark(list); riftScale(list);
     heatScale(list);
     if(!boss&&kind==='elite') for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*ELITE_ROOM); e.atk=Math.max(1,Math.round(e.atk*ELITE_ROOM)); }
     affixAll(list);
@@ -68,7 +68,7 @@ function startRun(di){
   if(S.mode!=='town'||S.watches<=0||!RK[di]||gateLocked(di)) return;
   S.watches--; S.runs++; S.notices=[];
   S.run={di,room:0,rooms:di===ABBEY?ABBEY_ROOMS:4,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:gateMod(di),heat:heatOf(di)};
-  S.mode='battle'; titheSouls();
+  S.mode='battle'; titheSouls(); prepTake(S.run); prepSoul(S.run);   /* run prep, the black market's Soul (game-brew.js) */
   log('You step through the '+DUNGEONS[di].name+' gate.'+(S.run.mod?' It is cursed today: '+MODS[S.run.mod].name+'.':''));
   if(di===ABBEY) unlockStory('abbey3',S.run);
   spawnRoom();
@@ -81,7 +81,7 @@ function mark(u,d,h){ const id=fxKey(u); if(id==null) return; const f=S.run.fx[i
 function hit(b){ return Math.max(1,Math.round(b*rnd(.85,1.15))); }
 function hurtFoe(e,d,ty){ if(abbeyMiss(e)) return; ty=MARGIN||(DTYPE[ty]?ty:'phys');   /* an Unwritten foe; a Marginalia skill (game-abbey.js) */ if(e.curse) d=Math.round(d*e.curse.mul); { const mk=masteryDmg(e.base); if(mk) d=Math.round(d*(1+mk/100)); }   /* bestiary mastery: every hit from you and your army, once */ if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25); if(e.stun>0&&capOn('frost1')) d=Math.round(d*CAP_RIME);
   if(hasSt(e,'sundered')) d=Math.round(d*SUNDER_MUL); if(hasSt(e,'chilled')) d=Math.round(d*CHILL_MUL);   // conditions (game-gate-rules.js)
-  { const k=(1-foeRes(e,ty))*typeDmg(ty); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
+  { const k=(1-foeRes(e,ty))*typeDmg(ty)*oilK(e,ty); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
   e.lt=ty;   /* the type of the last hit it took (a weakness kill) */
   d=bossTaken(e,kitTaken(e,d));   /* Heartwood (game-boss-kits.js) */   /* Bulwark stance, a Banner-bearer beside it (game-kits.js) */
   if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e,0,0); return; } }   // Bone Wall shield soaks damage first
@@ -92,7 +92,7 @@ function hurtAlly(a,d,ty){
   if(a.id==='p'&&BLOW){ const v=guardBlow(a,d); if(v) return hurtAlly(v,Math.round(d*SB_TAKE),ty); }   // Guard, for boss moves (plain hits swap their target before this)
   if(a.id==='p'&&S.run) S.run.blow=BLOW?blowNote(BLOW):null;
   hfScales(a,d);   /* Scales (game-forge.js) */   // what hits you, for the defeat recap (before the ward soaks it)
-  d=allyDr(a,d); { const rs=allyRes(a,ty); if(rs) d=Math.max(1,Math.round(d*(1-rs))); }   /* damage types: your resistance lines, a minion's typed trait */
+  d=allyDr(a,d); { const ik=brewDr(a); if(ik!==1) d=Math.round(d*ik); }   /* Iron Draught (game-brew.js) */ { const rs=allyRes(a,ty); if(rs) d=Math.max(1,Math.round(d*(1-rs))); }   /* damage types: your resistance lines, a minion's typed trait */
   if(a.id==='p'){ const sk=SAP?KIT_SAP:1, s=Math.min(S.player.shield,d*sk); S.player.shield-=s; d-=Math.round(s/sk); if(BLOW&&d>0) d=tetherBlow(d); /* the Soul Tether (game-faith-story.js) */ } else if(a.mw>0){ const sk=SAP?KIT_SAP:1, s=Math.min(a.mw,d*sk); a.mw-=s; d-=Math.round(s/sk); }   // a Warden's ward on a minion
   d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a,d,0); if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p'&&!echoCall(a)&&!stitchUp(a)){ fxe('death',a); chainSpear(); }
   return d;
@@ -355,7 +355,7 @@ const canRetry=()=>S.mode==='defeat'&&!!ROOM0&&ROOM0.r===S.run&&!S.run.siege&&!S
 function retryRoom(){   // the room again as it began: same foes at full HP, you and your army as you entered; no watch, the XP loss stands, potions drunk stay drunk
   if(!canRetry()) return false;
   const r=S.run, o=JSON.parse(ROOM0.j), s=JSON.parse(ROOM0.s), P=S.player;
-  for(const k of ['kills','dt','dd','mh','hurt','soulT','tt','recF','grace','revives']) if(r[k]!==undefined) o[k]=r[k]; else delete o[k];   /* what happened in the fall still happened: run stats, records, turns, Grace and armor revives spent */
+  for(const k of ['kills','dt','dd','mh','hurt','soulT','tt','recF','grace','revives','draftU','xordU','abbotU']) if(r[k]!==undefined) o[k]=r[k]; else delete o[k];   /* what happened in the fall still happened: run stats, records, turns, Grace and armor revives spent */
   o.retries=(r.retries||0)+1; S.run=ROOM0.r=o;
   ['hp','mana','shield','st','dots'].forEach((k,i)=>{ if(s.p[i]==null) delete P[k]; else P[k]=s.p[i]; });
   for(const m of S.army){ delete m.sx; delete m.mw; const x=s.a.find(y=>y[0]===m.uid); if(!x) continue;   /* a room begins with Stitched unused and no Warden ward */ m.hp=Math.min(m.maxHp,x[1]); if(x[2]) m.st=x[2]; else delete m.st; if(x[3]) m.dots=x[3]; else delete m.dots; }
@@ -417,7 +417,7 @@ function raiseChance(c){
   if(soulBound(c)) return 0;
   if(firstRaise()) return 100;
   let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+4*sk('mastery')+B_OSS*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*RAISE_LV-RK[c.rankI].pen;
-  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+(hasInsc('many')?INSC_RAISE:0);
+  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+(hasInsc('many')?INSC_RAISE:0)+incRaise();
   return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
 }
 const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*(hasFlag('cheapraise')?.5:1)*(hasMod('mastery','b')?.75:1)*(1-.06*sk('thrift')));

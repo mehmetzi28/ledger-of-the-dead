@@ -75,10 +75,10 @@ const CMDS={
   mender:  {name:'Bone Shield',desc:'Each mender wards you for 150% of its attack.'},
   reaper:  {name:'Execute',    desc:'This turn your reapers deal double damage to foes below 40% HP.'}
 };
-const canCommand=role=>S.mode==='battle'&&!!CMDS[role]&&!(S.run.cmd&&S.run.cmd[role])&&S.army.some(m=>m.role===role&&m.hp>0);
+const canCommand=role=>S.mode==='battle'&&!!CMDS[role]&&(!(S.run.cmd&&S.run.cmd[role])||xOrder(role))&&S.army.some(m=>m.role===role&&m.hp>0);
 function command(role){
   if(!canCommand(role)) return false;
-  const r=S.run, P=S.player, mine=S.army.filter(m=>m.role===role&&m.hp>0); r.cmd=r.cmd||{}; r.cmd[role]=true; tally('commands');
+  const r=S.run, P=S.player, mine=S.army.filter(m=>m.role===role&&m.hp>0); r.cmd=r.cmd||{}; if(r.cmd[role]){ r.xordU=1; log('Extra Order: the charm crumbles.','ok'); } r.cmd[role]=true; tally('commands');
   if(role==='vanguard'){ r.taunt=2; log('Taunt: your vanguards bellow, and every foe turns on them.','ok'); }
   else if(role==='striker'){ r.focus=true; log('Focus: your strikers pick their spots.','ok'); }
   else if(role==='mender'){ const w=mine.reduce((a,m)=>a+Math.round(m.atk*1.5),0); P.shield=Math.min(Math.round(pMax()*.6),P.shield+w); mark('p',0,0); log('Bone Shield: your menders ward you. You hold '+P.shield+' ward.','ok'); }

@@ -100,10 +100,10 @@ const TROPHY_VAL=[3,7,14,26,45,75,110];          // sell value of an ordinary tr
 const TROPHY={};                             // key -> {name, value, ico, rankI}
 (function(){
   const h=s=>{ let x=0; for(const c of s) x=(x*31+c.charCodeAt(0))|0; return Math.abs(x); };
-  const add=(key,name,value,ico,rankI,gate)=>{ if(!TROPHY[key]) TROPHY[key]={name,value,ico,rankI,gate}; };
+  const add=(key,name,value,ico,rankI,gate,role)=>{ if(!TROPHY[key]) TROPHY[key]={name,value,ico,rankI,gate,role}; };   // role: the part's role, for brewing (game-brew.js)
   const part=(n,role)=>{ const p=TROPHY_PART[role]||TROPHY_PART.vanguard; return n+' '+p[h(n)%p.length]; };
-  DUNGEONS.forEach((D,i)=>{ D.mobs.forEach(m=>add(m[0],part(m[0],m[1]),TROPHY_VAL[i],m[0],i,i)); add('b:'+D.boss[0],i===ABBEY?'The Hunger\'s Tooth':'Heart of '+D.boss[0],TROPHY_VAL[i]*10,D.boss[0],i,i); });
-  TW_MOBS.forEach(m=>add('t:'+m[0],part(m[0],m[1]),40,m[0],4));
+  DUNGEONS.forEach((D,i)=>{ D.mobs.forEach(m=>add(m[0],part(m[0],m[1]),TROPHY_VAL[i],m[0],i,i,m[1])); add('b:'+D.boss[0],i===ABBEY?'The Hunger\'s Tooth':'Heart of '+D.boss[0],TROPHY_VAL[i]*10,D.boss[0],i,i); });
+  TW_MOBS.forEach(m=>add('t:'+m[0],part(m[0],m[1]),40,m[0],4,undefined,m[1]));
   TW_BOSS.forEach((n,i)=>add('b:'+n,'Heart of '+n,120*(i+1),n,5));
   SECRET.forEach((B,i)=>add('b:'+B.name,'Heart of '+B.name.replace(/^The /,''),TROPHY_VAL[i]*40,B.name,i,i));
 })();
@@ -133,6 +133,7 @@ const POTIONS={
 };
 function drink(k){
   const P=S.player; if(!S.belt[k]||pactOn('dry')) return false;   // the Dry Throat pact
+  if(DRAUGHTS[k]) return drinkDraught(k);   /* Iron Draught, Bloodwine (game-brew.js) */
   if(k==='hp'){ if(P.hp>=pMax()&&!P.dots) return false; S.belt.hp--; const h=healAlly(P,Math.round(pMax()*.35)), cured=!!P.dots; clearDots(P); tally('drank'); if(cured) tally('cures'); log('You drink a Healing Draught and recover '+h+' HP'+(cured?'. Your wounds close':'')+'.','ok'); }
   else { if(P.mana>=pMana()) return false; S.belt.mp--; tally('drank'); const m=Math.min(pMana()-P.mana,Math.round(pMana()*.4)); P.mana+=m; mark('p',0,0); log('You drink a Mana Tonic and recover '+m+' mana.','ok'); }
   return true;
@@ -152,7 +153,7 @@ function shopStock(){   // four pieces of gear from your highest unlocked gate (
   }
   return S.shop.stock;
 }
-function buyPotion(k){ const p=POTIONS[k], cost=p&&p.price(); if(!p||S.mode!=='town'||S.belt[k]>=BELT_MAX||S.gold<cost) return false; S.gold-=cost; S.belt[k]++; sfx('coin'); return true; }
+function buyPotion(k){ const p=POTIONS[k], cost=p&&p.price(); if(!p||S.mode!=='town'||S.belt[k]>=beltMax()||S.gold<cost) return false; S.gold-=cost; S.belt[k]++; sfx('coin'); return true; }
 function buyStock(i){
   const s=shopStock()[i]; if(!s||s.sold||S.mode!=='town') return false; const d=ITEM[s.id], cost=buyPrice(d);
   if(S.gold<cost||S.inv.length>=bagMax()) return false;
@@ -191,7 +192,7 @@ function forgeGear(gi,slot){
 }
 function brew(k){
   const n=Object.values(S.trophies).reduce((a,b)=>a+b,0);
-  if(S.mode!=='town'||!POTIONS[k]||S.belt[k]>=BELT_MAX||n<BREW_N) return false;
+  if(S.mode!=='town'||!POTIONS[k]||S.belt[k]>=beltMax()||n<BREW_N) return false;
   spendTrophies(Object.keys(S.trophies),BREW_N,()=>1); S.belt[k]++; sfx('heal'); return true;
 }
 
@@ -336,7 +337,7 @@ const raidN=()=>((S&&S.raids)||[]).reduce((a,x)=>a+x.units.length,0);
 const raidHeld=res=>((S&&S.raids)||[]).reduce((a,x)=>a+(Array.isArray(x.res)?x.units.filter(m=>x.res.includes(m.uid)===res).length:0),0);   // places marched raiders keep overnight: army places, or Reserve places (res)
 const armyUsed=()=>S.army.filter(m=>!m.thrall&&!m.wall).length+raidHeld(false);   /* a siege thrall or a minion on the wall holds no slot */   // raiders march at nightfall and keep their places overnight, so a siege raise cannot fill them; at dawn they step back in
 const raidPool=()=>S.army.concat(S.reserve||[]);   // a squad may be picked from the army and the Reserve
-const squadMax=m=>1+RAID_SQUAD+(m.stage||0)+(m.boss?1:0);   // the Commander and its followers
+const squadMax=m=>1+RAID_SQUAD+(m.stage||0)+(m.boss?1:0)+bannerSquad();   /* Banner of the Host (game-brew.js) */   // the Commander and its followers
 const raidGates=()=>DUNGEONS.map((D,i)=>i).filter(i=>i<GATE_N&&S.ti&&S.ti.clr&&S.ti.clr[i]);
 function gateThreat(di){ const lv=RK[di].lv+2, f=mobStats(di,lv,1,1,false,false), b=mobStats(di,lv+2,1,1,true,false); return {hp:f.hp*13+b.hp,atk:f.atk*3+b.atk*.5}; }
 function bestSquad(){ const P=raidPool(), c=P.filter(isCommander).sort((a,b)=>b.atk*b.maxHp-a.atk*a.maxHp)[0]; if(!c) return null;
@@ -352,7 +353,7 @@ const orderSquad=o=>{ const P=raidPool(), c=P.find(m=>m.uid===o.cu); return c?[c
 function sendRaid(cu,di,uids){   // order a raid for tonight: nobody leaves until the day ends
   if(S.mode!=='town') return false; const P=raidPool(), c=P.find(m=>m.uid===cu); if(!isCommander(c)||!raidGates().includes(di)||inOrder(c)) return false;
   const fol=[...new Set(uids||[])].map(u=>P.find(m=>m.uid===u&&m!==c)); if(fol.some(m=>!m||inOrder(m))||!fol.length||fol.length>squadMax(c)-1) return false;   // a Commander never marches alone
-  S.raidOrders=raidOrders().concat([{di,day:S.day,cu:c.uid,uids:fol.map(m=>m.uid)}]); tally('raidsSent'); sfx('raise'); return true;
+  const o={di,day:S.day,cu:c.uid,uids:fol.map(m=>m.uid)}; bannerTake(o); S.raidOrders=raidOrders().concat([o]); tally('raidsSent'); sfx('raise'); return true;
 }
 function recallRaid(i){ if(S.mode!=='town'||!S.raidOrders||!S.raidOrders[i]) return false; S.raidOrders.splice(i,1); return true; }   // cancel tonight's order: free, any time before nightfall
 function marchRaids(){   // nightfall: every standing order marches with the squad as it now is
@@ -362,12 +363,12 @@ function marchRaids(){   // nightfall: every standing order marches with the squ
     if(units.length<2){ notify('Tonight\'s raid on the '+DUNGEONS[o.di].name+' lapses: '+c.nick+' has no one left to lead.','bad'); continue; }
     const res=units.filter(m=>inReserve(m)).map(m=>m.uid);   // where each marched from: its place waits for it
     S.army=S.army.filter(m=>!units.includes(m)); if(S.reserve) S.reserve=S.reserve.filter(m=>!units.includes(m)); units.forEach(m=>{ m.hp=m.maxHp; delete m.dots; delete m.st; });
-    S.raids=(S.raids||[]).concat([{di:o.di,day:S.day,units,res,odds:raidOdds(units,o.di)}]); }
+    S.raids=(S.raids||[]).concat([Object.assign({di:o.di,day:S.day,units,res,odds:bannerOdds(o,raidOdds(units,o.di))},o.bn?{bn:o.bn}:{})]); }
 }
 function resolveRaid(x){
   const D=DUNGEONS[x.di], lead=x.units[0], won=Math.random()<(typeof x.odds==='number'?x.odds:raidOdds(x.units,x.di));   /* odds as they marched */ let msg, lost=[];
   if(won){
-    const g=Math.round((15+S.player.lvl*4)*(1+x.di)*RAID_GOLD*ngpReward()); S.gold+=g; let items=0, full=0;
+    const g=Math.round((15+S.player.lvl*4)*(1+x.di)*RAID_GOLD*ngpReward()*bannerGold(x)); S.gold+=g; let items=0, full=0;
     for(let i=0;i<3;i++){ if(i===2&&Math.random()>=RAID_ITEM3) break; const id=pickNorm(tableFor(x.di,'vanguard',i===0,false).filter(r=>!ITEM[r.id].uq)); if(addItem(id)) items++; else full++; }
     x.units.forEach(m=>minionXp(m,Math.round(mneed(m.lvl)*RAID_XP))); tally('raidWins');
     msg=lead.nick+' is back from the '+D.name+' in triumph: +'+g+' gold'+(items?', '+items+' piece'+(items>1?'s':'')+' of gear':'')+(full?' ('+full+' left behind: your bag is full)':'')+'.';

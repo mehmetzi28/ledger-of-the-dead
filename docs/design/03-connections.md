@@ -133,7 +133,8 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
 
 - **G10. Late gold outruns every sink.** ~1.1M lifetime gold in the full bot; most sinks are capped (buildings, bag,
   salts, tempering lines, mausoleums); headstones are the only open-ended one and are softly capped at 6%. (Economy,
-  town, Awakening.) (R4 PR A adds heart-forging and a soft cap on late kill gold; the sink is still small, see 04.)
+  town, Awakening.) (R4 adds heart-forging, a soft cap on late kill gold, brewing, commissions and a black market; the full bot now spends
+  ~60k a game on forging and brewing, see 04.)
 - **G11. Some loot is dead-end.** Tower trophies (40 gold, sell only), Tower and secret-master hearts beyond Awakening,
   and abyssal floors that pay generic legendaries. (Trophies, Tower, secret masters, crafting.) (Mostly closed by R4 PR A:
   every boss, warden, master and Hunger heart forges a heartforged piece, and six Tower trophies forge Throne-set gear;
@@ -142,7 +143,8 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
   raids, faith, the bestiary or the Reserve beyond places. (Town, sieges, raids, faith, Reserve.)
 - **G13. The daily quest is not a choice.** 8 kills, 4 rooms, 1 clear is always done, so it is a hidden free stat point
   per day. (Quest, calendar, bounties.)
-- **G14. Consumables are thin.** Two potions and salts, belts of three; no consumable that changes how a fight goes.
+- ~~**G14. Consumables are thin.**~~ Closed by R4 PR B: oils, incense, bone charms, war banners and two draughts brewed
+  from role parts, a growing belt and run prep on the Gates tab. (Was: two potions and salts, belts of three.)
   (Market, trophies, brewing, combat.)
 - **G15. The town's fear has no memory.** The story says the town fears you and sieges punish you, but prices, events and
   siege strength never react to what you do. (Sieges, market, faith, story.)
