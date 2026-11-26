@@ -87,6 +87,7 @@ function intentHTML(u){ const i=intentInfo(u); if(!i) return ''; const K=foeKnow
    +(K.dmg!=null?'<b class="kn">about '+aboutN(K.dmg)+'</b>':'')+(K.crit?'<span class="kn-crit" title="A striker: its blow can crit for 80% more and open a wound.">can crit</span>':'')+sigHTML(K.sig)+'</div>'
    +(K.next?'<div class="intent-2"><span>then likely</span> <span>'+K.next.txt+'</span></div>':'')+ansHTML(K.ans);
 }
+const downTip=m=>{ const c=shatterOdds(m); return c?'Down: '+c+'% to shatter after the room':'Down: cannot shatter'; };   // a downed minion either shatters when the room ends or binds back at BIND_HP
 function unitCard(u,side,mini){
   const r=S.run, isP=u.id==='p', max=isP?pMax():u.maxHp, f=r.fx[fxKey(u)]||{d:0,h:0}, dead=u.hp<=0;
   const sel=side==='foe'&&r.target===u.id&&!dead, ch=side==='foe'&&!isP?chargeInfo(u):null;
@@ -106,7 +107,7 @@ function unitCard(u,side,mini){
    +'<div class="num u-hp">'+Math.max(0,u.hp)+'/'+max+(isP&&u.shield?' <span class="sh-t">+'+u.shield+' ward</span>':'')+'</div>'
    +(isP?'<div class="bar"><i class="fill mp" style="width:'+pct(u.mana,pMana())+'%"></i></div><div class="num u-hp">Mana '+u.mana+'/'+pMana()+'</div>':'');
   if(mini){   // a minion in battle: icon, name, level, attack, HP; the rest lives on the Army tab
-    const m='<div class="u-head">'+ico(u.base||u.kind||u.name,u.rankI,u)+'<div class="u-id"><div class="u-name">'+nick(u)+'</div><div class="u-sub num">Lv '+u.lvl+' &middot; ATK '+u.atk+(u.wall?' &middot; Wall':'')+'</div>'+dots+'</div></div>'
+    const m='<div class="u-head">'+ico(u.base||u.kind||u.name,u.rankI,u)+'<div class="u-id"><div class="u-name">'+nick(u)+'</div><div class="u-sub num">'+(dead?'<span class="down-t">'+downTip(u)+'</span>':'Lv '+u.lvl+' &middot; ATK '+u.atk+(u.wall?' &middot; Wall':''))+'</div>'+dots+'</div></div>'
       +'<div class="bar"><i class="fill hp" style="width:'+pct(u.hp,max)+'%"></i></div><div class="num u-hp">'+Math.max(0,u.hp)+'/'+max+'</div>';
     return '<div class="unit ally mini'+(dead?' dead':'')+(u.elite?' elite':'')+(f.d?' hit':'')+'" data-u="'+fxKey(u)+'" title="'+mName(u)+', '+ROLES[u.role].label+(u.wall?', on the wall':'')+'">'+fx+m+'</div>'; }
   const cls='unit '+side+(dead?' dead':'')+(sel?' sel':'')+(ch?' charging':'')+(u.elite?' elite':'')+(f.d?' hit':'');
@@ -235,7 +236,7 @@ function minionCard(m,canRelease,where){
 }
 function partyStrip(){   // phones: the pinned action bar hides your side, so one thin HP tick per minion sits above the buttons (CSS shows it only at phone width)
   if(!S.army.length) return '';
-  return '<div class="pstrip" role="group" aria-label="Army health">'+S.army.map(m=>{ const lab=m.nick+': '+(m.hp>0?m.hp+'/'+m.maxHp:'down'); return '<i class="pt'+(m.hp<=0?' down':m.hp<m.maxHp*.3?' low':'')+'" role="img" title="'+lab+'" aria-label="'+lab+'"><b style="width:'+pct(Math.max(0,m.hp),m.maxHp)+'%"></b></i>'; }).join('')+'</div>';
+  return '<div class="pstrip" role="group" aria-label="Army health">'+S.army.map(m=>{ const lab=m.nick+': '+(m.hp>0?m.hp+'/'+m.maxHp:downTip(m)); return '<i class="pt'+(m.hp<=0?' down':m.hp<m.maxHp*.3?' low':'')+'" role="img" title="'+lab+'" aria-label="'+lab+'"><b style="width:'+pct(Math.max(0,m.hp),m.maxHp)+'%"></b></i>'; }).join('')+'</div>';
 }
 function minionRow(m,canRelease,where){   // the compact army list: one line per minion (two on a phone), same actions as the card; traits and the rest in the name's title
   const low=m.hp>0&&m.hp<m.maxHp*.3, tags=(m.traits||[]).map(t=>TRAITS[t].name), next=evoNext(m), cmd=isCommander(m);
