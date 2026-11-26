@@ -24,6 +24,12 @@ to each constant in `src/` and in `claude.md`; this page is the summary to read 
 
 ## 4.2 Latest measurements (2026-11-26, seeds 7700 and 9100, 40 bots x 100 days)
 
+**After the rival's war, chapters 1-3 (R7 PR A)**: market unchanged (89%, Tower 78.6, Rift 16.8). full 90/91%, Tower
+84.7/85.4, Rift 15.6/15.4, sieges held 77/80%, rival challenges won 63/65%. Chapter 2 opens on day ~50 (it took ~67 with
+three challenges, so two), chapter 3 on day ~60; ~1.2 wagers won a bot (the bot stakes its weakest Reserve body on a
+challenge morning); ~3 bodies Reclaimed a bot. The rival's siege was held 93% at a challenge's strength, so its rival
+is 25% stronger (ARC_SIEGE_K): 68-85% held (27/40, 34/40), close to the ordinary siege's ~80%.
+
 **After expeditions and Rally (R6)**: market unchanged to the digit (89/90%, Tower 78.6/77.1, Rift 16.8/16.6). full
 89/90%, Tower 83.7/85.4, Rift 17.2/15.0, sieges held 81/82%, rival 63/65%, levels 60-61 at day 100. The bot sends ~115
 expedition nights a game and holds ~84% of them (target 75-80%; it only sends at 55% or better and covers the steps),

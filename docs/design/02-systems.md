@@ -462,7 +462,14 @@ holds 84-86%.
 **The Rival** (`RIVAL_*`). After 4 distinct clears a rival keeper (one of six names) appears. Every 2-6 days they steal
 the best body of the role your army leans on; about every two weeks (warned a day ahead) they wait in a cleared gate's
 boss room with 2-4 followers, fielding the bodies they stole. They grow 10% per win of yours. Beat them: a legendary,
-x2 gold, a stolen page back, the next challenge pushed back. Lose: they borrow a torn page or 10% gold. Bot wins ~68-79%.
+x2 gold, a stolen page back, the next challenge pushed back. Lose: they borrow a torn page or 10% gold. Bot wins ~63-65%.
+**The rival's war** (src/game-rival-arc.js, R7; `S.rival.arc`). Chapters: 1 Margins; 2 The Open Hand after 2 challenges
+fought: before a challenge (the Gates tab) you may stake a Reserve minion against the closest stolen body of theirs at its
+rank or higher, which then sits out the fight; win and it joins you **Reclaimed** (+5% HP and attack; stolen followers
+killed and raised are Reclaimed too), lose and yours goes into their book (`b.mine`); 3 Fire at the Walls 10 days later
+once a siege is held: the next siege's last wave is the rival (a challenge's strength x1.25) and their stolen dead instead
+of the Captain; broken, 2 stolen bodies come back and the next theft waits; lost, they carry off the weakest Reserve
+minion. Chapters 4-5 (their gate, the reckoning) follow in R7 PR B. The bot reaches chapter 3 by day ~60.
 
 **New Game+** (`startNGP`). After the Throne: start again at level 1 keeping titles, bestiary, tips, lifetime counts,
 story, records, pages, Rift best, Memorial, rival name and record, and one unique (with its Awakening ranks). Foes +30%

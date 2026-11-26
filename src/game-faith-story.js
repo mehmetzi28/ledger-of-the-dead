@@ -370,4 +370,4 @@ const mausN=()=>S&&S.memorial?Math.min(MAUS_MAX,S.memorial.filter(e=>e.maus).len
 const mausCost=()=>MAUS_COST[mausN()]||0;
 const canMaus=e=>!!e&&!e.maus&&S.mode==='town'&&mausN()<MAUS_MAX&&S.gold>=mausCost();
 function raiseMaus(i){ const e=(S.memorial||[])[i]; if(!canMaus(e)) return false; S.gold-=mausCost(); e.maus=1; tally('maus'); syncArmy(); sfx('raise'); return true; }
-const extraMul=(m,k)=>(k==='atk'?bondMul(m):(1+headBonus()+fallenK())*townHpK(m))*(1+MAUS_K*mausN())*(1+chainK());   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
+const extraMul=(m,k)=>(k==='atk'?bondMul(m):(1+headBonus()+fallenK())*townHpK(m))*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K:1);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)

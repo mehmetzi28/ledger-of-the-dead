@@ -23,17 +23,17 @@ ARENAS[RIVAL_KIND]=r=>arFrame(RIVAL_KIND,r,(c1,c2)=>arRing(800,430,200,c2,3,.35)
 function rivalWarnHTML(){   // the Gates tab, the day before and the day itself
   if(!rivalWarned()) return ''; const g=rv(), D=DUNGEONS[g.gi];
   return '<div class="rival-line">'+(rivalToday()?'<b>'+g.name+' waits today in the '+D.name+'.</b> Your first visit there meets them in the boss room instead of its master.'
-    :'<b>'+g.name+' comes tomorrow to the '+D.name+'.</b> Your first visit there tomorrow meets them in the boss room instead of its master.')+'</div>';
+    :'<b>'+g.name+' comes tomorrow to the '+D.name+'.</b> Your first visit there tomorrow meets them in the boss room instead of its master.')+'</div>'+wagerHTML();
 }
 function rivalCardHTML(){   // Records: the rival's page in the Ledger
   const g=S.rival; if(!g||!g.name||!g.met) return '';
   const row=(t,v)=>'<div class="tt-row"><div><h4>'+t+'</h4></div><div class="rec-v">'+v+'</div></div>';
   const next=rivalWarned()?'<b>'+(rivalToday()?'today':'in 1 day')+'</b> <span class="dim">&middot; '+DUNGEONS[g.gi].name+'</span>':'<span class="dim">unknown until you are warned</span>';
   return '<p class="group-h">The Rival</p><div class="rival-card">'+ico(RIVAL_KIND,topGate(),{boss:true,role:'reaper'})+'<div><h4 class="rival-name">'+g.name+'</h4><div class="u-sub">Met on day '+g.met+'</div></div></div>'
-   +'<div class="items">'+row('Encounters','<b>'+g.enc+'</b>')+row('Your wins','<b>'+g.wins+'</b>')+row('Your losses','<b>'+g.losses+'</b>')+row('Bodies taken','<b>'+g.thefts+'</b>')
+   +arcTrackHTML()+'<div class="items">'+row('Encounters','<b>'+g.enc+'</b>')+row('Your wins','<b>'+g.wins+'</b>')+row('Your losses','<b>'+g.losses+'</b>')+row('Bodies taken','<b>'+g.thefts+'</b>')
    +row('Hunting',(w=>w?'<b>your '+ROLES[w].label.toLowerCase()+'s</b> <span class="dim">&middot; the kind your army leans on</span>':'<span class="dim">whatever lies freshest</span>')(rivalWant()))
    +row('Borrowed page',g.page>=0&&LORE_PAGES[g.page]?'<b>'+LORE_PAGES[g.page].t+'</b>':'<span class="dim">none</span>')+row('Next challenge',next)+'</div>'
-   +'<p class="group-h">Bodies it holds</p>'+((g.stash||[]).length?'<div class="items">'+g.stash.map(b=>row(b.name,'<span class="dim">'+DUNGEONS[b.di].name+(b.cd&&CORPSE_CONDS[b.cd]?' &middot; '+CORPSE_CONDS[b.cd].name:'')+'</span>')).join('')+'</div>':'<p class="q-note">None. Bodies they steal stand with them at their next challenge.</p>');
+   +'<p class="group-h">Bodies it holds</p>'+((g.stash||[]).length?'<div class="items">'+g.stash.map(b=>row(b.name+(b.mine?' ('+b.mine+')':''),'<span class="dim">'+(b.mine?'once yours &middot; ':'')+DUNGEONS[b.di].name+(b.cd&&CORPSE_CONDS[b.cd]?' &middot; '+CORPSE_CONDS[b.cd].name:'')+'</span>')).join('')+'</div>':'<p class="q-note">None. Bodies they steal stand with them at their next challenge.</p>');
 }
 function rivalBesHTML(){   // the bestiary: the rival as a boss kind, once beaten
   const k=(S.kills&&S.kills[RIVAL_KIND])||0; if(k<=0) return '';
@@ -77,7 +77,11 @@ function cxRivalHTML(){
      cxRow('The fight','The rival is a reaper boss at your level +'+RIVAL_LV+' or more, as strong as the hardest gate open to you, with '+BOSS_ABIL[RIVAL_ABIL].name+' (warned a turn ahead) and a second phase at half HP. '+RIVAL_FOLLOW[0]+' to '+RIVAL_FOLLOW[1]+' raised followers of kinds you have met in that gate stand with them. Every win makes them '+pct(RIVAL_STEP)+' stronger and brings one more follower every two wins.'),
      cxRow('Stolen bodies','They keep the last '+RIVAL_STASH+' bodies they took and raise them as their followers, those from that gate first, at their own level; an elite keeps its affixes and a body its condition. Stolen bodies drop no gear or trophies. Kill one and its body is yours to raise, with the condition it had; fall or flee and they keep it.'),
      cxRow('Win','A legendary from your deepest open gate&#39;s table, gold like a boss x'+RIVAL_GOLD+', a borrowed page back, and the next challenge '+RIVAL_PUSH+' days later than usual. The rival leaves no body.'),
-     cxRow('Loss','Falling or fleeing costs no more than an ordinary fall. The rival borrows one of your torn pages until your next win; with no page to take (or one already borrowed) they take '+pct(RIVAL_FINE)+' of the gold you carry, at most one clear&#39;s worth. Nothing is ever deleted.')])
+     cxRow('Loss','Falling or fleeing costs no more than an ordinary fall. The rival borrows one of your torn pages until your next win; with no page to take (or one already borrowed) they take '+pct(RIVAL_FINE)+' of the gold you carry, at most one clear&#39;s worth. Nothing is ever deleted.'),
+     cxRow('The rival\'s war','Their story runs in five chapters, shown on their page in Records: Margins (as above); The Open Hand, once you have fought '+ARC_FIGHTS+' challenges; Fire at the Walls, '+ARC_SIEGE_DAYS+' days later once you have held a siege; then their own gate and the reckoning.'),
+     cxRow('Wagers','From The Open Hand, on the day before a challenge and the day itself, you may stake a Reserve minion (from the gates, unlocked) against the stolen body they name: the closest of theirs at its rank or higher. Win the challenge and their body joins you Reclaimed; lose or flee and yours goes into their book, and they will raise it against you. A wager lapses if the challenge is not fought.'),
+     cxRow('Their siege','In Fire at the Walls the next siege is theirs: the last wave is the rival, as strong as a challenge, with their stolen dead instead of the Inquisitor Captain. Broken, it gives back '+ARC_SIEGE_BACK+' stolen bodies Reclaimed and their next theft waits; lost, they also carry off your weakest Reserve minion.'),
+     cxRow('Reclaimed','A body won back from the rival (a wager, their siege, or a stolen body you kill and raise) rises Reclaimed: '+Math.round(RECL_K*100)+'% more HP and attack.')])
    +(g.name&&g.met?cxP(g.name+': '+g.enc+' encounters, '+g.wins+' won, '+g.losses+' lost.'):'');
 }
 function cxTrialsHTML(){
