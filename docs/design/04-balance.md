@@ -24,6 +24,10 @@ to each constant in `src/` and in `claude.md`; this page is the summary to read 
 
 ## 4.2 Latest measurements (2026-11-26, seeds 7700 and 9100, 40 bots x 100 days)
 
+**After Command (PR #5)**: B/A/S `foeAtk` 7 / 5.7 / 6.1, `TW` hpG/atkG .07/.048, `RIFT_STEP` .55. market 91/92% gates,
+Tower 78, Rift 24; full 91%, Tower 84-86, Rift 12, sieges 84-85%, rival 78-80%. Stat builds even: Will+Con/Str/Int Tower
+78/82/81 (B2 mostly closed in the Tower). The table below is the earlier baseline.
+
 After the Soul Tether, one soul per boss, Awakening, the B/A/S retune, Constitution feeding the army, the tier advice
 refit and Throne-strength Trials:
 
@@ -67,7 +71,7 @@ Gold at day 100 (before Awakening and headstones): ~33-39k average held, ~1.1M l
 | B5 | Trial scores floor out for over-leveled players | Trials now use Throne strength and a fair level per tier; revisit with foe kits | R1 |
 | B6 | Balance has never been checked by a human | Local play log export | R15 |
 | B7 | Daily quest is a free stat point a day (~100 points over a game) | Make it a choice or fold into bounties | R5 (ride-along) |
-| B8 | Hero can still carry rooms alone | "Hero power scales with army strength" (in progress, other thread) | R0 |
+| B8 | Hero could carry rooms alone, then fell far behind the army late | Closed by Command (PR #5): the hero draws on the army's power | R0 shipped |
 
 ## 4.5 Levers
 
