@@ -39,7 +39,7 @@ function canUse(id){
 function useSkill(id,t){
   if(!canUse(id)) return false;
   const s=SKILL[id], rk=sk(id), r=S.run, P=S.player;
-  const mg=marginReady(); P.mana-=skCost(s); marginSkill(r,t,mg); hfSkill(); r.naveU=1; r.lastSk=id; r.cd=r.cd||{}; r.cd[id]=s.cd+1-(id==='blast'?faithBlastCd():0); tally('sk_'+id);   // +1: the end-of-turn tick runs this same turn
+  const mg=marginReady(); P.mana-=skCost(s); marginSkill(r,t,mg); hfSkill(); r.naveU=1; r.lastSk=id; sigMirror(r); r.cd=r.cd||{}; r.cd[id]=s.cd+1-(id==='blast'?faithBlastCd():0); tally('sk_'+id);   // +1: the end-of-turn tick runs this same turn
   if(id==='spear'){ const fb=frozenChilled(t), d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(hasMod('spear','a')?1:.5)*skMul()*(fb?FROSTBREAK:1)); hurtFoe(t,d,'phys'); log('Bone Spear impales '+t.name+' for '+d+'.'); fxe('spear',t); if(fb&&t.hp>0) frostbreak(t);
     if(hasMod('spear','b')){ const o=liveFoes().filter(x=>x!==t); if(o.length){ const o2=pick(o), d2=Math.round(d*.5); hurtFoe(o2,d2,'phys'); log('A splinter tears into '+o2.name+' for '+d2+'.'); } } }
   else if(id==='blast'){ const c=freeCorpse(); c.tried=true; c.result='exploded'; const base=pSiph()*(.6+.2*rk)*pierceMul(1)*(hasMod('blast','a')?1.3:1)*skMul()*shadowK(); let tot=0;
@@ -111,7 +111,7 @@ const trophyKey=e=>e.boss?'b:'+e.base:(e.tw?'t:':'')+e.base;
 function killLoot(e,r){   // called once per kill, from checkDeaths
   hfKill(e); townKill(e);   /* Hungry Page (game-forge.js), Grave Altar (game-town2.js) */
   const cursed=runMod()?MOD_GOLD:1;
-  const coin=Math.max(1,Math.round((1+softLv(e.lvl)*.5)*(1+e.rankI*.5)*(e.boss?5:1)*(e.secret?SB_REWARD:1)*(e.rival?RIVAL_GOLD:1)*(e.elite?2:1)*rnd(.7,1.3)*ngpReward()*cursed*heatK('gold')*(roomKind()==='elite'?ELITE_GOLD:1)*(1+xb('goldp')/100)*((e.boss||e.elite)&&hasMod('robber','a')?POCKETS:1)));   // Deep Pockets: elites and bosses
+  const coin=Math.max(1,Math.round((1+softLv(e.lvl)*.5)*(1+e.rankI*.5)*(e.boss?5:1)*(e.secret?SB_REWARD:1)*(e.rival?RIVAL_GOLD:1)*(e.elite?2:1)*rnd(.7,1.3)*ngpReward()*cursed*heatK('gold')*(r.rift?riftRew():1)*(roomKind()==='elite'?ELITE_GOLD:1)*(1+xb('goldp')/100)*((e.boss||e.elite)&&hasMod('robber','a')?POCKETS:1)));   // Deep Pockets: elites and bosses
   r.gold=(r.gold||0)+coin;
   if(omen()==='boneharvest'&&!r.trial&&(e.boss||Math.random()<HARVEST_DUST)) r.bdust=(r.bdust||0)+(e.boss?HARVEST_DUST_BOSS:1);   // Bone Harvest: bone dust from the dead
   const key=trophyKey(e); if(!TROPHY[key]||e.stash) return;
@@ -386,7 +386,7 @@ function startRift(n){
   const di=Math.floor(Math.random()*GATE_N);   /* the Rift folds the six gates of the valley, never the abbey */
   S.watches--; S.runs++; S.notices=[];
   S.run={di,rift:n,room:0,rooms:RIFT_ROOMS,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:null,heat:0};
-  S.mode='battle'; titheSouls(); tally('riftRuns');
+  S.mode='battle'; titheSouls(); tally('riftRuns'); sigDive(S.run);   /* sigils (game-rift.js) */
   log('You tear the Rift open at depth '+n+'. The dead of the '+DUNGEONS[di].name+' wait beyond it.');
   spawnRoom(); return true;
 }
@@ -399,8 +399,8 @@ function riftCleared(r){
   r.cleared=true; S.quest.clears++; tally('rifts'); S.rift=S.rift||{best:0};
   if(r.rift>S.rift.best){ S.rift.best=r.rift; r.riftRec=true; recBest('rift',r.rift); const pool=Object.values(ITEM).filter(d=>!d.uq&&!d.tower&&d.tier===4&&d.set!==ABBEY); r.loot.push(pick(pool).id);
     moment('Rift depth '+r.rift+' conquered','gold'); }
-  if(!r.hurt) tally('flawless'); riftFast(r);
-  return Math.round(RK[5].clear*(1+.15*r.rift));
+  if(!r.hurt) tally('flawless'); riftFast(r); riftShardsPay(r);
+  return Math.round(RK[5].clear*(1+.15*r.rift)*riftRew());
 }
 
 // ===== FIRST-TIME TIPS =====

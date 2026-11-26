@@ -73,7 +73,7 @@ flowchart LR
 | Omens | Calendar | Rule changes for a day, titles | Not forecast or caused (G20) |
 | Curses | Calendar, cleared gates | Harder runs, more reward, titles, bounty | Five curses only (G24) |
 | Hell Tower | Level 10, 3 clears | 12 uniques, titles, story, abyss gold | Wardens reuse gate moves (G3) |
-| Rift | Level 40, Throne | Legendaries, records, titles, story | No unique rewards (G22) |
+| Rift | Level 40, Throne, sigils | Legendaries, Rift Shards, records, titles, story | Riftborn gear, the weekly dive, events (R9 PR B) |
 | Titles | Tallies, records, everything | One worn bonus, collection gold | 148 titles, small effect (G26) |
 | Memorial | Shattered and raid-fallen minions | Honour buff, headstones, mausoleums | Strong emotional link |
 | Story and pages | Clears, milestones, page drops | Lore, rival stakes | Missing ending (G16) |
@@ -175,8 +175,8 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
 - **G21. New Game+ is the same content harder.** (Part closed by R3: the Quiet Valley and the Keeper's Cycle, Ledger
   inscriptions and Ledger-form bosses.) Pacts are multipliers; there is no new content, foe or story per
   cycle beyond three passages. (NG+, story, content.)
-- **G22. The Rift only scales.** Endless stat growth and generic legendaries; no modifiers to choose, no Rift-only
-  rewards, no link to Trials, omens or the rival. (Rift, gear, records.)
+- **G22. The Rift only scales.** Half closed by R9 PR A: sigils to choose before a dive, guardians every fifth depth,
+  Rift Shards; Riftborn gear, the weekly dive and Rift events follow in PR B. (Rift, gear, records.)
 - **G23. Sieges never change.** One roster, three waves, the same Captain; the Inquisition has no story that escalates
   with your wins and losses. (Sieges, story, town.)
 - **G24. Curses and events repeat.** Five curses for the whole game; six events and three chains (the full bot meets ~264

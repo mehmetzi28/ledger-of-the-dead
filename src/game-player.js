@@ -30,7 +30,7 @@ function cmdSync(){ const P=S&&S.player; if(!P) return; P.cmd=cmdPow(); P.hp=Mat
 const statMinion = ()=>Math.max(0,A('strength'))*STR_MINION+Math.max(0,A('intelligence'))*INT_MINION;   // % more minion attack from Strength and Intelligence
 const skMul = ()=>(1+intSkill()/100)*(S.run?hexK(S.player):1);   // Hexed: your skills hit 20% softer too
 const pDr = ()=>Math.min(DR_CAP,xb('drp')+conDr());   // all your damage reduction: titles, sets, faith, Calcified Hide and Constitution
-const critChance = ()=>.1+(G('crit')+strCrit()+(hasMod('edge','a')?RENDING:0))/100;   // Strike's crit chance
+const critChance = ()=>.1+(G('crit')+strCrit()+(hasMod('edge','a')?RENDING:0))/100+sigCrit();   /* Thin Veil (game-rift.js) */   // Strike's crit chance
 const ARMY_CAP=12;
 const RESERVE_BASE=6, RESERVE_CRYPT=2;   // the Reserve: a bench of places beside the army, +2 per Crypt level
 const slots = ()=>Math.min(ARMY_CAP+bl('crypt')+cryptSlot(),1+Math.floor(A('will')*2/5)+Math.floor(S.player.lvl/4)+G('slot')+bl('crypt')+cryptSlot());   /* Throne Crypt (game-town2.js) */   // one per 2.5 Will and one per 4 levels
@@ -164,7 +164,7 @@ function normalizeSave(src){
   g.abbey=abbeyFix(g.abbey);   /* Vane Abbey's door (game-abbey.js) */
   townFix(g); dreadFix(g);   /* dread, orders, unpaid upkeep (game-dread.js) */   /* building levels, specializations, kept bodies (game-town2.js) */
   endingFix(g);   /* the last page, the endings and the inscriptions (game-abbey.js) */
-  g.rift=obj(g.rift)?{best:Math.max(0,Math.floor(num(g.rift.best,0)))}:{best:0};
+  g.rift=obj(g.rift)?Object.assign({},g.rift):{best:0}; riftFix(g);   /* sigils, shards, guardians (game-rift.js) */
   g.uid=top; g.mode='town'; g.run=null;
   g.gold=Math.max(0,Math.floor(num(g.gold,0)));
   const tr={}; if(obj(g.trophies)) for(const k in g.trophies){ const n=Math.floor(num(g.trophies[k],0)); if(TROPHY[k]&&n>0) tr[k]=n; } g.trophies=tr;

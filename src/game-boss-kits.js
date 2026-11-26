@@ -66,6 +66,7 @@ function nextMove(e){   // after a move fires (or is broken): the rotation moves
 const bossNext=e=>{ if(!e.kit) return []; const out=[e.abil]; let ix=e.kitIx; for(let i=1;i<e.kit.length;i++){ ix=(ix+1)%e.kit.length; out.push(e.kit[ix]); } return out; };   // the rotation from the next move on (the card)
 function bossTwist(e){   // the second phase of a boss with a kit
   const K=BOSS_KIT[e.base]; if(!e.kit||!K||!K.twist) return null; e.twist=K.twist; e.p2d=S.army.filter(m=>m.hp<=0).length;   /* p2d: minions down when phase two began (the titles) */
+  guardTwist(e);
   if(e.twist==='burn'){ e.imm='fire'; e.res=Object.assign({},e.res||{}); e.res.frost=(e.res.frost||0)-.25; e.kit=['cinder','burnground','cinder','lance']; e.kitIx=e.kit.indexOf(e.abil); if(e.kitIx<0){ e.kitIx=0; e.abil='cinder'; } }
   return TWISTS[e.twist];
 }
@@ -82,6 +83,7 @@ function bossHit(e,tg,mul,ty,mv){   // one blow from a boss move: ward, Guard an
 // the new moves (fireAbility hands every move it does not know to this)
 function fireKitMove(e,mv){
   const r=S.run, P=S.player, A=BOSS_ABIL[mv], foes=liveFoes();
+  if(GUARD_MV.includes(mv)&&guardMove(e,mv)) return;   /* the Rift's guardians (game-rift.js) */
   if(mv==='gnaw'){ const t=frontTarget(), d=bossHit(e,t,1.4,foeHitType(e),mv); addDot(t,'bleed',e.atk*.3,2); log(e.name+' gnaws '+(t.id==='p'?'you':nameOf(t))+' for '+d+'. The wound bleeds.','bad'); }
   else if(mv==='lock'){ const m=strongestMinion(); if(m){ m.lock=r.turn+3; log(e.name+' turns the Keymaster\'s Lock: '+m.nick+' is locked away for 2 turns.','bad'); fxe('ward',m); } else log(e.name+' turns its keys, but no minion is there to lock.','ok'); }
   else if(mv==='bash'){ const t=frontTarget(), d=bossHit(e,t,1.2,'phys',mv); addSt(t,'sundered',2); log(e.name+' bashes '+(t.id==='p'?'you':nameOf(t))+' with its shield for '+d+'. Sundered.','bad'); }
@@ -125,7 +127,7 @@ function mirrorLands(e){
 }
 // ----- hooks
 function bossHurt(e,d,ty){   // hurtFoe, after the damage: the Crypt Warden's Last Watch, then the masters' and wardens' rules
-  bossHurt2(e,d,ty);
+  bossHurt2(e,d,ty); guardHurt(e,d,ty);
   if(e.twist==='watch'&&d>0&&HITTER&&HITTER.hp>0&&liveFoes().some(o=>o.shield>0)){ const t=Math.max(1,Math.round(d*BK_REFLECT)), h=HITTER; HITTER=null; hurtAlly(h,t,'phys'); HITTER=h; }
 }
 function bossRoomTurn(){   // the start of the foes' phase: twists that act every turn
@@ -139,6 +141,7 @@ function bossRoomTurn(){   // the start of the foes' phase: twists that act ever
   }
 }
 function bossEndTurn(){   // the end of the turn: hazards that tick
+  guardEndTurn();
   if(hazardOn('roots')) S.army.forEach(m=>{ if(m.hp>0&&rowOf(m)==='b'){ hurtAlly(m,Math.max(1,Math.round(m.maxHp*BK_ROOTS)),'rot'); if(m.hp<=0) log(m.nick+' is dragged under by the roots.','bad'); } });
 }
 // ----- the rival's kit: shaped by the bodies it stole

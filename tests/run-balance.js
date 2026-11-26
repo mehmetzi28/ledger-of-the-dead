@@ -24,6 +24,7 @@ for(const m of ['noSkills','skills','market','full']){
   if(r.raids&&r.raids.sent) console.log('  raids: sent '+r.raids.sent+', won '+r.raids.won+' ('+Math.round(r.raids.won/r.raids.sent*100)+'%)');
   if(r.gold) console.log('  gold held (avg / median, lifetime earned / spent): '+Object.entries(r.gold).filter(([d])=>/^day/.test(d)).map(([d,g])=>d+' '+g.avg+' / '+g.median+' ('+g.earned+' / '+g.spent+')').join(' | ')+'  |  mausoleums '+r.gold.maus+', bonded pairs '+r.gold.bonds);
   if(r.rift) console.log('  rift: reached by '+r.rift.open+' bots, average deepest '+r.rift.best+', best '+r.rift.deepest+'  |  passive ranks learned: '+r.passives);
+  if(r.rift&&r.rift.sig) console.log('  rift sigils: '+r.rift.sig.dives+' sigiled dives a bot ('+r.rift.sig.k+' sigils each), '+r.rift.sig.won+' cleared; '+r.rift.sig.shards+' shards earned, '+r.rift.sig.guards+' guardians slain a bot');
   if(r.trials) console.log('  trials: '+r.trials.n+' tried ('+r.trials.perBot+' a bot), '+r.trials.done+' completed, hearts won '+r.trials.hearts+' a bot | '+r.trials.tiers.join(' | '));
   if(r.gold&&r.gold.hforge) console.log('  heartforge: '+r.gold.hforge.n+' pieces a bot, '+r.gold.hforge.spent+' gold');
   if(r.gold&&r.gold.brew){ const b=r.gold.brew; console.log('  brewing: '+b.n+' brews a bot ('+b.spent+' gold), '+b.prep+' brews carried into runs; commissions '+b.comm+' (+'+b.commG+' gold); black market '+b.bm+' trades'); }

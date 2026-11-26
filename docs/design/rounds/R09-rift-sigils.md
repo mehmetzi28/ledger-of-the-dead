@@ -122,3 +122,26 @@ Dive with the sigils the probe rates best for its build; attune the best Riftbor
 
 - **Riftborn breaks the Tower**: 30% outside the Rift, and *Descent* only counts Rift depths.
 - **Guardians as walls**: guardians use R2's phase rules and the alpha-strike lesson (rules over numbers).
+
+## As built (PR A, #24)
+
+- **Where**: `src/game-rift.js` (after game-rival-arc.js). `S.rift = {best, shards?, xs?, sig?, gk?}`: shards, sigils
+  opened with shards, the picked set (it is the preset: it stays for the next dive), first guardian kills by band.
+- **Sigils**: as the table, with these rules: Hungry Dark weakens all healing in the dive by 40% (a depth is one run, so
+  "between depths" has no meaning); Mirror turns the first skill of each room back on you (the Pale Sovereign's book
+  move); Old Wounds starts minions at 80% HP; Named puts the dive's master or guardian in phase two; Loud Grave leaves
+  no bodies; Typed Dark adds 30% resistance to the type most of your army deals (`r.sigT`). Rewards multiply gold, XP,
+  drop chance and the clear's XP. Open: three at depth 5, one per 5 depths, or one early for 10, 20, 30 ... shards.
+- **Guardians** (every 5th depth, in turn, x1.3 HP, no body): the Folded Knight (Fold: your rows swap; Edge of Gates:
+  the back row; Second Fold: the front too), Mother of Gates (Open Door, Close Door; All Doors), the Echo (Repeat:
+  your last skill back at you; Delay: skills wait a turn; Twice), Brass Saint (Litany of Brass: 6% per foe; Brass Bell:
+  the front row loses a turn; Brass Skin: immune to the last type that hit it; hazard Ringing: a silence every third
+  turn), the Tear Itself (Widen: +5% damage both ways, stacking; Swallow: eats a body; Widening; hazard: you lose 2% max
+  HP a turn), the Counting Dead (Count: the third count fells a minion; Tally; Two at a Time). They speak (but the
+  Tear), have icons, cards and Codex rows.
+- **Shards**: 1 + depth/10 a guardian, 1 per sigil on a cleared dive. Spent on opening sigils early (more in PR B).
+- **Not built**: Fold Sense, presets beyond the last set.
+- **Bot**: after its Rift push, 12 dives at best-4 with every sigil it may carry (BOT_SIG order), opening sigils with
+  shards; reports "rift sigils". `"off":["sigils"]`.
+- **Measured**: guardians cost ~0.5-1 depth; sigiled dives at best-4 with 3 sigils clear 53-55%. See 04-balance.
+- **Tests**: 98-rift (5); 835 in all; fuzz 12/12 clean.

@@ -111,6 +111,8 @@ const ACTIONS={
   awaken:k=>{ const it=findItem(+k); ui.msg=awaken(+k)?{mk:1,m:ITEM[it.id].name+' is now Awakened '+AWAKEN_RN[it.aw]+'.',c:'ok'}:null; },
   reforge:k=>{ const it=findItem(+k), c=it&&reforgeCost(it); ui.msg=reforge(+k)?{mk:1,m:'Reforged '+ITEM[it.id].name+' for '+c+' gold.',c:'ok'}:null; },
   rift:k=>{ startRift(+k); }, gsub:k=>{ ui.gsub=['open','war','rift','trial'].includes(k)?k:'open'; ui.msg=null; }, trial:()=>{ startTrial(); },
+  rsig:k=>{ toggleSigil(k); },
+  runlock:()=>{ const k=unlockSigil(); ui.msg=k?{m:'A new sigil opens: '+SIGILS[k].name+'.',c:'ok'}:null; },
   rdep:k=>{ const b=riftBest(); ui.rd=clamp((ui.rd||b+1)+(+k||0),1,b+1); },
   rcmd:k=>{ ui.rc=+k; ui.rsq=[]; }, rgate:k=>{ ui.rg=+k; ui.rt=tKey({k:'gate',di:+k}); }, rtgt:k=>{ ui.rt=String(k); }, rnight:k=>{ ui.rn=+k; },
   expc:k=>{ const [i,c]=String(k).split('|'); expChoose(+i,c); },

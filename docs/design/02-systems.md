@@ -442,8 +442,14 @@ endless "abyssal" floors past 100 pay gold and a legendary. Foes grow every floo
 on day 35, ~68 on day 60, ~78 on day 100 (market); ~88 (full).
 
 **The Rift** (`RIFT_*`). From level 40 after the Throne. Depth n: five rooms of a random gate's dead at the Throne's
-strength, at your level + n/3, x(1 + 0.3(n-1)). A new deepest depth leaves a legendary. Bot: depth ~31 (market), ~13
-(full; the full bot spends its days elsewhere).
+strength, at your level + n/3, x(1 + 0.55(n-1)). A new deepest depth leaves a legendary. Bot: depth ~16 (market), ~19
+(full). **Sigils and guardians** (`game-rift.js`, R9 PR A): before a dive pick up to three of ten sigils (SIGILS: Iron Sky,
+Hungry Dark, Many Hands, Mirror, Short Breath, Old Wounds, Named, Loud Grave, Typed Dark, Thin Veil), each a harder rule
+and +10-30% to the dive's reward multiplier (riftRew: gold, XP, drops, the clear's XP); three open at depth 5, one more
+per 5 depths, or for Rift Shards (10, 20, ...). Every fifth depth ends in a guardian (GUARDIANS, in turn: the Folded Knight,
+Mother of Gates, the Echo, Brass Saint, the Tear Itself, the Counting Dead), a boss kit of two moves, a second phase and
+sometimes a hazard; it leaves no body. Rift Shards (`S.rift.shards`): 1 + depth/10 per guardian, 1 per sigil on a cleared
+dive.
 
 **Weekly Trials** (`TRIAL_*`, `game-rival-trials.js`). After the Throne: each week a seeded cleared gate on a fixed tier
 with one or two curses, the same rooms for every attempt, once a day, no doors, raising or loot. Foes fight at the
