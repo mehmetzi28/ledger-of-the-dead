@@ -64,7 +64,7 @@ const skB=k=>{ if(!S||!S.player) return 0;
 const skMod=id=>(sk(id)>=SK_MAX&&S.player.skMod&&S.player.skMod[id])||null;
 const hasMod=(id,c)=>skMod(id)===c;
 function chooseMod(id,c){ const P=S.player; if(S.mode!=='town'||!SKILL_MODS[id]||!SKILL_MODS[id][c]||sk(id)<SK_MAX||skMod(id)) return false; vitals(()=>{ P.skMod=P.skMod||{}; P.skMod[id]=c; }); return true; }
-const skCost=s=>(hasMod('deathless','a')?Math.round(s.cost*DEEP_WELL):s.cost)*(S&&S.mode==='battle'&&S.run?naveK():1)*(marginReady()?0:1);   // Deep Well; the Bishop's Echoing nave; Marginalia (game-abbey.js)   // Deep Well; the Bishop's Echoing nave
+const skCost=s=>(hasMod('deathless','a')?Math.round(s.cost*DEEP_WELL):s.cost)*(S&&S.mode==='battle'&&S.run?naveK():1)*(marginReady()||hfFree()?0:1);   // Deep Well; the Bishop's Echoing nave; Marginalia (game-abbey.js)   // Deep Well; the Bishop's Echoing nave
 const siphonCost=()=>hasMod('soulwell','b')?6:8;   // Soul Siphon: see the SOULS block for its armor piercing and Souls
 
 // ===== MINION COMMANDS =====

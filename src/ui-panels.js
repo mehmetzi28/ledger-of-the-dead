@@ -37,13 +37,30 @@ function setLine(d){ if(d.tower||SET_NAMES[d.set]==null) return usetLine(d); con
 function itemCard(it,acts,cmp){
   const d=ITEM[it.id];
   return '<div class="item t'+d.tier+'">'+iico(d)+'<div class="i-body"><div class="i-top"><span class="i-name">'+d.name+'</span><span class="i-tag">'+TIERS[d.tier]+' &middot; '+SLOTS[d.slot]+(!d.uq&&!d.tower&&RANKS[d.set]?'<span class="sr"> &middot; gate '+RANKS[d.set]+' set</span>':'')+(d.tower?' &middot; <span class="i-floor">Hell Tower '+d.floor+'</span>':'')+(it.aw?' &middot; <span class="i-aw" title="'+AWAKEN_TXT+'">Awakened '+AWAKEN_RN[it.aw]+'</span>':'')+'</span></div>'
-   +'<div class="i-stats">'+statsHTML(d,it)+'</div>'+(d.flag?detl('fx'+d.flag,FLAGS[d.flag].split(':')[0],FLAGS[d.flag],'i-fx'):'')+setLine(d)+(cmp?cmpHTML(it):'')+'</div><div class="i-acts">'+(acts||'')+'</div></div>';
+   +'<div class="i-stats">'+statsHTML(d,it)+'</div>'+(it.hf?'<div class="i-hf">Heartforged from '+it.hf+(it.pw?' &middot; <b>'+HF_POW[it.pw].name+'</b>: '+HF_POW[it.pw].desc:'')+'</div>':'')+(d.flag?detl('fx'+d.flag,FLAGS[d.flag].split(':')[0],FLAGS[d.flag],'i-fx'):'')+setLine(d)+(cmp?cmpHTML(it):'')+'</div><div class="i-acts">'+(acts||'')+'</div></div>';
 }
 const lockBtn=it=>'<button class="btn small lockb'+(it.lk?' on':'')+'" data-a="lock" data-k="'+it.u+'" aria-pressed="'+!!it.lk+'" title="'+(it.lk?'Locked: never sold, salvaged or discarded. Press to unlock.':'Lock it so it is never sold, salvaged or discarded')+'">'+(it.lk?'Locked':'Lock')+'</button>';
 const reforgeBtn=it=>S.mode!=='town'?'':ITEM[it.id].uq?awakenBtn(it):'<button class="btn small" data-a="reforge" data-k="'+it.u+'"'+(S.gold<reforgeCost(it)?' disabled':'')+' title="Re-roll its bonus lines">Reforge &middot; '+gold(reforgeCost(it))+'</button>'+enchBtn(it);
 const dust=n=>'<span class="dust-n">'+n.toLocaleString()+' dust</span>';
+function hfSwapHTML(it){   // a heartforged piece: a second heart of its boss swaps one line (game-forge.js)
+  if(!it||!it.hf||S.mode!=='town'||!it.ro) return ''; const n=S.trophies[hfKey(it.hf)]||0, open=ui.hfsw===it.u;
+  let h='<button class="btn small" data-a="hfsw" data-k="'+it.u+'" aria-expanded="'+open+'"'+(n?'':' disabled')+' title="A heart of '+it.hf+' swaps one line for another of its list">Swap a line &middot; 1 heart ('+n+')</button>';
+  if(open&&n){ const left=hfLinesFor(it.hf,ITEM[it.id].slot).filter(k=>!it.ro.some(r=>r[0]===k));
+    h+='<div class="ench">'+it.ro.map((r,i)=>left.map(k=>'<button class="btn small" data-a="hfswap" data-k="'+it.u+'|'+i+'|'+k+'">'+statTxt(r[0],r[1])+' &rarr; '+statTxt(k,hfLineVal(hfInfo(it.hf),k))+'</button>').join('')).join('')+'</div>'; }
+  return h;
+}
+function heartforgeHTML(bagFull){   // the Heartforge (game-forge.js): pick a heart, a slot and its lines
+  const hs=hfHearts(); let h='<p class="group-h">Heartforge</p>'+brief('hforge','A boss, warden, secret master or Hunger heart, gold and bone dust forge a piece of its set in the slot you pick, with the bonus lines you choose from the boss\'s six, at the top of their range. Secret masters and the Hunger add a minor power. Reforging keeps the lines; a second heart swaps one.','q-note');
+  if(!hs.length) return h+'<p class="q-note">You hold no heart that the forge can use yet.</p>';
+  const boss=hs.includes(hfKey(ui.hfB))?ui.hfB:hs[0].slice(2), I=hfInfo(boss), slot=SLOTS[ui.hfS]?ui.hfS:'weapon', ok=hfLinesFor(boss,slot), want=I.n-(I.pw?1:0), sel=(ui.hfL||[]).filter(k=>ok.includes(k)).slice(0,want), c=hfCost(boss);
+  h+='<div class="chips">'+hs.map(k=>'<button class="btn small'+(k.slice(2)===boss?' primary':'')+'" data-a="hfb" data-k="'+k.slice(2)+'" aria-pressed="'+(k.slice(2)===boss)+'">'+TROPHY[k].name+' &times;'+S.trophies[k]+'</button>').join('')+'</div>';
+  h+='<div class="chips">'+GEAR_SLOTS.map(sl=>'<button class="btn small'+(sl===slot?' primary':'')+'" data-a="hfs" data-k="'+sl+'" aria-pressed="'+(sl===slot)+'">'+SLOTS[sl]+'</button>').join('')+'</div>';
+  h+='<p class="q-note">Pick '+want+' line'+(want>1?'s':'')+(I.pw?', plus '+HF_POW[I.pw].name+': '+HF_POW[I.pw].desc:'')+'</p><div class="chips">'+ok.map(k=>'<button class="btn small'+(sel.includes(k)?' primary':'')+'" data-a="hfl" data-k="'+k+'" aria-pressed="'+sel.includes(k)+'">'+statTxt(k,hfLineVal(I,k))+'</button>').join('')+'</div>';
+  const can=hfCan(boss,slot,sel), guard=hfGuard(boss), conf=ui.confirm==='hf';
+  return h+'<div class="btns"><button class="btn small '+(guard?'warn':'primary')+'" data-a="hforge"'+(can?'':' disabled')+'>'+(conf?'Press again: a unique you hold still needs this heart':'Forge &middot; '+gold(c.g)+' &middot; '+dust(c.d))+'</button>'+(bagFull?'<span class="q-note bad">Your bag is full.</span>':'')+'</div>';
+}
 function enchBtn(it){   // Enchant opens the choices: add a line (if there is room) or re-roll one line
-  if(ITEM[it.id].uq||S.mode!=='town'||!workOpen()) return '';
+  if(ITEM[it.id].uq||it.hf||S.mode!=='town'||!workOpen()) return hfSwapHTML(it);
   const open=ui.ench===it.u, c=enchCost(it), poor=(S.dust||0)<c, ro=it.ro||[];
   let h='<button class="btn small" data-a="ench" data-k="'+it.u+'" aria-expanded="'+open+'" title="Spend bone dust on its bonus lines">Enchant</button>';
   if(open) h+='<div class="ench">'+(ro.length<lineMax(it)?'<button class="btn small primary" data-a="enchadd" data-k="'+it.u+'"'+(poor?' disabled':'')+'>Add a line &middot; '+dust(c)+'</button>':'')
@@ -418,6 +435,8 @@ function marketHTML(){
   if(fg.length) h+='<div class="items">'+fg.map(i=>{ const pts=forgePoints(i), ok=pts>=FORGE_N&&S.gold>=forgeGold(i)&&!bagFull;
       return '<div class="tt-row"><div><h4>'+DUNGEONS[i].name+' forge <span class="u-tag">'+Math.min(pts,99)+'/'+FORGE_N+' trophies</span></h4><div class="u-sub">'+TIERS[SET_TIER[i]]+' gear &middot; costs '+gold(forgeGold(i))+'</div></div>'
        +'<div class="btns" style="margin:0">'+GEAR_SLOTS.map(sl=>'<button class="btn small'+(ok?' primary':'')+'" data-a="forge" data-k="'+i+'|'+sl+'"'+(ok?'':' disabled')+'>'+SLOTS[sl]+'</button>').join('')+'</div></div>'; }).join('')+'</div>';
+  { const n=towerTrophies(), ok=n>=TW_FORGE_N&&S.gold>=TW_FORGE_GOLD&&!bagFull; if(n) h+='<div class="items"><div class="tt-row"><div><h4>Hell Tower forge <span class="u-tag">'+Math.min(n,99)+'/'+TW_FORGE_N+' Tower trophies</span></h4><div class="u-sub">Throne of Ash gear, '+Math.round(TW_EXTRA*100)+'% with an extra line &middot; costs '+gold(TW_FORGE_GOLD)+'</div></div><div class="btns" style="margin:0">'+GEAR_SLOTS.map(sl=>'<button class="btn small'+(ok?' primary':'')+'" data-a="twforge" data-k="'+sl+'"'+(ok?'':' disabled')+'>'+SLOTS[sl]+'</button>').join('')+'</div></div></div>'; }
+  h+=heartforgeHTML(bagFull);
   { const n=Object.values(S.trophies).reduce((a,b)=>a+b,0);
     h+='<div class="btns">'+Object.keys(POTIONS).map(k=>'<button class="btn small" data-a="brew" data-k="'+k+'"'+(n<BREW_N||S.belt[k]>=BELT_MAX?' disabled':'')+'>Brew '+POTIONS[k].name+' &middot; '+BREW_N+' trophies</button>').join('')+'</div>'; }
   }

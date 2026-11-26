@@ -133,9 +133,11 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
 
 - **G10. Late gold outruns every sink.** ~1.1M lifetime gold in the full bot; most sinks are capped (buildings, bag,
   salts, tempering lines, mausoleums); headstones are the only open-ended one and are softly capped at 6%. (Economy,
-  town, Awakening.)
+  town, Awakening.) (R4 PR A adds heart-forging and a soft cap on late kill gold; the sink is still small, see 04.)
 - **G11. Some loot is dead-end.** Tower trophies (40 gold, sell only), Tower and secret-master hearts beyond Awakening,
-  and abyssal floors that pay generic legendaries. (Trophies, Tower, secret masters, crafting.)
+  and abyssal floors that pay generic legendaries. (Trophies, Tower, secret masters, crafting.) (Mostly closed by R4 PR A:
+  every boss, warden, master and Hunger heart forges a heartforged piece, and six Tower trophies forge Throne-set gear;
+  abyssal trophies are still to come.)
 - **G12. The town is small and finishes early.** Four buildings, three levels each, done by mid-game; they do not touch
   raids, faith, the bestiary or the Reserve beyond places. (Town, sieges, raids, faith, Reserve.)
 - **G13. The daily quest is not a choice.** 8 kills, 4 rooms, 1 clear is always done, so it is a hidden free stat point

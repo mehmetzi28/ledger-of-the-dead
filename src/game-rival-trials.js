@@ -74,7 +74,7 @@ function rivalRoom(list,di,lvl){   // the boss room on a challenge day: the riva
   }
   g.done=S.day; S.run.rival=true; tally('rivalMet');
 }
-function rivalLegend(){ const rows=tableFor(topGate(),'reaper',true,false).filter(x=>ITEM[x.id].tier===4&&!ITEM[x.id].uq); return rows.length?pickNorm(rows):pick(Object.values(ITEM).filter(d=>!d.uq&&!d.tower&&d.tier===4)).id; }
+function rivalLegend(){ const rows=tableFor(topGate(),'reaper',true,false).filter(x=>ITEM[x.id].tier===4&&!ITEM[x.id].uq); return rows.length?pickNorm(rows):pick(Object.values(ITEM).filter(d=>!d.uq&&!d.tower&&d.tier===4&&d.set!==ABBEY)).id; }
 function rivalBeaten(e,r){   // the rival falls: a legendary, the gold (in killLoot), the page back, and the next challenge pushed back
   const g=rv(); g.wins++; g.enc++; g.step++; tally('rivalWins'); r.rivalWon=true;
   { const id=rivalLegend(), it=addItem(id,rollItem(id,true)); if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name); }   // in the bag at once: kept even if their followers win the room
