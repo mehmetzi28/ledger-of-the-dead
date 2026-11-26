@@ -63,7 +63,7 @@ flowchart LR
 | Gear and uniques | Drops, market, forge, raids, sieges, bounties, rival | Hero and gear-bearer stats, unique flags, sets | Rolls, reforge, enchant, temper |
 | Awakening | Gold, dust, boss hearts (kills, Trials) | Unique stats | Hearts tie bosses and Trials to the endgame |
 | Trophies | Kills | Gold, forged gear, potions, hearts | Tower trophies only sell (G11) |
-| Town buildings | Gold, dust | Slots, Reserve, raise %, mana, discounts, siege perks | Finished by mid-game (G12) |
+| Town buildings | Gold, dust, clears, sieges, raids, oath | Slots, Reserve growth, raise %, mana, study, kept bodies, potions, brewing, raids, devotion, siege perks | Eleven buildings to level 5 with forty specializations (R5 PR A) |
 | Bounties | Tallies of any activity | Gold, salts, dust, gear | Good glue: reads many systems |
 | Raids | Commander minions, squad strength | Gold, gear, minion XP, Memorial | A dice roll (G17) |
 | Sieges | Town levels, calendar, Reserve wall, guard choice | Gold, dust, gear, building damage | Fixed roster (G23) |
@@ -121,8 +121,9 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
 
 **Army**
 
-- **G6. The Reserve is only storage.** Benched minions do not grow, train or do anything; with 6-12 places it is a
-  shelf. (Reserve, town, raids, evolution.)
+- ~~**G6. The Reserve is only storage.**~~ Closed by R5 PR A: the Charnel Yard trains the Reserve each dawn (Bone Pits up
+  to the army's top level), the Grave Market sells a benched minion, and Yard minions on the siege wall have more HP.
+  (Was: benched minions did not grow or do anything.) (Reserve, town, sieges.)
 - **G7. Most minions cannot use gear.** Only one armed kind per gate takes gear; unique flags work only for the hero.
   (Gear, army, uniques.)
 - **G8. Commander only matters for raids.** A rare, exciting trait with one use. (Traits, raids, combat, sieges.)
@@ -139,8 +140,10 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
   and abyssal floors that pay generic legendaries. (Trophies, Tower, secret masters, crafting.) (Mostly closed by R4 PR A:
   every boss, warden, master and Hunger heart forges a heartforged piece, and six Tower trophies forge Throne-set gear;
   abyssal trophies are still to come.)
-- **G12. The town is small and finishes early.** Four buildings, three levels each, done by mid-game; they do not touch
-  raids, faith, the bestiary or the Reserve beyond places. (Town, sieges, raids, faith, Reserve.)
+- ~~**G12. The town is small and finishes early.**~~ Closed by R5 PR A: eleven buildings of five levels (4-5 after the
+  Throne, 30k and 60k gold), forty specializations, and the new buildings touch study, bodies, potions, brewing, raids,
+  the oath, the rival and every siege. (Was: four buildings, three levels, done by mid-game.) (Town, sieges, raids,
+  faith, Reserve.)
 - **G13. The daily quest is not a choice.** 8 kills, 4 rooms, 1 clear is always done, so it is a hidden free stat point
   per day. (Quest, calendar, bounties.)
 - ~~**G14. Consumables are thin.**~~ Closed by R4 PR B: oils, incense, bone charms, war banners and two draughts brewed

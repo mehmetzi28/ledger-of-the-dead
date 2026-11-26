@@ -6,7 +6,7 @@
 // BELT_MAX of each drinkable, one more at Forge level 2 and 3 (beltMax). Commissions (S.comm) are three weekly town orders
 // for trophies, a heartforged piece or a grown minion. The black market (S.bm) opens every seventh day and trades without gold.
 const BELT_CAP=5, BREW_STASH=5, BREW_GOLD=60;
-const beltMax=()=>Math.min(BELT_CAP,BELT_MAX+(bl('forge')>=2?1:0)+(bl('forge')>=3?1:0));
+const beltMax=()=>Math.min(BELT_CAP,BELT_MAX+(bl('forge')>=2?1:0)+(bl('forge')>=3?1:0)+apoBelt());   /* the Apothecary (game-town2.js) */
 const OIL_WEAK=.1, INC_LOW=5, INC_GRAVE=10, DRAFT_HP=.3, DOOR_SIGHT=1, QUIET_DAYS=3, IRON_DR=.25, IRON_TURNS=2, BLOOD_HEAL=.15;
 const BANNER_ODDS=.1, BANNER_GOLD=1.5;
 // recipes: parts {role:n}, the lowest gate a part may come from (Tower trophies count as gate 5), or hearts: boss hearts
@@ -38,7 +38,7 @@ const partGate=k=>k.startsWith('t:')?5:trophyGate(k);
 const partKeys=(role,g)=>Object.keys(S.trophies||{}).filter(k=>!k.startsWith('b:')&&TROPHY[k]&&TROPHY[k].role===role&&partGate(k)>=g&&S.trophies[k]>0).sort((a,b)=>TROPHY[a].value-TROPHY[b].value);
 const partCount=(role,g)=>partKeys(role,g).reduce((a,k)=>a+S.trophies[k],0);
 const spareHearts=()=>Object.keys(S.trophies||{}).filter(k=>k.startsWith('b:')&&TROPHY[k]).map(k=>[k,S.trophies[k]-heartsKept(k)]).filter(([,n])=>n>0).sort((a,b)=>TROPHY[a[0]].value-TROPHY[b[0]].value);
-const brewGold=id=>{ const B=BREWS[id]; return B.hearts?BREW_GOLD*10:BREW_GOLD*((B.g||0)+1); };
+const brewGold=id=>{ const B=BREWS[id]; if(freeBrew()||(B.kind==='banner'&&bannerFree())) return 0; return Math.round((B.hearts?BREW_GOLD*10:BREW_GOLD*((B.g||0)+1))*apoBrewK()); };   /* the Apothecary, the Quartermaster (game-town2.js) */
 const stashN=id=>(S.stash&&S.stash[id])||0;
 function brewCan(id){
   const B=BREWS[id]; if(!B||S.mode!=='town'||S.gold<brewGold(id)) return false;
@@ -47,10 +47,11 @@ function brewCan(id){
   return Object.keys(B.parts).every(r=>partCount(r,B.g)>=B.parts[r]);
 }
 function brewIt(id){   // spends the parts (cheapest first) or spare hearts (lowest first) and the gold
-  if(!brewCan(id)) return false; const B=BREWS[id]; S.gold-=brewGold(id);
+  if(!brewCan(id)) return false; const B=BREWS[id], free=freeBrew(); S.gold-=brewGold(id); if(free) S.freeBrew=S.day;
   if(B.hearts){ let need=B.hearts; for(const [k,n] of spareHearts()){ const t=Math.min(n,need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
   else for(const r of Object.keys(B.parts)){ let need=B.parts[r]; for(const k of partKeys(r,B.g)){ const t=Math.min(S.trophies[k],need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
-  if(B.belt) S.belt[B.belt]=(S.belt[B.belt]||0)+1; else { S.stash=S.stash||{}; S.stash[id]=stashN(id)+1; }
+  const n=brewTwice()?2:1;   /* the Distillery (game-town2.js) */
+  if(B.belt) S.belt[B.belt]=Math.min(beltMax(),(S.belt[B.belt]||0)+n); else { S.stash=S.stash||{}; S.stash[id]=Math.min(BREW_STASH,stashN(id)+n); }
   tally('brewed'); tally('brewG',brewGold(id)); sfx('heal'); return true;
 }
 // ----- run prep: what a gate run takes from the stash
@@ -73,7 +74,7 @@ function useCharm(id){   // a charm burned in town (Quiet Grave)
 const runBrew=(k,id)=>!!(S&&S.run&&S.run[k]===id);
 const oilType=()=>S&&S.run&&S.run.oil&&!S.run.tw?BREWS[S.run.oil].ty:null;   // minionType: an oiled army deals the oil's type
 const oilK=(e,ty)=>{ const o=oilType(); return o&&ty===o&&HITTER&&HITTER.uid!=null&&foeRes(e,ty)<0?1+OIL_WEAK:1; };   // hurtFoe
-const incRaise=()=>runBrew('inc','inc_low')?INC_LOW:runBrew('inc','inc_grave')?INC_GRAVE:0;   // raiseChance
+const incRaise=()=>(runBrew('inc','inc_low')?INC_LOW:runBrew('inc','inc_grave')?INC_GRAVE:0)*censerK();   /* Censer House (game-town2.js) */   // raiseChance
 function brewRoom(r){ if(r.inc==='inc_abbot'&&r.room===r.rooms-1&&!r.abbotU){ r.abbotU=1; if(gainSoul()) log('Abbot\'s Incense: you enter the boss room with a Soul.','ok'); } }   // spawnRoom
 function brewFall(){ const r=S.run, P=S.player; if(r&&r.charm==='ch_draft'&&!r.draftU){ r.draftU=1; P.hp=Math.max(1,Math.round(pMax()*DRAFT_HP)); log('Second Draft: the page rewrites itself. You rise at '+P.hp+' HP.','ok'); tally('drafted'); return true; } return false; }   // playerFalls
 const brewDoors=(r,out)=>{ if(r.charm==='ch_door'&&out[0]==='fight'&&!out.includes('elite')) out.push('elite'); return out; };   // rollDoors
@@ -121,7 +122,7 @@ function commFill(i){
   if(!commCan(i)) return false; const c=S.comm.list[i], p=commPay(c);
   if(c.k==='tro'){ let need=c.n; for(const k of trosOf(c.role,c.g)){ const t=Math.min(S.trophies[k],need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
   else if(c.k==='hf'){ const it=commItem(c); S.inv=S.inv.filter(x=>x!==it); }
-  else { const m=commMinion(c); returnGear(m); S.army=S.army.filter(x=>x!==m); }
+  else { const m=commMinion(c); returnGear(m); S.army=S.army.filter(x=>x!==m); bondsClean(); syncArmy(); }
   S.gold+=p.g; S.dust=(S.dust||0)+p.d; c.done=1; tally('commissions'); tally('commG',p.g); sfx('coin'); return p;
 }
 function commTxt(c){ if(c.k==='tro') return c.n+' '+c.role+' parts from the '+DUNGEONS[c.g].name;

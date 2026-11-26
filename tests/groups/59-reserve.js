@@ -6,7 +6,7 @@ const cmdr=o=>mkMinion(Object.assign({elite:true,traits:['commander'],lvl:12,ran
 const fill=()=>{ while(S.army.length<slots()) mkMinion({lvl:2}); };
 
 test('Reserve: 6 places, +2 per Crypt level, and nothing before the Town tab opens',()=>{
-  eq([RESERVE_BASE,RESERVE_CRYPT].join(),'6,2'); eq(reserveMax(),6); S.build={crypt:1}; eq(reserveMax(),8); S.build={crypt:BUILD_MAX}; eq(reserveMax(),12); S.build={};
+  eq([RESERVE_BASE,RESERVE_CRYPT].join(),'6,2'); eq(reserveMax(),6); S.build={crypt:1}; eq(reserveMax(),8); S.build={crypt:BUILD_MAX}; eq(reserveMax(),6+2*BUILD_MAX); S.build={};
   ok(!townOpen()&&!reserveOpen(),'level 1, nothing cleared'); const a=mkMinion({}); S.mode='town'; ok(!toReserve(a.uid),'locked'); eq(S.reserve.length,0);
   ui.tab='army'; let h=renderAll('locked'); ok(!/Reserve \d/.test(h)&&!/data-a="tores"/.test(h),'no Reserve on screen yet');
   setLvl(4); ok(!reserveOpen(),'level alone opens nothing'); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1}}); ok(reserveOpen()); h=renderAll('open'); ok(/Reserve 0\/6/.test(h),'Reserve 0/6 under the army'); ok(h.includes('data-a="tores" data-k="'+a.uid+'"'),'To reserve on the army minion');

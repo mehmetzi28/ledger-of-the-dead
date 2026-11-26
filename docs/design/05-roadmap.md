@@ -513,3 +513,4 @@ Ideas worth keeping that are not yet a round:
 | R2 PR B: secret master kits with half-HP rules, warden signatures, boss titles | #12 | 2026-11-26 |
 | R4 PR A: heart-forging, minor powers, the Tower forge, the late gold soft cap; abbey gear stays in the abbey | #15 | 2026-11-26 |
 | R4 PR B: brewing from role parts, a growing belt, run prep, commissions, the black market | #16 | 2026-11-26 |
+| R5 PR A: seven new buildings, levels 4-5, forty specializations, the Charnel Yard, respec, the Embalmery | #17 | 2026-11-26 |

@@ -24,6 +24,14 @@ to each constant in `src/` and in `claude.md`; this page is the summary to read 
 
 ## 4.2 Latest measurements (2026-11-26, seeds 7700 and 9100, 40 bots x 100 days)
 
+**After the necropolis grows (R5 PR A)**: market unchanged (89/90%, Tower 78.6/77.1; the market bot does not build).
+full 91/91%, Tower 86.6/86.5, Rift 13.6/13.1, sieges 87/83%, rival 67/76%, raids 81/80%. The bot raises ~20 levels of the
+new buildings and picks 9-10 specializations a game; `"off":["town2","embalm"]` gives 91%, Tower 86.1, Rift 12.5, so the
+town buys about a Rift depth and half a floor at no cost in clears. Gold held at day 100 ~19k (target 10-20k): the new
+levels (up to 60k each) take gold that went to headstones before. One finding on the way: a Library roll drew a random
+number on every kill even with no Library, which reshuffled the market bots' runs (9100 read 86% from one unlucky bot);
+it now rolls only with a Library.
+
 **After brewing, commissions and the black market (R4 PR B)**: market unchanged (89/90% gates, Tower 78.6/77.1:
 the market bot does not brew). full 91/91%, Tower 86.9/87.1, Rift 12/11.9, sieges 86/83%, rival 68/75%. The full bot
 brews ~160 times a game (~40k gold: an oil for the gate's weakness, incense, a Second Draft and a banner armed, draughts
