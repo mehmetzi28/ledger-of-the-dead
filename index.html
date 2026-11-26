@@ -2025,7 +2025,7 @@ const masteredN=ids=>allNames().filter(n=>{ const t=masteryOf(n); return !!t&&id
  ['x_omen1','Curses and events','Omen-Born','Survive a run under an omen.',()=>T_('omenRuns')>=1,{xpp:2}],
  ['x_omen25','Curses and events','Omen-Reader','Win 25 runs under an omen.',()=>T_('omenWins')>=25,{drp:2}],
  ['x_omenall','Curses and events','Herald of Every Sign','Survive a run under every kind of omen.',()=>{ return Object.keys(OMENS).every(id=>T_('om_'+id)>=1); },{goldp:4}],
- ['x_eclipse','Curses and events','Lord of the Eclipse','Win 15 runs under an omen.',()=>{ return OMENS.eclipse?T_('omw_eclipse')>=5:T_('omenWins')>=15; },{dmgp:2,mpow:2}],
+ ['x_eclipse','Curses and events','Lord of the Eclipse','Win 5 runs under the Eclipse.',()=>{ return OMENS.eclipse?T_('omw_eclipse')>=5:T_('omenWins')>=15; },{dmgp:2,mpow:2}],
  ['x_mastered25','Deeds','Ledger-Scholar','Bring 25 kinds of foe to Mastered or better in the bestiary.',()=>masteredN(['mastered','ledgered'])>=25,{xpp:3}],
  ['x_ledger10','Deeds','Master of the Bestiary','Bring 10 kinds of foe to Ledgered in the bestiary.',()=>masteredN(['ledgered'])>=10,{dmgp:3}],
  ['x_relics','Deeds','Collector of Relics','Hold 6 different unique items at once.',()=>ownedUniques().length>=6,{goldp:4}],
