@@ -75,4 +75,32 @@ test('Trials: the Gates card, Codex page, How to play line and Turkish',()=>{
   for(const s of ['Trial','Your best this week','Enter the Trial','Trial complete: 33 turns, 2 minions downed','The Trial of week 3 begins in the Rat Warren.','Trial, week 2','Room 2/4 cleared','No bodies rise in a Trial. On to the next room.'])
     ok(trText(s)!==s,'Turkish for: '+s);
 });
+test('Trials: foes fight at the Throne of Ash\'s strength, at a fair level for the tier; never above the tier your level is advised; curses add no foe multiplier',()=>{
+  const a=mobStats(5,1,1,1,false,false), b=mobStats(1,1,1,1,false,false), L=[{maxHp:1000,hp:1000,atk:100}]; trialPow(L,1);
+  eq(L[0].maxHp,Math.round(1000*a.hp/b.hp),'HP like the Throne'); eq(L[0].atk,Math.round(100*a.atk/b.atk*DIFF.foeAtk[5]/DIFF.foeAtk[1]),'attack like the Throne'); eq(L[0].hp,L[0].maxHp);
+  const T5=[{maxHp:1000,hp:1000,atk:100}]; trialPow(T5,5); eq(T5[0].maxHp,1000,'the Throne itself is unchanged');
+  setLvl(50); for(let t=0;t<TRIAL_TIERS;t++) eq(trialLv(0,t),Math.max(RK[0].lv,50-(tierRec(5,t)-RK[5].lv)),'tier '+t); ok(trialLv(2,0)>trialLv(2,2),'a harder tier stands lower');
+  setLvl(3); eq(trialLv(3,0),RK[3].lv,'never below the gate\'s own level');
+  const p=open(50,1); p.mods=['fury']; p.tier=1; ok(startTrial()); eq(foeArmor(),DIFF.armor[5],'the Throne\'s armor'); eq(foeHeat(),HEAT[1].foe,'the curse adds no multiplier');
+  S.mode='town'; S.run=null; S.run={di:1,mod:'fury',heat:1,rooms:4}; near(foeHeat(),HEAT[1].foe*DAMNED_FOE,1e-9,'a cursed gate run still does');
+  const tiers=lv=>{ const o=new Set(); for(let w=1;w<=40;w++){ fresh(); o.add(open(lv,(w-1)*7+1).tier); } return o; };
+  let o=tiers(tierRec(5,1)-1); eq([...o].join(),'0','below the Throne\'s Hard advice: Normal only');
+  o=tiers(tierRec(5,2)-1); ok(o.has(1)&&!o.has(2),'Hard, not yet Brutal');
+});
+
+test('Trials: par pays the gate boss\'s hearts once a week (more on harder tiers), shown on the card, the result, the log and the Codex; saves keep it',()=>{
+  const p=open(50,1), key=trialHeartKey(p.di), n=trialHearts(p.tier); eq(key,'b:'+DUNGEONS[p.di].boss[0]); eq([0,1,2].map(trialHearts).join(),'1,2,3');
+  ui.tab='gates'; ui.gsub='trial'; let h=renderAll('card'); ok(h.includes('Par '+TRIAL_PAR+': the first score at or under it this week also pays '+n+' Heart'),'the card');
+  S.trophies={}; ok(startTrial()); for(let i=0;i<3;i++){ killRoom(); descend(); } S.run.tt=TRIAL_PAR+1; killRoom();
+  eq(S.trophies[key],undefined,'over par: no hearts'); ok(/Par is \d+\. Beat it/.test(renderAll('over')),'told the par'); returnTown();
+  S.day++; S.watches=WATCHES; ok(startTrial()); for(let i=0;i<3;i++){ killRoom(); descend(); } S.run.tt=TRIAL_PAR; killRoom();
+  eq(S.trophies[key],n,'at par: the hearts'); eq(tri().log[0].hp,1); eq(S.run.trialRes.h,n); eq(T_('trialHearts'),n,'counted');
+  ok(S.run.events.some(e=>e.m==='Par '+TRIAL_PAR+' beaten: +'+n+' Heart'+(n===1?'':'s')+' of '+DUNGEONS[p.di].boss[0]+'.'),'logged'); h=renderAll('par'); ok(h.includes('Par '+TRIAL_PAR+' beaten'),'the result');
+  returnTown(); h=renderAll('paid'); ok(/Paid this week/.test(h),'the card says paid');
+  S.day++; S.watches=WATCHES; ok(startTrial()); for(let i=0;i<3;i++){ killRoom(); descend(); } S.run.tt=1; killRoom(); eq(S.trophies[key],n,'once a week'); returnTown();
+  const g=normalizeSave(JSON.parse(JSON.stringify(S))); eq(g.trials.log[0].hp,1,'kept by saves');
+  S.trials.log[0].hp='x'; eq(normalizeSave(JSON.parse(JSON.stringify(S))).trials.log[0].hp,1,'truthy junk reads as paid'); S.trials.log[0].hp=0; eq(normalizeSave(JSON.parse(JSON.stringify(S))).trials.log[0].hp,0);
+  const c=cdx('trials'); ok(c.includes('The first score at or under '+TRIAL_PAR+' each week pays Hearts')&&c.includes('fight as hard as the Throne of Ash'),'Codex');
+  ok(trText('Par 8 beaten: +2 Hearts of The Crypt Warden.').startsWith('Hedef puan 8 geçildi'),'Turkish log'); ok(trText('Par 8: the first score at or under it this week also pays 1 Heart of The Rat King (for Awakening).').startsWith('Hedef puan 8:'),'Turkish card');
+});
 })();

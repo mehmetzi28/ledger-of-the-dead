@@ -47,6 +47,7 @@ function trialHTML(){   // the Gates tab's Trial sub-tab
   h+='<div class="items"><div class="tt-row"><div><h4>'+DUNGEONS[p.di].name+'</h4><div class="u-sub">'+HEAT[p.tier].name+' &middot; foes from Lv '+p.lv+' &middot; '+left+' day'+(left===1?'':'s')+' left this week</div></div></div>'
    +p.mods.map(k=>'<div class="tt-row"><div><h4>'+MODS[k].name+'</h4><div class="u-sub">'+MODS[k].desc+'</div></div></div>').join('')+'</div>'
    +'<p class="q-note">Four rooms, no doors, no events, no raising. Potions, skills and orders as usual. Score: turns taken plus '+TRIAL_DOWN+' for each minion downed; lower is better. A fall scores nothing. The first completion each week pays gold and bone dust like one clear of the gate.</p>'
+   +'<p class="q-note">Par '+TRIAL_PAR+': the first score at or under it this week also pays '+trialHearts(p.tier)+' Heart'+(trialHearts(p.tier)===1?'':'s')+' of '+DUNGEONS[p.di].boss[0]+' (for Awakening)'+(wb&&wb.hp?'. <span class="ok">Paid this week.</span>':'.')+'</p>'
    +'<div class="items"><div class="tt-row"><div><h4>Your best this week</h4></div><div class="rec-v">'+(wb?'<b>'+wb.s+'</b> <span class="dim">&middot; day '+wb.day+'</span>':'<span class="dim">not yet</span>')+'</div></div>'
    +'<div class="tt-row"><div><h4>Your best ever</h4></div><div class="rec-v">'+(T.best?'<b>'+T.best.s+'</b> <span class="dim">&middot; day '+T.best.day+'</span>':'<span class="dim">not yet</span>')+'</div></div></div>';
   const why=T.day===S.day?'You have tried the Trial today. Come back tomorrow.':S.watches<=0?'No watches left today.':S.player.lvl<RK[p.di].unlock?'This gate opens at level '+RK[p.di].unlock+'.':'';
@@ -65,7 +66,8 @@ function trialResultHTML(r){   // the raise screen after a Trial's last room
    +'<div class="tt-row"><div><h4>Turns taken</h4></div><div class="rec-v"><b>'+t.turns+'</b></div></div>'
    +'<div class="tt-row"><div><h4>Minions downed</h4></div><div class="rec-v"><b>'+t.downs+'</b> <span class="dim">&times; '+TRIAL_DOWN+' = '+t.downs*TRIAL_DOWN+'</span></div></div>'
    +'<div class="tt-row"><div><h4>Score</h4></div><div class="rec-v"><b>'+t.s+'</b>'+(t.record?' <span class="ok">new best ever</span>':t.better?' <span class="ok">new best this week</span>':'')+'</div></div></div>'
-   +(t.g?'<p class="q-note ok">First completion this week: +'+t.g+' gold, +'+t.d+' bone dust.</p>':'<p class="q-note">This week&#39;s reward has been paid.</p>')+'</div>';
+   +(t.g?'<p class="q-note ok">First completion this week: +'+t.g+' gold, +'+t.d+' bone dust.</p>':'<p class="q-note">This week&#39;s reward has been paid.</p>')
+   +(t.h?'<p class="q-note ok">Par '+TRIAL_PAR+' beaten: +'+t.h+' Heart'+(t.h===1?'':'s')+' of '+DUNGEONS[r.di].boss[0]+'.</p>':t.s>TRIAL_PAR?'<p class="q-note">Par is '+TRIAL_PAR+'. Beat it for the week&#39;s hearts.</p>':'')+'</div>';
 }
 function cxRivalHTML(){
   const pct=v=>Math.round(v*100)+'%', g=S.rival||{};
@@ -80,8 +82,10 @@ function cxRivalHTML(){
 }
 function cxTrialsHTML(){
   return cxP('Once the Throne of Ash has fallen, each week (days 1 to 7, 8 to 14, and so on) holds one Trial on the Gates tab: one gate you have cleared, on Normal, Hard or Brutal, with one or two curses. The rooms and foes are the same for every attempt that week; their level is fixed when the week begins.')
+   +cxP('Whatever gate they come from, Trial foes fight as hard as the Throne of Ash&#39;s, and stand as far below your level as the Throne&#39;s foes stand below its Recommended level on that tier. The week is never harder than the hardest tier the Throne recommends for your level. Curses bring their rules, not stronger foes.')
    +cxList([cxRow('Entry','One watch, at most once a day. Four rooms in a row: no doors, no events, no raising, no gear, gold or trophies. Potions, skills, orders and ultimates as usual.'),
      cxRow('Score','Turns taken plus '+TRIAL_DOWN+' for each minion downed. Lower is better. A fall scores nothing.'),
      cxRow('Reward','The first completion each week pays gold and bone dust like one clear of that gate. Repeats pay nothing, but a better score replaces the week&#39;s best.'),
+     cxRow('Par','The first score at or under '+TRIAL_PAR+' each week pays Hearts of the gate&#39;s boss: 1 on Normal, 2 on Hard, 3 on Brutal. Hearts awaken uniques.'),
      cxRow('Records','Your best for each of the last '+TRIAL_LOG+' weeks and your best ever, with the day, on the Records page. Kept through New Game+.')]);
 }

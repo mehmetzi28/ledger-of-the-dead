@@ -1627,13 +1627,17 @@ const gateRec=di=>Math.max(1,Math.round(REC_BASE[di]+recShift(di)));
 // Re-checked 2026-11-19 after the retune (same probe): D 7/8/10, C 12/14/21, B 18/26/39, A 24/33/49, S 37/46/>52; the same shares still fit within a few levels.
 // Hard 1.4 -> 1.8 and Brutal 2 -> 2.5 later that day (the full bot farmed Hard ~91%; Brutal stays a clear step up). Re-measured (same probe,
 // heats [1] and [2]): Hard D 8, C 14, B 24, A 28, S 36; Brutal D 10, C 16, B 26, A 34, S 40; shares .55/.45 -> .4/.32.
+// Re-measured 2026-11-26 after the Soul Tether (same probe, market, heats [1,2,3], near 20): the old shares asked 4-12 levels too many (S Brutal
+// advised 42, the bot cleared it ~75% at 30). First ~75%: Hard D 8, C 13, B 18, A 24, S 28; Brutal D 9, C 14, B 22, A 26, S 30; Nightmare D 10, C 16,
+// B 24, A 28, S 34; shares .2/.18/.13 fit D-A within ~1 level and run ~4 high on S (least squares over all five gave .16/.14/.11, 2 low on C-A: advice that
+// errs high is the safer one).
 // REC_TIER_F holds HEAT's foe values at that measurement: a test fails once a HEAT change moves the advice past REC_DRIFT levels.
-const REC_TIER=[1,.4,.32,.18], REC_TIER_F=[1,1.8,2.5,3.6];
+const REC_TIER=[1,.2,.18,.13], REC_TIER_F=[1,1.8,2.5,3.6];
 const tierRaw=(di,h,f)=>REC_BASE[di]+recShift(di)+(REC_TIER[h]||1)*(recShift(di,f)-recShift(di));
 const tierRec=(di,h)=>{ let r=gateRec(di); for(let t=1;t<=(h||0)&&t<HEAT.length;t++) r=Math.max(r+1,Math.round(tierRaw(di,t,HEAT[t].foe))); return r; };   // each tier at least a level above the one below
 const NGP_FOE=.3, NGP_REWARD=.25, ngpFoe=()=>1+NGP_FOE*((S&&S.ngp)||0), ngpReward=()=>(1+NGP_REWARD*((S&&S.ngp)||0))*pactReward();   // New Game+: tougher foes, richer rewards
 function foeScale(list,a){ const n=ngpFoe(); for(const e of list){ if(n!==1){ e.maxHp=e.hp=Math.round(e.maxHp*n); } if(a*n!==1) e.atk=Math.max(1,Math.round(e.atk*a*n)); } }
-const foeArmor=()=>{ if(!S.run) return 0; const a=S.run.tw?TW.armor:DIFF.armor[S.run.di]*(S.run.siege?siegeArmorK():1); return omen()==='ironrain'?1-(1-a)/IRON_ARMOR:a; };   // Iron Rain: foes 25% tougher to hurt
+const foeArmor=()=>{ if(!S.run) return 0; const a=S.run.tw?TW.armor:DIFF.armor[S.run.trial?TRIAL_GATE:S.run.di]*(S.run.siege?siegeArmorK():1); return omen()==='ironrain'?1-(1-a)/IRON_ARMOR:a; };   // Iron Rain: foes 25% tougher to hurt
 let S = null;
 const rnd = (a,b)=>a+Math.random()*(b-a);
 const pick = a=>a[Math.floor(Math.random()*a.length)];
@@ -1658,6 +1662,7 @@ const strPen = ()=>Math.min(STR_PEN_CAP,Math.floor(Math.max(0,A('strength'))/STR
 const conDr = ()=>Math.min(CON_DR_CAP,Math.max(0,A('constitution'))*CON_DR);   // % less damage taken
 const conHeal = ()=>Math.min(CON_HEAL_CAP,Math.max(0,A('constitution'))*CON_HEAL);   // % more healing received
 const intSkill = ()=>Math.max(0,A('intelligence'))*INT_SKILL;   // % more skill damage
+const CON_MINION=1, conMinion=()=>Math.max(0,A('constitution'))*CON_MINION;   // % more minion max HP from Constitution: the vigor your Soul Tether shares (2026-11-26: with the tether Constitution was the one stat that gave the army nothing, and Will+Strength/Intelligence builds pulled 10 Tower floors ahead of Will+Constitution)
 const statMinion = ()=>Math.max(0,A('strength'))*STR_MINION+Math.max(0,A('intelligence'))*INT_MINION;   // % more minion attack from Strength and Intelligence
 const skMul = ()=>(1+intSkill()/100)*(S.run?hexK(S.player):1);   // Hexed: your skills hit 20% softer too
 const pDr = ()=>Math.min(DR_CAP,xb('drp')+conDr());   // all your damage reduction: titles, sets, faith, Calcified Hide and Constitution
@@ -1688,7 +1693,7 @@ function syncMinion(m){
   const s=m.tw?towerStats(m.tw,m.lvl,m.hf,m.af,m.boss,m.elite):mobStats(m.rankI,m.lvl,m.hf,m.af,m.boss,m.elite);
   const gg=gearBonus(m);
   const b=(1+.02*A('will'))*(1+(G('mpow')+gg.mpow+6*sk('gravepact'))/100);
-  const nh=Math.round((s.hp*b*stageMul(m,'hp')+gg.hp)*(hasTrait(m,'thick')?1.25:1)*(hasTrait(m,'unmarred')?1+UNMARRED_K:1)*(hasTrait(m,'stitched')?STITCH_MAX:1)*siegeHpMul(m)*(remembered()?1+MEM_HP:1)*extraMul(m,'hp')), na=Math.round((s.atk*b*stageMul(m,'atk')+gg.atk)*(hasTrait(m,'vicious')?1.2:1)*(hasTrait(m,'unmarred')?1+UNMARRED_K:1)*(1+statMinion()/100)*extraMul(m,'atk'));
+  const nh=Math.round((s.hp*b*stageMul(m,'hp')+gg.hp)*(hasTrait(m,'thick')?1.25:1)*(hasTrait(m,'unmarred')?1+UNMARRED_K:1)*(hasTrait(m,'stitched')?STITCH_MAX:1)*siegeHpMul(m)*(remembered()?1+MEM_HP:1)*(1+conMinion()/100)*extraMul(m,'hp')), na=Math.round((s.atk*b*stageMul(m,'atk')+gg.atk)*(hasTrait(m,'vicious')?1.2:1)*(hasTrait(m,'unmarred')?1+UNMARRED_K:1)*(1+statMinion()/100)*extraMul(m,'atk'));
   if(m.maxHp!=null && nh>m.maxHp) m.hp+=nh-m.maxHp;
   m.maxHp=nh; m.atk=na; m.hp=Math.min(m.hp,m.maxHp);
 }
@@ -2174,7 +2179,7 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
   try{
     if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true)); const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
     else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
-    heatRoom(list,di); foeScale(list,foeAtkMul(di)); bulwark(list); riftScale(list);
+    heatRoom(list,di); foeScale(list,foeAtkMul(di)); if(r.trial) trialPow(list,di); bulwark(list); riftScale(list);
     heatScale(list);
     if(!boss&&kind==='elite') for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*ELITE_ROOM); e.atk=Math.max(1,Math.round(e.atk*ELITE_ROOM)); }
     affixAll(list);
@@ -3403,7 +3408,7 @@ function heatRoom(list,di){   // Nightmare, before scaling: a room with no elite
   for(const e of list) if(e.boss&&e.abil&&!e.phase2){ e.phase2=true; e.fast=(e.fast||0)+1; e.alt=true; e.abilT=Math.min(e.abilT,2); }
 }
 const DAMNED=1.3, DAMNED_FOE=1.5, CURSE_FOE=1.15;   // cursed and harder: rewards x1.3, foes x1.5; cursed on Normal: foes x1.15 (rewards come from the curse itself)
-const foeHeat=()=>{ const h=runHeat(), m=runMod(); return (h?HEAT[h].foe:1)*(m?(h?DAMNED_FOE:CURSE_FOE):1); };
+const foeHeat=()=>{ const h=runHeat(), m=runMod()&&!(S.run&&S.run.trial); return (h?HEAT[h].foe:1)*(m?(h?DAMNED_FOE:CURSE_FOE):1); };   // a Trial's curses bring only their own rules: its foes already fight at the Throne's strength (trialPow)
 function heatScale(list){ const f=foeHeat(); if(f!==1) for(const e of list){ if(e.rival) continue; e.maxHp=e.hp=Math.round(e.maxHp*f); e.atk=Math.max(1,Math.round(e.atk*f)); } }   // a room's foes and the adds called into it; the rival keeps their own measure
 const heatMax=di=>Math.min(HEAT.length-1,S.ti&&S.ti.clr&&S.ti.clr[di]?((S.heatMax&&S.heatMax[di]!=null?S.heatMax[di]:0)+1):0);   // highest level you may pick
 const heatOf=di=>Math.min((S.heat&&S.heat[di])||0,heatMax(di));
@@ -4514,7 +4519,8 @@ const clearDust=di=>Math.round((6+Math.floor(S.player.lvl/4))*(1+BOUNTY_GATE*di)
 // a cleared gate on a fixed difficulty with one or two curses, and the same rooms and foes for every attempt that week (the
 // run's own room generation is seeded from the week). One watch, once a day; four rooms, no doors, events or raising.
 // Score: turns plus a penalty per minion downed, lower is better. S.trials = {cur, day, log:[{w,di,t,s,day,paid}], best}.
-const TRIAL_ROOMS=4, TRIAL_DOWN=5, TRIAL_TIERS=3, TRIAL_LOG=8;   // tiers: Normal, Hard or Brutal
+const TRIAL_ROOMS=4, TRIAL_DOWN=5, TRIAL_TIERS=3, TRIAL_LOG=8, TRIAL_PAR=8;   // tiers: Normal, Hard or Brutal. TRIAL_PAR: a score at or under it, once a week, pays hearts of the gate's boss (1 + the tier) toward Awakening
+const trialHearts=t=>1+(t|0), trialHeartKey=di=>'b:'+DUNGEONS[di].boss[0];
 const trialDef=()=>({cur:null,day:0,log:[],best:null});
 const tri=()=>{ if(!S.trials) S.trials=trialDef(); return S.trials; };
 const trialOpen=()=>!!S&&!!S.player&&(T_('clrN5')>0||!!(S.ti&&S.ti.clr&&S.ti.clr[5]));
@@ -4526,7 +4532,8 @@ function trialPlan(){   // this week's Trial, fixed the first time the week asks
   if(!gs.length){ T.cur={w,di:-1}; return null; }
   const h=dayHash(w,101), ks=Object.keys(MODS), di=gs[h%gs.length], m1=ks[dayHash(w,103)%ks.length], two=dayHash(w,107)%2===1;
   const rest=ks.filter(k=>k!==m1), mods=two?[m1,rest[dayHash(w,109)%rest.length]]:[m1];
-  T.cur={w,di,tier:dayHash(w,113)%TRIAL_TIERS,mods,lv:Math.max(RK[di].lv,S.player.lvl-CURSE_GAP),seed:dayHash(w,127)}; return T.cur;
+  let tier=dayHash(w,113)%TRIAL_TIERS; while(tier>0&&S.player.lvl<tierRec(TRIAL_GATE,tier)) tier--;   /* never above the hardest tier the Throne recommends for your level */
+  T.cur={w,di,tier,mods,lv:trialLv(di,tier),seed:dayHash(w,127)}; return T.cur;
 }
 const trialBestWeek=()=>{ const w=trialWeek(); return (tri().log||[]).find(x=>x.w===w)||null; };
 const trialReady=()=>{ const p=trialPlan(); return !!p&&S.mode==='town'&&S.watches>0&&tri().day!==S.day&&S.player.lvl>=RK[p.di].unlock; };
@@ -4539,16 +4546,22 @@ function startTrial(){
   log('The Trial of week '+p.w+' begins in the '+DUNGEONS[di].name+'.');
   spawnRoom(); return true;
 }
+const TRIAL_GATE=5;   // a Trial's foes fight as hard as the Throne of Ash's, whatever gate they come from: its HP, attack and armor (2026-11-26: at their own gate's strength the bots wiped every Normal Trial room in one action, score 0)
+const trialLv=(di,t)=>Math.max(RK[di].lv,S.player.lvl-(tierRec(TRIAL_GATE,t)-RK[TRIAL_GATE].lv));   // and stand as far below your level as the Throne's foes stand below its Recommended level on that tier: a fair fight on every tier (it was your level -5 on every tier; the curses add no foe multiplier in a Trial, see foeHeat)
+function trialPow(list,di){ if(di>=TRIAL_GATE) return; const a=mobStats(TRIAL_GATE,1,1,1,false,false), b=mobStats(di,1,1,1,false,false), hk=a.hp/b.hp, ak=a.atk/b.atk*DIFF.foeAtk[TRIAL_GATE]/DIFF.foeAtk[di];
+  for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*hk); e.atk=Math.max(1,Math.round(e.atk*ak)); } }
 const trialScore=r=>(r.tt||0)+TRIAL_DOWN*(r.downs||0);
 function trialCleared(r){   // the fourth room falls: the score, the week's and the all-time best, and the first completion's reward
   const T=tri(), p=T.cur, s=trialScore(r); r.cleared=true; tally('trialsDone');
   r.trialRes={turns:r.tt||0,downs:r.downs||0,s};
   let e=T.log.find(x=>x.w===r.trial); const first=!e;
-  if(!e){ e={w:r.trial,di:r.di,t:r.heat||0,s,day:S.day,paid:0}; T.log.unshift(e); T.log=T.log.slice(0,TRIAL_LOG); }
+  if(!e){ e={w:r.trial,di:r.di,t:r.heat||0,s,day:S.day,paid:0,hp:0}; T.log.unshift(e); T.log=T.log.slice(0,TRIAL_LOG); }
   else if(s<e.s){ e.s=s; e.day=S.day; r.trialRes.better=true; }
   if(!T.best||s<T.best.s){ if(T.best) r.trialRes.record=true; T.best={s,day:S.day,w:r.trial,di:r.di,t:r.heat||0}; }
   if(!e.paid){ e.paid=1; const g=clearGold(r.di), d=clearDust(r.di); S.gold+=g; S.dust=(S.dust||0)+d; r.goldTot=(r.goldTot||0)+g; r.trialRes.g=g; r.trialRes.d=d; }
+  if(s<=TRIAL_PAR&&!e.hp){ e.hp=1; const k=trialHeartKey(r.di), n=trialHearts(r.heat); S.trophies[k]=(S.trophies[k]||0)+n; r.trialRes.h=n; r.trialRes.hk=k; tally('trialHearts',n); }   // par beaten: the gate's boss's hearts, once a week
   r.events.push({m:'Trial complete: '+(r.tt||0)+' turns, '+(r.downs||0)+' minion'+((r.downs||0)===1?'':'s')+' downed. Score '+s+(r.trialRes.g?'. First completion this week: +'+r.trialRes.g+' gold, +'+r.trialRes.d+' bone dust':'')+'.',c:'ok'});
+  if(r.trialRes.h) r.events.push({m:'Par '+TRIAL_PAR+' beaten: +'+r.trialRes.h+' Heart'+(r.trialRes.h===1?'':'s')+' of '+DUNGEONS[r.di].boss[0]+'.',c:'ok'});
   moment(first?'Trial complete: score '+s:r.trialRes.better?'Trial: new best this week, '+s:'Trial: score '+s,'gold');
   return 0;
 }
@@ -4557,7 +4570,7 @@ function trialsFix(g){   // normalizeSave
   const c=o.cur; let cur=null;
   if(ok(c)&&n(c.w)){ if(c.di===-1) cur={w:Math.floor(c.w),di:-1}; else if(RK[c.di]&&n(c.tier)&&c.tier<TRIAL_TIERS&&Array.isArray(c.mods)&&c.mods.length>=1&&c.mods.length<=2&&c.mods.every(k=>MODS[k])&&n(c.lv)&&n(c.seed)) cur={w:Math.floor(c.w),di:c.di,tier:Math.floor(c.tier),mods:c.mods.slice(),lv:Math.floor(c.lv),seed:Math.floor(c.seed)}; }
   const okE=x=>ok(x)&&n(x.w)&&RK[x.di]&&n(x.s)&&n(x.day)&&n(x.t)&&x.t<TRIAL_TIERS;
-  const log=Array.isArray(o.log)?o.log.filter(okE).slice(0,TRIAL_LOG).map(x=>({w:Math.floor(x.w),di:x.di,t:Math.floor(x.t),s:Math.floor(x.s),day:Math.floor(x.day),paid:x.paid?1:0})):[];
+  const log=Array.isArray(o.log)?o.log.filter(okE).slice(0,TRIAL_LOG).map(x=>({w:Math.floor(x.w),di:x.di,t:Math.floor(x.t),s:Math.floor(x.s),day:Math.floor(x.day),paid:x.paid?1:0,hp:x.hp?1:0})):[];
   g.trials={cur,day:n(o.day)?Math.floor(o.day):0,log,best:okE(o.best)?{s:Math.floor(o.best.s),day:Math.floor(o.best.day),w:Math.floor(o.best.w),di:o.best.di,t:Math.floor(o.best.t)}:null};
 }
 BOSS_LINES[RIVAL_KIND]=[RIVAL_LINES.hi,RIVAL_LINES.bye]; PHASE_LINES[RIVAL_KIND]=RIVAL_LINES.phase;
@@ -7592,7 +7605,7 @@ const TR_DICT=new Map(Object.entries({
 "Mana, Siphon, Ward, skill damage":"Mana, Emme, Kalkan, yetenek hasarı",
 "Mana, army slots, raise odds, minion bond":"Mana, ordu yeri, diriltme şansı, hizmetkâr bağı",
 "Strike damage: # + # per point + your level + gear. Also #% crit chance per point (up to #%), #% of foe armor pierced by Strike per # points (up to #%), and #% minion attack per point":"Vuruş hasarı: # + puan başına # + seviyen + teçhizat. Ayrıca puan başına %# kritik şansı (en fazla %#), her # puanda Vuruş'un deldiği düşman zırhının %#'i (en fazla %#) ve puan başına %# hizmetkâr saldırısı",
-"Max HP: # + # per point + # per level + gear. Also #% less damage taken per point (up to #%) and #% more healing received per point (up to #%)":"Azami Can: # + puan başına # + seviye başına # + teçhizat. Ayrıca puan başına %# daha az alınan hasar (en fazla %#) ve puan başına %# daha fazla alınan iyileşme (en fazla %#)",
+"Max HP: # + # per point + # per level + gear. Also #% less damage taken per point (up to #%), #% more healing received per point (up to #%) and #% minion max HP per point":"Azami Can: # + puan başına # + seviye başına # + teçhizat. Ayrıca puan başına %# daha az alınan hasar (en fazla %#), puan başına %# daha fazla alınan iyileşme (en fazla %#) ve puan başına %# daha fazla hizmetkâr azami canı",
 "Mana (# per point), Soul Siphon (# per point), Bone Ward (# per point), #% skill damage per point (Bone Spear, Corpse Explosion, Grave Chill and Reap) and #% minion attack per point":"Mana (puan başına #), Ruh Emme (puan başına #), Kemik Kalkanı (puan başına #), puan başına %# yetenek hasarı (Kemik Mızrak, Ceset Patlaması, Mezar Soğuğu ve Biç) ve puan başına %# hizmetkâr saldırısı",
 "Buy max":"En fazlasını al",
 "Buy # for # gold":"# tane al: # altın",
@@ -8231,6 +8244,9 @@ TR_RX.push([/^Soul Tether: (.+?) takes (\d+) of the blow for you$/,"Ruh Bağı: 
 ].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
 TR_RX.push([/^Awakened (I|II|III|IV|V)$/,"Uyanmış $1"],[/^Awaken (I|II|III|IV|V)$/,"Uyandır $1"],[/^(.+) is now Awakened (I|II|III|IV|V)$/,"$1 artık Uyanmış $2"],[/^Heart of (.+?) (\d+)\/(\d+)$/,"$1 Kalbi $2/$3"]);
 [["A unique you wear can be awakened","Giydiğin bir eşsiz uyandırılabilir"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+[["Max HP, damage taken, healing received, minion HP","Azami Can, alınan hasar, alınan iyileşme, hizmetkâr canı"],["Minion HP","Hizmetkâr canı"],["minion HP","hizmetkâr canı"],["More max HP for all your minions","Tüm hizmetkârların için daha fazla azami can"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });   // Constitution feeds the army
+[["Whatever gate they come from, Trial foes fight as hard as the Throne of Ash's, and stand as far below your level as the Throne's foes stand below its Recommended level on that tier. The week is never harder than the hardest tier the Throne recommends for your level. Curses bring their rules, not stronger foes","Sınav düşmanları hangi kapıdan gelirse gelsin Kül Tahtı'nınkiler kadar sert dövüşür ve Taht'ın düşmanları o zorlukta Önerilen seviyesinin ne kadar altındaysa senin seviyenin de o kadar altında durur. Hafta, Taht'ın seviyene önerdiği en zor kademeden asla daha zor olmaz. Lanetler kurallarını getirir, daha güçlü düşman değil"],["The first score at or under # each week pays Hearts of the gate's boss: # on Normal, # on Hard, # on Brutal. Hearts awaken uniques","Her hafta # ya da altındaki ilk puan kapının patronundan Kalp verir: Normal'de #, Zor'da #, Acımasız'da #. Kalpler eşsizleri uyandırır"],["Par","Hedef puan"],["Paid this week","Bu hafta ödendi"],["Par is #. Beat it for the week's hearts","Hedef puan #. Haftanın kalpleri için onu geç"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });   // Trials: Throne strength and par hearts
+TR_RX.push([new RegExp("^Par (\\d+): the first score at or under it this week also pays (\\d+) Hearts? of (.+?) \\(for Awakening\\)$"),"Hedef puan $1: bu hafta onun ya da altındaki ilk puan ayrıca $2 $3 Kalbi verir (Uyanış için)"],[new RegExp("^Par (\\d+) beaten: \\+(\\d+) Hearts? of (.+)$"),"Hedef puan $1 geçildi: +$2 $3 Kalbi"]);   // Trials: par hearts (names stay English)
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -9032,6 +9048,7 @@ const SG_PATH={
  raise:'<path d="M.6 8.4h8.8v1.2H.6Z"/><path d="M5 .8L8 4H6v3.8H4V4H2Z"/>',
  mpow:'<path d="M5 .8C2.7.8 1.3 2.4 1.3 4.4c0 1.2.6 2.1 1.4 2.6v2.2h4.6V7c.8-.5 1.4-1.4 1.4-2.6C8.7 2.4 7.3.8 5 .8Z"/><circle class="d" cx="3.6" cy="4.6" r="1"/><circle class="d" cx="6.4" cy="4.6" r="1"/><path class="k" d="M4 7.6v1.4M5 7.6v1.4M6 7.6v1.4"/>',
  matk:'<path class="o" d="M1.8 8.8L3.8 1.4M4.4 8.8L6.1 1.4M7 8.8L8.6 2.4"/>',
+ mhp:'<path class="o" d="M5 8.6C2 6.4 1.1 4.8 1.4 3.4 1.9 1.8 3.8 1.5 5 3 6.2 1.5 8.1 1.8 8.6 3.4 8.9 4.8 8 6.4 5 8.6Z"/><path class="k" d="M3.4 5.6h3.2"/>',
  regen:'<path d="M4.4 1.2C3 3.4 2 4.6 2 5.9a2.4 2.4 0 0 0 4.8 0C6.8 4.6 5.8 3.4 4.4 1.2Z"/><path d="M7.6 5.6h.9v1.2h1.2v.9H8.5v1.2h-.9V7.7H6.4v-.9h1.2Z"/>',
  slot:'<path d="M2 9.2V4C2 2.3 3.3 1 5 1s3 1.3 3 3v5.2Z"/><path class="k" d="M5 2.8v3.6M3.7 4h2.6"/>',
  pierce:'<path class="o" d="M1.2 8.8L8.2 1.8M5.6 1.6h2.8v2.8M3 4.4l2.6 2.6"/>',
@@ -9039,10 +9056,10 @@ const SG_PATH={
  heal:'<path d="M3.8 1h2.4v2.8H9v2.4H6.2V9H3.8V6.2H1V3.8h2.8Z"/>',
  skill:'<path class="o" d="M5 .8L7.5 9 1 3.9h8L2.5 9Z"/>'
 };
-const SG_WORD={pierce:'Armor pierce',dr:'Damage taken',heal:'Healing received',skill:'Skill damage',matk:'Minion attack'};
+const SG_WORD={pierce:'Armor pierce',dr:'Damage taken',heal:'Healing received',skill:'Skill damage',matk:'Minion attack',mhp:'Minion HP'};
 const SG_HINT={hp:'Damage it can take before it falls',atk:'Damage of a basic hit',crit:'Chance for Strike to land a critical hit',siph:'Soul Siphon drains life from a foe and heals you',mana:'Pays for skills and for raising the dead',ward:'Bone Ward: a shield that soaks up damage',
-  strength:'Strike damage, crit chance, armor piercing, minion attack',constitution:'Max HP, damage taken, healing received',intelligence:'Mana, Siphon, Ward, skill damage, minion attack',will:'Mana, army slots, raise odds, minion bond',
-  raise:'Chance that a fallen foe answers your call',mpow:'More HP and attack for all your minions',matk:'More attack for all your minions',regen:'Mana you regain every turn',slot:'How many minions your army can hold',
+  strength:'Strike damage, crit chance, armor piercing, minion attack',constitution:'Max HP, damage taken, healing received, minion HP',intelligence:'Mana, Siphon, Ward, skill damage, minion attack',will:'Mana, army slots, raise odds, minion bond',
+  raise:'Chance that a fallen foe answers your call',mpow:'More HP and attack for all your minions',matk:'More attack for all your minions',mhp:'More max HP for all your minions',regen:'Mana you regain every turn',slot:'How many minions your army can hold',
   pierce:'Share of foe armor your Strike ignores',dr:'Less damage from every hit you take',heal:'More healing from every source',skill:'More damage from your skills'};   // the stat tooltip's second line (sgTipShow, ui-input.js)
 const sgl=(k,lab)=>{ lab=lab||SG_WORD[k]||(STATL[k]&&STATL[k][0])||k; return '<span class="sg sg-'+k+'" role="img" data-k="'+k+'" aria-label="'+lab+'"><svg viewBox="0 0 10 10" aria-hidden="true">'+(SG_PATH[k]||'')+'</svg></span>'; };
 const manaCost=n=>'<span class="mcost">'+sgl('mana','Mana cost')+n+'</span>';   // battle buttons: what an action costs, so a bare "10" reads as 10 mana
@@ -9248,11 +9265,11 @@ function bestiaryHTML(){
 }
 
 // What one more point in a stat would change, worked out from the real formulas (shown next to each + button).
-const GAIN_G={Strike:'atk','Max HP':'hp',Mana:'mana',Siphon:'siph',Ward:'ward',Slots:'slot',crit:'crit','armor pierce':'pierce','damage taken':'dr','healing received':'heal','skill damage':'skill','minion attack':'matk',raise:'raise',minions:'mpow'};
+const GAIN_G={Strike:'atk','Max HP':'hp',Mana:'mana',Siphon:'siph',Ward:'ward',Slots:'slot',crit:'crit','armor pierce':'pierce','damage taken':'dr','healing received':'heal','skill damage':'skill','minion attack':'matk','minion HP':'mhp',raise:'raise',minions:'mpow'};
 const GAIN_W={Slots:'Army slots',crit:'Crit chance',raise:'Raise chance',minions:'Minion power'};   // the glyph's full word where the gain's own word is short
 function statGainList(k){   // [name, change, unit] for each thing one more point changes
   const P=S.player, f=()=>({Strike:pAtk(),'Max HP':pMax(),Mana:pMana(),Siphon:pSiph(),Ward:pWard(),Slots:slots()}),
-    g=()=>({crit:strCrit(),'armor pierce':strPen()*100,'damage taken':-conDr(),'healing received':conHeal(),'skill damage':intSkill(),'minion attack':statMinion()});   // percent parts
+    g=()=>({crit:strCrit(),'armor pierce':strPen()*100,'damage taken':-conDr(),'healing received':conHeal(),'skill damage':intSkill(),'minion attack':statMinion(),'minion HP':conMinion()});   // percent parts
   const a=f(), ga=g(); P.stats[k]++; const b=f(), gb=g(); P.stats[k]--;
   const out=Object.keys(a).filter(x=>b[x]!==a[x]).map(x=>[x,b[x]-a[x],'']);
   for(const x in ga){ const d=Math.round((gb[x]-ga[x])*100)/100; if(d) out.push([x,d,'%']); }
@@ -9263,7 +9280,7 @@ const statGain=k=>statGainList(k).map(([x,d,u])=>x+' '+(d>0?'+':'')+d+u).join(',
 const gainG=k=>statGainList(k).map(([x,d,u])=>'<span class="sv">'+sgl(GAIN_G[x],GAIN_W[x]||x[0].toUpperCase()+x.slice(1))+(d>0?'+':'')+d+u+'</span>').join(' ');
 function statusHTML(){
   const P=S.player, st=P.stats, ri=pRankI();
-  const rows=[['strength','Strength','Strike damage, crit chance, armor piercing, minion attack',['atk','crit','pierce','matk']],['constitution','Constitution','Max HP, damage taken, healing received',['hp','dr','heal']],['intelligence','Intelligence','Mana, Siphon, Ward, skill damage, minion attack',['mana','siph','ward','skill','matk']],['will','Will','Mana, army slots, raise odds, minion bond',['mana','slot','raise','mpow']]];
+  const rows=[['strength','Strength','Strike damage, crit chance, armor piercing, minion attack',['atk','crit','pierce','matk']],['constitution','Constitution','Max HP, damage taken, healing received, minion HP',['hp','dr','heal','mhp']],['intelligence','Intelligence','Mana, Siphon, Ward, skill damage, minion attack',['mana','siph','ward','skill','matk']],['will','Will','Mana, army slots, raise odds, minion bond',['mana','slot','raise','mpow']]];
   const canAlloc=P.pts>0&&S.mode!=='battle';
   return '<section class="win" aria-labelledby="h-status"><h2 class="win-h" id="h-status">Status</h2>'
    +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(faithOf()?'<div class="faith-l '+faithOf()+'">'+FAITH[faithOf()].name+'</div>':'')+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+'</div></div></div>'
@@ -9729,7 +9746,7 @@ function codexSection(k){
     +cxP('Each level gives 3 stat points and 1 skill point. Falling in a fight loses that room\'s spoils and '+pct(DIFF.deathXp)+' of a level in XP. Going on to the next room heals '+pct(DIFF.heal)+' of your HP, restores '+pct(DIFF.mana)+' of your mana and heals your minions '+pct(DIFF.mheal)+'.')
     +cxP('After a fall in a gate room, a Tower floor or the Rift, Retry on the defeat screen starts that room over as it began: the same foes at full strength, you and your army as you stood when you entered, and no watch spent. The XP loss stands, potions you drank stay drunk, and the defeat screen names the blow that felled you. Sieges, Trials and rooms the rival stood in cannot be retried.')
     +'<p class="group-h">Stats</p>'+cxList([cxRow('Strength','Strike damage: 3 + 2.2 per point + your level + gear. Also '+STR_CRIT+'% crit chance per point (up to '+STR_CRIT_CAP+'%), 1% of foe armor pierced by Strike per '+STR_PEN+' points (up to '+STR_PEN_CAP+'%), and '+STR_MINION+'% minion attack per point.'),
-      cxRow('Constitution','Max HP: 24 + '+CON_HP+' per point + 4 per level + gear. Also '+CON_DR+'% less damage taken per point (up to '+CON_DR_CAP+'%) and '+CON_HEAL+'% more healing received per point (up to '+CON_HEAL_CAP+'%).'),
+      cxRow('Constitution','Max HP: 24 + '+CON_HP+' per point + 4 per level + gear. Also '+CON_DR+'% less damage taken per point (up to '+CON_DR_CAP+'%), '+CON_HEAL+'% more healing received per point (up to '+CON_HEAL_CAP+'%) and '+CON_MINION+'% minion max HP per point.'),
       cxRow('Intelligence','Mana (6 per point), Soul Siphon (2.8 per point), Bone Ward (3 per point), '+INT_SKILL+'% skill damage per point (Bone Spear, Corpse Explosion, Grave Chill and Reap) and '+INT_MINION+'% minion attack per point.'),cxRow('Will','Mana (3 per point), one army slot per 2.5 points, '+RAISE_WILL+'% raise chance per point, 2% minion power per point, and '+SHATTER_WILL+'% less chance per point that a downed minion shatters (never below '+SHATTER_MIN+'%).'),
       cxRow('Limits','Strike crits 10% of the time before Strength, gear and skills. All your damage reduction together (Constitution, titles, sets, faith and Calcified Hide) stops at '+DR_CAP+'%.')])
     +'<p class="group-h">Everything gear can give</p>'+cxList(Object.keys(STATL).map(s=>cxRow(STATL[s][0],(ROLL_KEYS[s]?'Can appear as a bonus line.':'Only on base stats and uniques.')+(STATL[s][1]?' Measured in percent.':''))))
@@ -10121,6 +10138,7 @@ function trialHTML(){   // the Gates tab's Trial sub-tab
   h+='<div class="items"><div class="tt-row"><div><h4>'+DUNGEONS[p.di].name+'</h4><div class="u-sub">'+HEAT[p.tier].name+' &middot; foes from Lv '+p.lv+' &middot; '+left+' day'+(left===1?'':'s')+' left this week</div></div></div>'
    +p.mods.map(k=>'<div class="tt-row"><div><h4>'+MODS[k].name+'</h4><div class="u-sub">'+MODS[k].desc+'</div></div></div>').join('')+'</div>'
    +'<p class="q-note">Four rooms, no doors, no events, no raising. Potions, skills and orders as usual. Score: turns taken plus '+TRIAL_DOWN+' for each minion downed; lower is better. A fall scores nothing. The first completion each week pays gold and bone dust like one clear of the gate.</p>'
+   +'<p class="q-note">Par '+TRIAL_PAR+': the first score at or under it this week also pays '+trialHearts(p.tier)+' Heart'+(trialHearts(p.tier)===1?'':'s')+' of '+DUNGEONS[p.di].boss[0]+' (for Awakening)'+(wb&&wb.hp?'. <span class="ok">Paid this week.</span>':'.')+'</p>'
    +'<div class="items"><div class="tt-row"><div><h4>Your best this week</h4></div><div class="rec-v">'+(wb?'<b>'+wb.s+'</b> <span class="dim">&middot; day '+wb.day+'</span>':'<span class="dim">not yet</span>')+'</div></div>'
    +'<div class="tt-row"><div><h4>Your best ever</h4></div><div class="rec-v">'+(T.best?'<b>'+T.best.s+'</b> <span class="dim">&middot; day '+T.best.day+'</span>':'<span class="dim">not yet</span>')+'</div></div></div>';
   const why=T.day===S.day?'You have tried the Trial today. Come back tomorrow.':S.watches<=0?'No watches left today.':S.player.lvl<RK[p.di].unlock?'This gate opens at level '+RK[p.di].unlock+'.':'';
@@ -10139,7 +10157,8 @@ function trialResultHTML(r){   // the raise screen after a Trial's last room
    +'<div class="tt-row"><div><h4>Turns taken</h4></div><div class="rec-v"><b>'+t.turns+'</b></div></div>'
    +'<div class="tt-row"><div><h4>Minions downed</h4></div><div class="rec-v"><b>'+t.downs+'</b> <span class="dim">&times; '+TRIAL_DOWN+' = '+t.downs*TRIAL_DOWN+'</span></div></div>'
    +'<div class="tt-row"><div><h4>Score</h4></div><div class="rec-v"><b>'+t.s+'</b>'+(t.record?' <span class="ok">new best ever</span>':t.better?' <span class="ok">new best this week</span>':'')+'</div></div></div>'
-   +(t.g?'<p class="q-note ok">First completion this week: +'+t.g+' gold, +'+t.d+' bone dust.</p>':'<p class="q-note">This week&#39;s reward has been paid.</p>')+'</div>';
+   +(t.g?'<p class="q-note ok">First completion this week: +'+t.g+' gold, +'+t.d+' bone dust.</p>':'<p class="q-note">This week&#39;s reward has been paid.</p>')
+   +(t.h?'<p class="q-note ok">Par '+TRIAL_PAR+' beaten: +'+t.h+' Heart'+(t.h===1?'':'s')+' of '+DUNGEONS[r.di].boss[0]+'.</p>':t.s>TRIAL_PAR?'<p class="q-note">Par is '+TRIAL_PAR+'. Beat it for the week&#39;s hearts.</p>':'')+'</div>';
 }
 function cxRivalHTML(){
   const pct=v=>Math.round(v*100)+'%', g=S.rival||{};
@@ -10154,9 +10173,11 @@ function cxRivalHTML(){
 }
 function cxTrialsHTML(){
   return cxP('Once the Throne of Ash has fallen, each week (days 1 to 7, 8 to 14, and so on) holds one Trial on the Gates tab: one gate you have cleared, on Normal, Hard or Brutal, with one or two curses. The rooms and foes are the same for every attempt that week; their level is fixed when the week begins.')
+   +cxP('Whatever gate they come from, Trial foes fight as hard as the Throne of Ash&#39;s, and stand as far below your level as the Throne&#39;s foes stand below its Recommended level on that tier. The week is never harder than the hardest tier the Throne recommends for your level. Curses bring their rules, not stronger foes.')
    +cxList([cxRow('Entry','One watch, at most once a day. Four rooms in a row: no doors, no events, no raising, no gear, gold or trophies. Potions, skills, orders and ultimates as usual.'),
      cxRow('Score','Turns taken plus '+TRIAL_DOWN+' for each minion downed. Lower is better. A fall scores nothing.'),
      cxRow('Reward','The first completion each week pays gold and bone dust like one clear of that gate. Repeats pay nothing, but a better score replaces the week&#39;s best.'),
+     cxRow('Par','The first score at or under '+TRIAL_PAR+' each week pays Hearts of the gate&#39;s boss: 1 on Normal, 2 on Hard, 3 on Brutal. Hearts awaken uniques.'),
      cxRow('Records','Your best for each of the last '+TRIAL_LOG+' weeks and your best ever, with the day, on the Records page. Kept through New Game+.')]);
 }
 // ----- mastery paths and New Game+ pacts on screen (rules in src/game-progression.js)

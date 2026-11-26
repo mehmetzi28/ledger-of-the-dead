@@ -53,6 +53,7 @@
 //              'reserve' off: the bot keeps no bench (raiders who come home to it take an army place if stronger, or are let go).
 //              'rival' off: no rival (no thefts, no challenges). The rival only plays in the 'full' mode, so 'market' numbers stay
 //              comparable with earlier runs; there the bot goes to a challenge's gate on its day and fights it like any boss room.
+//              'trials' off: the full bot skips the weekly Trial (it tries it each day until it completes it, at most 3 tries a week).
 //   The full bot now swears faith by default (Honored on even bots, Dishonored on odd) and climbs to Hard on cleared gates
 //   (opts.heat:1); pass faith/heat to override, heat:0 for the old behaviour. Every run also reports secret masters met/slain.
 //   opts.faith ('hon'|'dis') swears an oath once the shrine opens (3 gates cleared, level 8); opts.ult ('toll'|'rise'|'prison') picks the ultimate; opts.heat (1-3) lets
@@ -278,15 +279,22 @@
       break; }
     if(S.mode!=='town') returnTown();
   }
+  function playTrial(B,out){   // the week's Trial ('full'; "off":["trials"] skips it): four rooms straight through, no raising; records the score
+    const p=trialPlan(), lvl=S.player.lvl; if(!startTrial()) return; let guard=0;
+    while(S.mode!=='town'&&guard++<1000){ if(S.mode==='battle') act(decide(B)); else if(S.mode==='raise'){ if(S.run.cleared) break; descend(); } else break; }
+    const r=S.run, x={di:p.di,t:p.tier,lvl,done:!!(r&&r.trialRes)}; if(x.done){ x.s=r.trialRes.s; x.tt=r.trialRes.turns; x.downs=r.trialRes.downs; x.par=TRIAL_PAR; x.hearts=r.trialRes.h||0; }
+    out.push(x); if(S.mode!=='town') returnTown();
+  }
   function simBot(seed,B,days){
     Math.random=mulberry32(seed); newGame(); B.statI=0; B.hw={}; B.hwDay={};
-    const rec=[], lvAt={}, firstClear={}, loreAt={}, tiers=[], goldAt={}, gl={earn:0,spend:0,S:null};
+    const rec=[], lvAt={}, firstClear={}, loreAt={}, tiers=[], trials=[], goldAt={}, gl={earn:0,spend:0,S:null};
     const goldWatch=()=>{ if(gl.S===S) return; gl.S=S; let v=S.gold||0; Object.defineProperty(S,'gold',{enumerable:true,configurable:true,get:()=>v,set:x=>{ if(x>v) gl.earn+=x-v; else gl.spend+=v-x; v=x; }}); };   // lifetime gold earned and spent
     while(S.day<=days){
       goldWatch();
       if(B.tiers&&S.watches===WATCHES&&S.day%(B.tiers.every||2)===0) tierProbe(B,seed,tiers);
       if(S.mode==='siege') fightSiege(B);
-      town(B); const d=S.day; playRun(B,rec); if(S.mode==='siege') fightSiege(B);
+      town(B); const d=S.day; if(B.full&&!B.off.trials&&typeof trialReady==='function'&&trialReady()&&!trialBestWeek()&&(B.trw&&B.trw.w===trialWeek()?B.trw.n:0)<3){ B.trw=B.trw&&B.trw.w===trialWeek()?B.trw:{w:trialWeek(),n:0}; B.trw.n++; playTrial(B,trials); town(B); }   // until it completes the week's Trial, at most 3 tries a week
+      playRun(B,rec); if(S.mode==='siege') fightSiege(B);
       const last=rec[rec.length-1]; if(last&&last.cleared&&firstClear[last.gate]==null) firstClear[last.gate]=d;
       if(S.day!==d){ if(typeof loreCheck==='function') loreCheck(); lvAt[d]=S.player.lvl; goldAt[d]=[S.gold,gl.earn,gl.spend];   /* the game checks lore when it draws; bots never draw */ loreAt[d]=[Object.keys(S.story||{}).length,S.pages||0]; }
     }
@@ -302,7 +310,7 @@
     const rival={met:T_('rivalMet'),wins:T_('rivalWins'),losses:T_('rivalLosses'),thefts:T_('rivalThefts'),day:(S.rival&&S.rival.met)||0};
     const head=typeof headBonus==='function'?{g:T_('headG'),t:headTiers(),b:headBonus()}:null;
     const awk={g:T_('awakenG'),n:T_('awakened')};   // awakening ranks bought and their gold
-    return {ev:B.ev||{},chainsEnded:T_('chains'),head,awk,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
+    return {trials,ev:B.ev||{},chainsEnded:T_('chains'),head,awk,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
   }
 
   // ----- reporting
@@ -338,7 +346,10 @@
     const events={}; for(const r of res) for(const k in r.ev||{}) events[k]=(events[k]||0)+r.ev[k];   // events met by id:choice (summed over bots), and ok/bad outcomes
     if(Object.keys(events).length){ const n=k=>Object.keys(events).filter(x=>k(x)).reduce((a,x)=>a+events[x],0); events.perBot=avg(res.map(r=>Object.keys(r.ev||{}).filter(x=>x.includes(':')).reduce((a,x)=>a+r.ev[x],0)));
       events.met=n(x=>x.includes(':')&&!x.startsWith('chain ')); events.chainMet=n(x=>x.startsWith('chain ')); events.chainsEnded=res.reduce((a,r)=>a+(r.chainsEnded||0),0); }
-    return {gold,events,gates,heat,byLvl,tiers,sec,lore,raids,sieges,rival,rift,passives:avg(res.map(r=>r.passives||0)),raise:(z=>(RZ.t=RZ.ok=0,z))(RZ.t?pc(RZ.ok,RZ.t)+' of '+RZ.t:null),runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
+    const tr=[].concat(...res.map(r=>r.trials||[])), trials=tr.length?{n:tr.length,done:pc(tr.filter(x=>x.done).length,tr.length),perBot:avg(res.map(r=>(r.trials||[]).length)),
+      tiers:HEAT.slice(0,3).map((H,h)=>{ const g=tr.filter(x=>x.done&&x.t===h); return g.length?H.name+' '+g.length+': score median '+med(g.map(x=>x.s))+' (turns '+med(g.map(x=>x.tt))+', downed '+avg(g.map(x=>x.downs))+')'+(g[0].par!=null?', par beaten '+pc(g.filter(x=>x.s<=x.par).length,g.length):''):null; }).filter(Boolean),
+      hearts:avg(res.map(r=>(r.trials||[]).reduce((a,x)=>a+(x.hearts||0),0)))}:null;   // the weekly Trial ('full'): attempts, completions, score by difficulty, and hearts won per bot
+    return {trials,gold,events,gates,heat,byLvl,tiers,sec,lore,raids,sieges,rival,rift,passives:avg(res.map(r=>r.passives||0)),raise:(z=>(RZ.t=RZ.ok=0,z))(RZ.t?pc(RZ.ok,RZ.t)+' of '+RZ.t:null),runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
   }
 
   function run(opts){

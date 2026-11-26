@@ -15,6 +15,7 @@ const strPen = ()=>Math.min(STR_PEN_CAP,Math.floor(Math.max(0,A('strength'))/STR
 const conDr = ()=>Math.min(CON_DR_CAP,Math.max(0,A('constitution'))*CON_DR);   // % less damage taken
 const conHeal = ()=>Math.min(CON_HEAL_CAP,Math.max(0,A('constitution'))*CON_HEAL);   // % more healing received
 const intSkill = ()=>Math.max(0,A('intelligence'))*INT_SKILL;   // % more skill damage
+const CON_MINION=1, conMinion=()=>Math.max(0,A('constitution'))*CON_MINION;   // % more minion max HP from Constitution: the vigor your Soul Tether shares (2026-11-26: with the tether Constitution was the one stat that gave the army nothing, and Will+Strength/Intelligence builds pulled 10 Tower floors ahead of Will+Constitution)
 const statMinion = ()=>Math.max(0,A('strength'))*STR_MINION+Math.max(0,A('intelligence'))*INT_MINION;   // % more minion attack from Strength and Intelligence
 const skMul = ()=>(1+intSkill()/100)*(S.run?hexK(S.player):1);   // Hexed: your skills hit 20% softer too
 const pDr = ()=>Math.min(DR_CAP,xb('drp')+conDr());   // all your damage reduction: titles, sets, faith, Calcified Hide and Constitution
@@ -45,7 +46,7 @@ function syncMinion(m){
   const s=m.tw?towerStats(m.tw,m.lvl,m.hf,m.af,m.boss,m.elite):mobStats(m.rankI,m.lvl,m.hf,m.af,m.boss,m.elite);
   const gg=gearBonus(m);
   const b=(1+.02*A('will'))*(1+(G('mpow')+gg.mpow+6*sk('gravepact'))/100);
-  const nh=Math.round((s.hp*b*stageMul(m,'hp')+gg.hp)*(hasTrait(m,'thick')?1.25:1)*(hasTrait(m,'unmarred')?1+UNMARRED_K:1)*(hasTrait(m,'stitched')?STITCH_MAX:1)*siegeHpMul(m)*(remembered()?1+MEM_HP:1)*extraMul(m,'hp')), na=Math.round((s.atk*b*stageMul(m,'atk')+gg.atk)*(hasTrait(m,'vicious')?1.2:1)*(hasTrait(m,'unmarred')?1+UNMARRED_K:1)*(1+statMinion()/100)*extraMul(m,'atk'));
+  const nh=Math.round((s.hp*b*stageMul(m,'hp')+gg.hp)*(hasTrait(m,'thick')?1.25:1)*(hasTrait(m,'unmarred')?1+UNMARRED_K:1)*(hasTrait(m,'stitched')?STITCH_MAX:1)*siegeHpMul(m)*(remembered()?1+MEM_HP:1)*(1+conMinion()/100)*extraMul(m,'hp')), na=Math.round((s.atk*b*stageMul(m,'atk')+gg.atk)*(hasTrait(m,'vicious')?1.2:1)*(hasTrait(m,'unmarred')?1+UNMARRED_K:1)*(1+statMinion()/100)*extraMul(m,'atk'));
   if(m.maxHp!=null && nh>m.maxHp) m.hp+=nh-m.maxHp;
   m.maxHp=nh; m.atk=na; m.hp=Math.min(m.hp,m.maxHp);
 }

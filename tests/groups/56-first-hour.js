@@ -31,11 +31,11 @@ test('Recommended level: the gate card states it apart from the label it drives,
   eq(trText('Recommended Lv 7+'),'Önerilen Sv 7+'); eq(trText('Opens at level 4, recommended from level 7. Armor 66%. Clear bonus 90 XP.'),'4 seviyede açılır, önerilen seviye 7. Zırh %66. Temizleme ödülü 90 TP.');
 });
 test('Recommended level per difficulty: rises with the tier, measured shares, and not drifted from the measured HEAT',()=>{
-  eq(REC_TIER.join(),'1,0.4,0.32,0.18','measured with the tier probe (Nightmare re-measured 2026-11-20); re-measure before changing'); eq(REC_TIER_F.join(),HEAT.map(h=>h.foe).join(),'HEAT foe values at the measurement');
+  eq(REC_TIER.join(),'1,0.2,0.18,0.13','measured with the tier probe (re-measured 2026-11-26 after the Soul Tether); re-measure before changing'); eq(REC_TIER_F.join(),HEAT.map(h=>h.foe).join(),'HEAT foe values at the measurement');
   for(let i=0;i<6;i++){ eq(tierRec(i,0),gateRec(i),RANKS[i]+' Normal is the gate advice');
     for(let h=1;h<HEAT.length;h++){ ok(tierRec(i,h)>tierRec(i,h-1),RANKS[i]+' '+HEAT[h].name+' above '+HEAT[h-1].name);
       ok(Math.abs(tierRaw(i,h,HEAT[h].foe)-tierRaw(i,h,REC_TIER_F[h]))<=REC_DRIFT,RANKS[i]+' '+HEAT[h].name+': HEAT moved the advice: re-measure with the tiers probe'); } }
-  eq([2,3,4,5].map(i=>[1,2,3].map(h=>tierRec(i,h)).join('/')).join(' '),'14/17/18 22/26/27 27/31/32 37/42/43','C to S as modeled (probe 2026-11-19 after Hard 1.8 / Brutal 2.5: Hard and Brutal 14/16 24/26 28/34 36/40; Nightmare re-probed 2026-11-20, ~80% from D 10, C 18, B 24-26, A 30 or lower, S 46 or lower: share .4 to .18)');
+  eq([2,3,4,5].map(i=>[1,2,3].map(h=>tierRec(i,h)).join('/')).join(' '),'12/13/14 19/21/23 23/26/28 32/35/38','C to S as modeled (probe 2026-11-26 after the Soul Tether, market, first ~75%: Hard/Brutal/Nightmare C 13/14/16, B 18/22/24, A 24/26/28, S 28/30/34)');
 });
 test('Recommended level per difficulty: follows HEAT.foe, shows on each chip, and the label follows the picked tier',()=>{
   const keep=HEAT[1].foe;
@@ -48,10 +48,10 @@ test('Recommended level per difficulty: follows HEAT.foe, shows on each chip, an
   const lab=()=>(card(renderAll('lab'),'Sunken Crypt').match(/danger-(\w+)/)||[])[1];
   eq(lab(),'easy','Normal at 12'); ok(/Recommended Lv 5\+/.test(card(renderAll('n'),'Sunken Crypt')));
   ok(setHeat(1,3)); eq(heatOf(1),3);
-  eq(lab(),'fair','Nightmare at 12 (advice '+tierRec(1,3)+')'); setLvl(8); eq(lab(),'deadly','Nightmare at 8'); setLvl(12); c=whole('nm');
+  eq(lab(),'fair','Nightmare at 12 (advice '+tierRec(1,3)+')'); setLvl(6); eq(lab(),'deadly','Nightmare at 6'); setLvl(12); c=whole('nm');
   ok(c.includes('Recommended Lv '+tierRec(1,3)+'+'),'meta follows the tier'); ok(/clear this gate on Nightmare from/.test(c));
-  setHeat(1,2); eq(lab(),'fair','Brutal at 12 (advice '+tierRec(1,2)+')');
-  ok(/Hard\/Brutal\/Nightmare: E \d+\/\d+\/\d+, D 9\/11\/12/.test(cdx('gates')),'Codex');
+  setHeat(1,2); eq(lab(),'easy','Brutal at 12 (advice '+tierRec(1,2)+')'); setLvl(tierRec(1,2)); eq(lab(),'fair','Brutal at its advice'); setLvl(12);
+  ok(/Hard\/Brutal\/Nightmare: E \d+\/\d+\/\d+, D 7\/8\/9/.test(cdx('gates')),'Codex');
   eq(trText('Most necromancers clear this gate on Hard from this hero level'),'Çoğu ölü çağıran bu kapıyı Zor\'da bu kahraman seviyesinden itibaren temizler');
   ok(/^Her zorluk çipi/.test(trText('Each difficulty chip shows the hero level from which most necromancers clear the gate on it (Hard/Brutal/Nightmare: E 3/5/11, D 10/13/20, C 15/18/28, B 20/25/37, A 26/31/46, S 32/39/58).')));
 });
