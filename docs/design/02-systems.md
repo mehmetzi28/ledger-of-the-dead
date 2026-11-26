@@ -75,6 +75,11 @@ the room from its start (not for sieges, Trials or a rival room). Fleeing keeps 
 | Intelligence | Mana (+6), Siphon (+2.8), Bone Ward (+3), skill damage +2%, minion attack +1.2% |
 | Will | Mana (+3), army slots (1 per 2.5), raise chance (+1.1%), minion power +2%, shatter chance -1.5% |
 
+**Command** (PR #5, `cmdSync` in `game-player.js`): the army's power is the average attack and max HP of its three
+strongest minions (empty places count as nothing). Strike gains 1.5% of that attack per Strength point, Siphon and the
+skills built on it 0.5% per Intelligence point, max HP 0.04% of that HP per Constitution point. Measured at each room
+start, on the way home and after town actions.
+
 Derived: max HP `(24 + 5 Con + 4 lvl + gear) x Bone Armor x %HP`; Strike `3 + 2.2 Str + lvl + gear`; Siphon
 `6 + 2.8 Int + lvl + gear`; army slots `1 + Will x 0.4 + lvl/4 + gear + Crypt` (cap 12 + Crypt). All damage reduction
 together is capped at 75% (`DR_CAP`). Leveling needs `64 x lvl^1.85` XP.

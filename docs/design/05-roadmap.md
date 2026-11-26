@@ -16,45 +16,105 @@ substantial feature or rework; small fixes ride along inside one. Rounds name th
 
 **Priority order at a glance**
 
-| # | Round | Priority | Closes | Needs | Size |
-|---|---|---|---|---|---|
-| R0 | Hero power scales with army strength | In progress | G9, B8 | | L |
-| R1 | Every foe is a puzzle: foe kits and damage types | P1 | G1, G2, G4, G5, B1, B2, B5 | | XL |
-| R2 | Masters worth remembering: boss kits | P1 | G3, G11 (part) | R1 | XL |
-| R3 | The end of the book: the seventh gate and the ending | P1 | G16, G21 (part) | R2 helps | XL |
-| R4 | Gold that means something: late economy and crafting | P1 | G10, G11, G14, B3 | | L |
-| R5 | The necropolis grows: town expansion and the town's dread | P1 | G6, G12, G13, G15, B7 | R4 helps | XL |
-| R6 | Expeditions: raids rework and Commanders in battle | P2 | G17, G8 | R5 | L |
-| R7 | The rival's war: an arc with an ending | P2 | G19 | R2 | L |
-| R8 | The pantheon: faith rework, gods and omens | P2 | G18, G20 | R5 | L |
-| R9 | Rift sigils and Riftborn gear | P2 | G22, B4 | R2 | L |
-| R10 | Ascension: New Game+ rework | P2 | G21 | R3 | L |
-| R11 | Hero builds 2.0 | P2 | G25, B2 | | L |
-| R12 | Army roles 2.0: charms, minion actives, a fifth role | P2 | G7, G8 | R1 | XL |
-| R13 | Nemeses and a living valley: content pack | P3 | G24, G20 | R1 | L |
-| R14 | Sieges 2.0: the Inquisition escalates | P3 | G23 | R5 | L |
-| R15 | Modes and playtest logs | P3 | G27, B6 | | L |
-| R16 | Titles and collection 2.0 | P3 | G26 | | L |
-| R17 | Presentation: music, stage, art | P3 | | R1, R2 | L |
-| R18 | UX and onboarding pass | P3 | | after any 3 rounds | L |
+| # | Round | Priority | Closes | Needs | Size | Spec |
+|---|---|---|---|---|---|---|
+| R0 | Hero power scales with army strength | Shipped (#5) | G9, B8 | | L | |
+| R1 | Every foe is a puzzle: foe kits and damage types | P1 | G1, G2, G4, G5, B1, B2, B5 | | XL | [spec](rounds/R01-foe-kits-and-damage-types.md) |
+| R2 | Masters worth remembering: boss kits | P1 | G3, G11 (part) | R1 | XL | [spec](rounds/R02-boss-kits.md) |
+| R3 | The end of the book: the seventh gate and the ending | P1 | G16, G21 (part) | R2 helps | XL | [spec](rounds/R03-the-end-of-the-book.md) |
+| R4 | Gold that means something: late economy and crafting | P1 | G10, G11, G14, B3 | | L | [spec](rounds/R04-late-economy-and-crafting.md) |
+| R5 | The necropolis grows: town expansion and the town's dread | P1 | G6, G12, G13, G15, B7 | R4 helps | XL | [spec](rounds/R05-the-necropolis-grows.md) |
+| R6 | Expeditions: raids rework and Commanders in battle | P2 | G17, G8 | R5 | L | [spec](rounds/P2-rounds.md#r6-expeditions-raids-rework-and-commanders-in-battle) |
+| R7 | The rival's war: an arc with an ending | P2 | G19 | R2 | L | [spec](rounds/P2-rounds.md#r7-the-rivals-war-an-arc-with-an-ending) |
+| R8 | The pantheon: faith rework, gods and omens | P2 | G18, G20 | R5 | L | [spec](rounds/P2-rounds.md#r8-the-pantheon-faith-rework-gods-and-omens) |
+| R9 | Rift sigils and Riftborn gear | P2 | G22, B4 | R2 | L | [spec](rounds/P2-rounds.md#r9-rift-sigils-and-riftborn-gear) |
+| R10 | Ascension: New Game+ rework | P2 | G21 | R3 | L | [spec](rounds/P2-rounds.md#r10-ascension-new-game-rework) |
+| R11 | Hero builds 2.0 | P2 | G25, B2 | | L | [spec](rounds/P2-rounds.md#r11-hero-builds-20) |
+| R12 | Army roles 2.0: charms, minion actives, a fifth role | P2 | G7, G8 | R1 | XL | [spec](rounds/P2-rounds.md#r12-army-roles-20-charms-minion-actives-a-fifth-role) |
+| R13 | Nemeses and a living valley: content pack | P3 | G24, G20 | R1 | L | [spec](rounds/P3-rounds.md#r13-nemeses-and-a-living-valley-content-pack) |
+| R14 | Sieges 2.0: the Inquisition escalates | P3 | G23 | R5 | L | [spec](rounds/P3-rounds.md#r14-sieges-20-the-inquisition-escalates) |
+| R15 | Modes and playtest logs | P3 | G27, B6 | | L | [spec](rounds/P3-rounds.md#r15-modes-and-playtest-logs) |
+| R16 | Titles and collection 2.0 | P3 | G26 | | L | [spec](rounds/P3-rounds.md#r16-titles-and-collection-20) |
+| R17 | Presentation: music, stage, art | P3 | | R1, R2 | L | [spec](rounds/P3-rounds.md#r17-presentation-music-stage-art) |
+| R18 | UX and onboarding pass | P3 | | after any 3 rounds | L | [spec](rounds/P3-rounds.md#r18-ux-and-onboarding-pass) |
 
 The order is a recommendation, not a queue: pick the highest round whose needs are met, unless a later one fixes
 something that hurts more right now.
 
+## Phases
+
+The rounds fall into four phases. A phase is done when its rounds have shipped and 04-balance.md shows its numbers.
+
+| Phase | Rounds | The game after it |
+|---|---|---|
+| **1. Fights worth reading** | R0, R1, R2 | every foe and boss has a kit and a damage type; rooms last a few actions; bosses are remembered |
+| **2. A game with an end** | R3, R4, R5 | the book ends with a choice; late gold, trophies and hearts all buy something; the town grows all game and fears you |
+| **3. Systems that talk** | R6-R12 | raids, the rival, faith, the Rift, NG+, hero builds and army roles each tie into three or more other systems |
+| **4. A finished game** | R13-R18 | content depth, modes, collection, music and art, and a UX pass over everything |
+
+## Dependencies
+
+```mermaid
+graph LR
+  R0[R0 hero vs army] --> R11
+  R1[R1 foe kits, types] --> R2[R2 boss kits]
+  R1 --> R12[R12 army roles 2.0]
+  R1 --> R13[R13 nemeses, content]
+  R2 --> R3[R3 seventh gate, ending]
+  R2 --> R7[R7 rival's war]
+  R2 --> R9[R9 Rift sigils]
+  R2 --> R17[R17 presentation]
+  R1 --> R17
+  R4[R4 late economy] --> R5[R5 town, dread]
+  R5 --> R6[R6 expeditions]
+  R5 --> R8[R8 pantheon]
+  R5 --> R14[R14 sieges 2.0]
+  R3 --> R10[R10 ascension]
+  R11[R11 hero builds 2.0]
+  R15[R15 modes, logs]
+  R16[R16 titles 2.0]
+  R18[R18 UX pass]
+```
+
+Solid arrows are hard needs (the later round uses code the earlier one adds). R3 can ship before R2 with the fallback
+moves in its spec; R5 can ship before R4 with its Apothecary limited to potions.
+
+## Which systems each round touches
+
+A round that touches many systems is a connecting round; the matrix shows where the game's links will come from.
+**●** builds the system, **○** connects to it.
+
+| System | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 | R11 | R12 | R13 | R14 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Combat | ● | ● | ○ | ○ | | ○ | | ○ | ○ | ○ | ● | ● | ○ | ○ |
+| Foes and bestiary | ● | ○ | ● | | ○ | ○ | | | ○ | ○ | | ○ | ● | ● |
+| Bosses | ○ | ● | ● | ○ | | | ○ | ○ | ● | ○ | | | | ● |
+| Army and traits | ○ | | ○ | | ● | ○ | ○ | ○ | ○ | ○ | | ● | ○ | |
+| Gear and crafting | ○ | ○ | ○ | ● | ○ | | ○ | | ● | ○ | ○ | ● | | |
+| Economy | | | | ● | ● | ○ | | | | | | | | ○ |
+| Town and Reserve | | | | ○ | ● | ○ | | ○ | | ○ | ○ | | ○ | ● |
+| Sieges | ○ | ○ | | | ● | ○ | ● | ○ | | | | | | ● |
+| Raids | ○ | | | ○ | ○ | ● | ○ | | | | | | | |
+| Faith and omens | ○ | | ○ | | ○ | | | ● | | | | | ● | ○ |
+| Story and endings | | ○ | ● | | | | ● | ○ | ○ | ● | | | ● | ● |
+| Tower, Rift, Trials | ○ | ● | ○ | ● | | ○ | | | ● | | ○ | | | |
+| Rival | | ● | ○ | | ○ | ○ | ● | | | ○ | | | ○ | |
+| Memorial | ○ | | ● | | | | | ○ | | | | ● | ○ | |
+| NG+ | | | ● | | | | ○ | | | ● | | | | |
+
+## Every idea
+
+[06-idea-catalogue.md](06-idea-catalogue.md) lists every add, improve and connect idea per system with an ID and its
+round. Ideas marked **free** are not in a round yet; pick them up as ride-alongs.
+
 ---
-
-## In progress
-
-### R0. Hero power scales with army strength
-Being built in another thread ("Improve and connect game systems"). **Goal**: the hero's damage and survival grow with
-the army behind them, so a lone, over-geared hero cannot carry rooms and the army stays the character (pillar 1).
-**Closes**: G9, B8. When it ships, add its rules to [02-systems.md](02-systems.md) 2.2 and its numbers to 4.2.
 
 ---
 
 ## P1: the next five rounds
 
 ### R1. Every foe is a puzzle: foe kits and damage types
+**Full spec**: [R01-foe-kits-and-damage-types.md](rounds/R01-foe-kits-and-damage-types.md).
 **Goal**: every kind of foe fights in its own way, so reading a room and choosing answers matters in every fight, not
 just boss rooms.
 **Closes**: G1, G2, G4, G5; B1, B2, B5.
@@ -91,6 +151,7 @@ Constitution within 5 floors in the Tower; Sweep used on outgrown gates by the b
 **Size**: XL (damage types and resistances, then kits).
 
 ### R2. Masters worth remembering: boss kits
+**Full spec**: [R02-boss-kits.md](rounds/R02-boss-kits.md).
 **Goal**: every boss, warden and secret master is a fight with its own moves, phases and answers.
 **Closes**: G3, part of G11.
 
@@ -116,6 +177,7 @@ the Tower curve and rival win rate stay in their target bands.
 **Needs**: R1 (damage types). **Size**: XL (gate bosses and rival, then wardens and secret masters).
 
 ### R3. The end of the book: the seventh gate and the ending
+**Full spec**: [R03-the-end-of-the-book.md](rounds/R03-the-end-of-the-book.md).
 **Goal**: the story the Ledger has been telling ends with a real choice and a final place to fight for it.
 **Closes**: G16, part of G21.
 
@@ -137,6 +199,7 @@ gate curve (~80% at its Recommended level), both endings start a valid New Game+
 **Needs**: R2 makes the final boss richer but is not required. **Size**: XL.
 
 ### R4. Gold that means something: late economy and crafting
+**Full spec**: [R04-late-economy-and-crafting.md](rounds/R04-late-economy-and-crafting.md).
 **Goal**: late gold, trophies and hearts always have something worth buying, and every kind of loot has a use.
 **Closes**: G10, G11, G14; B3.
 
@@ -158,6 +221,7 @@ at least one use besides selling; `full` stays 1-3 points over `market`.
 **Size**: L.
 
 ### R5. The necropolis grows: town expansion and the town's dread
+**Full spec**: [R05-the-necropolis-grows.md](rounds/R05-the-necropolis-grows.md).
 **Goal**: the town keeps growing all game, every building changes how you play, and the living react to what you do.
 **Closes**: G6, G12, G13, G15; B7.
 
@@ -183,6 +247,7 @@ choice measurably varies between bots; sieges held stays 80-87% with dread in pl
 ## P2: rounds after that
 
 ### R6. Expeditions: raids rework and Commanders in battle
+**Full spec**: [P2-rounds.md](rounds/P2-rounds.md#r6-expeditions-raids-rework-and-commanders-in-battle).
 **Goal**: sending your dead out is a plan with choices, and a Commander matters in every fight.
 **Closes**: G17, G8.
 **Scope**: raids become expeditions of one to three nights against any cleared gate on any cleared difficulty, a cursed
@@ -194,6 +259,7 @@ choices; expeditions are worth about as much as a watch spent fighting; Rally ch
 **Needs**: R5 (War Room). **Size**: L.
 
 ### R7. The rival's war: an arc with an ending
+**Full spec**: [P2-rounds.md](rounds/P2-rounds.md#r7-the-rivals-war-an-arc-with-an-ending).
 **Goal**: the rival becomes a story with stakes that builds to a final reckoning.
 **Closes**: G19.
 **Scope**: an escalating arc (thefts, challenges, a raid on your town led by the rival, then their lair, a gate of their
@@ -204,6 +270,7 @@ trades bodies); rival strength carries a share into New Game+; recover stolen bo
 `full` bot game; the duel is won ~65-75%. **Needs**: R2 (rival kit). **Size**: L.
 
 ### R8. The pantheon: faith rework, gods and omens
+**Full spec**: [P2-rounds.md](rounds/P2-rounds.md#r8-the-pantheon-faith-rework-gods-and-omens).
 **Goal**: an oath is a relationship with a god that you grow through deeds, and the gods move the weather.
 **Closes**: G18, G20.
 **Scope**: four named Old Gods and a profane path, each tied to omens and a playstyle; devotion grows by deeds (not only
@@ -213,6 +280,7 @@ sieges, dread, story. **Done when**: each oath is within a few points of the oth
 bot. **Needs**: R5 (Temple, dread). **Size**: L.
 
 ### R9. Rift sigils and Riftborn gear
+**Full spec**: [P2-rounds.md](rounds/P2-rounds.md#r9-rift-sigils-and-riftborn-gear).
 **Goal**: the Rift is a chosen risk with rewards that exist nowhere else.
 **Closes**: G22, B4.
 **Scope**: pick sigils (modifiers) before a dive for better rewards; Riftborn items with a fixed rift power; named
@@ -221,6 +289,7 @@ probe for depth. **Connects**: Rift, gear, Trials, records, kits. **Done when**:
 predictable amount; Riftborn gear is wanted by the bot. **Needs**: R2. **Size**: L.
 
 ### R10. Ascension: New Game+ rework
+**Full spec**: [P2-rounds.md](rounds/P2-rounds.md#r10-ascension-new-game-rework).
 **Goal**: each cycle is new, not just harder.
 **Closes**: G21.
 **Scope**: each cycle rewrites part of the valley (a boss variant per gate, new foe variants, a new curse); ascension
@@ -229,6 +298,7 @@ level) chosen when the cycle starts; ties to R3's two endings. **Connects**: NG+
 cycles 1-3 each play differently in bot runs and stay on the gate curve. **Needs**: R3. **Size**: L.
 
 ### R11. Hero builds 2.0
+**Full spec**: [P2-rounds.md](rounds/P2-rounds.md#r11-hero-builds-20).
 **Goal**: a necromancer's build is a real choice that can be changed at a cost.
 **Closes**: G25, B2.
 **Scope**: paid stat respec (Library); Frost and Rot get a fifth skill; each path gets a signature active at level 40;
@@ -237,6 +307,7 @@ Constitution builds. **Connects**: skills, paths, stats, loot, Library. **Done w
 gates and within a few floors in the Tower. **Size**: L.
 
 ### R12. Army roles 2.0: charms, minion actives, a fifth role
+**Full spec**: [P2-rounds.md](rounds/P2-rounds.md#r12-army-roles-20-charms-minion-actives-a-fifth-role).
 **Goal**: every minion can be shaped, and elders can act on command.
 **Closes**: G7, G8.
 **Scope**: a charm slot on every minion (crafted from trophies); a gear-bearer wearing a unique gains a minion version of
@@ -250,28 +321,34 @@ commands, crafting, Memorial. **Done when**: the bot's army mix uses every role;
 ## P3: later
 
 ### R13. Nemeses and a living valley: content pack
+**Full spec**: [P3-rounds.md](rounds/P3-rounds.md#r13-nemeses-and-a-living-valley-content-pack).
 **Closes**: G24, G20. A foe that downs one of your minions may survive with a name, grow, and return in later runs (avenge
 it for its trophies and a Memorial line); five more curses, ten more events, three more chains, three more omens, event
 outcomes that touch dread, faith and the rival. **Needs**: R1.
 
 ### R14. Sieges 2.0: the Inquisition escalates
+**Full spec**: [P3-rounds.md](rounds/P3-rounds.md#r14-sieges-20-the-inquisition-escalates).
 **Closes**: G23. Siege tiers that grow with your wins; new foe kinds with kits and damage types; choose which wall to
 hold; defenses built in town; siege boss variants; an Inquisition story arc that ends in a confrontation. **Needs**: R5.
 
 ### R15. Modes and playtest logs
+**Full spec**: [P3-rounds.md](rounds/P3-rounds.md#r15-modes-and-playtest-logs).
 **Closes**: G27, B6. An Ironman save slot (falls cost much more, nothing else changes); seeded challenge codes to share
 locally; custom difficulty sliders; a local play log (runs, deaths and their blows, time per run, ignored systems)
 exportable as a file for review. Never uploaded anywhere.
 
 ### R16. Titles and collection 2.0
+**Full spec**: [P3-rounds.md](rounds/P3-rounds.md#r16-titles-and-collection-20).
 **Closes**: G26. Inscribe up to three earned titles beside the worn one (slots unlock with the collection); collection
 milestones pay cosmetics (robes, army banners, stage backdrops) and small rule perks.
 
 ### R17. Presentation: music, stage, art
+**Full spec**: [P3-rounds.md](rounds/P3-rounds.md#r17-presentation-music-stage-art).
 Per-gate and per-boss music themes; stage animations for kits, damage types and boss moves; evolved minion art by stage;
 a title screen; painted epilogues for the endings. **Needs**: R1, R2.
 
 ### R18. UX and onboarding pass
+**Full spec**: [P3-rounds.md](rounds/P3-rounds.md#r18-ux-and-onboarding-pass).
 Re-run the first hour with the new systems; a mobile layout pass; Codex links from every number; a "why did I lose"
 view in the History; render performance on large late-game saves.
 
@@ -322,3 +399,6 @@ Ideas worth keeping that are not yet a round:
 | Soul Tether, one soul per boss, unique Awakening, B/A/S/Tower/Rift retune | #1 | 2026-11-26 |
 | Constitution feeds the army, tier advice refit, Throne-strength Trials paying hearts | #2 | 2026-11-26 |
 | Lord of the Eclipse requirement fix, bot raise rate | #3 | 2026-11-26 |
+| Design documents (this folder) | #4 | 2026-11-26 |
+| R0 Command: the hero draws on the army's power; Tower minions off the foe curve; B/A/S, Tower and Rift retune | #5 | 2026-11-26 |
+| Deeper roadmap: full specs per round, idea catalogue, phases and dependency map | this PR | 2026-11-26 |

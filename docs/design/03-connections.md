@@ -120,8 +120,8 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
 - **G7. Most minions cannot use gear.** Only one armed kind per gate takes gear; unique flags work only for the hero.
   (Gear, army, uniques.)
 - **G8. Commander only matters for raids.** A rare, exciting trait with one use. (Traits, raids, combat, sieges.)
-- **G9. Hero power vs army strength.** The hero alone can still carry rooms; a round in progress in another thread is
-  tying hero power to army strength.
+- **G9. Hero power vs army strength.** ~~The hero alone can still carry rooms.~~ Closed by Command (PR #5): the hero's
+  Strike, Siphon and HP grow from the army's three strongest minions.
 
 **Economy and town**
 
