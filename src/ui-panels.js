@@ -130,7 +130,7 @@ function bagHTML(){
 const traitTip=(m,t)=>TRAITS[t].desc+(TRAITS[t].story?' '+TRAITS[t].story:'')+(m.cd&&CORPSE_CONDS[m.cd]&&CORPSE_CONDS[m.cd].trait===t?' '+CORPSE_CONDS[m.cd].story:'');   // a death trait tells how its body died
 function traitChips(m){
   const stage=m.stage||0, next=evoNext(m);
-  return '<div class="traits">'+(m.traits||[]).map(t=>'<span class="trait'+(t==='commander'?' cmdr':'')+'" title="'+traitTip(m,t)+'">'+TRAITS[t].name+'</span>').join('')+markChips(m)+bondChips(m)
+  return '<div class="traits">'+(m.traits||[]).map(t=>'<span class="trait'+(t==='commander'?' cmdr':'')+'" title="'+traitTip(m,t)+'">'+TRAITS[t].name+'</span>').join('')+(m.recl?'<span class="trait recl" title="Won back from the rival: +'+Math.round(RECL_K*100)+'% to its stats">Reclaimed</span>':'')+markChips(m)+bondChips(m)
     +(next!=null?'<span class="evo">Evolves at Lv '+next+'</span>':stage===STAGE_MAX?'<span class="evo">Eternal</span>':'')+'</div>';
 }
 function markChips(m){   // evolution marks: one chip per mark (empowered ones say so), and a waiting choice

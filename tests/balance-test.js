@@ -110,6 +110,7 @@
       if(best) equip(best.u);
     }
     if(B.full){   // the new economy: claim bounties, salvage the better spares for dust, build, enchant what you wear
+      if(B.full&&typeof wagerOpen==='function'&&wagerOpen()&&rivalToday()&&!arc().wg){ const c=(S.reserve||[]).filter(canStake).sort((a,b)=>cval(a)-cval(b))[0]; if(c) wager(c.uid); }   // R7: stake the weakest Reserve body they would take
       if(!B.off.town2) botOrders(B);   // take today's order before the bounties are claimed (Old debt)
       if(!B.off.bounty&&townOpen()) for(let i=0;i<3;i++) claimBounty(i);   // the board shows once the town opens
       if(!B.off.salvage) for(const it of S.inv.slice()) if(!ITEM[it.id].uq&&ITEM[it.id].tier>=2) salvage(it.u);
@@ -381,7 +382,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
     const rival={met:T_('rivalMet'),wins:T_('rivalWins'),losses:T_('rivalLosses'),thefts:T_('rivalThefts'),day:(S.rival&&S.rival.met)||0};
     const head=typeof headBonus==='function'?{g:T_('headG'),t:headTiers(),b:headBonus()}:null;
     const awk={g:T_('awakenG'),n:T_('awakened')};   // awakening ranks bought and their gold
-    return {exp:{nights:T_('expNights'),won:T_('expNightsWon'),clean:T_('expClean'),long:T_('expLong'),hunt:T_('exp_hunt'),curse:T_('exp_curse'),band:T_('exp_band'),scav:T_('exp_scav'),gate:T_('exp_gate'),rallies:T_('rallies'),camps:T_('expCamps')},town2:{n:TW2C.n,spec:TW2C.spec,emb:TW2C.emb,omen:TW2C.omen,yard:T_('yardSold'),ord:T_('orders'),pick:TW2C.ord,hunts:T_('ord_hunt'),claims:(S.ti&&S.ti.claims)||0,dread:typeof dreadOf==='function'?dreadOf():0,upk:T_('upkeepG'),tithes:T_('tithes'),bands:['calm','uneasy','afraid','terror'].map(b=>T_('band_'+b)),lv:Object.fromEntries(Object.keys(BUILD).map(k=>[k,blRaw(k)]))},hf:{n:HFC.n,g:HFC.g},brew:{n:BRC.n,g:BRC.g,comm:BRC.comm,commG:BRC.commG,bm:BRC.bm,prep:T_('prepUsed')},abbeyDay,abbeyEnd,abbeyProbe,trials,ev:B.ev||{},chainsEnded:T_('chains'),head,awk,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
+    return {arc:{ch:(S.rival&&S.rival.arc&&S.rival.arc.ch)||0,d2:(S.rival&&S.rival.arc&&S.rival.arc.op[2])||0,d3:(S.rival&&S.rival.arc&&S.rival.arc.op[3])||0,ww:T_('wagerWins'),wl:T_('wagerLosses'),sw:T_('rivalSiegeWins'),sl:T_('rivalSiegeLosses'),rec:T_('reclaimed')},exp:{nights:T_('expNights'),won:T_('expNightsWon'),clean:T_('expClean'),long:T_('expLong'),hunt:T_('exp_hunt'),curse:T_('exp_curse'),band:T_('exp_band'),scav:T_('exp_scav'),gate:T_('exp_gate'),rallies:T_('rallies'),camps:T_('expCamps')},town2:{n:TW2C.n,spec:TW2C.spec,emb:TW2C.emb,omen:TW2C.omen,yard:T_('yardSold'),ord:T_('orders'),pick:TW2C.ord,hunts:T_('ord_hunt'),claims:(S.ti&&S.ti.claims)||0,dread:typeof dreadOf==='function'?dreadOf():0,upk:T_('upkeepG'),tithes:T_('tithes'),bands:['calm','uneasy','afraid','terror'].map(b=>T_('band_'+b)),lv:Object.fromEntries(Object.keys(BUILD).map(k=>[k,blRaw(k)]))},hf:{n:HFC.n,g:HFC.g},brew:{n:BRC.n,g:BRC.g,comm:BRC.comm,commG:BRC.commG,bm:BRC.bm,prep:T_('prepUsed')},abbeyDay,abbeyEnd,abbeyProbe,trials,ev:B.ev||{},chainsEnded:T_('chains'),head,awk,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
   }
 
   // ----- reporting
@@ -415,6 +416,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
     gold.maus=avg(res.map(r=>r.maus||0)); gold.bonds=avg(res.map(r=>r.bonds||0));   // mausoleums raised and bonded pairs at the end
     { const f=res.map(r=>r.hf).filter(Boolean); if(f.some(x=>x.n)) gold.hforge={n:avg(f.map(x=>x.n)),spent:Math.round(avg(f.map(x=>x.g)))}; }
     { const f=res.map(r=>r.brew).filter(Boolean); if(f.some(x=>x.n||x.comm)) gold.brew={n:avg(f.map(x=>x.n)),spent:Math.round(avg(f.map(x=>x.g))),comm:avg(f.map(x=>x.comm)),commG:Math.round(avg(f.map(x=>x.commG))),bm:avg(f.map(x=>x.bm)),prep:avg(f.map(x=>x.prep))}; }
+    { const f=res.map(r=>r.arc).filter(Boolean); if(f.length&&f.some(x=>x.ch>0)){ const d=k=>{ const v=f.map(x=>x[k]).filter(x=>x>0); return v.length?avg(v)+' ('+v.length+' bots)':'-'; }; gold.arc={ch:avg(f.map(x=>x.ch)),d2:d('d2'),d3:d('d3'),ww:avg(f.map(x=>x.ww)),wl:avg(f.map(x=>x.wl)),sw:f.reduce((a,x)=>a+x.sw,0),sl:f.reduce((a,x)=>a+x.sl,0),rec:avg(f.map(x=>x.rec))}; } }
     { const f=res.map(r=>r.exp).filter(Boolean); if(f.length&&f.some(x=>x.nights||x.rallies)){ gold.exp={}; for(const k in f[0]) gold.exp[k]=avg(f.map(x=>x[k])); } }
     { const f=res.map(r=>r.town2).filter(Boolean); if(f.length&&f.some(x=>x.n||x.spec)) gold.town2={n:avg(f.map(x=>x.n)),spec:avg(f.map(x=>x.spec)),emb:avg(f.map(x=>x.emb)),omen:avg(f.map(x=>x.omen)),ord:avg(f.map(x=>x.ord||0)),hunts:avg(f.map(x=>x.hunts||0)),claims:avg(f.map(x=>x.claims||0)),pick:avg(f.map(x=>x.pick||0)),dread:avg(f.map(x=>x.dread||0)),upk:Math.round(avg(f.map(x=>x.upk||0))),tithes:avg(f.map(x=>x.tithes||0)),bands:[0,1,2,3].map(i=>avg(f.map(x=>(x.bands||[])[i]||0))).join('/'),lv:Object.keys(f[0].lv).map(k=>k+' '+avg(f.map(x=>x.lv[k]||0))).join(', ')}; }
     { const a=res.map(r=>r.awk).filter(Boolean); if(a.some(x=>x.n)) gold.awaken={spent:Math.round(avg(a.map(x=>x.g))),ranks:avg(a.map(x=>x.n))}; }
@@ -431,7 +433,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
 
   function run(opts){
     opts=Object.assign({bots:30,days:40,seed:1000,diff:null,tw:null,push:false,early:0,modes:['noSkills','skills']},opts||{});
-    const keep={bondsRoom:typeof bondsRoom==='function'?bondsRoom:null,siegeOpen:typeof siegeOpen==='function'?siegeOpen:null,rivalOpen:typeof rivalOpen==='function'?rivalOpen:null,S:JSON.stringify(S),rand:Math.random,save:save,DIFF:JSON.stringify(DIFF),TW:JSON.stringify(TW),SAFE:SAFE.slice()};
+    const keep={bondsRoom:typeof bondsRoom==='function'?bondsRoom:null,siegeOpen:typeof siegeOpen==='function'?siegeOpen:null,rivalOpen:typeof rivalOpen==='function'?rivalOpen:null,rivalArcOn:typeof rivalArcOn==='function'?rivalArcOn:null,S:JSON.stringify(S),rand:Math.random,save:save,DIFF:JSON.stringify(DIFF),TW:JSON.stringify(TW),SAFE:SAFE.slice()};
     save=function(){};
     const sfxWas=typeof SFX!=='undefined'&&SFX.on; if(typeof SFX!=='undefined') SFX.on=false;   // no sound during simulations
     if(opts.early){ SAFE[4]-=opts.early; SAFE[5]-=opts.early; }   // let fair bots enter A and S early (the XP curve stalls them near level 20)
@@ -443,11 +445,12 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
         if(keep.bondsRoom) bondsRoom=(opts.off||[]).includes('bonds')?()=>{}:keep.bondsRoom;   // "off":["bonds"]: no minion ever bonds
         if(keep.siegeOpen) siegeOpen=(opts.off||[]).includes('siege')?()=>false:keep.siegeOpen;   // "off":["siege"]: the living never come
         if(keep.rivalOpen) rivalOpen=(!full||(opts.off||[]).includes('rival'))?()=>false:keep.rivalOpen;   // the rival plays only in 'full'; "off":["rival"] switches it off there
+        if(keep.rivalArcOn) rivalArcOn=(opts.off||[]).includes('rivalarc')?()=>false:keep.rivalArcOn;   // "off":["rivalarc"]: the rival stays in chapter 1
         const res=[]; for(let b=0;b<opts.bots;b++) res.push(simBot(opts.seed+b,{skills,market,full,push:opts.push,dread:opts.dread,faith:opts.faith||(full?(b%2?'dis':'hon'):null),ult:opts.ult,heat:opts.heat!=null?opts.heat:(full?1:0),tiers:opts.tiers,stats:opts.stats,mods:opts.mods,mod:opts.mod,off:Object.fromEntries((opts.off||[]).map(k=>[k,1]))},opts.days));
         out[name]=summarize(res,opts.days);
       }
     } finally {
-      if(keep.bondsRoom) bondsRoom=keep.bondsRoom; if(keep.siegeOpen) siegeOpen=keep.siegeOpen; if(keep.rivalOpen) rivalOpen=keep.rivalOpen; Math.random=keep.rand; save=keep.save; keep.SAFE.forEach((v,i)=>SAFE[i]=v); if(typeof SFX!=='undefined') SFX.on=sfxWas;
+      if(keep.bondsRoom) bondsRoom=keep.bondsRoom; if(keep.siegeOpen) siegeOpen=keep.siegeOpen; if(keep.rivalOpen) rivalOpen=keep.rivalOpen; if(keep.rivalArcOn) rivalArcOn=keep.rivalArcOn; Math.random=keep.rand; save=keep.save; keep.SAFE.forEach((v,i)=>SAFE[i]=v); if(typeof SFX!=='undefined') SFX.on=sfxWas;
       Object.assign(DIFF,JSON.parse(keep.DIFF)); Object.assign(TW,JSON.parse(keep.TW));
       S=JSON.parse(keep.S);
     }

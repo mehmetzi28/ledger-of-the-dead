@@ -26,7 +26,8 @@ function rivalWant(){   // the role your army leans on: the most minions, then t
   const n={}; for(const m of S.army||[]) if(ROLES[m.role]) n[m.role]=(n[m.role]||0)+1000+(m.lvl||0);
   let best=null; for(const k in n) if(!best||n[k]>n[best]) best=k; return best;
 }
-const rivalDef=()=>({name:'',met:0,enc:0,wins:0,losses:0,thefts:0,page:-1,step:0,next:0,gi:-1,warned:0,done:0,steal:0,stash:[]});
+const arcDef=()=>({ch:1,op:{},wg:null,ww:0,wl:0,rs:0,rw:0,f:0,sw:0});   // the rival's war (game-rival-arc.js)
+const rivalDef=()=>({name:'',met:0,enc:0,wins:0,losses:0,thefts:0,page:-1,step:0,next:0,gi:-1,warned:0,done:0,steal:0,stash:[],arc:arcDef()});
 const rv=()=>{ if(!S.rival) S.rival=rivalDef(); return S.rival; };
 const distinctClears=()=>Object.keys((S.ti&&S.ti.clr)||{}).filter(k=>S.ti.clr[k]).length;
 let rivalOpen=()=>!!S&&!!S.player&&(distinctClears()>=RIVAL_AT||(!!(S.rival&&S.rival.met)&&distinctClears()>=3));   // let: the balance bot switches the rival off with "off":["rival"]
@@ -46,6 +47,7 @@ function rivalTick(){   // dawn, load and every clear: the theft and challenge s
   if(!g.next||g.next<S.day||(g.done&&g.done>=g.next)){ g.next=S.day+rivalGap(1); g.gi=-1; g.warned=0; }   // first schedule, or a challenge missed or fought
   if(!g.steal) g.steal=Math.max(S.day+theftGap(),g.next-1);   // the first theft waits for the first challenge's warning: they show their face before they steal
   if(S.day>=g.next-1&&g.gi<0){ const gs=rivalGates(); if(gs.length) g.gi=gs[dayHash(g.next,S.ngp||0,g.enc,7)%gs.length]; }
+  arcTick();
   if(S.day===g.next-1&&g.gi>=0&&g.warned!==S.day){ g.warned=S.day; tally('rivalWarned'); notify(rivalTaunt('warn',g.next),'bad'); notify(g.name+' will wait for you in the boss room of the '+DUNGEONS[g.gi].name+' tomorrow. Your first visit there will meet them instead of its master.'+(rivalKitName()?' They bring '+rivalKitName()+', shaped by the bodies they stole.':''),'bad'); }
 }
 const rivalToday=()=>!!S&&rivalOpen()&&!!rv().name&&rv().next===S.day&&rv().gi>=0&&rv().done!==S.day&&!!(S.ti&&S.ti.clr&&S.ti.clr[rv().gi]);
@@ -60,10 +62,15 @@ function makeRival(di,lvl){
   giveAbility(e,RIVAL_ABIL); const rk=rivalKitMove(); if(rk) giveKit(e,[RIVAL_ABIL,RIVAL_MOVE[rk]]); return e;   /* the bodies they stole shape their kit (game-boss-kits.js) */
 }
 function rivalRoom(list,di,lvl){   // the boss room on a challenge day: the rival and raised followers of kinds you have met in this gate
-  const g=rv(), riv=makeRival(di,lvl), D=DUNGEONS[di], sg=Math.max(di,topGate()); list.push(riv);
+  const g=rv(), riv=makeRival(di,lvl); list.push(riv); rivalFollowersAdd(list,di,riv);
+  g.done=S.day; S.run.rival=true; tally('rivalMet');
+}
+function rivalFollowersAdd(list,di,riv){   // their stolen bodies first (this gate's, newest), then raised kinds you have met in this gate
+  const g=rv(), D=DUNGEONS[di], sg=Math.max(di,topGate());
   const met=D.mobs.filter(m=>(S.kills[m[0]]||0)>0), pool=met.length?met:D.mobs;
   const bodies=g.stash.slice().reverse().sort((a,b)=>(b.di===di)-(a.di===di));   // this gate's first, newest first
-  for(const b of bodies){ if(list.length>rivalFollowers()) break; if(b.role==='mender'&&list.some(x=>x.role==='mender')) continue;
+  const stake=typeof wagerLive==='function'&&wagerLive()?arc().wg.sk:null;   /* the body on the table stays out of the fight */
+  for(const b of bodies){ if(list.length>rivalFollowers()) break; if(stake&&b.day+':'+b.di+':'+b.name===stake) continue; if(b.role==='mender'&&list.some(x=>x.role==='mender')) continue;
     const s=mobStats(sg,riv.lvl,b.hf,b.af,false,b.elite), e={id:'e'+(++S.uid),name:b.name,base:b.base,role:b.role,rankI:b.rankI,lvl:riv.lvl,hf:b.hf,af:b.af,boss:false,elite:b.elite,follower:true,stash:1,sk:b.day+':'+b.di+':'+b.name,maxHp:s.hp,hp:s.hp,atk:s.atk,dead:false};
     if(b.aff) e.aff=b.aff.slice(); if(b.cd) e.scd=b.cd; list.push(e); }   // scd: only a label; the death trait never acts on the foe side
   for(let i=list.length-1;i<rivalFollowers();i++){
@@ -72,11 +79,10 @@ function rivalRoom(list,di,lvl){   // the boss room on a challenge day: the riva
     const s=mobStats(sg,riv.lvl,t[2],t[3],false,false);
     list.push({id:'e'+(++S.uid),name:t[0],base:t[0],role:t[1],rankI:di,lvl:riv.lvl,hf:t[2],af:t[3],boss:false,elite:false,follower:true,maxHp:s.hp,hp:s.hp,atk:s.atk,dead:false});
   }
-  g.done=S.day; S.run.rival=true; tally('rivalMet');
 }
 function rivalLegend(){ const rows=tableFor(topGate(),'reaper',true,false).filter(x=>ITEM[x.id].tier===4&&!ITEM[x.id].uq); return rows.length?pickNorm(rows):pick(Object.values(ITEM).filter(d=>!d.uq&&!d.tower&&d.tier===4&&d.set!==ABBEY)).id; }
 function rivalBeaten(e,r){   // the rival falls: a legendary, the gold (in killLoot), the page back, and the next challenge pushed back
-  const g=rv(); g.wins++; g.enc++; g.step++; tally('rivalWins'); r.rivalWon=true;
+  const g=rv(); g.wins++; g.enc++; g.step++; tally('rivalWins'); r.rivalWon=true; arc().f++; wagerSettle(true,r);
   { const id=rivalLegend(), it=addItem(id,rollItem(id,true)); if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name); }   // in the bag at once: kept even if their followers win the room
   if(g.page>=0){ const P0=LORE_PAGES[g.page]; r.rivalPage=g.page; g.page=-1; log(g.name+' drops the page they took: "'+(P0?P0.t:'')+'". It is yours again.','ok'); }
   g.next=S.day+rivalGap(2)+RIVAL_PUSH; g.gi=-1; g.warned=0;
@@ -88,7 +94,7 @@ function rivalLost(r){   // you fell or fled with the rival standing: a page is 
   let m;
   if((S.pages||0)>0&&g.page<0){ g.page=dayHash(S.day,g.losses,S.pages,9)%S.pages; m=g.name+' takes a torn page from your Ledger: "'+LORE_PAGES[g.page].t+'". Beat them to get it back.'; }
   else { const f=Math.min(Math.round(S.gold*RIVAL_FINE),clearGold(di)); S.gold=Math.max(0,S.gold-f); m=g.name+' takes '+f+' gold from your purse.'; }
-  log(rivalTaunt('won',g.losses),'boss'); notify(m,'bad'); r.rivalLost=true;
+  log(rivalTaunt('won',g.losses),'boss'); notify(m,'bad'); r.rivalLost=true; arc().f++; wagerSettle(false,null); arcTick();
 }
 const rivalStanding=r=>!!(r&&r.rival&&r.enemies.some(e=>e.rival&&e.hp>0));
 function rivalTheft(r){   // on a gate run, before you act on a room's bodies: the most valuable one of the role your army leans on (else any), never a boss, never from fewer than two
@@ -101,7 +107,7 @@ function rivalTheft(r){   // on a gate run, before you act on a room's bodies: t
   r.events.push({m:g.name+' was here before you: the body of '+c.name+' is taken. It will raise them against you.',c:'bad'},{m:rivalTaunt('theft',g.thefts),c:'bad'}); return c;
 }
 function rivalReclaim(e,c){   // checkDeaths: a stolen body falls back into your hands with the condition it was stolen with
-  if(c.cd) delete c.cd; if(e.scd) c.cd=e.scd;
+  if(c.cd) delete c.cd; if(e.scd) c.cd=e.scd; c.recl=1;   /* raised, it comes back Reclaimed (game-rival-arc.js) */
   const g=rv(), i=g.stash.findIndex(b=>b.day+':'+b.di+':'+b.name===e.sk); if(i>=0) g.stash.splice(i,1);
 }
 function rivalFix(g){   // normalizeSave
@@ -113,8 +119,8 @@ function rivalFix(g){   // normalizeSave
   if(!out.name) out.met=0;
   const mob=b=>{ for(const D of DUNGEONS){ const m=D.mobs.find(x=>x[0]===b); if(m) return m; } return null; };
   out.stash=(Array.isArray(o.stash)?o.stash:[]).filter(b=>b&&typeof b==='object'&&mob(b.base)).map(b=>{ const m=mob(b.base), x={base:m[0],name:typeof b.name==='string'&&b.name?b.name.slice(0,60):m[0],role:m[1],rankI:RK[n(b.rankI,-1)]?n(b.rankI,0):0,hf:m[2],af:m[3],elite:!!b.elite,di:0,day:Math.max(0,n(b.day,0))};
-    x.di=RK[n(b.di,-1)]?n(b.di,0):x.rankI; const a=Array.isArray(b.aff)?b.aff.filter(k=>AFFIX[k]):[]; if(a.length) x.aff=a; if(CORPSE_CONDS[b.cd]) x.cd=b.cd; return x; }).slice(-RIVAL_STASH);
-  g.rival=out;
+    x.di=RK[n(b.di,-1)]?n(b.di,0):x.rankI; if(typeof b.mine==='string'&&b.mine) x.mine=cleanNick(b.mine); const a=Array.isArray(b.aff)?b.aff.filter(k=>AFFIX[k]):[]; if(a.length) x.aff=a; if(CORPSE_CONDS[b.cd]) x.cd=b.cd; return x; }).slice(-RIVAL_STASH);
+  out.arc=arcFix(o.arc,out); g.rival=out;
 }
 const rivalNgp=o=>Object.assign(rivalDef(),o?{name:o.name,met:o.met,enc:o.enc,wins:o.wins,losses:o.losses,thefts:o.thefts,page:o.page}:{});   // New Game+: the name and record stay
 // Gold and bone dust worth about one clear of a gate (the siege's yardstick: about 20 kills of coin at the gate's level).

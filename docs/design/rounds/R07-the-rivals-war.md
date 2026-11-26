@@ -132,3 +132,29 @@ default policy (`"rival":"spare"` probe). `"off":["rivalarc"]` keeps chapter 1 f
 - **Thefts feel worse with stakes**: thefts stay as today; wagers are optional; reclaiming gives bodies back better.
 - **The arc ends too early for long games**: chapter 4's gate needs chapter 3's siege, which needs a town; the earliest
   bot day is checked (no earlier than day 50).
+
+## As built (PR A, #20)
+
+Chapters 1-3, 2026-11-26. src/game-rival-arc.js (after game-exp.js); `S.rival.arc = {ch, op, wg, ww, wl, rs, rw, f, sw}`.
+
+- **Chapters**: 2 opens after **2** challenges fought (3 put it on day ~67 in the bot; now ~50); 3 opens 10 days into
+  chapter 2 once a siege has been held since. Each opening notifies, adds a passage (*An offer in red ink*, *They came
+  with torches and a friend*) and a line in the rival's own voice (12 lines, two chapters x six names). An old save
+  with 2+ encounters loads in chapter 2. The Rival page in Records shows the five-step track and what opens the next.
+- **Wagers**: on the day before a challenge and the day itself, a Reserve minion from the gates (not a boss, Tower or
+  locked minion) can be staked against the closest stash body at its rank or higher; that body sits out the fight (else
+  killing it would reclaim it first). Win: it joins you Reclaimed. Lose or flee: yours goes into the stash with
+  `mine` (its nick), shown "once yours" on the Rival page. A wager lapses if the challenge is not fought, and is void if
+  the staked minion is released or falls. The Memorial does not list it (the Rival page does).
+- **Reclaimed** (`m.recl`, RECL_K .05 in extraMul): wager winnings, their siege's returns, and stolen followers killed
+  and raised (`c.recl`). A trait chip shows it.
+- **Their siege**: the last wave of the next siege is the rival (a challenge's strength x1.25, ARC_SIEGE_K) and their
+  stash followers (`rivalFollowersAdd`, shared with challenges). Their fall does not count as a challenge win. Broken:
+  2 bodies back Reclaimed, the next theft a gap later, *The walls and the margins*. Lost: the weakest Reserve minion
+  goes into their book.
+- **Titles** (2 of 5): High Stakes (5 wagers won), Reclaimer (10 bodies won back). 173 titles.
+- **Bot**: stakes its weakest eligible Reserve body on a challenge morning; `"off":["rivalarc"]` keeps chapter 1.
+- **Measured**: see 04-balance (chapter 3 by day ~60, their siege held 68-85%).
+- **Tests**: 97-rival-arc (8); 807 in all; fuzz 12/12 clean.
+- **PR B**: their gate (chapter 4), the Reckoning (chapter 5), End them / Spare them, the three rival uniques and set,
+  the NG+ ally, the other three titles and passages.

@@ -151,7 +151,7 @@ function checkDeaths(){
     const page=e.secret?'secret':e.boss?(e.tw?'warden':'boss'):e.elite?'elite':null;   // who may carry a torn page
     if(page&&!r.trial&&!e.rival) findPage(page,r);
     if(e.secret) slaySecret(e,r);
-    if(e.rival) rivalBeaten(e,r);
+    if(e.rival){ if(e.rsiege) rivalSiegeDown(e,r); else rivalBeaten(e,r); }
     if(hasRunMod('volatile')) volatileBurst(e);
     if(hasAff(e,'splitting')) splitFoe(e);
   }
@@ -449,7 +449,7 @@ function tryRaise(id,salt,bench){   // bench: raise to the Reserve, only when th
     if(hasFlag('bindsouls')) m.lvl=Math.min(S.player.lvl+2,m.lvl+2);
     if(hasMod('mastery','a')) m.lvl=Math.max(m.lvl,Math.min(S.player.lvl+2,m.lvl+GRAVECALLER));   // Gravecaller
     { const ml=masteryLv(c.base); if(ml) m.lvl=Math.max(m.lvl,Math.min(S.player.lvl+2,m.lvl+ml)); }   // a Ledgered kind rises higher, never past your level + 2
-    m.lvl0=m.lvl; m.stage=0; m.traits=[c.cd&&CORPSE_CONDS[c.cd]?CORPSE_CONDS[c.cd].trait:rollTrait([])]; if(c.boss) m.traits.push(rollTrait(m.traits)); if(c.cd&&CORPSE_CONDS[c.cd]) m.cd=c.cd;   // bosses rise with two traits; how the body died replaces the random one
+    m.lvl0=m.lvl; m.stage=0; m.traits=[c.cd&&CORPSE_CONDS[c.cd]?CORPSE_CONDS[c.cd].trait:rollTrait([])]; if(c.boss) m.traits.push(rollTrait(m.traits)); if(c.cd&&CORPSE_CONDS[c.cd]) m.cd=c.cd; if(c.recl){ m.recl=1; tally('reclaimed'); }   // bosses rise with two traits; how the body died replaces the random one
     if(c.aff&&c.aff.length){ const t=AFFIX[pick(c.aff)].trait; if(!m.traits.includes(t)) m.traits.push(t); }   // an elite keeps one of its affixes
     if(rollCommand(m)) tally('commanders');
     syncMinion(m); m.hp=m.maxHp; if(toRes){ S.reserve.push(m); c.res=1; } else S.army.push(m); r.raised++; S.firstRaise=0; S.ti=S.ti||{}; S.ti.raised=(S.ti.raised||0)+1; if(m.armed) S.ti.armed=(S.ti.armed||0)+1;
