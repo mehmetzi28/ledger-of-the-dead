@@ -25,6 +25,30 @@ Each boss gets a **move set** (`BOSS_KIT[name] = {moves:[...], phase2:{...}, res
 The existing move code (`fireAbility`) becomes a table of move functions, so every move is data plus one function, and
 the Codex, bestiary and defeat recap read the same table.
 
+### As built (PR A)
+
+- Code in `src/game-boss-kits.js` (after game-kits.js). `BOSS_ABIL` stays the move table (new moves added to it); a boss
+  with a kit has `e.kit` (its rotation) and `e.kitIx`, and `e.abil` always holds the next move, so the old intent, charge and
+  recap code reads it unchanged. `fireKitMove` handles the new moves; `bossTwist` the second phases; hazards are checked
+  while their boss stands (`hazardOn`).
+- `BOSS_KITS_ON` (the bot's `"off":["bosskits"]`) restores the single moves. Secret masters and wardens keep their single
+  move and Sundering Blow in phase two until PR B; `giveAbility` strips a kit, so `makeSecret` re-gives the plain move.
+- Simplifications: the Keymaster's Lock makes the minion unhittable and idle (foes never aim at it); The Choir Answers
+  gives its adds Hasted (a 50% follow-up) while you are silenced rather than a full second action; The Last Watch reflects
+  onto whoever landed the hit (`HITTER`: you, then each minion); Let It Burn's immunity leaves 1 damage (`foeRes` returns 1);
+  What the Book Gave Me maps your last skill: damage skills hit you for 30% of max HP, Dark Mending mends every foe 15%,
+  Curse Sunders you, Unholy Frenzy hastes every foe; with no skill used yet it speaks a Royal Decree. Purge hexes and
+  sunders the strongest evolved minion and strips minion wards (no evolution buffs are removed). Rally is +20% attack, once
+  per foe.
+- The rival keeps Royal Decree and adds the move of its stash's main role; no stash, no kit. The warning names it.
+- The boss card shows "Next: X" always and "X → Y" from Known; the hazard and twist as chips. Ledgered doors list every
+  move with its answer, the twist and the hazard.
+- Tests: one group, `82-boss-kits` (10 tests: table, rotation and card, each move, the Edict, twists, hazards, rival and
+  Captain, Codex and Turkish), in place of 83 and 85.
+- Bot: targets seedlings while Bloom is on, Taunts or Guards for the Edict's named minion (full), wards before Ember Lance
+  and Called Shot; new columns `bossWin` and `bossActs`.
+- Measured: about 1 point of clears, no retune (04-balance.md).
+
 ## 3. Gate bosses
 
 | Boss | Moves (rotation) | Phase two | Resists / weak | Hazard |

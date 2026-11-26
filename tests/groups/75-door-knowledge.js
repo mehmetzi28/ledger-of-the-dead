@@ -37,8 +37,9 @@ test('Door knowledge: unstudied shows only the old text; Studied names foes, eli
 test('Door knowledge: the boss door names the signature move and its answer once the master is Ledgered',()=>{
   const r=won(2); const B=DUNGEONS[0].boss[0]; kills(B,34); ok(!doorHtml('boss').includes('class="dl"'),'Mastered is not enough'); eq(doorBoss(0),null);
   kills(B,35); const h=doorHtml('boss'); ok(h.includes('Call the Swarm')&&h.includes('At most '+SUMMON_CAP+' answer it in one fight'),h);
-  kills(DUNGEONS[2].boss[0],35); const c=doorBoss(2); eq(c.name,'Cinder Wave'); eq(c.tip,'Ward or freeze it');
-  kills(DUNGEONS[3].boss[0],35); eq(doorBoss(3).tip,'Freeze it or Focus-crit it');
+  kills(DUNGEONS[2].boss[0],35); const c=doorBoss(2); eq(c.name,'Cinder Wave · Burning Ground · Ember Lance'); ok(c.tip.includes('Cinder Wave: Ward or freeze it')&&c.tip.includes('Hazard: Smoke'),c.tip);
+  kills(DUNGEONS[3].boss[0],35); ok(doorBoss(3).tip.startsWith('Hymn of Silence: Freeze it or Focus-crit it'));
+  BOSS_KITS_ON=false; eq(doorBoss(2).name,'Cinder Wave','the single move with the kits off'); eq(doorBoss(2).tip,'Ward or freeze it'); BOSS_KITS_ON=true;
   for(let di=0;di<DUNGEONS.length;di++){ kills(DUNGEONS[di].boss[0],35); const d=doorBoss(di); ok(d&&d.name&&d.tip,'gate '+di); }
 });
 test('Door knowledge: saving with pre-rolled doors works, a load ends the run as before, and a run without them still spawns',()=>{

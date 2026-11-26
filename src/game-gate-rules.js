@@ -12,32 +12,35 @@ const BOSS_ABIL={
 };
 const GATE_ABIL=['swarm','bonewall','cinder','hymn','seedfall','decree'];
 const SUMMON_CAP=4;   // adds a boss may call per fight, so a fight cannot be farmed forever
-function giveAbility(e,id,faster){ e.abil=id; e.abilT=BOSS_ABIL[id].every-(faster||0); e.summoned=0; e.fast=faster||0; }
+function giveAbility(e,id,faster){ for(const k of ['kit','kitIx','mvN','twist','imm','res','edictT']) delete e[k]; e.abil=id; e.abilT=BOSS_ABIL[id].every-(faster||0); e.summoned=0; e.fast=faster||0; }
 function bossTurn(e){   // true if the boss spent its turn on its ability (or on gathering for it)
   if(!BOSS_ABIL[e.abil]) return false;
   const gap=mv=>Math.max(2,BOSS_ABIL[mv].every-(e.fast||0)-(omen()==='ashfall'?1:0));
-  if(e.charging){ const mv=e.move||e.abil; e.charging=false; e.move=null; e.abilT=gap(mv); BLOW={n:e.name,k:'sig',mv,w:1}; fireAbility(e,mv); BLOW=null; return true; }
+  if(e.charging){ const mv=e.move||e.abil; e.charging=false; e.move=null; BLOW={n:e.name,k:'sig',mv,w:1}; fireAbility(e,mv); BLOW=null; if(e.kit&&mv!=='sunder') nextMove(e); e.abilT=gap(mv); return true; }
   if(--e.abilT>0) return false;
-  const mv=e.phase2&&e.alt?'sunder':e.abil, A=BOSS_ABIL[mv]; if(e.phase2) e.alt=!e.alt;   // the second phase alternates with Sundering Blow
-  if(A.warn||e.phase2){ e.charging=true; e.move=mv; log(e.name+' gathers itself for '+A.name+'! '+A.desc,'bad'); sfx('warn'); fxe('charge',e); return true; }
-  e.abilT=gap(mv); BLOW={n:e.name,k:'sig',mv}; fireAbility(e,mv); BLOW=null; return true;
+  const mv=sigMove(e), A=BOSS_ABIL[mv]; if(e.phase2&&!e.kit) e.alt=!e.alt;   // the second phase alternates with Sundering Blow
+  if(A.warn||e.phase2){ e.charging=true; e.move=mv; if(mv==='edict'){ const m=edictTarget(e); log(e.name+' raises the Edict of Ash against '+(m?m.nick:'no one')+'!','bad'); } log(e.name+' gathers itself for '+A.name+'! '+A.desc,'bad'); sfx('warn'); fxe('charge',e); return true; }
+  BLOW={n:e.name,k:'sig',mv}; fireAbility(e,mv); BLOW=null; if(e.kit) nextMove(e); e.abilT=gap(mv); return true;
 }
 function chargeInfo(e){   // a charging boss: the move it lands next turn, what answers it (from the rules here and in fireAbility), and the answer keys the action bar marks
   if(!e||!e.charging||e.hp<=0) return null; const mv=e.move||e.abil, A=BOSS_ABIL[mv]; if(!A) return null;
-  if(mv==='sunder') return {mv,name:A.name,hint:'Taunt it onto a vanguard, or freeze it',ans:['vanguard','chill','striker']};   /* Taunt sends the blow at a vanguard */
+  if(mv==='sunder') return {mv,name:A.name,hint:'Taunt it onto a vanguard, or freeze it',ans:['vanguard','chill','striker']};
+  if(mv==='edict'){ const m=S.army&&S.army.find(x=>fxKey(x)===e.edictT); return {mv,name:A.name,hint:(m?m.nick+' is named. ':'')+'Guard, Taunt onto another vanguard, or freeze it',ans:['guard','vanguard','chill','striker']}; }
+  if(mv==='lance'||mv==='called') return {mv,name:A.name,hint:'Ward or freeze it',ans:['ward','chill','striker']};   /* Taunt sends the blow at a vanguard */
   if(mv==='cinder'||mv==='decree') return {mv,name:A.name,hint:'Ward or freeze it',ans:['ward','chill','striker']};   /* a blow: a ward soaks it */
   return {mv,name:A.name,hint:'Freeze it or Focus-crit it',ans:['chill','striker']};   /* no damage to soak: only breaking the focus stops it */
 }
-function summonAdd(e){
+function summonAdd(e,kind){   // kind: a set kind of foe (the Pale Sovereign's Court Summons)
   if(e.summoned>=SUMMON_CAP||liveFoes().length>=5) return null;
-  const mk=()=>e.tw?makeTowerEnemy(e.tw,false,-1):makeEnemy(S.run.rift?S.run.di:e.rankI,Math.max(1,e.lvl-2),false), hasMender=liveFoes().some(x=>x.role==='mender');
+  const mk=()=>{ const a=e.tw?makeTowerEnemy(e.tw,false,-1):makeEnemy(S.run.rift?S.run.di:e.rankI,Math.max(1,e.lvl-2),false); if(kind) setKind(a,kind); return a; }, hasMender=liveFoes().some(x=>x.role==='mender');
   let a=mk(); for(let i=0;i<30&&hasMender&&a.role==='mender';i++) a=mk(); if(hasMender&&a.role==='mender') return null;   // never a second mender (bug found in play-testing)
   if(e.tw) foeScale([a],TW.foeAtk); else { foeScale([a],foeAtkMul(S.run.di)); bulwark([a]); riftScale([a]); heatScale([a]); }   /* as buildRoom scales a room's foes */
   affixAll([a]); foeRise([a]); e.summoned++; S.run.enemies.push(a); return a;
 }
+function setKind(a,kind){ for(const D of DUNGEONS){ const t=D.mobs.find(m=>m[0]===kind); if(!t) continue; const s=mobStats(a.rankI,a.lvl,t[2],t[3],false,a.elite); a.name=(a.elite?a.name.split(' ')[0]+' ':'')+t[0]; a.base=t[0]; a.role=t[1]; a.hf=t[2]; a.af=t[3]; a.maxHp=a.hp=s.hp; a.atk=s.atk; return a; } return a; }
 function fireAbility(e,mv){
   mv=mv||e.abil; const r=S.run, P=S.player, A=BOSS_ABIL[mv], foes=liveFoes();
-  if(mv==='swarm'){ const got=[summonAdd(e),summonAdd(e)].filter(Boolean); log(got.length?e.name+' uses '+A.name+': '+got.map(x=>x.name).join(' and ')+' join the fight.':e.name+' calls, but nothing more answers.','bad'); }
+  if(mv==='swarm'){ const got=[summonAdd(e),summonAdd(e)].concat(e.twist==='crown'?[summonAdd(e)]:[]).filter(Boolean); if(e.twist==='crown') got.forEach(a=>{ a.kitO='pack'; }); log(got.length?e.name+' uses '+A.name+': '+got.map(x=>x.name).join(' and ')+' join the fight.':e.name+' calls, but nothing more answers.','bad'); }
   else if(mv==='bonewall'){ foes.forEach(f=>{ f.shield=Math.min(Math.round(f.maxHp*.4),(f.shield||0)+Math.round(f.maxHp*.2)); fxe('ward',f); }); log(e.name+' raises a Bone Wall. Every foe is shielded.','bad'); }
   else if(mv==='cinder'){
     let tot=0;
@@ -52,8 +55,9 @@ function fireAbility(e,mv){
     log(e.name+' unleashes a Cinder Wave for '+tot+' damage across your side.','bad');
   }
   else if(mv==='hymn'){ r.silence=3; foes.forEach(f=>{ f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*.1)); }); log(e.name+' sings the Hymn of Silence. Your skills are silenced for 2 turns and every foe mends.','bad'); }
-  else if(mv==='seedfall'){ foes.forEach(f=>{ f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*.15)); }); const a=summonAdd(e); log(e.name+' scatters Seedfall. Every foe mends'+(a?' and '+a.name+' sprouts from the ground':'')+'.','bad'); }
+  else if(mv==='seedfall'){ foes.forEach(f=>{ f.hp=Math.min(f.maxHp,f.hp+Math.round(f.maxHp*.15)); }); const a=summonAdd(e); if(a&&e.kit) a.seed=r.turn; log(e.name+' scatters Seedfall. Every foe mends'+(a?' and '+a.name+' sprouts from the ground':'')+'.','bad'); }
   else if(mv==='decree'){ const d=Math.round(pMax()*.45*enrage(e)); hurtAlly(P,d); fxe('hurt',P,{crit:1}); log(e.name+' speaks a Royal Decree. It strikes you for '+d+'.','bad'); }
+  else if(fireKitMove(e,mv)){}   /* the move sets' new moves (game-boss-kits.js) */
   else if(mv==='sunder'){ const v=r.taunt>0?S.army.filter(m=>m.role==='vanguard'&&m.hp>0):[];
     if(v.length){ const t=pick(v), d=hit(e.atk*2.2*enrage(e)); hurtAlly(t,d); fxe('hurt',t,{crit:1}); log(e.name+' brings down a Sundering Blow, but '+t.nick+' takes it for you: '+d+' damage.'+(t.hp<=0?' '+t.nick+' is down.':''),'bad'); addSt(t,'sundered',2); }
     else { const d=Math.round(pMax()*.35*enrage(e)); hurtAlly(P,d); fxe('hurt',P,{crit:1}); log(e.name+' brings down a Sundering Blow on you for '+d+'.','bad'); addSt(P,'sundered',2); } }   /* the blow also cracks your guard: Sundered */
@@ -94,7 +98,7 @@ function addSt(u,k,t){ if(!u||!(u.hp>0)||!CONDS[k]||stImmune(u,k)) return false;
 const hasSt=(u,k)=>!!(u&&u.st&&u.st[k]>0);
 const hexK=u=>hasSt(u,'hexed')?HEX_MUL:1;
 const clearSt=u=>{ if(u) delete u.st; };
-const clearAll=u=>{ clearDots(u); clearSt(u); if(u) delete u.mw; };   /* mw: a Warden's ward on a minion */   // leaving a room: every status ends
+const clearAll=u=>{ clearDots(u); clearSt(u); if(u){ delete u.mw; delete u.lock; delete u.root; } };   /* lock, root: a boss's Keymaster's Lock and Iron Thorns */   /* mw: a Warden's ward on a minion */   // leaving a room: every status ends
 function tickSt(){ const r=S.run; if(!r) return; for(const u of r.enemies.concat(allies())){ if(!u.st) continue; for(const k of Object.keys(u.st)) if(--u.st[k]<=0) delete u.st[k]; if(!Object.keys(u.st).length) delete u.st; } }
 function foeTarget(alive){ const w=alive.map(a=>a.role==='vanguard'?5:2); let roll=Math.random()*w.reduce((x,y)=>x+y,0), tg=alive[0];   // vanguards draw the eye
   for(let i=0;i<alive.length;i++){ roll-=w[i]; if(roll<=0){ tg=alive[i]; break; } } return tg; }
@@ -118,7 +122,7 @@ function setRow(uid){ if(S.mode==='battle') return; const m=S.army.concat(S.rese
 const tauntPool=alive=>{ if(S.run.taunt>0){ const v=alive.filter(a=>a.role==='vanguard'&&a.id!=='p'); if(v.length) return v; } return alive; };
 const mendTarget=()=>liveFoes().filter(x=>x.hp<x.maxHp*.7).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
 function rollIntent(e,k){ k=k||'it';
-  const alive=allies().filter(a=>a.hp>0); if(!alive.length) return e[k]=null;
+  const alive=allies().filter(hittable); if(!alive.length) return e[k]=null;
   const T=S.run.turn+(k==='it2'?1:0), ki=kitIntent(e,k,T,alive);   /* a kit may plan its own action (game-kits.js) */
   if(ki&&ki.k) return e[k]=ki;
   if(e.role==='mender'){ const h=mendTarget(); if(h) return e[k]={k:'heal',t:h.id}; }
@@ -137,7 +141,7 @@ function intentOk(e,k){ const it=e[k||'it']; if(!it) return false;
   if(it.k==='atk'&&!it.mk&&S.run.mk&&S.run.mk.turn===S.run.turn+(k==='it2'?1:0)&&!(S.run.taunt>0)){ const alive=allies().filter(a=>a.hp>0); if(markedFor(S.run.mk.turn,foeReach(e,alive))) return false; }   /* the mark takes over a blow planned before it */
   if(it.k==='heal'){ const h=S.run.enemies.find(x=>x.id===it.t); return !!h&&h.hp>0; }
   if(it.tn&&!(S.run.taunt>0)) return false;
-  const alive=allies().filter(a=>a.hp>0), tg=alive.find(a=>fxKey(a)===it.t); return !!tg&&foeReach(e,alive).includes(tg); }
+  const alive=allies().filter(hittable), tg=alive.find(a=>fxKey(a)===it.t); return !!tg&&foeReach(e,alive).includes(tg); }
 function planFoes(){ const r=S.run; if(!r||!r.enemies) return;
   for(const e of liveFoes()){
     if(!e.it&&e.it2){ e.it=e.it2; delete e.it2; }
@@ -160,7 +164,7 @@ function planTxt(e,it){   // the words for a planned attack or heal
   if(it.mk) return {k:'atk',tg,txt:'Strikes the marked '+nameOf(tg),tip:KITS.marker.rule};
   return {k:'atk',tg,txt:tg.id==='p'?'Attacks you':'Attacks '+nameOf(tg),tip:'Its next blow. Taunt turns it onto a vanguard; freezing it costs it the turn.'};
 }
-const sigMove=e=>e.phase2&&e.alt?'sunder':e.abil, sigCharged=(e,mv)=>!!(BOSS_ABIL[mv].warn||e.phase2);
+const sigMove=e=>e.phase2&&e.alt&&!e.kit?'sunder':e.abil, sigCharged=(e,mv)=>!!(BOSS_ABIL[mv].warn||e.phase2);
 function intentInfo(e){   // what a foe card says it will do next: {k, txt, tip}, or null (a charging move has its own banner)
   if(!e||e.hp<=0||!S.run||e.charging) return null;
   if(e.stun>0) return {k:'frozen',txt:'Frozen',tip:'Frozen solid: it loses its next action.'};
@@ -184,6 +188,7 @@ function sigBlow(e,mv){   // what a damaging boss move deals (fireAbility): {you
   const P=S.player, k=enrage(e);
   if(mv==='cinder'){ const d=Math.round(e.atk*(e.secret?.45:.7)*k); return {you:afterWard(P,allyDr(P,d)),army:S.army.filter(m=>m.hp>0).reduce((s,m)=>s+allyDr(m,d),0)}; }
   if(mv==='decree') return {you:afterWard(P,allyDr(P,Math.round(pMax()*.45*k)))};
+  if(mv==='lance'||mv==='called'){ const d=Math.round(e.atk*(mv==='lance'?1.6:1.8)*k); return S.army.some(m=>hittable(m)&&rowOf(m)==='b')?{army:d}:{you:afterWard(P,allyDr(P,d))}; }   /* the back row: you, if no minion stands there */
   if(mv==='sunder'){ const v=S.run.taunt>0&&S.army.find(m=>m.role==='vanguard'&&m.hp>0); return v?{van:allyDr(v,Math.round(e.atk*2.2*k))}:{you:afterWard(P,allyDr(P,Math.round(pMax()*.35*k)))}; }
   return null;
 }
@@ -460,6 +465,8 @@ function doorSight(di){   // 2: most of the gate's kinds Known (rows and levels 
 const DOOR_TIP={swarm:'At most '+SUMMON_CAP+' answer it in one fight',bonewall:"A shield holds at most 40% of a foe's HP",seedfall:'At most '+SUMMON_CAP+' sprout in one fight'};   // moves that are not telegraphed: what limits them
 function doorBoss(di){   // the boss door, once its master is Ledgered: the signature move and what answers it (the same answers as a charging boss: chargeInfo)
   const t=masteryOf(DUNGEONS[di].boss[0]); if(!t||t.id!=='ledgered'||rivalHere(di)) return null;
+  const K=BOSS_KITS_ON&&BOSS_KIT[DUNGEONS[di].boss[0]]; if(K){ const ans=m=>BOSS_ABIL[m].name+': '+(BOSS_ABIL[m].warn?chargeInfo({charging:true,hp:1,move:m}).hint:DOOR_TIP[m]||BOSS_ABIL[m].desc.replace(/\.$/,''));
+    return {name:K.moves.map(m=>BOSS_ABIL[m].name).join(' · '),tip:K.moves.map(ans).concat(K.twist?['Second phase: '+TWISTS[K.twist].name,TWISTS[K.twist].desc]:[],K.hazard?['Hazard: '+HAZARDS[K.hazard].name,HAZARDS[K.hazard].desc]:[]).join('. ')}; }   /* the whole move set (game-boss-kits.js) */
   const mv=GATE_ABIL[di], A=BOSS_ABIL[mv]; return {name:A.name,tip:A.warn?chargeInfo({charging:true,hp:1,move:mv}).hint:DOOR_TIP[mv]};
 }
 

@@ -13,12 +13,12 @@ const PHASE_LINES={
 function checkPhase(){
   if(!S.run) return;
   for(const e of liveFoes()) if(e.boss&&e.abil&&!e.phase2&&(e.tw||e.rival||e.rankI>=1||runHeat()>=2)&&e.hp<=e.maxHp*phaseAt()){   // the Rat King, a new player's first boss, keeps one phase
-    e.phase2=true; e.fast=(e.fast||0)+1; e.alt=true; e.abilT=Math.min(e.abilT,2);   // Sundering Blow comes first
-    const l=PHASE_LINES[e.base]; log(e.name+(l?': "'+l+'"':' rises in fury.'),'boss');
-    log(e.name+' enters its second phase. It moves faster, warns before every move, and adds Sundering Blow.','bad'); sfx('phase'); tally('phases'); moment(e.name+' enters its second phase','bad');
+    e.phase2=true; e.fast=(e.fast||0)+1; e.alt=!e.kit; e.abilT=Math.min(e.abilT,2);   // Sundering Blow comes first (a boss with a move set has a twist instead)
+    const l=PHASE_LINES[e.base]; log(e.name+(l?': "'+l+'"':' rises in fury.'),'boss'); const tw=bossTwist(e);
+    log(tw?e.name+' enters its second phase: '+tw.name+'. '+tw.desc+' It moves faster and warns before every move.':e.name+' enters its second phase. It moves faster, warns before every move, and adds Sundering Blow.','bad'); sfx('phase'); tally('phases'); moment(e.name+' enters its second phase','bad');
   }
 }
-function breakCharge(e,why){ const mv=e.move||e.abil; e.charging=false; e.move=null; e.abilT=BOSS_ABIL[mv].every; log(why+' '+BOSS_ABIL[mv].name+' is lost.','ok'); tally('cancels'); moment(BOSS_ABIL[mv].name+' broken','ok'); }
+function breakCharge(e,why){ const mv=e.move||e.abil; e.charging=false; e.move=null; delete e.edictT; if(e.kit&&mv!=='sunder') nextMove(e); e.abilT=BOSS_ABIL[mv].every; log(why+' '+BOSS_ABIL[mv].name+' is lost.','ok'); tally('cancels'); moment(BOSS_ABIL[mv].name+' broken','ok'); }
 
 // ===== ELITE AFFIXES =====
 // Every elite carries one named affix (two in the deeper gates and from Tower floor 50). Raise one and the minion keeps one
@@ -444,7 +444,7 @@ function startSiege(){   // nightfall on a siege day: the intro screen. Dawn wai
 function siegeFoe(role,lvl,di,boss,elite){
   const t=boss?[SIEGE_BOSS,1,1]:SIEGE_FOES[role], s=mobStats(di,lvl,t[1],t[2],boss,elite);
   const e={id:'e'+(++S.uid),name:t[0],base:t[0],role:boss?'reaper':role,rankI:di,lvl,hf:t[1],af:t[2],boss,elite,maxHp:Math.round(s.hp*SIEGE_HP),hp:0,atk:Math.max(1,Math.round(s.atk*SIEGE_ATK)),dead:false,living:true};
-  e.hp=e.maxHp; if(boss) giveAbility(e,SIEGE_MOVE); return e;
+  e.hp=e.maxHp; if(boss){ giveAbility(e,SIEGE_MOVE); giveKit(e); } return e;
 }
 function spawnSiege(){   // one wave of the living
   const r=S.run, lvl=siegeLvl(), di=r.di, list=SIEGE_WAVE[r.room].map(k=>k==='boss'?siegeFoe('reaper',lvl+SIEGE_BOSS_LV,di,true,false):siegeFoe(k,lvl,di,false,k==='reaper'));

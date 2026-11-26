@@ -170,11 +170,26 @@ blight (halves healing received). Conditions: Sundered (+25% damage taken), Hexe
 follow-up strike), Chilled (+20% damage taken). **Combos** (`COMBOS`): Frostbreak, Spreading Rot, Fizzle, Breach, Swift
 Blow.
 
-**Bosses** (`BOSS_ABIL`, `checkPhase`). Each gate boss has one signature move: Call the Swarm, Bone Wall, Cinder Wave,
-Hymn of Silence, Seedfall, Royal Decree. Telegraphed moves charge a turn ahead and can be broken by a freeze or a focused
-crit. At 50% HP (65% on Brutal) bosses enter a second phase: moves come a turn sooner, every move is telegraphed, and they
-alternate with Sundering Blow (35% of your max HP, or onto a taunting vanguard). The Rat King keeps one phase on Normal.
-Tower wardens borrow the gate moves and enrage after turn 8.
+**Bosses** (`BOSS_ABIL`, `BOSS_KIT`, `checkPhase`, src/game-boss-kits.js since R2 PR A). Each gate boss fights with a move
+set: two or three moves on a rotation (`e.kit`, `e.kitIx`; `e.abil` is always the next move), each at its own pace, shown
+on the card ("Next: X", and the one after from Known). The Rat King: Call the Swarm, Gnaw (bleeds). The Crypt Warden: Bone
+Wall, Keymaster's Lock (telegraphed: your strongest minion can't act or be hit for 2 turns), Shield Bash (sunders). The
+Ember Knight: Cinder Wave, Burning Ground (front row burns 3 turns), Ember Lance (telegraphed, fire at your back row). The
+Bishop of Teeth: Hymn of Silence, Tithe of Teeth (20% of your mana, mends 8%), Bite of Faith (hexes). The Orchard Mother:
+Seedfall, Iron Thorns (roots and rots a minion), Graft (drinks a seedling, mends 10%; skipped without one). The Pale
+Sovereign: Royal Decree, Court Summons (two Throne Guards), Edict of Ash (telegraphed: names your strongest minion and
+executes it unless Guard or Taunt puts another vanguard under it, or a freeze breaks it). Each has a personal resistance
+entry (`e.res`) and a second phase of its own at 50% (65% on Brutal) instead of Sundering Blow (`TWISTS`): Crown of Rats
+(Swarm calls three Pack hunters), The Last Watch (reflects 20% onto the striker while a Bone Wall shield stands), Let It
+Burn (immune to fire, +25% frost, Cinder Wave every second move), The Choir Answers (its adds Hasted while you are
+silenced), Bloom (seedlings mature into Thorn Trolls after two turns), What the Book Gave Me (every third move turns your
+last skill on you). Hazards (`HAZARDS`, while the boss stands): Smoke (Ember Knight, Bone Ward -20%), Echoing nave (Bishop,
+first skill costs double), Roots (Orchard Mother, back-row minions take 5% rot a turn). The Inquisitor Captain: Royal
+Decree, Purge, Rally. The rival: Royal Decree plus a move from the main role of the bodies they stole (Bone Rampart, Called
+Shot, Black Mass, Harvest), named in the warning. Telegraphed moves charge a turn ahead and can be broken by a freeze or a
+focused crit. The Rat King keeps one phase on Normal. Secret masters and Tower wardens still use one gate move and
+alternate with Sundering Blow in phase two (until R2 PR B). Ledgered boss doors show the whole kit and each move's answer;
+Codex page "Bosses" is generated from `BOSS_KIT`.
 
 **Elite affixes** (`AFFIX`): Shielded, Splitting, Vampiric, Enraged, Warded, Plaguebearer, Sundering, Hexing, Swift,
 Frost-touched (raises Rimeborn), Burning (raises Cinderborn). One

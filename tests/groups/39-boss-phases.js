@@ -7,8 +7,8 @@ test('Phases: at half HP a boss enters its second phase once, and speaks',()=>{
   ok(S.run.log.some(l=>/Two hundred years/.test(l.m))&&S.run.log.some(l=>/second phase/.test(l.m))); eq(T_('phases'),1); checkPhase(); eq(T_('phases'),1,'only once');
   const x=foe({hp:10}); S.run.enemies.push(x); x.hp=1; checkPhase(); ok(!x.phase2,'only bosses');
 });
-test('Phases: every second-phase move is announced, alternating with Sundering Blow',()=>{
-  const b=bossFight(1), P=S.player; P.stats.constitution=900; P.hp=pMax(); b.hp=b.maxHp/2; checkPhase(); b.abilT=1;
+test('Phases: every second-phase move is announced; a boss without a move set alternates with Sundering Blow',()=>{
+  const b=bossFight(1), P=S.player; giveAbility(b,'bonewall');   /* as a warden or secret master: the single move */ P.stats.constitution=900; P.hp=pMax(); b.hp=b.maxHp/2; checkPhase(); b.abilT=1;
   ok(bossTurn(b)); ok(b.charging); eq(b.move,'sunder'); eq(P.hp,pMax(),'warning only');
   ok(bossTurn(b)); ok(!b.charging); eq(P.hp,pMax()-Math.round(Math.round(pMax()*.35)*(1-pDr()/100))); eq(b.abilT,2);
   eq(bossTurn(b),false); ok(bossTurn(b)); ok(b.charging); eq(b.move,'bonewall','its own move, now telegraphed'); ok(bossTurn(b)); ok(b.shield>0);
