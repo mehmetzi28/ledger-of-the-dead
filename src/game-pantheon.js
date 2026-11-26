@@ -72,7 +72,7 @@ function vowBreak(g,why){   // the vow breaks: a rank and today's points, once a
 }
 const vowWarn=k=>k==='raise'?faithOf()==='hon'&&!!S.run&&(S.run.raised||0)>=MORROW_RAISE&&S.faith.vb!==S.day:k==='sell'?faithOf()==='ulm'&&S.faith.vb!==S.day:false;   // the UI asks once before an action that breaks the vow
 function faithDawn(){   // closeDay: the Profane path's devotion fades
-  const f=S.faith; if(!f||faithOf()!=='dis') return; const r0=faithRank(); f.dev=Math.max(0,(f.dev||0)-PROFANE_DECAY); if(faithRank()<r0) vitals(()=>{});
+  const f=S.faith; if(!f||faithOf()!=='dis') return; const r0=faithRank(); f.dev=Math.max(0,(f.dev||0)-profDecay()); if(faithRank()<r0) vitals(()=>{});
 }
 // ----- the deed and vow hooks (called from the systems they watch)
 function faithKill(e,r){   // checkDeaths, after a foe falls
@@ -132,3 +132,52 @@ STORY.push(
   {act:3,id:'g_choir5',when:()=>faithRank('choir')>=5,t:'Requiem',m:'The Choir sings through your army now. Every name you carved and every name you lost adds a voice, and the dead fight to the tune. The Ledger has started to hum while you write. You hope it is a hymn.'});
 ['g_vesh1','g_vesh5','g_ulm1','g_ulm5','g_choir1','g_choir5'].forEach(id=>{ STORY_BY[id]=STORY.find(s=>s.id===id); });
 const godStory=(id,k)=>({hon1:'oath_hon',dis1:'oath_dis',hon5:'bless_hon',dis5:'bless_dis'})[id+k]||'g_'+id+k;
+// ===== R8 PR B: the gods move the weather (forecast, call, ward), the Temple's chapels, dread and the siege =====
+const GOD_OMENS={hon:['paletide','ashfall'],vesh:['soulstorm','longnight'],ulm:['boneharvest','rotbloom'],choir:['eclipse','choirnight'],dis:['bloodmoon','ironrain']};
+const CALL_COST=DEV_STEP, LONG_HP=1.1, BLOOM_ROT=.02, CHOIR_NIGHT=1.15, HOSPICE_SHATTER=10, BELL_CHOIR=.8, PROFANE_DREAD=10, MORROW_DREAD=1, CHOIR_PAY=1.1, ULM_COMM=1.2;
+const godOmens=id=>GOD_OMENS[id]||[];
+const forecast=()=>faithOf()&&S.omenNext&&S.omenNext.day===S.day+1?S.omenNext:null;   // tomorrow's omen, seen by a sworn necromancer
+function omenDusk(){   // closeDay, after the day turns: Long Night's watch, then tomorrow is foreseen (sworn only, so no other game spends a roll on it)
+  const f=S.omenNext; if(f&&f.day===S.day&&f.id==='longnight'){ S.watches++; tally('longNights'); }
+  if(!faithOf()) return; dayOmen(); if(anyClear()) S.omenNext={day:S.day+1,id:Math.random()<OMEN_CHANCE?pick(OMEN_NAT):null};
+}
+const freeCall=()=>bl('temple')>=5&&!(S.omenCall&&S.day-S.omenCall<7);   // the Temple's free weekly call (shared with its old reroll)
+const profCall=()=>faithOf()==='dis'&&!(S.faith.pc&&S.day-S.faith.pc<7);   // the Profane: a free random call a week, no ward
+const callUsed=()=>!!S.faith&&S.faith.cd===S.day;
+function canCall(o){ const id=faithOf(), f=forecast(); if(!id||!f||S.mode!=='town'||callUsed()) return false;
+  if(id==='dis') return profCall(); return godOmens(id).includes(o)&&f.id!==o&&(freeCall()||faithDev()>=CALL_COST); }
+const canWard=()=>{ const id=faithOf(), f=forecast(); return !!id&&id!=='dis'&&!!f&&!!f.id&&S.mode==='town'&&!callUsed()&&faithDev()>=CALL_COST; };
+function spendDev(n){ const f=S.faith, r0=faithRank(); f.dev=Math.max(0,(f.dev||0)-n); tally('devSpent',n); if(faithRank()!==r0) vitals(()=>{}); }
+function callGodOmen(o){   // tomorrow becomes one of your god's two omens: a rank of devotion, or the Temple's free call
+  if(!canCall(o)) return false; const id=faithOf(), f=S.omenNext;
+  if(id==='dis'){ o=pick(Object.keys(OMENS).filter(k=>k!==f.id)); S.faith.pc=S.day; } else if(freeCall()) S.omenCall=S.day; else spendDev(CALL_COST);
+  f.id=o; f.by=id; S.faith.cd=S.day; tally('godCalls'); tally('call_'+o); sfx('skill'); return o;
+}
+function wardOmen(){ if(!canWard()) return false; const f=S.omenNext, o=f.id; spendDev(CALL_COST); f.id=null; f.ward=o; S.faith.cd=S.day; tally('wards'); sfx('skill'); return o; }
+const omenNextFix=g=>{ if(g.omenNext===undefined) return; const o=g.omenNext; if(!o||typeof o!=='object'||typeof o.day!=='number'||!isFinite(o.day)||!(o.id===null||OMENS[o.id])) delete g.omenNext; };
+// the new omens (OMENS in game-gate-rules.js; they come only when a god calls them)
+function godOmenRise(e){ const o=omen(); if(o==='longnight'){ e.maxHp=Math.max(1,Math.round(e.maxHp*LONG_HP)); e.hp=Math.min(e.maxHp,Math.round(e.hp*LONG_HP)); }
+  if(o==='rotbloom'&&e.hp>0) addDot(e,'blight',Math.max(1,Math.round(e.maxHp*BLOOM_ROT)),3); }
+function godOmenRoom(list){ if(omen()!=='choirnight'||!S.run) return; S.run.silence=Math.max(S.run.silence||0,silenceT(2)); for(const e of list) if(e.abilT!=null) e.abilT++; }
+const nightK=()=>S&&S.omen&&S.omen.day===S.day&&S.omen.id==='choirnight'&&!(S.run&&(S.run.siege||S.run.trial))?CHOIR_NIGHT:1;   // extraMul (minion attack); reads today's omen without rolling it, so syncArmy never spends a roll
+// the Temple at level 3: your god's chapel
+const chapel=id=>bl('temple')>=3&&faithOf()===id;
+const CHAPELS={hon:{name:'Hospice',d:'a downed minion shatters '+HOSPICE_SHATTER+'% less often'},vesh:{name:'Ice House',d:'bodies in the Embalmery never spoil'},
+  ulm:{name:'Granary',d:'a brew needs one part fewer'},choir:{name:'Bell Choir',d:'headstones cost '+Math.round((1-BELL_CHOIR)*100)+'% less'},dis:{name:'Black Chapel',d:'your devotion fades half as fast'}};
+const hospice=()=>chapel('hon')?HOSPICE_SHATTER:0;   // shatterOdds
+const iceHouse=()=>chapel('vesh');   // embDays
+function granary(B){ if(!B||!B.parts||!chapel('ulm')) return B&&B.parts; const p=Object.assign({},B.parts), k=Object.keys(p).sort((a,b)=>p[b]-p[a])[0]; if(k&&p[k]>1) p[k]--; return p; }   // brewCan/brewIt
+const bellChoir=()=>chapel('choir')?BELL_CHOIR:1;   // headCost
+const profDecay=()=>PROFANE_DECAY*(chapel('dis')?.5:1);   // faithDawn
+// the town's dread and the siege
+const dreadRest=()=>DREAD_REST+(faithOf()==='dis'?PROFANE_DREAD:0);   // dreadDawn drifts toward it
+function godDreadDawn(){ if(faithOf()==='hon'&&dreadOn()&&dreadOf()>0) dread(-MORROW_DREAD); }   // Morrow: the town breathes easier
+const godPayK=()=>faithOf()==='choir'?CHOIR_PAY:1;   // siegePayK
+const godCommK=()=>faithOf()==='ulm'?ULM_COMM:1;   // commPay
+function godSiegeWave(list,r){ if(faithOf()==='vesh'&&r.room===2){ for(const e of list) e.stun=Math.max(e.stun||0,1); log('Vesh breathes on the third wave. It stands frozen for a turn.','ok'); } }
+const CAPTAIN_SAYS={hon:'Your Last Light is a candle in a grave, necromancer',vesh:'The Cold Mother cannot keep you from the fire',ulm:'Ulm\'s rot will feed the pyre well',
+  choir:'Your Choir sings for the damned. Let them sing you down',dis:'No god at all? Then nothing will hear you burn'};
+const captainLine=()=>{ const id=faithOf(); return id?' The Captain: '+CAPTAIN_SAYS[id]+'.':''; };
+const forecastLine=()=>{ const f=forecast(); return f?' '+FAITH[faithOf()].short.replace(/^the /,'The ')+' shows you tomorrow: '+(f.id?OMENS[f.id].name:'no omen')+'.':''; };   // closeDay's notice
+const GOD_TOWN={hon:'the dread falls '+MORROW_DREAD+' more each dawn',vesh:'a siege\'s third wave stands frozen for a turn',ulm:'commissions pay '+Math.round((ULM_COMM-1)*100)+'% more gold',
+  choir:'sieges pay '+Math.round((CHOIR_PAY-1)*100)+'% more gold',dis:'the dread settles '+PROFANE_DREAD+' points higher, so sieges come sooner'};

@@ -67,9 +67,10 @@ function codexSection(k){
     +'<div class="btns"><button class="btn small" data-a="cx" data-k="army">Army</button><button class="btn small" data-a="cx" data-k="reserve">Reserve</button><button class="btn small" data-a="cx" data-k="fusion">Fusion</button></div>';
   if(k==='faith') return cxP('Once '+OPEN_AT.faith+' gates are cleared, from level '+FAITH_LV+', the Pantheon on the Town tab takes an oath to one of four Old Gods, or to none (the Profane path). Devotion is earned by deeds your god likes; every '+DEV_STEP+' points is a rank, up to '+DEV_RANKS+', and each rank opens a boon. Each god asks a vow: break it and you lose a rank and that day\'s devotion (once a day). Renouncing costs 100 gold per level and starts devotion over. Swearing and renouncing happen in town.')
     +cxP('In about '+pct(FAITH_EVENT)+' of the events between rooms a sworn necromancer meets a shrine: their own god\'s (pray: heal, refill mana, +'+DEV_SHRINE+' devotion), or another god\'s, which offers a conversion (that god, keeping '+pct(CONVERT_KEEP)+' of your devotion points). The Profane may desecrate another god\'s shrine instead.')
-    +cxList(GODS.map(k=>{ const F=FAITH[k]; return cxRow(F.name,F.domain+'. '+F.about+'<br><b>Vow:</b> '+F.vow+'<br><b>Deeds:</b> '+F.deeds+BOONS[k].map((b,i)=>'<br><b>Rank '+(i+1)+':</b> '+b.t+'.').join(''),faithOf()===k?'Sworn':''); }));
+    +cxList(GODS.map(k=>{ const F=FAITH[k]; return cxRow(F.name,F.domain+'. '+F.about+'<br><b>Vow:</b> '+F.vow+'<br><b>Deeds:</b> '+F.deeds+BOONS[k].map((b,i)=>'<br><b>Rank '+(i+1)+':</b> '+b.t+'.').join('')+'<br><b>Omens:</b> '+godOmens(k).map(o=>OMENS[o].name).join(', ')+'.<br><b>Temple chapel:</b> '+CHAPELS[k].name+': '+CHAPELS[k].d+'.<br><b>The town:</b> '+GOD_TOWN[k]+'.',faithOf()===k?'Sworn':''); }));
   if(k==='omens') return cxP('Once you have cleared a gate, about '+pct(OMEN_CHANCE)+' of dawns bring an omen. It lasts the whole day and touches every gate, the Tower and the Rift, but never a siege or a Trial. Today: '+(omen()?OMENS[omen()].name:'no omen')+'.')
-    +cxList(Object.keys(OMENS).map(o=>cxRow(OMENS[o].name,OMENS[o].desc,omen()===o?'Today':'')));
+    +cxP('A sworn necromancer sees tomorrow\'s omen a day ahead. Once a day they may spend '+CALL_COST+' devotion (a rank, or the points past rank '+DEV_RANKS+') to call one of their god\'s two omens for tomorrow, or to ward off the omen foreseen. The Temple at level 5 makes one call a week free. The Profane cannot ward, but once a week calls a random omen for free. Long Night, Rot Bloom and Choir Night never come at dawn: only a god calls them.')
+    +cxList(Object.keys(OMENS).map(o=>cxRow(OMENS[o].name,OMENS[o].desc+(OMENS[o].god?' Only '+FAITH[OMENS[o].god].short+' calls it.':''),omen()===o?'Today':forecast()&&forecast().id===o?'Tomorrow':'')));
   if(k==='roles') return cxP('Every creature, yours or the enemy\'s, has one of four roles.')+cxList(Object.keys(ROLES).map(r=>cxRow(ROLES[r].label,ROLES[r].text+' '+CDX_ROLE[r])))
     +'<p class="group-h">Rows</p>'+cxP('Every fighter stands in the front row or the back row. Your vanguards and reapers start in front; strikers, menders and you stand at the back. Out of battle, move a minion forward or back on the Army tab. Among foes, bosses, vanguards and reapers stand in front.')
     +cxList([cxRow('Melee','Vanguards and reapers fight up close. While the other side has anyone standing in its front row, they can only strike that row. So enemy melee cannot reach you while one of your minions holds the front, and your vanguards and reapers hit the weakest foe in front when your target stands at the back.'),
@@ -293,6 +294,16 @@ function codexHTML(){
    +codexSection(k))+'</section>';
 }
 function boonList(k,rank){ return '<ol class="boons">'+BOONS[k].map((b,i)=>'<li class="'+(i<rank?'ok':'dim')+'">'+b.t+'</li>').join('')+'</ol>'; }
+function omenCallHTML(id){   // the Pantheon: tomorrow's omen, the calls and the ward (game-pantheon.js)
+  const f=forecast(), dv=faithDev(), ch=bl('temple')>=3?'<div class="u-sub"><b>Temple chapel:</b> '+CHAPELS[id].name+': '+CHAPELS[id].d+'.</div>':'';
+  if(!f) return ch+'<div class="u-sub"><b>Tomorrow:</b> your god shows you tomorrow\'s omen once a gate is cleared.</div>';
+  const used=callUsed(), cost=freeCall()?'free (the Temple)':CALL_COST+' devotion';
+  let b='';
+  if(id==='dis') b='<button class="btn small" data-a="gcall"'+(canCall()?'':' disabled')+'>'+(profCall()?'Call a random omen &middot; free this week':'Your free call returns in '+(7-(S.day-S.faith.pc))+' days')+'</button>';
+  else b=godOmens(id).map(o=>'<button class="btn small" data-a="gcall" data-k="'+o+'"'+(canCall(o)?'':' disabled')+'>Call '+OMENS[o].name+' &middot; '+cost+'</button>').join(' ')
+    +(f.id?' <button class="btn small" data-a="gward"'+(canWard()?'':' disabled')+'>Ward it off &middot; '+CALL_COST+' devotion</button>':'');
+  return ch+'<div class="u-sub omen-fc"><b>Tomorrow:</b> '+(f.id?'<b>'+OMENS[f.id].name+'</b> <span>'+OMENS[f.id].desc+'</span>':'<span>no omen</span>')+(f.ward?' <span>(You warded off '+OMENS[f.ward].name+'.)</span>':'')+(used?' <span class="dim">You have spoken to your god today.</span>':'')+'</div><div class="btns">'+b+'</div>';
+}
 function faithHTML(){
   const id=faithOf();
   let h='<p class="group-h">The Pantheon &middot; faith</p>';
@@ -300,7 +311,7 @@ function faithHTML(){
   if(id){ const F=FAITH[id], k=faithRank(), dv=Math.floor(faithDev()), nx=k<DEV_RANKS?(k+1)*DEV_STEP:null, pc=nx?Math.round((dv-k*DEV_STEP)/DEV_STEP*100):100;
     return h+'<div class="items"><div class="tt-row on god-'+id+'"><div><h4>'+F.name+' <span class="u-tag">rank '+k+'/'+DEV_RANKS+'</span></h4><div class="u-sub">'+F.domain+'. '+F.about+'</div>'
       +'<div class="dev-bar" title="'+dv+' devotion"><i style="width:'+pc+'%"></i></div><div class="u-sub">'+(nx?dv+' of '+nx+' devotion for rank '+(k+1)+'.':'Your devotion is complete ('+dv+' points).')+(S.faith.dday===S.day&&S.faith.dd?' Today: +'+Math.round(S.faith.dd)+'.':'')+'</div>'
-      +'<div class="u-sub"><b>Vow:</b> '+F.vow+(S.faith.vb===S.day?' <span class="bad">Broken today.</span>':'')+'</div><div class="u-sub"><b>Deeds:</b> '+F.deeds+'</div>'+boonList(id,k)+'</div>'
+      +'<div class="u-sub"><b>Vow:</b> '+F.vow+(S.faith.vb===S.day?' <span class="bad">Broken today.</span>':'')+'</div><div class="u-sub"><b>Deeds:</b> '+F.deeds+'</div>'+boonList(id,k)+omenCallHTML(id)+'</div>'
       +'<button class="btn small warn" data-a="renounce"'+(S.gold<renounceCost()?' disabled':'')+'>'+(ui.confirm==='renounce'?'Confirm: renounce for '+renounceCost()+' gold':'Renounce &middot; '+gold(renounceCost()))+'</button></div></div>';
   }
   return h+brief('faith','Swear to a god. Devotion grows with the deeds they like, each rank opens a boon, and each god asks a vow. Renouncing costs gold and starts devotion over.','q-note')+'<div class="items">'

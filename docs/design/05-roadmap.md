@@ -26,7 +26,7 @@ substantial feature or rework; small fixes ride along inside one. Rounds name th
 | R5 | The necropolis grows: town expansion and the town's dread | Shipped (#17, #18) | G6, G12, G13, G15, B7 | R4 helps | XL | [spec](rounds/R05-the-necropolis-grows.md) |
 | R6 | Expeditions: raids rework and Commanders in battle | Shipped (#19) | G17, G8 | R5 | L | [spec](rounds/R06-expeditions.md) |
 | R7 | The rival's war: an arc with an ending | Shipped (#20, #21) | G19 | R2 | L | [spec](rounds/R07-the-rivals-war.md) |
-| R8 | The pantheon: faith rework, gods and omens | PR A shipped (#22) | G18, G20 | R5 | L | [spec](rounds/R08-the-pantheon.md) |
+| R8 | The pantheon: faith rework, gods and omens | Shipped (#22, #23) | G18, G20 | R5 | L | [spec](rounds/R08-the-pantheon.md) |
 | R9 | Rift sigils and Riftborn gear | P2 | G22, B4 | R2 | L | [spec](rounds/R09-rift-sigils.md) |
 | R10 | Ascension: New Game+ rework | P2 | G21 | R3 | L | [spec](rounds/R10-ascension.md) |
 | R11 | Hero builds 2.0 | P2 | G25, B2 | | L | [spec](rounds/R11-hero-builds.md) |

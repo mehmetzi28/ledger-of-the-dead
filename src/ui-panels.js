@@ -706,7 +706,7 @@ function histHTML(){
 }
 
 // ----- brewing, run prep, commissions and the black market (game-brew.js)
-const partsTxt=B=>B.hearts?B.hearts+' spare boss hearts':Object.keys(B.parts).map(r=>B.parts[r]+' '+r).join(' + ')+' parts'+(B.g?' from a gate of rank '+RANKS[B.g]+' or deeper':'');
+const partsTxt=B=>B.hearts?B.hearts+' spare boss hearts':(P=>Object.keys(P).map(r=>P[r]+' '+r))(granary(B)).join(' + ')+' parts'+(B.g?' from a gate of rank '+RANKS[B.g]+' or deeper':'');
 function brewHTML(){
   let h='<p class="group-h">Brewing</p>'+brief('brew2','Recipes take trophy parts of a role (the part words: Fang, Hide, Relic...) from a gate or deeper, plus a little gold. Tower trophies count as the deepest gate. Oils, incense and charms wait in your stash for the Gates tab, banners for tonight\'s raids; draughts go on your belt.','q-note');
   h+='<p class="q-note">Your parts: '+['striker','reaper','mender','vanguard'].map(r=>partCount(r,0)+' '+r).join(' &middot; ')+' &middot; spare hearts '+spareHearts().reduce((a,[,n])=>a+n,0)+'</p>';

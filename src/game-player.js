@@ -194,7 +194,7 @@ function normalizeSave(src){
   const L=obj(g.life)?g.life:{}; g.life={}; for(const k of LIFE_KEYS) g.life[k]=Math.max(0,num(L[k],0));
   if(!obj(g.build)) g.build={}; for(const k of Object.keys(g.build)){ const v=g.build[k]; if(!BUILD[k]||typeof v!=='number'||!(v>=1)) delete g.build[k]; else g.build[k]=Math.min(BUILD_MAX,Math.floor(v)); }
   g.dust=Math.max(0,Math.floor(num(g.dust,0)));
-  faithFix(g);   /* the pantheon; an old two-oath faith converts (game-pantheon.js) */
+  faithFix(g); omenNextFix(g);   /* the pantheon; an old two-oath faith converts (game-pantheon.js) */
   if(g.rec!==undefined){ if(!obj(g.rec)) delete g.rec; else { const R0=g.rec, okv=o=>obj(o)&&typeof o.v==='number'&&o.v>0&&typeof o.day==='number';
     for(const k of REC_NUM) if(k in R0&&!okv(R0[k])) delete R0[k];
     if('riftF' in R0){ if(!obj(R0.riftF)) delete R0.riftF; else for(const m of Object.keys(R0.riftF)){ const o=R0.riftF[m]; if(!(+m>=1)||!obj(o)||!(o.t>0)||typeof o.day!=='number'||!(o.d>=+m)) delete R0.riftF[m]; } }
@@ -377,6 +377,7 @@ const roll3=()=>S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&!
  ['f_dis','Deeds','Wholly Profane','Reach rank 5 on the Profane path.',()=>T_('r5_dis')>=1,{dmgp:4}],
  ['f_godless','Deeds','Godless','Finish a cycle on the Profane path (begin New Game+ while Profane).',()=>T_('godless')>=1,{dmgp:3,goldp:3}],
  ['f_turncoat','Deeds','Turncoat','Convert to another god at their shrine 3 times.',()=>T_('converted')>=3,{xpp:3}],
+ ['f_weather','Deeds','Weather-Maker','Have your god call 20 omens.',()=>T_('godCalls')>=20,{goldp:3,xpp:2}],
  ['r_5','Deeds','Rift-Walker','Clear depth 5 of the Rift.',()=>riftBest()>=5,{dmgp:4}],
  ['r_15','Deeds','Riftborn','Clear depth 15 of the Rift.',()=>riftBest()>=15,{dmgp:5,hpp:4}],
  ['r_30','Deeds','Lord of the Torn Sky','Clear depth 30 of the Rift.',()=>riftBest()>=30,{dmgp:6,mpow:6}],
@@ -409,7 +410,7 @@ const masteredN=ids=>allNames().filter(n=>{ const t=masteryOf(n); return !!t&&id
  ['x_mlv50','Deeds','Bonelord Ascendant','Raise a minion to level 50.',()=>recV('mlv')>=50,{mpow:4}],
  ['x_omen1','Curses and events','Omen-Born','Survive a run under an omen.',()=>T_('omenRuns')>=1,{xpp:2}],
  ['x_omen25','Curses and events','Omen-Reader','Win 25 runs under an omen.',()=>T_('omenWins')>=25,{drp:2}],
- ['x_omenall','Curses and events','Herald of Every Sign','Survive a run under every kind of omen.',()=>{ return Object.keys(OMENS).every(id=>T_('om_'+id)>=1); },{goldp:4}],
+ ['x_omenall','Curses and events','Herald of Every Sign','Survive a run under every kind of omen.',()=>{ return OMEN_NAT.every(id=>T_('om_'+id)>=1); },{goldp:4}],
  ['x_eclipse','Curses and events','Lord of the Eclipse','Win 5 runs under the Eclipse.',()=>{ return OMENS.eclipse?T_('omw_eclipse')>=5:T_('omenWins')>=15; },{dmgp:2,mpow:2}],
  ['x_mastered25','Deeds','Ledger-Scholar','Bring 25 kinds of foe to Mastered or better in the bestiary.',()=>masteredN(['mastered','ledgered'])>=25,{xpp:3}],
  ['x_ledger10','Deeds','Master of the Bestiary','Bring 10 kinds of foe to Ledgered in the bestiary.',()=>masteredN(['ledgered'])>=10,{dmgp:3}],
@@ -467,7 +468,7 @@ function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // d
 // rarer ones stay hidden ("???") until earned. Rarity follows how hard a title is: bot runs measured the reachable ones,
 // and deeds the bots skip (events, forging) were judged by hand.
 const TITLE_RARITY={hd1:1,hd2:2,nm0:3,nm1:3,nm2:3,nm3:4,nm4:4,nm5:5,dm3:5,sb0:5,sb1:5,sb2:5,sb3:5,sb4:5,sb5:5,g0:0,g1:0,d_raise1:0,d_kill100:0,d_death:0,d_armed1:0,d_lv10:0,d_study:0,s_venom:0,f_crit:0,d_tower1:0,d_quest7:0,d_army:0,g2:1,t10:1,t20:1,d_raise50:1,d_cancel:1,d_evolve:1,d_uq:1,d_gold:1,m0:1,m1:1,c_drought:1,c_fury:1,c_bulwark:1,c_horde:1,c_volatile:1,p_25:1,k_spear:1,k_blast:1,k_chill:1,g_items:1,g_sold:1,f_flawless:1,f_last:1,a_boss:1,e_strag:1,e_pedlar:1,e_trap:1,d_death10:1,g3:2,g4:2,t30:2,t40:2,t50:2,d_kill1000:2,d_lv25:2,d_raise200:2,d_tower50:2,d_cancel10:2,d_trophy500:2,d_altar:2,d_elder:2,m2:2,m3:2,d_armed3:2,d_master:2,d_bag:2,c_25:2,e_shrine:2,e_coffer:2,s_poison:2,s_cure:2,k_reap:2,k_master3:2,k_all:2,f_boss25:2,f_elite100:2,g_gold:2,g_roll3:2,a_traits:2,a_elders:2,e_day100:2,e_runs100:2,g_reforge:2,g5:3,t60:3,t70:3,m4:3,m5:3,tw75:3,d_lv50:3,p_100:3,f_crit1000:3,e_rooms1000:3,twruns:3,d_ngp:3,d_tower110:3,t80:4,t90:4,t100:4,d_kill5000:4,d_all:4,d_tower150:4,a_raise500:4,e_lv75:4,tw200:5,d_ngp3:5,d_tuq:5,a_ancient:3,a_eternal:4,a_raid1:1,a_raid25:3,r_5:3,r_15:4,r_30:5};
-Object.assign(TITLE_RARITY,{x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
+Object.assign(TITLE_RARITY,{x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
 const RARITY_MUL=[1,1,1.25,1.5,2,3], HIDDEN_FROM=3;
 TITLES.forEach(t=>{ t.r=TITLE_RARITY[t.id]!=null?TITLE_RARITY[t.id]:1; const m=RARITY_MUL[t.r]; for(const k in t.b) t.b[k]=Math.max(t.b[k],Math.round(t.b[k]*m)); });
 const titleHidden=t=>t.r>=HIDDEN_FROM&&!(S&&S.ti&&S.ti.got&&S.ti.got[t.id]);
@@ -537,10 +538,10 @@ function closeDay(){
   if(!S.quest.claimed&&questDone()) claimQuest();   // an unfinished quest simply lapses
   const hon=remembered(); S.day++; S.watches=WATCHES-pactWatch(); if(hon) syncArmy();   /* the Remembered buff ends at dawn */
   S.quest={kills:0,rooms:0,clears:0,claimed:false};
-  const rr=resolveRaids(); placeWaiting(); bondsDawn(); yardDawn(); embDawn(); upkeepDawn(); dreadDawn(); faithDawn();   /* upkeep and the town's dread (game-dread.js) */   /* the Charnel Yard, the Embalmery (game-town2.js) */
+  const rr=resolveRaids(); placeWaiting(); bondsDawn(); yardDawn(); embDawn(); upkeepDawn(); dreadDawn(); faithDawn(); godDreadDawn(); omenDusk();   /* upkeep and the town's dread (game-dread.js) */   /* the Charnel Yard, the Embalmery (game-town2.js) */
   P.hp=pMax(); P.mana=pMana(); P.shield=0;
   S.army.forEach(m=>m.hp=m.maxHp);
-  notify('Day '+S.day+' begins. You have '+S.watches+' watches.'+raidDayLine(rr));
+  notify('Day '+S.day+' begins. You have '+S.watches+' watches.'+raidDayLine(rr)+forecastLine());
   siegeTick(); rivalTick();
 }
 function restDay(){ if(S.mode!=='town') return; S.watches=0; endDay(); }

@@ -34,7 +34,7 @@ const titheCost=()=>Math.max(100,Math.round(S.gold*TITHE_K));
 const titheReady=()=>dreadOn()&&S.mode==='town'&&S.titheDay!==S.day&&S.gold>=titheCost();
 function payTithe(){ if(!titheReady()) return 0; const c=titheCost(); S.gold-=c; S.titheDay=S.day; dread(-DREAD_TITHE); tally('tithes'); sfx('coin'); return c; }
 function dreadDawn(){   // closeDay: drift, then the band's own dawn
-  if(!dreadOn()) return; const d=dreadOf(); if(d!==DREAD_REST) dread(d>DREAD_REST?-Math.min(1,d-DREAD_REST):Math.min(1,DREAD_REST-d));
+  if(!dreadOn()) return; const d=dreadOf(), rest=dreadRest(); if(d!==rest) dread(d>rest?-Math.min(1,d-rest):Math.min(1,rest-d));   /* the Profane's rest sits higher (game-pantheon.js) */
   const b=dreadBand().id;
   if(b==='calm'&&S.day%7===CALL_DAY&&bl('embalm')&&(S.embalm||[]).length<embHold()){ const g=topGate(), mob=pick(DUNGEONS[g].mobs);
     const c={name:mob[0],base:mob[0],role:mob[1],rankI:g,lvl:Math.max(1,S.player.lvl-2),hf:mob[2]||1,af:mob[3]||1,boss:false,elite:false};
