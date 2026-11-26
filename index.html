@@ -1862,11 +1862,11 @@ function normalizeSave(src){
   let top=num(g.uid,0);   // next id must stay above every id in use, or two items/minions would share one
   g.inv.concat(Object.values(g.equip),...g.army.map(m=>m.eq?Object.values(m.eq):[])).forEach(it=>{ if(it) top=Math.max(top,it.u); });
   g.army.forEach(m=>{ top=Math.max(top,num(m.uid,0)); }); g.army.forEach(m=>{ if(typeof m.uid!=='number') m.uid=++top; });
-  g.raids=RA.map((x,i)=>Object.assign({di:x.di,day:Math.floor(num(x.day,g.day)),units:g.army.filter(m=>m._raid===i)},Array.isArray(x.res)?{res:x.res.filter(u=>typeof u==='number')}:{},typeof x.odds==='number'&&isFinite(x.odds)?{odds:clamp(x.odds,RAID_MIN,RAID_MAX)}:{},BREWS[x.bn]?{bn:x.bn}:{})).filter(x=>x.units.length);
+  g.raids=RA.map((x,i)=>Object.assign({di:x.di,day:Math.floor(num(x.day,g.day)),units:g.army.filter(m=>m._raid===i)},Array.isArray(x.res)?{res:x.res.filter(u=>typeof u==='number')}:{},typeof x.odds==='number'&&isFinite(x.odds)?{odds:clamp(x.odds,RAID_MIN,RAID_MAX)}:{},BREWS[x.bn]?{bn:x.bn}:{},expFix(x))).filter(x=>x.units.length);   /* expeditions (game-exp.js) */
   for(const k of ['reserve','waiting']) g[k]=g.army.filter(m=>m._raid===k);
   g.army=g.army.filter(m=>m._raid==null); g.raids.forEach(x=>x.units.forEach(m=>{ delete m._raid; })); g.reserve.concat(g.waiting).forEach(m=>{ delete m._raid; });
-  g.raidOrders=Array.isArray(g.raidOrders)?g.raidOrders.filter(o=>obj(o)&&RK[o.di]&&fin(o.cu)&&Array.isArray(o.uids)).map(o=>Object.assign({di:o.di,day:Math.floor(num(o.day,g.day)),cu:o.cu,uids:o.uids.filter(fin).slice(0,12)},BREWS[o.bn]&&BREWS[o.bn].kind==='banner'?{bn:o.bn}:{})):[];   // tonight's raid orders: uids only (the squad stays in the army until nightfall)
-  g.raidLog=Array.isArray(g.raidLog)?g.raidLog.filter(x=>obj(x)&&RK[x.di]&&typeof x.nick==='string').slice(0,RAID_LOG).map(x=>({day:Math.floor(num(x.day,1)),di:x.di,won:!!x.won,nick:cleanNick(x.nick)||'Nameless',lost:Math.max(0,Math.floor(num(x.lost,0)))})):[];
+  g.raidOrders=Array.isArray(g.raidOrders)?g.raidOrders.filter(o=>obj(o)&&RK[o.di]&&fin(o.cu)&&Array.isArray(o.uids)).map(o=>Object.assign({di:o.di,day:Math.floor(num(o.day,g.day)),cu:o.cu,uids:o.uids.filter(fin).slice(0,12)},BREWS[o.bn]&&BREWS[o.bn].kind==='banner'?{bn:o.bn}:{},expOrderFix(o))):[];   // tonight's raid orders: uids only (the squad stays in the army until nightfall)
+  g.raidLog=Array.isArray(g.raidLog)?g.raidLog.filter(x=>obj(x)&&RK[x.di]&&typeof x.nick==='string').slice(0,RAID_LOG).map(x=>({day:Math.floor(num(x.day,1)),di:x.di,won:!!x.won,nick:cleanNick(x.nick)||'Nameless',lost:Math.max(0,Math.floor(num(x.lost,0))),...(EXP_TARGETS.includes(x.k)?{k:x.k,nights:x.nights===2?2:1}:{})})):[];
   g.abbey=abbeyFix(g.abbey);   /* Vane Abbey's door (game-abbey.js) */
   townFix(g); dreadFix(g);   /* dread, orders, unpaid upkeep (game-dread.js) */   /* building levels, specializations, kept bodies (game-town2.js) */
   endingFix(g);   /* the last page, the endings and the inscriptions (game-abbey.js) */
@@ -2067,6 +2067,10 @@ const roll3=()=>S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&!
  ['a_elders','Deeds','Elder Council','Command three Elder minions at once.',()=>S.army.filter(m=>m.stage>=2).length>=3,{mpow:5}],
  ['a_raid1','Deeds','Absent Warlord','Win a raid led by a Commander.',()=>T_('raidWins')>=1,{goldp:4}],
  ['a_raid25','Deeds','General of the Dead','Win 25 raids.',()=>T_('raidWins')>=25,{mpow:5,goldp:4}],
+ ['x_long','Deeds','Long Road','Bring a squad home whole from an expedition of two nights.',()=>T_('expLong')>=1,{goldp:4}],
+ ['x_hunt','Deeds','Hunt Master','Come home from 10 hunts with spoils.',()=>T_('exp_hunt')>=10,{dmgp:4}],
+ ['x_clean','Deeds','Not a Scratch','Come home from 20 expeditions with spoils and no one lost.',()=>T_('expClean')>=20,{mpow:5}],
+ ['x_rally','Deeds','Rallying Cry','Rally your dead 100 times.',()=>T_('rallies')>=100,{mpow:4,dmgp:3}],
  ['r_5','Deeds','Rift-Walker','Clear depth 5 of the Rift.',()=>riftBest()>=5,{dmgp:4}],
  ['r_15','Deeds','Riftborn','Clear depth 15 of the Rift.',()=>riftBest()>=15,{dmgp:5,hpp:4}],
  ['r_30','Deeds','Lord of the Torn Sky','Clear depth 30 of the Rift.',()=>riftBest()>=30,{dmgp:6,mpow:6}],
@@ -2157,7 +2161,7 @@ function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // d
 // rarer ones stay hidden ("???") until earned. Rarity follows how hard a title is: bot runs measured the reachable ones,
 // and deeds the bots skip (events, forging) were judged by hand.
 const TITLE_RARITY={hd1:1,hd2:2,nm0:3,nm1:3,nm2:3,nm3:4,nm4:4,nm5:5,dm3:5,sb0:5,sb1:5,sb2:5,sb3:5,sb4:5,sb5:5,g0:0,g1:0,d_raise1:0,d_kill100:0,d_death:0,d_armed1:0,d_lv10:0,d_study:0,s_venom:0,f_crit:0,d_tower1:0,d_quest7:0,d_army:0,g2:1,t10:1,t20:1,d_raise50:1,d_cancel:1,d_evolve:1,d_uq:1,d_gold:1,m0:1,m1:1,c_drought:1,c_fury:1,c_bulwark:1,c_horde:1,c_volatile:1,p_25:1,k_spear:1,k_blast:1,k_chill:1,g_items:1,g_sold:1,f_flawless:1,f_last:1,a_boss:1,e_strag:1,e_pedlar:1,e_trap:1,d_death10:1,g3:2,g4:2,t30:2,t40:2,t50:2,d_kill1000:2,d_lv25:2,d_raise200:2,d_tower50:2,d_cancel10:2,d_trophy500:2,d_altar:2,d_elder:2,m2:2,m3:2,d_armed3:2,d_master:2,d_bag:2,c_25:2,e_shrine:2,e_coffer:2,s_poison:2,s_cure:2,k_reap:2,k_master3:2,k_all:2,f_boss25:2,f_elite100:2,g_gold:2,g_roll3:2,a_traits:2,a_elders:2,e_day100:2,e_runs100:2,g_reforge:2,g5:3,t60:3,t70:3,m4:3,m5:3,tw75:3,d_lv50:3,p_100:3,f_crit1000:3,e_rooms1000:3,twruns:3,d_ngp:3,d_tower110:3,t80:4,t90:4,t100:4,d_kill5000:4,d_all:4,d_tower150:4,a_raise500:4,e_lv75:4,tw200:5,d_ngp3:5,d_tuq:5,a_ancient:3,a_eternal:4,a_raid1:1,a_raid25:3,r_5:3,r_15:4,r_30:5};
-Object.assign(TITLE_RARITY,{a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
+Object.assign(TITLE_RARITY,{x_long:2,x_hunt:3,x_clean:3,x_rally:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
 const RARITY_MUL=[1,1,1.25,1.5,2,3], HIDDEN_FROM=3;
 TITLES.forEach(t=>{ t.r=TITLE_RARITY[t.id]!=null?TITLE_RARITY[t.id]:1; const m=RARITY_MUL[t.r]; for(const k in t.b) t.b[k]=Math.max(t.b[k],Math.round(t.b[k]*m)); });
 const titleHidden=t=>t.r>=HIDDEN_FROM&&!(S&&S.ti&&S.ti.got&&S.ti.got[t.id]);
@@ -2318,7 +2322,7 @@ function mark(u,d,h){ const id=fxKey(u); if(id==null) return; const f=S.run.fx[i
 function hit(b){ return Math.max(1,Math.round(b*rnd(.85,1.15))); }
 function hurtFoe(e,d,ty){ if(abbeyMiss(e)) return; ty=MARGIN||(DTYPE[ty]?ty:'phys');   /* an Unwritten foe; a Marginalia skill (game-abbey.js) */ if(e.curse) d=Math.round(d*e.curse.mul); { const mk=masteryDmg(e.base); if(mk) d=Math.round(d*(1+mk/100)); }   /* bestiary mastery: every hit from you and your army, once */ if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25); if(e.stun>0&&capOn('frost1')) d=Math.round(d*CAP_RIME);
   if(hasSt(e,'sundered')) d=Math.round(d*SUNDER_MUL); if(hasSt(e,'chilled')) d=Math.round(d*CHILL_MUL);   // conditions (game-gate-rules.js)
-  { const k=(1-foeRes(e,ty))*typeDmg(ty)*oilK(e,ty)*archiveK(e); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
+  { const k=(1-foeRes(e,ty))*typeDmg(ty)*oilK(e,ty)*archiveK(e)*rallyK(); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
   e.lt=ty;   /* the type of the last hit it took (a weakness kill) */
   d=bossTaken(e,kitTaken(e,d));   /* Heartwood (game-boss-kits.js) */   /* Bulwark stance, a Banner-bearer beside it (game-kits.js) */
   if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e,0,0); return; } }   // Bone Wall shield soaks damage first
@@ -3072,40 +3076,24 @@ function raidOdds(units,di){
 const raidOrders=()=>(S&&S.raidOrders)||[];
 const inOrder=m=>raidOrders().some(o=>o.cu===m.uid||o.uids.includes(m.uid));   // already promised to tonight's march
 const orderSquad=o=>{ const P=raidPool(), c=P.find(m=>m.uid===o.cu); return c?[c].concat(o.uids.map(u=>P.find(m=>m.uid===u&&m!==c)).filter(Boolean)):[]; };   // who would march now: the shattered and released are simply gone
-function sendRaid(cu,di,uids){   // order a raid for tonight: nobody leaves until the day ends
-  if(S.mode!=='town') return false; const P=raidPool(), c=P.find(m=>m.uid===cu); if(!isCommander(c)||!raidGates().includes(di)||inOrder(c)) return false;
+function sendRaid(cu,di,uids,t,nights){   // order an expedition for tonight: nobody leaves until the day ends (t: the target, game-exp.js; a plain gate by default)
+  t=t||{k:'gate',di}; di=t.di; if(S.mode!=='town') return false; const P=raidPool(), c=P.find(m=>m.uid===cu); if(!isCommander(c)||!tValid(t)||inOrder(c)) return false;
+  nights=expNights(t.k).includes(nights)?nights:expNights(t.k)[0];
   const fol=[...new Set(uids||[])].map(u=>P.find(m=>m.uid===u&&m!==c)); if(fol.some(m=>!m||inOrder(m))||!fol.length||fol.length>squadMax(c)-1) return false;   // a Commander never marches alone
-  const o={di,day:S.day,cu:c.uid,uids:fol.map(m=>m.uid)}; bannerTake(o); S.raidOrders=raidOrders().concat([o]); tally('raidsSent'); sfx('raise'); return true;
+  const o={di,day:S.day,cu:c.uid,uids:fol.map(m=>m.uid),t,nights}; bannerTake(o); S.raidOrders=raidOrders().concat([o]); tally('raidsSent'); sfx('raise'); return true;
 }
 function recallRaid(i){ if(S.mode!=='town'||!S.raidOrders||!S.raidOrders[i]) return false; S.raidOrders.splice(i,1); return true; }   // cancel tonight's order: free, any time before nightfall
 function marchRaids(){   // nightfall: every standing order marches with the squad as it now is
   const os=raidOrders(); S.raidOrders=[];
   for(const o of os){ const units=orderSquad(o), c=units[0];
-    if(!c||!isCommander(c)||!raidGates().includes(o.di)){ notify('Tonight\'s raid on the '+DUNGEONS[o.di].name+' lapses: its Commander is gone.','bad'); continue; }
+    const t=o.t||{k:'gate',di:o.di}; if(!c||!isCommander(c)||!raidGates().includes(t.di)&&t.k!=='band'){ notify('Tonight\'s raid on the '+DUNGEONS[o.di].name+' lapses: its Commander is gone.','bad'); continue; }
     if(units.length<2){ notify('Tonight\'s raid on the '+DUNGEONS[o.di].name+' lapses: '+c.nick+' has no one left to lead.','bad'); continue; }
     const res=units.filter(m=>inReserve(m)).map(m=>m.uid);   // where each marched from: its place waits for it
     S.army=S.army.filter(m=>!units.includes(m)); if(S.reserve) S.reserve=S.reserve.filter(m=>!units.includes(m)); units.forEach(m=>{ m.hp=m.maxHp; delete m.dots; delete m.st; });
-    S.raids=(S.raids||[]).concat([Object.assign({di:o.di,day:S.day,units,res,odds:bannerOdds(o,raidOdds(units,o.di))},o.bn?{bn:o.bn}:{})]); }
-}
-function resolveRaid(x){
-  const D=DUNGEONS[x.di], lead=x.units[0], won=Math.random()<(typeof x.odds==='number'?x.odds:raidOdds(x.units,x.di));   /* odds as they marched */ let msg, lost=[];
-  if(won){
-    const g=Math.round((15+S.player.lvl*4)*(1+x.di)*RAID_GOLD*ngpReward()*bannerGold(x)*warGold()); S.gold+=g; let items=0, full=0;
-    for(let i=0;i<3;i++){ if(i===2&&Math.random()>=RAID_ITEM3) break; const id=pickNorm(tableFor(x.di,'vanguard',i===0,false).filter(r=>!ITEM[r.id].uq)); if(addItem(id)) items++; else full++; }
-    x.units.forEach(m=>minionXp(m,Math.round(mneed(m.lvl)*RAID_XP))); tally('raidWins'); if(x.di<=1) dread(DREAD_RAID);
-    msg=lead.nick+' is back from the '+D.name+' in triumph: +'+g+' gold'+(items?', '+items+' piece'+(items>1?'s':'')+' of gear':'')+(full?' ('+full+' left behind: your bag is full)':'')+'.';
-  } else {
-    x.units.forEach((m,i)=>{ if(i>0&&!hasTrait(m,'gravebound')&&Math.random()<RAID_LOSS){ lost.push(m); returnGear(m); memorialize(m,{raid:x.di}); } });
-    x.units=x.units.filter(m=>!lost.includes(m)); x.units.forEach(m=>minionXp(m,Math.round(mneed(m.lvl)*RAID_XP*.25)));
-    msg=lead.nick+'\'s raid on the '+D.name+' was thrown back'+(lost.length?'. Fallen: '+lost.map(m=>m.nick).join(', '):'. Everyone made it home')+'.';
-  }
-  msg+=homeLine(x.units.map(m=>placeMinion(m,Array.isArray(x.res)&&x.res.includes(m.uid)))); /* back to the place each left */ notify(msg,won?'ok':'bad');
-  S.raidLog=[{day:S.day,di:x.di,won,nick:lead.nick,lost:lost.length}].concat(S.raidLog||[]).slice(0,RAID_LOG);
-  return {won,lost:lost.length};
+    S.raids=(S.raids||[]).concat([Object.assign({di:o.di,day:S.day,units,res,odds:bannerOdds(o,expBase(units,t)),t,nights:o.nights||1,night:0},o.bn?{bn:o.bn}:{})]); }
 }
 const homeLine=w=>{ const r=w.filter(x=>x==='reserve').length, g=w.filter(x=>x==='gate').length;   // where homecomers went when the army was full
   return (r?' '+r+' went to the Reserve: your army is full.':'')+(g?' '+g+' wait at the gate: your army and Reserve are full.':''); };
-function resolveRaids(){ const out=S.raids||[]; S.raids=[]; return out.map(resolveRaid); }
 function raidDayLine(rr){ if(!rr||!rr.length) return ''; const w=rr.filter(x=>x.won).length, b=rr.length-w, f=rr.reduce((a,x)=>a+x.lost,0);   // one line for the new-day message
   return ' Raids: '+[w?w+' won':'',b?b+' thrown back':'',f?f+' fallen':''].filter(Boolean).join(', ')+'.'; }
 
@@ -4239,9 +4227,9 @@ const canCommand=role=>S.mode==='battle'&&!!CMDS[role]&&(!(S.run.cmd&&S.run.cmd[
 function command(role){
   if(!canCommand(role)) return false;
   const r=S.run, P=S.player, mine=S.army.filter(m=>m.role===role&&m.hp>0); r.cmd=r.cmd||{}; if(r.cmd[role]){ r.xordU=1; log('Extra Order: the charm crumbles.','ok'); } r.cmd[role]=true; tally('commands');
-  if(role==='vanguard'){ r.taunt=2; log('Taunt: your vanguards bellow, and every foe turns on them.','ok'); }
+  if(role==='vanguard'){ r.taunt=2+(elderCmdr()?1:0); log('Taunt: your vanguards bellow, and every foe turns on them.','ok'); }
   else if(role==='striker'){ r.focus=true; log('Focus: your strikers pick their spots.','ok'); }
-  else if(role==='mender'){ const w=mine.reduce((a,m)=>a+Math.round(m.atk*1.5),0); P.shield=Math.min(Math.round(pMax()*.6),P.shield+w); mark('p',0,0); log('Bone Shield: your menders ward you. You hold '+P.shield+' ward.','ok'); }
+  else if(role==='mender'){ const w=Math.round(mine.reduce((a,m)=>a+Math.round(m.atk*1.5),0)*(elderCmdr()?ELDER_SHIELD:1)); P.shield=Math.min(Math.round(pMax()*.6),P.shield+w); mark('p',0,0); log('Bone Shield: your menders ward you. You hold '+P.shield+' ward.','ok'); }
   else { r.execute=true; log('Execute: your reapers look for the weak.','ok'); }
   sfx('skill'); return true;
 }
@@ -6170,6 +6158,140 @@ function upkeepLine(k){
   return (now?'<div class="u-sub">Upkeep: '+now+' gold a day'+(S.unpaid&&S.unpaid[k]?' <span class="u-tag bad">Unpaid: a level is off</span>':'')+'.</div>':'')
    +(nx>now?'<div class="u-sub">Level '+(lv+1)+' adds '+(nx-now)+' gold a day in upkeep.</div>':'');
 }
+// ===== EXPEDITIONS (R6 PR A) =====
+// A raid order becomes an expedition: a target (a gate, today's cursed gate, a band of the Tower, a hunt for one kind, or a
+// scavenge), a length in nights, and three steps a night. The squad marches at nightfall as before; each dawn resolves one
+// night. Approach (a vanguard covers it) fails: the night is lost, nothing else. Fight (strikers and reapers) fails: each
+// follower may fall, the Commander shielding the first once per expedition. Haul (a mender) fails or is uncovered: half
+// of the spoils are lost on the way. Spoils are carried until the squad comes home; at each dawn with nights left the
+// squad presses on (spoils +50%, steps -5%), takes the risky path (no Approach, spoils doubled, a failed Fight costs the
+// weakest follower outright) or comes home at once. A night's odds are the old raid odds spread over three steps (each
+// step its cube root), then each step's cover and modifiers apply. x.t = {k, di, f, kind}; x.nights, x.night, x.sp, x.pick.
+const EXP_TARGETS=['gate','curse','band','hunt','scav'];
+const EXP_NAME={gate:'Gate',curse:'Cursed gate',band:'Tower band',hunt:'Hunt',scav:'Scavenge'};
+const EXP_STEPS=['approach','fight','haul'], EXP_STEP_NAME={approach:'Approach',fight:'Fight',haul:'Haul'};
+const EXP_NO_VAN=.10, EXP_NO_FIGHT=.15, EXP_FIGHTER=.03, EXP_FIGHT_MAX=.09, EXP_TYPE=.03, EXP_BOND=.03, EXP_PRESS=.05, EXP_PRESS_PAY=.5,
+  EXP_RISKY_PAY=1, EXP_CURSE=.05, EXP_CURSE_PAY=1.25, EXP_HUNT_KIT=.05, EXP_HUNT_TRO=3, EXP_HEART=.25, EXP_WARDEN=.2, EXP_WARDEN_HIT=.10,
+  EXP_BAND_AT=20, EXP_STEP_MIN=.15, EXP_STEP_MAX=.97, EXP_SCAV_XP=.5;
+const EXP_EVENT=.1, EXP_CAMP_DUST=10;
+function expEvent(x){   // something on the road (10% of nights that hold): a lost patrol, an old camp, another keeper's squad
+  const t=x.t, di=tDi(t), k=pick(['patrol','camp','keeper']), lead=x.units[0];
+  if(k==='patrol'){ const c={name:'Militia Spearman',base:'Militia Spearman',role:'vanguard',rankI:Math.min(di,GATE_N-1),lvl:Math.max(1,S.player.lvl-3),hf:1.3,af:.85,boss:false,elite:false};
+    if(bl('embalm')&&embKeep(c,true)) return {k,m:lead.nick+'\'s squad found a lost patrol of the living and brought one home for the Embalmery.'};
+    dread(-3); return {k,m:lead.nick+'\'s squad found a lost patrol of the living and let it go. The town hears of it.'}; }
+  if(k==='camp'){ const d=EXP_CAMP_DUST*(di+1); x.sp=x.sp||{}; x.sp.dust=(x.sp.dust||0)+d; tally('expCamps'); return {k,m:'An old camp on the road: '+d+' bone dust in its ashes.'}; }
+  const won=Math.random()<.6; if(!won){ const fol=x.units.slice(1).filter(m=>!hasTrait(m,'gravebound')); if(fol.length&&Math.random()<RAID_LOSS){ const m=pick(fol); returnGear(m); memorialize(m,{raid:di}); x.units=x.units.filter(y=>y!==m); x.lostN=(x.lostN||0)+1; return {k,won,m:'Another keeper\'s squad on the same road. '+m.nick+' fell in the skirmish.'}; } }
+  return {k,won,m:'Another keeper\'s squad on the same road. '+(won?'Your dead drove them off and took their share: spoils +50% tonight.':'They slipped away.')};
+}
+const expNights=k=>k==='gate'||k==='curse'?[1,2]:k==='band'?[2]:[1];
+const tDi=t=>t.k==='band'?5:t.di;   // the gate whose loot and resistances a target uses
+function expTargets(){   // what the War table offers today
+  const out=[], G=raidGates(); G.forEach(di=>out.push({k:'gate',di}));
+  const m=dayMod(); if(m&&m.id&&G.includes(m.gi)) out.push({k:'curse',di:m.gi});
+  if(S.tower&&S.tower.best>=EXP_BAND_AT) out.push({k:'band',di:5,f:Math.max(10,Math.floor((S.tower.best-10)/10)*10)});
+  G.forEach(di=>{ DUNGEONS[di].mobs.map(x=>x[0]).concat([DUNGEONS[di].boss[0]]).forEach(kind=>{ if(masteryOf(kind)) out.push({k:'hunt',di,kind}); }); });
+  out.push({k:'scav',di:G.length?G[G.length-1]:0}); return out;
+}
+const tKey=t=>t.k+':'+t.di+':'+(t.f||0)+':'+(t.kind||'');
+const tValid=t=>!!t&&EXP_TARGETS.includes(t.k)&&expTargets().some(x=>tKey(x)===tKey(t));
+function tName(t){ const D=DUNGEONS[t.di]; return t.k==='gate'?'the '+D.name:t.k==='curse'?'the cursed '+D.name:t.k==='band'?'Tower floors '+t.f+'-'+(t.f+9):t.k==='hunt'?'a hunt for '+(bossKind(t.kind)?t.kind:t.kind+'s')+' in the '+D.name:'a scavenge near the '+D.name; }
+function bandThreat(f){ const lv=twLvl(f), a=towerStats(f,lv,1,1,false,false), b=towerStats(f+9-(f+9)%10||10,lv+2,1,1,true,false); return {hp:a.hp*13+b.hp*.5,atk:a.atk*3+b.atk*.3}; }
+function expBase(units,t){   // the old raid odds against the target
+  if(t.k!=='band') return raidOdds(units,t.di);
+  const T=bandThreat(t.f); let atk=0,hp=0; for(const m of units){ atk+=m.atk; hp+=m.maxHp; }
+  const c=units.find(isCommander), lead=c?1+.1*(c.stage||0)+(c.boss?.15:0):1, x=Math.sqrt(atk*hp/(T.hp*T.atk))*lead/RAID_K; return clamp(x/(1+x)+warOdds(),RAID_MIN,RAID_MAX);
+}
+const expCover=units=>({van:units.some(m=>m.role==='vanguard'),fight:units.filter(m=>m.role==='striker'||m.role==='reaper').length,mend:units.some(m=>m.role==='mender')});
+function expTypeK(units,t){ const R=t.k==='band'?TOWER_RES:GATE_RES[t.di]||{}; let k=0; for(const m of units){ const v=R[minionType(m)]||0; if(v<0) k+=EXP_TYPE; else if(v>0) k-=EXP_TYPE; } return clamp(k,-EXP_FIGHT_MAX,EXP_FIGHT_MAX); }
+function expBonded(units){ return bondPairs().some(([a,b])=>units.includes(a)&&units.includes(b)); }
+function expOdds(units,t,o){   // {approach, fight, haul}: each step's chance; o: {pressed, risky, odds (taken at nightfall)}
+  o=o||{}; const b=Math.cbrt(typeof o.odds==='number'?o.odds:bannerOdds(o,expBase(units,t))), cv=expCover(units), pen=EXP_PRESS*(o.pressed||0)+(t.k==='curse'?EXP_CURSE:0);
+  const st=x=>clamp(x-pen,EXP_STEP_MIN,EXP_STEP_MAX);
+  const fight=b+(cv.fight?Math.min(EXP_FIGHT_MAX,EXP_FIGHTER*cv.fight):-EXP_NO_FIGHT)+expTypeK(units,t)+(expBonded(units)?EXP_BOND:0)-(t.k==='hunt'?EXP_HUNT_KIT:0);
+  return {approach:o.risky?1:st(b-(cv.van?0:EXP_NO_VAN)),fight:t.k==='scav'?1:st(fight),haul:st(b)};
+}
+const expNightOdds=(units,t,o)=>{ const p=expOdds(units,t,o); return p.approach*p.fight*p.haul; };
+function expSpoils(x,k){   // one night's take, times k
+  const t=x.t, di=tDi(t), g0=(15+S.player.lvl*4)*(1+di)*RAID_GOLD*ngpReward()*bannerGold(x)*warGold(), sp={g:0,items:[],tro:{},dust:0};
+  const tro=(key,n)=>{ if(TROPHY[key]) sp.tro[key]=(sp.tro[key]||0)+n; };
+  const gear=n=>{ for(let i=0;i<n;i++){ if(i===2&&Math.random()>=RAID_ITEM3) break; sp.items.push(pickNorm(tableFor(di,'vanguard',i===0,false).filter(r=>!ITEM[r.id].uq))); } };
+  if(t.k==='gate'){ sp.g=g0*k; gear(3); }
+  else if(t.k==='curse'){ sp.g=g0*EXP_CURSE_PAY*k; gear(2); }
+  else if(t.k==='band'){ sp.g=g0*.5*k; const ks=TW_MOBS.map(m=>'t:'+m[0]); for(let i=0;i<2;i++) tro(pick(ks),Math.round(k)); gear(1); if(Math.random()<EXP_WARDEN) tro('b:'+TW_BOSS[(t.f/10)%TW_BOSS.length],1); }
+  else if(t.k==='hunt'){ sp.g=g0*.25*k; if(bossKind(t.kind)){ if(Math.random()<EXP_HEART*k) tro('b:'+t.kind,1); } else tro(t.kind,Math.round(EXP_HUNT_TRO*k)); }
+  else { sp.dust=Math.round(5*(di+1)*k); const ks=DUNGEONS[di].mobs.map(m=>m[0]); tro(pick(ks),Math.round(2*k)); }
+  sp.g=Math.round(sp.g); return sp;
+}
+function spAdd(a,b,half){ const h=v=>half?Math.floor(v/2):v; a.g=(a.g||0)+h(b.g||0); a.dust=(a.dust||0)+h(b.dust||0); a.items=(a.items||[]).concat(half?b.items.filter((_,i)=>i%2):b.items); a.tro=a.tro||{}; for(const k in b.tro){ const n=h(b.tro[k]); if(n) a.tro[k]=(a.tro[k]||0)+n; } return a; }
+function spHalve(a){ a.g=Math.floor((a.g||0)/2); a.dust=Math.floor((a.dust||0)/2); a.items=(a.items||[]).filter((_,i)=>i%2); for(const k in a.tro||{}){ a.tro[k]=Math.floor(a.tro[k]/2); if(!a.tro[k]) delete a.tro[k]; } }
+function expNight(x){   // dawn: resolve one night; returns the night's record
+  const t=x.t, units=x.units, lead=units[0], o={pressed:x.pressed||0,risky:x.pick==='risky',odds:x.night>0?undefined:x.odds,bn:x.bn}, p=expOdds(units,t,o);
+  const roll={}, lost=[]; let ok=true, saved=null;
+  for(const s of EXP_STEPS){ if((s==='approach'&&o.risky)||(s==='fight'&&t.k==='scav')){ roll[s]=1; continue; } roll[s]=Math.random()<p[s]?1:0; if(s==='approach'&&!roll[s]){ ok=false; break; } if(s==='fight'&&!roll[s]){ ok=false; break; } }
+  if(roll.fight===0){   // a lost fight: followers may fall; the risky path takes the weakest outright
+    const fol=units.slice(1).filter(m=>!hasTrait(m,'gravebound'));
+    if(o.risky&&fol.length){ lost.push(fol.slice().sort((a,b)=>a.atk*a.maxHp-b.atk*b.maxHp)[0]); }
+    else for(const m of fol) if(Math.random()<RAID_LOSS){ if(!x.saved&&isCommander(lead)){ x.saved=1; saved=m; continue; } lost.push(m); }
+  }
+  lost.forEach(m=>{ returnGear(m); memorialize(m,{raid:tDi(t)}); }); x.units=units.filter(m=>!lost.includes(m)); if(lost.length) x.lostN=(x.lostN||0)+lost.length;
+  let half=false;
+  let ev=null; if(ok&&Math.random()<EXP_EVENT) ev=expEvent(x);
+  if(ok){ const k=(1+EXP_PRESS_PAY*(x.pressed||0))*(o.risky?1+EXP_RISKY_PAY:1)*(ev&&ev.k==='keeper'&&ev.won?1.5:1), sp=expSpoils(x,k), cv=expCover(x.units); half=!cv.mend||!roll.haul;
+    if(!roll.haul) spHalve(x.sp=x.sp||{}); spAdd(x.sp=x.sp||{},sp,!cv.mend); x.won=(x.won||0)+1; tally('expNightsWon'); }
+  tally('expNights'); x.night=(x.night||0)+1; delete x.pick;
+  const rec={n:x.night,roll,ok,lost:lost.map(m=>m.nick),saved:saved?saved.nick:null,half}; if(ev){ rec.ev=ev.k; rec.evm=ev.m; } x.log=(x.log||[]).concat([rec]).slice(-3); return rec;
+}
+function expHome(x){   // bank the spoils and bring everyone back
+  const sp=x.sp||{}, t=x.t, di=tDi(t); let items=0, full=0;
+  if(sp.g) S.gold+=sp.g; if(sp.dust) S.dust=(S.dust||0)+sp.dust; for(const k in sp.tro||{}) S.trophies[k]=(S.trophies[k]||0)+sp.tro[k];
+  for(const id of sp.items||[]) if(addItem(id)) items++; else full++;
+  const nw=x.won||0; if(nw) x.units.forEach(m=>minionXp(m,Math.round(mneed(m.lvl)*RAID_XP*nw*(t.k==='scav'?EXP_SCAV_XP:1))));
+  else x.units.forEach(m=>minionXp(m,Math.round(mneed(m.lvl)*RAID_XP*.25)));
+  const won=nw>0; if(won){ tally('raidWins'); tally('exp_'+t.k); if(!x.lostN){ tally('expClean'); if((x.night||1)>=2) tally('expLong'); } if(di<=1&&t.k!=='scav') dread(DREAD_RAID); }
+  const tro=Object.values(sp.tro||{}).reduce((a,b)=>a+b,0), got=[sp.g?'+'+sp.g+' gold':'',sp.dust?'+'+sp.dust+' bone dust':'',tro?tro+' troph'+(tro>1?'ies':'y'):'',items?items+' piece'+(items>1?'s':'')+' of gear':''].filter(Boolean).join(', ');
+  let msg=x.units[0].nick+' is back from '+tName(t)+(won?': '+(got||'nothing worth carrying'):' with nothing')+(full?' ('+full+' left behind: your bag is full)':'')+'.';
+  msg+=homeLine(x.units.map(m=>placeMinion(m,Array.isArray(x.res)&&x.res.includes(m.uid)))); notify(msg,won?'ok':'bad');
+  const lostN=x.lostN||0; S.raidLog=[{day:S.day,di:t.di,won,nick:x.units[0].nick,lost:lostN,k:t.k,nights:x.night||1}].concat(S.raidLog||[]).slice(0,RAID_LOG);
+  return {won,lost:lostN};
+}
+function expChoose(i,c){   // the dawn choice for a squad still out: press on, the risky path, or come home now
+  const x=(S.raids||[])[i]; if(!x||S.mode!=='town'||!['press','risky','home'].includes(c)||(x.night||0)>=(x.nights||1)) return false;
+  if(c==='home'){ S.raids.splice(i,1); expHome(x); return true; }
+  x.pick=c; return true;
+}
+const expOut=()=>(S.raids||[]).filter(x=>(x.night||0)<(x.nights||1)&&(x.night||0)>0);   // squads in the field during the day
+function expFix(x){   // the loader: a raid from before expeditions is a one-night gate expedition
+  const t=x.t&&EXP_TARGETS.includes(x.t.k)&&RK[x.t.di]?{k:x.t.k,di:x.t.di}:{k:'gate',di:x.di}; if(t.k==='band') t.f=Math.max(10,Math.floor((+x.t.f||10)/10)*10); if(t.k==='hunt'){ if(typeof x.t.kind==='string'&&TROPHY[bossKind(x.t.kind)?'b:'+x.t.kind:x.t.kind]) t.kind=x.t.kind; else { t.k='gate'; } }
+  const nights=expNights(t.k).includes(x.nights)?x.nights:expNights(t.k)[0], out={t,nights,night:clamp(Math.floor(+x.night||0),0,nights)};
+  if(x.sp&&typeof x.sp==='object'){ const sp={g:Math.max(0,Math.floor(+x.sp.g||0)),dust:Math.max(0,Math.floor(+x.sp.dust||0)),items:Array.isArray(x.sp.items)?x.sp.items.filter(id=>ITEM[id]):[],tro:{}}; for(const k in x.sp.tro||{}) if(TROPHY[k]&&x.sp.tro[k]>0) sp.tro[k]=Math.floor(x.sp.tro[k]); out.sp=sp; }
+  for(const k of ['won','pressed','saved','lostN']) if(x[k]>0) out[k]=Math.floor(x[k]); if(x.pick==='press'||x.pick==='risky') out.pick=x.pick;
+  if(Array.isArray(x.log)) out.log=x.log.filter(r=>r&&typeof r==='object').slice(-3).map(r=>({n:Math.floor(+r.n||1),roll:Object.fromEntries(EXP_STEPS.filter(s=>r.roll&&s in r.roll).map(s=>[s,r.roll[s]?1:0])),ok:!!r.ok,lost:Array.isArray(r.lost)?r.lost.filter(s=>typeof s==='string').map(cleanNick):[],saved:typeof r.saved==='string'?cleanNick(r.saved):null,half:!!r.half}));
+  return out;
+}
+function expOrderFix(o){ const t=o.t&&EXP_TARGETS.includes(o.t.k)&&RK[o.t.di]?Object.assign({k:o.t.k,di:o.t.di},o.t.k==='band'?{f:Math.max(10,Math.floor((+o.t.f||10)/10)*10)}:{},o.t.k==='hunt'&&typeof o.t.kind==='string'?{kind:o.t.kind}:{}):null; return t?{t,nights:expNights(t.k).includes(o.nights)?o.nights:expNights(t.k)[0]}:{}; }
+function resolveRaid(x){   // one night for x; home when its nights are done (a raid from before expeditions is one night at a gate)
+  if(!x.t) x.t={k:'gate',di:x.di}; if(!x.nights) x.nights=1; const rec=expNight(x);
+  if(x.night>=x.nights){ if(rec.evm) notify(rec.evm,rec.ev==='keeper'&&!rec.ok?'bad':'ok'); const r=expHome(x); return {won:r.won,lost:rec.lost.length,home:true}; }
+  x.pressed=(x.pressed||0)+1; const P=Math.round(expNightOdds(x.units,x.t,{pressed:x.pressed})*100);
+  notify('Night '+rec.n+' of '+x.nights+', '+tName(x.t)+': '+EXP_STEPS.filter(s=>s in rec.roll).map(s=>EXP_STEP_NAME[s]+(rec.roll[s]?' held':' failed')).join(', ')+'.'+(rec.lost.length?' Fallen: '+rec.lost.join(', ')+'.':'')+(rec.saved?' '+x.units[0].nick+' shielded '+rec.saved+'.':'')+' '+x.units[0].nick+' waits for your word: press on ('+P+'% tonight) or come home.'+(rec.evm?' '+rec.evm:''),rec.ok?'ok':'bad');
+  return {won:rec.ok,lost:rec.lost.length,home:false};
+}
+function resolveRaids(){ const all=S.raids||[], out=[]; S.raids=all.slice(); for(const x of all){ S.raids=S.raids.filter(y=>y!==x); const r=resolveRaid(x); out.push(r); if(!r.home) S.raids.push(x); } return out; }   // a squad coming home holds no place while it is placed
+// ----- Rally: a Commander in battle (free, once a room): +20% army damage this turn, or a condition off every minion
+const RALLY_DMG=.2, RALLY_TWO=.05, ELDER_STAGE=2, ELDER_SHIELD=1.25;
+const rallyCmdrs=()=>S.army.filter(m=>isCommander(m)&&m.hp>0);
+const canRally=()=>S.mode==='battle'&&!!S.run&&!(S.run.cmd&&S.run.cmd.rally)&&rallyCmdrs().length>0;
+function rally(k){
+  if(!canRally()||(k!=='dmg'&&k!=='cleanse')) return false; const r=S.run, c=rallyCmdrs()[0]; r.cmd=r.cmd||{}; r.cmd.rally=k; tally('rallies');
+  if(k==='dmg'){ r.rally=r.turn; log('Rally: '+c.nick+' roars, and your dead strike '+Math.round((rallyK(true)-1)*100)+'% harder this turn.','ok'); }
+  else { let n=0; for(const m of S.army) if(m.hp>0){ const st=Object.keys(m.st||{}), dt=Object.keys(m.dots||{}); if(st.length){ delete m.st[st[0]]; n++; } else if(dt.length){ delete m.dots[dt[0]]; n++; } } log('Rally: '+c.nick+' steadies the line. '+n+' minion'+(n===1?' sheds':'s shed')+' a condition.','ok'); }
+  sfx('skill'); return true;
+}
+function rallyK(any){ const r=S.run; if(!r||(!any&&(r.rally!==r.turn||!HITTER||HITTER===S.player||!S.army.includes(HITTER)))) return 1; return 1+RALLY_DMG+(rallyCmdrs().length>1?RALLY_TWO:0); }   // hurtFoe
+const elderCmdr=()=>rallyCmdrs().some(m=>(m.stage||0)>=ELDER_STAGE);   // command: Taunt a turn longer, Bone Shield 25% more
+function rallyHTML(){ if(!rallyCmdrs().length) return ''; const used=S.run.cmd&&S.run.cmd.rally;
+  return '<span class="cmd-l" title="A Commander\'s free order, once a room">Rally:</span><button class="btn small" data-a="rally" data-k="dmg" title="Your minions deal '+Math.round(RALLY_DMG*100)+'% more damage this turn"'+(used?' disabled':'')+'>Strike harder'+(used==='dmg'?' &middot; given':'')+'</button>'
+   +'<button class="btn small" data-a="rally" data-k="cleanse" title="Every minion sheds one condition"'+(used?' disabled':'')+'>Steady'+(used==='cleanse'?' &middot; given':'')+'</button>'; }
 //==UI==
 
 // ----- sound: tiny synthesized effects (Web Audio, no files). Off/on lives in Settings and is remembered per browser, not in the save.
@@ -10413,6 +10535,52 @@ TR_RX.push([/^Pay a tithe \((\d+) gold\)$/,"Öşür öde ($1 altın)"]);
 ].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
 TR_RX.unshift([/^Order fulfilled \((.+?)\): (.+?), \+(\d+) XP\.?$/,"Emir yerine getirildi ({t1}): {t2}, +$3 TP"]);
 TR_RX.push([/^A day's work done without an order: \+(\d+) XP\.?$/,"Emirsiz bir günlük iş bitti: +$1 TP"]);
+// R6: expeditions, the dawn choice, Rally (src/game-exp.js)
+[["War table · # tonight","Savaş masası · bu gece #"],["Approach","Yaklaşma"],["Fight","Dövüş"],["Haul","Taşıma"],["Approach held","Yaklaşma tuttu"],["Fight held","Dövüş tuttu"],["Haul held","Taşıma tuttu"],
+ ["Approach failed","Yaklaşma başarısız"],["Fight failed","Dövüş başarısız"],["Haul failed","Taşıma başarısız"],["Press on","İlerle"],["Risky path","Riskli yol"],["Come home","Eve dön"],
+ ["Gate","Kapı"],["Cursed gate","Lanetli kapı"],["Tower band","Kule kuşağı"],["Scavenge","Leş toplama"],["Hunt","Av"],["Hunts","Avlar"],["Nights","Geceler"],["# night","# gece"],["# nights","# gece"],["Last expeditions","Son seferler"],["Target","Hedef"],
+ ["Pick at least one follower","En az bir takipçi seç"],["nothing worth carrying","taşımaya değer bir şey yok"],["won","kazandı"],["lost","kaybetti"],
+ ["An expedition is an order for tonight: the squad fights the rest of today's runs with you and marches when the day ends. Each night has three steps: a vanguard covers the Approach, strikers and reapers the Fight, a mender the Haul. Away, each keeps its place in the army or the Reserve. Cancel any time before nightfall",
+  "Sefer bu gece için bir emirdir: bölük bugünün geri kalan seferlerinde seninle savaşır ve gün bitince yürür. Her gecenin üç adımı vardır: Yaklaşmayı bir öncü, Dövüşü vurucular ve biçiciler, Taşımayı bir şifacı üstlenir. Uzaktayken her biri orduda ya da Yedekte yerini korur. Akşama dek istediğin zaman iptal et"],
+ ["Another keeper's squad on the same road. Your dead drove them off and took their share: spoils +50% tonight","Aynı yolda başka bir bekçinin bölüğü. Ölülerin onları kovdu ve paylarını aldı: bu gece ganimet +%50"],
+ ["Another keeper's squad on the same road. They slipped away","Aynı yolda başka bir bekçinin bölüğü. Sıvışıp gittiler"],
+ ["A Commander's free order, once a room","Bir Komutanın bedava emri, oda başına bir kez"],["Rally","Toparlan"],["Strike harder","Daha sert vur"],["Steady","Sağlam dur"],["given","verildi"],["Every minion sheds one condition","Her yaratık bir durumdan kurtulur"],
+ ["Your minions deal #% more damage this turn","Yaratıkların bu tur %# daha fazla hasar verir"],
+ ["Long Road","Uzun Yol"],["Bring a squad home whole from an expedition of two nights","İki gecelik bir seferden bir bölüğü eksiksiz eve getir"],["Hunt Master","Av Ustası"],["Come home from # hunts with spoils","# avdan ganimetle dön"],
+ ["Not a Scratch","Tek Çizik Yok"],["Come home from # expeditions with spoils and no one lost","# seferden ganimetle ve kimseyi kaybetmeden dön"],["Rallying Cry","Toparlanma Çığlığı"],["Rally your dead # times","Ölülerini # kez toparla"]
+].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+{ const G=DUNGEONS.map(d=>d.name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|'), TN='(the (?:cursed )?(?:'+G+')|Tower floors \\d+-\\d+|a hunt for .+? in the (?:'+G+')|a scavenge near the (?:'+G+'))';
+  TR_RX.unshift([new RegExp('^the ('+G+')$'),"$1"],[new RegExp('^the cursed ('+G+')$'),"lanetli $1"],[/^Tower floors (\d+)-(\d+)$/,"Kule katları $1-$2"],[new RegExp('^a hunt for (.+?) in the ('+G+')$'),"$2 içinde $1 avı"],[new RegExp('^a scavenge near the ('+G+')$'),"$1 yakınında leş toplama"],
+   [new RegExp('^is out on '+TN+' · night (\\d+) of (\\d+)$'),"seferde: {t1} · gece $2/$3"],
+   [new RegExp('^leads (\\d+) on '+TN+' tonight(?: for (\\d+) nights)?$'),"bu gece $1 kişiyi şuraya götürüyor: {t2}"],
+   [new RegExp('^Send on '+TN+' · (\\d+)% a night$'),"Gönder: {t1} · gecelik %$2"],
+   [new RegExp('^Night (\\d+) of (\\d+), '+TN+': (.+)$'),"Gece $1/$2, {t3}: {t4}"],
+   [new RegExp('^(.+?) is back from '+TN+' with nothing$'),"$1 eli boş döndü: {t2}"],
+   [new RegExp('^(.+?) is back from '+TN+': (.+?)(?: \\((\\d+) left behind: your bag is full\\))?$'),"$1 döndü ({t2}): {t3}"]);
+}
+TR_RX.push([/^Carrying (\d+) gold(?:, (\d+) trophies)?(?:, (\d+) pieces of gear)?\. Tonight: (\d+)% to press on, (\d+)% on the risky path\.?$/,"$1 altın taşıyor. Bu gece: ilerlerse %$4, riskli yolda %$5"],
+ [/^(\d+)% a night now · marches at nightfall$/,"şu an gecelik %$1 · akşam yürür"],[/^(.+?) (\d+)% \(no vanguard\)$/,"{t1} %$2 (öncü yok)"],[/^(.+?) (\d+)% \(no striker or reaper\)$/,"{t1} %$2 (vurucu ya da biçici yok)"],
+ [/^(.+?) (\d+)% \(no mender: half the spoils lost\)$/,"{t1} %$2 (şifacı yok: ganimetin yarısı kaybolur)"],[/^(Approach|Fight|Haul) (\d+)%$/,"{t1} %$2"],
+ [/^Fallen: ([^.]+)$/,"Düşenler: $1"],[/^([^.]+?) shielded ([^.]+)$/,"$1, $2 önüne kalkan oldu"],[/^([^.]+?) waits for your word: press on \((\d+)% tonight\) or come home$/,"$1 emrini bekliyor: ilerle (bu gece %$2) ya da eve dön"],
+ [/^\+(\d+) bone dust$/,"+$1 kemik tozu"],[/^(\d+) troph(?:y|ies)$/,"$1 ganimet"],[/^(\d+) pieces? of gear$/,"$1 teçhizat"],[/^\((\d+) nights\)$/,"($1 gece)"],[/^lost \((\d+) fell\)$/,"kaybetti ($1 düştü)"],
+ [/^(.+?)'s squad found a lost patrol of the living and brought one home for the Embalmery\.?$/,"$1 bölüğü yaşayanlardan kaybolmuş bir devriye buldu ve birini Mumyahane için eve getirdi"],
+ [/^(.+?)'s squad found a lost patrol of the living and let it go\. The town hears of it\.?$/,"$1 bölüğü yaşayanlardan kaybolmuş bir devriye buldu ve bıraktı. Kasaba bunu duyuyor"],
+ [/^An old camp on the road: (\d+) bone dust in its ashes\.?$/,"Yolda eski bir kamp: küllerinde $1 kemik tozu"],[/^Another keeper's squad on the same road\. (.+?) fell in the skirmish\.?$/,"Aynı yolda başka bir bekçinin bölüğü. $1 çatışmada düştü"]);
+TR_RX.push([/^Tower band (\d+)-(\d+)$/,"Kule kuşağı $1-$2"],[/^Cursed gate: (.+)$/,"Lanetli kapı: $1"]);
+TR_RX.unshift([/^Rally: (.+?) roars, and your dead strike (\d+)% harder this turn\.?$/,"Toparlan: $1 kükrüyor, ölülerin bu tur %$2 daha sert vuruyor"],[/^Rally: (.+?) steadies the line\. (\d+) minions? sheds? a condition\.?$/,"Toparlan: $1 safları sağlamlaştırıyor. $2 yaratık bir durumdan kurtuluyor"],[/^(.+?) \((\d+) left behind: your bag is full\)$/,"{t1} ($2 tanesi geride kaldı: çantan dolu)"]);
+[["A night won at a gate","Bir kapıda kazanılan gece"],["Steps","Adımlar"],["Targets","Hedefler"],["Dawn","Şafak"],["On the road","Yolda"],
+ ["Each night has three steps, each at the cube root of the odds: the Approach (#% less with no vanguard), the Fight (#% less with no striker or reaper; #% more per striker or reaper, at most #%; #% more or less per minion whose type the gate is weak to or resists; #% more for a bonded pair) and the Haul. A failed Approach loses the night and nothing else. A failed Fight ends the night: each follower may fall, but the Commander shields the first, once an expedition. A failed Haul halves what the squad carries; with no mender, each night's take is halved. A step stays between #% and #%",
+  "Her gecenin üç adımı vardır, her biri şansın küp kökünde: Yaklaşma (öncü yoksa %# daha az), Dövüş (vurucu ya da biçici yoksa %# daha az; her vurucu ya da biçici için %# daha fazla, en çok %#; kapının zayıf ya da dirençli olduğu türden her yaratık için %# daha fazla ya da az; bağlı bir çift için %# daha fazla) ve Taşıma. Başarısız bir Yaklaşma geceyi kaybettirir, başka bir şeyi değil. Başarısız bir Dövüş geceyi bitirir: her takipçi düşebilir, ama Komutan ilkini sefer başına bir kez korur. Başarısız bir Taşıma bölüğün taşıdığını yarıya indirir; şifacı yoksa her gecenin kazancı yarıya iner. Bir adım %# ile %# arasında kalır"],
+ ["A cleared gate (one or two nights). Today's cursed gate (one or two nights): steps #% harder, gold x#, two pieces of gear at most. Ten floors of the Hell Tower once your best is floor # (two nights): Tower trophies, half the gold, a warden's heart #% of nights. A hunt for a kind you have mastered (one night): the Fight #% harder, # of its trophies, or a boss's heart #% of nights. A scavenge near your deepest gate (one night): no Fight, bone dust and trophies, half the XP",
+  "Temizlenmiş bir kapı (bir ya da iki gece). Bugünün lanetli kapısı (bir ya da iki gece): adımlar %# daha zor, altın x#, en çok iki parça teçhizat. En iyi katın # olunca Cehennem Kulesi'nin on katı (iki gece): Kule ganimetleri, altının yarısı, gecelerin %#'inde bir muhafız kalbi. Ustalaştığın bir türün avı (bir gece): Dövüş %# daha zor, # ganimeti, ya da gecelerin %#'inde bir boss kalbi. En derin kapının yakınında leş toplama (bir gece): Dövüş yok, kemik tozu ve ganimetler, TP'nin yarısı"],
+ ["With nights left, the squad waits at dawn for your word: press on (spoils #% more for each night pressed, steps #% harder), the risky path (no Approach and spoils doubled, but a lost Fight costs the weakest follower outright) or come home now. Spoils come home with the squad",
+  "Gece kaldıkça bölük şafakta emrini bekler: ilerle (zorlanan her gece için ganimet %# daha fazla, adımlar %# daha zor), riskli yol (Yaklaşma yok ve ganimet iki katı, ama kaybedilen bir Dövüş en zayıf takipçiye doğrudan mal olur) ya da şimdi eve dön. Ganimet bölükle birlikte eve gelir"],
+ ["One night in ten that holds brings something on the road: a lost patrol of the living (the Embalmery keeps one, or the town calms), an old camp (bone dust) or another keeper's squad (win: spoils +#% that night; lose: a follower may fall)",
+  "Tutan her on geceden biri yolda bir şey getirir: yaşayanlardan kaybolmuş bir devriye (Mumyahane birini saklar, yoksa kasaba sakinleşir), eski bir kamp (kemik tozu) ya da başka bir bekçinin bölüğü (kazanırsan o gece ganimet +%#; kaybedersen bir takipçi düşebilir)"],
+ ["In battle, a Commander in your army gives one free order a room: Strike harder (your minions deal #% more damage this turn, #% with two Commanders) or Steady (every minion sheds one condition). An Elder Commander (evolved twice) also makes Taunt last a turn longer and Bone Shield #% stronger",
+  "Savaşta ordundaki bir Komutan oda başına bir bedava emir verir: Daha sert vur (yaratıkların bu tur %# daha fazla hasar verir, iki Komutanla %#) ya da Sağlam dur (her yaratık bir durumdan kurtulur). Kadim bir Komutan (iki kez evrilmiş) ayrıca Kışkırt'ı bir tur uzatır ve Kemik Siper'i %# güçlendirir"]
+].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+[["A squad in the field waits for your word","Sahadaki bir bölük emrini bekliyor"],["# squads in the field wait for your word","Sahadaki # bölük emrini bekliyor"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -12177,7 +12345,12 @@ function codexSection(k){
     +'<p class="group-h">Between rooms</p>'+cxP('After '+pct(EVENT_CHANCE)+' of gate and Rift rooms (never the last, never in the Tower, a siege or a Trial) you find something. Walking past is always safe.')
     +cxList(Object.keys(EVENTS).filter(e=>!EVENTS[e].chain).map(e=>cxRow(EVENTS[e].name,EVENTS[e].text+' Choices: '+EVENTS[e].opts.map(o=>o[1]).join(' or ')+'.'+(EVENTS[e].faith?' Only for the '+FAITH[EVENTS[e].faith].name+', in about '+pct(FAITH_EVENT)+' of events.':''))));
   if(k==='raids') return cxP('A raised elite can rise as a Commander ('+pct(CMD_ELITE)+'; a boss '+pct(CMD_BOSS)+'), and may become one when it evolves. Only elites and bosses can hold it, even through fusion. From the War table on the Gates tab, a Commander leads one to '+RAID_SQUAD+' followers (+1 per evolution, +1 for a boss) against a gate you have cleared. A raid is an order for tonight: the squad fights the rest of the day\'s runs with you and marches when the day ends, with whoever is still standing (no Commander, no raid). You can cancel the order any time before nightfall. Away overnight they keep their places in the army or the Reserve, so a siege raise cannot fill them, and at dawn they step back in. Only if those places are gone (a burned Crypt) do they wait at the gate.')
-    +cxList([cxRow('Odds','Taken when the squad marches: its total attack and HP against the gate\'s foes, raised 10% per Commander evolution and 15% for a boss. Between '+pct(RAID_MIN)+' and '+pct(RAID_MAX)+'.'),cxRow('Win',RAID_GOLD+'x a gate\'s gold, two or three pieces of gear from its table (never a unique) and '+(RAID_XP===.75?'three quarters':RAID_XP===.5?'half':pct(RAID_XP))+' of a level of XP for each member.'),cxRow('Loss','Each follower falls '+pct(RAID_LOSS)+' of the time (Grave-bound never do); its gear returns to your bag. The Commander always comes home.')]);
+    +cxList([cxRow('Odds','Taken when the squad marches: its total attack and HP against the gate\'s foes, raised 10% per Commander evolution and 15% for a boss. Between '+pct(RAID_MIN)+' and '+pct(RAID_MAX)+'.'),cxRow('A night won at a gate',RAID_GOLD+'x a gate\'s gold, two or three pieces of gear from its table (never a unique) and '+(RAID_XP===.75?'three quarters':RAID_XP===.5?'half':pct(RAID_XP))+' of a level of XP for each member.'),cxRow('Loss','Each follower falls '+pct(RAID_LOSS)+' of the time (Grave-bound never do); its gear returns to your bag. The Commander always comes home.'),
+      cxRow('Steps','Each night has three steps, each at the cube root of the odds: the Approach ('+pct(EXP_NO_VAN)+' less with no vanguard), the Fight ('+pct(EXP_NO_FIGHT)+' less with no striker or reaper; '+pct(EXP_FIGHTER)+' more per striker or reaper, at most '+pct(EXP_FIGHT_MAX)+'; '+pct(EXP_TYPE)+' more or less per minion whose type the gate is weak to or resists; '+pct(EXP_BOND)+' more for a bonded pair) and the Haul. A failed Approach loses the night and nothing else. A failed Fight ends the night: each follower may fall, but the Commander shields the first, once an expedition. A failed Haul halves what the squad carries; with no mender, each night\'s take is halved. A step stays between '+pct(EXP_STEP_MIN)+' and '+pct(EXP_STEP_MAX)+'.'),
+      cxRow('Targets','A cleared gate (one or two nights). Today\'s cursed gate (one or two nights): steps '+pct(EXP_CURSE)+' harder, gold x'+EXP_CURSE_PAY+', two pieces of gear at most. Ten floors of the Hell Tower once your best is floor '+EXP_BAND_AT+' (two nights): Tower trophies, half the gold, a warden\'s heart '+pct(EXP_WARDEN)+' of nights. A hunt for a kind you have mastered (one night): the Fight '+pct(EXP_HUNT_KIT)+' harder, '+EXP_HUNT_TRO+' of its trophies, or a boss\'s heart '+pct(EXP_HEART)+' of nights. A scavenge near your deepest gate (one night): no Fight, bone dust and trophies, half the XP.'),
+      cxRow('Dawn','With nights left, the squad waits at dawn for your word: press on (spoils '+pct(EXP_PRESS_PAY)+' more for each night pressed, steps '+pct(EXP_PRESS)+' harder), the risky path (no Approach and spoils doubled, but a lost Fight costs the weakest follower outright) or come home now. Spoils come home with the squad.'),
+      cxRow('On the road','One night in ten that holds brings something on the road: a lost patrol of the living (the Embalmery keeps one, or the town calms), an old camp (bone dust) or another keeper\'s squad (win: spoils +50% that night; lose: a follower may fall).'),
+      cxRow('Rally','In battle, a Commander in your army gives one free order a room: Strike harder (your minions deal '+pct(RALLY_DMG)+' more damage this turn, '+pct(RALLY_DMG+RALLY_TWO)+' with two Commanders) or Steady (every minion sheds one condition). An Elder Commander (evolved twice) also makes Taunt last a turn longer and Bone Shield '+pct(ELDER_SHIELD-1)+' stronger.')]);
   if(k==='rift') return cxP('Opens at level '+RIFT_LV+' once the Throne of Ash has fallen. Each depth is a '+RIFT_ROOMS+'-room run through a random gate\'s dead, at your level plus one per three depths, as strong as the deepest gate and '+pct(RIFT_STEP)+' harder per depth. Gear drops rise '+pct(RIFT_DROP)+' per depth (at most x'+RIFT_DROP_MAX+'). Clearing your deepest depth opens the next and leaves an extra legendary. No curses, no difficulty levels.');
   if(k==='curses') return cxP('Each day one gate you have cleared is cursed. '+MOD_REWARD+' Once the Throne of Ash has fallen, a cursed gate\'s foes rise to '+CURSE_GAP+' levels below yours, so cursed days stay a real fight.')+cxList(Object.keys(MODS).map(m=>cxRow(MODS[m].name,MODS[m].desc)));
   if(k==='town') return cxP('The Town tab, the bounty board and the Reserve open once '+OPEN_AT.town+' gates are cleared.')+'<p class="group-h">Buildings</p>'+cxP('Each has '+BUILD_MAX+' levels, costing '+BUILD_COST.map((c,i)=>'level '+(i+1)+': '+c[0]+' gold'+(c[1]?' + '+c[1]+' bone dust':'')).join('; ')+'. The '+Object.keys(BUILD).filter(k=>BUILD[k].step).map(k=>BUILD[k].name).join(' and the ')+' cost one step less: level 2 at the level-1 price, level 3 at the level-2 price. They last until New Game+.')
@@ -12381,6 +12554,7 @@ function goals(){
   if(SKILLS.some(s=>SKILL_MODS[s.id]&&sk(s.id)>=SK_MAX&&!skMod(s.id))) add('A rank 3 skill upgrade is waiting for your choice.','Skills','skills');
   if(betterGear()) add('Your bag holds gear of a higher tier than you wear.','Gear','gear');
   if(townOpen()&&Object.keys(BUILD).some(k=>{ const c=buildCost(k); return c&&S.gold>=c[0]&&(S.dust||0)>=c[1]; })) add('You can afford a building.','Town','town');
+  if(expOut().length) add(expOut().length===1?'A squad in the field waits for your word.':expOut().length+' squads in the field wait for your word.','War table','gates|war');
   if(raidGates().length&&raidPool().some(m=>isCommander(m)&&!inOrder(m))) add('A Commander is free to lead a raid tonight.','War table','gates|war');
   if(trialOpen()&&trialReady()&&!trialBestWeek()) add('This week\'s Trial is not done yet.','Trial','gates|trial');
   if(raidPool().some(m=>markPend(m))) add('A minion is ready to choose its mark.','Army','army');
@@ -12633,7 +12807,7 @@ function townHTML(){
   return h;
 }
 function gateSubs(){
-  const out=raidOrders(), war=raidPool().some(isCommander)||out.length||(S.raidLog||[]).length;
+  const out=raidOrders(), war=raidPool().some(isCommander)||out.length||(S.raidLog||[]).length||expOut().length;   // a squad in the field waits there for its dawn choice
   return [['open','Gates']].concat(war?[['war','War table'+(out.length?' &middot; '+out.length+' tonight':'')]]:[]).concat(S.ti&&S.ti.clr&&S.ti.clr[5]?[['rift','The Rift'+(riftOpen()?' &middot; next '+(riftBest()+1):' &middot; Lv '+RIFT_LV)]]:[]).concat(trialOpen()?[['trial','Trial'+(tri().day===S.day?' &middot; tried today':'')]]:[]);
 }
 function nick(u){ return u.id==='p'?'You':u.nick||u.name; }
@@ -12716,7 +12890,7 @@ function cmdHTML(){
   const roles=Object.keys(CMDS).filter(k=>S.army.some(m=>m.role===k&&m.hp>0)); if(!roles.length) return ''; const ans=chargeAns(), oh=orderHints(), OH={vanguard:n=>'pulls '+n,mender:n=>'+'+n+' ward'};
   return '<div class="btns cmds"><span class="cmd-l" title="Free, once a room">Orders:</span>'+roles.map(k=>{ const used=S.run.cmd&&S.run.cmd[k];
     const an=!used&&ans.includes(k);
-    return '<button class="btn small'+(an?' answer':'')+'" data-a="cmd" data-k="'+k+'" title="'+CMDS[k].desc+'"'+(used?' disabled':'')+'>'+(an?ANS_M:'')+CMDS[k].name+(used?' &middot; given':'')+(oh[k]!=null?'<span class="ord-h">'+OH[k](oh[k])+'</span>':'')+(an?ANS_S:'')+'<kbd>'+ORDER_KEY[k]+'</kbd></button>'+(k==='vanguard'?guardBtn():''); }).join('')+'</div>';
+    return '<button class="btn small'+(an?' answer':'')+'" data-a="cmd" data-k="'+k+'" title="'+CMDS[k].desc+'"'+(used?' disabled':'')+'>'+(an?ANS_M:'')+CMDS[k].name+(used?' &middot; given':'')+(oh[k]!=null?'<span class="ord-h">'+OH[k](oh[k])+'</span>':'')+(an?ANS_S:'')+'<kbd>'+ORDER_KEY[k]+'</kbd></button>'+(k==='vanguard'?guardBtn():''); }).join('')+rallyHTML()+'</div>';
 }
 function guardBtn(){ const used=S.run.cmd&&S.run.cmd.guard;   // Guard: costs the turn, so it goes through act; disabled with no vanguard in the front row
   return '<button class="btn small" data-a="act" data-k="guard" title="'+GUARD.desc+'"'+(canGuard()?'':' disabled')+'>'+GUARD.name+(used?' &middot; given':'')+'<kbd>G</kbd></button>';
@@ -12864,23 +13038,31 @@ function riftHTML(){
    +'<span class="u-sub num">Foes Lv '+riftLvl(n)+'+ &middot; x'+riftMul(n).toFixed(1)+' strength'+(n>b?' &middot; new depth':'')+'</span><span class="u-sub">'+resTag(riftRes(n),GATE_HITS[5])+'</span></div>'
    +'<div class="btns"><button class="btn primary" data-a="rift" data-k="'+n+'"'+(S.watches<=0?' disabled':'')+'>Enter the Rift</button></div></section>';
 }
-function raidHTML(){
-  if(S.mode!=='town') return ''; const pool=raidPool(), cmds=pool.filter(isCommander).filter(m=>!inOrder(m)), out=raidOrders(), logs=S.raidLog||[];
-  if(!cmds.length&&!out.length&&!logs.length) return '';
+function raidHTML(){   // the War table: expeditions (game-exp.js)
+  if(S.mode!=='town') return ''; const pool=raidPool(), cmds=pool.filter(isCommander).filter(m=>!inOrder(m)), out=raidOrders(), logs=S.raidLog||[], field=S.raids||[];
+  if(!cmds.length&&!out.length&&!logs.length&&!field.length) return '';
   let h='<section class="win" aria-labelledby="h-raid"><h2 class="win-h" id="h-raid">War table'+(out.length?' &middot; '+out.length+' tonight':'')+'</h2>';
-  out.forEach((x,i)=>{ const u=orderSquad(x); if(!u.length) return; h+='<div class="raid-row"><div><b>'+u[0].nick+'</b> leads '+u.length+' to the '+DUNGEONS[x.di].name+' tonight<div class="u-sub">'+Math.round(raidOdds(u,x.di)*100)+'% odds now &middot; marches at nightfall, back at dawn</div></div><button class="btn small warn" data-a="recall" data-k="'+i+'">Cancel</button></div>'; });
-  const gates=raidGates();
-  if(cmds.length&&gates.length){
-    const c=cmds.find(m=>m.uid===ui.rc)||cmds[0], di=gates.includes(ui.rg)?ui.rg:gates[gates.length-1], max=squadMax(c)-1;
+  field.forEach((x,i)=>{ if(!(x.night>0)||x.night>=x.nights) return; const last=(x.log||[])[x.log.length-1]||{}, sp=x.sp||{}, tro=Object.values(sp.tro||{}).reduce((a,b)=>a+b,0);
+    h+='<div class="raid-row exp-out"><div><b>'+x.units[0].nick+'</b> is out on '+tName(x.t)+' &middot; night '+x.night+' of '+x.nights
+     +'<div class="u-sub exp-steps">'+EXP_STEPS.filter(s=>last.roll&&s in last.roll).map(s=>'<span class="'+(last.roll[s]?'ok':'bad')+'">'+EXP_STEP_NAME[s]+(last.roll[s]?' held':' failed')+'</span>').join(' ')+'</div>'
+     +'<div class="u-sub">Carrying '+(sp.g||0)+' gold'+(tro?', '+tro+' trophies':'')+((sp.items||[]).length?', '+sp.items.length+' pieces of gear':'')+'. Tonight: '+Math.round(expNightOdds(x.units,x.t,{pressed:x.pressed||0})*100)+'% to press on, '+Math.round(expNightOdds(x.units,x.t,{pressed:x.pressed||0,risky:1})*100)+'% on the risky path.</div></div>'
+     +'<div class="btns"><button class="btn small'+(x.pick!=='risky'?' primary':'')+'" data-a="expc" data-k="'+i+'|press" aria-pressed="'+(x.pick!=='risky')+'">Press on</button><button class="btn small'+(x.pick==='risky'?' primary':'')+'" data-a="expc" data-k="'+i+'|risky" aria-pressed="'+(x.pick==='risky')+'">Risky path</button><button class="btn small" data-a="expc" data-k="'+i+'|home">Come home</button></div></div>'; });
+  out.forEach((x,i)=>{ const u=orderSquad(x); if(!u.length) return; const t=x.t||{k:'gate',di:x.di}; h+='<div class="raid-row"><div><b>'+u[0].nick+'</b> leads '+u.length+' on '+tName(t)+' tonight'+(x.nights>1?' for '+x.nights+' nights':'')+'<div class="u-sub">'+Math.round(expNightOdds(u,t,x)*100)+'% a night now &middot; marches at nightfall</div></div><button class="btn small warn" data-a="recall" data-k="'+i+'">Cancel</button></div>'; });
+  const T=expTargets().filter(t=>t.k!=='scav'||raidGates().length);
+  if(cmds.length&&raidGates().length){
+    const c=cmds.find(m=>m.uid===ui.rc)||cmds[0], t=T.find(x=>tKey(x)===ui.rt)||T.filter(x=>x.k==='gate').slice(-1)[0], NN=expNights(t.k), nights=NN.includes(ui.rn)?ui.rn:NN[0], max=squadMax(c)-1;
     const sel=(ui.rsq||[]).filter(u=>pool.some(m=>m.uid===u&&m!==c&&!inOrder(m))).slice(0,max), units=[c].concat(sel.map(u=>pool.find(m=>m.uid===u)));
-    const rtag=m=>inReserve(m)?' &middot; Reserve':'';
+    const rtag=m=>inReserve(m)?' &middot; Reserve':'', chip=x=>'<button class="btn small'+(tKey(x)===tKey(t)?' primary':'')+'" data-a="rtgt" data-k="'+tKey(x)+'" aria-pressed="'+(tKey(x)===tKey(t))+'">'+(x.k==='hunt'?x.kind:x.k==='gate'?DUNGEONS[x.di].name:EXP_NAME[x.k]+(x.k==='band'?' '+x.f+'-'+(x.f+9):x.k==='curse'?': '+DUNGEONS[x.di].name:''))+'</button>';
+    const p=expOdds(units,t,{}), cv=expCover(units), hunts=T.filter(x=>x.k==='hunt');
     h+=(cmds.length>1?'<p class="group-h">Commander</p><div class="chips">'+cmds.map(m=>'<button class="btn small'+(m===c?' primary':'')+'" data-a="rcmd" data-k="'+m.uid+'" aria-pressed="'+(m===c)+'">'+m.nick+rtag(m)+'</button>').join('')+'</div>':'<p class="u-sub">Commander: <b>'+c.nick+'</b>, '+theName(mName(c))+rtag(c)+'</p>')
-     +'<p class="group-h">Target</p><div class="chips">'+gates.map(i=>'<button class="btn small'+(i===di?' primary':'')+'" data-a="rgate" data-k="'+i+'" aria-pressed="'+(i===di)+'">'+DUNGEONS[i].name+'</button>').join('')+'</div>'
-     +'<p class="group-h">Squad &middot; '+sel.length+'/'+max+'</p><div class="chips">'+pool.filter(m=>m!==c&&!inOrder(m)).map(m=>{ const on=sel.includes(m.uid); return '<button class="btn small'+(on?' primary':'')+'" data-a="rsq" data-k="'+m.uid+'" aria-pressed="'+on+'"'+(!on&&sel.length>=max?' disabled':'')+'>'+m.nick+' &middot; Lv '+m.lvl+rtag(m)+'</button>'; }).join('')+'</div>'
-     +'<p class="u-sub war-note">A raid is an order for tonight: the squad fights the rest of today\'s runs with you and marches when the day ends. Odds are taken then, from whoever is left. Cancel any time before nightfall. Reserve minions can march too. Away overnight, each keeps its place in the army or the Reserve.</p>'+siegeWarNote()
-     +'<div class="btns"><button class="btn primary" data-a="raid"'+(sel.length?'':' disabled title="Pick at least one follower"')+'>Order the raid for tonight &middot; '+Math.round(raidOdds(units,di)*100)+'% odds</button></div>';
+     +'<p class="group-h">Target</p><div class="chips">'+T.filter(x=>x.k!=='hunt').map(chip).join('')+'</div>'+(hunts.length?'<p class="group-h">Hunts</p><div class="chips">'+hunts.map(chip).join('')+'</div>':'')
+     +(NN.length>1?'<p class="group-h">Nights</p><div class="chips">'+NN.map(n=>'<button class="btn small'+(n===nights?' primary':'')+'" data-a="rnight" data-k="'+n+'" aria-pressed="'+(n===nights)+'">'+n+' night'+(n>1?'s':'')+'</button>').join('')+'</div>':'')
+     +'<p class="group-h">Squad &middot; '+sel.length+'/'+max+'</p><div class="chips">'+pool.filter(m=>m!==c&&!inOrder(m)).map(m=>{ const on=sel.includes(m.uid); return '<button class="btn small'+(on?' primary':'')+'" data-a="rsq" data-k="'+m.uid+'" aria-pressed="'+on+'"'+(!on&&sel.length>=max?' disabled':'')+'>'+m.nick+' &middot; '+ROLES[m.role].label+' &middot; Lv '+m.lvl+rtag(m)+'</button>'; }).join('')+'</div>'
+     +'<div class="exp-steps u-sub">'+EXP_STEPS.filter(s=>!(s==='fight'&&t.k==='scav')).map(s=>'<span>'+EXP_STEP_NAME[s]+' '+Math.round(p[s]*100)+'%'+(s==='approach'&&!cv.van?' (no vanguard)':s==='fight'&&!cv.fight?' (no striker or reaper)':s==='haul'&&!cv.mend?' (no mender: half the spoils lost)':'')+'</span>').join(' &middot; ')+'</div>'
+     +'<p class="u-sub war-note">An expedition is an order for tonight: the squad fights the rest of today\'s runs with you and marches when the day ends. Each night has three steps: a vanguard covers the Approach, strikers and reapers the Fight, a mender the Haul. Away, each keeps its place in the army or the Reserve. Cancel any time before nightfall.</p>'+siegeWarNote()
+     +'<div class="btns"><button class="btn primary" data-a="raid"'+(sel.length?'':' disabled title="Pick at least one follower"')+'>Send on '+tName(t)+' &middot; '+Math.round(expNightOdds(units,t,{})*100)+'% a night</button></div>';
   } else if(cmds.length) h+='<p class="lede">Clear a gate first.</p>';
-  if(logs.length) h+='<p class="group-h">Last raids</p><ul class="raid-log">'+logs.slice(0,3).map(x=>'<li class="'+(x.won?'ok':'bad')+'">Day '+x.day+': '+x.nick+', '+DUNGEONS[x.di].name+' &middot; '+(x.won?'won':'lost'+(x.lost?' ('+x.lost+' fell)':''))+'</li>').join('')+'</ul>';
+  if(logs.length) h+='<p class="group-h">Last expeditions</p><ul class="raid-log">'+logs.slice(0,3).map(x=>'<li class="'+(x.won?'ok':'bad')+'">Day '+x.day+': '+x.nick+', '+(x.k&&x.k!=='gate'?EXP_NAME[x.k]+', ':'')+DUNGEONS[x.di].name+(x.nights>1?' &middot; '+x.nights+' nights':'')+' &middot; '+(x.won?'won':'lost'+(x.lost?' ('+x.lost+' fell)':''))+'</li>').join('')+'</ul>';
   return h+'</section>';
 }
 function armyHTML(view){   // view (the Army tab): filters and orders what is shown, and sets the army and the Reserve side by side
@@ -13229,7 +13411,7 @@ const ACTIONS={
   mark:k=>{ const a=k.split('|'); chooseMark(+a[0],a[1]); },
   tores:k=>{ toReserve(+k); }, toarmy:k=>{ toArmy(+k); }, swapo:k=>{ ui.swap=ui.swap===+k?null:+k; }, swap:k=>{ const a=k.split('|'); if(swapReserve(+a[0],+a[1])) ui.swap=null; },
   rsort:k=>{ sortReserve(k); }, gatearmy:k=>{ fromGate(+k,'army'); }, gateres:k=>{ fromGate(+k,'reserve'); },
-  event:k=>{ resolveEvent(k); }, door:k=>{ descend(k); }, cmd:k=>{ command(k); },
+  event:k=>{ resolveEvent(k); }, door:k=>{ descend(k); }, cmd:k=>{ command(k); }, rally:k=>{ rally(k); },
   skmod:k=>{ const a=k.split('|'); chooseMod(a[0],a[1]); },
   build:k=>{ const c=buildCost(k); ui.msg=build(k)?{mk:1,m:BUILD[k].name+' raised to level '+bl(k)+' for '+c[0]+' gold'+(c[1]?' and '+c[1]+' bone dust':'')+'.',c:'ok'}:null; },
   claimb:k=>{ const r=claimBounty(+k); if(r) notify('Bounty claimed: '+r+'.','ok'); },
@@ -13261,11 +13443,12 @@ const ACTIONS={
   reforge:k=>{ const it=findItem(+k), c=it&&reforgeCost(it); ui.msg=reforge(+k)?{mk:1,m:'Reforged '+ITEM[it.id].name+' for '+c+' gold.',c:'ok'}:null; },
   rift:k=>{ startRift(+k); }, gsub:k=>{ ui.gsub=['open','war','rift','trial'].includes(k)?k:'open'; ui.msg=null; }, trial:()=>{ startTrial(); },
   rdep:k=>{ const b=riftBest(); ui.rd=clamp((ui.rd||b+1)+(+k||0),1,b+1); },
-  rcmd:k=>{ ui.rc=+k; ui.rsq=[]; }, rgate:k=>{ ui.rg=+k; },
+  rcmd:k=>{ ui.rc=+k; ui.rsq=[]; }, rgate:k=>{ ui.rg=+k; ui.rt=tKey({k:'gate',di:+k}); }, rtgt:k=>{ ui.rt=String(k); }, rnight:k=>{ ui.rn=+k; },
+  expc:k=>{ const [i,c]=String(k).split('|'); expChoose(+i,c); },
   rsq:k=>{ const u=+k; ui.rsq=(ui.rsq||[]).includes(u)?ui.rsq.filter(x=>x!==u):(ui.rsq||[]).concat([u]); },
-  raid:()=>{ const pool=raidPool(), cmds=pool.filter(isCommander).filter(m=>!inOrder(m)), gates=raidGates(); const c=cmds.find(m=>m.uid===ui.rc)||cmds[0]; if(!c||!gates.length) return;
-    const di=gates.includes(ui.rg)?ui.rg:gates[gates.length-1], sel=(ui.rsq||[]).filter(u=>pool.some(m=>m.uid===u&&m!==c&&!inOrder(m))).slice(0,squadMax(c)-1);
-    if(sendRaid(c.uid,di,sel)){ ui.msg={mk:1,m:c.nick+' will march on the '+DUNGEONS[di].name+' tonight with '+sel.length+' at its back. They fight beside you until nightfall and return at dawn.',c:'ok'}; ui.rsq=[]; ui.rc=null; } },
+  raid:()=>{ const pool=raidPool(), cmds=pool.filter(isCommander).filter(m=>!inOrder(m)), T=expTargets(); const c=cmds.find(m=>m.uid===ui.rc)||cmds[0]; if(!c||!raidGates().length) return;
+    const t=T.find(x=>tKey(x)===ui.rt)||T.filter(x=>x.k==='gate').slice(-1)[0], NN=expNights(t.k), n=NN.includes(ui.rn)?ui.rn:NN[0], sel=(ui.rsq||[]).filter(u=>pool.some(m=>m.uid===u&&m!==c&&!inOrder(m))).slice(0,squadMax(c)-1);
+    if(sendRaid(c.uid,t.di,sel,t,n)){ ui.msg={mk:1,m:c.nick+' will march on '+tName(t)+' tonight with '+sel.length+' at its back. They fight beside you until nightfall.',c:'ok'}; ui.rsq=[]; ui.rc=null; } },
   recall:k=>{ recallRaid(+k); },
   siegego:()=>{ beginSiege(); }, sguard:k=>{ siegeGuard(k); }, swall:k=>{ siegeWallPick(+k); }, cxgo:k=>{ ui.tab='codex'; ui.cx=k; ui.cxq=''; },
   repair:()=>{ const g=sg(), k=g.dmg, c=repairCost(); if(!k) return; if(ui.confirm!=='repair'){ ui.confirm='repair'; return; } ui.confirm=null; ui.msg=repairBuilding()?{mk:1,m:'The '+BUILD[k].name+' is repaired for '+c+' gold. It works again.',c:'ok'}:null; },

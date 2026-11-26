@@ -1,6 +1,6 @@
 // The Memorial (src/game-phases-town.js): minions lost for good are written down; honouring one gives the army a day's +5% max HP.
 (function(){
-const {test,ok,eq,fix,setLvl,foe,arena,mkMinion,renderAll,cdx,invariants}=window.LOTD_T;
+const {test,ok,eq,fix,seq,setLvl,foe,arena,mkMinion,renderAll,cdx,invariants}=window.LOTD_T;
 const shatter=m=>{ arena([foe({hp:0,dead:true})],0); m.hp=0; fix(0); roomWon(); S.mode='town'; S.run=null; };
 
 test('Memorial: a shattered minion is written down with its name, kind, rank, level, stage, traits, day and gate, and one notice',()=>{
@@ -14,7 +14,7 @@ test('Memorial: a shattered minion is written down with its name, kind, rank, le
 
 test('Memorial: a minion fallen on a raid is written down; a released one is not',()=>{
   setLvl(20); S.ti=S.ti||{}; S.ti.clr={2:1}; S.mode='town'; const c=mkMinion({elite:true,traits:['commander'],lvl:12,rankI:2}), f=mkMinion({nick:'Rook',lvl:12,rankI:2});
-  S.army=S.army.filter(m=>m!==c&&m!==f); fix(0); const r=resolveRaid({di:2,day:S.day,units:[c,f],odds:0});
+  S.army=S.army.filter(m=>m!==c&&m!==f); seq([0,.99,0],0); const r=resolveRaid({di:2,day:S.day,units:[c,f],odds:.5,saved:1});   /* Approach holds, the Fight is lost, Rook's loss roll falls (the Commander's shield already spent) */
   eq(r.lost,1); eq(S.memorial.length,1); eq(S.memorial[0].nick,'Rook'); eq(S.memorial[0].raid,2); eq(memWhere(S.memorial[0]),'Fell on a raid to the '+DUNGEONS[2].name);
   const x=mkMinion({nick:'Freed',stage:2}); release(x.uid); eq(S.memorial.length,1,'release is a choice: not recorded');
 });

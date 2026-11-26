@@ -1,6 +1,6 @@
 // Bonds, event chains and mausoleums (src/game-faith-story.js, Memorial hooks in src/game-phases-town.js).
 (function(){
-const {test,ok,eq,near,fix,fresh,setLvl,foe,arena,mkMinion,renderAll,cdx,invariants,eventScene}=window.LOTD_T;
+const {test,ok,eq,near,fix,seq,fresh,setLvl,foe,arena,mkMinion,renderAll,cdx,invariants,eventScene}=window.LOTD_T;
 const win=n=>{ for(let i=0;i<n;i++){ arena([foe({hp:0,dead:true})],0); fix(.99); roomWon(); S.mode='town'; S.run=null; } };
 const pair=()=>{ setLvl(10); const a=mkMinion({nick:'Thane',lvl:10}), b=mkMinion({nick:'Brine',lvl:10}); return [a,b]; };
 const bonded=()=>{ const [a,b]=pair(); win(BOND_ROOMS); return [a,b]; };
@@ -32,10 +32,10 @@ test('Bonds: a partner lost elsewhere (benched, or on a raid) leaves the survivo
   arena([foe({hp:0,dead:true})],0); a.hp=0; fix(0); roomWon(); S.mode='town'; S.run=null; eq(b.mood.k,'g'); eq(b.mood.u,5,'through tomorrow');
   endDay(); eq(b.mood&&b.mood.k,'g','still grieving on day 5'); endDay(); ok(!b.mood,'over on day 6');
   fresh(); [a,b]=bonded(); S.ti={clr:{2:1}}; S.army=S.army.filter(m=>m!==a&&m!==b); const c=mkMinion({elite:true,traits:['commander'],lvl:10}); S.army=S.army.filter(m=>m!==c);
-  S.raids=[{di:2,day:S.day,units:[c,a],odds:0,res:[]}]; S.reserve=[b]; fix(0); endDay();   // the raid fails and a falls at dawn while b waits in the Reserve
+  S.raids=[{di:2,day:S.day,units:[c,a],odds:.5,res:[],saved:1}]; S.reserve=[b]; seq([0,.99,0],0); endDay();   // the raid fails and a falls at dawn while b waits in the Reserve
   ok(S.memorial.some(e=>e.nick==='Thane'&&e.bd==='Brine'),'on the raid'); eq(b.mood&&b.mood.k,'g'); eq(b.mood.u,S.day,'news at dawn: grieves through the day that begins'); ok(!b.bond);
   fresh(); [a,b]=bonded(); S.army=S.army.filter(m=>m!==a&&m!==b); const c2=mkMinion({elite:true,traits:['commander'],lvl:10}); S.army=S.army.filter(m=>m!==c2);
-  S.raids=[{di:2,day:S.day,units:[c2,a],odds:0,res:[]},{di:1,day:S.day,units:[b],odds:1,res:[]}]; fix(0); endDay();   // the partner learns when it comes home
+  S.raids=[{di:2,day:S.day,units:[c2,a],odds:.5,res:[],saved:1},{di:1,day:S.day,units:[b],odds:1,res:[]}]; seq([0,.99,0],0); endDay();   // the partner learns when it comes home
   ok(S.army.concat(S.reserve||[],S.waiting||[]).includes(b)); eq(b.mood&&b.mood.k,'g','grieves on its return'); invariants('raid grief');
 });
 

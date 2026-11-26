@@ -278,10 +278,22 @@ each +2% army HP and attack for good.
 **The Reserve** (`RESERVE_BASE`). A bench of 6 places (+2 per Crypt level) beside the army. Benched minions do not fight,
 heal, earn XP or bond. **Loadouts**: three named setups of worn gear, army, Reserve and ultimate.
 
-**Raids** (`sendRaid`, `resolveRaid`). A Commander leads a squad (1 + 2 + stage + boss bonus) against a cleared gate on
-Normal. Ordered in town, the squad fights with you until nightfall, then marches; odds come from the squad's attack and
-HP against the gate's (5-95%). Win: 3x gold, up to three pieces of gear, half a level of minion XP. Loss: each follower
-may fall (30%). About 77-78% are won by the bot.
+**Expeditions** (src/game-exp.js, R6; `sendRaid(cu,di,uids,t,nights)`, `resolveRaid`, `expChoose`). A Commander leads a
+squad (1 + 2 + stage + boss bonus + War Room) against a **target**: a cleared gate (1-2 nights), today's cursed gate (1-2
+nights, steps 5% harder, gold x1.25, two pieces of gear), ten Hell Tower floors once your best is floor 20 (2 nights,
+Tower trophies, a warden's heart 20%), a hunt for a kind you have mastered (1 night, three of its trophies or a boss's
+heart 25%) or a scavenge (1 night, no Fight, bone dust and trophies, half the XP). Ordered in town, the squad fights with
+you until nightfall, then marches. Each night has three steps at the cube root of the old raid odds: **Approach**
+(-10% with no vanguard; a failure loses the night and nothing else), **Fight** (-15% with no striker or reaper, +3% each
+up to +9%, +-3% per minion the gate is weak to or resists, +3% for a bonded pair; a failure: each follower may fall (30%),
+the Commander shielding the first once) and **Haul** (a failure halves what is carried; with no mender each night's take
+is halved). Spoils are carried until the squad comes home. With nights left, the squad waits at dawn in the field (the War
+table, and a hub line): **press on** (+50% spoils a night pressed, steps -5%), the **risky path** (no Approach, spoils
+x2, a lost Fight costs the weakest follower) or **come home**. One night in ten that holds brings a road event (a lost
+patrol, an old camp, another keeper's squad). The bot wins ~83% of expedition nights.
+**Rally**: a Commander in your army gives one free order a room: Strike harder (+20% minion damage this turn, +25% with two
+Commanders) or Steady (one condition off every minion). An Elder Commander (stage 2+) lengthens Taunt a turn and makes
+Bone Shield 25% stronger.
 
 ## 2.5 Loot and gear
 

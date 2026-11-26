@@ -21,7 +21,7 @@ test('Raids: a Commander orders a raid for tonight; the squad fights on all day,
   ok(sendRaid(c.uid,1,[a.uid,b.uid])); eq(S.army.length,4,'nobody leaves before nightfall'); eq(raidN(),0); eq(S.raidOrders.length,1);
   ok(!sendRaid(c.uid,0,[d.uid]),'one squad per Commander'); const c2=cmdr(); ok(!sendRaid(c2.uid,0,[a.uid]),'a promised follower cannot march twice'); S.army=S.army.filter(m=>m!==c2);
   ui.tab='gates'; ok(/data-k="war"/.test(renderAll('sub-tabs')),'War table sub-tab'); ok(!/h-raid/.test(renderAll('gates only')),'not on the gates list'); ACTIONS.gsub('war'); const h=renderAll('war table');
-  ok(/War table/.test(h)&&/tonight/.test(h)&&/marches at nightfall/.test(h)&&/data-a="recall"/.test(h)&&/Cancel/.test(h)); ok(new RegExp(Math.round(raidOdds(orderSquad(S.raidOrders[0]),1)*100)+'% odds now').test(h)&&!/ 0% odds/.test(h),'odds shown as a percent');
+  ok(/War table/.test(h)&&/tonight/.test(h)&&/marches at nightfall/.test(h)&&/data-a="recall"/.test(h)&&/Cancel/.test(h)); ok(new RegExp(Math.round(expNightOdds(orderSquad(S.raidOrders[0]),S.raidOrders[0].t,S.raidOrders[0])*100)+'% a night now').test(h)&&!/ 0% odds/.test(h),'odds shown as a percent');
   vitals(()=>{ S.player.stats.will+=20; }); ok(recallRaid(0)); eq(S.raidOrders.length,0); eq(S.army.length,4,'cancelled at no cost'); invariants('cancelled after Will changed');
   ok(sendRaid(c.uid,1,[a.uid,b.uid])); const used=armyUsed(); marchRaids(); eq(S.army.length,1); eq(armyUsed(),used,'raiders keep their army places while away'); eq(raidN(),3); eq(S.raidOrders.length,0); ok(S.raids[0].odds>0,'odds taken as they march');
   S.raids=[]; S.army.push(c,a,b);
@@ -45,8 +45,9 @@ test('Raids: odds grow with the squad and its Commander; a win pays gold, gear a
   ok(S.gold>g0,'gold '+S.gold+' '+g0); ok(S.inv.length>inv0,'gear'); ok(f[0].xp+f[0].lvl*1e6>xp0,'XP'); eq(S.raids.length,0); eq(S.army.length,4,'everyone home'); eq(S.raidLog[0].won,true); eq(T_('raidWins'),1);
   ok(S.inv.every(it=>!ITEM[it.id].uq),'never a unique');
   const gb=mkMinion({lvl:12,rankI:2,traits:['gravebound']}); ok(sendRaid(c.uid,2,[f[0].uid,gb.uid]));
-  fix(.99); endDay(); eq(S.raidLog[0].won,false); eq(S.army.length,5,'rolls above the loss chance: everyone home');
-  ok(sendRaid(c.uid,2,[f[0].uid,gb.uid])); seq([.99],0); endDay(); eq(S.raidLog[0].won,false); eq(S.raidLog[0].lost,1);
+  fix(.99); endDay(); eq(S.raidLog[0].won,false); eq(S.army.length,5,'the Approach failed: the night is lost, nobody falls');
+  ok(sendRaid(c.uid,2,[f[0].uid,gb.uid])); seq([0,.99,0],0); endDay(); eq(S.raidLog[0].won,false); eq(S.raidLog[0].lost,0,'the Commander shields the first who would fall'); ok(S.army.includes(f[0]));
+  ok(sendRaid(c.uid,2,[f[0].uid,gb.uid])); marchRaids(); S.raids[0].saved=1; seq([0,.99,0],0); endDay(); eq(S.raidLog[0].won,false); eq(S.raidLog[0].lost,1);
   ok(S.army.includes(c),'the Commander always comes home'); ok(S.army.includes(gb),'Grave-bound never fall'); ok(!S.army.includes(f[0]),'the other follower fell');
   invariants('after raids');
 });
@@ -54,7 +55,7 @@ test('Raids: odds grow with the squad and its Commander; a win pays gold, gear a
 test('Raids: measured pay, 3x a gate\'s gold and half a level of XP, stated in the Codex',()=>{
   eq([RAID_GOLD,RAID_XP,RAID_ITEM3,RAID_LOSS,RAID_K].join(),'3,0.5,0.5,0.3,0.6','rewards pulled back 2026-11-19 for the full heat:0 guard rail; odds and losses untouched');
   setLvl(20); S.ti=S.ti||{}; S.ti.clr={2:1}; const c=cmdr(), f=mkMinion({lvl:12,rankI:2}); S.army=S.army.filter(m=>m!==c&&m!==f);
-  const need=mneed(f.lvl), xp0=f.xp, g0=S.gold, inv0=S.inv.length; fix(0); resolveRaid({di:2,day:S.day,units:[c,f]});
+  const need=mneed(f.lvl), xp0=f.xp, g0=S.gold, inv0=S.inv.length; fix(0); f.role='mender'; resolveRaid({di:2,day:S.day,units:[c,f]});   /* a mender hauls it all home */
   eq(S.gold-g0,Math.round((15+20*4)*3*RAID_GOLD*ngpReward())); eq(S.inv.length-inv0,3,'a roll under RAID_ITEM3 brings the third piece');
   ok(f.lvl>12||f.xp-xp0===Math.round(need*RAID_XP),'half a level');
   ok(/3x a gate's gold, two or three pieces of gear from its table \(never a unique\) and half of a level of XP/.test(cdx('raids')),'Codex');
@@ -68,7 +69,7 @@ test('Raids: orders and marched squads survive a save and a reload; the War tabl
   const g=normalizeSave(JSON.parse(JSON.stringify(S))); eq(g.raids.length,1); eq(g.raids[0].units.length,2); eq(g.raids[0].units[0].nick,c.nick); eq(g.army.length,0); eq(g.raids[0].odds,S.raids[0].odds,'the odds they marched with');
   const ids=g.raids[0].units.map(m=>m.uid); ok(ids.every(u=>u<=g.uid),'ids stay below the counter');
   const bad=normalizeSave(JSON.parse(JSON.stringify(Object.assign({},S,{raids:[{di:99,units:[]},'x',{di:0,units:[{nope:1}]}]})))); eq(bad.raids.length,0);
-  fix(0); endDay(); ui.tab='gates'; ui.gsub='war'; ok(/Last raids/.test(renderAll('raid log')));
+  fix(0); endDay(); ui.tab='gates'; ui.gsub='war'; ok(/Last expeditions/.test(renderAll('raid log')));
 });
 
 test('The Rift: opens at level 40 after the Throne falls; depths open one at a time and grow harder',()=>{

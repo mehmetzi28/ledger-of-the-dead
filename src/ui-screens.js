@@ -45,7 +45,7 @@ function townHTML(){
   return h;
 }
 function gateSubs(){
-  const out=raidOrders(), war=raidPool().some(isCommander)||out.length||(S.raidLog||[]).length;
+  const out=raidOrders(), war=raidPool().some(isCommander)||out.length||(S.raidLog||[]).length||expOut().length;   // a squad in the field waits there for its dawn choice
   return [['open','Gates']].concat(war?[['war','War table'+(out.length?' &middot; '+out.length+' tonight':'')]]:[]).concat(S.ti&&S.ti.clr&&S.ti.clr[5]?[['rift','The Rift'+(riftOpen()?' &middot; next '+(riftBest()+1):' &middot; Lv '+RIFT_LV)]]:[]).concat(trialOpen()?[['trial','Trial'+(tri().day===S.day?' &middot; tried today':'')]]:[]);
 }
 function nick(u){ return u.id==='p'?'You':u.nick||u.name; }
@@ -128,7 +128,7 @@ function cmdHTML(){
   const roles=Object.keys(CMDS).filter(k=>S.army.some(m=>m.role===k&&m.hp>0)); if(!roles.length) return ''; const ans=chargeAns(), oh=orderHints(), OH={vanguard:n=>'pulls '+n,mender:n=>'+'+n+' ward'};
   return '<div class="btns cmds"><span class="cmd-l" title="Free, once a room">Orders:</span>'+roles.map(k=>{ const used=S.run.cmd&&S.run.cmd[k];
     const an=!used&&ans.includes(k);
-    return '<button class="btn small'+(an?' answer':'')+'" data-a="cmd" data-k="'+k+'" title="'+CMDS[k].desc+'"'+(used?' disabled':'')+'>'+(an?ANS_M:'')+CMDS[k].name+(used?' &middot; given':'')+(oh[k]!=null?'<span class="ord-h">'+OH[k](oh[k])+'</span>':'')+(an?ANS_S:'')+'<kbd>'+ORDER_KEY[k]+'</kbd></button>'+(k==='vanguard'?guardBtn():''); }).join('')+'</div>';
+    return '<button class="btn small'+(an?' answer':'')+'" data-a="cmd" data-k="'+k+'" title="'+CMDS[k].desc+'"'+(used?' disabled':'')+'>'+(an?ANS_M:'')+CMDS[k].name+(used?' &middot; given':'')+(oh[k]!=null?'<span class="ord-h">'+OH[k](oh[k])+'</span>':'')+(an?ANS_S:'')+'<kbd>'+ORDER_KEY[k]+'</kbd></button>'+(k==='vanguard'?guardBtn():''); }).join('')+rallyHTML()+'</div>';
 }
 function guardBtn(){ const used=S.run.cmd&&S.run.cmd.guard;   // Guard: costs the turn, so it goes through act; disabled with no vanguard in the front row
   return '<button class="btn small" data-a="act" data-k="guard" title="'+GUARD.desc+'"'+(canGuard()?'':' disabled')+'>'+GUARD.name+(used?' &middot; given':'')+'<kbd>G</kbd></button>';
@@ -276,23 +276,31 @@ function riftHTML(){
    +'<span class="u-sub num">Foes Lv '+riftLvl(n)+'+ &middot; x'+riftMul(n).toFixed(1)+' strength'+(n>b?' &middot; new depth':'')+'</span><span class="u-sub">'+resTag(riftRes(n),GATE_HITS[5])+'</span></div>'
    +'<div class="btns"><button class="btn primary" data-a="rift" data-k="'+n+'"'+(S.watches<=0?' disabled':'')+'>Enter the Rift</button></div></section>';
 }
-function raidHTML(){
-  if(S.mode!=='town') return ''; const pool=raidPool(), cmds=pool.filter(isCommander).filter(m=>!inOrder(m)), out=raidOrders(), logs=S.raidLog||[];
-  if(!cmds.length&&!out.length&&!logs.length) return '';
+function raidHTML(){   // the War table: expeditions (game-exp.js)
+  if(S.mode!=='town') return ''; const pool=raidPool(), cmds=pool.filter(isCommander).filter(m=>!inOrder(m)), out=raidOrders(), logs=S.raidLog||[], field=S.raids||[];
+  if(!cmds.length&&!out.length&&!logs.length&&!field.length) return '';
   let h='<section class="win" aria-labelledby="h-raid"><h2 class="win-h" id="h-raid">War table'+(out.length?' &middot; '+out.length+' tonight':'')+'</h2>';
-  out.forEach((x,i)=>{ const u=orderSquad(x); if(!u.length) return; h+='<div class="raid-row"><div><b>'+u[0].nick+'</b> leads '+u.length+' to the '+DUNGEONS[x.di].name+' tonight<div class="u-sub">'+Math.round(raidOdds(u,x.di)*100)+'% odds now &middot; marches at nightfall, back at dawn</div></div><button class="btn small warn" data-a="recall" data-k="'+i+'">Cancel</button></div>'; });
-  const gates=raidGates();
-  if(cmds.length&&gates.length){
-    const c=cmds.find(m=>m.uid===ui.rc)||cmds[0], di=gates.includes(ui.rg)?ui.rg:gates[gates.length-1], max=squadMax(c)-1;
+  field.forEach((x,i)=>{ if(!(x.night>0)||x.night>=x.nights) return; const last=(x.log||[])[x.log.length-1]||{}, sp=x.sp||{}, tro=Object.values(sp.tro||{}).reduce((a,b)=>a+b,0);
+    h+='<div class="raid-row exp-out"><div><b>'+x.units[0].nick+'</b> is out on '+tName(x.t)+' &middot; night '+x.night+' of '+x.nights
+     +'<div class="u-sub exp-steps">'+EXP_STEPS.filter(s=>last.roll&&s in last.roll).map(s=>'<span class="'+(last.roll[s]?'ok':'bad')+'">'+EXP_STEP_NAME[s]+(last.roll[s]?' held':' failed')+'</span>').join(' ')+'</div>'
+     +'<div class="u-sub">Carrying '+(sp.g||0)+' gold'+(tro?', '+tro+' trophies':'')+((sp.items||[]).length?', '+sp.items.length+' pieces of gear':'')+'. Tonight: '+Math.round(expNightOdds(x.units,x.t,{pressed:x.pressed||0})*100)+'% to press on, '+Math.round(expNightOdds(x.units,x.t,{pressed:x.pressed||0,risky:1})*100)+'% on the risky path.</div></div>'
+     +'<div class="btns"><button class="btn small'+(x.pick!=='risky'?' primary':'')+'" data-a="expc" data-k="'+i+'|press" aria-pressed="'+(x.pick!=='risky')+'">Press on</button><button class="btn small'+(x.pick==='risky'?' primary':'')+'" data-a="expc" data-k="'+i+'|risky" aria-pressed="'+(x.pick==='risky')+'">Risky path</button><button class="btn small" data-a="expc" data-k="'+i+'|home">Come home</button></div></div>'; });
+  out.forEach((x,i)=>{ const u=orderSquad(x); if(!u.length) return; const t=x.t||{k:'gate',di:x.di}; h+='<div class="raid-row"><div><b>'+u[0].nick+'</b> leads '+u.length+' on '+tName(t)+' tonight'+(x.nights>1?' for '+x.nights+' nights':'')+'<div class="u-sub">'+Math.round(expNightOdds(u,t,x)*100)+'% a night now &middot; marches at nightfall</div></div><button class="btn small warn" data-a="recall" data-k="'+i+'">Cancel</button></div>'; });
+  const T=expTargets().filter(t=>t.k!=='scav'||raidGates().length);
+  if(cmds.length&&raidGates().length){
+    const c=cmds.find(m=>m.uid===ui.rc)||cmds[0], t=T.find(x=>tKey(x)===ui.rt)||T.filter(x=>x.k==='gate').slice(-1)[0], NN=expNights(t.k), nights=NN.includes(ui.rn)?ui.rn:NN[0], max=squadMax(c)-1;
     const sel=(ui.rsq||[]).filter(u=>pool.some(m=>m.uid===u&&m!==c&&!inOrder(m))).slice(0,max), units=[c].concat(sel.map(u=>pool.find(m=>m.uid===u)));
-    const rtag=m=>inReserve(m)?' &middot; Reserve':'';
+    const rtag=m=>inReserve(m)?' &middot; Reserve':'', chip=x=>'<button class="btn small'+(tKey(x)===tKey(t)?' primary':'')+'" data-a="rtgt" data-k="'+tKey(x)+'" aria-pressed="'+(tKey(x)===tKey(t))+'">'+(x.k==='hunt'?x.kind:x.k==='gate'?DUNGEONS[x.di].name:EXP_NAME[x.k]+(x.k==='band'?' '+x.f+'-'+(x.f+9):x.k==='curse'?': '+DUNGEONS[x.di].name:''))+'</button>';
+    const p=expOdds(units,t,{}), cv=expCover(units), hunts=T.filter(x=>x.k==='hunt');
     h+=(cmds.length>1?'<p class="group-h">Commander</p><div class="chips">'+cmds.map(m=>'<button class="btn small'+(m===c?' primary':'')+'" data-a="rcmd" data-k="'+m.uid+'" aria-pressed="'+(m===c)+'">'+m.nick+rtag(m)+'</button>').join('')+'</div>':'<p class="u-sub">Commander: <b>'+c.nick+'</b>, '+theName(mName(c))+rtag(c)+'</p>')
-     +'<p class="group-h">Target</p><div class="chips">'+gates.map(i=>'<button class="btn small'+(i===di?' primary':'')+'" data-a="rgate" data-k="'+i+'" aria-pressed="'+(i===di)+'">'+DUNGEONS[i].name+'</button>').join('')+'</div>'
-     +'<p class="group-h">Squad &middot; '+sel.length+'/'+max+'</p><div class="chips">'+pool.filter(m=>m!==c&&!inOrder(m)).map(m=>{ const on=sel.includes(m.uid); return '<button class="btn small'+(on?' primary':'')+'" data-a="rsq" data-k="'+m.uid+'" aria-pressed="'+on+'"'+(!on&&sel.length>=max?' disabled':'')+'>'+m.nick+' &middot; Lv '+m.lvl+rtag(m)+'</button>'; }).join('')+'</div>'
-     +'<p class="u-sub war-note">A raid is an order for tonight: the squad fights the rest of today\'s runs with you and marches when the day ends. Odds are taken then, from whoever is left. Cancel any time before nightfall. Reserve minions can march too. Away overnight, each keeps its place in the army or the Reserve.</p>'+siegeWarNote()
-     +'<div class="btns"><button class="btn primary" data-a="raid"'+(sel.length?'':' disabled title="Pick at least one follower"')+'>Order the raid for tonight &middot; '+Math.round(raidOdds(units,di)*100)+'% odds</button></div>';
+     +'<p class="group-h">Target</p><div class="chips">'+T.filter(x=>x.k!=='hunt').map(chip).join('')+'</div>'+(hunts.length?'<p class="group-h">Hunts</p><div class="chips">'+hunts.map(chip).join('')+'</div>':'')
+     +(NN.length>1?'<p class="group-h">Nights</p><div class="chips">'+NN.map(n=>'<button class="btn small'+(n===nights?' primary':'')+'" data-a="rnight" data-k="'+n+'" aria-pressed="'+(n===nights)+'">'+n+' night'+(n>1?'s':'')+'</button>').join('')+'</div>':'')
+     +'<p class="group-h">Squad &middot; '+sel.length+'/'+max+'</p><div class="chips">'+pool.filter(m=>m!==c&&!inOrder(m)).map(m=>{ const on=sel.includes(m.uid); return '<button class="btn small'+(on?' primary':'')+'" data-a="rsq" data-k="'+m.uid+'" aria-pressed="'+on+'"'+(!on&&sel.length>=max?' disabled':'')+'>'+m.nick+' &middot; '+ROLES[m.role].label+' &middot; Lv '+m.lvl+rtag(m)+'</button>'; }).join('')+'</div>'
+     +'<div class="exp-steps u-sub">'+EXP_STEPS.filter(s=>!(s==='fight'&&t.k==='scav')).map(s=>'<span>'+EXP_STEP_NAME[s]+' '+Math.round(p[s]*100)+'%'+(s==='approach'&&!cv.van?' (no vanguard)':s==='fight'&&!cv.fight?' (no striker or reaper)':s==='haul'&&!cv.mend?' (no mender: half the spoils lost)':'')+'</span>').join(' &middot; ')+'</div>'
+     +'<p class="u-sub war-note">An expedition is an order for tonight: the squad fights the rest of today\'s runs with you and marches when the day ends. Each night has three steps: a vanguard covers the Approach, strikers and reapers the Fight, a mender the Haul. Away, each keeps its place in the army or the Reserve. Cancel any time before nightfall.</p>'+siegeWarNote()
+     +'<div class="btns"><button class="btn primary" data-a="raid"'+(sel.length?'':' disabled title="Pick at least one follower"')+'>Send on '+tName(t)+' &middot; '+Math.round(expNightOdds(units,t,{})*100)+'% a night</button></div>';
   } else if(cmds.length) h+='<p class="lede">Clear a gate first.</p>';
-  if(logs.length) h+='<p class="group-h">Last raids</p><ul class="raid-log">'+logs.slice(0,3).map(x=>'<li class="'+(x.won?'ok':'bad')+'">Day '+x.day+': '+x.nick+', '+DUNGEONS[x.di].name+' &middot; '+(x.won?'won':'lost'+(x.lost?' ('+x.lost+' fell)':''))+'</li>').join('')+'</ul>';
+  if(logs.length) h+='<p class="group-h">Last expeditions</p><ul class="raid-log">'+logs.slice(0,3).map(x=>'<li class="'+(x.won?'ok':'bad')+'">Day '+x.day+': '+x.nick+', '+(x.k&&x.k!=='gate'?EXP_NAME[x.k]+', ':'')+DUNGEONS[x.di].name+(x.nights>1?' &middot; '+x.nights+' nights':'')+' &middot; '+(x.won?'won':'lost'+(x.lost?' ('+x.lost+' fell)':''))+'</li>').join('')+'</ul>';
   return h+'</section>';
 }
 function armyHTML(view){   // view (the Army tab): filters and orders what is shown, and sets the army and the Reserve side by side

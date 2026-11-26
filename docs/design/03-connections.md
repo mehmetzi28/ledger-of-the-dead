@@ -22,7 +22,7 @@ flowchart LR
   RAISE --> ARMY[Army]
   ARMY -->|room XP| EVO[Evolution, marks]
   ARMY -->|25 rooms| BOND[Bonds]
-  ARMY -->|elite/boss Commander| RAID[Raids]
+  ARMY -->|elite/boss Commander| RAID[Expeditions]
   ARMY -->|front row| TETHER[Soul Tether]
   ARMY -->|shatters| MEM[Memorial]
   BES -->|raise %, damage, levels| RAISE
@@ -65,7 +65,7 @@ flowchart LR
 | Trophies | Kills | Gold, forged gear, potions, hearts | Tower trophies only sell (G11) |
 | Town buildings | Gold, dust, clears, sieges, raids, oath | Slots, Reserve growth, raise %, mana, study, kept bodies, potions, brewing, raids, devotion, siege perks | Eleven buildings to level 5 with forty specializations (R5 PR A) |
 | Bounties | Tallies of any activity | Gold, salts, dust, gear | Good glue: reads many systems |
-| Raids | Commander minions, squad strength | Gold, gear, minion XP, Memorial | A dice roll (G17) |
+| Expeditions (R6) | Commander minions, squad roles, damage types, bonds, curses, the Tower, the bestiary (mastery), banners | Gold, gear, trophies, hearts, bone dust, minion XP, the Embalmery, dread, Memorial, titles | Three steps a night and a dawn choice (G17 closed); Rally ties the Commander to every fight (G8 closed) |
 | Sieges | Town levels, calendar, dread band, Bell Tower defenses, Reserve wall, guard choice | Gold, dust, gear, building damage, dread | Fixed roster (G23) |
 | Rival | Calendar, your army's main role, your bodies | Legendary, gold, page loss or fine, story | No arc or end (G19) |
 | Trials | Throne clear, curses, tiers, seed | Gold, dust, hearts, records | Good: pays the Awakening economy |
@@ -126,7 +126,8 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
   (Was: benched minions did not grow or do anything.) (Reserve, town, sieges.)
 - **G7. Most minions cannot use gear.** Only one armed kind per gate takes gear; unique flags work only for the hero.
   (Gear, army, uniques.)
-- **G8. Commander only matters for raids.** A rare, exciting trait with one use. (Traits, raids, combat, sieges.)
+- ~~**G8. Commander only matters for raids.**~~ Closed by R6: a Commander in your army gives a free Rally once a room
+  (+20% minion damage or a condition off every minion), and an Elder Commander lengthens Taunt and strengthens Bone Shield.
 - **G9. Hero power vs army strength.** ~~The hero alone can still carry rooms.~~ Closed by Command (PR #5): the hero's
   Strike, Siphon and HP grow from the army's three strongest minions.
 
@@ -160,8 +161,9 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
   the player close the book or keep writing, each with an epilogue, a title and its own New Game+. Five acts and twenty pages build to "write your name and close the book, or keep
   writing", and the game does not let the player choose. Tower floor 100 makes the book "whole" with no consequence.
   (Story, pages, Tower, secret masters, NG+.)
-- **G17. Raids are one dice roll.** Normal, cleared gates only; they never touch difficulty, curses, hearts, bounties,
-  the Tower or the Rift, and offer no choices. (Raids, Commander, economy.)
+- ~~**G17. Raids are one dice roll.**~~ Closed by R6: expeditions to gates, the day's cursed gate, Tower bands, hunts and
+  scavenges, three steps a night covered by roles, types and bonds, carried spoils and a dawn choice (press on, the risky
+  path, come home), road events. Not yet: difficulties, the Rift, the rival's stash (R7) and Vane Abbey as targets.
 - **G18. Faith is a binary with a static buff.** Two oaths, devotion is only time; the Old Gods never touch omens,
   curses, sieges (the Inquisition) or the story past two passages. (Faith, omens, sieges, events, story.)
 - **G19. The rival has no arc.** Same move, same loop, no territory, no ending; New Game+ resets their strength.
