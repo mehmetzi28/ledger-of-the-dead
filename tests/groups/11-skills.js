@@ -20,7 +20,7 @@ test('Skills: actives are blocked in town, by silence, cooldown and low mana',()
 });
 test('Skills: Bone Spear pierces half of armor',()=>{
   const t=foe({hp:1e6}); arena([t],3); fix(.5); S.player.skills.spear=1; S.player.mana=100; act('sk:spear');
-  eq(1e6-t.hp,H((pAtk()+pSiph())*.85*(1-DIFF.armor[3]*.5)*skMul()),'Intelligence adds skill damage');
+  eq(1e6-t.hp,Math.round(H((pAtk()+pSiph())*.85*(1-DIFF.armor[3]*.5)*skMul())*(1-foeRes(t,'phys'))),'Intelligence adds skill damage (the Cathedral is weak to physical)');
 });
 test('Skills: Corpse Explosion hits every foe through armor and uses up a body',()=>{
   const a=foe({hp:1e6}), b=foe({hp:1e6}); arena([a,b],2); fix(.5); S.player.skills.blast=1; S.player.mana=100;

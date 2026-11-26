@@ -138,6 +138,19 @@ Sundering Blows), Focus (strikers always crit this turn, a focused crit breaks a
 ward you for 150% of their attack), Execute (reapers double damage under 40% HP). **Guard** costs your turn: the next
 blow that would kill you lands on a front-row vanguard at 150%.
 
+**Damage types** (`DTYPE`, `hurtFoe(e,d,type)`, `hurtAlly(a,d,type)`, R1 PR A). Every hit is Physical, Shadow, Frost, Fire or
+Rot. Strike, Bone Spear, Echo, Cleave, Hellfire, Thorns, marks and plain minion hits are physical; Siphon, Chorus, Reap,
+Death's Toll and Bloodfiend shadow; Grave Chill, Deep Winter, Rimeborn/Glaciermaul frost; burns, Cinderborn/Pyreheart fire
+(Shatterwrought alternates frost and fire); Corpse Explosion, poison, blight and Venomous/Necrotic/Plaguebearer/Witchrot rot;
+bleeding physical. Where foes stand sets their profile (`GATE_RES`, `TOWER_RES`, `riftRes(depth)`, `SIEGE_RES`): one
+weakness (+25% taken) and one or two resistances (-25%, strong -50%), applied once in `hurtFoe` after armor and before
+shields (`foeRes`, cap 90%). Iron Rain adds 15% physical resistance; Soul Storm +10% to your shadow damage. Foe strikers hit
+with their place's type (`GATE_HITS`), vanguards and menders physical; Frost-touched elites hit frost and chill, Burning
+elites hit fire and burn; Cinder Wave and Volatile bodies are fire. Your side resists through armor bonus lines
+(`fres/frres/rres/sres`, up to `RES_CAP` 50%) and typed minion traits (Rimeborn frost, Cinderborn fire, Venomous/Necrotic
+rot, 25%); weapons and relics roll `fdmg/frdmg/rdmg/sdmg` (+% of that type for you and your army). Gate cards, the Tower and
+Rift cards and the battle header show the profile; Codex page "Damage types".
+
 **Statuses** (`DOTS`, `CONDS`). Damage over time: poison, bleed (enemy striker crits), burn (Cinder Wave, Cinderborn),
 blight (halves healing received). Conditions: Sundered (+25% damage taken), Hexed (-20% damage dealt), Hasted (a 50%
 follow-up strike), Chilled (+20% damage taken). **Combos** (`COMBOS`): Frostbreak, Spreading Rot, Fizzle, Breach, Swift
@@ -149,7 +162,8 @@ crit. At 50% HP (65% on Brutal) bosses enter a second phase: moves come a turn s
 alternate with Sundering Blow (35% of your max HP, or onto a taunting vanguard). The Rat King keeps one phase on Normal.
 Tower wardens borrow the gate moves and enrage after turn 8.
 
-**Elite affixes** (`AFFIX`): Shielded, Splitting, Vampiric, Enraged, Warded, Plaguebearer, Sundering, Hexing, Swift. One
+**Elite affixes** (`AFFIX`): Shielded, Splitting, Vampiric, Enraged, Warded, Plaguebearer, Sundering, Hexing, Swift,
+Frost-touched (raises Rimeborn), Burning (raises Cinderborn). One
 per elite (two from the B gate and Tower floor 50). A raised elite keeps one as a trait. 10% of foes are elite.
 
 **Unique powers** (`FLAGS`): each unique has a flag (Bone Bank, Echo, Undying, Lifedrain, Soul Harvest, Cheap Dead,

@@ -141,7 +141,7 @@ const FLAGS={
  hellfire:'Hellfire: Strike also scorches every other foe for 40% of the damage.',
  deathless:'Deathless: twice per run, a killing blow leaves you at 50% HP.'
 };
-const STATL={atk:['Strike',''],crit:['Crit chance','%'],siph:['Siphon',''],hp:['Max HP',''],mana:['Max mana',''],ward:['Ward',''],strength:['Strength',''],constitution:['Constitution',''],intelligence:['Intelligence',''],will:['Will',''],raise:['Raise chance','%'],mpow:['Minion power','%'],regen:['Mana per turn',''],slot:['Army slots','']};
+const STATL={atk:['Strike',''],crit:['Crit chance','%'],siph:['Siphon',''],hp:['Max HP',''],mana:['Max mana',''],ward:['Ward',''],strength:['Strength',''],constitution:['Constitution',''],intelligence:['Intelligence',''],will:['Will',''],raise:['Raise chance','%'],mpow:['Minion power','%'],fres:['Fire resistance','%'],frres:['Frost resistance','%'],rres:['Rot resistance','%'],sres:['Shadow resistance','%'],fdmg:['Fire damage','%'],frdmg:['Frost damage','%'],rdmg:['Rot damage','%'],sdmg:['Shadow damage','%'],regen:['Mana per turn',''],slot:['Army slots','']};
 
 // ===== DROP TABLES =====
 // Share of each tier in a gate's drops [common, uncommon, rare, epic, legendary]. Each gate leans on its own tier and sometimes the next.
@@ -213,7 +213,9 @@ function masteryGives(t){   // what a tier gives, in plain words
 }
 // ----- random bonus lines ("rolls") on gear. Each piece you find, buy or forge can carry extra stat lines; rarer tiers carry more.
 // Stored on the item as ro:[[stat,value],...]. Uniques never roll; they are fixed.
-const ROLL_KEYS={atk:1.2,crit:.5,siph:1.2,hp:5,mana:4,ward:1.2,strength:.5,constitution:.5,intelligence:.5,will:.5,raise:.8,mpow:1.2};   // value per point of set multiplier
+const ROLL_KEYS={atk:1.2,crit:.5,siph:1.2,hp:5,mana:4,ward:1.2,strength:.5,constitution:.5,intelligence:.5,will:.5,raise:.8,mpow:1.2,fres:2.1,frres:2.1,rres:2.1,sres:2.1,fdmg:2.1,frdmg:2.1,rdmg:2.1,sdmg:2.1};
+const ROLL_SLOT={fres:['armor'],frres:['armor'],rres:['armor'],sres:['armor'],fdmg:['weapon','relic'],frdmg:['weapon','relic'],rdmg:['weapon','relic'],sdmg:['weapon','relic']};   // typed lines roll only on these slots
+const rollKeys=slot=>Object.keys(ROLL_KEYS).filter(k=>!ROLL_SLOT[k]||!slot||ROLL_SLOT[k].includes(slot));   // value per point of set multiplier
 const ROLL_LINES=[[1,.35],[1,.6],[2,.55],[2,.7],[3,.65]];   // per tier: [max lines, chance of each line]
 const REFORGE_COST=.4;   // share of the merchant price
 function rollItem(id,atLeast){
@@ -221,7 +223,7 @@ function rollItem(id,atLeast){
   const up=(S&&S.run&&omen()==='ironrain')?1:0;   // Iron Rain: gear found in a run rolls its lines as if one tier higher
   const [max,ch]=ROLL_LINES[Math.min(ROLL_LINES.length-1,d.tier+up)]||[0,0], m=TM[d.set], out=[];
   for(let tries=0;tries<20&&!out.length;tries++){
-    for(let i=0;i<max;i++) if(Math.random()<ch){ const left=Object.keys(ROLL_KEYS).filter(k=>!out.some(r=>r[0]===k)); const k=pick(left); out.push([k,Math.max(1,Math.round(ROLL_KEYS[k]*m*rnd(.5,1)))]); }
+    for(let i=0;i<max;i++) if(Math.random()<ch){ const left=rollKeys(d.slot).filter(k=>!out.some(r=>r[0]===k)); const k=pick(left); out.push([k,Math.max(1,Math.round(ROLL_KEYS[k]*m*rnd(.5,1)))]); }
     if(!atLeast) break;
   }
   return out.length?out:null;
@@ -400,6 +402,27 @@ const tierRec=(di,h)=>{ let r=gateRec(di); for(let t=1;t<=(h||0)&&t<HEAT.length;
 const NGP_FOE=.3, NGP_REWARD=.25, ngpFoe=()=>1+NGP_FOE*((S&&S.ngp)||0), ngpReward=()=>(1+NGP_REWARD*((S&&S.ngp)||0))*pactReward();   // New Game+: tougher foes, richer rewards
 function foeScale(list,a){ const n=ngpFoe(); for(const e of list){ if(n!==1){ e.maxHp=e.hp=Math.round(e.maxHp*n); } if(a*n!==1) e.atk=Math.max(1,Math.round(e.atk*a*n)); } }
 const foeArmor=()=>{ if(!S.run) return 0; const a=S.run.tw?TW.armor:DIFF.armor[S.run.trial?TRIAL_GATE:S.run.di]*(S.run.siege?siegeArmorK():1); return omen()==='ironrain'?1-(1-a)/IRON_ARMOR:a; };   // Iron Rain: foes 25% tougher to hurt
+// ===== DAMAGE TYPES =====
+// Every hit has one of five types (hurtFoe / hurtAlly take it; physical when none is given). A foe's resistance to a type comes from where it
+// stands (GATE_RES, the Tower, the Rift's depth, a siege) and scales the damage once, after armor and before shields: 0.25 = takes 25% less,
+// -0.25 = takes 25% more (weak). Your gear can resist the four magic types (armor only) and add damage of one type (weapon and relic):
+// those bonus lines are the *res and *dmg roll keys. Strikers hit with their place's type (GATE_HITS); vanguards and menders hit physical.
+const DTYPE={phys:{name:'Physical',res:null,dmg:null},shad:{name:'Shadow',res:'sres',dmg:'sdmg'},frost:{name:'Frost',res:'frres',dmg:'frdmg'},fire:{name:'Fire',res:'fres',dmg:'fdmg'},rot:{name:'Rot',res:'rres',dmg:'rdmg'}};
+const DT_IDS=Object.keys(DTYPE);
+const GATE_RES=[{fire:-.25,rot:.25},{frost:-.25,fire:.25},{frost:-.25,fire:.5},{phys:-.25,shad:.25},{rot:-.25,phys:.25},{frost:-.25,fire:.25,shad:.25}];
+const GATE_HITS=['rot','frost','fire','shad','phys','shad'];
+const TOWER_RES={frost:-.25,fire:.5}, TOWER_HITS='fire', SIEGE_RES={shad:-.25}, SIEGE_HITS='phys';
+const RES_CAP=.5, FOE_RES_MAX=.9, IRON_PHYS=.15, STORM_SHAD=1.1;   // RES_CAP: your own resistance to one type; Iron Rain: foes resist physical; Soul Storm: your shadow damage
+const riftRes=n=>{ const w=DT_IDS[(n*7+2)%5], r=DT_IDS[(n*3+(n>>2)+4)%5]; const o={}; o[w]=-.25; if(r!==w) o[r]=.25; else o[DT_IDS[(DT_IDS.indexOf(w)+2)%5]]=.25; return o; };   // one weakness and one resistance per depth, the same every time
+function placeRes(r){ r=r||S.run; if(!r) return {}; return r.siege?SIEGE_RES:r.tw?TOWER_RES:r.rift?riftRes(r.rift):GATE_RES[r.di]||{}; }
+function foeRes(e,ty){ let v=(placeRes()[ty]||0)+(e&&e.res&&e.res[ty]||0); if(ty==='phys'&&omen()==='ironrain') v+=IRON_PHYS; return Math.min(FOE_RES_MAX,v); }
+const typeDmg=ty=>{ const k=DTYPE[ty]&&DTYPE[ty].dmg; return (k?1+G(k)/100:1)*(ty==='shad'&&omen()==='soulstorm'?STORM_SHAD:1); };   // your damage of one type: gear lines (you and your army), Soul Storm
+const TRAIT_RES={rimeborn:['frost',.25],cinderborn:['fire',.25],necrotic:['rot',.25],venom:['rot',.25]};   // a minion risen with a typed trait shrugs off its own element
+function allyRes(a,ty){ if(!ty||ty==='phys') return 0; if(a.id==='p'){ const k=DTYPE[ty].res; return k?Math.min(RES_CAP,G(k)/100):0; } let v=0; for(const t in TRAIT_RES) if(TRAIT_RES[t][0]===ty&&hasTrait(a,t)) v=Math.max(v,TRAIT_RES[t][1]); return v; }
+const DOT_TYPE={poison:'rot',blight:'rot',burn:'fire',bleed:'phys'};
+const foeHitType=e=>hasAff(e,'frosty')?'frost':hasAff(e,'burning')?'fire':e.role!=='striker'?'phys':S.run&&S.run.siege?SIEGE_HITS:S.run&&S.run.tw?TOWER_HITS:GATE_HITS[S.run?S.run.di:0]||'phys';
+function minionType(m){ if(hasTrait(m,'shatterwrought')) return m.swt?'fire':'frost'; if(hasTrait(m,'rimeborn')) return 'frost'; if(hasTrait(m,'cinderborn')) return 'fire'; if(hasTrait(m,'venom')||hasTrait(m,'necrotic')) return 'rot'; if(hasTrait(m,'bloodfiend')) return 'shad'; return 'phys'; }   // compounds count as both halves (hasTrait)
+const resWord=v=>v<=-.5?'very weak':v<0?'weak':v>=.5?'resists strongly':'resists';
 let S = null;
 const rnd = (a,b)=>a+Math.random()*(b-a);
 const pick = a=>a[Math.floor(Math.random()*a.length)];

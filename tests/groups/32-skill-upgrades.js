@@ -12,8 +12,8 @@ test('Upgrades: forgetting skills clears the choice; saves keep only valid choic
 });
 test('Upgrades: Bone Spear Impaler pierces all armor, Splinter hits a second foe',()=>{
   const a=foe({hp:1e6}), b=foe({hp:1e6}); arena([a,b],3); master('spear'); S.mode='town'; chooseMod('spear','a'); S.mode='battle'; S.player.mana=200; fix(.5); act('sk:spear');
-  eq(1e6-a.hp,H((pAtk()+pSiph())*1.15*pierceMul(1)*skMul())); eq(b.hp,1e6);
-  S.player.skMod.spear='b'; S.run.cd={}; const a2=a.hp; act('sk:spear'); eq(1e6-b.hp,Math.round((a2-a.hp)*.5));
+  eq(1e6-a.hp,Math.round(H((pAtk()+pSiph())*1.15*pierceMul(1)*skMul())*(1-foeRes(a,'phys')))); eq(b.hp,1e6);
+  S.player.skMod.spear='b'; S.run.cd={}; const a2=a.hp; act('sk:spear'); near(1e6-b.hp,Math.round((a2-a.hp)*.5),1);
 });
 test('Upgrades: passive upgrades change your numbers',()=>{
   const P=S.player; master('bonearmor'); const h=pMax(); P.skMod.bonearmor='a'; eq(pMax(),h,'Ossified wards instead of adding HP'); P.skMod.bonearmor='b'; const w=pWard(); delete P.skMod.bonearmor; eq(w,Math.round(pWard()*MARROW)); eq(MARROW,1.5);

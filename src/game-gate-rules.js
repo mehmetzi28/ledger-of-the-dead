@@ -43,7 +43,7 @@ function fireAbility(e,mv){
     let tot=0;
     allies().filter(a=>a.hp>0).forEach(a=>{
       const d=hit(e.atk*(e.secret?.45:.7)*enrage(e));   /* a secret master's wave is spread thinner: at full strength it wiped every army */
-      hurtAlly(a,d);
+      hurtAlly(a,d,'fire');
       fxe('hurt',a,{fire:1});
       addDot(a,'burn',e.atk*.15,2);
       tot+=d;
@@ -75,8 +75,8 @@ function sellJunk(){ if(S.mode!=='town') return null; const list=S.inv.filter(is
 // ===== STATUS EFFECTS =====
 // Damage over time: bleed (crits from enemy strikers), burn (Cinder Wave), poison (Venomous minions). One of each kind per unit;
 // a new dose refreshes it. They tick at the end of each turn, ignore ward and armor, and wear off when you leave a room.
-const DOTS={poison:{name:'Poisoned'},bleed:{name:'Bleeding'},burn:{name:'Burning'},blight:{name:'Blighted'}};   // blight: a shadow wound that also halves the healing its bearer receives
-DOTS.poison.tip='Venom eats HP at the end of each turn.'; DOTS.bleed.tip='An open wound bleeds at the end of each turn.'; DOTS.burn.tip='Fire burns at the end of each turn.'; DOTS.blight.tip='Shadow rot eats HP at the end of each turn and halves the healing received.';
+const DOTS={poison:{name:'Poisoned'},bleed:{name:'Bleeding'},burn:{name:'Burning'},blight:{name:'Blighted'}};   // blight: a rotting wound that also halves the healing its bearer receives
+DOTS.poison.tip='Venom eats HP at the end of each turn.'; DOTS.bleed.tip='An open wound bleeds at the end of each turn.'; DOTS.burn.tip='Fire burns at the end of each turn.'; DOTS.blight.tip='Rot eats HP at the end of each turn and halves the healing received.';
 function addDot(u,k,d,t){ d=Math.round(d); if(d<1||!(u.hp>0)||hasAff(u,'warded')||hasTrait(u,'warded')||(k==='burn'&&hasTrait(u,'cinderborn'))) return; u.dots=u.dots||{}; const o=u.dots[k]; u.dots[k]=o?{d:Math.max(o.d,d),t:Math.max(o.t,t)}:{d,t}; }
 const clearDots=u=>{ if(u) delete u.dots; };
 const BLIGHT_HEAL=.5;   // a blighted unit receives half the healing
@@ -207,22 +207,24 @@ function foeOnHit(e,tg){   // what a foe's hit leaves behind: affixes and the Wh
   if(hasAff(e,'plague')){ addDot(tg,'blight',e.atk*.2,2); if(tg.dots&&tg.dots.blight) x+=', blighted'; }
   if(hasAff(e,'sundering')&&Math.random()<ST_CH&&addSt(tg,'sundered',2)) x+=', sundered';
   if((hasAff(e,'hexing')||e.base==='Whisper Choir')&&Math.random()<ST_CH&&addSt(tg,'hexed',2)) x+=', hexed';
+  if(hasAff(e,'frosty')&&Math.random()<ST_CH&&addSt(tg,'chilled',2)) x+=', chilled';
+  if(hasAff(e,'burning')){ addDot(tg,'burn',e.atk*.15,2); if(tg.dots&&tg.dots.burn) x+=', burning'; }
   return x;
 }
 function hasteStrikes(){   // the end of the turn: every Hasted unit strikes once more for half damage
   const r=S.run;
   for(const m of S.army){ if(!(m.hp>0)||!hasSt(m,'hasted')) continue; const tg=minionTarget(m); if(!tg) break;
-    let d=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*HASTE_MUL*hexK(m)*rowK(m)*breakK(m,tg)); const cr=blurCrit(m); if(cr) d=Math.round(d*1.8); hurtFoe(tg,d); fxe('mhit',tg,{by:fxKey(m)}); log(m.nick+' is hasted and strikes '+tg.name+' again for '+d+(cr?' (crit)':'')+'.'); const x=minionOnHit(m,tg); if(x) combo('swift',tg,'Swift Blow: '+tg.name+' is '+x.split(' and ').filter(Boolean).map(v=>({poisons:'poisoned',blights:'blighted',sunders:'sundered',hexes:'hexed',chills:'chilled',burns:'burning'})[v.split(' ')[0]]).join(', ')+'.'); checkDeaths(); }
+    let d=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*HASTE_MUL*hexK(m)*rowK(m)*breakK(m,tg)); const cr=blurCrit(m); if(cr) d=Math.round(d*1.8); hurtFoe(tg,d,minionType(m)); fxe('mhit',tg,{by:fxKey(m)}); log(m.nick+' is hasted and strikes '+tg.name+' again for '+d+(cr?' (crit)':'')+'.'); const x=minionOnHit(m,tg); if(x) combo('swift',tg,'Swift Blow: '+tg.name+' is '+x.split(' and ').filter(Boolean).map(v=>({poisons:'poisoned',blights:'blighted',sunders:'sundered',hexes:'hexed',chills:'chilled',burns:'burning'})[v.split(' ')[0]]).join(', ')+'.'); checkDeaths(); }
   for(const e of liveFoes()){ if(!hasSt(e,'hasted')||e.froze===r.turn) continue; let alive=allies().filter(a=>a.hp>0); if(!alive.length) break;
     alive=foeReach(e,alive);   // Taunt and the row rule hold for the follow-up too
-    let tg=foeTarget(alive), d=hit(e.atk*HASTE_MUL*hexK(e)*enrage(e)); const gv=guardBlow(tg,d); if(gv){ tg=gv; d=Math.round(d*SB_TAKE); } BLOW={n:e.name,k:'haste'}; hurtAlly(tg,d); BLOW=null; fxe('hurt',tg,{by:e.id}); log(e.name+' is hasted and strikes '+(tg.id==='p'?'you':nameOf(tg))+' again for '+d+'.','bad');
+    let tg=foeTarget(alive), d=hit(e.atk*HASTE_MUL*hexK(e)*enrage(e)); const gv=guardBlow(tg,d); if(gv){ tg=gv; d=Math.round(d*SB_TAKE); } BLOW={n:e.name,k:'haste'}; hurtAlly(tg,d,foeHitType(e)); BLOW=null; fxe('hurt',tg,{by:e.id}); log(e.name+' is hasted and strikes '+(tg.id==='p'?'you':nameOf(tg))+' again for '+d+'.','bad');
     if(tg.hp<=0&&tg.id!=='p') log(tg.nick+' is down.','bad'); if(S.player.hp<=0) return; }
 }
 function tickDots(){
   let foeD=0, ourD=0;
   const tick=(u,hurt)=>{ if(!u.dots) return; for(const k of Object.keys(u.dots)){ const o=u.dots[k]; if(u.hp>0) hurt(u,o.d,k); if(--o.t<=0) delete u.dots[k]; } if(!Object.keys(u.dots).length) delete u.dots; };
-  for(const e of S.run.enemies) tick(e,(u,d,k)=>{ const h=u.hp; KILL=k; hurtFoe(u,k==='blight'?Math.round(d*shadowK()):d); KILL=null; foeD+=h-u.hp; });   // Black Eclipse feeds your blight
-  for(const a of allies()) tick(a,(u,d,k)=>{ const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u,n,0); if(u.id==='p'){ S.run.hurt=true; S.run.blow={k:'dot',dot:k}; } } ourD+=n; if(u.hp<=0&&u.id!=='p'&&!stitchUp(u)){ log(u.nick+' succumbs.','bad'); fxe('death',u); } });
+  for(const e of S.run.enemies) tick(e,(u,d,k)=>{ const h=u.hp; KILL=k; hurtFoe(u,k==='blight'?Math.round(d*shadowK()):d,DOT_TYPE[k]); KILL=null; foeD+=h-u.hp; });   // Black Eclipse feeds your blight
+  for(const a of allies()) tick(a,(u,d,k)=>{ { const rs=allyRes(u,DOT_TYPE[k]); if(rs) d=Math.max(1,Math.round(d*(1-rs))); } const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u,n,0); if(u.id==='p'){ S.run.hurt=true; S.run.blow={k:'dot',dot:k}; } } ourD+=n; if(u.hp<=0&&u.id!=='p'&&!stitchUp(u)){ log(u.nick+' succumbs.','bad'); fxe('death',u); } });
   capFester(foeD);
   if(foeD) log('Poison eats '+foeD+' HP from your foes.','ok');
   if(ourD) log('Bleeding and burns cost your side '+ourD+' HP.','bad');
@@ -301,10 +303,10 @@ const OMENS={
   bloodmoon:{name:'Blood Moon',desc:'Elites are twice as common.'},
   paletide: {name:'Pale Tide', desc:'+10% chance to raise the dead.'},
   ashfall:  {name:'Ashfall',   desc:'Bosses and wardens use their moves a turn sooner, and pay 25% more XP.'},
-  eclipse:  {name:'Black Eclipse',desc:'Soul Siphon and your shadow damage, the Siphon skills and blight, deal 20% more. Foes crit 10% less often and miss 1 blow in 10.'},
+  eclipse:  {name:'Black Eclipse',desc:'Soul Siphon, the Siphon skills and blight deal 20% more. Foes crit 10% less often and miss 1 blow in 10.'},
   boneharvest:{name:'Bone Harvest',desc:'Foes drop trophies 25% more often and elites one more. Any kill may leave bone dust: 1 kill in 4, and 3 from a boss.'},
-  ironrain: {name:'Iron Rain', desc:'Gear drops 10% more often and rolls bonus lines as if one tier higher. Foes wear heavier armor and are 25% tougher to hurt.'},
-  soulstorm:{name:'Soul Storm',desc:'Every room starts with one Soul harvested, and you regain 20% more mana each turn. Foes deal 25% more damage.'}
+  ironrain: {name:'Iron Rain', desc:'Gear drops 10% more often and rolls bonus lines as if one tier higher. Foes wear heavier armor: 25% tougher to hurt, and they resist 15% of physical damage on top.'},
+  soulstorm:{name:'Soul Storm',desc:'Every room starts with one Soul harvested, and you regain 20% more mana each turn. Your shadow damage is 10% stronger. Foes deal 25% more damage.'}
 };
 const OMEN_CHANCE=.25, OMEN_RAISE=10, OMEN_BOSS_XP=1.25;
 const ECLIPSE_SHADOW=1.2, ECLIPSE_CRIT=.1, ECLIPSE_MISS=.1, HARVEST_TRO=.25, HARVEST_DUST=.25, HARVEST_DUST_BOSS=3, IRON_DROP=1.1, IRON_ARMOR=1.25, STORM_REGEN=.2, STORM_ATK=1.25;
@@ -333,7 +335,7 @@ const curseRise=di=>(runMod()&&S.ti&&S.ti.clr&&S.ti.clr[5])?Math.max(0,S.player.
 const foeAtkMul=di=>DIFF.foeAtk[di]*(hasRunMod('fury')?1.25:1);
 const bulwark=list=>{ if(hasRunMod('bulwark')) for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*1.3); } };
 function volatileBurst(e){   // Volatile dead: a dying foe bursts on you
-  const P=S.player; let d=Math.round(e.atk*.5); const s=Math.min(P.shield,d); P.shield-=s; d=Math.max(0,Math.min(d-s,P.hp-1)); P.hp-=d; if(d){ mark('p',d,0); S.run.hurt=true; }
+  const P=S.player; let d=Math.round(e.atk*.5*(1-allyRes(P,'fire'))); const s=Math.min(P.shield,d); P.shield-=s; d=Math.max(0,Math.min(d-s,P.hp-1)); P.hp-=d; if(d){ mark('p',d,0); S.run.hurt=true; }
   log(e.name+' bursts'+(d?' and burns you for '+d:', but your ward takes it')+'.','bad');
 }
 

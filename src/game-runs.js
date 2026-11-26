@@ -77,15 +77,17 @@ const liveFoes = ()=>S.run.enemies.filter(e=>e.hp>0);
 const fxKey=u=>u==null?null:typeof u==='string'?u:u.id!=null?u.id:u.uid!=null?'m'+u.uid:null;   // the key a unit's card answers to (data-u, r.fx): minions have no id, only a uid
 function mark(u,d,h){ const id=fxKey(u); if(id==null) return; const f=S.run.fx[id]||(S.run.fx[id]={d:0,h:0}); f.d+=d; f.h+=h; if(id==='p'&&d>0) S.run.dt=(S.run.dt||0)+d; }   // dt: damage you took this run (History, Records)
 function hit(b){ return Math.max(1,Math.round(b*rnd(.85,1.15))); }
-function hurtFoe(e,d){ if(e.curse) d=Math.round(d*e.curse.mul); { const mk=masteryDmg(e.base); if(mk) d=Math.round(d*(1+mk/100)); }   /* bestiary mastery: every hit from you and your army, once */ if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25); if(e.stun>0&&capOn('frost1')) d=Math.round(d*CAP_RIME);
+function hurtFoe(e,d,ty){ ty=DTYPE[ty]?ty:'phys'; if(e.curse) d=Math.round(d*e.curse.mul); { const mk=masteryDmg(e.base); if(mk) d=Math.round(d*(1+mk/100)); }   /* bestiary mastery: every hit from you and your army, once */ if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25); if(e.stun>0&&capOn('frost1')) d=Math.round(d*CAP_RIME);
   if(hasSt(e,'sundered')) d=Math.round(d*SUNDER_MUL); if(hasSt(e,'chilled')) d=Math.round(d*CHILL_MUL);   // conditions (game-gate-rules.js)
+  { const k=(1-foeRes(e,ty))*typeDmg(ty); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
+  e.lt=ty;   /* the type of the last hit it took (a weakness kill) */
   if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e,0,0); return; } }   // Bone Wall shield soaks damage first
   if(e.hp>0&&d>=e.hp) e.cd=deathCond(e,d);   // the killing blow decides the body's condition
   recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e,d,0); { const r=S.run; r.dd=(r.dd||0)+d; if(d>(r.mh||0)) r.mh=d; } }   /* damage dealt and the biggest hit this run, for the History */
-function hurtAlly(a,d){
-  if(a.id==='p'&&BLOW){ const v=guardBlow(a,d); if(v) return hurtAlly(v,Math.round(d*SB_TAKE)); }   // Guard, for boss moves (plain hits swap their target before this)
+function hurtAlly(a,d,ty){
+  if(a.id==='p'&&BLOW){ const v=guardBlow(a,d); if(v) return hurtAlly(v,Math.round(d*SB_TAKE),ty); }   // Guard, for boss moves (plain hits swap their target before this)
   if(a.id==='p'&&S.run) S.run.blow=BLOW?blowNote(BLOW):null;   // what hits you, for the defeat recap (before the ward soaks it)
-  d=allyDr(a,d);
+  d=allyDr(a,d); { const rs=allyRes(a,ty); if(rs) d=Math.max(1,Math.round(d*(1-rs))); }   /* damage types: your resistance lines, a minion's typed trait */
   if(a.id==='p'){ const s=Math.min(S.player.shield,d); S.player.shield-=s; d-=s; if(BLOW&&d>0) d=tetherBlow(d); /* the Soul Tether (game-faith-story.js) */ } else if(a.mw>0){ const s=Math.min(a.mw,d); a.mw-=s; d-=s; }   // a Warden's ward on a minion
   d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a,d,0); if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p'&&!stitchUp(a)) fxe('death',a);
   return d;
@@ -96,6 +98,7 @@ function allyDr(a,d){   // a blow on you or a minion after its damage reduction,
   if(a.id==='p'&&pDr()) d=Math.max(1,Math.round(d*(1-pDr()/100)));   // Constitution adds to it (pDr)
   if(a.id!=='p'&&hasMod('gravepact','b')) d=Math.max(1,Math.round(d*.9));
   if(hasSt(a,'sundered')) d=Math.round(d*SUNDER_MUL);
+  if(hasSt(a,'chilled')) d=Math.round(d*CHILL_MUL);   /* a Frost-touched foe's chill */
   if(a.id==='p'&&hasMod('deathless','b')) d=Math.max(1,Math.round(d*(a.hp<pMax()*IRON_LOW?IRON_WILL:IRON_BASE)));   // Iron Will
   return d;
 }
@@ -181,13 +184,13 @@ function act(kind){
     const fb=frozenChilled(t); if(fb) d=Math.round(d*FROSTBREAK);
     hurtFoe(t,d); P.mana=Math.min(pMana(),P.mana+3); if(hasMod('edge','b')){ healAlly(P,Math.round(d*.1)); addDot(t,'bleed',d*BLOODLET,2); } if(crit&&hasMod('edge','a')) addSt(t,'sundered',2);   // Bloodletting, Rending
     log('You strike '+t.name+' for '+d+(crit?' (crit)':'')+'. +3 mana.'); fxe('strike',t,crit?{crit:1}:null); if(fb&&t.hp>0) frostbreak(t);
-    if(hasFlag('echo')&&t.hp>0&&Math.random()<.25){ const d2=hit(pAtk()*pierceMul(strPen())); hurtFoe(t,d2); log('Echo: the blade strikes again for '+d2+'.','ok'); }
+    if(hasFlag('echo')&&t.hp>0&&Math.random()<.25){ const d2=hit(pAtk()*pierceMul(strPen())); hurtFoe(t,d2,'phys'); log('Echo: the blade strikes again for '+d2+'.','ok'); }
     if(hasFlag('hellfire')){ for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.4)); }
     else if(hasFlag('cleave')){ const o=liveFoes().filter(x=>x!==t); if(o.length) hurtFoe(pick(o),Math.round(d*.6)); }
   }else if(kind==='siphon'){
     if(P.mana<siphonCost()) return;
-    P.mana-=siphonCost(); const low=t.hp<t.maxHp*SIPHON_LOW; let d=hit(pSiph()*pierceMul(SIPHON_PIERCE)*hexK(P)*shadowK()); if(low) d*=2; hurtFoe(t,d);   // pierces a quarter of armor; devours the weak
-    if(hasFlag('chorus')) for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.5));
+    P.mana-=siphonCost(); const low=t.hp<t.maxHp*SIPHON_LOW; let d=hit(pSiph()*pierceMul(SIPHON_PIERCE)*hexK(P)*shadowK()); if(low) d*=2; hurtFoe(t,d,'shad');   // pierces a quarter of armor; devours the weak
+    if(hasFlag('chorus')) for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.5),'shad');
     const h=healAlly(P,Math.round(d*(hasFlag('lifedrain')?SIPHON_HEAL_LD:SIPHON_HEAL))); const got=gainSoul();
     log('Soul Siphon '+(low?'devours ':'drains ')+t.name+' for '+d+(h?', you recover '+h:'')+(got?' and harvest a Soul ('+S.run.souls+'/'+SOUL_MAX+')':'')+'.'); fxe('siphon',t);
   }else if(kind==='ward'){
@@ -213,11 +216,11 @@ function act(kind){
     let tg=minionTarget(m); if(!tg) break;
     const breach=m.role==='reaper'&&r.execute&&hasSt(tg,'sundered')&&foeArmor()>0;   // Breach: Execute ignores a Sundered foe's armor
     let d=hit(m.atk*(breach?pierceMul(1):dmgMul())*(r.frenzy>0?r.frenzyMul:1)*(m.role==='reaper'&&r.execute&&tg.hp<tg.maxHp*.4?2:1)*(hasTrait(m,'wrathful')&&m.hp<m.maxHp/2?1.4:1)*hexK(m)*rowK(m)*(tg.hp<tg.maxHp*BUTCHER_LOW?1+markV(m,'butcher'):1)*breakK(m,tg)); const cc=mCritCh(m), crit=(m.role==='striker'&&r.focus)||(cc>0&&Math.random()<cc); if(crit){ d=Math.round(d*1.8); tally('crits'); }
-    KILL=m.role==='reaper'&&r.execute?'exec':null; hurtFoe(tg,d); KILL=null; fxe('mhit',tg,{by:fxKey(m)});
+    const mt=minionType(m); KILL=m.role==='reaper'&&r.execute?'exec':null; hurtFoe(tg,d,mt); KILL=null; fxe('mhit',tg,{by:fxKey(m)});
     if(crit&&r.focus&&tg.charging&&tg.hp>0) breakCharge(tg,m.nick+'\'s focused strike breaks '+theName(tg.name)+'\'s focus.');
     let extra=minionOnHit(m,tg);
-    if(m.role==='reaper'){ const o=liveFoes().filter(x=>x!==tg); if(o.length){ const o2=pick(o); const d2=Math.round(d*.5); hurtFoe(o2,d2); extra=' and cleaves '+o2.name+' for '+d2; } }
-    if(hasTrait(m,'frenzied')&&tg.hp>0&&Math.random()<.2){ let d3=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*rowK(m)*breakK(m,tg)); const c3=blurCrit(m); if(c3) d3=Math.round(d3*1.8); hurtFoe(tg,d3); d+=d3; extra+=', then strikes again for '+d3+(c3?' (crit)':''); if(hasTrait(m,'blur')) extra+=minionOnHit(m,tg); }   // Blur: the extra strike carries its on-hit effects
+    if(m.role==='reaper'){ const o=liveFoes().filter(x=>x!==tg); if(o.length){ const o2=pick(o); const d2=Math.round(d*.5); hurtFoe(o2,d2,mt); extra=' and cleaves '+o2.name+' for '+d2; } }
+    if(hasTrait(m,'frenzied')&&tg.hp>0&&Math.random()<.2){ let d3=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*rowK(m)*breakK(m,tg)); const c3=blurCrit(m); if(c3) d3=Math.round(d3*1.8); hurtFoe(tg,d3,mt); d+=d3; extra+=', then strikes again for '+d3+(c3?' (crit)':''); if(hasTrait(m,'blur')) extra+=minionOnHit(m,tg); }   // Blur: the extra strike carries its on-hit effects
     if(hasTrait(m,'leech')){ const h=healAlly(m,Math.round(d*(hasTrait(m,'bloodfiend')&&m.hp<m.maxHp/2?.5:.25))); if(h) extra+=' and drinks '+h+' HP'; }
     log(m.nick+' hits '+tg.name+' for '+d+(crit?' (crit)':'')+extra+'.'); if(breach) combo('breach',tg,'Breach: '+m.nick+' cuts through the cracked armor.');
     markHit(m,tg,d);
@@ -243,7 +246,7 @@ function act(kind){
     if(omen()==='eclipse'&&Math.random()<ECLIPSE_MISS){ log(e.name+' misses '+(tg.id==='p'?'you':nameOf(tg))+' in the dark.','ok'); continue; }   // Black Eclipse
     let d=hit(e.atk*enrage(e)*(hasAff(e,'enraged')&&e.hp<e.maxHp/2?1.6:1)*hexK(e)); let crit=e.role==='striker'&&Math.random()<foeCrit(); if(crit&&hasSt(e,'hexed')){ crit=false; combo('fizzle',e,'Fizzle: the hex spoils '+e.name+'\'s killing blow.'); } if(crit&&tg.id==='p'&&hasMod('calcify','a')) crit=false;   /* Petrified: rolled, then refused */ if(crit) d=Math.round(d*1.8);
     { const gv=guardBlow(tg,d); if(gv){ tg=gv; d=Math.round(d*SB_TAKE); } }   // Guard: swapped here so the log names who was hit
-    BLOW={n:e.name,k:crit?'crit':'hit'}; hurtAlly(tg,d); BLOW=null; fxe('hurt',tg,{crit:crit?1:0,by:e.id}); if(crit) addDot(tg,'bleed',e.atk*.3,2);   // a striker's crit opens a wound
+    BLOW={n:e.name,k:crit?'crit':'hit'}; hurtAlly(tg,d,foeHitType(e)); BLOW=null; fxe('hurt',tg,{crit:crit?1:0,by:e.id}); if(crit) addDot(tg,'bleed',e.atk*.3,2);   // a striker's crit opens a wound
     if(hasAff(e,'vampiric')){ const h=Math.min(e.maxHp-e.hp,Math.round(d*.4*blightK(e))); if(h>0){ e.hp+=h; mark(e,0,h); } }
     const ex=foeOnHit(e,tg);
     log(e.name+' hits '+(tg.id==='p'?'you':nameOf(tg))+' for '+d+(crit?' (crit'+(tg.hp>0&&tg.dots&&tg.dots.bleed?', bleeding':'')+')':'')+ex+'.','bad');

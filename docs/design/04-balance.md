@@ -24,6 +24,12 @@ to each constant in `src/` and in `claude.md`; this page is the summary to read 
 
 ## 4.2 Latest measurements (2026-11-26, seeds 7700 and 9100, 40 bots x 100 days)
 
+**After damage types (R1 PR A)**: profiles, typed affixes and typed lines moved nothing past noise. market 92/93% gates
+(main 92/92%), Tower 78.5/78.4, Rift 23-24; full 91/92%, Tower 84-85, Rift 12-13, sieges 85-86%, rival 73-77%. Turns per
+room shifted a little where the bots' physical damage meets a profile (Ashen Barrow 5.3 to 5.6, Hollow Cathedral 3.6 to
+3.3). The bots ignore types, so this is the floor: types change what a thinking player picks, not what wins. Kits (PR B)
+carry the turn-length goal.
+
 **After Command (PR #5)**: B/A/S `foeAtk` 7 / 5.7 / 6.1, `TW` hpG/atkG .07/.048, `RIFT_STEP` .55. market 91/92% gates,
 Tower 78, Rift 24; full 91%, Tower 84-86, Rift 12, sieges 84-85%, rival 78-80%. Stat builds even: Will+Con/Str/Int Tower
 78/82/81 (B2 mostly closed in the Tower). The table below is the earlier baseline.

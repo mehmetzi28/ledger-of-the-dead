@@ -258,6 +258,12 @@ function armorTag(a){   // foe armor with its rule spelled out (pierceMul): hove
   const p=Math.round(a*100), t='Foes shrug off '+p+'% of every hit you and your minions land. Piercing skills such as Bone Spear ignore part of it';
   return '<span class="armor-tag" title="'+t+'.">armor '+p+'%<span class="sr-only">. '+t+'.</span></span>';
 }
+function resTag(res,hits){   // where foes stand against your damage types (placeRes) and what their strikers hit with: chips with the rule in the hover
+  res=res||{}; const nm=t=>'<b class="dt dt-'+t+'">'+DTYPE[t].name+'</b>', grp=(lab,l)=>l.length?'<span class="dt-g">'+lab+': '+l.map(nm).join(', ')+'</span>':'';
+  const w=DT_IDS.filter(t=>res[t]<0), r=DT_IDS.filter(t=>res[t]>0&&res[t]<.5), rs=DT_IDS.filter(t=>res[t]>=.5);
+  const parts=[grp('Weak',w),grp('Resists',r),grp('Resists strongly',rs),hits&&hits!=='phys'?grp('Strikers deal',[hits]):''].filter(Boolean); if(!parts.length) return '';
+  return '<span class="dt-tag" title="Weak: takes 25% more damage of that type. Resists: takes 25% less. Resists strongly: takes 50% less. Strikers deal: the damage type of their hits; your resistance lines soften it.">'+parts.join(' &middot; ')+'</span>';
+}
 // A gate tile's painted marks: a hooded shape for a boss not yet met, chains and a padlock over a sealed gate, skulls for each difficulty (one on Normal, four on Nightmare).
 const G_UNKNOWN='<svg viewBox="0 0 64 64"><path d="M32 7C21 7 15 16 15 27c0 7-3 11-7 15 5 3 7 9 7 18h34c0-9 2-15 7-18-4-4-7-8-7-15C49 16 43 7 32 7Z" fill="#050403"/><path d="M22 30c2-9 6-13 10-13s8 4 10 13c-3-2-6-3-10-3s-7 1-10 3Z" fill="#000"/></svg><b>?</b>';
 const G_SEAL='<svg class="g-seal" viewBox="0 0 200 100" preserveAspectRatio="none"><path d="M-10 6L210 94M-10 94L210 6" stroke="#0a0806" stroke-width="9" stroke-dasharray="14 5"/><path d="M-10 6L210 94M-10 94L210 6" stroke="#6a5a44" stroke-opacity=".5" stroke-width="2" stroke-dasharray="14 5" stroke-dashoffset="7"/></svg><svg class="g-lock" viewBox="0 0 24 28"><path d="M6 13V9a6 6 0 0 1 12 0v4" stroke="#3a3128" stroke-width="3" fill="none"/><rect x="3" y="13" width="18" height="14" rx="2" fill="#1a1612" stroke="#5a4a38"/><path d="M12 18v4" stroke="#000" stroke-width="2.4"/></svg>';
@@ -278,7 +284,7 @@ function gateHTML(i){
    +(best?'<span class="g-best" title="Your fastest clear of this gate, day '+best.day+(best.heat?', '+HEAT[best.heat].name:'')+'">Best '+best.t+' turns</span>':'')+'</div>'
    +'<p>'+D.blurb+'</p>'
    +'<div class="meta">'+(locked?'Opens at level '+R.unlock:'<span class="danger-'+danger.toLowerCase()+'">'+danger+' for you</span>')+' &middot; <span class="rec-lv" title="Most necromancers clear this gate'+(heatOf(i)&&!locked?' on '+HEAT[heatOf(i)].name:'')+' from this hero level">Recommended Lv '+rec+'+</span>'
-   +(DIFF.armor[i]?' &middot; '+armorTag(DIFF.armor[i]):'')+' &middot; Boss: <b>'+(met?D.boss[0]:'???')+'</b>'
+   +(DIFF.armor[i]?' &middot; '+armorTag(DIFF.armor[i]):'')+' &middot; '+resTag(GATE_RES[i],GATE_HITS[i])+' &middot; Boss: <b>'+(met?D.boss[0]:'???')+'</b>'
    +(S.mode==='town'&&raidGates().includes(i)&&bestSquad()&&!raidOrders().length?(sq=>'<div class="raid-odds" title="'+sq[0].nick+' and '+(sq.length-1)+' of your strongest; set the squad on the War table">Raid odds '+Math.round(raidOdds(sq,i)*100)+'%</div>')(bestSquad()):'')
    +heatHTML(i)+(gateFarm(i)<1?'<div class="farm-line dim" title="Rewards here '+Math.round(gateFarm(i)*100)+'% on Normal at your level; Hard and up pay in full.">Rewards '+Math.round(gateFarm(i)*100)+'% &middot; Hard+ full</div>':'')+'</div>'
    +'<button class="linkbtn g-detb" data-a="gdet" data-k="'+i+'" aria-expanded="'+det+'">'+(det?'Hide details':'Details')+'</button>'+(det?gateDetHTML(i):'')+'</div>'
@@ -338,7 +344,7 @@ function towerHTML(){
   if(locked) h+='<p class="lede bad">The Tower opens once '+OPEN_AT.tower+' gates are cleared, from level '+TW.unlock+'.</p>';
   else{
     h+='<div class="chips">'+st.map(f=>'<button class="btn'+(f===st[st.length-1]?' primary':'')+'" data-a="tower" data-k="'+f+'"'+(noWatch?' disabled':'')+'>Floor '+f+'</button>').join('')+'</div>'
-     +'<p class="q-note"><span class="rec-lv">Floor '+st[st.length-1]+': Recommended Lv '+recLv(st[st.length-1])+'+</span> &middot; '+(noWatch?'<span class="bad">No watches left</span>':'1 watch')+'</p>';
+     +'<p class="q-note"><span class="rec-lv">Floor '+st[st.length-1]+': Recommended Lv '+recLv(st[st.length-1])+'+</span> &middot; '+resTag(TOWER_RES,TOWER_HITS)+' &middot; '+(noWatch?'<span class="bad">No watches left</span>':'1 watch')+'</p>';
   }
   h+=T.best>=100?'<div class="tw-hero abyss"><b>The Abyss &middot; floor '+(T.best>100?T.best:'101')+'+</b><div class="u-sub" title="Abaddon is dead, but the Tower goes on. Past floor 100 every floor is harder than the last, forever. Each tenth floor holds an abyssal warden that leaves gold and a legendary.">Endless &middot; every 10th floor: gold + legendary &middot; Record '+T.best+'</div></div>'
      :'<p class="q-note">Beyond floor 100 lies the Abyss, a climb with no top.</p>';

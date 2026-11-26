@@ -771,13 +771,18 @@ const SG_PATH={
  pierce:'<path class="o" d="M1.2 8.8L8.2 1.8M5.6 1.6h2.8v2.8M3 4.4l2.6 2.6"/>',
  dr:'<path d="M5 .6L8.8 2v3.2C8.8 7.3 7.1 8.8 5 9.5 2.9 8.8 1.2 7.3 1.2 5.2V2Z"/><path class="k" d="M5.6 1.4L4.2 4.2l1.9 1.3-1.5 3.4"/>',
  heal:'<path d="M3.8 1h2.4v2.8H9v2.4H6.2V9H3.8V6.2H1V3.8h2.8Z"/>',
- skill:'<path class="o" d="M5 .8L7.5 9 1 3.9h8L2.5 9Z"/>'
+ skill:'<path class="o" d="M5 .8L7.5 9 1 3.9h8L2.5 9Z"/>', fres:'<path d="M5 .6C6 2.6 8.2 3.8 8.2 6.3A3.2 3.2 0 0 1 1.8 6.3C1.8 4.9 2.6 4 3.3 3.3 3.4 4.4 3.9 5 4.5 5.2 4.2 3.6 4.4 2 5 .6Z"/><path class="d" d="M5 9C4 9 3.4 8.3 3.6 7.4 3.8 6.6 4.6 6.2 5 5.4 5.6 6.4 6.4 6.9 6.4 7.7 6.4 8.4 5.8 9 5 9Z"/>',fdmg:'<path d="M5 .6C6 2.6 8.2 3.8 8.2 6.3A3.2 3.2 0 0 1 1.8 6.3C1.8 4.9 2.6 4 3.3 3.3 3.4 4.4 3.9 5 4.5 5.2 4.2 3.6 4.4 2 5 .6Z"/><path class="d" d="M5 9C4 9 3.4 8.3 3.6 7.4 3.8 6.6 4.6 6.2 5 5.4 5.6 6.4 6.4 6.9 6.4 7.7 6.4 8.4 5.8 9 5 9Z"/>',
+ frres:'<path class="o" d="M5 .6v8.8M1.2 2.8l7.6 4.4M1.2 7.2l7.6-4.4M3.8 1.4L5 2.6l1.2-1.2M3.8 8.6L5 7.4l1.2 1.2"/>',frdmg:'<path class="o" d="M5 .6v8.8M1.2 2.8l7.6 4.4M1.2 7.2l7.6-4.4M3.8 1.4L5 2.6l1.2-1.2M3.8 8.6L5 7.4l1.2 1.2"/>',
+ rres:'<path d="M5 .8C3.6 3 2.4 4.6 2.4 6.3a2.6 2.6 0 0 0 5.2 0C7.6 4.6 6.4 3 5 .8Z"/><circle class="d" cx="4.1" cy="6.2" r=".7"/><circle class="d" cx="5.9" cy="6.9" r=".5"/>',rdmg:'<path d="M5 .8C3.6 3 2.4 4.6 2.4 6.3a2.6 2.6 0 0 0 5.2 0C7.6 4.6 6.4 3 5 .8Z"/><circle class="d" cx="4.1" cy="6.2" r=".7"/><circle class="d" cx="5.9" cy="6.9" r=".5"/>',
+ sres:'<path d="M6.6 .9A4.3 4.3 0 1 0 9.1 7 3.6 3.6 0 0 1 6.6.9Z"/>',sdmg:'<path d="M6.6 .9A4.3 4.3 0 1 0 9.1 7 3.6 3.6 0 0 1 6.6.9Z"/>'
 };
 const SG_WORD={pierce:'Armor pierce',dr:'Damage taken',heal:'Healing received',skill:'Skill damage',matk:'Minion attack',mhp:'Minion HP'};
 const SG_HINT={hp:'Damage it can take before it falls',atk:'Damage of a basic hit',crit:'Chance for Strike to land a critical hit',siph:'Soul Siphon drains life from a foe and heals you',mana:'Pays for skills and for raising the dead',ward:'Bone Ward: a shield that soaks up damage',
   strength:'Strike damage, crit chance, armor piercing, minion attack, and Strike from your army\'s power (Command)',constitution:'Max HP, damage taken, healing received, minion HP, and max HP from your army\'s power (Command)',intelligence:'Mana, Siphon, Ward, skill damage, minion attack, and Siphon from your army\'s power (Command)',will:'Mana, army slots, raise odds, minion bond',
   raise:'Chance that a fallen foe answers your call',mpow:'More HP and attack for all your minions',matk:'More attack for all your minions',mhp:'More max HP for all your minions',regen:'Mana you regain every turn',slot:'How many minions your army can hold',
-  pierce:'Share of foe armor your Strike ignores',dr:'Less damage from every hit you take',heal:'More healing from every source',skill:'More damage from your skills'};   // the stat tooltip's second line (sgTipShow, ui-input.js)
+  pierce:'Share of foe armor your Strike ignores',dr:'Less damage from every hit you take',heal:'More healing from every source',skill:'More damage from your skills',
+  fres:'Less fire damage taken by you',frres:'Less frost damage taken by you',rres:'Less rot damage taken by you',sres:'Less shadow damage taken by you',
+  fdmg:'More fire damage from you and your army',frdmg:'More frost damage from you and your army',rdmg:'More rot damage from you and your army',sdmg:'More shadow damage from you and your army'};   // the stat tooltip's second line (sgTipShow, ui-input.js)
 const sgl=(k,lab)=>{ lab=lab||SG_WORD[k]||(STATL[k]&&STATL[k][0])||k; return '<span class="sg sg-'+k+'" role="img" data-k="'+k+'" aria-label="'+lab+'"><svg viewBox="0 0 10 10" aria-hidden="true">'+(SG_PATH[k]||'')+'</svg></span>'; };
 const manaCost=n=>'<span class="mcost">'+sgl('mana','Mana cost')+n+'</span>';   // battle buttons: what an action costs, so a bare "10" reads as 10 mana
 const statG=(k,v)=>'<span class="sv">'+sgl(k)+(v>0?'+':'&minus;')+Math.abs(v)+STATL[k][1]+'</span>';   // item lines: mark and signed number
