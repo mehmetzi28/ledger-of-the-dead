@@ -52,6 +52,7 @@ function codexSection(k){
       cxRow('Takes away','By the body\'s rank: '+RK.map((R,i)=>RANKS[i]+' '+R.pen+'%').join(', ')+'. An elite '+RAISE_ELITE+'% more, a boss '+RAISE_BOSS+'%. Each boss already in your army or Reserve takes '+RAISE_BOSS_EACH+'% more off a boss body.'),
       cxRow('Caps','The total stays between '+RAISE_MIN+'% and '+RAISE_MAX+'%. Grave Salts add '+SALT_BONUS+'% ('+SENSE_SALT+'% with '+SKILL_MODS.thrift.b[0]+') and may lift it to '+SALT_CAP+'%. You carry up to '+SALT_MAX+'; the market sells them, and Buy max takes as many as you can carry and afford.'),
       cxRow('How it died','A body\'s condition adds or takes: '+Object.keys(CORPSE_CONDS).map(k=>CORPSE_CONDS[k].name+' '+(CORPSE_CONDS[k].raise>0?'+':'')+CORPSE_CONDS[k].raise+'%').join(', ')+'.'),
+      cxRow('One soul per boss',SOUL_BOUND),
       cxRow('First raise','The first raise of a new save always answers.'),
       cxRow('Mana','8 mana, 3 more per rank of the body and 4 more for a boss. Corpse Thrift, '+SKILL_MODS.mastery.b[0]+' and '+FLAGS.cheapraise.split(':')[0]+' make it cheaper; a straggler costs nothing.')])
     +'<p class="group-h">How they died</p>'+cxP('How a foe dies marks its body. Each body has at most one condition, the first that fits in this order. It changes the raise chance, and the minion rises with the condition\'s trait in place of its random one (a boss still rolls a second trait, and an elite still keeps an affix).')
@@ -73,6 +74,7 @@ function codexSection(k){
     +cxList([cxRow('Melee','Vanguards and reapers fight up close. While the other side has anyone standing in its front row, they can only strike that row. So enemy melee cannot reach you while one of your minions holds the front, and your vanguards and reapers hit the weakest foe in front when your target stands at the back.'),
       cxRow('Reach','Strikers, menders and bosses reach any row, with the usual odds. Your Strike, skills and ultimate always hit the foe you choose.'),
       cxRow('Back-row melee','A vanguard or reaper you move to the back row is safe from enemy melee while your front holds, but it strikes over the line for only '+pct(BACK_MELEE)+' of its damage, cleave included.'),
+      cxRow('Soul Tether',TETHER_TXT+' A broken front leaves you bare, so keep someone sturdy in it.'),
       cxRow('What ignores rows','Taunt pulls every blow onto your vanguards, wherever they stand. Cleaves, blasts and other splash damage hit every row, and so do boss moves.')]);
   if(k==='minions') return cxP('What each body rises with at its gate\'s base foe level, before Will, Grave Pact, gear, traits and evolution. Every level adds '+pct(LV_HP)+' HP and '+pct(LV_ATK)+' attack. A raised elite has x1.5 HP and x1.3 attack; a raised boss x3.2 HP and x1.4 attack.')
     +DUNGEONS.map((D,di)=>{ const lv=RK[di].lv, list=D.mobs.map(t=>({n:t[0],role:t[1],hf:t[2],af:t[3],boss:false})).concat([{n:D.boss[0],role:D.boss[1],hf:1,af:1,boss:true}]);

@@ -159,7 +159,7 @@ function nextInfo(e){   // the action after the next one (Known foes): read off 
 // ===== BESTIARY KNOWLEDGE =====
 // What the Ledger shows on a foe's card by its kind's mastery tier (1 Studied, 2 Known, 3 Mastered, 4 Ledgered; masteryOf). Read only: no Math.random, no state change.
 const knowLv=e=>{ const t=masteryOf(e.base||e.name); return t?MASTERY.indexOf(t)+1:0; };
-const afterWard=(a,d)=>a.id==='p'?Math.max(0,d-(S.player.shield||0)):d;
+const afterWard=(a,d)=>a.id==='p'?tetherCap(Math.max(0,d-(S.player.shield||0))):d;   // and the Soul Tether's cap (game-faith-story.js)
 const foeBlow=(e,tg)=>afterWard(tg,allyDr(tg,Math.max(1,Math.round(e.atk*enrage(e)*(hasAff(e,'enraged')&&e.hp<e.maxHp/2?1.6:1)*hexK(e)))));   // a plain blow without the roll's spread or a crit (act)
 function sigBlow(e,mv){   // what a damaging boss move deals (fireAbility): {you, army, van}; null for the others
   const P=S.player, k=enrage(e);

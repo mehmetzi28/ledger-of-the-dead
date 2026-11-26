@@ -86,7 +86,7 @@ function hurtAlly(a,d){
   if(a.id==='p'&&BLOW){ const v=guardBlow(a,d); if(v) return hurtAlly(v,Math.round(d*SB_TAKE)); }   // Guard, for boss moves (plain hits swap their target before this)
   if(a.id==='p'&&S.run) S.run.blow=BLOW?blowNote(BLOW):null;   // what hits you, for the defeat recap (before the ward soaks it)
   d=allyDr(a,d);
-  if(a.id==='p'){ const s=Math.min(S.player.shield,d); S.player.shield-=s; d-=s; } else if(a.mw>0){ const s=Math.min(a.mw,d); a.mw-=s; d-=s; }   // a Warden's ward on a minion
+  if(a.id==='p'){ const s=Math.min(S.player.shield,d); S.player.shield-=s; d-=s; if(BLOW&&d>0) d=tetherBlow(d); /* the Soul Tether (game-faith-story.js) */ } else if(a.mw>0){ const s=Math.min(a.mw,d); a.mw-=s; d-=s; }   // a Warden's ward on a minion
   d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a,d,0); if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p'&&!stitchUp(a)) fxe('death',a);
   return d;
 }
@@ -385,7 +385,13 @@ function discard(u){ S.inv=S.inv.filter(x=>x.u!==u||x.lk); }
 // The first raise of a save always answers (a new necromancer alone in room 1 failed ~44% of the time at ~34% a body). New Game+ keeps
 // its lifetime raise count, so it does not get this again.
 const firstRaise=()=>!!(S&&S.firstRaise)&&!T_('raised');
+// One soul per boss: a boss is one soul however often its gate is cleared, so while a body of that boss serves you (army, Reserve, at
+// the gate or on a raid) another will not rise. Before this the bots ended every game with ten or more Pale Sovereigns and no vanguards.
+const allMinions=()=>S.army.concat(benched(),...(S.raids||[]).map(x=>x.units||[]));
+const SOUL_BOUND='A boss is one soul: while one of its bodies serves you, in the army, the Reserve or on a raid, another will not rise.';
+const soulBound=c=>!!(c&&c.boss)&&allMinions().some(m=>m.boss&&(m.kind||m.name)===c.base);
 function raiseChance(c){
+  if(soulBound(c)) return 0;
   if(firstRaise()) return 100;
   let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+4*sk('mastery')+B_OSS*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*RAISE_LV-RK[c.rankI].pen;
   if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c);
@@ -398,11 +404,12 @@ const RAISE_BASE=18, RAISE_WILL=1.1, RAISE_MIN=1, RAISE_MAX=80, SALT_CAP=95;   /
 const RAISE_BOSS_EACH=10;   // less per boss already in the army or Reserve, so bosses do not snowball
 const RAISE_LV=3, RAISE_ELITE=10, RAISE_BOSS=15,SHATTER_BASE=25, SHATTER_WILL=1.5, SHATTER_MIN=5;   // % per level you stand above the body, the elite and boss penalties; a downed minion's shatter chance after a fight (% , less per Will point, never below the floor)
 const saltAdd=()=>hasMod('thrift','b')?SENSE_SALT:SALT_BONUS;   // Grave Sense
-const saltChance=c=>firstRaise()?100:clamp(raiseChance(c)+saltAdd(),RAISE_MIN,SALT_CAP);
+const saltChance=c=>soulBound(c)?0:firstRaise()?100:clamp(raiseChance(c)+saltAdd(),RAISE_MIN,SALT_CAP);
 function tryRaise(id,salt,bench){   // bench: raise to the Reserve, only when the army is full and the Reserve has room
   if(S.mode!=='raise') return;
   const r=S.run, P=S.player, c=r.corpses.find(x=>x.id===id); if(!c||c.tried) return;
   r.events=[];
+  if(soulBound(c)){ r.events.push({m:c.name+'\'s soul is already bound to you.',c:'bad'}); return; }
   const toRes=!!bench&&armyUsed()>=slots()&&reserveRoom();
   if(armyUsed()>=slots()&&!toRes){ r.events.push({m:'Your army is full. Release someone first.',c:'bad'}); return; }
   const cost=raiseCost(c);

@@ -71,6 +71,7 @@ function stPills(u){
   if(u.curse) add('p-cursed','Cursed '+u.curse.t,'Takes '+Math.round((u.curse.mul-1)*100)+'% more damage from every source. '+tl(u.curse.t));
   if(u.st) for(const k of Object.keys(CONDS)) if(u.st[k]>0) add('p-'+k,CONDS[k].name+' '+u.st[k],CONDS[k].desc+' '+tl(u.st[k]));
   if(u.id!=='p'&&u.shield>0) add('p-shield','Shield '+u.shield,'A bone shield soaks damage before HP.');
+  if(u.id==='p'&&S.run){ const t=tetherFront(); if(t) add('p-shield','Tethered','Soul Tether: '+t.nick+' stands in front. '+TETHER_TXT); }
   return p.length?'<div class="pills">'+p.join('')+'</div>':'';
 }
 // A foe's next action under its name (intentInfo, game-gate-rules.js): a small glyph, a few words, the detail in the tooltip.
@@ -429,6 +430,7 @@ function raiseHTML(){
     const ch=raiseChance(c), cost=raiseCost(c);
     let right;
     if(c.tried) right=c.result==='raised'?'<span class="ok num">'+(c.res?'Raised to the Reserve as ':'Raised as ')+c.minion+'</span>':c.result==='exploded'?'<span class="dim num">Burst apart</span>':c.result==='taken'?'<span class="dim num rival-took">Taken by '+c.taken+'</span>':'<span class="bad num">Crumbled</span>';
+    else if(soulBound(c)) right='<span class="dim num" title="'+SOUL_BOUND+'">Soul already bound</span>';
     else if(bench) right='<div class="btns" style="margin:0"><button class="btn primary small res-raise" data-a="raiseres" data-k="'+c.id+'"'+(P.mana<cost?' disabled':'')+' title="Your army is full: the minion goes to the Reserve">Raise to the Reserve &middot; '+ch+'% &middot; '+cost+' mana</button>'
       +(S.salts>0?'<button class="btn small" data-a="raiseressalt" data-k="'+c.id+'"'+(P.mana<cost?' disabled':'')+' title="Uses one Grave Salts ('+S.salts+' left)">With salts &middot; '+saltChance(c)+'%</button>':'')+'</div>';
     else right='<div class="btns" style="margin:0"><button class="btn primary small" data-a="raise" data-k="'+c.id+'"'+(P.mana<cost||full?' disabled':'')+(firstRaise()?' title="Your first raise always answers"':'')+'>Raise &middot; '+ch+'% &middot; '+cost+' mana</button>'

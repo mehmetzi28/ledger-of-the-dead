@@ -413,7 +413,7 @@ function fxBodyUpd(F,p,cell,fall){   // fall: the stage comes straight from the 
   const html=ico(c.base,c.rankI,{boss:c.boss,elite:c.elite});
   if(F.html!==html){ F.html=html; F.spr.texture=fxIcoTex(html)||PIXI.Texture.EMPTY; F.s=0; }
   if(F.s!==s){ F.s=s; fxFit(F); F.shadow.scale.set(s/24,s/110); F.glow.scale.set(s/20,s/40); F.glow.tint=FXS.col.soul; F.c.hitArea=new PIXI.Rectangle(-cell/2,-s*.8,cell,s*.8+48); }
-  const can=!res&&P.mana>=raiseCost(c)&&(armyUsed()<slots()||reserveRoom()), ch=raiseChance(c), K=c.cd&&CORPSE_CONDS[c.cd];
+  const can=!res&&!soulBound(c)&&P.mana>=raiseCost(c)&&(armyUsed()<slots()||reserveRoom()), ch=raiseChance(c), K=c.cd&&CORPSE_CONDS[c.cd];
   F.can=can; F.c.eventMode=res?'none':'static'; F.c.cursor=can?'pointer':'default';
   const key=[c.name,s,ch,can,!!res,VIEW.lang].join('|'); if(key===F.key) return; F.key=key;
   F.name.style.fill=c.boss||c.elite?FXS.col.gold:FXS.col.bone; F.name.style.fontSize=s<56?12:13; fxFitText(F.name,fxTr(c.name),Math.round(Math.max(s*1.2,cell*.94)),true); F.name.y=6;

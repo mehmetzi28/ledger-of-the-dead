@@ -340,6 +340,9 @@ const enrage=e=>(e.tw&&e.boss)?1+Math.max(0,S.run.turn-8)*(e.tw===100?.12:.07):1
 // 2026-11-19, after the lower raise chance, smaller mastery and stronger stat scaling (market bot cleared D 62%, B/A/S 91-95%): gate[1] 1.65->1.5,
 // foeAtk D 1.3->.85, B 2.1->2.8, A 1.38->2.2, S .8->1.55. Later the same day, after the stat rebalance (market B 73-78%, A 74-81%): foeAtk B 2.8->2.6, A 2.2->2.1.
 const DIFF={hp:2.2,atk:2.0,gate:[0.68,1.5,2.2,1.9,1.7,2.45],xpBase:64,xpExp:1.85,heal:.15,mana:.25,mheal:.2,deathXp:.15};
+// 2026-11-26, the Soul Tether (a lone blow takes at most half your HP while your front holds): B/A/S deaths were ~97% one blow at full HP, so their
+// foe attack barely mattered; with the tether it does. foeAtk B 2.6->5.2, A 2.1->4.2, S 1.55->4.5 and S armor .85->.94 (S rooms took 1.5 turns once
+// nothing one-shot the hero) put the market bot's clear-by-level curve back where it was (B 88% at Lv16, A 80% at 19, S 74/80% at 26/27).
 // 2026-11-21: foeAtk E 1->1.2, D .85->.95 (market E 93->89-91%, D 86-91->82-86%). The S gate stays ~91% when farmed 15 levels over: foes only 4 levels below the hero did not move it.
 // SAFE: the hero level the balance bot (tests/balance-test.js) starts entering each gate at, and the reference level of the farming falloff (farmK)
 // and of secret-master growth (SB_GROW). Rules and bot only: what the player is told is gateRec (below), which is measured and follows the tuning.
@@ -349,7 +352,7 @@ const SAFE=[1,6,10,15,19,25];   // A and S were 22/28, which the XP from B could
 // DIFF.hp/atk and DIFF.gate move both sides; armor and foeAtk affect living foes only. Tuned with tests/balance-test.js.
 // Target: a bot that learns skills, entering each gate at its Recommended level, clears ~80% of runs (A and S were tuned entering 3 levels early,
 // because the XP curve stalls the fair bot near level 20). The no-skill bot dies noticeably more often.
-DIFF.armor=[0.30,0.66,0.88,0.85,0.89,0.85]; DIFF.foeAtk=[1.2,0.95,1.0,2.6,2.1,1.55];   // retuned after boss abilities, altar, salts, and minion traits/evolution (D, A, S raised); xpBase 70->64 keeps the leveling pace (S first cleared ~day 64)   A 1.5->1.38 after status effects (bleeding from its strikers)   D 1.2->1.1 and C 1.2->1.0: the bots cleared C 69% (market) and D 71% (full), now about 80% and 76%   D armor .74->.66 with foeAtk 1.1->1.3: same danger, shorter rooms (bots: 7.5->5.8 turns per room market, 9.6->7.1 full)
+DIFF.armor=[0.30,0.66,0.88,0.85,0.89,0.94]; DIFF.foeAtk=[1.2,0.95,1.0,5.2,4.2,4.5];   // retuned after boss abilities, altar, salts, and minion traits/evolution (D, A, S raised); xpBase 70->64 keeps the leveling pace (S first cleared ~day 64)   A 1.5->1.38 after status effects (bleeding from its strikers)   D 1.2->1.1 and C 1.2->1.0: the bots cleared C 69% (market) and D 71% (full), now about 80% and 76%   D armor .74->.66 with foeAtk 1.1->1.3: same danger, shorter rooms (bots: 7.5->5.8 turns per room market, 9.6->7.1 full)
 // Farming far below you on Normal pays less: kill XP, kill gold and the clear bonus are full up to FARM_FROM levels past a gate's SAFE level,
 // then ramp down to FARM_MIN at FARM_TO and beyond. Hard and up, cursed gates, a gate's first clear, drops, the Tower, the Rift, raids, bounties and quests pay in full.
 DIFF.farmFrom=8; DIFF.farmTo=20; DIFF.farmMin=.5;
@@ -361,7 +364,7 @@ const farmK=(di,lvl)=>{ const t=clamp(((lvl-SAFE[di])-DIFF.farmFrom)/(DIFF.farmT
 // DIFF.gate or foe level RK.lv shifts the advice by the number of foe levels (LV_HP/LV_ATK growth) that changes that product as much.
 // A test fails once the shift passes REC_DRIFT levels: then re-measure and update REC_BASE and REC_AT together.
 const LV_HP=.16, LV_ATK=.12;   // foe and minion growth per level (mobStats)
-const REC_BASE=[1,5,9,16,19,27], REC_AT=[[.30,1.2,.68,1],[.66,.95,1.5,4],[.88,1,2.2,8],[.85,2.6,1.9,12],[.89,2.1,1.7,17],[.85,1.55,2.45,23]], REC_DRIFT=2;   // REC_AT per gate: [armor, foeAtk, gate, RK.lv]. Re-measured 2026-11-19 after the retune (market bot, seed 7700, byLvl and push): the bot first reached ~75% at 1/5/9/15/19/27 (1/7/11/16/20/25 on 2026-11-15); again after the stat rebalance the same day: 1/5/9/16/19/27
+const REC_BASE=[1,5,9,16,19,27], REC_AT=[[.30,1.2,.68,1],[.66,.95,1.5,4],[.88,1,2.2,8],[.85,5.2,1.9,12],[.89,4.2,1.7,17],[.94,4.5,2.45,23]], REC_DRIFT=2;   // REC_AT per gate: [armor, foeAtk, gate, RK.lv]. Re-measured 2026-11-26 after the Soul Tether and the B/A/S retune (market, seed 7700, byLvl): B 68/88% at Lv 15/16, A 80% at 19, S 74/80% at 26/27, so REC_BASE stands. Re-measured 2026-11-19 after the retune (market bot, seed 7700, byLvl and push): the bot first reached ~75% at 1/5/9/15/19/27 (1/7/11/16/20/25 on 2026-11-15); again after the stat rebalance the same day: 1/5/9/16/19/27
 function recShift(di,f){   // f: a difficulty's foe multiplier (HEAT[h].foe); spawnRoom scales foe HP and attack by it alike, so danger goes by f squared
   const a=REC_AT[di], k=(g,ar,fa)=>g*g*fa/(1-ar), grow=t=>(1+LV_HP*t)*(1+LV_ATK*t);   // t = foe level - 1
   const R=k(DIFF.gate[di],DIFF.armor[di],DIFF.foeAtk[di])/k(a[2],a[0],a[1])*grow(RK[di].lv+1)*(f||1)*(f||1), A=LV_HP*LV_ATK, B=LV_HP+LV_ATK;   // mid-run foes stand 2 levels above RK.lv
