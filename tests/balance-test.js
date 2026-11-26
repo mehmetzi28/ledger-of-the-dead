@@ -332,7 +332,7 @@
     const raids={sent:res.reduce((a,r)=>a+(r.raids?r.raids.sent:0),0),won:res.reduce((a,r)=>a+(r.raids?r.raids.won:0),0)};
     const sieges={fought:res.reduce((a,r)=>a+(r.sieges?r.sieges.fought:0),0),won:res.reduce((a,r)=>a+(r.sieges?r.sieges.won:0),0)};
     const rival={fights:res.reduce((a,r)=>a+(r.rival?r.rival.met:0),0),wins:res.reduce((a,r)=>a+(r.rival?r.rival.wins:0),0),losses:res.reduce((a,r)=>a+(r.rival?r.rival.losses:0),0),thefts:res.reduce((a,r)=>a+(r.rival?r.rival.thefts:0),0),metDay:avg(res.map(r=>r.rival&&r.rival.day).filter(x=>x>0))}; rival.winRate=pc(rival.wins,rival.wins+rival.losses);
-    const rift={best:avg(res.map(r=>r.rift||0)),open:res.filter(r=>r.rift>0).length+'/'+res.length,deepest:Math.max(0,...res.map(r=>r.rift||0))};
+    const rift={all:res.map(r=>r.rift||0).sort((a,b)=>a-b).join(','),best:avg(res.map(r=>r.rift||0)),open:res.filter(r=>r.rift>0).length+'/'+res.length,deepest:Math.max(0,...res.map(r=>r.rift||0))};
     const byLvl=DUNGEONS.map((D,i)=>{ const g=all.filter(x=>x.gate===i&&!x.heat), o={}; for(const x of g){ const k=x.lvl; (o[k]=o[k]||[0,0])[0]++; if(x.cleared) o[k][1]++; } return RANKS[i]+': '+Object.keys(o).map(Number).sort((x,y)=>x-y).map(l=>'Lv'+l+' '+pc(o[l][1],o[l][0])+'/'+o[l][0]).join('  '); });   // Normal runs only: clear rate by hero level on entry (run-balance.js prints it with {"byLvl":true})
     const tp=[].concat(...res.map(r=>r.tiers||[])), tiers=[];   // opts.tiers: clear rate by hero level for each gate and difficulty (the model's advice in brackets)
     for(const gi of [...new Set(tp.map(x=>x.gate))]) for(const h of [...new Set(tp.map(x=>x.heat))].sort()){ const g=tp.filter(x=>x.gate===gi&&x.heat===h), o={}; if(!g.length) continue;

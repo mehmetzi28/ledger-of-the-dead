@@ -197,7 +197,7 @@ function battleHTML(){
 }
 function slotsHTML(){ const n=slots(), u=armyUsed(); let s='<span class="slots" aria-label="'+u+' of '+n+' slots used">'; for(let i=0;i<n;i++) s+='<i class="slot'+(i<u?' on':'')+'"></i>'; return s+'</span>'; }
 function minionDetail(m){   // everything about one minion, readable without hovering
-  const stage=m.stage||0, next=evoNext(m), g=gearBonus(m), base=m.tw?towerStats(m.tw,m.lvl,m.hf,m.af,m.boss,m.elite):mobStats(m.rankI,m.lvl,m.hf,m.af,m.boss,m.elite);
+  const stage=m.stage||0, next=evoNext(m), g=gearBonus(m), base=minionBase(m);
   const rows=[['Kind',(m.tw?'Hell Tower ':'')+mName(m)+(m.boss?', a raised boss':m.elite?', a raised elite':'')],['Role',ROLES[m.role].label+': '+ROLES[m.role].text],
     ['Evolution',stage===STAGE_MAX?'Eternal, the last form':(STAGES[stage].trim()||'Base form')+(next!=null?'; next at Lv '+next+' ('+STAGES[stage+1].trim()+': '+fxText(STAGE_FX[stage+1])+')':'')],
     ['Base stats','HP '+base.hp+', ATK '+base.atk+' at Lv '+m.lvl],

@@ -242,7 +242,7 @@ const hasFlag=f=>(!!(S&&S.equip)&&Object.values(S.equip).some(it=>it&&ITEM[it.id
 // 2026-11-26, after the Soul Tether: nothing one-shots the hero, so a day-100 army walked all 100 floors (once the bot's step limit was lifted).
 // hpG .042->.06, atkG .024->.04 and a steeper climb past 60 keep the market bot's curve (floor ~43 on day 35, ~68 on day 60, ~78 on day 100;
 // it was 43/66/79) and bring the full bot from ~94 to ~88.
-const TW={unlock:10,hp0:4.7,hpG:.06,atk0:3.9,atkG:.04,repeat:.06,armor:.85,foeAtk:1.4};   // armor/foeAtk: enemy-only, see DIFF.armor
+const TW={unlock:10,hp0:4.7,hpG:.07,atk0:3.9,atkG:.048,repeat:.06,armor:.85,foeAtk:1.4};   // armor/foeAtk: enemy-only, see DIFF.armor
 const TW_MOBS=[['Imp','striker',.95,1.3],['Hellhound','striker',.95,1.3],['Chain Devil','vanguard',1.4,.9],['Pit Warden','vanguard',1.4,.9],['Soul Tender','mender',.8,.8],['Brimstone Chanter','mender',.8,.8]];
 TW_MOBS.push(['Hell Legionary','vanguard',1.4,.9],['Infernal Duelist','striker',.95,1.3]);
 const TW_BOSS=['The Gate Hound','Cinder Matron','The Iron Inquisitor','Lord of Flies','The Bone Cantor','Duke of Chains','The Pale Executioner','Archdevil Vael','The Hollow Seraph','Abaddon, King of Hell'];
@@ -277,6 +277,12 @@ function towerStats(f,lvl,hf,af,boss,elite){
   if(elite){ hp*=1.5; atk*=1.3; }
   return {hp:Math.round(hp),atk:Math.max(1,Math.round(atk))};
 }
+// A minion raised in the Hell Tower stands like a Throne of Ash minion of its level, plus TW_MINION per floor it fell on (a floor-100 warden
+// +100%). It used the foes' floor curve until 2026-11-26: that curve outgrows you on purpose, so a raised floor-90 warden had ~290x the HP and
+// ~35x the attack of an S minion of its level, a runaway that carried the hero through the Rift once Command shared the army's power.
+const TW_MINION=.01;
+function twMinion(f,lvl,hf,af,boss,elite){ const s=mobStats(5,lvl,hf,af,boss,elite), k=1+TW_MINION*f; return {hp:Math.round(s.hp*k),atk:Math.max(1,Math.round(s.atk*k))}; }
+const minionBase=m=>m.tw?twMinion(m.tw,m.lvl,m.hf,m.af,m.boss,m.elite):mobStats(m.rankI,m.lvl,m.hf,m.af,m.boss,m.elite);   // syncMinion and the minion card
 function makeTowerEnemy(f,boss,adj){
   const lvl=twLvl(f)+(boss?2:0)+(adj||0);
   let name,role,hf=1,af=1;
@@ -357,7 +363,7 @@ const SAFE=[1,6,10,15,19,25];   // A and S were 22/28, which the XP from B could
 // DIFF.hp/atk and DIFF.gate move both sides; armor and foeAtk affect living foes only. Tuned with tests/balance-test.js.
 // Target: a bot that learns skills, entering each gate at its Recommended level, clears ~80% of runs (A and S were tuned entering 3 levels early,
 // because the XP curve stalls the fair bot near level 20). The no-skill bot dies noticeably more often.
-DIFF.armor=[0.30,0.66,0.88,0.85,0.89,0.94]; DIFF.foeAtk=[1.2,0.95,1.0,5.2,4.2,4.5];   // retuned after boss abilities, altar, salts, and minion traits/evolution (D, A, S raised); xpBase 70->64 keeps the leveling pace (S first cleared ~day 64)   A 1.5->1.38 after status effects (bleeding from its strikers)   D 1.2->1.1 and C 1.2->1.0: the bots cleared C 69% (market) and D 71% (full), now about 80% and 76%   D armor .74->.66 with foeAtk 1.1->1.3: same danger, shorter rooms (bots: 7.5->5.8 turns per room market, 9.6->7.1 full)
+DIFF.armor=[0.30,0.66,0.88,0.85,0.89,0.94]; DIFF.foeAtk=[1.2,0.95,1.0,7.0,5.7,6.1];   // retuned after boss abilities, altar, salts, and minion traits/evolution (D, A, S raised); xpBase 70->64 keeps the leveling pace (S first cleared ~day 64)   A 1.5->1.38 after status effects (bleeding from its strikers)   D 1.2->1.1 and C 1.2->1.0: the bots cleared C 69% (market) and D 71% (full), now about 80% and 76%   D armor .74->.66 with foeAtk 1.1->1.3: same danger, shorter rooms (bots: 7.5->5.8 turns per room market, 9.6->7.1 full)
 // Farming far below you on Normal pays less: kill XP, kill gold and the clear bonus are full up to FARM_FROM levels past a gate's SAFE level,
 // then ramp down to FARM_MIN at FARM_TO and beyond. Hard and up, cursed gates, a gate's first clear, drops, the Tower, the Rift, raids, bounties and quests pay in full.
 DIFF.farmFrom=8; DIFF.farmTo=20; DIFF.farmMin=.5;
@@ -369,7 +375,7 @@ const farmK=(di,lvl)=>{ const t=clamp(((lvl-SAFE[di])-DIFF.farmFrom)/(DIFF.farmT
 // DIFF.gate or foe level RK.lv shifts the advice by the number of foe levels (LV_HP/LV_ATK growth) that changes that product as much.
 // A test fails once the shift passes REC_DRIFT levels: then re-measure and update REC_BASE and REC_AT together.
 const LV_HP=.16, LV_ATK=.12;   // foe and minion growth per level (mobStats)
-const REC_BASE=[1,5,9,16,19,27], REC_AT=[[.30,1.2,.68,1],[.66,.95,1.5,4],[.88,1,2.2,8],[.85,5.2,1.9,12],[.89,4.2,1.7,17],[.94,4.5,2.45,23]], REC_DRIFT=2;   // REC_AT per gate: [armor, foeAtk, gate, RK.lv]. Re-measured 2026-11-26 after the Soul Tether and the B/A/S retune (market, seed 7700, byLvl): B 68/88% at Lv 15/16, A 80% at 19, S 74/80% at 26/27, so REC_BASE stands. Re-measured 2026-11-19 after the retune (market bot, seed 7700, byLvl and push): the bot first reached ~75% at 1/5/9/15/19/27 (1/7/11/16/20/25 on 2026-11-15); again after the stat rebalance the same day: 1/5/9/16/19/27
+const REC_BASE=[1,5,9,16,19,27], REC_AT=[[.30,1.2,.68,1],[.66,.95,1.5,4],[.88,1,2.2,8],[.85,7.0,1.9,12],[.89,5.7,1.7,17],[.94,6.1,2.45,23]], REC_DRIFT=2;   // REC_AT per gate: [armor, foeAtk, gate, RK.lv]. Re-measured 2026-11-26 after Command and the B/A/S foeAtk 5.2/4.2/4.5 -> 7/5.7/6.1 (market, seed 7700, byLvl): B 87% at Lv16, A 83% at 19, S 79/91% at 26/27, so REC_BASE stands. Re-measured 2026-11-26 after the Soul Tether and the B/A/S retune (market, seed 7700, byLvl): B 68/88% at Lv 15/16, A 80% at 19, S 74/80% at 26/27, so REC_BASE stands. Re-measured 2026-11-19 after the retune (market bot, seed 7700, byLvl and push): the bot first reached ~75% at 1/5/9/15/19/27 (1/7/11/16/20/25 on 2026-11-15); again after the stat rebalance the same day: 1/5/9/16/19/27
 function recShift(di,f){   // f: a difficulty's foe multiplier (HEAT[h].foe); spawnRoom scales foe HP and attack by it alike, so danger goes by f squared
   const a=REC_AT[di], k=(g,ar,fa)=>g*g*fa/(1-ar), grow=t=>(1+LV_HP*t)*(1+LV_ATK*t);   // t = foe level - 1
   const R=k(DIFF.gate[di],DIFF.armor[di],DIFF.foeAtk[di])/k(a[2],a[0],a[1])*grow(RK[di].lv+1)*(f||1)*(f||1), A=LV_HP*LV_ATK, B=LV_HP+LV_ATK;   // mid-run foes stand 2 levels above RK.lv

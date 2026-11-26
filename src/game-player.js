@@ -1,8 +1,8 @@
 // ----- player-derived stats
-const pMax = ()=>Math.round((24+A('constitution')*CON_HP+S.player.lvl*4+G('hp'))*(1+.06*sk('bonearmor'))*(1+xb('hpp')/100));
+const pMax = ()=>Math.round((24+A('constitution')*CON_HP+S.player.lvl*4+G('hp')+cmdHp())*(1+.06*sk('bonearmor'))*(1+xb('hpp')/100));
 const pMana = ()=>Math.round((20+A('intelligence')*6+A('will')*3+G('mana'))*(1+xb('manap')/100)*(1+B_ALT_MANA*bl('altar')));
-const pAtk = ()=>Math.round(3+A('strength')*2.2+S.player.lvl+G('atk'));
-const pSiph = ()=>Math.round(6+A('intelligence')*2.8+S.player.lvl+G('siph'));
+const pAtk = ()=>Math.round(3+A('strength')*2.2+S.player.lvl+G('atk')+cmdAtk());
+const pSiph = ()=>Math.round(6+A('intelligence')*2.8+S.player.lvl+G('siph')+cmdSiph());
 const pWard = ()=>Math.round((10+A('intelligence')*3+S.player.lvl*1.5+G('ward'))*(hasMod('bonearmor','b')?MARROW:1));
 // What each stat point gives beyond those formulas. Strength: crit chance and armor piercing on Strike, and minion attack. Constitution: less damage taken
 // and more healing received. Intelligence: skill damage (Bone Spear, Corpse Explosion, Grave Chill, Reap) and minion attack. Each Strength and Constitution part is capped.
@@ -16,6 +16,17 @@ const conDr = ()=>Math.min(CON_DR_CAP,Math.max(0,A('constitution'))*CON_DR);   /
 const conHeal = ()=>Math.min(CON_HEAL_CAP,Math.max(0,A('constitution'))*CON_HEAL);   // % more healing received
 const intSkill = ()=>Math.max(0,A('intelligence'))*INT_SKILL;   // % more skill damage
 const CON_MINION=1, conMinion=()=>Math.max(0,A('constitution'))*CON_MINION;   // % more minion max HP from Constitution: the vigor your Soul Tether shares (2026-11-26: with the tether Constitution was the one stat that gave the army nothing, and Will+Strength/Intelligence builds pulled 10 Tower floors ahead of Will+Constitution)
+// Command: the hero draws on the army they lead. The army's power is the average attack and max HP of its CMD_TOP strongest minions, counting
+// places it cannot fill (so one minion gives a third). Strike gains CMD_STR% of that attack per Strength point, Soul Siphon (and every skill
+// built on it) CMD_INT% per Intelligence point, max HP CMD_CON% of that HP per Constitution point. cmdSync measures it at the start of every
+// room and floor, on the way home and after each town action, so it holds still through a fight. (2026-11-26: by day 70 minions hit for
+// 10-20k with 70-150k HP while the hero hit for 165 with ~1k HP, so the hero's own stats had stopped counting.)
+const CMD_STR=1.5, CMD_INT=.5, CMD_CON=.04, CMD_TOP=3;
+function cmdPow(army){ const a=(army||S.army||[]).filter(m=>!m.thrall&&!m.wall).slice().sort((x,y)=>(y.atk||0)-(x.atk||0)).slice(0,CMD_TOP), sum=k=>a.reduce((t,m)=>t+(isFinite(m[k])?m[k]:0),0);
+  return {a:Math.round(sum('atk')/CMD_TOP),h:Math.round(sum('maxHp')/CMD_TOP)}; }
+const cmd=()=>{ const c=S&&S.player&&S.player.cmd; return c&&c.a>=0&&c.h>=0&&isFinite(c.a)&&isFinite(c.h)?c:{a:0,h:0}; };   // a damaged save reads as no Command until the next measure
+const cmdAtk=()=>Math.round(cmd().a*Math.max(0,A('strength'))*CMD_STR/100), cmdSiph=()=>Math.round(cmd().a*Math.max(0,A('intelligence'))*CMD_INT/100), cmdHp=()=>Math.round(cmd().h*Math.max(0,A('constitution'))*CMD_CON/100);
+function cmdSync(){ const P=S&&S.player; if(!P) return; P.cmd=cmdPow(); P.hp=Math.min(P.hp,pMax()); }   // a stronger army raises your maximum, never heals you; a weaker one caps your HP at the new maximum
 const statMinion = ()=>Math.max(0,A('strength'))*STR_MINION+Math.max(0,A('intelligence'))*INT_MINION;   // % more minion attack from Strength and Intelligence
 const skMul = ()=>(1+intSkill()/100)*(S.run?hexK(S.player):1);   // Hexed: your skills hit 20% softer too
 const pDr = ()=>Math.min(DR_CAP,xb('drp')+conDr());   // all your damage reduction: titles, sets, faith, Calcified Hide and Constitution
@@ -43,7 +54,7 @@ function gearBonus(m){
   o.atk=Math.round(o.atk); o.hp=Math.round(o.hp); return o;
 }
 function syncMinion(m){
-  const s=m.tw?towerStats(m.tw,m.lvl,m.hf,m.af,m.boss,m.elite):mobStats(m.rankI,m.lvl,m.hf,m.af,m.boss,m.elite);
+  const s=minionBase(m);
   const gg=gearBonus(m);
   const b=(1+.02*A('will'))*(1+(G('mpow')+gg.mpow+6*sk('gravepact'))/100);
   const nh=Math.round((s.hp*b*stageMul(m,'hp')+gg.hp)*(hasTrait(m,'thick')?1.25:1)*(hasTrait(m,'unmarred')?1+UNMARRED_K:1)*(hasTrait(m,'stitched')?STITCH_MAX:1)*siegeHpMul(m)*(remembered()?1+MEM_HP:1)*(1+conMinion()/100)*extraMul(m,'hp')), na=Math.round((s.atk*b*stageMul(m,'atk')+gg.atk)*(hasTrait(m,'vicious')?1.2:1)*(hasTrait(m,'unmarred')?1+UNMARRED_K:1)*(1+statMinion()/100)*extraMul(m,'atk'));
@@ -59,7 +70,7 @@ function notify(m,c){ S.notices.unshift({m,c:c||'info'}); S.notices.length=Math.
 // ----- game lifecycle
 function freshState(){
   return {v:2,day:1,watches:WATCHES,uid:0,mode:'town',run:null,notices:[],runs:0,kills:{},tower:{best:0,got:{}},inv:[],equip:{weapon:null,armor:null,relic:null},
-     player:{id:'p',name:'You',lvl:1,xp:0,pts:3,hp:0,mana:0,shield:0,stats:{strength:4,constitution:4,intelligence:4,will:4},sp:0,skills:{},skMod:{}},
+     player:{id:'p',name:'You',lvl:1,xp:0,pts:3,hp:0,mana:0,shield:0,stats:{strength:4,constitution:4,intelligence:4,will:4},sp:0,skills:{},skMod:{},cmd:{a:0,h:0}},
      army:[],quest:{kills:0,rooms:0,clears:0,claimed:false},gold:0,trophies:{},belt:{hp:0,mp:0},shop:null,bagLv:0,salts:0,tips:{},ngp:0,firstRaise:1,
      mod:null,hist:[],story:{},life:Object.fromEntries(LIFE_KEYS.map(k=>[k,0])),build:{},dust:0,bounty:null,heat:{},heatMax:{},raids:[],raidOrders:[],raidLog:[],rift:{best:0},siege:{next:0,pending:false,dmg:null,warned:0},reserve:[],waiting:[],
      memorial:[],honor:null,loadouts:[{n:'',s:null},{n:'',s:null},{n:'',s:null}],rival:rivalDef(),trials:trialDef(),pacts:[]};
@@ -116,7 +127,7 @@ function normalizeSave(src){
     for(const o in ren) if(o in st){ st[ren[o]]=st[o]; delete st[o]; } g.player.stats=st; g.v=2; }
   if(g.v!==2||typeof g.player.lvl!=='number'||!(g.player.lvl>=1)) return null;
   const d=freshState(), obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
-  const hadSp=typeof g.player.sp==='number';   // saves from before skills get one point per level already reached
+  const hadSp=typeof g.player.sp==='number', hadCmd=obj(g.player.cmd);   // hadCmd: saves from before Command measure their army   // saves from before skills get one point per level already reached
   const P=g.player=Object.assign({},d.player,g.player);
   P.stats=Object.assign({},d.player.stats,obj(P.stats)?P.stats:{}); for(const k in d.player.stats) P.stats[k]=num(P.stats[k],d.player.stats[k]);
   P.lvl=Math.floor(P.lvl); P.xp=num(P.xp,0); P.pts=num(P.pts,0); P.hp=num(P.hp,0); P.mana=num(P.mana,0); P.shield=0;
@@ -192,6 +203,7 @@ function normalizeSave(src){
   for(const k of ['heat','heatMax']){ if(!obj(g[k])) g[k]={}; for(const di of Object.keys(g[k])){ const v=g[k][di]; if(!RK[di]||typeof v!=='number'||!(v>=0)) delete g[k][di]; else g[k][di]=Math.min(HEAT.length-1,Math.floor(v)); } }
   { const q=obj(g.siege)?g.siege:{}; g.siege={next:Math.max(0,Math.floor(num(q.next,0))),pending:!!q.pending,dmg:BUILD[q.dmg]&&g.build[q.dmg]>=1?q.dmg:null,warned:Math.max(0,Math.floor(num(q.warned,0)))};
     if(g.siege.pending){ if(BUILD[q.guard]&&g.build[q.guard]>=1) g.siege.guard=q.guard; if(Array.isArray(q.wall)) g.siege.wall=q.wall.filter(u=>Number.isInteger(u)).slice(0,SIEGE_WALL); } }   // tonight's guard and wall survive a reload   // sieges: old saves get a first one scheduled on load (siegeTick)
+  { const c=g.player.cmd; if(!hadCmd||!(obj(c)&&c.a>=0&&c.h>=0&&isFinite(c.a)&&isFinite(c.h))) g.player.cmd=cmdPow(Array.isArray(g.army)?g.army:[]); else g.player.cmd={a:Math.round(c.a),h:Math.round(c.h)}; }   // Command: an old or damaged save measures its army again
   const okB=b=>obj(b)&&BOUNTIES[b.id]&&typeof b.n==='number'&&typeof b.base==='number'&&obj(b.rw)&&typeof b.claimed==='boolean';
   g.bounty=(obj(g.bounty)&&typeof g.bounty.day==='number'&&Array.isArray(g.bounty.list)&&g.bounty.list.every(okB))?g.bounty:null;
   memorialFix(g); loadoutsFix(g); rivalFix(g); trialsFix(g); bondsFix(g); chainsFix(g);
