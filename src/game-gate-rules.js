@@ -351,7 +351,7 @@ function heatRoom(list,di){   // Nightmare, before scaling: a room with no elite
   for(const e of list) if(e.boss&&e.abil&&!e.phase2){ e.phase2=true; e.fast=(e.fast||0)+1; e.alt=true; e.abilT=Math.min(e.abilT,2); }
 }
 const DAMNED=1.3, DAMNED_FOE=1.5, CURSE_FOE=1.15;   // cursed and harder: rewards x1.3, foes x1.5; cursed on Normal: foes x1.15 (rewards come from the curse itself)
-const foeHeat=()=>{ const h=runHeat(), m=runMod(); return (h?HEAT[h].foe:1)*(m?(h?DAMNED_FOE:CURSE_FOE):1); };
+const foeHeat=()=>{ const h=runHeat(), m=runMod()&&!(S.run&&S.run.trial); return (h?HEAT[h].foe:1)*(m?(h?DAMNED_FOE:CURSE_FOE):1); };   // a Trial's curses bring only their own rules: its foes already fight at the Throne's strength (trialPow)
 function heatScale(list){ const f=foeHeat(); if(f!==1) for(const e of list){ if(e.rival) continue; e.maxHp=e.hp=Math.round(e.maxHp*f); e.atk=Math.max(1,Math.round(e.atk*f)); } }   // a room's foes and the adds called into it; the rival keeps their own measure
 const heatMax=di=>Math.min(HEAT.length-1,S.ti&&S.ti.clr&&S.ti.clr[di]?((S.heatMax&&S.heatMax[di]!=null?S.heatMax[di]:0)+1):0);   // highest level you may pick
 const heatOf=di=>Math.min((S.heat&&S.heat[di])||0,heatMax(di));

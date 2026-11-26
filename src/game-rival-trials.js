@@ -126,7 +126,8 @@ const clearDust=di=>Math.round((6+Math.floor(S.player.lvl/4))*(1+BOUNTY_GATE*di)
 // a cleared gate on a fixed difficulty with one or two curses, and the same rooms and foes for every attempt that week (the
 // run's own room generation is seeded from the week). One watch, once a day; four rooms, no doors, events or raising.
 // Score: turns plus a penalty per minion downed, lower is better. S.trials = {cur, day, log:[{w,di,t,s,day,paid}], best}.
-const TRIAL_ROOMS=4, TRIAL_DOWN=5, TRIAL_TIERS=3, TRIAL_LOG=8;   // tiers: Normal, Hard or Brutal
+const TRIAL_ROOMS=4, TRIAL_DOWN=5, TRIAL_TIERS=3, TRIAL_LOG=8, TRIAL_PAR=8;   // tiers: Normal, Hard or Brutal. TRIAL_PAR: a score at or under it, once a week, pays hearts of the gate's boss (1 + the tier) toward Awakening
+const trialHearts=t=>1+(t|0), trialHeartKey=di=>'b:'+DUNGEONS[di].boss[0];
 const trialDef=()=>({cur:null,day:0,log:[],best:null});
 const tri=()=>{ if(!S.trials) S.trials=trialDef(); return S.trials; };
 const trialOpen=()=>!!S&&!!S.player&&(T_('clrN5')>0||!!(S.ti&&S.ti.clr&&S.ti.clr[5]));
@@ -138,7 +139,8 @@ function trialPlan(){   // this week's Trial, fixed the first time the week asks
   if(!gs.length){ T.cur={w,di:-1}; return null; }
   const h=dayHash(w,101), ks=Object.keys(MODS), di=gs[h%gs.length], m1=ks[dayHash(w,103)%ks.length], two=dayHash(w,107)%2===1;
   const rest=ks.filter(k=>k!==m1), mods=two?[m1,rest[dayHash(w,109)%rest.length]]:[m1];
-  T.cur={w,di,tier:dayHash(w,113)%TRIAL_TIERS,mods,lv:Math.max(RK[di].lv,S.player.lvl-CURSE_GAP),seed:dayHash(w,127)}; return T.cur;
+  let tier=dayHash(w,113)%TRIAL_TIERS; while(tier>0&&S.player.lvl<tierRec(TRIAL_GATE,tier)) tier--;   /* never above the hardest tier the Throne recommends for your level */
+  T.cur={w,di,tier,mods,lv:trialLv(di,tier),seed:dayHash(w,127)}; return T.cur;
 }
 const trialBestWeek=()=>{ const w=trialWeek(); return (tri().log||[]).find(x=>x.w===w)||null; };
 const trialReady=()=>{ const p=trialPlan(); return !!p&&S.mode==='town'&&S.watches>0&&tri().day!==S.day&&S.player.lvl>=RK[p.di].unlock; };
@@ -151,16 +153,22 @@ function startTrial(){
   log('The Trial of week '+p.w+' begins in the '+DUNGEONS[di].name+'.');
   spawnRoom(); return true;
 }
+const TRIAL_GATE=5;   // a Trial's foes fight as hard as the Throne of Ash's, whatever gate they come from: its HP, attack and armor (2026-11-26: at their own gate's strength the bots wiped every Normal Trial room in one action, score 0)
+const trialLv=(di,t)=>Math.max(RK[di].lv,S.player.lvl-(tierRec(TRIAL_GATE,t)-RK[TRIAL_GATE].lv));   // and stand as far below your level as the Throne's foes stand below its Recommended level on that tier: a fair fight on every tier (it was your level -5 on every tier; the curses add no foe multiplier in a Trial, see foeHeat)
+function trialPow(list,di){ if(di>=TRIAL_GATE) return; const a=mobStats(TRIAL_GATE,1,1,1,false,false), b=mobStats(di,1,1,1,false,false), hk=a.hp/b.hp, ak=a.atk/b.atk*DIFF.foeAtk[TRIAL_GATE]/DIFF.foeAtk[di];
+  for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*hk); e.atk=Math.max(1,Math.round(e.atk*ak)); } }
 const trialScore=r=>(r.tt||0)+TRIAL_DOWN*(r.downs||0);
 function trialCleared(r){   // the fourth room falls: the score, the week's and the all-time best, and the first completion's reward
   const T=tri(), p=T.cur, s=trialScore(r); r.cleared=true; tally('trialsDone');
   r.trialRes={turns:r.tt||0,downs:r.downs||0,s};
   let e=T.log.find(x=>x.w===r.trial); const first=!e;
-  if(!e){ e={w:r.trial,di:r.di,t:r.heat||0,s,day:S.day,paid:0}; T.log.unshift(e); T.log=T.log.slice(0,TRIAL_LOG); }
+  if(!e){ e={w:r.trial,di:r.di,t:r.heat||0,s,day:S.day,paid:0,hp:0}; T.log.unshift(e); T.log=T.log.slice(0,TRIAL_LOG); }
   else if(s<e.s){ e.s=s; e.day=S.day; r.trialRes.better=true; }
   if(!T.best||s<T.best.s){ if(T.best) r.trialRes.record=true; T.best={s,day:S.day,w:r.trial,di:r.di,t:r.heat||0}; }
   if(!e.paid){ e.paid=1; const g=clearGold(r.di), d=clearDust(r.di); S.gold+=g; S.dust=(S.dust||0)+d; r.goldTot=(r.goldTot||0)+g; r.trialRes.g=g; r.trialRes.d=d; }
+  if(s<=TRIAL_PAR&&!e.hp){ e.hp=1; const k=trialHeartKey(r.di), n=trialHearts(r.heat); S.trophies[k]=(S.trophies[k]||0)+n; r.trialRes.h=n; r.trialRes.hk=k; tally('trialHearts',n); }   // par beaten: the gate's boss's hearts, once a week
   r.events.push({m:'Trial complete: '+(r.tt||0)+' turns, '+(r.downs||0)+' minion'+((r.downs||0)===1?'':'s')+' downed. Score '+s+(r.trialRes.g?'. First completion this week: +'+r.trialRes.g+' gold, +'+r.trialRes.d+' bone dust':'')+'.',c:'ok'});
+  if(r.trialRes.h) r.events.push({m:'Par '+TRIAL_PAR+' beaten: +'+r.trialRes.h+' Heart'+(r.trialRes.h===1?'':'s')+' of '+DUNGEONS[r.di].boss[0]+'.',c:'ok'});
   moment(first?'Trial complete: score '+s:r.trialRes.better?'Trial: new best this week, '+s:'Trial: score '+s,'gold');
   return 0;
 }
@@ -169,7 +177,7 @@ function trialsFix(g){   // normalizeSave
   const c=o.cur; let cur=null;
   if(ok(c)&&n(c.w)){ if(c.di===-1) cur={w:Math.floor(c.w),di:-1}; else if(RK[c.di]&&n(c.tier)&&c.tier<TRIAL_TIERS&&Array.isArray(c.mods)&&c.mods.length>=1&&c.mods.length<=2&&c.mods.every(k=>MODS[k])&&n(c.lv)&&n(c.seed)) cur={w:Math.floor(c.w),di:c.di,tier:Math.floor(c.tier),mods:c.mods.slice(),lv:Math.floor(c.lv),seed:Math.floor(c.seed)}; }
   const okE=x=>ok(x)&&n(x.w)&&RK[x.di]&&n(x.s)&&n(x.day)&&n(x.t)&&x.t<TRIAL_TIERS;
-  const log=Array.isArray(o.log)?o.log.filter(okE).slice(0,TRIAL_LOG).map(x=>({w:Math.floor(x.w),di:x.di,t:Math.floor(x.t),s:Math.floor(x.s),day:Math.floor(x.day),paid:x.paid?1:0})):[];
+  const log=Array.isArray(o.log)?o.log.filter(okE).slice(0,TRIAL_LOG).map(x=>({w:Math.floor(x.w),di:x.di,t:Math.floor(x.t),s:Math.floor(x.s),day:Math.floor(x.day),paid:x.paid?1:0,hp:x.hp?1:0})):[];
   g.trials={cur,day:n(o.day)?Math.floor(o.day):0,log,best:okE(o.best)?{s:Math.floor(o.best.s),day:Math.floor(o.best.day),w:Math.floor(o.best.w),di:o.best.di,t:Math.floor(o.best.t)}:null};
 }
 BOSS_LINES[RIVAL_KIND]=[RIVAL_LINES.hi,RIVAL_LINES.bye]; PHASE_LINES[RIVAL_KIND]=RIVAL_LINES.phase;
