@@ -107,9 +107,10 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
 - **G3. Bosses have one move.** Six gate bosses, ten wardens, six secret masters and the rival share seven moves
   between them; wardens and secret masters reuse the gate moves, the rival only has Royal Decree. (Bosses, Tower, secret
   masters, rival.)
-- **G4. No damage types.** Frost, fire, rot and shadow exist as flavor (Rimeborn, Cinderborn, blight, the Eclipse's
+- ~~**G4. No damage types.**~~ Closed by R1 PR A: five types, place profiles, typed affixes, resistance and damage bonus lines.
+  (Was: Frost, fire, rot and shadow exist as flavor (Rimeborn, Cinderborn, blight, the Eclipse's
   "shadow"), but nothing resists or is weak to them, so gear, affixes, traits and skills cannot specialize against a gate.
-  (Combat, traits, gear, omens, bestiary.)
+  (Combat, traits, gear, omens, bestiary.))
 - **G5. Outgrown content is slow.** Farming far below your level pays less but costs the same clicks; there is no quick
   resolve for rooms you cannot lose. (Combat, raids, calendar.)
 

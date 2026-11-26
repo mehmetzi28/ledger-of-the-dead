@@ -38,7 +38,7 @@ test('Capstones: Frost makes frozen foes take more and burns those that lost a t
 });
 
 test('Capstones: Rot heals you from ticking wounds and spreads poison when a foe falls',()=>{
-  fresh(30); learn('rot',10); arena([foe(),foe()]); const [e,o]=S.run.enemies; e.dots={poison:{d:100,t:2}}; S.player.hp=1; tickDots(); eq(S.player.hp,1+heal(Math.round(100*CAP_FESTER)));
+  fresh(30); learn('rot',10); arena([foe(),foe()]); const [e,o]=S.run.enemies; e.dots={poison:{d:100,t:2}}; S.player.hp=1; tickDots(); eq(S.player.hp,1+heal(Math.round(Math.round(100*(1-foeRes(e,'rot')))*CAP_FESTER)));
   setLvl(50); e.hp=0; delete o.dots; checkDeaths(); ok(o.dots&&o.dots.poison,'poison spread'); eq(o.dots.poison.d,Math.round(pSiph()*CAP_BLOOM));
 });
 

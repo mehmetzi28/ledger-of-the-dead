@@ -582,6 +582,8 @@ kbd{border:0;background:rgba(0,0,0,.35);border-radius:3px;padding:1px 5px;opacit
 .gate .meta b{font-weight:600;color:var(--bone)}
 .danger-easy{color:var(--mute)}.danger-fair{color:var(--ok)}.danger-hard{color:var(--ember)}.danger-deadly{color:var(--blood-text)}
 .gate .meta .rec-lv{color:var(--bone)}.armor-tag{cursor:help;border-bottom:1px dotted currentColor}
+.dt-tag{cursor:help;border-bottom:1px dotted currentColor}.dt-tag .dt-g+.dt-g{margin-left:0}.dt{font-weight:600}.dt-phys{color:#d8c8a8}.dt-shad{color:#b48cf0}.dt-frost{color:#8fd0ff}.dt-fire{color:#ff8a4c}.dt-rot{color:#a8d05a}
+.sg-fres svg,.sg-fdmg svg{color:#ff8a4c}.sg-frres svg,.sg-frdmg svg{color:#8fd0ff}.sg-rres svg,.sg-rdmg svg{color:#a8d05a}.sg-sres svg,.sg-sdmg svg{color:#b48cf0}
 .u-tag,.i-tag{font:500 12px/1.2 var(--font-body)}
 .u-name{font-weight:600}
 .trait{border-radius:999px;font:500 11.5px/1.2 var(--font-body);padding:2px 8px}
@@ -1387,7 +1389,7 @@ const FLAGS={
  hellfire:'Hellfire: Strike also scorches every other foe for 40% of the damage.',
  deathless:'Deathless: twice per run, a killing blow leaves you at 50% HP.'
 };
-const STATL={atk:['Strike',''],crit:['Crit chance','%'],siph:['Siphon',''],hp:['Max HP',''],mana:['Max mana',''],ward:['Ward',''],strength:['Strength',''],constitution:['Constitution',''],intelligence:['Intelligence',''],will:['Will',''],raise:['Raise chance','%'],mpow:['Minion power','%'],regen:['Mana per turn',''],slot:['Army slots','']};
+const STATL={atk:['Strike',''],crit:['Crit chance','%'],siph:['Siphon',''],hp:['Max HP',''],mana:['Max mana',''],ward:['Ward',''],strength:['Strength',''],constitution:['Constitution',''],intelligence:['Intelligence',''],will:['Will',''],raise:['Raise chance','%'],mpow:['Minion power','%'],fres:['Fire resistance','%'],frres:['Frost resistance','%'],rres:['Rot resistance','%'],sres:['Shadow resistance','%'],fdmg:['Fire damage','%'],frdmg:['Frost damage','%'],rdmg:['Rot damage','%'],sdmg:['Shadow damage','%'],regen:['Mana per turn',''],slot:['Army slots','']};
 
 // ===== DROP TABLES =====
 // Share of each tier in a gate's drops [common, uncommon, rare, epic, legendary]. Each gate leans on its own tier and sometimes the next.
@@ -1459,7 +1461,9 @@ function masteryGives(t){   // what a tier gives, in plain words
 }
 // ----- random bonus lines ("rolls") on gear. Each piece you find, buy or forge can carry extra stat lines; rarer tiers carry more.
 // Stored on the item as ro:[[stat,value],...]. Uniques never roll; they are fixed.
-const ROLL_KEYS={atk:1.2,crit:.5,siph:1.2,hp:5,mana:4,ward:1.2,strength:.5,constitution:.5,intelligence:.5,will:.5,raise:.8,mpow:1.2};   // value per point of set multiplier
+const ROLL_KEYS={atk:1.2,crit:.5,siph:1.2,hp:5,mana:4,ward:1.2,strength:.5,constitution:.5,intelligence:.5,will:.5,raise:.8,mpow:1.2,fres:2.1,frres:2.1,rres:2.1,sres:2.1,fdmg:2.1,frdmg:2.1,rdmg:2.1,sdmg:2.1};
+const ROLL_SLOT={fres:['armor'],frres:['armor'],rres:['armor'],sres:['armor'],fdmg:['weapon','relic'],frdmg:['weapon','relic'],rdmg:['weapon','relic'],sdmg:['weapon','relic']};   // typed lines roll only on these slots
+const rollKeys=slot=>Object.keys(ROLL_KEYS).filter(k=>!ROLL_SLOT[k]||!slot||ROLL_SLOT[k].includes(slot));   // value per point of set multiplier
 const ROLL_LINES=[[1,.35],[1,.6],[2,.55],[2,.7],[3,.65]];   // per tier: [max lines, chance of each line]
 const REFORGE_COST=.4;   // share of the merchant price
 function rollItem(id,atLeast){
@@ -1467,7 +1471,7 @@ function rollItem(id,atLeast){
   const up=(S&&S.run&&omen()==='ironrain')?1:0;   // Iron Rain: gear found in a run rolls its lines as if one tier higher
   const [max,ch]=ROLL_LINES[Math.min(ROLL_LINES.length-1,d.tier+up)]||[0,0], m=TM[d.set], out=[];
   for(let tries=0;tries<20&&!out.length;tries++){
-    for(let i=0;i<max;i++) if(Math.random()<ch){ const left=Object.keys(ROLL_KEYS).filter(k=>!out.some(r=>r[0]===k)); const k=pick(left); out.push([k,Math.max(1,Math.round(ROLL_KEYS[k]*m*rnd(.5,1)))]); }
+    for(let i=0;i<max;i++) if(Math.random()<ch){ const left=rollKeys(d.slot).filter(k=>!out.some(r=>r[0]===k)); const k=pick(left); out.push([k,Math.max(1,Math.round(ROLL_KEYS[k]*m*rnd(.5,1)))]); }
     if(!atLeast) break;
   }
   return out.length?out:null;
@@ -1646,6 +1650,27 @@ const tierRec=(di,h)=>{ let r=gateRec(di); for(let t=1;t<=(h||0)&&t<HEAT.length;
 const NGP_FOE=.3, NGP_REWARD=.25, ngpFoe=()=>1+NGP_FOE*((S&&S.ngp)||0), ngpReward=()=>(1+NGP_REWARD*((S&&S.ngp)||0))*pactReward();   // New Game+: tougher foes, richer rewards
 function foeScale(list,a){ const n=ngpFoe(); for(const e of list){ if(n!==1){ e.maxHp=e.hp=Math.round(e.maxHp*n); } if(a*n!==1) e.atk=Math.max(1,Math.round(e.atk*a*n)); } }
 const foeArmor=()=>{ if(!S.run) return 0; const a=S.run.tw?TW.armor:DIFF.armor[S.run.trial?TRIAL_GATE:S.run.di]*(S.run.siege?siegeArmorK():1); return omen()==='ironrain'?1-(1-a)/IRON_ARMOR:a; };   // Iron Rain: foes 25% tougher to hurt
+// ===== DAMAGE TYPES =====
+// Every hit has one of five types (hurtFoe / hurtAlly take it; physical when none is given). A foe's resistance to a type comes from where it
+// stands (GATE_RES, the Tower, the Rift's depth, a siege) and scales the damage once, after armor and before shields: 0.25 = takes 25% less,
+// -0.25 = takes 25% more (weak). Your gear can resist the four magic types (armor only) and add damage of one type (weapon and relic):
+// those bonus lines are the *res and *dmg roll keys. Strikers hit with their place's type (GATE_HITS); vanguards and menders hit physical.
+const DTYPE={phys:{name:'Physical',res:null,dmg:null},shad:{name:'Shadow',res:'sres',dmg:'sdmg'},frost:{name:'Frost',res:'frres',dmg:'frdmg'},fire:{name:'Fire',res:'fres',dmg:'fdmg'},rot:{name:'Rot',res:'rres',dmg:'rdmg'}};
+const DT_IDS=Object.keys(DTYPE);
+const GATE_RES=[{fire:-.25,rot:.25},{frost:-.25,fire:.25},{frost:-.25,fire:.5},{phys:-.25,shad:.25},{rot:-.25,phys:.25},{frost:-.25,fire:.25,shad:.25}];
+const GATE_HITS=['rot','frost','fire','shad','phys','shad'];
+const TOWER_RES={frost:-.25,fire:.5}, TOWER_HITS='fire', SIEGE_RES={shad:-.25}, SIEGE_HITS='phys';
+const RES_CAP=.5, FOE_RES_MAX=.9, IRON_PHYS=.15, STORM_SHAD=1.1;   // RES_CAP: your own resistance to one type; Iron Rain: foes resist physical; Soul Storm: your shadow damage
+const riftRes=n=>{ const w=DT_IDS[(n*7+2)%5], r=DT_IDS[(n*3+(n>>2)+4)%5]; const o={}; o[w]=-.25; if(r!==w) o[r]=.25; else o[DT_IDS[(DT_IDS.indexOf(w)+2)%5]]=.25; return o; };   // one weakness and one resistance per depth, the same every time
+function placeRes(r){ r=r||S.run; if(!r) return {}; return r.siege?SIEGE_RES:r.tw?TOWER_RES:r.rift?riftRes(r.rift):GATE_RES[r.di]||{}; }
+function foeRes(e,ty){ let v=(placeRes()[ty]||0)+(e&&e.res&&e.res[ty]||0); if(ty==='phys'&&omen()==='ironrain') v+=IRON_PHYS; return Math.min(FOE_RES_MAX,v); }
+const typeDmg=ty=>{ const k=DTYPE[ty]&&DTYPE[ty].dmg; return (k?1+G(k)/100:1)*(ty==='shad'&&omen()==='soulstorm'?STORM_SHAD:1); };   // your damage of one type: gear lines (you and your army), Soul Storm
+const TRAIT_RES={rimeborn:['frost',.25],cinderborn:['fire',.25],necrotic:['rot',.25],venom:['rot',.25]};   // a minion risen with a typed trait shrugs off its own element
+function allyRes(a,ty){ if(!ty||ty==='phys') return 0; if(a.id==='p'){ const k=DTYPE[ty].res; return k?Math.min(RES_CAP,G(k)/100):0; } let v=0; for(const t in TRAIT_RES) if(TRAIT_RES[t][0]===ty&&hasTrait(a,t)) v=Math.max(v,TRAIT_RES[t][1]); return v; }
+const DOT_TYPE={poison:'rot',blight:'rot',burn:'fire',bleed:'phys'};
+const foeHitType=e=>hasAff(e,'frosty')?'frost':hasAff(e,'burning')?'fire':e.role!=='striker'?'phys':S.run&&S.run.siege?SIEGE_HITS:S.run&&S.run.tw?TOWER_HITS:GATE_HITS[S.run?S.run.di:0]||'phys';
+function minionType(m){ if(hasTrait(m,'shatterwrought')) return m.swt?'fire':'frost'; if(hasTrait(m,'rimeborn')) return 'frost'; if(hasTrait(m,'cinderborn')) return 'fire'; if(hasTrait(m,'venom')||hasTrait(m,'necrotic')) return 'rot'; if(hasTrait(m,'bloodfiend')) return 'shad'; return 'phys'; }   // compounds count as both halves (hasTrait)
+const resWord=v=>v<=-.5?'very weak':v<0?'weak':v>=.5?'resists strongly':'resists';
 let S = null;
 const rnd = (a,b)=>a+Math.random()*(b-a);
 const pick = a=>a[Math.floor(Math.random()*a.length)];
@@ -2238,15 +2263,17 @@ const liveFoes = ()=>S.run.enemies.filter(e=>e.hp>0);
 const fxKey=u=>u==null?null:typeof u==='string'?u:u.id!=null?u.id:u.uid!=null?'m'+u.uid:null;   // the key a unit's card answers to (data-u, r.fx): minions have no id, only a uid
 function mark(u,d,h){ const id=fxKey(u); if(id==null) return; const f=S.run.fx[id]||(S.run.fx[id]={d:0,h:0}); f.d+=d; f.h+=h; if(id==='p'&&d>0) S.run.dt=(S.run.dt||0)+d; }   // dt: damage you took this run (History, Records)
 function hit(b){ return Math.max(1,Math.round(b*rnd(.85,1.15))); }
-function hurtFoe(e,d){ if(e.curse) d=Math.round(d*e.curse.mul); { const mk=masteryDmg(e.base); if(mk) d=Math.round(d*(1+mk/100)); }   /* bestiary mastery: every hit from you and your army, once */ if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25); if(e.stun>0&&capOn('frost1')) d=Math.round(d*CAP_RIME);
+function hurtFoe(e,d,ty){ ty=DTYPE[ty]?ty:'phys'; if(e.curse) d=Math.round(d*e.curse.mul); { const mk=masteryDmg(e.base); if(mk) d=Math.round(d*(1+mk/100)); }   /* bestiary mastery: every hit from you and your army, once */ if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25); if(e.stun>0&&capOn('frost1')) d=Math.round(d*CAP_RIME);
   if(hasSt(e,'sundered')) d=Math.round(d*SUNDER_MUL); if(hasSt(e,'chilled')) d=Math.round(d*CHILL_MUL);   // conditions (game-gate-rules.js)
+  { const k=(1-foeRes(e,ty))*typeDmg(ty); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
+  e.lt=ty;   /* the type of the last hit it took (a weakness kill) */
   if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e,0,0); return; } }   // Bone Wall shield soaks damage first
   if(e.hp>0&&d>=e.hp) e.cd=deathCond(e,d);   // the killing blow decides the body's condition
   recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e,d,0); { const r=S.run; r.dd=(r.dd||0)+d; if(d>(r.mh||0)) r.mh=d; } }   /* damage dealt and the biggest hit this run, for the History */
-function hurtAlly(a,d){
-  if(a.id==='p'&&BLOW){ const v=guardBlow(a,d); if(v) return hurtAlly(v,Math.round(d*SB_TAKE)); }   // Guard, for boss moves (plain hits swap their target before this)
+function hurtAlly(a,d,ty){
+  if(a.id==='p'&&BLOW){ const v=guardBlow(a,d); if(v) return hurtAlly(v,Math.round(d*SB_TAKE),ty); }   // Guard, for boss moves (plain hits swap their target before this)
   if(a.id==='p'&&S.run) S.run.blow=BLOW?blowNote(BLOW):null;   // what hits you, for the defeat recap (before the ward soaks it)
-  d=allyDr(a,d);
+  d=allyDr(a,d); { const rs=allyRes(a,ty); if(rs) d=Math.max(1,Math.round(d*(1-rs))); }   /* damage types: your resistance lines, a minion's typed trait */
   if(a.id==='p'){ const s=Math.min(S.player.shield,d); S.player.shield-=s; d-=s; if(BLOW&&d>0) d=tetherBlow(d); /* the Soul Tether (game-faith-story.js) */ } else if(a.mw>0){ const s=Math.min(a.mw,d); a.mw-=s; d-=s; }   // a Warden's ward on a minion
   d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a,d,0); if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p'&&!stitchUp(a)) fxe('death',a);
   return d;
@@ -2257,6 +2284,7 @@ function allyDr(a,d){   // a blow on you or a minion after its damage reduction,
   if(a.id==='p'&&pDr()) d=Math.max(1,Math.round(d*(1-pDr()/100)));   // Constitution adds to it (pDr)
   if(a.id!=='p'&&hasMod('gravepact','b')) d=Math.max(1,Math.round(d*.9));
   if(hasSt(a,'sundered')) d=Math.round(d*SUNDER_MUL);
+  if(hasSt(a,'chilled')) d=Math.round(d*CHILL_MUL);   /* a Frost-touched foe's chill */
   if(a.id==='p'&&hasMod('deathless','b')) d=Math.max(1,Math.round(d*(a.hp<pMax()*IRON_LOW?IRON_WILL:IRON_BASE)));   // Iron Will
   return d;
 }
@@ -2342,13 +2370,13 @@ function act(kind){
     const fb=frozenChilled(t); if(fb) d=Math.round(d*FROSTBREAK);
     hurtFoe(t,d); P.mana=Math.min(pMana(),P.mana+3); if(hasMod('edge','b')){ healAlly(P,Math.round(d*.1)); addDot(t,'bleed',d*BLOODLET,2); } if(crit&&hasMod('edge','a')) addSt(t,'sundered',2);   // Bloodletting, Rending
     log('You strike '+t.name+' for '+d+(crit?' (crit)':'')+'. +3 mana.'); fxe('strike',t,crit?{crit:1}:null); if(fb&&t.hp>0) frostbreak(t);
-    if(hasFlag('echo')&&t.hp>0&&Math.random()<.25){ const d2=hit(pAtk()*pierceMul(strPen())); hurtFoe(t,d2); log('Echo: the blade strikes again for '+d2+'.','ok'); }
+    if(hasFlag('echo')&&t.hp>0&&Math.random()<.25){ const d2=hit(pAtk()*pierceMul(strPen())); hurtFoe(t,d2,'phys'); log('Echo: the blade strikes again for '+d2+'.','ok'); }
     if(hasFlag('hellfire')){ for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.4)); }
     else if(hasFlag('cleave')){ const o=liveFoes().filter(x=>x!==t); if(o.length) hurtFoe(pick(o),Math.round(d*.6)); }
   }else if(kind==='siphon'){
     if(P.mana<siphonCost()) return;
-    P.mana-=siphonCost(); const low=t.hp<t.maxHp*SIPHON_LOW; let d=hit(pSiph()*pierceMul(SIPHON_PIERCE)*hexK(P)*shadowK()); if(low) d*=2; hurtFoe(t,d);   // pierces a quarter of armor; devours the weak
-    if(hasFlag('chorus')) for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.5));
+    P.mana-=siphonCost(); const low=t.hp<t.maxHp*SIPHON_LOW; let d=hit(pSiph()*pierceMul(SIPHON_PIERCE)*hexK(P)*shadowK()); if(low) d*=2; hurtFoe(t,d,'shad');   // pierces a quarter of armor; devours the weak
+    if(hasFlag('chorus')) for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.5),'shad');
     const h=healAlly(P,Math.round(d*(hasFlag('lifedrain')?SIPHON_HEAL_LD:SIPHON_HEAL))); const got=gainSoul();
     log('Soul Siphon '+(low?'devours ':'drains ')+t.name+' for '+d+(h?', you recover '+h:'')+(got?' and harvest a Soul ('+S.run.souls+'/'+SOUL_MAX+')':'')+'.'); fxe('siphon',t);
   }else if(kind==='ward'){
@@ -2374,11 +2402,11 @@ function act(kind){
     let tg=minionTarget(m); if(!tg) break;
     const breach=m.role==='reaper'&&r.execute&&hasSt(tg,'sundered')&&foeArmor()>0;   // Breach: Execute ignores a Sundered foe's armor
     let d=hit(m.atk*(breach?pierceMul(1):dmgMul())*(r.frenzy>0?r.frenzyMul:1)*(m.role==='reaper'&&r.execute&&tg.hp<tg.maxHp*.4?2:1)*(hasTrait(m,'wrathful')&&m.hp<m.maxHp/2?1.4:1)*hexK(m)*rowK(m)*(tg.hp<tg.maxHp*BUTCHER_LOW?1+markV(m,'butcher'):1)*breakK(m,tg)); const cc=mCritCh(m), crit=(m.role==='striker'&&r.focus)||(cc>0&&Math.random()<cc); if(crit){ d=Math.round(d*1.8); tally('crits'); }
-    KILL=m.role==='reaper'&&r.execute?'exec':null; hurtFoe(tg,d); KILL=null; fxe('mhit',tg,{by:fxKey(m)});
+    const mt=minionType(m); KILL=m.role==='reaper'&&r.execute?'exec':null; hurtFoe(tg,d,mt); KILL=null; fxe('mhit',tg,{by:fxKey(m)});
     if(crit&&r.focus&&tg.charging&&tg.hp>0) breakCharge(tg,m.nick+'\'s focused strike breaks '+theName(tg.name)+'\'s focus.');
     let extra=minionOnHit(m,tg);
-    if(m.role==='reaper'){ const o=liveFoes().filter(x=>x!==tg); if(o.length){ const o2=pick(o); const d2=Math.round(d*.5); hurtFoe(o2,d2); extra=' and cleaves '+o2.name+' for '+d2; } }
-    if(hasTrait(m,'frenzied')&&tg.hp>0&&Math.random()<.2){ let d3=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*rowK(m)*breakK(m,tg)); const c3=blurCrit(m); if(c3) d3=Math.round(d3*1.8); hurtFoe(tg,d3); d+=d3; extra+=', then strikes again for '+d3+(c3?' (crit)':''); if(hasTrait(m,'blur')) extra+=minionOnHit(m,tg); }   // Blur: the extra strike carries its on-hit effects
+    if(m.role==='reaper'){ const o=liveFoes().filter(x=>x!==tg); if(o.length){ const o2=pick(o); const d2=Math.round(d*.5); hurtFoe(o2,d2,mt); extra=' and cleaves '+o2.name+' for '+d2; } }
+    if(hasTrait(m,'frenzied')&&tg.hp>0&&Math.random()<.2){ let d3=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*rowK(m)*breakK(m,tg)); const c3=blurCrit(m); if(c3) d3=Math.round(d3*1.8); hurtFoe(tg,d3,mt); d+=d3; extra+=', then strikes again for '+d3+(c3?' (crit)':''); if(hasTrait(m,'blur')) extra+=minionOnHit(m,tg); }   // Blur: the extra strike carries its on-hit effects
     if(hasTrait(m,'leech')){ const h=healAlly(m,Math.round(d*(hasTrait(m,'bloodfiend')&&m.hp<m.maxHp/2?.5:.25))); if(h) extra+=' and drinks '+h+' HP'; }
     log(m.nick+' hits '+tg.name+' for '+d+(crit?' (crit)':'')+extra+'.'); if(breach) combo('breach',tg,'Breach: '+m.nick+' cuts through the cracked armor.');
     markHit(m,tg,d);
@@ -2404,7 +2432,7 @@ function act(kind){
     if(omen()==='eclipse'&&Math.random()<ECLIPSE_MISS){ log(e.name+' misses '+(tg.id==='p'?'you':nameOf(tg))+' in the dark.','ok'); continue; }   // Black Eclipse
     let d=hit(e.atk*enrage(e)*(hasAff(e,'enraged')&&e.hp<e.maxHp/2?1.6:1)*hexK(e)); let crit=e.role==='striker'&&Math.random()<foeCrit(); if(crit&&hasSt(e,'hexed')){ crit=false; combo('fizzle',e,'Fizzle: the hex spoils '+e.name+'\'s killing blow.'); } if(crit&&tg.id==='p'&&hasMod('calcify','a')) crit=false;   /* Petrified: rolled, then refused */ if(crit) d=Math.round(d*1.8);
     { const gv=guardBlow(tg,d); if(gv){ tg=gv; d=Math.round(d*SB_TAKE); } }   // Guard: swapped here so the log names who was hit
-    BLOW={n:e.name,k:crit?'crit':'hit'}; hurtAlly(tg,d); BLOW=null; fxe('hurt',tg,{crit:crit?1:0,by:e.id}); if(crit) addDot(tg,'bleed',e.atk*.3,2);   // a striker's crit opens a wound
+    BLOW={n:e.name,k:crit?'crit':'hit'}; hurtAlly(tg,d,foeHitType(e)); BLOW=null; fxe('hurt',tg,{crit:crit?1:0,by:e.id}); if(crit) addDot(tg,'bleed',e.atk*.3,2);   // a striker's crit opens a wound
     if(hasAff(e,'vampiric')){ const h=Math.min(e.maxHp-e.hp,Math.round(d*.4*blightK(e))); if(h>0){ e.hp+=h; mark(e,0,h); } }
     const ex=foeOnHit(e,tg);
     log(e.name+' hits '+(tg.id==='p'?'you':nameOf(tg))+' for '+d+(crit?' (crit'+(tg.hp>0&&tg.dots&&tg.dots.bleed?', bleeding':'')+')':'')+ex+'.','bad');
@@ -2664,11 +2692,11 @@ function useSkill(id,t){
   if(!canUse(id)) return false;
   const s=SKILL[id], rk=sk(id), r=S.run, P=S.player;
   P.mana-=skCost(s); r.cd=r.cd||{}; r.cd[id]=s.cd+1; tally('sk_'+id);   // +1: the end-of-turn tick runs this same turn
-  if(id==='spear'){ const fb=frozenChilled(t), d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(hasMod('spear','a')?1:.5)*skMul()*(fb?FROSTBREAK:1)); hurtFoe(t,d); log('Bone Spear impales '+t.name+' for '+d+'.'); fxe('spear',t); if(fb&&t.hp>0) frostbreak(t);
-    if(hasMod('spear','b')){ const o=liveFoes().filter(x=>x!==t); if(o.length){ const o2=pick(o), d2=Math.round(d*.5); hurtFoe(o2,d2); log('A splinter tears into '+o2.name+' for '+d2+'.'); } } }
+  if(id==='spear'){ const fb=frozenChilled(t), d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(hasMod('spear','a')?1:.5)*skMul()*(fb?FROSTBREAK:1)); hurtFoe(t,d,'phys'); log('Bone Spear impales '+t.name+' for '+d+'.'); fxe('spear',t); if(fb&&t.hp>0) frostbreak(t);
+    if(hasMod('spear','b')){ const o=liveFoes().filter(x=>x!==t); if(o.length){ const o2=pick(o), d2=Math.round(d*.5); hurtFoe(o2,d2,'phys'); log('A splinter tears into '+o2.name+' for '+d2+'.'); } } }
   else if(id==='blast'){ const c=freeCorpse(); c.tried=true; c.result='exploded'; const base=pSiph()*(.6+.2*rk)*pierceMul(1)*(hasMod('blast','a')?1.3:1)*skMul()*shadowK(); let tot=0;
     const rot=Math.max(c.bl||0,...liveFoes().map(o=>o.dots&&o.dots.blight?o.dots.blight.d:0)), spread=[];   // Spreading Rot: a blighted body, or blight already in the room
-    for(const o of liveFoes()){ const d=hit(base); hurtFoe(o,d); fxe('burst',o); tot+=d; if(rot&&o.hp>0&&!(o.dots&&o.dots.blight)){ addDot(o,'blight',rot,2); if(o.dots&&o.dots.blight) spread.push(o); } if(hasMod('blast','a')) addSt(o,'sundered',2); if(hasMod('blast','b')){ addDot(o,'poison',pSiph()*.15,3); addDot(o,'blight',pSiph()*.1,3); } } log('The body of '+c.name+' bursts apart, dealing '+tot+' damage across the room.');
+    for(const o of liveFoes()){ const d=hit(base); hurtFoe(o,d,'rot'); fxe('burst',o); tot+=d; if(rot&&o.hp>0&&!(o.dots&&o.dots.blight)){ addDot(o,'blight',rot,2); if(o.dots&&o.dots.blight) spread.push(o); } if(hasMod('blast','a')) addSt(o,'sundered',2); if(hasMod('blast','b')){ addDot(o,'poison',pSiph()*.15,3); addDot(o,'blight',pSiph()*.1,3); } } log('The body of '+c.name+' bursts apart, dealing '+tot+' damage across the room.');
     if(spread.length) combo('rot',spread,'Spreading Rot: the blight spreads to '+spread.length+' foe'+(spread.length>1?'s':'')+'.'); }
   else if(id==='mend'){
     let tot=0;
@@ -2685,11 +2713,11 @@ function useSkill(id,t){
     if(hasMod('curse','b')){ for(const o of liveFoes()){ o.curse={mul:1+bonus*.8,t:turns}; mark(o,0,0); } log('Every foe is cursed and takes '+Math.round(bonus*80)+'% more damage.'); }
     else { t.curse={mul:1+bonus,t:turns}; mark(t,0,0); log(t.name+' is cursed and takes '+Math.round(bonus*100)+'% more damage.'); }
     if(rk>=3) for(const o of (hasMod('curse','b')?liveFoes():[t])) addSt(o,'hexed',2); }   // rank 3: the curse also hexes
-  else if(id==='chill'){ const d=hit(pSiph()*.5*dmgMul()*skMul()*shadowK()); hurtFoe(t,d); fxe('ward',t); const held=!t.boss||Math.random()*100<40+10*rk+(hasMod('chill','a')?20:0);
+  else if(id==='chill'){ const d=hit(pSiph()*.5*dmgMul()*skMul()*shadowK()); hurtFoe(t,d,'frost'); fxe('ward',t); const held=!t.boss||Math.random()*100<40+10*rk+(hasMod('chill','a')?20:0);
     if(rk>=2&&t.hp>0) addSt(t,'chilled',2);   // rank 2: Chilled, resisted or not
     if(held&&t.hp>0){ t.stun=rk>=3?2:1; tally('frozen'); log('Grave Chill hits '+t.name+' for '+d+' and freezes it solid.'); } else log('Grave Chill hits '+t.name+' for '+d+', but it shakes off the frost.'); }
   else if(id==='frenzy'){ r.frenzy=hasMod('frenzy','a')?5:3; r.frenzyMul=1+(.2+.15*rk); if(hasMod('frenzy','b')) for(const m of S.army) if(m.hp>0) healAlly(m,Math.round(m.maxHp*.15)); if(rk>=3) for(const m of S.army) if(m.hp>0) addSt(m,'hasted',2); log('Unholy Frenzy: your army surges with '+Math.round((r.frenzyMul-1)*100)+'% more damage.','ok'); }
-  else if(id==='reap'){ const low=t.hp<t.maxHp*reapLow(); let d=hit(pSiph()*(1.2+.3*rk)*pierceMul(1)*skMul()*shadowK()); if(low) d*=2; else if(hasMod('reap','a')) d=Math.round(d*MOON_HIGH); const fb=frozenChilled(t); if(fb) d=Math.round(d*FROSTBREAK); KILL='reap'; hurtFoe(t,d); KILL=null; fxe('strike',t,{crit:1});
+  else if(id==='reap'){ const low=t.hp<t.maxHp*reapLow(); let d=hit(pSiph()*(1.2+.3*rk)*pierceMul(1)*skMul()*shadowK()); if(low) d*=2; else if(hasMod('reap','a')) d=Math.round(d*MOON_HIGH); const fb=frozenChilled(t); if(fb) d=Math.round(d*FROSTBREAK); KILL='reap'; hurtFoe(t,d,'shad'); KILL=null; fxe('strike',t,{crit:1});
     if(hasMod('reap','b')){ healAlly(P,Math.round(d*SOUL_REAP_HEAL)); if(t.hp<=0) P.mana=Math.min(pMana(),P.mana+SOUL_REAP_MANA); }   // Soul Reap
     log('You reap '+t.name+' for '+d+(low?' (harvest)':'')+'.'); if(fb&&t.hp>0) frostbreak(t); }
   return true;
@@ -2845,7 +2873,7 @@ const theName=n=>n.startsWith('The ')?n:'the '+n;
 // Commander: never rolled like the others. Only a raised elite or boss can have it (at the raise, or when it evolves).
 TRAITS.commander={name:'Commander',desc:'Can lead a raid on a cleared gate from the War table while you stay behind.'};
 // Affix traits: never rolled like the others (and so outside TRAIT_IDS). A minion gets one only by being raised from an elite with that affix.
-TRAITS.necrotic={name:'Necrotic',desc:'Its hits blight the target for 2 turns: shadow damage each turn, and half the healing it receives.'};
+TRAITS.necrotic={name:'Necrotic',desc:'Its hits blight the target for 2 turns: rot damage each turn, and half the healing it receives.'};
 TRAITS.crushing={name:'Crushing',desc:'Its hits sunder the target 1 time in 3: 25% more damage taken for 2 turns.'};
 TRAITS.hexing  ={name:'Hexing',  desc:'Its hits hex the target 1 time in 3: it deals 20% less damage for 2 turns.'};
 TRAITS.swift   ={name:'Swift',   desc:'Hasted for the first 2 turns of every fight: strikes again for 50% at the end of each turn.'};
@@ -3127,7 +3155,7 @@ function fireAbility(e,mv){
     let tot=0;
     allies().filter(a=>a.hp>0).forEach(a=>{
       const d=hit(e.atk*(e.secret?.45:.7)*enrage(e));   /* a secret master's wave is spread thinner: at full strength it wiped every army */
-      hurtAlly(a,d);
+      hurtAlly(a,d,'fire');
       fxe('hurt',a,{fire:1});
       addDot(a,'burn',e.atk*.15,2);
       tot+=d;
@@ -3159,8 +3187,8 @@ function sellJunk(){ if(S.mode!=='town') return null; const list=S.inv.filter(is
 // ===== STATUS EFFECTS =====
 // Damage over time: bleed (crits from enemy strikers), burn (Cinder Wave), poison (Venomous minions). One of each kind per unit;
 // a new dose refreshes it. They tick at the end of each turn, ignore ward and armor, and wear off when you leave a room.
-const DOTS={poison:{name:'Poisoned'},bleed:{name:'Bleeding'},burn:{name:'Burning'},blight:{name:'Blighted'}};   // blight: a shadow wound that also halves the healing its bearer receives
-DOTS.poison.tip='Venom eats HP at the end of each turn.'; DOTS.bleed.tip='An open wound bleeds at the end of each turn.'; DOTS.burn.tip='Fire burns at the end of each turn.'; DOTS.blight.tip='Shadow rot eats HP at the end of each turn and halves the healing received.';
+const DOTS={poison:{name:'Poisoned'},bleed:{name:'Bleeding'},burn:{name:'Burning'},blight:{name:'Blighted'}};   // blight: a rotting wound that also halves the healing its bearer receives
+DOTS.poison.tip='Venom eats HP at the end of each turn.'; DOTS.bleed.tip='An open wound bleeds at the end of each turn.'; DOTS.burn.tip='Fire burns at the end of each turn.'; DOTS.blight.tip='Rot eats HP at the end of each turn and halves the healing received.';
 function addDot(u,k,d,t){ d=Math.round(d); if(d<1||!(u.hp>0)||hasAff(u,'warded')||hasTrait(u,'warded')||(k==='burn'&&hasTrait(u,'cinderborn'))) return; u.dots=u.dots||{}; const o=u.dots[k]; u.dots[k]=o?{d:Math.max(o.d,d),t:Math.max(o.t,t)}:{d,t}; }
 const clearDots=u=>{ if(u) delete u.dots; };
 const BLIGHT_HEAL=.5;   // a blighted unit receives half the healing
@@ -3291,22 +3319,24 @@ function foeOnHit(e,tg){   // what a foe's hit leaves behind: affixes and the Wh
   if(hasAff(e,'plague')){ addDot(tg,'blight',e.atk*.2,2); if(tg.dots&&tg.dots.blight) x+=', blighted'; }
   if(hasAff(e,'sundering')&&Math.random()<ST_CH&&addSt(tg,'sundered',2)) x+=', sundered';
   if((hasAff(e,'hexing')||e.base==='Whisper Choir')&&Math.random()<ST_CH&&addSt(tg,'hexed',2)) x+=', hexed';
+  if(hasAff(e,'frosty')&&Math.random()<ST_CH&&addSt(tg,'chilled',2)) x+=', chilled';
+  if(hasAff(e,'burning')){ addDot(tg,'burn',e.atk*.15,2); if(tg.dots&&tg.dots.burn) x+=', burning'; }
   return x;
 }
 function hasteStrikes(){   // the end of the turn: every Hasted unit strikes once more for half damage
   const r=S.run;
   for(const m of S.army){ if(!(m.hp>0)||!hasSt(m,'hasted')) continue; const tg=minionTarget(m); if(!tg) break;
-    let d=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*HASTE_MUL*hexK(m)*rowK(m)*breakK(m,tg)); const cr=blurCrit(m); if(cr) d=Math.round(d*1.8); hurtFoe(tg,d); fxe('mhit',tg,{by:fxKey(m)}); log(m.nick+' is hasted and strikes '+tg.name+' again for '+d+(cr?' (crit)':'')+'.'); const x=minionOnHit(m,tg); if(x) combo('swift',tg,'Swift Blow: '+tg.name+' is '+x.split(' and ').filter(Boolean).map(v=>({poisons:'poisoned',blights:'blighted',sunders:'sundered',hexes:'hexed',chills:'chilled',burns:'burning'})[v.split(' ')[0]]).join(', ')+'.'); checkDeaths(); }
+    let d=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*HASTE_MUL*hexK(m)*rowK(m)*breakK(m,tg)); const cr=blurCrit(m); if(cr) d=Math.round(d*1.8); hurtFoe(tg,d,minionType(m)); fxe('mhit',tg,{by:fxKey(m)}); log(m.nick+' is hasted and strikes '+tg.name+' again for '+d+(cr?' (crit)':'')+'.'); const x=minionOnHit(m,tg); if(x) combo('swift',tg,'Swift Blow: '+tg.name+' is '+x.split(' and ').filter(Boolean).map(v=>({poisons:'poisoned',blights:'blighted',sunders:'sundered',hexes:'hexed',chills:'chilled',burns:'burning'})[v.split(' ')[0]]).join(', ')+'.'); checkDeaths(); }
   for(const e of liveFoes()){ if(!hasSt(e,'hasted')||e.froze===r.turn) continue; let alive=allies().filter(a=>a.hp>0); if(!alive.length) break;
     alive=foeReach(e,alive);   // Taunt and the row rule hold for the follow-up too
-    let tg=foeTarget(alive), d=hit(e.atk*HASTE_MUL*hexK(e)*enrage(e)); const gv=guardBlow(tg,d); if(gv){ tg=gv; d=Math.round(d*SB_TAKE); } BLOW={n:e.name,k:'haste'}; hurtAlly(tg,d); BLOW=null; fxe('hurt',tg,{by:e.id}); log(e.name+' is hasted and strikes '+(tg.id==='p'?'you':nameOf(tg))+' again for '+d+'.','bad');
+    let tg=foeTarget(alive), d=hit(e.atk*HASTE_MUL*hexK(e)*enrage(e)); const gv=guardBlow(tg,d); if(gv){ tg=gv; d=Math.round(d*SB_TAKE); } BLOW={n:e.name,k:'haste'}; hurtAlly(tg,d,foeHitType(e)); BLOW=null; fxe('hurt',tg,{by:e.id}); log(e.name+' is hasted and strikes '+(tg.id==='p'?'you':nameOf(tg))+' again for '+d+'.','bad');
     if(tg.hp<=0&&tg.id!=='p') log(tg.nick+' is down.','bad'); if(S.player.hp<=0) return; }
 }
 function tickDots(){
   let foeD=0, ourD=0;
   const tick=(u,hurt)=>{ if(!u.dots) return; for(const k of Object.keys(u.dots)){ const o=u.dots[k]; if(u.hp>0) hurt(u,o.d,k); if(--o.t<=0) delete u.dots[k]; } if(!Object.keys(u.dots).length) delete u.dots; };
-  for(const e of S.run.enemies) tick(e,(u,d,k)=>{ const h=u.hp; KILL=k; hurtFoe(u,k==='blight'?Math.round(d*shadowK()):d); KILL=null; foeD+=h-u.hp; });   // Black Eclipse feeds your blight
-  for(const a of allies()) tick(a,(u,d,k)=>{ const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u,n,0); if(u.id==='p'){ S.run.hurt=true; S.run.blow={k:'dot',dot:k}; } } ourD+=n; if(u.hp<=0&&u.id!=='p'&&!stitchUp(u)){ log(u.nick+' succumbs.','bad'); fxe('death',u); } });
+  for(const e of S.run.enemies) tick(e,(u,d,k)=>{ const h=u.hp; KILL=k; hurtFoe(u,k==='blight'?Math.round(d*shadowK()):d,DOT_TYPE[k]); KILL=null; foeD+=h-u.hp; });   // Black Eclipse feeds your blight
+  for(const a of allies()) tick(a,(u,d,k)=>{ { const rs=allyRes(u,DOT_TYPE[k]); if(rs) d=Math.max(1,Math.round(d*(1-rs))); } const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u,n,0); if(u.id==='p'){ S.run.hurt=true; S.run.blow={k:'dot',dot:k}; } } ourD+=n; if(u.hp<=0&&u.id!=='p'&&!stitchUp(u)){ log(u.nick+' succumbs.','bad'); fxe('death',u); } });
   capFester(foeD);
   if(foeD) log('Poison eats '+foeD+' HP from your foes.','ok');
   if(ourD) log('Bleeding and burns cost your side '+ourD+' HP.','bad');
@@ -3385,10 +3415,10 @@ const OMENS={
   bloodmoon:{name:'Blood Moon',desc:'Elites are twice as common.'},
   paletide: {name:'Pale Tide', desc:'+10% chance to raise the dead.'},
   ashfall:  {name:'Ashfall',   desc:'Bosses and wardens use their moves a turn sooner, and pay 25% more XP.'},
-  eclipse:  {name:'Black Eclipse',desc:'Soul Siphon and your shadow damage, the Siphon skills and blight, deal 20% more. Foes crit 10% less often and miss 1 blow in 10.'},
+  eclipse:  {name:'Black Eclipse',desc:'Soul Siphon, the Siphon skills and blight deal 20% more. Foes crit 10% less often and miss 1 blow in 10.'},
   boneharvest:{name:'Bone Harvest',desc:'Foes drop trophies 25% more often and elites one more. Any kill may leave bone dust: 1 kill in 4, and 3 from a boss.'},
-  ironrain: {name:'Iron Rain', desc:'Gear drops 10% more often and rolls bonus lines as if one tier higher. Foes wear heavier armor and are 25% tougher to hurt.'},
-  soulstorm:{name:'Soul Storm',desc:'Every room starts with one Soul harvested, and you regain 20% more mana each turn. Foes deal 25% more damage.'}
+  ironrain: {name:'Iron Rain', desc:'Gear drops 10% more often and rolls bonus lines as if one tier higher. Foes wear heavier armor: 25% tougher to hurt, and they resist 15% of physical damage on top.'},
+  soulstorm:{name:'Soul Storm',desc:'Every room starts with one Soul harvested, and you regain 20% more mana each turn. Your shadow damage is 10% stronger. Foes deal 25% more damage.'}
 };
 const OMEN_CHANCE=.25, OMEN_RAISE=10, OMEN_BOSS_XP=1.25;
 const ECLIPSE_SHADOW=1.2, ECLIPSE_CRIT=.1, ECLIPSE_MISS=.1, HARVEST_TRO=.25, HARVEST_DUST=.25, HARVEST_DUST_BOSS=3, IRON_DROP=1.1, IRON_ARMOR=1.25, STORM_REGEN=.2, STORM_ATK=1.25;
@@ -3417,7 +3447,7 @@ const curseRise=di=>(runMod()&&S.ti&&S.ti.clr&&S.ti.clr[5])?Math.max(0,S.player.
 const foeAtkMul=di=>DIFF.foeAtk[di]*(hasRunMod('fury')?1.25:1);
 const bulwark=list=>{ if(hasRunMod('bulwark')) for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*1.3); } };
 function volatileBurst(e){   // Volatile dead: a dying foe bursts on you
-  const P=S.player; let d=Math.round(e.atk*.5); const s=Math.min(P.shield,d); P.shield-=s; d=Math.max(0,Math.min(d-s,P.hp-1)); P.hp-=d; if(d){ mark('p',d,0); S.run.hurt=true; }
+  const P=S.player; let d=Math.round(e.atk*.5*(1-allyRes(P,'fire'))); const s=Math.min(P.shield,d); P.shield-=s; d=Math.max(0,Math.min(d-s,P.hp-1)); P.hp-=d; if(d){ mark('p',d,0); S.run.hurt=true; }
   log(e.name+' bursts'+(d?' and burns you for '+d:', but your ward takes it')+'.','bad');
 }
 
@@ -3947,10 +3977,12 @@ const AFFIX={
   vampiric: {name:'Vampiric', desc:'Heals for 40% of the damage it deals.',                     trait:'leech'},
   enraged:  {name:'Enraged',  desc:'Hits 60% harder below half HP.',                            trait:'wrathful'},
   warded:   {name:'Warded',   desc:'Immune to bleeding, burns, poison and blight.',             trait:'warded'},
-  plague:   {name:'Plaguebearer',desc:'Its hits blight the target for 2 turns: shadow damage each turn, and half the healing received.', trait:'necrotic'},
+  plague:   {name:'Plaguebearer',desc:'Its hits blight the target for 2 turns: rot damage each turn, and half the healing received.', trait:'necrotic'},
   sundering:{name:'Sundering', desc:'Its hits sunder the target 1 time in 3: 25% more damage taken for 2 turns.', trait:'crushing'},
   hexing:   {name:'Hexing',    desc:'Its hits hex the target 1 time in 3: 20% less damage dealt for 2 turns.', trait:'hexing'},
-  swift:    {name:'Swift',     desc:'Hasted for the first 3 turns of a fight: strikes again for 50% at the end of each turn.', trait:'swift'}
+  swift:    {name:'Swift',     desc:'Hasted for the first 3 turns of a fight: strikes again for 50% at the end of each turn.', trait:'swift'},
+  frosty:   {name:'Frost-touched',desc:'Its hits are frost and chill the target 1 time in 3: 20% more damage taken for 2 turns.', trait:'rimeborn'},
+  burning:  {name:'Burning',   desc:'Its hits are fire and burn the target for 2 turns.', trait:'cinderborn'}
 };
 const AFFIX_IDS=Object.keys(AFFIX), SPLIT_MAX=6;
 const hasAff=(e,a)=>!!(e&&e.aff&&e.aff.includes(a));
@@ -4190,7 +4222,7 @@ const canUlt=()=>S.mode==='battle'&&!!S.run&&S.player.lvl>=ULT_LV&&!!ULTS[S.play
 function chooseUlt(id){ if(S.mode!=='town'||!ULTS[id]||S.player.lvl<ULT_LV) return false; S.player.ult=id; return true; }
 function useUlt(t){
   if(!canUlt()) return false; const r=S.run, P=S.player, id=P.ult; r.souls=0; tally('ults');
-  if(id==='toll'){ let tot=0, slain=0; for(const o of liveFoes()){ const d=hit(pSiph()*TOLL_MUL*pierceMul(1)); hurtFoe(o,d); tot+=d; if(o.hp>0&&!o.boss&&o.hp<o.maxHp*TOLL_EXEC){ mark(o,o.hp,0); o.hp=0; slain++; } }
+  if(id==='toll'){ let tot=0, slain=0; for(const o of liveFoes()){ const d=hit(pSiph()*TOLL_MUL*pierceMul(1)); hurtFoe(o,d,'shad'); tot+=d; if(o.hp>0&&!o.boss&&o.hp<o.maxHp*TOLL_EXEC){ mark(o,o.hp,0); o.hp=0; slain++; } }
     log("Death's Toll: every foe takes the Ledger's due, "+tot+' damage in all'+(slain?', and '+slain+' fall where they stand':'')+'.','ok'); }
   else if(id==='rise'){ let n=0; for(const m of S.army){ if(m.hp<=0){ m.hp=m.maxHp; n++; } else healAlly(m,m.maxHp); } healAlly(P,Math.round(pMax()*.4)); r.frenzy=Math.max(r.frenzy||0,3); r.frenzyMul=Math.max(r.frenzyMul||1,1.5);
     log('Unholy Resurrection: '+(n?n+' of your fallen rise again, ':'')+'your army is whole and burns with fury.','ok'); }
@@ -4248,7 +4280,7 @@ function salvageTier(t){ if(S.mode!=='town'||!BULK_TIERS.includes(t)||!workOpen(
 function salvageJunk(){ if(S.mode!=='town') return null; const list=S.inv.filter(isJunk); let n=0; for(const it of list) n+=salvage(it.u); if(list.length) sfx('fail'); return {n:list.length,d:n}; }
 const lineMax=it=>(ROLL_LINES[ITEM[it.id].tier]||[0])[0];
 const enchCost=it=>Math.max(1,Math.round((3+ITEM[it.id].tier*4)*(1-B_FORGE*bl('forge'))));
-function rollLine(it,skip){ const d=ITEM[it.id], k=pick(Object.keys(ROLL_KEYS).filter(x=>!skip.includes(x))); return [k,Math.max(1,Math.round(ROLL_KEYS[k]*TM[d.set]*rnd(.5,1)))]; }
+function rollLine(it,skip){ const d=ITEM[it.id], k=pick(rollKeys(d.slot).filter(x=>!skip.includes(x))); return [k,Math.max(1,Math.round(ROLL_KEYS[k]*TM[d.set]*rnd(.5,1)))]; }
 // Tempering (same workshop): a bonus line moves TEMPER_STEP of the way to its highest roll (at least +1). Gold, growing x TEMPER_GROW for
 // every temper this piece has had (it.tp; re-rolls and reforges keep it). Uniques cannot be tempered.
 const TEMPER_GOLD=150, TEMPER_STEP=.25, TEMPER_GROW=1.5;   // TEMPER_GOLD 60->150 (2026-11-20): the full bot ran out of lines to temper with ~35k in hand; it is a capped sink (three slots, uniques excluded)
@@ -4658,7 +4690,7 @@ function progFoes(list){ for(const e of list){ if(pactOn('hides')) e.maxHp=e.hp=
 function progTick(){   // end of each turn (from skillTick): Deep Winter and the Knitting Flesh pact
   const r=S.run; if(!r||!r.enemies) return;
   if(capOn('frost2')) for(const e of liveFoes()) if(e.froze!=null&&e.froze===r.turn-1&&e.capW!==e.froze){ e.capW=e.froze;
-    const d=Math.min(e.hp-1,hit(pSiph()*CAP_WINTER*pierceMul(1))); if(d>0) hurtFoe(e,d); addSt(e,'chilled',2); }
+    const d=Math.min(e.hp-1,hit(pSiph()*CAP_WINTER*pierceMul(1))); if(d>0) hurtFoe(e,d,'frost'); addSt(e,'chilled',2); }
   if(pactOn('regen')) for(const e of liveFoes()) if(e.hp<e.maxHp){ const h=Math.min(e.maxHp-e.hp,Math.round(e.maxHp*PACT_REGEN*blightK(e))); if(h>0){ e.hp+=h; mark(e,0,h); } }
 }
 
@@ -5829,6 +5861,90 @@ function fxStageStep(tk){
 // numbers as # (so "Lv 12 · ATK 40" finds "Lv # · ATK #"), split on " · ", ", " and ": " when the whole is unknown,
 // and left in English when no piece is known. Names of places, foes and items stay as they are.
 const TR_DICT=new Map(Object.entries({
+"Fire resistance":"Ateş direnci",
+"Frost resistance":"Ayaz direnci",
+"Rot resistance":"Çürüme direnci",
+"Shadow resistance":"Gölge direnci",
+"Fire damage":"Ateş hasarı",
+"Frost damage":"Ayaz hasarı",
+"Rot damage":"Çürüme hasarı",
+"Shadow damage":"Gölge hasarı",
+"#% Fire resistance":"%# Ateş direnci",
+"#% Frost resistance":"%# Ayaz direnci",
+"#% Rot resistance":"%# Çürüme direnci",
+"#% Shadow resistance":"%# Gölge direnci",
+"#% Fire damage":"%# Ateş hasarı",
+"#% Frost damage":"%# Ayaz hasarı",
+"#% Rot damage":"%# Çürüme hasarı",
+"#% Shadow damage":"%# Gölge hasarı",
+"Physical":"Fiziksel",
+"Shadow":"Gölge",
+"Frost":"Ayaz",
+"Fire":"Ateş",
+"Rot":"Çürüme",
+"Physical (+#%)":"Fiziksel (+%#)",
+"Shadow (+#%)":"Gölge (+%#)",
+"Frost (+#%)":"Ayaz (+%#)",
+"Fire (+#%)":"Ateş (+%#)",
+"Rot (+#%)":"Çürüme (+%#)",
+"Physical (-#%)":"Fiziksel (-%#)",
+"Shadow (-#%)":"Gölge (-%#)",
+"Frost (-#%)":"Ayaz (-%#)",
+"Fire (-#%)":"Ateş (-%#)",
+"Rot (-#%)":"Çürüme (-%#)",
+"Weak":"Zayıf",
+"Resists":"Direnir",
+"Resists strongly":"Güçlü direnir",
+"Strikers deal":"Vurucuların hasarı",
+"Weak: takes #% more damage of that type. Resists: takes #% less. Resists strongly: takes #% less. Strikers deal: the damage type of their hits; your resistance lines soften it":"Zayıf: o türden %# daha fazla hasar alır. Direnir: %# daha az alır. Güçlü direnir: %# daha az alır. Vurucuların hasarı: vuruşlarının hasar türü; direnç satırların onu yumuşatır",
+"Frost-touched":"Ayaz Değmiş",
+"Its hits are frost and chill the target # time in #: #% more damage taken for # turns":"Vuruşları ayazdır ve hedefi #'de # kez üşütür: # tur boyunca %# daha fazla hasar alır",
+"Its hits are fire and burn the target for # turns":"Vuruşları ateştir ve hedefi # tur yakar",
+"Damage types":"Hasar türleri",
+"Your damage":"Senin hasarın",
+"Where foes stand":"Düşmanlar nerede durur",
+"Your defenses":"Savunmaların",
+"Resistance lines":"Direnç satırları",
+"Damage lines":"Hasar satırları",
+"Typed minions":"Türlü hizmetkârlar",
+"What hits you":"Sana ne vurur",
+"The Hell Tower":"Cehennem Kulesi",
+"As the gate the Trial is set in":"Sınavın kurulduğu kapı gibi",
+"The living have no resistances":"Yaşayanların direnci yoktur",
+"Each depth has one weakness and one resistance, the same every time, shown before you enter":"Her derinliğin bir zayıflığı ve bir direnci vardır, her seferinde aynı, girmeden önce gösterilir",
+"Every hit has one of five damage types: Physical, Shadow, Frost, Fire and Rot":"Her vuruşun beş hasar türünden biri vardır: Fiziksel, Gölge, Ayaz, Ateş ve Çürüme",
+"Where foes stand decides what they are weak to and what they resist":"Düşmanların durduğu yer neye zayıf olduklarını ve neye direndiklerini belirler",
+"A weakness adds to the damage, a resistance takes from it, once, after armor and before any shield":"Zayıflık hasara ekler, direnç ondan alır, bir kez, zırhtan sonra ve kalkandan önce",
+"Armor and resistance are separate: piercing beats armor, the right type beats resistance":"Zırh ve direnç ayrıdır: delme zırhı yener, doğru tür direnci yener",
+"Strike, Echo, Hellfire, Cleave, Bone Spear and its Splinter, Thorns, Barbed Hide, the Spiked and Volley marks, bleeding, and every minion hit without a typed trait":"Vuruş, Echo, Hellfire, Cleave, Kemik Mızrak ve Kıymığı, Thorns, Dikenli Deri, Dikenli ve Yaylım nişanları, kanama ve türlü özelliği olmayan her hizmetkâr vuruşu",
+"Soul Siphon and Chorus, Reap, Death's Toll, and Bloodfiend minions":"Ruh Emme ve Chorus, Biç, Ölümün Bedeli ve Kan İblisi hizmetkârlar",
+"Grave Chill, the Deep Winter capstone, and Rimeborn, Glaciermaul and Shatterwrought minions (Shatterwrought alternates frost and fire)":"Mezar Soğuğu, Derin Kış zirvesi ve Kırağıdoğan, Buzul Tokmağı ve Kırıkdövme hizmetkârlar (Kırıkdövme ayaz ve ateşi sırayla kullanır)",
+"Burns, and Cinderborn and Pyreheart minions":"Yanıklar ve Küldoğan ve Ateşyürek hizmetkârlar",
+"Corpse Explosion, poison and blight, and Venomous, Necrotic, Plaguebearer and Witchrot minions":"Ceset Patlaması, zehir ve çürüme yarası ve Zehirli, Nekrotik, Veba Taşıyıcı ve Cadıçürüğü hizmetkârlar",
+"Armor can roll Fire, Frost, Rot or Shadow resistance as a bonus line":"Zırh ek satır olarak Ateş, Ayaz, Çürüme ya da Gölge direnci atabilir",
+"Each takes that much from hits, burns and wounds of its type, up to #%":"Her biri kendi türündeki vuruşlardan, yanıklardan ve yaralardan o kadar alır, en fazla %#",
+"Physical damage has no resistance line: Constitution, armor sets and titles cover it":"Fiziksel hasarın direnç satırı yoktur: Dayanıklılık, zırh takımları ve unvanlar onu karşılar",
+"Weapons and relics can roll Fire, Frost, Rot or Shadow damage as a bonus line: that much more damage of the type from you and your army":"Silahlar ve kalıntılar ek satır olarak Ateş, Ayaz, Çürüme ya da Gölge hasarı atabilir: senden ve ordundan o türden o kadar fazla hasar",
+"A minion with Rimeborn resists frost, Cinderborn fire, Venomous or Necrotic rot, each by #%":"Kırağıdoğan bir hizmetkâr ayaza, Küldoğan ateşe, Zehirli ya da Nekrotik çürümeye direnir, her biri %#",
+"Vanguards and menders hit physical; strikers hit with their place's type":"Öncüler ve onarıcılar fiziksel vurur; vurucular bulundukları yerin türüyle vurur",
+"Frost-touched elites hit frost and chill, Burning elites hit fire and burn":"Ayaz Değmiş seçkinler ayazla vurur ve üşütür, Yanan seçkinler ateşle vurur ve yakar",
+"Cinder Wave and Volatile bodies are fire, poison and blight are rot, bleeding is physical":"Kor Dalgası ve Uçucu cesetler ateştir, zehir ve çürüme yarası çürümedir, kanama fizikseldir",
+"Iron Rain: foes also resist #% of physical damage":"Demir Yağmuru: düşmanlar fiziksel hasarın %#'ine de direnir",
+"Soul Storm: your shadow damage is #% stronger":"Ruh Fırtınası: gölge hasarın %# daha güçlüdür",
+"Soul Siphon, the Siphon skills and blight deal #% more. Foes crit #% less often and miss # blow in #":"Ruh Emme, Emme yetenekleri ve çürüme yarası %# daha fazla vurur. Düşmanlar %# daha seyrek kritik vurur ve #'da # darbeyi ıskalar",
+"Soul Siphon, the Siphon skills and blight deal #% more":"Ruh Emme, Emme yetenekleri ve çürüme yarası %# daha fazla vurur",
+"Gear drops #% more often and rolls bonus lines as if one tier higher. Foes wear heavier armor: #% tougher to hurt, and they resist #% of physical damage on top":"Teçhizat %# daha sık düşer ve ek satırlarını bir kademe yüksekmiş gibi atar. Düşmanlar daha ağır zırh giyer: %# daha zor yaralanır ve üstüne fiziksel hasarın %#'ine direnir",
+"Foes wear heavier armor: #% tougher to hurt, and they resist #% of physical damage on top":"Düşmanlar daha ağır zırh giyer: %# daha zor yaralanır ve üstüne fiziksel hasarın %#'ine direnir",
+"Every room starts with one Soul harvested, and you regain #% more mana each turn. Your shadow damage is #% stronger. Foes deal #% more damage":"Her oda bir Ruh toplanmış olarak başlar ve her tur %# daha fazla mana kazanırsın. Gölge hasarın %# daha güçlüdür. Düşmanlar %# daha fazla hasar verir",
+"Your shadow damage is #% stronger":"Gölge hasarın %# daha güçlüdür",
+"Less fire damage taken by you":"Aldığın ateş hasarı azalır",
+"Less frost damage taken by you":"Aldığın ayaz hasarı azalır",
+"Less rot damage taken by you":"Aldığın çürüme hasarı azalır",
+"Less shadow damage taken by you":"Aldığın gölge hasarı azalır",
+"More fire damage from you and your army":"Senden ve ordundan daha fazla ateş hasarı",
+"More frost damage from you and your army":"Senden ve ordundan daha fazla ayaz hasarı",
+"More rot damage from you and your army":"Senden ve ordundan daha fazla çürüme hasarı",
+"More shadow damage from you and your army":"Senden ve ordundan daha fazla gölge hasarı",
 "# army slot per level":"# ordu yeri, her seviye için",
 "# trophies from one gate (a boss heart counts as #) and a little gold forge that gate's gear in the slot you pick":"Bir kapıdan # ganimet (bir boss kalbi # sayılır) ve biraz altın, seçtiğin yuvada o kapının teçhizatını döver",
 "A bench for minions you keep but do not take along":"Tutup yanına almadığın hizmetkârlar için bir yedek sırası",
@@ -7692,7 +7808,7 @@ const TR_DICT=new Map(Object.entries({
 "Venom eats HP at the end of each turn":"Zehir her tur sonunda can yer",
 "An open wound bleeds at the end of each turn":"Açık bir yara her tur sonunda kanar",
 "Fire burns at the end of each turn":"Ateş her tur sonunda yakar",
-"Shadow rot eats HP at the end of each turn and halves the healing received":"Gölge çürüğü her tur sonunda can yer ve alınan iyileşmeyi yarıya indirir",
+"Rot eats HP at the end of each turn and halves the healing received":"Çürüme her tur sonunda can yer ve alınan iyileşmeyi yarıya indirir",
 "# damage a turn":"turda # hasar",
 "# turns left":"# tur kaldı",
 "# turn left":"# tur kaldı",
@@ -7705,11 +7821,11 @@ const TR_DICT=new Map(Object.entries({
 "Swift":"Çevik",
 "Plaguebearer":"Veba Taşıyıcı",
 "Sundering":"Parçalayan",
-"Its hits blight the target for # turns: shadow damage each turn, and half the healing it receives":"Vuruşları hedefi # tur çürütür: her tur gölge hasarı ve aldığı iyileşmenin yarısı",
+"Its hits blight the target for # turns: rot damage each turn, and half the healing it receives":"Vuruşları hedefi # tur çürütür: her tur çürüme hasarı ve aldığı iyileşmenin yarısı",
 "Its hits sunder the target # time in #: #% more damage taken for # turns":"Vuruşları hedefi # kez parçalar, her # vuruşta: %# daha fazla hasar alır, # tur boyunca",
 "Its hits hex the target # time in #: it deals #% less damage for # turns":"Vuruşları hedefi # kez büyüler, her # vuruşta: %# daha az hasar verir, # tur boyunca",
 "Hasted for the first # turns of every fight: strikes again for #% at the end of each turn":"Her dövüşün ilk # turunda hızlanmış: her tur sonunda %# ile yeniden vurur",
-"Its hits blight the target for # turns: shadow damage each turn, and half the healing received":"Vuruşları hedefi # tur çürütür: her tur gölge hasarı ve alınan iyileşmenin yarısı",
+"Its hits blight the target for # turns: rot damage each turn, and half the healing received":"Vuruşları hedefi # tur çürütür: her tur çürüme hasarı ve alınan iyileşmenin yarısı",
 "Its hits hex the target # time in #: #% less damage dealt for # turns":"Vuruşları hedefi # kez büyüler, her # vuruşta: %# daha az hasar, # tur boyunca",
 "Hasted for the first # turns of a fight: strikes again for #% at the end of each turn":"Bir dövüşün ilk # turunda hızlanmış: her tur sonunda %# ile yeniden vurur",
 "Immune to bleeding, burns, poison and blight":"Kanamaya, yanığa, zehre ve çürümeye bağışık",
@@ -7832,7 +7948,7 @@ const TR_DICT=new Map(Object.entries({
 "most traits on a fused minion":"kaynaşmış bir hizmetkârda en çok özellik",
 "most gold held":"tutulan en çok altın",
 }));
-const TR_RX=[[new RegExp("^Raised to the Reserve as (.+)$"),"Yedeğe diriltildi: $1"],[new RegExp("^Swap (.+?) with (.+)$"),"$1 ile $2 yer değiştirsin"],[new RegExp("^Swap (.+) with$"),"$1 ile yer değiştir:"],[new RegExp("^Mastery: (.+?) is now (Known|Mastered|Ledgered)\\. (.+)$"),"Ustalık: $1 artık {t2}. {t3}"],[new RegExp("^(Mastered|Ledgered) in your bestiary: (.+)$"),"Canavar defterinde {t1}: {t2}"],[new RegExp("^Bestiary: you have studied (.+?)\\. Its drop table is now known$"),"Canavar Defteri: $1 incelendi. Ganimet tablosu artık biliniyor"],[new RegExp("^Gives ([+\\-\u2212]\\d.*?); costs ([+\\-\u2212]\\d.*)$"),"Verir: {t1}; bedeli: {t2}"],[new RegExp("^Gives ([+\\-\u2212]\\d.*)$"),"Verir: {t1}"],[new RegExp("^costs ([+\\-\u2212]\\d.*)$"),"bedeli: {t1}"],[new RegExp("^A hidden uncommon title\\. Keep playing to discover it$"),"Gizli bir az bulunur unvan. Bulmak i\u00e7in oynamaya devam et"],[new RegExp("^A hidden (\\w+) title\\. Keep playing to discover it$"),"Gizli bir {t1} unvan. Bulmak i\u00e7in oynamaya devam et"],[new RegExp("^Heart of ([^\u00b7]+)$"),"$1 Kalbi"],[new RegExp("^([^\u00b7]+) Tooth$"),"$1 Dişi"],[new RegExp("^([^\u00b7]+) Claw$"),"$1 Pençesi"],[new RegExp("^([^\u00b7]+) Fang$"),"$1 Sivri Dişi"],[new RegExp("^([^\u00b7]+) Shell$"),"$1 Kabuğu"],[new RegExp("^([^\u00b7]+) Hide$"),"$1 Postu"],[new RegExp("^([^\u00b7]+) Scale$"),"$1 Pulu"],[new RegExp("^([^\u00b7]+) Talon$"),"$1 Pençesi"],[new RegExp("^([^\u00b7]+) Relic$"),"$1 Kalıntısı"],[new RegExp("^([^\u00b7]+) Vial$"),"$1 Şişesi"],[new RegExp("^([^\u00b7]+) Bone Plate$"),"$1 Kemik Plakası"],[new RegExp("^([^\u00b7]+) Bone Charm$"),"$1 Kemik Tılsımı"],[new RegExp("^([^\u00b7]+) Prayer Bead$"),"$1 Dua Boncuğu"],[new RegExp("^([^\u00b7]+) forge$"),"$1 demircisi"],[new RegExp("^(.+) set \\((\\d)/(\\d) worn\\)$"),"$1 takımı ($2/$3 giyili)"],[new RegExp("^gate ([SABCDE]) set$"),"$1 kapısı takımı"],[new RegExp("^([^\u00b7]+) set$"),"$1 takımı"],[new RegExp("^Clear the (.+?) (\\d+) times$"),"$1 kapısını $2 kez temizle"],[new RegExp("^Clear the (.+) on Nightmare$"),"$1 kapısını Kâbus'ta temizle"],[new RegExp("^Clear the (.+) \\(([A-Z])-rank gate\\)$"),"$1 kapısını temizle ($2 rütbe kapı)"],[new RegExp("^Clear the (.+)$"),"$1 kapısını temizle"],[new RegExp("^Defeat (.+) on floor (\\d+)$"),"$1 düşmanını kat $2'de yen"],[new RegExp("^Clear a gate cursed with (.+)$"),"{t1} lanetli bir kapıyı temizle"],[new RegExp("^Slay (.+?), the (.+)'s secret master$"),"$2 kapısının gizli efendisi $1'i öldür"],[new RegExp("^vs (.+)$"),"karşı: $1"],[new RegExp("^Act (I|II|III|IV|V) \u00b7 (.+) \u00b7 (\\d+)/(\\d+)$"),"Perde $1 · {t2} · $3/$4"],[new RegExp("^Act (I|II|III|IV|V) \u00b7 (.+)$"),"Perde $1 · {t2}"],[new RegExp("^Telegraphed \u00b7 (.+) \u00b7 (.+)$"),"Önceden belli · $1 · $2"],[new RegExp("^Floor (\\d+) \u00b7 recommended level (\\d+) \u00b7 (.+)$"),"Kat $1 · önerilen seviye $2 · $3"],[new RegExp("^(.+) \u00b7 Studied$"),"{t1} · İncelendi"],[new RegExp("^(.+) \u00b7 (\\d+)% per kill$"),"{t1} · öldürme başına %$2"],[new RegExp("^(.+?) \\((.+?)\\) or (.+?) \\((.+?)\\)$"),"{t1} ({t2}) ya da {t3} ({t4})"],[new RegExp("^Choices: (.+) or (.+)$"),"Seçenekler: {t1} ya da {t2}"],[new RegExp("^(Common|Uncommon|Rare|Epic|Legendary) (\\d+)%$"),"{t1} %$2"],[new RegExp("^(.+?) hits you for (\\d+) \\(crit\\)$"),"$1 sana $2 vuruyor (kritik)"],[new RegExp("^(.+?) hits you for (\\d+)$"),"$1 sana $2 vuruyor"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit\\)$"),"$1 → $2: $3 hasar (kritik)"],[new RegExp("^(.+?) hits (.+?) for (\\d+) and poisons it$"),"$1 → $2: $3 hasar, zehirlendi"],[new RegExp("^(.+?) hits (.+?) for (\\d+) and drinks (\\d+) HP$"),"$1 → $2: $3 hasar, $4 can emdi"],[new RegExp("^(.+?) hits (.+?) for (\\d+)$"),"$1 → $2: $3 hasar"],[new RegExp("^(.+?) mends you for (\\d+)$"),"$1 seni $2 onarıyor"],[new RegExp("^(.+?) mends (.+?) for (\\d+)$"),"$1, $2 için $3 onarıyor"],[new RegExp("^You strike (.+?) for (\\d+)$"),"$1 düşmanına $2 vuruyorsun"],[new RegExp("^You strike (.+?) for (\\d+) \\(crit\\)$"),"$1 düşmanına $2 vuruyorsun (kritik)"],[new RegExp("^Bone Spear impales (.+?) for (\\d+)$"),"Kemik Mızrak $1 düşmanını deliyor: $2 hasar"],[new RegExp("^Grave Chill hits (.+?) for (\\d+) and freezes it solid$"),"Mezar Soğuğu $1 düşmanına $2 vuruyor ve onu donduruyor"],[new RegExp("^You reap (.+?) for (\\d+) \\(harvest\\)$"),"$1 düşmanını $2 hasarla biçiyorsun (hasat)"],[new RegExp("^You reap (.+?) for (\\d+)$"),"$1 düşmanını $2 hasarla biçiyorsun"],[new RegExp("^The body of (.+?) bursts apart, dealing (\\d+) damage across the room$"),"$1 cesedi parçalanıyor ve odaya $2 hasar saçıyor"],[new RegExp("^(.+?) gathers itself for (.+?)! (.+)$"),"$1, $2 için güç topluyor! {t3}"],[new RegExp("^(.+?) enters its second phase$"),"$1 ikinci evresine giriyor"],[new RegExp("^(.+?) raises a Bone Wall$"),"$1 bir Kemik Duvar yükseltiyor"],[new RegExp("^You step through the (.+?) gate$"),"$1 kapısından geçiyorsun"],[new RegExp("^You drink a (.+?) and recover (\\d+) HP$"),"{t1} içiyorsun ve $2 can kazanıyorsun"],[new RegExp("^You drink a (.+?) and recover (\\d+) mana$"),"{t1} içiyorsun ve $2 mana kazanıyorsun"],[new RegExp("^([^.]+) falls$"),"$1 düşüyor"],[new RegExp("^Echo: the blade strikes again for (\\d+)$"),"Echo: kılıç yeniden vuruyor: $1"],[new RegExp("^(.+?) mends (.+?)$"),"$1, $2 için onarıyor"],[new RegExp("^(.+?) unleashes a Cinder Wave for (\\d+) damage across your side$"),"$1 tarafına $2 hasarlık bir Kor Dalgası salıyor"],[new RegExp("^(.+?) is frozen and cannot act$"),"$1 donmuş, hareket edemiyor"],[new RegExp("^(.+?) is frozen$"),"$1 donmuş"],[new RegExp("^(.+?) is cursed and takes (\\d+)% more damage$"),"$1 lanetlendi ve %$2 daha fazla hasar alıyor"],[new RegExp("^Dark Mending knits your army back together for (\\d+) HP and cures every wound and burn$"),"Karanlık Onarım orduyu $1 canla yeniden örüyor ve her yarayı ve yanığı iyileştiriyor"],[new RegExp("^Dark Mending knits your army back together for (\\d+) HP$"),"Karanlık Onarım orduyu $1 canla yeniden örüyor"],[new RegExp("^(.+?) hits (.+?) for (\\d+) and poisons it and drinks (\\d+) HP$"),"$1 → $2: $3 hasar, zehirlendi, $4 can emdi"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit\\) and drinks (\\d+) HP$"),"$1 → $2: $3 hasar (kritik), $4 can emdi"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit\\) and poisons it$"),"$1 → $2: $3 hasar (kritik), zehirlendi"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit, bleeding\\)$"),"$1 → $2: $3 hasar (kritik, kanama)"],[new RegExp("^Soul Siphon (drains|devours) (.+?) for (\\d+), you recover (\\d+)$"),"Ruh Emme $2 düşmanından $3 emiyor, $4 iyileşiyorsun"],[new RegExp("^Soul Siphon (drains|devours) (.+?) for (\\d+) and harvest a Soul \\((\\d+)/(\\d+)\\)$"),"Ruh Emme $2 düşmanından $3 emiyor ve bir Ruh topluyor ($4/$5)"],[new RegExp("^You were dragged out of the (.+?)$"),"$1 kapısından sürüklenerek çıkarıldın"],[new RegExp("^You were dragged out of the Hell Tower on floor (\\d+)$"),"Cehennem Kulesi'nin $1. katından sürüklenerek çıkarıldın"],[new RegExp("^(.+?) calls, but nothing more answers$"),"$1 çağırıyor ama artık kimse cevap vermiyor"],[new RegExp("^(.+?) speaks a Royal Decree$"),"$1 bir Kraliyet Fermanı okuyor"],[new RegExp("^It strikes you for (\\d+)$"),"Sana $1 vuruyor"],[new RegExp("^(.+?) scatters Seedfall$"),"$1 Tohum Yağmuru saçıyor"],[new RegExp("^Every foe mends and (.+?) sprouts from the ground$"),"Her düşman onarılıyor ve topraktan $1 filizleniyor"],[new RegExp("^(.+?)'s focused strike breaks (.+?)'s focus$"),"$1 odaklanmış vuruşuyla $2 düşmanının odağını bozuyor"],[new RegExp("^(.+?) bursts and burns you for (\\d+)$"),"$1 patlıyor ve seni $2 yakıyor"],[new RegExp("^(.+?) is down$"),"$1 yere düştü"],[new RegExp("^(.+?) sings the Hymn of Silence$"),"$1 Sessizlik İlahisi'ni söylüyor"],[new RegExp("^(.+?) brings down a Sundering Blow on (you|.+?) for (\\d+)$"),"$1, $2 üstüne Parçalayan Darbe indiriyor: $3"],[new RegExp("^(.+?) calls the swarm$"),"$1 sürüyü çağırıyor"],[new RegExp("^Soul Siphon (drains|devours) (.+?) for (\\d+), you recover (\\d+) and harvest a Soul \\((\\d+)/(\\d+)\\)$"),"Ruh Emme $2 düşmanından $3 emiyor, $4 iyileşiyorsun ve bir Ruh topluyorsun ($5/$6)"],[new RegExp("^Soul Siphon (drains|devours) (.+?) for (\\d+)$"),"Ruh Emme $2 düşmanından $3 emiyor"],[new RegExp("^You tear the Rift open at depth (\\d+)$"),"Yarığı $1 derinliğinde yırtıp açıyorsun"],[new RegExp("^The dead of the (.+?) wait beyond it$"),"Ötesinde $1 ölüleri bekliyor"],[new RegExp("^(.+?) brings down a Sundering Blow, but (.+?) takes it for you: (\\d+) damage$"),"$1 bir Parçalayan Darbe indiriyor ama $2 onu senin yerine alıyor: $3 hasar"],[new RegExp("^(.+?) splits into (\\d+) lesser copies$"),"$1 $2 küçük kopyaya bölünüyor"],[new RegExp("^(.+?) uses Call the Swarm: (.+?) and (.+?) join the fight$"),"$1 Sürüyü Çağır kullanıyor: $2 ve $3 dövüşe katılıyor"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit\\) and poisons it and drinks (\\d+) HP$"),"$1 → $2: $3 hasar (kritik), zehirlendi, $4 can emdi"],[new RegExp("^(.+?): \"(.+)\"$"),"$1: \"{t2}\""],[new RegExp("^(.+?) and (\\d+) of your strongest; set the squad on the War table$"),"$1 ve en güçlü $2 hizmetkârın; bölüğü Savaş masasında ayarla"],[new RegExp("^leads (\\d+) to the (.+) tonight$"),"bu gece $1 kişiyle $2 kapısına yürüyecek"],[new RegExp("^Tonight's raid on the (.+?) lapses: its Commander is gone$"),"Bu geceki $1 akını düştü: Komutanı yok"],[new RegExp("^Tonight's raid on the (.+?) lapses: (.+?) has no one left to lead$"),"Bu geceki $1 akını düştü: $2 önderlik edecek kimseyi bulamadı"],[new RegExp("^(.+?) will march on the (.+?) tonight with (\\d+) at its back\\. They fight beside you until nightfall and return at dawn$"),"$1 bu gece arkasında $3 kişiyle $2 kapısına yürüyecek. Gece çökene dek yanında savaşırlar ve şafakta dönerler"],[new RegExp("^They come in (\\d+) waves, at level (\\d+), as hard as the (.+)$"),"$1 dalga halinde gelirler, $2. seviyede, $3 kadar zorlu"],[new RegExp("^The (.+?) still lies in ruins and gives nothing$"),"{t1} hâlâ harabe ve hiçbir şey vermiyor"],[new RegExp("^They fired the (.+?): its effects are lost until you repair it in town for (\\d+) gold$"),"{t1} binasını ateşe verdiler: kasabada $2 altına onarana dek etkileri yok"],[new RegExp("^With the (.+?) still in ruins they took what they could carry instead: (\\d+) gold$"),"{t1} hâlâ harabeyken bunun yerine taşıyabildiklerini aldılar: $2 altın"],[new RegExp("^The Crypt burned: (.+)$"),"Kripta yandı: {t1}"],[new RegExp("^The Ossuary stirs: (.+?), once (an? .+?), rises to fight for you tonight$"),"Kemiklik kıpırdıyor: bir zamanlar $2 olan $1 bu gece senin için savaşmaya kalkıyor"],[new RegExp("^(\\d+) gold, \\+(\\d+) bone dust and (an? .+?) from the dead$"),"$1 altın, +$2 kemik tozu ve ölülerden $3"],[new RegExp("^The (.+?) is repaired for (\\d+) gold\\. It works again$"),"{t1} $2 altına onarıldı. Yeniden çalışıyor"],[new RegExp("^(.+?) · damaged$"),"{t1} · hasarlı"],[new RegExp("^(.+) is written into the Memorial$"),"$1 Anıt'a yazıldı"],[new RegExp("^(.+?) is honoured\\. Your army is Remembered until dawn$"),"$1 onurlandırıldı. Ordun şafağa dek Anılmış"],[new RegExp("^Shattered in the Hell Tower, floor (\\d+)$"),"Cehennem Kulesi'nin $1. katında parçalandı"],[new RegExp("^Shattered in the Rift, depth (\\d+)$"),"Yarık'ta, $1 derinlikte parçalandı"],[new RegExp("^Shattered in the (.+)$"),"$1 içinde parçalandı"],[new RegExp("^Fell on a raid to the (.+)$"),"$1 akınında düştü"],[new RegExp("^New name for (.+)$"),"$1 için yeni ad"],[new RegExp("^Saved to (.+)$"),"$1 içine kaydedildi"],[new RegExp("^Loadout restored: ([^.]+)\\. Could not restore: (.+)$"),"Donanım geri yüklendi: $1. Geri yüklenemedi: {t2}"],[new RegExp("^Loadout restored: (.+)$"),"Donanım geri yüklendi: $1"],[new RegExp("^([^,()]+) \\((gone|held by a minion|on a raid|no room)\\)$"),"$1 ({t2})"],[new RegExp("^(.+?), (.+?), shattered and is gone \\((\\d+)% chance\\)$"),"$1, {t2}, parçalandı ve gitti (%$3 şans)"],[new RegExp("^Downed but bound back together at (\\d+)% HP: (.+?)\\. The chance to shatter was (\\d+)%$"),"Yere düştü ama %$1 canla yeniden birleşti: $2. Parçalanma şansı %$3 idi"],[new RegExp("^Downed but bound back together at (\\d+)% HP: (.+?)\\. None of them could shatter$"),"Yere düştü ama %$1 canla yeniden birleşti: $2. Hiçbiri parçalanamazdı"]];   // patterns: names stay English, $n keeps a group, {tn} translates it
+const TR_RX=[[new RegExp("^Weak to (.+)$"),"Zayıf: {t1}"],[new RegExp("^Resists (.+)$"),"Direnir: {t1}"],[new RegExp("^Strikers deal (.+)$"),"Vurucuların hasarı: {t1}"],[new RegExp("^Raised to the Reserve as (.+)$"),"Yedeğe diriltildi: $1"],[new RegExp("^Swap (.+?) with (.+)$"),"$1 ile $2 yer değiştirsin"],[new RegExp("^Swap (.+) with$"),"$1 ile yer değiştir:"],[new RegExp("^Mastery: (.+?) is now (Known|Mastered|Ledgered)\\. (.+)$"),"Ustalık: $1 artık {t2}. {t3}"],[new RegExp("^(Mastered|Ledgered) in your bestiary: (.+)$"),"Canavar defterinde {t1}: {t2}"],[new RegExp("^Bestiary: you have studied (.+?)\\. Its drop table is now known$"),"Canavar Defteri: $1 incelendi. Ganimet tablosu artık biliniyor"],[new RegExp("^Gives ([+\\-\u2212]\\d.*?); costs ([+\\-\u2212]\\d.*)$"),"Verir: {t1}; bedeli: {t2}"],[new RegExp("^Gives ([+\\-\u2212]\\d.*)$"),"Verir: {t1}"],[new RegExp("^costs ([+\\-\u2212]\\d.*)$"),"bedeli: {t1}"],[new RegExp("^A hidden uncommon title\\. Keep playing to discover it$"),"Gizli bir az bulunur unvan. Bulmak i\u00e7in oynamaya devam et"],[new RegExp("^A hidden (\\w+) title\\. Keep playing to discover it$"),"Gizli bir {t1} unvan. Bulmak i\u00e7in oynamaya devam et"],[new RegExp("^Heart of ([^\u00b7]+)$"),"$1 Kalbi"],[new RegExp("^([^\u00b7]+) Tooth$"),"$1 Dişi"],[new RegExp("^([^\u00b7]+) Claw$"),"$1 Pençesi"],[new RegExp("^([^\u00b7]+) Fang$"),"$1 Sivri Dişi"],[new RegExp("^([^\u00b7]+) Shell$"),"$1 Kabuğu"],[new RegExp("^([^\u00b7]+) Hide$"),"$1 Postu"],[new RegExp("^([^\u00b7]+) Scale$"),"$1 Pulu"],[new RegExp("^([^\u00b7]+) Talon$"),"$1 Pençesi"],[new RegExp("^([^\u00b7]+) Relic$"),"$1 Kalıntısı"],[new RegExp("^([^\u00b7]+) Vial$"),"$1 Şişesi"],[new RegExp("^([^\u00b7]+) Bone Plate$"),"$1 Kemik Plakası"],[new RegExp("^([^\u00b7]+) Bone Charm$"),"$1 Kemik Tılsımı"],[new RegExp("^([^\u00b7]+) Prayer Bead$"),"$1 Dua Boncuğu"],[new RegExp("^([^\u00b7]+) forge$"),"$1 demircisi"],[new RegExp("^(.+) set \\((\\d)/(\\d) worn\\)$"),"$1 takımı ($2/$3 giyili)"],[new RegExp("^gate ([SABCDE]) set$"),"$1 kapısı takımı"],[new RegExp("^([^\u00b7]+) set$"),"$1 takımı"],[new RegExp("^Clear the (.+?) (\\d+) times$"),"$1 kapısını $2 kez temizle"],[new RegExp("^Clear the (.+) on Nightmare$"),"$1 kapısını Kâbus'ta temizle"],[new RegExp("^Clear the (.+) \\(([A-Z])-rank gate\\)$"),"$1 kapısını temizle ($2 rütbe kapı)"],[new RegExp("^Clear the (.+)$"),"$1 kapısını temizle"],[new RegExp("^Defeat (.+) on floor (\\d+)$"),"$1 düşmanını kat $2'de yen"],[new RegExp("^Clear a gate cursed with (.+)$"),"{t1} lanetli bir kapıyı temizle"],[new RegExp("^Slay (.+?), the (.+)'s secret master$"),"$2 kapısının gizli efendisi $1'i öldür"],[new RegExp("^vs (.+)$"),"karşı: $1"],[new RegExp("^Act (I|II|III|IV|V) \u00b7 (.+) \u00b7 (\\d+)/(\\d+)$"),"Perde $1 · {t2} · $3/$4"],[new RegExp("^Act (I|II|III|IV|V) \u00b7 (.+)$"),"Perde $1 · {t2}"],[new RegExp("^Telegraphed \u00b7 (.+) \u00b7 (.+)$"),"Önceden belli · $1 · $2"],[new RegExp("^Floor (\\d+) \u00b7 recommended level (\\d+) \u00b7 (.+)$"),"Kat $1 · önerilen seviye $2 · $3"],[new RegExp("^(.+) \u00b7 Studied$"),"{t1} · İncelendi"],[new RegExp("^(.+) \u00b7 (\\d+)% per kill$"),"{t1} · öldürme başına %$2"],[new RegExp("^(.+?) \\((.+?)\\) or (.+?) \\((.+?)\\)$"),"{t1} ({t2}) ya da {t3} ({t4})"],[new RegExp("^Choices: (.+) or (.+)$"),"Seçenekler: {t1} ya da {t2}"],[new RegExp("^(Common|Uncommon|Rare|Epic|Legendary) (\\d+)%$"),"{t1} %$2"],[new RegExp("^(.+?) hits you for (\\d+) \\(crit\\)$"),"$1 sana $2 vuruyor (kritik)"],[new RegExp("^(.+?) hits you for (\\d+)$"),"$1 sana $2 vuruyor"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit\\)$"),"$1 → $2: $3 hasar (kritik)"],[new RegExp("^(.+?) hits (.+?) for (\\d+) and poisons it$"),"$1 → $2: $3 hasar, zehirlendi"],[new RegExp("^(.+?) hits (.+?) for (\\d+) and drinks (\\d+) HP$"),"$1 → $2: $3 hasar, $4 can emdi"],[new RegExp("^(.+?) hits (.+?) for (\\d+)$"),"$1 → $2: $3 hasar"],[new RegExp("^(.+?) mends you for (\\d+)$"),"$1 seni $2 onarıyor"],[new RegExp("^(.+?) mends (.+?) for (\\d+)$"),"$1, $2 için $3 onarıyor"],[new RegExp("^You strike (.+?) for (\\d+)$"),"$1 düşmanına $2 vuruyorsun"],[new RegExp("^You strike (.+?) for (\\d+) \\(crit\\)$"),"$1 düşmanına $2 vuruyorsun (kritik)"],[new RegExp("^Bone Spear impales (.+?) for (\\d+)$"),"Kemik Mızrak $1 düşmanını deliyor: $2 hasar"],[new RegExp("^Grave Chill hits (.+?) for (\\d+) and freezes it solid$"),"Mezar Soğuğu $1 düşmanına $2 vuruyor ve onu donduruyor"],[new RegExp("^You reap (.+?) for (\\d+) \\(harvest\\)$"),"$1 düşmanını $2 hasarla biçiyorsun (hasat)"],[new RegExp("^You reap (.+?) for (\\d+)$"),"$1 düşmanını $2 hasarla biçiyorsun"],[new RegExp("^The body of (.+?) bursts apart, dealing (\\d+) damage across the room$"),"$1 cesedi parçalanıyor ve odaya $2 hasar saçıyor"],[new RegExp("^(.+?) gathers itself for (.+?)! (.+)$"),"$1, $2 için güç topluyor! {t3}"],[new RegExp("^(.+?) enters its second phase$"),"$1 ikinci evresine giriyor"],[new RegExp("^(.+?) raises a Bone Wall$"),"$1 bir Kemik Duvar yükseltiyor"],[new RegExp("^You step through the (.+?) gate$"),"$1 kapısından geçiyorsun"],[new RegExp("^You drink a (.+?) and recover (\\d+) HP$"),"{t1} içiyorsun ve $2 can kazanıyorsun"],[new RegExp("^You drink a (.+?) and recover (\\d+) mana$"),"{t1} içiyorsun ve $2 mana kazanıyorsun"],[new RegExp("^([^.]+) falls$"),"$1 düşüyor"],[new RegExp("^Echo: the blade strikes again for (\\d+)$"),"Echo: kılıç yeniden vuruyor: $1"],[new RegExp("^(.+?) mends (.+?)$"),"$1, $2 için onarıyor"],[new RegExp("^(.+?) unleashes a Cinder Wave for (\\d+) damage across your side$"),"$1 tarafına $2 hasarlık bir Kor Dalgası salıyor"],[new RegExp("^(.+?) is frozen and cannot act$"),"$1 donmuş, hareket edemiyor"],[new RegExp("^(.+?) is frozen$"),"$1 donmuş"],[new RegExp("^(.+?) is cursed and takes (\\d+)% more damage$"),"$1 lanetlendi ve %$2 daha fazla hasar alıyor"],[new RegExp("^Dark Mending knits your army back together for (\\d+) HP and cures every wound and burn$"),"Karanlık Onarım orduyu $1 canla yeniden örüyor ve her yarayı ve yanığı iyileştiriyor"],[new RegExp("^Dark Mending knits your army back together for (\\d+) HP$"),"Karanlık Onarım orduyu $1 canla yeniden örüyor"],[new RegExp("^(.+?) hits (.+?) for (\\d+) and poisons it and drinks (\\d+) HP$"),"$1 → $2: $3 hasar, zehirlendi, $4 can emdi"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit\\) and drinks (\\d+) HP$"),"$1 → $2: $3 hasar (kritik), $4 can emdi"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit\\) and poisons it$"),"$1 → $2: $3 hasar (kritik), zehirlendi"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit, bleeding\\)$"),"$1 → $2: $3 hasar (kritik, kanama)"],[new RegExp("^Soul Siphon (drains|devours) (.+?) for (\\d+), you recover (\\d+)$"),"Ruh Emme $2 düşmanından $3 emiyor, $4 iyileşiyorsun"],[new RegExp("^Soul Siphon (drains|devours) (.+?) for (\\d+) and harvest a Soul \\((\\d+)/(\\d+)\\)$"),"Ruh Emme $2 düşmanından $3 emiyor ve bir Ruh topluyor ($4/$5)"],[new RegExp("^You were dragged out of the (.+?)$"),"$1 kapısından sürüklenerek çıkarıldın"],[new RegExp("^You were dragged out of the Hell Tower on floor (\\d+)$"),"Cehennem Kulesi'nin $1. katından sürüklenerek çıkarıldın"],[new RegExp("^(.+?) calls, but nothing more answers$"),"$1 çağırıyor ama artık kimse cevap vermiyor"],[new RegExp("^(.+?) speaks a Royal Decree$"),"$1 bir Kraliyet Fermanı okuyor"],[new RegExp("^It strikes you for (\\d+)$"),"Sana $1 vuruyor"],[new RegExp("^(.+?) scatters Seedfall$"),"$1 Tohum Yağmuru saçıyor"],[new RegExp("^Every foe mends and (.+?) sprouts from the ground$"),"Her düşman onarılıyor ve topraktan $1 filizleniyor"],[new RegExp("^(.+?)'s focused strike breaks (.+?)'s focus$"),"$1 odaklanmış vuruşuyla $2 düşmanının odağını bozuyor"],[new RegExp("^(.+?) bursts and burns you for (\\d+)$"),"$1 patlıyor ve seni $2 yakıyor"],[new RegExp("^(.+?) is down$"),"$1 yere düştü"],[new RegExp("^(.+?) sings the Hymn of Silence$"),"$1 Sessizlik İlahisi'ni söylüyor"],[new RegExp("^(.+?) brings down a Sundering Blow on (you|.+?) for (\\d+)$"),"$1, $2 üstüne Parçalayan Darbe indiriyor: $3"],[new RegExp("^(.+?) calls the swarm$"),"$1 sürüyü çağırıyor"],[new RegExp("^Soul Siphon (drains|devours) (.+?) for (\\d+), you recover (\\d+) and harvest a Soul \\((\\d+)/(\\d+)\\)$"),"Ruh Emme $2 düşmanından $3 emiyor, $4 iyileşiyorsun ve bir Ruh topluyorsun ($5/$6)"],[new RegExp("^Soul Siphon (drains|devours) (.+?) for (\\d+)$"),"Ruh Emme $2 düşmanından $3 emiyor"],[new RegExp("^You tear the Rift open at depth (\\d+)$"),"Yarığı $1 derinliğinde yırtıp açıyorsun"],[new RegExp("^The dead of the (.+?) wait beyond it$"),"Ötesinde $1 ölüleri bekliyor"],[new RegExp("^(.+?) brings down a Sundering Blow, but (.+?) takes it for you: (\\d+) damage$"),"$1 bir Parçalayan Darbe indiriyor ama $2 onu senin yerine alıyor: $3 hasar"],[new RegExp("^(.+?) splits into (\\d+) lesser copies$"),"$1 $2 küçük kopyaya bölünüyor"],[new RegExp("^(.+?) uses Call the Swarm: (.+?) and (.+?) join the fight$"),"$1 Sürüyü Çağır kullanıyor: $2 ve $3 dövüşe katılıyor"],[new RegExp("^(.+?) hits (.+?) for (\\d+) \\(crit\\) and poisons it and drinks (\\d+) HP$"),"$1 → $2: $3 hasar (kritik), zehirlendi, $4 can emdi"],[new RegExp("^(.+?): \"(.+)\"$"),"$1: \"{t2}\""],[new RegExp("^(.+?) and (\\d+) of your strongest; set the squad on the War table$"),"$1 ve en güçlü $2 hizmetkârın; bölüğü Savaş masasında ayarla"],[new RegExp("^leads (\\d+) to the (.+) tonight$"),"bu gece $1 kişiyle $2 kapısına yürüyecek"],[new RegExp("^Tonight's raid on the (.+?) lapses: its Commander is gone$"),"Bu geceki $1 akını düştü: Komutanı yok"],[new RegExp("^Tonight's raid on the (.+?) lapses: (.+?) has no one left to lead$"),"Bu geceki $1 akını düştü: $2 önderlik edecek kimseyi bulamadı"],[new RegExp("^(.+?) will march on the (.+?) tonight with (\\d+) at its back\\. They fight beside you until nightfall and return at dawn$"),"$1 bu gece arkasında $3 kişiyle $2 kapısına yürüyecek. Gece çökene dek yanında savaşırlar ve şafakta dönerler"],[new RegExp("^They come in (\\d+) waves, at level (\\d+), as hard as the (.+)$"),"$1 dalga halinde gelirler, $2. seviyede, $3 kadar zorlu"],[new RegExp("^The (.+?) still lies in ruins and gives nothing$"),"{t1} hâlâ harabe ve hiçbir şey vermiyor"],[new RegExp("^They fired the (.+?): its effects are lost until you repair it in town for (\\d+) gold$"),"{t1} binasını ateşe verdiler: kasabada $2 altına onarana dek etkileri yok"],[new RegExp("^With the (.+?) still in ruins they took what they could carry instead: (\\d+) gold$"),"{t1} hâlâ harabeyken bunun yerine taşıyabildiklerini aldılar: $2 altın"],[new RegExp("^The Crypt burned: (.+)$"),"Kripta yandı: {t1}"],[new RegExp("^The Ossuary stirs: (.+?), once (an? .+?), rises to fight for you tonight$"),"Kemiklik kıpırdıyor: bir zamanlar $2 olan $1 bu gece senin için savaşmaya kalkıyor"],[new RegExp("^(\\d+) gold, \\+(\\d+) bone dust and (an? .+?) from the dead$"),"$1 altın, +$2 kemik tozu ve ölülerden $3"],[new RegExp("^The (.+?) is repaired for (\\d+) gold\\. It works again$"),"{t1} $2 altına onarıldı. Yeniden çalışıyor"],[new RegExp("^(.+?) · damaged$"),"{t1} · hasarlı"],[new RegExp("^(.+) is written into the Memorial$"),"$1 Anıt'a yazıldı"],[new RegExp("^(.+?) is honoured\\. Your army is Remembered until dawn$"),"$1 onurlandırıldı. Ordun şafağa dek Anılmış"],[new RegExp("^Shattered in the Hell Tower, floor (\\d+)$"),"Cehennem Kulesi'nin $1. katında parçalandı"],[new RegExp("^Shattered in the Rift, depth (\\d+)$"),"Yarık'ta, $1 derinlikte parçalandı"],[new RegExp("^Shattered in the (.+)$"),"$1 içinde parçalandı"],[new RegExp("^Fell on a raid to the (.+)$"),"$1 akınında düştü"],[new RegExp("^New name for (.+)$"),"$1 için yeni ad"],[new RegExp("^Saved to (.+)$"),"$1 içine kaydedildi"],[new RegExp("^Loadout restored: ([^.]+)\\. Could not restore: (.+)$"),"Donanım geri yüklendi: $1. Geri yüklenemedi: {t2}"],[new RegExp("^Loadout restored: (.+)$"),"Donanım geri yüklendi: $1"],[new RegExp("^([^,()]+) \\((gone|held by a minion|on a raid|no room)\\)$"),"$1 ({t2})"],[new RegExp("^(.+?), (.+?), shattered and is gone \\((\\d+)% chance\\)$"),"$1, {t2}, parçalandı ve gitti (%$3 şans)"],[new RegExp("^Downed but bound back together at (\\d+)% HP: (.+?)\\. The chance to shatter was (\\d+)%$"),"Yere düştü ama %$1 canla yeniden birleşti: $2. Parçalanma şansı %$3 idi"],[new RegExp("^Downed but bound back together at (\\d+)% HP: (.+?)\\. None of them could shatter$"),"Yere düştü ama %$1 canla yeniden birleşti: $2. Hiçbiri parçalanamazdı"]];   // patterns: names stay English, $n keeps a group, {tn} translates it
 TR_RX.push([new RegExp("^A rival necromancer, (.+?), has opened a ledger of their own\\. They will take bodies from your gates, and some days they will wait for you in one$"),"Rakip bir ölüçağıran, $1, kendi defterini açtı. Kapılarından ceset alacak ve bazı günler birinde seni bekleyecek"],[new RegExp("^(.+?) will wait for you in the boss room of the (.+?) tomorrow\\. Your first visit there will meet them instead of its master$"),"$1 yarın $2 patron odasında seni bekleyecek. Oraya ilk girişinde efendisi yerine onlarla karşılaşacaksın"],[new RegExp("^(.+?) stands where the master should be, with their own dead around them$"),"$1, efendinin durması gereken yerde kendi ölüleriyle duruyor"],[new RegExp("^(.+?) drops the page they took: \"(.+)\"\\. It is yours again$"),"$1 aldığı sayfayı düşürüyor: \"$2\". Yeniden senin"],[new RegExp("^(.+?) retreats into the dark, and the Ledger writes the win in red$"),"$1 karanlığa çekiliyor ve Defter zaferi kırmızıyla yazıyor"],[new RegExp("^(.+?) takes a torn page from your Ledger: \"(.+)\"\\. Beat them to get it back$"),"$1 Defterinden yırtık bir sayfa alıyor: \"$2\". Geri almak için onu yen"],[new RegExp("^(.+?) takes (\\d+) gold from your purse$"),"$1 kesenden $2 altın alıyor"],[new RegExp("^(.+?) was here before you: the body of (.+?) is taken$"),"$1 senden önce buradaydı: $2 cesedi alındı"],[new RegExp("^Taken by (.+)$"),"Alan: $1"],[new RegExp("^(\\d+)\\. Borrowed by (.+)$"),"$1. Ödünç alan: $2"],[new RegExp("^The page is gone from the binding\\. Beat (.+?) to bring it back$"),"Sayfa ciltten kopmuş. Geri getirmek için $1 adlı rakibi yen"],[new RegExp("^(.+?) waits today in the (.+)$"),"$1 bugün $2 içinde bekliyor"],[new RegExp("^(.+?) comes tomorrow to the (.+)$"),"$1 yarın $2 kapısına geliyor"],[new RegExp("^The Trial of week (\\d+) begins in the (.+)$"),"$1. haftanın Sınavı $2 içinde başlıyor"],[new RegExp("^(.+?): (\\d+) encounters, (\\d+) won, (\\d+) lost$"),"$1: $2 karşılaşma, $3 galibiyet, $4 yenilgi"],[new RegExp("^(.+?) is beaten$"),"$1 yenildi"],[new RegExp("^(.+?) retreats$"),"$1 geri çekiliyor"]);   // the rival and Trials (names stay English)
 TR_RX.push([new RegExp("^(.+) and its plague jumps to (.+)$"),"{t1}, vebası $2 hedefine sıçrıyor"],[new RegExp("^(.+?) is hasted and strikes you again for (\\d+)$"),"$1 hızlanmış, sana yeniden vuruyor: $2"],[new RegExp("^(.+?) is hasted and strikes (.+?) again for (\\d+)$"),"$1 hızlanmış, $2 hedefine yeniden vuruyor: $3"],[new RegExp("^Guard: (.+?) plants itself before you. The next blow that would kill you is its to take$"),"Siper: $1 önüne dikiliyor. Seni öldürecek bir sonraki darbe onun"],[new RegExp("^Guard: (.+?) steps in front of you and takes the killing blow$"),"Siper: $1 önüne atılıp öldürücü darbeyi senin yerine alıyor"],[new RegExp("^(.+?) misses you in the dark$"),"$1 karanlıkta seni ıskalıyor"],[new RegExp("^(.+?) misses (.+?) in the dark$"),"$1 karanlıkta $2 hedefini ıskalıyor"],[new RegExp("^Deep Mending pulls (.+?) back up at (\\d+) HP$"),"Derin Onarım $1 hizmetkârını $2 canla ayağa kaldırıyor"],[new RegExp("^(.+?) hits you for (\\d+)((?:, (?:blighted|sundered|hexed))+)$"),"$1 sana $2 vuruyor{t3}"],[new RegExp("^(.+?) hits (.+?) for (\\d+)((?:, (?:blighted|sundered|hexed))+)$"),"$1 → $2: $3 hasar{t4}"],[new RegExp("^(.+?) hits (.+?) for (\\d+)( \\(crit\\))? and (blights|sunders|hexes) it$"),"$1 → $2: $3 hasar, {t5}"],[new RegExp("^Raised, it becomes (.+?): (.+)$"),"Diriltilirse {t1} olur: {t2}"]);   // status effects and omens (names stay English)
 [["Command","Komuta"],["Damage per turn","Tur başına hasar"],["Health","Can"],["Reserve power","Yedek gücü"],["ATK","SAL"],
@@ -9089,13 +9205,18 @@ const SG_PATH={
  pierce:'<path class="o" d="M1.2 8.8L8.2 1.8M5.6 1.6h2.8v2.8M3 4.4l2.6 2.6"/>',
  dr:'<path d="M5 .6L8.8 2v3.2C8.8 7.3 7.1 8.8 5 9.5 2.9 8.8 1.2 7.3 1.2 5.2V2Z"/><path class="k" d="M5.6 1.4L4.2 4.2l1.9 1.3-1.5 3.4"/>',
  heal:'<path d="M3.8 1h2.4v2.8H9v2.4H6.2V9H3.8V6.2H1V3.8h2.8Z"/>',
- skill:'<path class="o" d="M5 .8L7.5 9 1 3.9h8L2.5 9Z"/>'
+ skill:'<path class="o" d="M5 .8L7.5 9 1 3.9h8L2.5 9Z"/>', fres:'<path d="M5 .6C6 2.6 8.2 3.8 8.2 6.3A3.2 3.2 0 0 1 1.8 6.3C1.8 4.9 2.6 4 3.3 3.3 3.4 4.4 3.9 5 4.5 5.2 4.2 3.6 4.4 2 5 .6Z"/><path class="d" d="M5 9C4 9 3.4 8.3 3.6 7.4 3.8 6.6 4.6 6.2 5 5.4 5.6 6.4 6.4 6.9 6.4 7.7 6.4 8.4 5.8 9 5 9Z"/>',fdmg:'<path d="M5 .6C6 2.6 8.2 3.8 8.2 6.3A3.2 3.2 0 0 1 1.8 6.3C1.8 4.9 2.6 4 3.3 3.3 3.4 4.4 3.9 5 4.5 5.2 4.2 3.6 4.4 2 5 .6Z"/><path class="d" d="M5 9C4 9 3.4 8.3 3.6 7.4 3.8 6.6 4.6 6.2 5 5.4 5.6 6.4 6.4 6.9 6.4 7.7 6.4 8.4 5.8 9 5 9Z"/>',
+ frres:'<path class="o" d="M5 .6v8.8M1.2 2.8l7.6 4.4M1.2 7.2l7.6-4.4M3.8 1.4L5 2.6l1.2-1.2M3.8 8.6L5 7.4l1.2 1.2"/>',frdmg:'<path class="o" d="M5 .6v8.8M1.2 2.8l7.6 4.4M1.2 7.2l7.6-4.4M3.8 1.4L5 2.6l1.2-1.2M3.8 8.6L5 7.4l1.2 1.2"/>',
+ rres:'<path d="M5 .8C3.6 3 2.4 4.6 2.4 6.3a2.6 2.6 0 0 0 5.2 0C7.6 4.6 6.4 3 5 .8Z"/><circle class="d" cx="4.1" cy="6.2" r=".7"/><circle class="d" cx="5.9" cy="6.9" r=".5"/>',rdmg:'<path d="M5 .8C3.6 3 2.4 4.6 2.4 6.3a2.6 2.6 0 0 0 5.2 0C7.6 4.6 6.4 3 5 .8Z"/><circle class="d" cx="4.1" cy="6.2" r=".7"/><circle class="d" cx="5.9" cy="6.9" r=".5"/>',
+ sres:'<path d="M6.6 .9A4.3 4.3 0 1 0 9.1 7 3.6 3.6 0 0 1 6.6.9Z"/>',sdmg:'<path d="M6.6 .9A4.3 4.3 0 1 0 9.1 7 3.6 3.6 0 0 1 6.6.9Z"/>'
 };
 const SG_WORD={pierce:'Armor pierce',dr:'Damage taken',heal:'Healing received',skill:'Skill damage',matk:'Minion attack',mhp:'Minion HP'};
 const SG_HINT={hp:'Damage it can take before it falls',atk:'Damage of a basic hit',crit:'Chance for Strike to land a critical hit',siph:'Soul Siphon drains life from a foe and heals you',mana:'Pays for skills and for raising the dead',ward:'Bone Ward: a shield that soaks up damage',
   strength:'Strike damage, crit chance, armor piercing, minion attack, and Strike from your army\'s power (Command)',constitution:'Max HP, damage taken, healing received, minion HP, and max HP from your army\'s power (Command)',intelligence:'Mana, Siphon, Ward, skill damage, minion attack, and Siphon from your army\'s power (Command)',will:'Mana, army slots, raise odds, minion bond',
   raise:'Chance that a fallen foe answers your call',mpow:'More HP and attack for all your minions',matk:'More attack for all your minions',mhp:'More max HP for all your minions',regen:'Mana you regain every turn',slot:'How many minions your army can hold',
-  pierce:'Share of foe armor your Strike ignores',dr:'Less damage from every hit you take',heal:'More healing from every source',skill:'More damage from your skills'};   // the stat tooltip's second line (sgTipShow, ui-input.js)
+  pierce:'Share of foe armor your Strike ignores',dr:'Less damage from every hit you take',heal:'More healing from every source',skill:'More damage from your skills',
+  fres:'Less fire damage taken by you',frres:'Less frost damage taken by you',rres:'Less rot damage taken by you',sres:'Less shadow damage taken by you',
+  fdmg:'More fire damage from you and your army',frdmg:'More frost damage from you and your army',rdmg:'More rot damage from you and your army',sdmg:'More shadow damage from you and your army'};   // the stat tooltip's second line (sgTipShow, ui-input.js)
 const sgl=(k,lab)=>{ lab=lab||SG_WORD[k]||(STATL[k]&&STATL[k][0])||k; return '<span class="sg sg-'+k+'" role="img" data-k="'+k+'" aria-label="'+lab+'"><svg viewBox="0 0 10 10" aria-hidden="true">'+(SG_PATH[k]||'')+'</svg></span>'; };
 const manaCost=n=>'<span class="mcost">'+sgl('mana','Mana cost')+n+'</span>';   // battle buttons: what an action costs, so a bare "10" reads as 10 mana
 const statG=(k,v)=>'<span class="sv">'+sgl(k)+(v>0?'+':'&minus;')+Math.abs(v)+STATL[k][1]+'</span>';   // item lines: mark and signed number
@@ -9359,6 +9480,12 @@ function armorTag(a){   // foe armor with its rule spelled out (pierceMul): hove
   const p=Math.round(a*100), t='Foes shrug off '+p+'% of every hit you and your minions land. Piercing skills such as Bone Spear ignore part of it';
   return '<span class="armor-tag" title="'+t+'.">armor '+p+'%<span class="sr-only">. '+t+'.</span></span>';
 }
+function resTag(res,hits){   // where foes stand against your damage types (placeRes) and what their strikers hit with: chips with the rule in the hover
+  res=res||{}; const nm=t=>'<b class="dt dt-'+t+'">'+DTYPE[t].name+'</b>', grp=(lab,l)=>l.length?'<span class="dt-g">'+lab+': '+l.map(nm).join(', ')+'</span>':'';
+  const w=DT_IDS.filter(t=>res[t]<0), r=DT_IDS.filter(t=>res[t]>0&&res[t]<.5), rs=DT_IDS.filter(t=>res[t]>=.5);
+  const parts=[grp('Weak',w),grp('Resists',r),grp('Resists strongly',rs),hits&&hits!=='phys'?grp('Strikers deal',[hits]):''].filter(Boolean); if(!parts.length) return '';
+  return '<span class="dt-tag" title="Weak: takes 25% more damage of that type. Resists: takes 25% less. Resists strongly: takes 50% less. Strikers deal: the damage type of their hits; your resistance lines soften it.">'+parts.join(' &middot; ')+'</span>';
+}
 // A gate tile's painted marks: a hooded shape for a boss not yet met, chains and a padlock over a sealed gate, skulls for each difficulty (one on Normal, four on Nightmare).
 const G_UNKNOWN='<svg viewBox="0 0 64 64"><path d="M32 7C21 7 15 16 15 27c0 7-3 11-7 15 5 3 7 9 7 18h34c0-9 2-15 7-18-4-4-7-8-7-15C49 16 43 7 32 7Z" fill="#050403"/><path d="M22 30c2-9 6-13 10-13s8 4 10 13c-3-2-6-3-10-3s-7 1-10 3Z" fill="#000"/></svg><b>?</b>';
 const G_SEAL='<svg class="g-seal" viewBox="0 0 200 100" preserveAspectRatio="none"><path d="M-10 6L210 94M-10 94L210 6" stroke="#0a0806" stroke-width="9" stroke-dasharray="14 5"/><path d="M-10 6L210 94M-10 94L210 6" stroke="#6a5a44" stroke-opacity=".5" stroke-width="2" stroke-dasharray="14 5" stroke-dashoffset="7"/></svg><svg class="g-lock" viewBox="0 0 24 28"><path d="M6 13V9a6 6 0 0 1 12 0v4" stroke="#3a3128" stroke-width="3" fill="none"/><rect x="3" y="13" width="18" height="14" rx="2" fill="#1a1612" stroke="#5a4a38"/><path d="M12 18v4" stroke="#000" stroke-width="2.4"/></svg>';
@@ -9379,7 +9506,7 @@ function gateHTML(i){
    +(best?'<span class="g-best" title="Your fastest clear of this gate, day '+best.day+(best.heat?', '+HEAT[best.heat].name:'')+'">Best '+best.t+' turns</span>':'')+'</div>'
    +'<p>'+D.blurb+'</p>'
    +'<div class="meta">'+(locked?'Opens at level '+R.unlock:'<span class="danger-'+danger.toLowerCase()+'">'+danger+' for you</span>')+' &middot; <span class="rec-lv" title="Most necromancers clear this gate'+(heatOf(i)&&!locked?' on '+HEAT[heatOf(i)].name:'')+' from this hero level">Recommended Lv '+rec+'+</span>'
-   +(DIFF.armor[i]?' &middot; '+armorTag(DIFF.armor[i]):'')+' &middot; Boss: <b>'+(met?D.boss[0]:'???')+'</b>'
+   +(DIFF.armor[i]?' &middot; '+armorTag(DIFF.armor[i]):'')+' &middot; '+resTag(GATE_RES[i],GATE_HITS[i])+' &middot; Boss: <b>'+(met?D.boss[0]:'???')+'</b>'
    +(S.mode==='town'&&raidGates().includes(i)&&bestSquad()&&!raidOrders().length?(sq=>'<div class="raid-odds" title="'+sq[0].nick+' and '+(sq.length-1)+' of your strongest; set the squad on the War table">Raid odds '+Math.round(raidOdds(sq,i)*100)+'%</div>')(bestSquad()):'')
    +heatHTML(i)+(gateFarm(i)<1?'<div class="farm-line dim" title="Rewards here '+Math.round(gateFarm(i)*100)+'% on Normal at your level; Hard and up pay in full.">Rewards '+Math.round(gateFarm(i)*100)+'% &middot; Hard+ full</div>':'')+'</div>'
    +'<button class="linkbtn g-detb" data-a="gdet" data-k="'+i+'" aria-expanded="'+det+'">'+(det?'Hide details':'Details')+'</button>'+(det?gateDetHTML(i):'')+'</div>'
@@ -9439,7 +9566,7 @@ function towerHTML(){
   if(locked) h+='<p class="lede bad">The Tower opens once '+OPEN_AT.tower+' gates are cleared, from level '+TW.unlock+'.</p>';
   else{
     h+='<div class="chips">'+st.map(f=>'<button class="btn'+(f===st[st.length-1]?' primary':'')+'" data-a="tower" data-k="'+f+'"'+(noWatch?' disabled':'')+'>Floor '+f+'</button>').join('')+'</div>'
-     +'<p class="q-note"><span class="rec-lv">Floor '+st[st.length-1]+': Recommended Lv '+recLv(st[st.length-1])+'+</span> &middot; '+(noWatch?'<span class="bad">No watches left</span>':'1 watch')+'</p>';
+     +'<p class="q-note"><span class="rec-lv">Floor '+st[st.length-1]+': Recommended Lv '+recLv(st[st.length-1])+'+</span> &middot; '+resTag(TOWER_RES,TOWER_HITS)+' &middot; '+(noWatch?'<span class="bad">No watches left</span>':'1 watch')+'</p>';
   }
   h+=T.best>=100?'<div class="tw-hero abyss"><b>The Abyss &middot; floor '+(T.best>100?T.best:'101')+'+</b><div class="u-sub" title="Abaddon is dead, but the Tower goes on. Past floor 100 every floor is harder than the last, forever. Each tenth floor holds an abyssal warden that leaves gold and a legendary.">Endless &middot; every 10th floor: gold + legendary &middot; Record '+T.best+'</div></div>'
      :'<p class="q-note">Beyond floor 100 lies the Abyss, a climb with no top.</p>';
@@ -9751,7 +9878,7 @@ function histHTML(){
 }
 // ----- the Codex: every rule and list in the game, read straight from the game's own tables so it never goes stale.
 // Enemies you have not met yet stay hidden, as in the bestiary.
-const CODEX=[['basics','Basics'],['raising','Raising'],['faith','Faith'],['omens','Omens'],['roles','Roles'],['traits','Traits'],['minions','Minion stats'],['army','Army'],['reserve','Reserve'],['fusion','Fusion'],['affixes','Elite affixes'],['bosses','Bosses'],['status','Status effects'],['skills','Skills'],['orders','Orders'],
+const CODEX=[['basics','Basics'],['raising','Raising'],['faith','Faith'],['omens','Omens'],['roles','Roles'],['traits','Traits'],['minions','Minion stats'],['army','Army'],['reserve','Reserve'],['fusion','Fusion'],['affixes','Elite affixes'],['bosses','Bosses'],['status','Status effects'],['types','Damage types'],['skills','Skills'],['orders','Orders'],
   ['gates','Gates'],['tower','Hell Tower'],['gear','Gear'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['records','Records']];
 const CDX_ROLE={
   vanguard:'When a foe picks a target, each vanguard counts 5 and everyone else (you included) counts 2, so vanguards draw most blows. They take Taunt orders and stand in front of a Sundering Blow.',
@@ -9763,7 +9890,7 @@ const CDX_DOT={
   poison:'From Venomous minions and the Grave Gas upgrade of Corpse Explosion. 15% of the poisoner\'s attack (Grave Gas: 15% of your Siphon) each turn for 3 turns. The '+CAPS.rot2.name+' capstone poisons too: '+Math.round(CAP_BLOOM*100)+'% of your Siphon, 3 turns.',
   bleed:'From an enemy striker\'s crit. 30% of its attack each turn for 2 turns. Your Strike with the '+SKILL_MODS.edge.b[0]+' upgrade bleeds its target too, for '+Math.round(BLOODLET*100)+'% of the hit.',
   burn:'From a Cinder Wave. 15% of the boss\'s attack each turn for 2 turns. '+TRAITS.cinderborn.name+' minions burn their target too, for '+Math.round(CINDER_K*100)+'% of their attack.',
-  blight:'Shadow rot. From Necrotic minions (10% of their attack, 2 turns), Plaguebearer elites (20% of their attack, 2 turns) and the Grave Gas upgrade of Corpse Explosion (10% of your Siphon, 3 turns). It deals that damage each turn, and its bearer receives half the healing (an enemy mender\'s too). Black Eclipse makes your blight 20% stronger.'
+  blight:'Rot. From Necrotic minions (10% of their attack, 2 turns), Plaguebearer elites (20% of their attack, 2 turns) and the Grave Gas upgrade of Corpse Explosion (10% of your Siphon, 3 turns). It deals that damage each turn, and its bearer receives half the healing (an enemy mender\'s too). Black Eclipse makes your blight 20% stronger.'
 };
 // What each record measures (keys follow REC_NUM, so a new record without a line here fails the Codex test).
 const CDX_REC={
@@ -9844,6 +9971,19 @@ function codexSection(k){
     +(()=>{ const met=SECRET.map((B,i)=>({B,i})).filter(x=>metName(x.B.name)); if(!met.length) return '';
       return '<p class="group-h">Secret masters</p>'+cxP('Some gates hide an older master. Once a gate is cleared, its boss room very rarely holds that master instead, a little more often on harder difficulty and each time it stays away. It is never weaker than you, fights with the strength of the hardest gate open to you, and grows tougher the further you stand past that gate. It enters its second phase at once and acts faster. It pays four times the XP and gold, two legendaries and its heart, and its title.')
         +cxList(met.map(x=>cxRow(x.B.name,'The secret master of the '+DUNGEONS[x.i].name+'. It borrows '+BOSS_ABIL[GATE_ABIL[x.i]].name+'.',T_('secret_'+x.i)?'Slain':'Met'))); })();
+  if(k==='types'){ const pc=v=>Math.round(Math.abs(v)*100)+'%', prof=(res,hits)=>{ const w=DT_IDS.filter(t=>res[t]<0), r=DT_IDS.filter(t=>res[t]>0); return (w.length?'Weak to '+w.map(t=>DTYPE[t].name+' (+'+pc(res[t])+')').join(', ')+'. ':'')+(r.length?'Resists '+r.map(t=>DTYPE[t].name+' (-'+pc(res[t])+')').join(', ')+'. ':'')+'Strikers deal '+DTYPE[hits].name+'.'; };
+    return cxP('Every hit has one of five damage types: Physical, Shadow, Frost, Fire and Rot. Where foes stand decides what they are weak to and what they resist. A weakness adds to the damage, a resistance takes from it, once, after armor and before any shield. Armor and resistance are separate: piercing beats armor, the right type beats resistance.')
+      +'<p class="group-h">Your damage</p>'+cxList([cxRow(DTYPE.phys.name,'Strike, Echo, Hellfire, Cleave, Bone Spear and its Splinter, Thorns, Barbed Hide, the Spiked and Volley marks, bleeding, and every minion hit without a typed trait.'),
+        cxRow(DTYPE.shad.name,'Soul Siphon and Chorus, Reap, Death\'s Toll, and Bloodfiend minions.'),
+        cxRow(DTYPE.frost.name,'Grave Chill, the Deep Winter capstone, and Rimeborn, Glaciermaul and Shatterwrought minions (Shatterwrought alternates frost and fire).'),
+        cxRow(DTYPE.fire.name,'Burns, and Cinderborn and Pyreheart minions.'),
+        cxRow(DTYPE.rot.name,'Corpse Explosion, poison and blight, and Venomous, Necrotic, Plaguebearer and Witchrot minions.')])
+      +'<p class="group-h">Where foes stand</p>'+cxList(DUNGEONS.map((D,i)=>cxRow(D.name,prof(GATE_RES[i],GATE_HITS[i]))).concat([cxRow('The Hell Tower',prof(TOWER_RES,TOWER_HITS)),cxRow('The Rift','Each depth has one weakness and one resistance, the same every time, shown before you enter. Strikers deal '+DTYPE[GATE_HITS[5]].name+'.'),cxRow('Sieges',prof(SIEGE_RES,SIEGE_HITS)+' The living have no resistances.'),cxRow('Trials','As the gate the Trial is set in.')]))
+      +'<p class="group-h">Your defenses</p>'+cxList([cxRow('Resistance lines','Armor can roll Fire, Frost, Rot or Shadow resistance as a bonus line. Each takes that much from hits, burns and wounds of its type, up to '+pc(RES_CAP)+'. Physical damage has no resistance line: Constitution, armor sets and titles cover it.'),
+        cxRow('Damage lines','Weapons and relics can roll Fire, Frost, Rot or Shadow damage as a bonus line: that much more damage of the type from you and your army.'),
+        cxRow('Typed minions','A minion with Rimeborn resists frost, Cinderborn fire, Venomous or Necrotic rot, each by '+pc(TRAIT_RES.rimeborn[1])+'.'),
+        cxRow('What hits you','Vanguards and menders hit physical; strikers hit with their place\'s type. Frost-touched elites hit frost and chill, Burning elites hit fire and burn. Cinder Wave and Volatile bodies are fire, poison and blight are rot, bleeding is physical.')])
+      +'<p class="group-h">Omens</p>'+cxP(OMENS.ironrain.name+': foes also resist '+pc(IRON_PHYS)+' of physical damage. '+OMENS.soulstorm.name+': your shadow damage is '+pc(STORM_SHAD-1)+' stronger.'); }
   if(k==='status') return cxP('Damage over time ticks at the end of each turn, ignores ward and armor, and wears off when you leave the room. A new dose of the same kind refreshes it rather than stacking. A Healing Draught cures you; Dark Mending cures your whole side. Foes with the Warded affix and minions with the Warded trait are immune.')
     +cxList(Object.keys(DOTS).map(d=>cxRow(DOTS[d].name,CDX_DOT[d])))
     +'<p class="group-h">Other effects in a fight</p>'+cxList([cxRow('Frozen','From Grave Chill (1 turn, 2 at rank 3) and Soul Prison (2 turns, bosses 1). The foe skips its turn; a charging move is lost.'),cxRow('Cursed','From Curse of Frailty and Soul Prison. The foe takes more damage from everything.'),
@@ -10435,7 +10575,7 @@ function stageRaise(k){   // a body clicked on the raise stage (fx.js): the same
 function battleHTML(){
   currentTarget();
   const r=S.run, D=DUNGEONS[r.di], P=S.player, boss=r.room===r.rooms-1, ans=chargeAns(), st=stageOn();   /* st: the battle stage (fx.js) shows the fight; the cards fold into a strip */
-  const foeH='Foes'+(foeArmor()?' &middot; '+armorTag(foeArmor()):''), sideH='Your side'+(r.frenzy>0?' &middot; <span class="ok">Frenzy '+r.frenzy+'</span>':'')+(r.silence>0?' &middot; <span class="bad">Silenced '+r.silence+'</span>':'')+(r.taunt>0?' &middot; <span class="ok">Taunting '+r.taunt+'</span>':'');
+  const foeH='Foes'+(foeArmor()?' &middot; '+armorTag(foeArmor()):'')+(t=>t?' &middot; '+t:'')(resTag(placeRes(),r.siege?SIEGE_HITS:r.tw?TOWER_HITS:GATE_HITS[r.di])), sideH='Your side'+(r.frenzy>0?' &middot; <span class="ok">Frenzy '+r.frenzy+'</span>':'')+(r.silence>0?' &middot; <span class="bad">Silenced '+r.silence+'</span>':'')+(r.taunt>0?' &middot; <span class="ok">Taunting '+r.taunt+'</span>':'');
   const mini='<div class="mini-hp" aria-hidden="true"><div><span>HP '+Math.max(0,P.hp)+'/'+pMax()+(P.shield?' +'+P.shield:'')+'</span><div class="bar"><i class="fill hp" style="width:'+pct(P.hp,pMax())+'%"></i></div></div><div><span>Mana '+P.mana+'/'+pMana()+'</span><div class="bar"><i class="fill mp" style="width:'+pct(P.mana,pMana())+'%"></i></div></div></div>';
   return '<section class="win'+(st?' staged':'')+'" aria-labelledby="h-battle">'+mini+'<h2 class="win-h" id="h-battle">'+(r.tw?'Hell Tower &middot; Floor '+r.tw+(r.tw%10===0?' &middot; Warden':'')+' &middot; Turn '+r.turn:(r.siege?'Siege &middot; Wave '+(r.room+1)+'/'+r.rooms+' &middot; Turn '+r.turn:r.trial?'Trial &middot; Room '+(r.room+1)+'/'+r.rooms+' &middot; Turn '+((r.tt||0)+1):(r.rift?'The Rift &middot; Depth '+r.rift+' &middot; ':'')+D.name+' &middot; Room '+(r.room+1)+'/'+r.rooms+(boss?' &middot; Boss':'')+' &middot; Turn '+r.turn))+'</h2>'
    +((r.mod||r.mod2||r.heat||r.bless)?'<div class="facts run-mods">'+[r.mod,r.mod2].filter(m=>m&&MODS[m]).map(m=>'<span class="bad" title="Cursed: '+MODS[m].name+'. '+MODS[m].desc+'"><i aria-hidden="true">&#9760;</i> '+MODS[m].name+'</span>').join('')
@@ -10536,7 +10676,7 @@ function riftHTML(){
   const b=riftBest(), n=clamp(ui.rd||b+1,1,b+1);
   return '<section class="win rift-w" aria-labelledby="h-rift"><h2 class="win-h" id="h-rift">The Rift &middot; deepest '+b+'</h2>'
    +'<div class="rift-pick"><button class="btn small" data-a="rdep" data-k="-1"'+(n<=1?' disabled':'')+' aria-label="Shallower">&minus;</button><b class="num">Depth '+n+'</b><button class="btn small" data-a="rdep" data-k="1"'+(n>b?' disabled':'')+' aria-label="Deeper">+</button>'
-   +'<span class="u-sub num">Foes Lv '+riftLvl(n)+'+ &middot; x'+riftMul(n).toFixed(1)+' strength'+(n>b?' &middot; new depth':'')+'</span></div>'
+   +'<span class="u-sub num">Foes Lv '+riftLvl(n)+'+ &middot; x'+riftMul(n).toFixed(1)+' strength'+(n>b?' &middot; new depth':'')+'</span><span class="u-sub">'+resTag(riftRes(n),GATE_HITS[5])+'</span></div>'
    +'<div class="btns"><button class="btn primary" data-a="rift" data-k="'+n+'"'+(S.watches<=0?' disabled':'')+'>Enter the Rift</button></div></section>';
 }
 function raidHTML(){

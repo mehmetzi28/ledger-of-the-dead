@@ -19,7 +19,7 @@ substantial feature or rework; small fixes ride along inside one. Rounds name th
 | # | Round | Priority | Closes | Needs | Size | Spec |
 |---|---|---|---|---|---|---|
 | R0 | Hero power scales with army strength | Shipped (#5) | G9, B8 | | L | |
-| R1 | Every foe is a puzzle: foe kits and damage types | P1 | G1, G2, G4, G5, B1, B2, B5 | | XL | [spec](rounds/R01-foe-kits-and-damage-types.md) |
+| R1 | Every foe is a puzzle: foe kits and damage types | P1, PR A shipped (damage types) | G1, G2, G4, G5, B1, B2, B5 | | XL | [spec](rounds/R01-foe-kits-and-damage-types.md) |
 | R2 | Masters worth remembering: boss kits | P1 | G3, G11 (part) | R1 | XL | [spec](rounds/R02-boss-kits.md) |
 | R3 | The end of the book: the seventh gate and the ending | P1 | G16, G21 (part) | R2 helps | XL | [spec](rounds/R03-the-end-of-the-book.md) |
 | R4 | Gold that means something: late economy and crafting | P1 | G10, G11, G14, B3 | | L | [spec](rounds/R04-late-economy-and-crafting.md) |

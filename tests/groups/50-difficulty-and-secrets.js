@@ -34,7 +34,7 @@ test('Secrets: slaying one pays four times, leaves two legendaries and a heart, 
 test('Siphon: pierces a quarter of armor, devours a foe below 30% HP for double, and harvests a Soul (up to five)',()=>{
   const t=foe({hp:10000}); arena([t],3); fix(.5); const P=S.player; P.mana=200; P.stats.constitution=300; P.hp=pMax();
   ok(pierceMul(SIPHON_PIERCE)>dmgMul(),'pierces armor'); act('siphon'); eq(S.run.souls,1);
-  t.hp=2000; const before=t.hp, d=H(pSiph()*pierceMul(SIPHON_PIERCE))*2; act('siphon'); eq(before-t.hp,d,'devours'); ok(S.run.log.some(l=>/devours/.test(l.m)));
+  t.hp=2000; const before=t.hp, d=Math.round(H(pSiph()*pierceMul(SIPHON_PIERCE))*2*(1-foeRes(t,'shad'))); act('siphon'); eq(before-t.hp,d,'devours'); ok(S.run.log.some(l=>/devours/.test(l.m)));
   for(let i=0;i<6;i++){ P.mana=200; act('siphon'); } eq(S.run.souls,SOUL_MAX,'capped'); const e=foe({elite:true,hp:1}); S.run.souls=0; S.run.enemies.push(e); e.hp=0; checkDeaths(); eq(S.run.souls,1,'an elite gives a Soul');
 });
 test('Ultimates: open at level 20, chosen in town, cost five Souls and use the turn',()=>{

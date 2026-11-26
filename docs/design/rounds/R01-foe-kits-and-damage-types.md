@@ -61,6 +61,23 @@ Per-kind overrides live in the kit table (section 3), for example the Glass Sent
   "+10% shadow damage".
 - **Corpse conditions**: a foe killed by damage it is weak to rises **Undone** (raise +10, see 3.4).
 
+### As built (PR A)
+
+- Keys: types are `phys`, `shad`, `frost`, `fire`, `rot` (`DTYPE`). Resistance lines `fres` (fire), `frres` (frost), `rres`
+  (rot), `sres` (shadow), armor only; damage lines `fdmg`, `frdmg`, `rdmg`, `sdmg`, weapon and relic only (`ROLL_SLOT`,
+  `rollKeys(slot)`), 2.1 per set point, so a best roll is about 20% at the S set. Your resistance per type caps at 50%.
+- Damage lines count for you and your army (the bonus applies in `hurtFoe`), which ties them to typed minions.
+- `KILL` stayed as it was; `hurtFoe` records the last hit's type on the foe (`e.lt`) for PR B's weakness kill.
+- Blight is rot (the old texts called it shadow). The Black Eclipse keeps its old reach (Siphon, the Siphon skills,
+  blight) through `shadowK`; it is not a typed bonus.
+- Added beyond the spec: foe strikers hit with their place's type (`GATE_HITS`: Rat Warren rot, Sunken Crypt frost,
+  Ashen Barrow fire, Hollow Cathedral shadow, Iron Orchard physical, Throne shadow, Tower fire, sieges physical), so the
+  resistance lines matter outside elites and boss moves; minions risen with a typed trait resist their element by 25%
+  (`TRAIT_RES`); a Chilled ally takes 20% more (Frost-touched elites chill).
+- Rift profile: `riftRes(depth)`, fixed per depth. Trials use their gate's profile.
+- Tests are group `80-damage-types` (79 was taken by Command).
+- Measured: nothing moved past noise (see 04-balance.md). The retune moves to PR B with the kits.
+
 ## 3. Foe kits
 
 ### 3.1 The sixteen kits

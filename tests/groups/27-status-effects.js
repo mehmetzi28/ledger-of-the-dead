@@ -3,7 +3,8 @@
 const {test,ok,eq,near,finite,fmt,BAD_TEXT,cleanHTML,mulberry32,seed,fix,seq,H,fresh,setLvl,foe,arena,mkMinion,corpse,raiseScene,wear,give,canon,firstDiff,renderAll,TABS,richState,invariants,NODE,bossFight,earn,eventScene,cursedRun,wonRoom,master,board,cdx}=window.LOTD_T;
 test('Status: a new dose refreshes, it ticks each turn, then wears off',()=>{
   const t=foe({hp:1000}); arena([t]); addDot(t,'poison',10,2); addDot(t,'poison',6,3); eq(t.dots.poison.d,10); eq(t.dots.poison.t,3); addDot(t,'poison',0.2,5); eq(t.dots.poison.t,3,'tiny doses are ignored');
-  tickDots(); eq(t.hp,990); tickDots(); tickDots(); eq(t.hp,970); eq(t.dots,undefined); const dead=foe({hp:0}); addDot(dead,'poison',5,3); eq(dead.dots,undefined,'the dead cannot be poisoned');
+  const pk=Math.round(10*(1-foeRes(t,'rot')));   /* poison is rot: the Rat Warren resists it */
+  tickDots(); eq(t.hp,1000-pk); tickDots(); tickDots(); eq(t.hp,1000-3*pk); eq(t.dots,undefined); const dead=foe({hp:0}); addDot(dead,'poison',5,3); eq(dead.dots,undefined,'the dead cannot be poisoned');
 });
 test('Status: bleeding ignores your ward, can down minions, and can kill you',()=>{
   arena([foe({hp:1e6})]); const P=S.player; P.shield=500; addDot(P,'bleed',7,2); tickDots(); eq(P.hp,pMax()-7); eq(P.shield,500);
@@ -68,7 +69,7 @@ test('Status: foes apply them too: Sundering Blow, Plaguebearer, Sundering and H
 test('Status: pills with tooltips on every card in battle, in the Codex, and in Turkish',()=>{
   const t=foe({hp:1e6,shield:20}); arena([t]); const m=mkMinion({}); addDot(t,'blight',4,2); addSt(t,'sundered',2); t.stun=1; t.curse={mul:1.3,t:2}; addSt(m,'hasted',2); addSt(S.player,'hexed',2);
   const h=renderAll('pills'); ['p-blight','p-sundered','p-frozen','p-cursed','p-shield','p-hasted','p-hexed'].forEach(c=>ok(h.includes('pill '+c),c));
-  ok(/title="Deals 20% less damage\. 2 turns left\."/.test(h)); ok(/title="Shadow rot eats HP[^"]*4 damage a turn\. 2 turns left\."/.test(h));
+  ok(/title="Deals 20% less damage\. 2 turns left\."/.test(h)); ok(/title="Rot eats HP[^"]*4 damage a turn\. 2 turns left\."/.test(h));
   flee(); const c=cdx('status'); ['Blighted','Sundered','Hexed','Hasted','Chilled'].forEach(n=>ok(c.includes(n),'codex '+n)); ok(cdx('traits').includes('Necrotic')); ok(cdx('affixes').includes('Plaguebearer'));
   ['Blighted 2','Sundered 2','Hexed 2','Hasted 2','Chilled 2','Frozen 1','Cursed 2'].forEach(x=>ok(trText(x)!==x,x));
   [CONDS.hexed.desc+' 2 turns left.',DOTS.blight.tip+' 4 damage a turn. 2 turns left.',CONDS.hasted.desc+' 1 turn left.'].forEach(x=>{ const y=trText(x); ok(y!==x&&!/turns? left|damage a turn/.test(y),y); });

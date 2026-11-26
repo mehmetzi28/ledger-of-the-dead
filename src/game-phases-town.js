@@ -29,10 +29,12 @@ const AFFIX={
   vampiric: {name:'Vampiric', desc:'Heals for 40% of the damage it deals.',                     trait:'leech'},
   enraged:  {name:'Enraged',  desc:'Hits 60% harder below half HP.',                            trait:'wrathful'},
   warded:   {name:'Warded',   desc:'Immune to bleeding, burns, poison and blight.',             trait:'warded'},
-  plague:   {name:'Plaguebearer',desc:'Its hits blight the target for 2 turns: shadow damage each turn, and half the healing received.', trait:'necrotic'},
+  plague:   {name:'Plaguebearer',desc:'Its hits blight the target for 2 turns: rot damage each turn, and half the healing received.', trait:'necrotic'},
   sundering:{name:'Sundering', desc:'Its hits sunder the target 1 time in 3: 25% more damage taken for 2 turns.', trait:'crushing'},
   hexing:   {name:'Hexing',    desc:'Its hits hex the target 1 time in 3: 20% less damage dealt for 2 turns.', trait:'hexing'},
-  swift:    {name:'Swift',     desc:'Hasted for the first 3 turns of a fight: strikes again for 50% at the end of each turn.', trait:'swift'}
+  swift:    {name:'Swift',     desc:'Hasted for the first 3 turns of a fight: strikes again for 50% at the end of each turn.', trait:'swift'},
+  frosty:   {name:'Frost-touched',desc:'Its hits are frost and chill the target 1 time in 3: 20% more damage taken for 2 turns.', trait:'rimeborn'},
+  burning:  {name:'Burning',   desc:'Its hits are fire and burn the target for 2 turns.', trait:'cinderborn'}
 };
 const AFFIX_IDS=Object.keys(AFFIX), SPLIT_MAX=6;
 const hasAff=(e,a)=>!!(e&&e.aff&&e.aff.includes(a));
@@ -272,7 +274,7 @@ const canUlt=()=>S.mode==='battle'&&!!S.run&&S.player.lvl>=ULT_LV&&!!ULTS[S.play
 function chooseUlt(id){ if(S.mode!=='town'||!ULTS[id]||S.player.lvl<ULT_LV) return false; S.player.ult=id; return true; }
 function useUlt(t){
   if(!canUlt()) return false; const r=S.run, P=S.player, id=P.ult; r.souls=0; tally('ults');
-  if(id==='toll'){ let tot=0, slain=0; for(const o of liveFoes()){ const d=hit(pSiph()*TOLL_MUL*pierceMul(1)); hurtFoe(o,d); tot+=d; if(o.hp>0&&!o.boss&&o.hp<o.maxHp*TOLL_EXEC){ mark(o,o.hp,0); o.hp=0; slain++; } }
+  if(id==='toll'){ let tot=0, slain=0; for(const o of liveFoes()){ const d=hit(pSiph()*TOLL_MUL*pierceMul(1)); hurtFoe(o,d,'shad'); tot+=d; if(o.hp>0&&!o.boss&&o.hp<o.maxHp*TOLL_EXEC){ mark(o,o.hp,0); o.hp=0; slain++; } }
     log("Death's Toll: every foe takes the Ledger's due, "+tot+' damage in all'+(slain?', and '+slain+' fall where they stand':'')+'.','ok'); }
   else if(id==='rise'){ let n=0; for(const m of S.army){ if(m.hp<=0){ m.hp=m.maxHp; n++; } else healAlly(m,m.maxHp); } healAlly(P,Math.round(pMax()*.4)); r.frenzy=Math.max(r.frenzy||0,3); r.frenzyMul=Math.max(r.frenzyMul||1,1.5);
     log('Unholy Resurrection: '+(n?n+' of your fallen rise again, ':'')+'your army is whole and burns with fury.','ok'); }
@@ -330,7 +332,7 @@ function salvageTier(t){ if(S.mode!=='town'||!BULK_TIERS.includes(t)||!workOpen(
 function salvageJunk(){ if(S.mode!=='town') return null; const list=S.inv.filter(isJunk); let n=0; for(const it of list) n+=salvage(it.u); if(list.length) sfx('fail'); return {n:list.length,d:n}; }
 const lineMax=it=>(ROLL_LINES[ITEM[it.id].tier]||[0])[0];
 const enchCost=it=>Math.max(1,Math.round((3+ITEM[it.id].tier*4)*(1-B_FORGE*bl('forge'))));
-function rollLine(it,skip){ const d=ITEM[it.id], k=pick(Object.keys(ROLL_KEYS).filter(x=>!skip.includes(x))); return [k,Math.max(1,Math.round(ROLL_KEYS[k]*TM[d.set]*rnd(.5,1)))]; }
+function rollLine(it,skip){ const d=ITEM[it.id], k=pick(rollKeys(d.slot).filter(x=>!skip.includes(x))); return [k,Math.max(1,Math.round(ROLL_KEYS[k]*TM[d.set]*rnd(.5,1)))]; }
 // Tempering (same workshop): a bonus line moves TEMPER_STEP of the way to its highest roll (at least +1). Gold, growing x TEMPER_GROW for
 // every temper this piece has had (it.tp; re-rolls and reforges keep it). Uniques cannot be tempered.
 const TEMPER_GOLD=150, TEMPER_STEP=.25, TEMPER_GROW=1.5;   // TEMPER_GOLD 60->150 (2026-11-20): the full bot ran out of lines to temper with ~35k in hand; it is a capped sink (three slots, uniques excluded)

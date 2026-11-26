@@ -52,7 +52,7 @@ function progFoes(list){ for(const e of list){ if(pactOn('hides')) e.maxHp=e.hp=
 function progTick(){   // end of each turn (from skillTick): Deep Winter and the Knitting Flesh pact
   const r=S.run; if(!r||!r.enemies) return;
   if(capOn('frost2')) for(const e of liveFoes()) if(e.froze!=null&&e.froze===r.turn-1&&e.capW!==e.froze){ e.capW=e.froze;
-    const d=Math.min(e.hp-1,hit(pSiph()*CAP_WINTER*pierceMul(1))); if(d>0) hurtFoe(e,d); addSt(e,'chilled',2); }
+    const d=Math.min(e.hp-1,hit(pSiph()*CAP_WINTER*pierceMul(1))); if(d>0) hurtFoe(e,d,'frost'); addSt(e,'chilled',2); }
   if(pactOn('regen')) for(const e of liveFoes()) if(e.hp<e.maxHp){ const h=Math.min(e.maxHp-e.hp,Math.round(e.maxHp*PACT_REGEN*blightK(e))); if(h>0){ e.hp+=h; mark(e,0,h); } }
 }
 

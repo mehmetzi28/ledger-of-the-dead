@@ -170,7 +170,7 @@ function stageRaise(k){   // a body clicked on the raise stage (fx.js): the same
 function battleHTML(){
   currentTarget();
   const r=S.run, D=DUNGEONS[r.di], P=S.player, boss=r.room===r.rooms-1, ans=chargeAns(), st=stageOn();   /* st: the battle stage (fx.js) shows the fight; the cards fold into a strip */
-  const foeH='Foes'+(foeArmor()?' &middot; '+armorTag(foeArmor()):''), sideH='Your side'+(r.frenzy>0?' &middot; <span class="ok">Frenzy '+r.frenzy+'</span>':'')+(r.silence>0?' &middot; <span class="bad">Silenced '+r.silence+'</span>':'')+(r.taunt>0?' &middot; <span class="ok">Taunting '+r.taunt+'</span>':'');
+  const foeH='Foes'+(foeArmor()?' &middot; '+armorTag(foeArmor()):'')+(t=>t?' &middot; '+t:'')(resTag(placeRes(),r.siege?SIEGE_HITS:r.tw?TOWER_HITS:GATE_HITS[r.di])), sideH='Your side'+(r.frenzy>0?' &middot; <span class="ok">Frenzy '+r.frenzy+'</span>':'')+(r.silence>0?' &middot; <span class="bad">Silenced '+r.silence+'</span>':'')+(r.taunt>0?' &middot; <span class="ok">Taunting '+r.taunt+'</span>':'');
   const mini='<div class="mini-hp" aria-hidden="true"><div><span>HP '+Math.max(0,P.hp)+'/'+pMax()+(P.shield?' +'+P.shield:'')+'</span><div class="bar"><i class="fill hp" style="width:'+pct(P.hp,pMax())+'%"></i></div></div><div><span>Mana '+P.mana+'/'+pMana()+'</span><div class="bar"><i class="fill mp" style="width:'+pct(P.mana,pMana())+'%"></i></div></div></div>';
   return '<section class="win'+(st?' staged':'')+'" aria-labelledby="h-battle">'+mini+'<h2 class="win-h" id="h-battle">'+(r.tw?'Hell Tower &middot; Floor '+r.tw+(r.tw%10===0?' &middot; Warden':'')+' &middot; Turn '+r.turn:(r.siege?'Siege &middot; Wave '+(r.room+1)+'/'+r.rooms+' &middot; Turn '+r.turn:r.trial?'Trial &middot; Room '+(r.room+1)+'/'+r.rooms+' &middot; Turn '+((r.tt||0)+1):(r.rift?'The Rift &middot; Depth '+r.rift+' &middot; ':'')+D.name+' &middot; Room '+(r.room+1)+'/'+r.rooms+(boss?' &middot; Boss':'')+' &middot; Turn '+r.turn))+'</h2>'
    +((r.mod||r.mod2||r.heat||r.bless)?'<div class="facts run-mods">'+[r.mod,r.mod2].filter(m=>m&&MODS[m]).map(m=>'<span class="bad" title="Cursed: '+MODS[m].name+'. '+MODS[m].desc+'"><i aria-hidden="true">&#9760;</i> '+MODS[m].name+'</span>').join('')
@@ -271,7 +271,7 @@ function riftHTML(){
   const b=riftBest(), n=clamp(ui.rd||b+1,1,b+1);
   return '<section class="win rift-w" aria-labelledby="h-rift"><h2 class="win-h" id="h-rift">The Rift &middot; deepest '+b+'</h2>'
    +'<div class="rift-pick"><button class="btn small" data-a="rdep" data-k="-1"'+(n<=1?' disabled':'')+' aria-label="Shallower">&minus;</button><b class="num">Depth '+n+'</b><button class="btn small" data-a="rdep" data-k="1"'+(n>b?' disabled':'')+' aria-label="Deeper">+</button>'
-   +'<span class="u-sub num">Foes Lv '+riftLvl(n)+'+ &middot; x'+riftMul(n).toFixed(1)+' strength'+(n>b?' &middot; new depth':'')+'</span></div>'
+   +'<span class="u-sub num">Foes Lv '+riftLvl(n)+'+ &middot; x'+riftMul(n).toFixed(1)+' strength'+(n>b?' &middot; new depth':'')+'</span><span class="u-sub">'+resTag(riftRes(n),GATE_HITS[5])+'</span></div>'
    +'<div class="btns"><button class="btn primary" data-a="rift" data-k="'+n+'"'+(S.watches<=0?' disabled':'')+'>Enter the Rift</button></div></section>';
 }
 function raidHTML(){

@@ -40,11 +40,11 @@ function useSkill(id,t){
   if(!canUse(id)) return false;
   const s=SKILL[id], rk=sk(id), r=S.run, P=S.player;
   P.mana-=skCost(s); r.cd=r.cd||{}; r.cd[id]=s.cd+1; tally('sk_'+id);   // +1: the end-of-turn tick runs this same turn
-  if(id==='spear'){ const fb=frozenChilled(t), d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(hasMod('spear','a')?1:.5)*skMul()*(fb?FROSTBREAK:1)); hurtFoe(t,d); log('Bone Spear impales '+t.name+' for '+d+'.'); fxe('spear',t); if(fb&&t.hp>0) frostbreak(t);
-    if(hasMod('spear','b')){ const o=liveFoes().filter(x=>x!==t); if(o.length){ const o2=pick(o), d2=Math.round(d*.5); hurtFoe(o2,d2); log('A splinter tears into '+o2.name+' for '+d2+'.'); } } }
+  if(id==='spear'){ const fb=frozenChilled(t), d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(hasMod('spear','a')?1:.5)*skMul()*(fb?FROSTBREAK:1)); hurtFoe(t,d,'phys'); log('Bone Spear impales '+t.name+' for '+d+'.'); fxe('spear',t); if(fb&&t.hp>0) frostbreak(t);
+    if(hasMod('spear','b')){ const o=liveFoes().filter(x=>x!==t); if(o.length){ const o2=pick(o), d2=Math.round(d*.5); hurtFoe(o2,d2,'phys'); log('A splinter tears into '+o2.name+' for '+d2+'.'); } } }
   else if(id==='blast'){ const c=freeCorpse(); c.tried=true; c.result='exploded'; const base=pSiph()*(.6+.2*rk)*pierceMul(1)*(hasMod('blast','a')?1.3:1)*skMul()*shadowK(); let tot=0;
     const rot=Math.max(c.bl||0,...liveFoes().map(o=>o.dots&&o.dots.blight?o.dots.blight.d:0)), spread=[];   // Spreading Rot: a blighted body, or blight already in the room
-    for(const o of liveFoes()){ const d=hit(base); hurtFoe(o,d); fxe('burst',o); tot+=d; if(rot&&o.hp>0&&!(o.dots&&o.dots.blight)){ addDot(o,'blight',rot,2); if(o.dots&&o.dots.blight) spread.push(o); } if(hasMod('blast','a')) addSt(o,'sundered',2); if(hasMod('blast','b')){ addDot(o,'poison',pSiph()*.15,3); addDot(o,'blight',pSiph()*.1,3); } } log('The body of '+c.name+' bursts apart, dealing '+tot+' damage across the room.');
+    for(const o of liveFoes()){ const d=hit(base); hurtFoe(o,d,'rot'); fxe('burst',o); tot+=d; if(rot&&o.hp>0&&!(o.dots&&o.dots.blight)){ addDot(o,'blight',rot,2); if(o.dots&&o.dots.blight) spread.push(o); } if(hasMod('blast','a')) addSt(o,'sundered',2); if(hasMod('blast','b')){ addDot(o,'poison',pSiph()*.15,3); addDot(o,'blight',pSiph()*.1,3); } } log('The body of '+c.name+' bursts apart, dealing '+tot+' damage across the room.');
     if(spread.length) combo('rot',spread,'Spreading Rot: the blight spreads to '+spread.length+' foe'+(spread.length>1?'s':'')+'.'); }
   else if(id==='mend'){
     let tot=0;
@@ -61,11 +61,11 @@ function useSkill(id,t){
     if(hasMod('curse','b')){ for(const o of liveFoes()){ o.curse={mul:1+bonus*.8,t:turns}; mark(o,0,0); } log('Every foe is cursed and takes '+Math.round(bonus*80)+'% more damage.'); }
     else { t.curse={mul:1+bonus,t:turns}; mark(t,0,0); log(t.name+' is cursed and takes '+Math.round(bonus*100)+'% more damage.'); }
     if(rk>=3) for(const o of (hasMod('curse','b')?liveFoes():[t])) addSt(o,'hexed',2); }   // rank 3: the curse also hexes
-  else if(id==='chill'){ const d=hit(pSiph()*.5*dmgMul()*skMul()*shadowK()); hurtFoe(t,d); fxe('ward',t); const held=!t.boss||Math.random()*100<40+10*rk+(hasMod('chill','a')?20:0);
+  else if(id==='chill'){ const d=hit(pSiph()*.5*dmgMul()*skMul()*shadowK()); hurtFoe(t,d,'frost'); fxe('ward',t); const held=!t.boss||Math.random()*100<40+10*rk+(hasMod('chill','a')?20:0);
     if(rk>=2&&t.hp>0) addSt(t,'chilled',2);   // rank 2: Chilled, resisted or not
     if(held&&t.hp>0){ t.stun=rk>=3?2:1; tally('frozen'); log('Grave Chill hits '+t.name+' for '+d+' and freezes it solid.'); } else log('Grave Chill hits '+t.name+' for '+d+', but it shakes off the frost.'); }
   else if(id==='frenzy'){ r.frenzy=hasMod('frenzy','a')?5:3; r.frenzyMul=1+(.2+.15*rk); if(hasMod('frenzy','b')) for(const m of S.army) if(m.hp>0) healAlly(m,Math.round(m.maxHp*.15)); if(rk>=3) for(const m of S.army) if(m.hp>0) addSt(m,'hasted',2); log('Unholy Frenzy: your army surges with '+Math.round((r.frenzyMul-1)*100)+'% more damage.','ok'); }
-  else if(id==='reap'){ const low=t.hp<t.maxHp*reapLow(); let d=hit(pSiph()*(1.2+.3*rk)*pierceMul(1)*skMul()*shadowK()); if(low) d*=2; else if(hasMod('reap','a')) d=Math.round(d*MOON_HIGH); const fb=frozenChilled(t); if(fb) d=Math.round(d*FROSTBREAK); KILL='reap'; hurtFoe(t,d); KILL=null; fxe('strike',t,{crit:1});
+  else if(id==='reap'){ const low=t.hp<t.maxHp*reapLow(); let d=hit(pSiph()*(1.2+.3*rk)*pierceMul(1)*skMul()*shadowK()); if(low) d*=2; else if(hasMod('reap','a')) d=Math.round(d*MOON_HIGH); const fb=frozenChilled(t); if(fb) d=Math.round(d*FROSTBREAK); KILL='reap'; hurtFoe(t,d,'shad'); KILL=null; fxe('strike',t,{crit:1});
     if(hasMod('reap','b')){ healAlly(P,Math.round(d*SOUL_REAP_HEAL)); if(t.hp<=0) P.mana=Math.min(pMana(),P.mana+SOUL_REAP_MANA); }   // Soul Reap
     log('You reap '+t.name+' for '+d+(low?' (harvest)':'')+'.'); if(fb&&t.hp>0) frostbreak(t); }
   return true;
@@ -221,7 +221,7 @@ const theName=n=>n.startsWith('The ')?n:'the '+n;
 // Commander: never rolled like the others. Only a raised elite or boss can have it (at the raise, or when it evolves).
 TRAITS.commander={name:'Commander',desc:'Can lead a raid on a cleared gate from the War table while you stay behind.'};
 // Affix traits: never rolled like the others (and so outside TRAIT_IDS). A minion gets one only by being raised from an elite with that affix.
-TRAITS.necrotic={name:'Necrotic',desc:'Its hits blight the target for 2 turns: shadow damage each turn, and half the healing it receives.'};
+TRAITS.necrotic={name:'Necrotic',desc:'Its hits blight the target for 2 turns: rot damage each turn, and half the healing it receives.'};
 TRAITS.crushing={name:'Crushing',desc:'Its hits sunder the target 1 time in 3: 25% more damage taken for 2 turns.'};
 TRAITS.hexing  ={name:'Hexing',  desc:'Its hits hex the target 1 time in 3: it deals 20% less damage for 2 turns.'};
 TRAITS.swift   ={name:'Swift',   desc:'Hasted for the first 2 turns of every fight: strikes again for 50% at the end of each turn.'};
