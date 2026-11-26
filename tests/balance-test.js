@@ -55,6 +55,7 @@
 //              comparable with earlier runs; there the bot goes to a challenge's gate on its day and fights it like any boss room.
 //              'trials' off: the full bot skips the weekly Trial (it tries it each day until it completes it, at most 3 tries a week).
 //              'kits' off: the bot ignores foe kits when it picks targets and wards; 'sweep' off: it never sweeps an outgrown gate.
+//              'bosskits' off: bosses fight with their old single move (no move sets, twists or hazards).
 //   The full bot now swears faith by default (Honored on even bots, Dishonored on odd) and climbs to Hard on cleared gates
 //   (opts.heat:1); pass faith/heat to override, heat:0 for the old behaviour. Every run also reports secret masters met/slain.
 //   opts.faith ('hon'|'dis') swears an oath once the shrine opens (3 gates cleared, level 8); opts.ult ('toll'|'rise'|'prison') picks the ultimate; opts.heat (1-3) lets
@@ -164,7 +165,8 @@
     const all=liveFoes(), f0=typeof reachable==='function'?all.filter(reachable):all, f=f0.length?f0:all;
     if(B&&!(B.off&&B.off.kits)&&typeof kitOf==='function'){   /* foe kits: Banner-bearer, then a Gravecaller that can still call, Shieldbearer, Purifier; a Bomber last while your front row stands */
       const rank=e=>{ const k=kitOf(e); return k==='banner'?0:k==='call'&&!e.gcU?1:k==='shield'?2:k==='purify'?3:e.role==='mender'?4:k==='bomb'&&S.army.some(m=>m.hp>0&&rowOf(m)==='f')?9:5; };
-      const pool=f.slice().sort((a,b)=>rank(a)-rank(b)||a.hp-b.hp); setTarget(pool[0].id); return pool[0]; }
+      const bloom=all.some(e=>e.twist==='bloom'), seedR=e=>bloom&&e.seed!=null?-1:0;   /* the Orchard Mother's Bloom: kill seedlings before they mature */
+      const pool=f.slice().sort((a,b)=>seedR(a)-seedR(b)||rank(a)-rank(b)||a.hp-b.hp); setTarget(pool[0].id); return pool[0]; }
     const men=f.filter(e=>e.role==='mender'), pool=(men.length?men:f).slice().sort((a,b)=>a.hp-b.hp);
     setTarget(pool[0].id); return pool[0];
   }
@@ -177,9 +179,12 @@
     if(charging){
       const mv=charging.move||charging.abil;
       if(B.full&&!B.off.orders&&mv==='sunder'&&canCommand('vanguard')) command('vanguard');   // orders are free: send the blow at a vanguard
+      if(mv==='edict'&&charging.charging){ const named=S.army.find(m=>fxKey(m)===charging.edictT&&m.hp>0);   /* the Edict of Ash: Taunt onto another vanguard, else Guard */
+        if(named&&B.full&&!B.off.orders&&canCommand('vanguard')&&S.army.some(m=>m!==named&&m.role==='vanguard'&&m.hp>0)) command('vanguard');
+        else if(named&&B.full&&!B.off.guard&&typeof canGuard==='function'&&canGuard()&&guardFront()!==named&&!(B.skills&&canUse('chill'))) return 'guard'; }
       if(B.full&&!B.off.orders&&canCommand('striker')){ setTarget(charging.id); command('striker'); }   // and let a Focus crit break the charge
       if(B.skills&&charging.charging&&canUse('chill')&&P.mana>=SKILL.chill.cost){ setTarget(charging.id); return 'sk:chill'; }
-      if((mv==='decree'||mv==='cinder'||mv==='sunder')&&charging.charging&&P.mana>=6&&P.shield<max*.3) return 'ward';
+      if((mv==='decree'||mv==='cinder'||mv==='sunder'||mv==='lance'||mv==='called')&&charging.charging&&P.mana>=6&&P.shield<max*.3) return 'ward';
     }
     if(B.full&&!B.off.guard&&typeof canGuard==='function'&&canGuard()&&(foes.some(e=>{ if(!e.charging||e.stun>0) return false; const s=sigBlow(e,e.move||e.abil); return s&&s.you>=P.hp; })||P.hp<max*.25&&foes.some(e=>{ const i=e.stun>0?null:intentInfo(e); return i&&i.k==='atk'&&i.tg.id==='p'&&foeBlow(e,i.tg)>=P.hp; }))) return 'guard';   // Guard ('full' only; "off":["guard"]): a telegraphed move that would kill you, or under 25% HP a plain blow on you that would
     if(B.skills&&canUlt()){ const u=P.ult, down=S.army.filter(m=>m.hp<=0).length;
@@ -243,7 +248,7 @@
     if(S.mode!=='battle'){ S.watches=0; endDay(); return; }
     const run={gate:gi,lvl,diff:lvl-SAFE[gi],heat:S.run.heat||0,cleared:false,died:false,left:false,rooms:0,turns:0,hpEnd:[]}; if(duel) run.rival=1; let guard=0;   // a challenge run is left out of the gate table (reported on the rival line)
     for(;;){
-      if(S.mode==='battle'){ if(++guard>400){ flee(); run.left=true; break; } act(decide(B)); run.turns++; continue; }
+      if(S.mode==='battle'){ if(++guard>400){ flee(); run.left=true; break; } if(S.run.enemies.some(e=>e.boss&&!e.secret&&!e.rival)){ run.bossIn=1; run.bossT=(run.bossT||0)+1; } act(decide(B)); run.turns++; continue; }   /* bossIn, bossT: the boss room and its actions */
       if(S.mode==='raise'){
         run.rooms++; run.hpEnd.push(S.player.hp/pMax()); playEvent(B); raisePhase(B);
         if(S.run.cleared){ run.cleared=true; returnTown(); break; }
@@ -296,7 +301,7 @@
     out.push(x); if(S.mode!=='town') returnTown();
   }
   function simBot(seed,B,days){
-    Math.random=mulberry32(seed); newGame(); B.statI=0; B.hw={}; B.hwDay={};
+    Math.random=mulberry32(seed); newGame(); B.statI=0; B.hw={}; B.hwDay={}; if(typeof BOSS_KITS_ON!=='undefined') BOSS_KITS_ON=!B.off.bosskits;   /* 'bosskits' off: the old single boss moves */
     const rec=[], lvAt={}, firstClear={}, loreAt={}, tiers=[], trials=[], goldAt={}, gl={earn:0,spend:0,S:null};
     const goldWatch=()=>{ if(gl.S===S) return; gl.S=S; let v=S.gold||0; Object.defineProperty(S,'gold',{enumerable:true,configurable:true,get:()=>v,set:x=>{ if(x>v) gl.earn+=x-v; else gl.spend+=v-x; v=x; }}); };   // lifetime gold earned and spent
     while(S.day<=days){
@@ -332,6 +337,7 @@
       const fc=res.map(r=>r.firstClear[i]).filter(x=>x!=null), rooms=g.reduce((a,x)=>a+x.rooms,0)||1;
       return {gate:RANKS[i]+' '+D.name,runs:g.length,avgLvlVsSafe:avg(g.map(x=>x.diff)),clear:pc(g.filter(x=>x.cleared).length,g.length),death:pc(g.filter(x=>x.died).length,g.length),
         turnsPerRoom:Math.round(g.reduce((a,x)=>a+x.turns,0)/rooms*10)/10,hpAfterRoom:(h=>h.length?Math.round(h.reduce((a,b)=>a+b,0)/h.length*100)+'%':'-')([].concat(...g.map(x=>x.hpEnd))),
+        bossWin:pc(g.filter(x=>x.bossIn&&x.cleared).length,g.filter(x=>x.bossIn).length),bossActs:avg(g.filter(x=>x.bossIn&&x.cleared).map(x=>x.bossT)),
         firstClearDay:avg(fc),botsCleared:fc.length+'/'+res.length};
     });
     const all=[].concat(...res.map(r=>r.rec)), lv={};

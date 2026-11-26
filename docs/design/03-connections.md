@@ -107,9 +107,10 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
   clicked. Boss fights stay for R2. (Was: The bots end most rooms in one action once ahead; turn-based Trial scores floor
   near 4; orders, statuses and combos rarely matter in content you have outgrown. Stacked foe multipliers above ~3x HP per
   hit become walls instead of puzzles. (Combat, difficulty, Trials.))
-- **G3. Bosses have one move.** Six gate bosses, ten wardens, six secret masters and the rival share seven moves
+- **G3. Bosses have one move.** Half closed by R2 PR A: the six gate bosses, the rival and the Inquisitor Captain now fight
+  with move sets, twists and hazards; secret masters and wardens follow in R2 PR B. (Was: Six gate bosses, ten wardens, six secret masters and the rival share seven moves
   between them; wardens and secret masters reuse the gate moves, the rival only has Royal Decree. (Bosses, Tower, secret
-  masters, rival.)
+  masters, rival.))
 - ~~**G4. No damage types.**~~ Closed by R1 PR A: five types, place profiles, typed affixes, resistance and damage bonus lines.
   (Was: Frost, fire, rot and shadow exist as flavor (Rimeborn, Cinderborn, blight, the Eclipse's
   "shadow"), but nothing resists or is weak to them, so gear, affixes, traits and skills cannot specialize against a gate.

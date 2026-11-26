@@ -92,7 +92,7 @@ function unitCard(u,side,mini){
   const r=S.run, isP=u.id==='p', max=isP?pMax():u.maxHp, f=r.fx[fxKey(u)]||{d:0,h:0}, dead=u.hp<=0;
   const sel=side==='foe'&&r.target===u.id&&!dead, ch=side==='foe'&&!isP?chargeInfo(u):null;
   const tag=isP?'Necromancer':ROLES[u.role].label+(isArmed(u.base||u.name)?' &middot; Armed':'')+(u.boss?' &middot; Boss':'')
-    +(u.elite?' &middot; Elite':'')+(u.abil&&!isP?' &middot; <span title="'+BOSS_ABIL[u.abil].desc+'">'+BOSS_ABIL[u.abil].name+'</span>':'')
+    +(u.elite?' &middot; Elite':'')+(u.abil&&!isP&&!u.kit?' &middot; <span title="'+BOSS_ABIL[u.abil].desc+'">'+BOSS_ABIL[u.abil].name+'</span>':'')+(u.kit&&!isP?bossRotChip(u):'')
     +(u.phase2&&!isP?' &middot; <span class="phase-t">Second phase</span>':'')
     +(u.aff&&!isP?u.aff.map(a=>' &middot; <span class="aff" title="'+AFFIX[a].desc+'">'+AFFIX[a].name+'</span>').join(''):'')+(side==='foe'&&!isP?kitChip(u):echoOf(u)?' &middot; <span class="kit" title="'+echoTxt(echoK(u))+'">Echo: '+KITS[echoOf(u)].name+'</span>':'')
     +(u.scd&&CORPSE_CONDS[u.scd]?' &middot; <span class="stash-t" title="A body the rival stole. '+CORPSE_CONDS[u.scd].when+'">'+CORPSE_CONDS[u.scd].name+'</span>':'');

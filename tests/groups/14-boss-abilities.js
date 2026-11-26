@@ -4,7 +4,7 @@ const {test,ok,eq,near,finite,fmt,BAD_TEXT,cleanHTML,mulberry32,seed,fix,seq,H,f
 test('Bosses: each gate boss has its own move',()=>{ for(let di=0;di<6;di++){ setLvl(30); const b=makeEnemy(di,10,true); eq(b.abil,GATE_ABIL[di]); eq(b.abilT,BOSS_ABIL[GATE_ABIL[di]].every); } });
 test('Bosses: Call the Swarm adds two foes, at most 4 per fight and 5 alive',()=>{
   const b=bossFight(0); eq(bossTurn(b),false); eq(bossTurn(b),false); eq(bossTurn(b),true); eq(S.run.enemies.length,3);
-  for(let i=0;i<5;i++) fireAbility(b); eq(b.summoned,SUMMON_CAP); ok(liveFoes().length<=5); S.run.enemies.forEach(e=>ok(e.atk>0&&e.hp>0));
+  for(let i=0;i<5;i++) fireAbility(b,'swarm'); eq(b.summoned,SUMMON_CAP); ok(liveFoes().length<=5); S.run.enemies.forEach(e=>ok(e.atk>0&&e.hp>0));
 });
 test('Bosses: Bone Wall shields every foe, capped at 40% of HP',()=>{ const b=bossFight(1); const x=foe({hp:100}); S.run.enemies.push(x); fireAbility(b); eq(x.shield,20); fireAbility(b); fireAbility(b); eq(x.shield,40); });
 test('Bosses: Cinder Wave is telegraphed, then burns you and every minion',()=>{

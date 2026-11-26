@@ -8,7 +8,7 @@ function makeEnemy(di,lvl,boss){
   const s=mobStats(di,lvl,hf,af,boss,elite);
   const e={id:'e'+(++S.uid),name:(elite?pick(ELITE)+' ':'')+name,base:name,role,rankI:di,lvl,hf,af,boss,elite,maxHp:s.hp,hp:s.hp,atk:s.atk,dead:false};
   if(elite&&er>=eliteBase()) e.hx=1;   // an elite only the difficulty rules made (HEAT)
-  if(boss) giveAbility(e,GATE_ABIL[di]);
+  if(boss){ giveAbility(e,GATE_ABIL[di]); giveKit(e); }   /* a move set (game-boss-kits.js) */
   return e;
 }
 // Rule: a room never holds more than one mender. Re-roll until the new enemy fits.
@@ -16,6 +16,7 @@ function makeSecret(di,lvl){
   const e=makeEnemy(di,Math.max(lvl+2,S.player.lvl+SB_LV),true), B=SECRET[di]; e.name=e.base=B.name; e.secret=true;   // never weaker than you: an outgrown gate still hides a real threat
   const sg=Math.max(di,topGate()); if(sg>di){ const st=mobStats(sg,e.lvl,1,1,true,false); e.maxHp=e.hp=st.hp; e.atk=st.atk; }   // fights with the strength of the hardest gate open to you
   const grow=1+SB_GROW*Math.max(0,S.player.lvl-SAFE[sg]);   // a necromancer far past the gates has an army to match: so does the master
+  giveAbility(e,GATE_ABIL[di]);   /* secret masters keep the single move until R2 PR B */
   e.maxHp=e.hp=Math.round(e.maxHp*SB_HP*grow); e.atk=Math.max(1,Math.round(e.atk*SB_ATK)); e.phase2=true; e.alt=true; e.fast=(e.fast||0)+1; e.abilT=2;
   tally('secretMet'); return e;
 }
@@ -84,7 +85,7 @@ function hurtFoe(e,d,ty){ ty=DTYPE[ty]?ty:'phys'; if(e.curse) d=Math.round(d*e.c
   d=kitTaken(e,d);   /* Bulwark stance, a Banner-bearer beside it (game-kits.js) */
   if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e,0,0); return; } }   // Bone Wall shield soaks damage first
   if(e.hp>0&&d>=e.hp) e.cd=deathCond(e,d);   // the killing blow decides the body's condition
-  recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e,d,0); kitHurt(e); { const r=S.run; r.dd=(r.dd||0)+d; if(d>(r.mh||0)) r.mh=d; } }   /* damage dealt and the biggest hit this run, for the History */
+  recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e,d,0); kitHurt(e); bossHurt(e,d); { const r=S.run; r.dd=(r.dd||0)+d; if(d>(r.mh||0)) r.mh=d; } }   /* damage dealt and the biggest hit this run, for the History */
 function hurtAlly(a,d,ty){
   if(a.id==='p'&&BLOW){ const v=guardBlow(a,d); if(v) return hurtAlly(v,Math.round(d*SB_TAKE),ty); }   // Guard, for boss moves (plain hits swap their target before this)
   if(a.id==='p'&&S.run) S.run.blow=BLOW?blowNote(BLOW):null;   // what hits you, for the defeat recap (before the ward soaks it)
@@ -181,7 +182,7 @@ function setTarget(id){ const e=S.run&&S.run.enemies.find(x=>x.id===id); if(e&&r
 function act(kind){
   if(S.mode!=='battle') return;
   const r=S.run, P=S.player; r.fx={};
-  const t=currentTarget(); if(!t) return;
+  const t=currentTarget(); if(!t) return; HITTER=P;
   if(kind==='strike'){
     let d=hit(pAtk()*pierceMul(strPen())*(1+.1*sk('edge'))*hexK(P)), crit=Math.random()<critChance(); if(crit){ d=Math.round(d*1.8); tally('crits'); } if(hasFlag('execute')&&t.hp<t.maxHp*.35) d=Math.round(d*1.5);
     const fb=frozenChilled(t); if(fb) d=Math.round(d*FROSTBREAK);
@@ -198,7 +199,7 @@ function act(kind){
     log('Soul Siphon '+(low?'devours ':'drains ')+t.name+' for '+d+(h?', you recover '+h:'')+(got?' and harvest a Soul ('+S.run.souls+'/'+SOUL_MAX+')':'')+'.'); fxe('siphon',t);
   }else if(kind==='ward'){
     if(P.mana<6) return;
-    P.mana-=6; const w=pWard(); P.shield=Math.min(Math.round(pMax()*.6),P.shield+w);
+    P.mana-=6; const w=Math.round(pWard()*smokeK()); P.shield=Math.min(Math.round(pMax()*.6),P.shield+w);
     mark('p',0,0); log('Bone Ward raised. You hold '+P.shield+' ward.'); fxe('ward',P);
   }else if(kind.startsWith('sk:')){ if(!useSkill(kind.slice(3),t)) return; }
   else if(kind==='ult'){ if(!useUlt(t)) return; }
@@ -212,6 +213,8 @@ function act(kind){
   for(const m of S.army){
     if(m.hp<=0) continue;
     if(!liveFoes().length) break;
+    if(lockedNow(m)) continue;   /* locked or rooted by a boss move (game-boss-kits.js) */
+    HITTER=m;
     if(m.role==='mender'){
       const hurt=allies().filter(a=>a.hp>0&&a.hp<(a.id==='p'?pMax():a.maxHp)*.85).sort((a,b)=>a.hp/(a.id==='p'?pMax():a.maxHp)-b.hp/(b.id==='p'?pMax():b.maxHp))[0];
       if(hurt){ const h=healAlly(hurt,Math.round(m.atk*.9*rnd(.9,1.1))); log(m.nick+' mends '+(hurt.id==='p'?'you':hurt===m?'itself':nameOf(hurt))+' for '+h+'.','ok'); markHeal(m,hurt,h); continue; }
@@ -229,13 +232,13 @@ function act(kind){
     markHit(m,tg,d);
     checkDeaths();
   }
-  r.focus=false; r.execute=false;   // these orders last one minion phase
+  r.focus=false; r.execute=false; HITTER=null;   // these orders last one minion phase
   if(!liveFoes().length){ roomWon(); return; }
   // foes act
-  checkPhase();
+  checkPhase(); bossRoomTurn();
   const hpBefore=P.hp;
   for(const e of liveFoes()){
-    if(e.hp<=0) continue; let alive=allies().filter(a=>a.hp>0); if(!alive.length) break;
+    if(e.hp<=0) continue; let alive=allies().filter(hittable); if(!alive.length) break;
     if(e.stun>0){ delete e.it; delete e.burrow; e.stun--; e.froze=r.turn; if(e.charging) breakCharge(e,e.name+' is frozen. The frost breaks its focus and'); else log(e.name+' is frozen and cannot act.','ok'); continue; }
     if(e.abil&&bossTurn(e)){ if(P.hp<=0&&playerFalls()) return; checkDeaths(); continue; }   // a move turn keeps the planned blow for its next turn
     if(!intentOk(e)) rollIntent(e);   // the planned action, rolled again only if its target fell or Taunt pulled it away
@@ -268,7 +271,7 @@ function act(kind){
   if(P.hp<hpBefore){ sfx('hurt'); if(hpBefore-P.hp>=pMax()*.2) ui.shake=true; }   // a heavy turn shakes the screen
   checkDeaths(); if(!liveFoes().length){ roomWon(); return; }
   r.turn++; if(!hasRunMod('drought')){ let g=1+G('regen')+sk('soulwell')+(hasMod('deathless','a')?DEEP_REGEN:0); if(omen()==='soulstorm'){ r.mf=(r.mf||0)+g*STORM_REGEN; const x=Math.floor(r.mf); r.mf-=x; g+=x; } P.mana=Math.min(pMana(),P.mana+g); } skillTick();   // Soul Storm: +20%, the fractions carried
-  echoTurn();   /* Undone shieldbearers (game-kits.js) */
+  echoTurn(); bossEndTurn();   /* Undone shieldbearers (game-kits.js), boss hazards (game-boss-kits.js) */
   if(hasFlag('halo')) allies().forEach(a=>{ if(a.hp>0) healAlly(a,Math.round((a.id==='p'?pMax():a.maxHp)*.04)); });
   if(r.turn===9&&liveFoes().some(e=>e.tw&&e.boss)) log('Wrath: the warden is enraged and hits harder every turn.','bad');
   planFoes();   // what every foe will do next turn, shown on its card
@@ -327,7 +330,7 @@ function defeat(){
 // ----- the fall: the blow that felled you, and Instant Retry
 // BLOW: the foe blow being dealt right now (set around each hurtAlly on you); ROOM0: the room as it began. ROOM0 lives outside the save:
 // after a reload the defeat screen simply has no Retry.
-let BLOW=null, ROOM0=null, KILL=null, SAP=false;   // SAP: a Sapper's blow is landing (its hits tear twice the ward)
+let BLOW=null, ROOM0=null, KILL=null, SAP=false, HITTER=null;   /* HITTER: who lands the hits now (you, then each minion), for reflects */   // SAP: a Sapper's blow is landing (its hits tear twice the ward)
 //   // KILL: what deals the blow to a foe right now ('reap', 'exec', a DoT kind; null: a hit), for the body's condition
 function blowNote(b){ const n=Object.assign({},b), c=blowCounters(b); if(c.length) n.c=c; return n; }   // the blow about to land, and the answers you had and did not use
 function blowCounters(b){   // the answers to a blow you have and have not used, only those that apply to it (the defeat recap and the bestiary's Ledgered hints)

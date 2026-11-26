@@ -36,7 +36,7 @@ const KIT_OF={
   'Militia Spearman':'shield','Crossbowman':'ambush','Chaplain':'purify','Witch-hunter':'marker'
 };
 const KIND_RES={'Glass Sentinel':{phys:-.25}};   // kinds with a weakness of their own on top of their place's (foeRes)
-const kitOf=e=>!e||e.boss||e.rival||e.secret||e.id==null?null:KIT_OF[e.base]||null;
+const kitOf=e=>!e||e.boss||e.rival||e.secret||e.id==null?null:e.kitO||KIT_OF[e.base]||null;   /* kitO: a kit given by a boss (the Rat King's Crown of Rats) */
 const hasKit=(e,k)=>kitOf(e)===k;
 const kitNum=e=>parseInt(String(e.id).slice(1),10)||0;
 const stanceOn=(e,t)=>hasKit(e,'stance')&&!hasSt(e,'sundered')&&((t==null?S.run.turn:t)+kitNum(e))%2===0;   // braced this turn

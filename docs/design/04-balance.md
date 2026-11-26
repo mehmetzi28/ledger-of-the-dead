@@ -24,6 +24,13 @@ to each constant in `src/` and in `claude.md`; this page is the summary to read 
 
 ## 4.2 Latest measurements (2026-11-26, seeds 7700 and 9100, 40 bots x 100 days)
 
+**After boss kits for the gate bosses, the rival and the Captain (R2 PR A)**: no retune. market 89/88% gates (S 90 to 88%),
+Tower 78.0/77.7, Rift 22.3/22.2; full 91/91%, Tower 85.2/85.5, Rift 12.2/12.1, sieges 85/84%, rival 67/71% (was 71/72).
+`"off":["bosskits"]` gives back the R1 numbers exactly (90%, Tower 78.1, Rift 22.9), so the move sets cost about a point
+of clears and half a Rift depth. New bot columns (market, 12 bots x 40 days): boss room win rate 90-99% and actions per
+won boss room E 5.3, D 7.9, C 8.7, B 4.3, A 5.1, S 8.5, a little over the 4-7 target at D, C and S (the Lock, Burning Ground
+and the Edict make the bot spend turns on wards and freezes).
+
 **After foe kits, the Undone and Sweep (R1 PR B)**: before any retune, kits cost the first gates most (market E 92 to 83%,
 D 90 to 86%; full E 87 to 81%), Tower 78 to 71-72 and Rift 23 to 18-19. Rat Warren ablation: the Warren Bandit's mana
 thief and the Tunnel Rat's pack hunter were each worth 3-4 points of E. Retune: `DIFF.foeAtk` E/D 1.2/.95 to 1.0/.9

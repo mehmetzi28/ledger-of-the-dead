@@ -46,7 +46,7 @@ function rivalTick(){   // dawn, load and every clear: the theft and challenge s
   if(!g.next||g.next<S.day||(g.done&&g.done>=g.next)){ g.next=S.day+rivalGap(1); g.gi=-1; g.warned=0; }   // first schedule, or a challenge missed or fought
   if(!g.steal) g.steal=Math.max(S.day+theftGap(),g.next-1);   // the first theft waits for the first challenge's warning: they show their face before they steal
   if(S.day>=g.next-1&&g.gi<0){ const gs=rivalGates(); if(gs.length) g.gi=gs[dayHash(g.next,S.ngp||0,g.enc,7)%gs.length]; }
-  if(S.day===g.next-1&&g.gi>=0&&g.warned!==S.day){ g.warned=S.day; tally('rivalWarned'); notify(rivalTaunt('warn',g.next),'bad'); notify(g.name+' will wait for you in the boss room of the '+DUNGEONS[g.gi].name+' tomorrow. Your first visit there will meet them instead of its master.','bad'); }
+  if(S.day===g.next-1&&g.gi>=0&&g.warned!==S.day){ g.warned=S.day; tally('rivalWarned'); notify(rivalTaunt('warn',g.next),'bad'); notify(g.name+' will wait for you in the boss room of the '+DUNGEONS[g.gi].name+' tomorrow. Your first visit there will meet them instead of its master.'+(rivalKitName()?' They bring '+rivalKitName()+', shaped by the bodies they stole.':''),'bad'); }
 }
 const rivalToday=()=>!!S&&rivalOpen()&&!!rv().name&&rv().next===S.day&&rv().gi>=0&&rv().done!==S.day&&!!(S.ti&&S.ti.clr&&S.ti.clr[rv().gi]);
 const rivalWarned=()=>rivalToday()||(!!S&&rivalOpen()&&!!rv().name&&rv().gi>=0&&S.day===rv().next-1);
@@ -57,7 +57,7 @@ function makeRival(di,lvl){
   const grow=(1+SB_GROW*Math.max(0,S.player.lvl-SAFE[sg]))*(1+RIVAL_STEP*g.step);   // a necromancer past the gates, and every win, make them grow
   const e={id:'e'+(++S.uid),name:g.name,base:RIVAL_KIND,role:'reaper',rankI:sg,lvl:L,hf:1,af:1,boss:true,elite:false,rival:true,dead:false,maxHp:1,hp:1,atk:1};
   e.maxHp=e.hp=Math.round(st.hp*RIVAL_HP*grow); e.atk=Math.max(1,Math.round(st.atk*RIVAL_ATK*(1+RIVAL_STEP*g.step)));
-  giveAbility(e,RIVAL_ABIL); return e;
+  giveAbility(e,RIVAL_ABIL); const rk=rivalKitMove(); if(rk) giveKit(e,[RIVAL_ABIL,RIVAL_MOVE[rk]]); return e;   /* the bodies they stole shape their kit (game-boss-kits.js) */
 }
 function rivalRoom(list,di,lvl){   // the boss room on a challenge day: the rival and raised followers of kinds you have met in this gate
   const g=rv(), riv=makeRival(di,lvl), D=DUNGEONS[di], sg=Math.max(di,topGate()); list.push(riv);
