@@ -30,13 +30,14 @@ are already chosen income). Measure with `goldLife` and `goldHeld` per mode befo
 
 ## 4. Heart-forging (the Forge)
 
-A new Forge tab beside reforging and enchanting. Inputs: a boss or warden heart, gold, bone dust. Output: a **legendary**
-item (a new rarity above set and below unique; drops nowhere, only forged).
+A new Forge tab beside reforging and enchanting. Inputs: a boss or warden heart, gold, bone dust. Output: a **heartforged**
+item: a Legendary-tier piece (the tier already exists) of the boss's gate set, in the slot you pick (weapon, armor or
+relic), marked `hf:true`, whose bonus lines you choose instead of rolling.
 
 | Heart | Gold | Dust | Result |
 |---|---|---|---|
-| Gate boss (E-S) | 2,000 x (gate+1) | 10 x (gate+1) | legendary in any slot, item level of that gate +2, **two lines** picked from the boss's list |
-| Tower warden | 6,000 + 200 x floor/10 | 40 | Tower-tier legendary, **two lines** from the warden's list |
+| Gate boss (E-S) | 2,000 x (gate+1) | 10 x (gate+1) | heartforged piece in any slot, item level of that gate +2, **two lines** picked from the boss's list |
+| Tower warden | 6,000 + 200 x floor/10 | 40 | Tower-tier heartforged piece, **two lines** from the warden's list |
 | Secret master | 20,000 | 80 | as a gate boss of S, **three lines**, the third from the master's list of minor powers |
 | The Hunger (R3) | 40,000 | 150 | three lines plus the Hunger's minor power |
 
@@ -48,7 +49,7 @@ item (a new rarity above set and below unique; drops nowhere, only forged).
   Drowned Abbot *Tide*: +2% mana per turn per turn of the fight (cap 10%); Cinder Wyrm *Scales*: the hero reflects 10%
   fire; Choir Eternal *Verse*: every third skill echoes at 30%; Rootking *Regrowth*: minions heal 2% a turn; Nameless
   Sovereign *Mirror*: your second skill each fight repeats your first at 40%.
-- **Reforging a legendary** re-rolls values, never which lines; a second heart of the same boss lets you swap one line.
+- **Reforging a heartforged piece** re-rolls values, never which lines; a second heart of the same boss lets you swap one line.
 - Hearts kept for Awakening (`heartsKept`) stay protected: the Forge warns before using the last one a unique needs.
 
 ## 5. Tower and abyssal trophies
@@ -81,7 +82,7 @@ and gate matter. Old "any 4 make a potion" stays for the two base potions.
 ## 7. Commissions
 
 The town (R5's board, or the bounty board until R5) posts **three commissions a week**: "4 Bone Plates from the Iron
-Orchard", "a forged legendary chest piece", "a minion of the striker role at Veteran". Fulfilling pays gold at 1.5x the
+Orchard", "a heartforged armor piece", "a minion of the striker role at Greater". Fulfilling pays gold at 1.5x the
 trophies' sell value, bone dust, and **town standing** (R5: lowers dread). Unfilled commissions expire at week's end.
 Commissions are where low-gate trophies stay useful late.
 
@@ -111,12 +112,12 @@ Prices fixed and shown in full; it is a converter, so nothing is a dead end.
 | Black market | 0 | ~10k |
 | **Gold held at day 100** | ~33-39k | **10-20k** |
 
-`full` stays 1-3 points over `market` (legendaries help; the soft cap takes back some). `market` gets brewing and
+`full` stays 1-3 points over `market` (heartforged pieces help; the soft cap takes back some). `market` gets brewing and
 heart-forging rules in its bot policy only if they cost under a point.
 
 ## 10. Bot policy
 
-- Forge: after Awakening ranks are bought for held uniques, forge a legendary for the weakest slot when a heart and the
+- Forge: after Awakening ranks are bought for held uniques, forge a heartforged piece for the weakest slot when a heart and the
   gold are in hand; pick lines by the bot's build (damage lines for Str/Int, army lines for Will/Con).
 - Brew: an oil of the next gate's weakness and Low Incense before each gate run; a war banner before raids.
 - Commissions: fill any that the pouch already covers.
@@ -125,11 +126,11 @@ heart-forging rules in its bot policy only if they cost under a point.
 
 ## 11. Save, UI, Turkish, Codex
 
-- Save: `S.belt.slots`, `S.comm = {week, list:[...]}`, `S.bm = {week, used:{}}`, `S.runPrep = {oil, incense}`; legendary
-  items use the item format with `lg:true` and `ro` lines. Loaders default all of them.
+- Save: `S.belt.slots`, `S.comm = {week, list:[...]}`, `S.bm = {week, used:{}}`, `S.runPrep = {oil, incense}`; heartforged
+  items use the item format with `hf:true` and `ro` lines. Loaders default all of them.
 - UI: Forge tab (pick heart, slot, two lines; preview the item); Brewing page with a recipe grid that shows what the pouch
   can make now; run prep row on the Gates tab; commission list on the board; black-market stall in the market on its day.
-- Codex: Legendaries, Brewing, Commissions, Black Market. ~120 Turkish strings.
+- Codex: Heartforging, Brewing, Commissions, Black Market. ~120 Turkish strings.
 
 ## 12. Tests
 
@@ -140,6 +141,6 @@ heart-forging rules in its bot policy only if they cost under a point.
 
 ## 13. Risks
 
-- **Legendaries outclass uniques**: they have no unique power and at most three lines; uniques keep their powers and
-  Awakening. If the bot drops uniques for legendaries, cut line values to 80%.
+- **Heartforged pieces outclass uniques**: they have no unique power and at most three lines; uniques keep their powers and
+  Awakening. If the bot drops uniques for heartforged pieces, cut line values to 80%.
 - **Brewing becomes a chore**: recipes show in one grid with a "brew best" button for the next run.

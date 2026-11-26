@@ -38,7 +38,7 @@ both seeds, lower the floor key to 90 (`ABBEY_TOWER`) before touching the page k
 ## 4. The gate
 
 Gate index **6**, rank **SS** (`RK[6]`), on the gate curve as a step beyond S: Recommended level ~34 (S is 27; measure
-with the tier probe and set `REC_BASE[6]`). Five rooms like every gate, plus a **sixth room** before the boss: the
+with the tier probe and set `REC_BASE[6]`). Four rooms like every gate (the last holds the boss), plus a **Scriptorium** room before the boss room: the
 **Scriptorium** (section 4.3). Difficulties: Normal and Hard only on the first opening; Brutal and Nightmare unlock
 after the first clear like other gates.
 
@@ -61,18 +61,18 @@ Two foes of the same role never share a kit (the R1 rule holds).
 
 ### 4.2 Loot
 
-- **Set: the Scribe's Regalia** (5 pieces: Quill, Cowl, Inkstained Robe, Chain of the Wrist, Reading Glass). Bonuses:
-  (2) +10% shadow damage and +10% bestiary progress from kills; (3) the first raise roll each room is made twice, best
-  kept; (5) **Marginalia**: each skill you cast writes a note; at three notes your next skill costs no mana and its
+- **Set: the Scribe's Regalia** (7 pieces like every gate set, at Legendary tier: two weapons, the Quill and the Censer
+  Staff; two armors, the Cowl and the Inkstained Robe; three relics, the Chain of the Wrist, the Reading Glass and the
+  Wax Seal). Bonuses: (2) +10% shadow damage and +10% bestiary progress from kills; (3) **Marginalia**: each skill you cast writes a note; at three notes your next skill costs no mana and its
   damage type changes to the target's weakness.
-- **Unique: Oswin's Ledger-Chain** (off-hand). "Your Memorial remembers for you: +1% to all minion stats per headstone,
+- **Unique: Oswin's Ledger-Chain** (relic). "Your Memorial remembers for you: +1% to all minion stats per headstone,
   up to 20%. When a minion would fall, it may instead go to the Memorial with its name kept, and you draw its last blow
   as a free Bone Spear." (The free spear is the unique's power; the stat line connects the Memorial.)
 - **Trophy**: Vellum Scraps (common) and **the Hunger's Tooth** (boss heart, forges in R4).
 - **Pages**: three new lore pages (21-23) found only here: *The rest of the margin*, *What the river pushed*, *The last
   entry*.
 
-### 4.3 The Scriptorium (room six)
+### 4.3 The Scriptorium (before the boss)
 
 A non-combat room before the boss, once per run. The Ledger lets you **cross out one name**: pick a minion from your
 army or Reserve. It leaves for good (not to the Memorial), and in return the Hunger's phase three loses that minion's
@@ -104,6 +104,8 @@ set (R2's engine: `BOSS_KIT.hunger.phases[]`).
 
 After the Hunger falls, a full-screen page (not a modal popup; the Ledger itself) offers two answers. The player can
 leave and come back: the choice waits at the abbey door as **The last page**, and the gates stay playable.
+
+(Gate sets have 2- and 3-piece bonuses; the abbey keeps that shape.)
 
 ### 6.1 Close the book
 

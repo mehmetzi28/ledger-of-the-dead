@@ -8,11 +8,11 @@ here instead of from a blank page.
 |---|---|---|
 | [01-vision.md](01-vision.md) | The pitch, the design pillars, the player fantasy, the loop at each time scale, the rules we don't break | Before deciding whether an idea belongs in the game |
 | [02-systems.md](02-systems.md) | Every system as it works on `main` today: rules, key numbers, unlocks, where the code lives | Before touching a system |
-| [03-connections.md](03-connections.md) | The map of what feeds what, resource flows, and the numbered list of weak or missing links (G1, G2, ...) | When looking for what to connect next |
+| [03-connections.md](03-connections.md) | The map of what feeds what, resource flows, and the numbered list of weak or missing links (G1-G27) and missing systems (G28-G39) | When looking for what to connect next |
 | [04-balance.md](04-balance.md) | Targets, the latest bot measurements, known balance problems, tuning levers and how to measure | Before and after any tuning |
 | [05-roadmap.md](05-roadmap.md) | The prioritized rounds, phases, dependency map, which systems each round touches, ride-alongs and a parking lot | When picking the next round |
 | [06-idea-catalogue.md](06-idea-catalogue.md) | Every add, improve and connect idea per system, with an ID and its round (or "free") | When looking for a ride-along or a new round |
-| [rounds/](rounds/) | A full design spec per round: rules, numbers, content tables, save fields, tests, bot policy, PR split, risks (R1-R5 one file each, P2 and P3 grouped) | When starting a round: build from its spec |
+| [rounds/](rounds/) | A full design spec per round, one file each (R1-R30): rules, numbers, content tables, save fields, UI, tests, bot policy, PR split, risks. R19-R30 are new systems | When starting a round: build from its spec |
 
 ## How a round works
 

@@ -1,0 +1,124 @@
+# R9. Rift sigils and Riftborn gear
+
+**Priority** P2. **Closes** G22, B4. **Size** L. **Needs** R2 (guardian kits); R1 types make the sigils richer.
+**Pillars served**: 4 (choices with a cost), 7 (a long game), 3 (read the fight).
+
+## 1. The problem
+
+The Rift (`RIFT_*`, from level 40 after the Throne): depth n is five rooms of a random gate's dead at the Throne's
+strength, at your level + n/3, x(1 + 0.55(n-1)) since PR #5. A new deepest depth leaves a legendary. It is a number that
+goes up: no choices before or during a dive, no rewards of its own, no guardians. The `full` bot's depth (~12) says only
+that it spends its days elsewhere (B4).
+
+## 2. Sigils
+
+Before a dive, pick up to three sigils. Each makes the dive harder and adds to the **reward multiplier** (gold, XP, drop
+tier chance and Riftborn chance).
+
+| Sigil | Rule | Reward |
+|---|---|---|
+| **Iron Sky** | foes +25% armor | +20% |
+| **Hungry Dark** | no healing between depths (rooms within a depth heal as now) | +30% |
+| **Many Hands** | +1 foe per room | +25% |
+| **Mirror** | the first foe each depth copies your last skill once | +25% |
+| **Short Breath** | mana regeneration -30% | +20% |
+| **Old Wounds** | minions start each depth at 80% HP | +15% |
+| **Named** | every guardian has a second phase | +30% |
+| **Loud Grave** | no raising in the Rift | +20% |
+| **Typed Dark** (R1) | foes resist your top damage type | +25% |
+| **Thin Veil** | foes crit 10% more; so do you | +10% |
+
+Sigils unlock one at a time: the first three at depth 5, one more per 5 depths of best depth. A sigil set can be saved
+as a preset.
+
+## 3. Guardians
+
+Every fifth depth ends in a **guardian** instead of the fifth room's ordinary foes. Six guardians in rotation, each with an
+R2 kit (move set, a phase two, a hazard):
+
+| Guardian | Moves | Phase two | Hazard |
+|---|---|---|---|
+| **The Folded Knight** | Fold (swaps your front and back rows) · Edge of Gates (physical, telegraphed, the whole back row) | *Second Fold*: folds every second turn | none |
+| **Mother of Gates** | Open Door (summons two foes of a random gate) · Close Door (banishes a minion for 2 turns) | doors open each turn | gate foes keep their gate's resists |
+| **The Echo** | Repeat (copies the last action any unit took) · Delay (your next skill lands a turn late) | repeats twice | your skills echo at 20% for foes too |
+| **Brass Saint** | Litany (heals 6% per foe alive) · Brass Bell (stuns the front row a turn) | immune to the type that hit it last | ringing: every third turn, Silence on all |
+| **The Tear Itself** | Widen (+5% damage taken for both sides, stacking) · Swallow (eats a downed body: no raise) | Widen every turn | the Rift shrinks: lose 2% max HP a turn |
+| **The Counting Dead** | Count (marks a minion; at 3 marks it falls) · Tally (heals per mark) | counts two a turn | numbers on the stage are hidden |
+
+Guardian kills give a **Rift Shard** (new currency, section 5) and a Riftborn item the first time each guardian falls at
+a new depth band.
+
+## 4. Riftborn items
+
+A new item tag, dropped only in the Rift from depth 10 (5% per room, guardians 100%), and with sigils more.
+
+- Legendary tier of the Throne's set, plus one **rift power** that scales with the item's depth (the depth it dropped at):
+
+| Rift power | Effect at depth d |
+|---|---|
+| *Descent* | +0.5% damage per depth reached this dive, up to d% |
+| *First Light* | your first skill each depth costs no mana (d >= 20: also no cooldown) |
+| *Carry Over* | minions keep 50% of a buff between depths |
+| *Deep Lungs* | +0.2% mana regen per depth, up to d/5 % |
+| *Fold Sense* | the first guardian move each fight is shown two turns ahead |
+| *Riftwalker* | +1% Rift reward multiplier per 5 depths of d |
+
+- Outside the Rift, a rift power works at 30%: it matters most where it was found, but is not dead weight in the Tower.
+- Riftborn pieces can be **attuned** with Rift Shards: raise their depth by 5 (cost grows), so an old find keeps up.
+
+## 5. Rift Shards
+
+Paid by guardians (1 + depth/10) and sigiled dives (+1 per sigil at the end). Spent on: attuning Riftborn items, unlocking
+a sigil early, the weekly dive's extra attempt, and in the black market (R4) for a secret-master heart (40 shards).
+
+## 6. The weekly seeded dive
+
+Beside the Weekly Trial: a seeded dive (same rooms for everyone, same seed all week) with three fixed sigils, from depth 1
+to as deep as you go in one try per day. The best depth is recorded with the date. Pays shards by depth and a Riftborn
+item for a new weekly best. Local only (no leaderboard).
+
+## 7. Rift events
+
+Between depths, 15% chance of an event:
+
+| Event | Choice |
+|---|---|
+| **A fold** | skip 2 depths (no rewards for them) / stay |
+| **One of yours, from another cycle** | a minion from your Memorial of a past cycle stands here: raise it at Elder / let it go (+20 Choir devotion) |
+| **A fragment of the other half** | a lore page of the other half of the Ledger (4 new pages, Rift only) |
+| **A tear-shrine** | trade 10% max HP for this dive for +20% reward multiplier |
+
+## 8. Probe and numbers
+
+- A dedicated probe (`"rift":true`): 40 bots at day 60 with fixed gear dive five times each; reports depth per sigil
+  set. Replaces the 100-day average as the Rift's measure (B4).
+- Each sigil should cost a predictable 1-4 depths for its reward; `full` should want Riftborn items (the bot equips one
+  in the Tower at least half the time).
+- Targets: market best depth ~25-30 by day 100 without sigils; full with sigils within 5 of market.
+
+## 9. Save
+
+`S.rift.sigils` (last set), `S.rift.presets`, `S.rift.shards`, `S.rift.week = {seed, best, tries}`, `S.rift.guards = {}`
+(first kills per band); items `rb:{power, d}`.
+
+## 10. UI, Turkish, Codex, titles
+
+UI: a sigil picker before a dive (shows the multiplier), guardian cards, a Riftborn frame, the weekly dive beside the
+Trial. ~140 strings. Codex: Sigils, Guardians, Riftborn, Shards. Titles (5): *Six Guardians*, *Fully Sigiled* (depth 20
+with three sigils), *Weekly Diver* (10 weekly bests), *Attuned* (a Riftborn at depth 50), *Other Half* (all four fragment
+pages).
+
+## 11. Tests
+
+`99-rift` (use the next free number): sigils change their rules and multiplier; guardians every fifth depth with phase
+twos; Riftborn powers scale and work at 30% outside; attunement; the weekly dive is seeded and once a day; events.
+
+## 12. Bot policy
+
+Dive with the sigils the probe rates best for its build; attune the best Riftborn; weekly dive daily after the Trial.
+`"off":["sigils","riftborn"]`.
+
+## 13. Risks
+
+- **Riftborn breaks the Tower**: 30% outside the Rift, and *Descent* only counts Rift depths.
+- **Guardians as walls**: guardians use R2's phase rules and the alpha-strike lesson (rules over numbers).
