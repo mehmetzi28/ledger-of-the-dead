@@ -67,7 +67,7 @@ flowchart LR
 | Bounties | Tallies of any activity | Gold, salts, dust, gear | Good glue: reads many systems |
 | Expeditions (R6) | Commander minions, squad roles, damage types, bonds, curses, the Tower, the bestiary (mastery), banners | Gold, gear, trophies, hearts, bone dust, minion XP, the Embalmery, dread, Memorial, titles | Three steps a night and a dawn choice (G17 closed); Rally ties the Commander to every fight (G8 closed) |
 | Sieges | Town levels, calendar, dread band, Bell Tower defenses, Reserve wall, guard choice | Gold, dust, gear, building damage, dread | Fixed roster (G23) |
-| Rival | Calendar, your army's main role, your bodies, sieges, the Reserve | Legendary, gold, page loss or fine, Reclaimed bodies, wagers, story | Chapters 1-3 of an arc (R7 PR A); no end yet (G19) |
+| Rival | Calendar, your army's main role, your bodies, sieges, the Reserve | Legendary, gold, page loss or fine, Reclaimed bodies, wagers, story | A five-chapter arc with an ending (R7): their gate, the Reckoning, the rival's book or an ally in NG+ |
 | Trials | Throne clear, curses, tiers, seed | Gold, dust, hearts, records | Good: pays the Awakening economy |
 | Faith | Level, calendar | Static buffs, blessing, faith events, story | Binary and static (G18) |
 | Omens | Calendar | Rule changes for a day, titles | Not forecast or caused (G20) |
@@ -166,8 +166,9 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
   path, come home), road events. Not yet: difficulties, the Rift, the rival's stash (R7) and Vane Abbey as targets.
 - **G18. Faith is a binary with a static buff.** Two oaths, devotion is only time; the Old Gods never touch omens,
   curses, sieges (the Inquisition) or the story past two passages. (Faith, omens, sieges, events, story.)
-- **G19. The rival has no arc.** Same move, same loop, no territory, no ending; New Game+ resets their strength. Part closed by
-  R7 PR A: chapters, wagers and the rival's siege; their gate, the reckoning and the endings remain.
+- ~~**G19. The rival has no arc.**~~ Closed by R7: five chapters (wagers, their siege, their own gate built from your
+  stolen dead, the Reckoning) and an ending you choose: end them for their book (three uniques, a set) or spare them for
+  an ally in New Game+ (a weekly body trade, a siege's first wave).
   (Rival, story, NG+, raids.)
 - **G20. Omens are weather, not choices.** Nothing forecasts, calls or wards off an omen, and the town never reacts to
   one. (Omens, faith, town, calendar.)

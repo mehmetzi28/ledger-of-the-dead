@@ -469,7 +469,12 @@ rank or higher, which then sits out the fight; win and it joins you **Reclaimed*
 killed and raised are Reclaimed too), lose and yours goes into their book (`b.mine`); 3 Fire at the Walls 10 days later
 once a siege is held: the next siege's last wave is the rival (a challenge's strength x1.25) and their stolen dead instead
 of the Captain; broken, 2 stolen bodies come back and the next theft waits; lost, they carry off the weakest Reserve
-minion. Chapters 4-5 (their gate, the reckoning) follow in R7 PR B. The bot reaches chapter 3 by day ~60.
+minion; 4 Their Own Gate once their siege is fought: the Rival's Ledger, four rooms of their stolen dead (never below your
+level, foes x1.4) open 7 days, closed 10, with a lieutenant shaped like your strongest minion; 5 The Reckoning the next
+day: the rival with every move (x0.9 a challenge) and The Last Page at half HP (followers burn to heal them 6% each); a
+loss costs a Reserve minion and a week. Beaten, you **end them** (three rival uniques, set The Rival's Book, and every
+stolen body back Reclaimed) or **spare them** (`S.ally`: a weekly body trade and the first wave of a siege, from the next
+cycle); the rival is gone for good either way. The bot finishes the arc by day ~70.
 
 **New Game+** (`startNGP`). After the Throne: start again at level 1 keeping titles, bestiary, tips, lifetime counts,
 story, records, pages, Rift best, Memorial, rival name and record, and one unique (with its Awakening ranks). Foes +30%

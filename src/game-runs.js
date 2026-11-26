@@ -37,7 +37,8 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
   const extra=hasRunMod('horde')?1:0, R0=Math.random;
   if(r.trial) Math.random=trialRng(r.tseed,room);   // a Trial: the same rooms and foes for every attempt this week (src/game-rival-trials.js)
   try{
-    if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true)); const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
+    if(r.rg) rgRoom(list,di,room,lvl); else if(r.rk) reckRoom(list,di,lvl);   /* the rival's own gate and the duel (game-rival-arc.js) */
+    else if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true)); const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
     else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
     heatRoom(list,di); ledgerRoom(list,di); brewRoom(r); foeScale(list,foeAtkMul(di)); if(r.trial) trialPow(list,di); bulwark(list); riftScale(list);
     heatScale(list);
@@ -151,7 +152,7 @@ function checkDeaths(){
     const page=e.secret?'secret':e.boss?(e.tw?'warden':'boss'):e.elite?'elite':null;   // who may carry a torn page
     if(page&&!r.trial&&!e.rival) findPage(page,r);
     if(e.secret) slaySecret(e,r);
-    if(e.rival){ if(e.rsiege) rivalSiegeDown(e,r); else rivalBeaten(e,r); }
+    if(e.rival){ if(e.rsiege) rivalSiegeDown(e,r); else if(e.reck) reckDown(e,r); else rivalBeaten(e,r); }
     if(hasRunMod('volatile')) volatileBurst(e);
     if(hasAff(e,'splitting')) splitFoe(e);
   }
@@ -304,7 +305,7 @@ function roomWon(){
     if(m.hp<=0) r.downs=(r.downs||0)+1;   /* downed this room: a Trial's score counts them */
     if(m.hp>0){ if(minionXp(m,share)) r.events.push({m:m.nick+' reaches level '+m.lvl+'.',c:'ok'}); continue; }
     const ch=shatterOdds(m);
-    if(Math.random()*100<ch){ returnGear(m); S.army=S.army.filter(x=>x!==m); downs.push({m:m.nick+', '+theName(mName(m))+', shattered and is gone ('+ch+'% chance).',c:'bad'}); memorialize(m,r.tw?{f:r.tw}:r.rift?{rd:r.rift}:{g:r.di}); }
+    if(Math.random()*100<ch&&!secondHand(m,r)){ returnGear(m); S.army=S.army.filter(x=>x!==m); downs.push({m:m.nick+', '+theName(mName(m))+', shattered and is gone ('+ch+'% chance).',c:'bad'}); memorialize(m,r.tw?{f:r.tw}:r.rift?{rd:r.rift}:{g:r.di}); }
     else{ m.hp=Math.ceil(m.maxHp*BIND_HP); bound.push(m); }
   }
   if(bound.length){ const ch=Math.max(...bound.map(shatterOdds)); downs.push({m:'Downed but bound back together at '+Math.round(BIND_HP*100)+'% HP: '+bound.map(m=>m.nick).join(', ')+'. '+(ch?'The chance to shatter was '+ch+'%.':'None of them could shatter.'),c:'down'}); }
@@ -313,12 +314,12 @@ function roomWon(){
     const f=r.tw; S.tower.best=Math.max(S.tower.best,f); recBest('floor',f); towerSplit(r); for(const k of [10,25,40,50,60,75,90,100]) if(S.tower.best>=k) unlockStory('t'+k,r);
     if(f%10===0){ xp+=120*f; S.quest.clears++; towerBossLoot(f,r); }
     if(f===100) r.cleared=true;   // floor 100 ends the first climb; floor 101 onward is the endless abyss
-  } else if(last){ xp+=r.siege?siegeWon(r):r.rift?riftCleared(r):r.trial?trialCleared(r):gateCleared(r); if(!r.siege&&!r.rift&&!r.trial) rivalMeet(r); }
+  } else if(last){ xp+=r.siege?siegeWon(r):r.rift?riftCleared(r):r.trial?trialCleared(r):r.rg?rgCleared(r):r.rk?reckCleared(r):gateCleared(r); if(!r.siege&&!r.rift&&!r.trial&&!r.rg&&!r.rk) rivalMeet(r); }
   if(r.trial){ r.loot=[]; r.gold=0; r.troph={}; r.corpses=[]; }   /* a Trial pays only its first completion each week: no gear, gold, trophies or bodies */
   for(const id of r.loot){ const it=addItem(id); if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name); } r.loot=[];
-  bankLoot(r); r.won=(r.won||0)+1; S.quest.rooms=(S.quest.rooms||0)+1; tally('rooms'); if(r.tw){ tally('floors'); orderEv('floor'); } else if(!r.siege&&!r.rift&&!r.trial) orderEv('room',{ok:(r.downs||0)===dn0,di:r.di}); if(P.hp>0&&P.hp<=pMax()*.1) tally('lastBreath');
-  r.event=(!r.tw&&!r.siege&&!r.trial&&!last&&Math.random()<EVENT_CHANCE)?rollEvent():null;   // something waits between rooms
-  r.doors=(!r.tw&&!r.siege&&!r.trial&&!last)?rollDoors(r):null;   // which way next
+  bankLoot(r); r.won=(r.won||0)+1; S.quest.rooms=(S.quest.rooms||0)+1; tally('rooms'); if(r.tw){ tally('floors'); orderEv('floor'); } else if(!r.siege&&!r.rift&&!r.trial&&!r.rg&&!r.rk) orderEv('room',{ok:(r.downs||0)===dn0,di:r.di}); if(P.hp>0&&P.hp<=pMax()*.1) tally('lastBreath');
+  r.event=(!r.tw&&!r.siege&&!r.trial&&!r.rg&&!r.rk&&!last&&Math.random()<EVENT_CHANCE)?rollEvent():null;   // something waits between rooms
+  r.doors=(!r.tw&&!r.siege&&!r.trial&&!r.rg&&!r.rk&&!last)?rollDoors(r):null;   // which way next
   r.gained+=xp; r.lastXp=xp;
   r.ups+=addXp(xp); preRooms(r);   // after the level-up: the rooms behind the doors stand at the level you will enter them at
   if(r.siege&&!last){ nextWave(); return; }   // a siege goes straight on to its next wave
@@ -329,7 +330,7 @@ function defeat(){
   const r=S.run; if(r.siege){ r.pending=0; r.loot=[]; S.mode='defeat'; S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); }); siegeLost(false); return; }   // a lost siege costs no XP; the town pays instead
   S.ti=S.ti||{}; S.ti.deaths=(S.ti.deaths||0)+1; r.pending=0; r.gold=0; r.troph={}; r.bdust=0; S.mode='defeat'; S.player.xp=Math.max(0,S.player.xp-Math.round(need(S.player.lvl)*DIFF.deathXp));
   S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); });
-  if(rivalStanding(r)) rivalLost(r);
+  if(rivalStanding(r)) rivalLost(r); if(reckStanding(r)) reckLost(r);
   if(r.blow) r.felled=r.blow;
   notify('You were dragged out of '+(r.tw?'the Hell Tower on floor '+r.tw:'the '+DUNGEONS[r.di].name)+'. That room\'s spoils are lost, and you lose '+Math.round(DIFF.deathXp*100)+'% of a level in XP.','bad');
 }
@@ -351,7 +352,7 @@ function blowCounters(b){   // the answers to a blow you have and have not used,
 function snapRoom(){ const r=S.run; if(!r) return; delete r.blow; delete r.felled;   // the start of a fight room: what Instant Retry restores
   ROOM0=(r.siege||r.trial)?null:{r,j:JSON.stringify(r),s:JSON.stringify({p:['hp','mana','shield','st','dots'].map(k=>S.player[k]),a:S.army.map(m=>[m.uid,m.hp,m.st,m.dots])})}; }
 // Not for sieges (a lost siege is the town's loss, at once), Trials (the score counts each attempt) or a room the rival stood in (the loss is already theirs to keep).
-const canRetry=()=>S.mode==='defeat'&&!!ROOM0&&ROOM0.r===S.run&&!S.run.siege&&!S.run.trial&&!S.run.enemies.some(e=>e.rival);
+const canRetry=()=>S.mode==='defeat'&&!!ROOM0&&ROOM0.r===S.run&&!S.run.siege&&!S.run.trial&&!S.run.rk&&!S.run.enemies.some(e=>e.rival);
 function retryRoom(){   // the room again as it began: same foes at full HP, you and your army as you entered; no watch, the XP loss stands, potions drunk stay drunk
   if(!canRetry()) return false;
   const r=S.run, o=JSON.parse(ROOM0.j), s=JSON.parse(ROOM0.s), P=S.player;
@@ -382,7 +383,7 @@ function returnTown(){
   save();
 }
 function flee(){ if(S.mode!=='battle') return; if(S.run.siege){ S.run.fled=true; S.run.pending=0; S.run.loot=[]; S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); }); siegeLost(true); S.mode='defeat'; return; }   /* fleeing a siege counts as a defeat */
-  S.run.fled=true; if(rivalStanding(S.run)) rivalLost(S.run); notify('You fled the gate and left the room\'s spoils behind.','bad'); returnTown(); }
+  S.run.fled=true; if(rivalStanding(S.run)) rivalLost(S.run); if(reckStanding(S.run)) reckLost(S.run); notify('You fled the gate and left the room\'s spoils behind.','bad'); returnTown(); }
 
 
 // ----- items: bag and equipment
@@ -417,7 +418,7 @@ function raiseChance(c){
   if(soulBound(c)) return 0;
   if(firstRaise()) return 100;
   let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+4*sk('mastery')+B_OSS*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*RAISE_LV-RK[c.rankI].pen;
-  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+(hasInsc('many')?INSC_RAISE:0)+incRaise()+townRaise(c);
+  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+(hasInsc('many')?INSC_RAISE:0)+incRaise()+townRaise(c)+rgRaise(c)+twoBooks();
   return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
 }
 const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*(hasFlag('cheapraise')?.5:1)*(hasMod('mastery','b')?.75:1)*(1-.06*sk('thrift')));

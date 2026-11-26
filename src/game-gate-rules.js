@@ -483,7 +483,7 @@ function doorBoss(di){   // the boss door, once its master is Ledgered: the sign
 // Two or three pieces from the same gate's set (its uniques count too) give a bonus. Tower gear belongs to no set.
 const SET_NAMES=['Scavenger\'s Kit','Drowned Vigil','Ember Rite','Choir of Bones','Ironbark','Pale Court','The Scribe\'s Regalia'];
 const SET_BONUS=[{2:{hp:15},3:{goldp:10}},{2:{mana:20},3:{manap:8}},{2:{strength:3},3:{dmgp:5}},{2:{will:3},3:{mpow:10}},{2:{constitution:4},3:{drp:5}},{2:{mpow:8},3:{dmgp:6,drp:3}},{2:{sdmg:10,studyp:10},3:{margin:1}}];   /* the Scribe's Regalia: 3 pieces write Marginalia (game-abbey.js) */
-const setCount=si=>(S&&S.equip)?GEAR_SLOTS.filter(sl=>{ const it=S.equip[sl], d=it&&ITEM[it.id]; return d&&!d.tower&&d.set===si; }).length:0;
+const setCount=si=>(S&&S.equip)?GEAR_SLOTS.filter(sl=>{ const it=S.equip[sl], d=it&&ITEM[it.id]; return d&&!d.tower&&!d.rival&&d.set===si; }).length:0;   /* the rival's uniques count only toward their own set */
 const setB=k=>{ let n=0; for(let i=0;i<SET_BONUS.length;i++){ const c=setCount(i); if(c>=2) n+=SET_BONUS[i][2][k]||0; if(c>=3) n+=SET_BONUS[i][3][k]||0; } return n; };
 // ===== UNIQUE SETS =====
 // The uniques form six sets of three (a weapon, an armor and a relic each): two from the gate bosses, four from the Tower

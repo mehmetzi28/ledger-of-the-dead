@@ -117,7 +117,7 @@ function killLoot(e,r){   // called once per kill, from checkDeaths
   const key=trophyKey(e); if(!TROPHY[key]||e.stash) return;
   const har=omen()==='boneharvest', tch=.6*(har?1+HARVEST_TRO:1)+(hasMod('robber','b')?KEEN_TRO:0);   // Bone Harvest and Keen Eye
   const n=(e.boss?(1+(e.secret&&hasInsc('masters')?1:0))*(e.ledger?LEDGER_HEART:1):e.elite?2+(har?1:0):(Math.random()<tch?1:0))*cursed;
-  if(n){ r.troph=r.troph||{}; r.troph[key]=(r.troph[key]||0)+n; }
+  if(n){ const q=quillK(r,n); r.troph=r.troph||{}; r.troph[key]=(r.troph[key]||0)+n*q; }   /* Pickpocket: the first trophy of a room drops twice (game-rival-arc.js) */
 }
 function bankLoot(r){     // called when a room is won
   r.lastGold=r.gold||0; if(r.lastGold) sfx('coin'); r.lastTroph=r.troph||{};
