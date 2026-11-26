@@ -15,11 +15,11 @@ Object.assign(BUILD,{
   bell:  {name:'Bell Tower',   open:()=>T_('siegeWarned')>0, desc:'The siege warning comes one dawn earlier for every two levels.', now:n=>'sieges warned '+(1+Math.floor(n/2))+' dawn'+(Math.floor(n/2)?'s':'')+' ahead'},
   apoth: {name:'Apothecary',   open:()=>blRaw('forge')>=2, desc:'Potions cost '+b100(APO_POT)+'% less and brewing '+b100(APO_BREW)+'% less gold per level. At level 3 the belt holds one more of each.', now:n=>'potions '+b100(APO_POT*n)+'% and brewing '+b100(APO_BREW*n)+'% cheaper'+(n>=3?', one more on the belt':'')},
   war:   {name:'War Room',     open:()=>T_('raidsSent')>0, desc:'A Commander leads one more follower at levels 1, 3 and 5, and raids are '+b100(WAR_ODDS)+'% likelier to win per level.', now:n=>'+'+warSquad(n)+' squad, raids +'+b100(WAR_ODDS*n)+'%'},
-  temple:{name:'Temple',       open:()=>!!faithOf(), desc:'Devotion grows '+b100(TEMPLE_DEV)+'% faster per level. At level 3 your oath\'s gifts are '+b100(TEMPLE_BUFF)+'% stronger; at level 5 you can call a new omen once a week.', now:n=>'devotion '+b100(TEMPLE_DEV*n)+'% faster'+(n>=3?', gifts +'+b100(TEMPLE_BUFF)+'%':'')+(n>=5?', a weekly omen':'')}
+  temple:{name:'Temple',       open:()=>!!faithOf(), desc:'Devotion grows '+b100(TEMPLE_DEV)+'% faster per level. At level 3 your oath\'s gifts are '+b100(TEMPLE_BUFF)+'% stronger and your god\'s chapel opens; at level 5 you can call a new omen once a week, today\'s or, through your god, tomorrow\'s.', now:n=>'devotion '+b100(TEMPLE_DEV*n)+'% faster'+(n>=3?', gifts +'+b100(TEMPLE_BUFF)+'%':'')+(n>=5?', a weekly omen':'')}
 });
 const clearsN=()=>Object.keys((S.ti&&S.ti.clr)||{}).filter(k=>S.ti.clr[k]).length;
 const bOpen=k=>!!BUILD[k]&&(!BUILD[k].open||blRaw(k)>0||BUILD[k].open());
-const embDays=n=>EMB_DAYS+n+(hasSpec('embalm',3,'a')?3:0);
+const embDays=n=>iceHouse()?1e6:EMB_DAYS+n+(hasSpec('embalm',3,'a')?3:0);   /* Vesh's Ice House: never */
 const warSquad=n=>(n>=1?1:0)+(n>=3?1:0)+(n>=5?1:0);
 const buildReady=k=>blRaw(k)<B4_LOCK||throneDown();   // levels 4 and 5 wait for the Throne
 // ----- specializations
@@ -87,9 +87,9 @@ Object.assign(SIEGE_PERK,{
 function townSiegeWave(list,r){   // spawnSiege, after scaling
   const hpK=(1-SIEGE_BELL*bl('bell')), atkK=hasSpec('bell',3,'a')?.95:1;
   dreadWave(list,r); for(const e of list){ let k=hpK; if(e.boss) k*=(1-SIEGE_LIB*bl('library'))*(hasSpec('bell',5,'b')?.85:1); if(k!==1){ e.maxHp=e.hp=Math.max(1,Math.round(e.maxHp*k)); } if(atkK!==1) e.atk=Math.max(1,Math.round(e.atk*atkK)); }
-  bellDefense(list,r); if(r.room&&bl('apoth')){ const P=S.player, h=healAlly(P,Math.round(pMax()*SIEGE_APO*bl('apoth'))); if(h) log('The Apothecary\'s salves: +'+h+' HP.','ok'); }
+  bellDefense(list,r); godSiegeWave(list,r); if(r.room&&bl('apoth')){ const P=S.player, h=healAlly(P,Math.round(pMax()*SIEGE_APO*bl('apoth'))); if(h) log('The Apothecary\'s salves: +'+h+' HP.','ok'); }
 }
-const siegePayK=()=>(1+SIEGE_WAR*bl('war'))*(hasSpec('bell',3,'b')?1.2:1)*dreadPayK();   // siegeGoldPay
+const siegePayK=()=>(1+SIEGE_WAR*bl('war'))*(hasSpec('bell',3,'b')?1.2:1)*dreadPayK()*godPayK();   // siegeGoldPay (the Choir: game-pantheon.js)
 const siegeDustK=()=>hasSpec('bell',5,'a')?2:1;   // siegeWon
 function townSiegeWon(r){ dread(-DREAD_SIEGE_WON*tollK()); if(!bl('embalm')||!r.fallen||!r.fallen.length) return; const c=pick(r.fallen.concat(r.corpses||[]).filter(x=>x&&!x.boss)); if(c&&embKeep(c,true)) r.events.push({m:'The Embalmery takes in '+withArticle(c.base||c.name)+' from the walls.',c:'ok'}); }
 // ----- the Charnel Yard: dawn training
@@ -134,7 +134,7 @@ function embRaise(i){   // raise a kept body in town: the usual raise, with the 
 }
 // ----- the Temple: a weekly omen
 const omenReady=()=>bl('temple')>=5&&S.mode==='town'&&!(S.omenCall&&S.day-S.omenCall<7);
-function callOmen(){ if(!omenReady()) return false; const cur=dayOmen().id, ids=Object.keys(OMENS).filter(k=>k!==cur); S.omen={day:S.day,id:pick(ids)}; S.omenCall=S.day; tally('omensCalled'); sfx('skill'); return S.omen.id; }
+function callOmen(){ if(!omenReady()) return false; const cur=dayOmen().id, ids=OMEN_NAT.filter(k=>k!==cur); S.omen={day:S.day,id:pick(ids)}; S.omenCall=S.day; tally('omensCalled'); sfx('skill'); return S.omen.id; }
 // ----- save
 function townFix(g){
   if(g.build) for(const k of Object.keys(g.build)) g.build[k]=Math.min(BUILD_MAX,g.build[k]);

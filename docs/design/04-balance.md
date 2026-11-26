@@ -24,6 +24,8 @@ to each constant in `src/` and in `claude.md`; this page is the summary to read 
 
 ## 4.2 Latest measurements (2026-11-26, seeds 7700 and 9100, 40 bots x 100 days)
 
+**After the gods' omens, PR B (R8)**: market unchanged (90%, Tower 77.1, Rift 16.6; a first build moved it because Choir Night's minion bonus read omen() in syncArmy and rolled the day's omen early; it now only peeks). full 90/90%, Tower 87.6/86.6, Rift 20.0/18.7, sieges held 79/82%. Every god 89-92% on gates. The bots call 9-26 omens each over 100 days (Ulm most: Bone Harvest pays in trophies; the Choir least: rank 5 late) and ward Soul Storm 0-2 times; with `"off":["calls"]` (7700) clears 90%, Tower 86.8, Rift 19.5, so calls are worth about a Tower floor and half a Rift depth.
+
 **After the pantheon, PR A (R8)**: market unchanged (90%, Tower 77.1, Rift 16.6). full 90/90%, Tower 86.6/87.4, Rift 20.1/20.9, sieges held 83/81%. Per god (8 bots each, seeds 7700/9100): Morrow 91/91%, Vesh 89/89%, Ulm 90/90%, the Choir 90/90%, the Profane 91/90% (within 2 points); rank 5 on day 33/31 (Morrow), 38/34 (Vesh), 31/32 (Ulm), 37/52 (Choir), 36/40 (Profane); rank 1 on day 14-18 (the Pantheon opens at level 8). DEED_K hon/ulm 1 -> .4 (rank 5 on day ~23), choir 1 -> 3 (~68). Vesh's vow first broke on every Blighted death: the bots' necrotic and witchrot minions broke it ~85 times each and Vesh stayed at rank 0-1; now 3 in one run (VESH_ROT) and the Vesh bot benches rot-spreading minions: 1-3 breaks a bot.
 
 **After the rival's end, chapters 4-5 (R7 PR B)**: market unchanged (89/90%, Tower 78.6/77.1, Rift 16.8/16.6). full

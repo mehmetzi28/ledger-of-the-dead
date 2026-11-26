@@ -69,7 +69,7 @@ flowchart LR
 | Sieges | Town levels, calendar, dread band, Bell Tower defenses, Reserve wall, guard choice | Gold, dust, gear, building damage, dread | Fixed roster (G23) |
 | Rival | Calendar, your army's main role, your bodies, sieges, the Reserve | Legendary, gold, page loss or fine, Reclaimed bodies, wagers, story | A five-chapter arc with an ending (R7): their gate, the Reckoning, the rival's book or an ally in NG+ |
 | Trials | Throne clear, curses, tiers, seed | Gold, dust, hearts, records | Good: pays the Awakening economy |
-| Faith (the pantheon) | Kills, healing, raises, trophies, Siphon, headstones, the Memorial, shrines | Boons by rank, vows, conversion, titles, story | Omens and sieges not yet (R8 PR B) |
+| Faith (the pantheon) | Kills, healing, raises, trophies, Siphon, headstones, the Memorial, shrines | Boons by rank, vows, conversion, titles, story, omen forecast/call/ward, Temple chapels, dread, sieges, commissions | |
 | Omens | Calendar | Rule changes for a day, titles | Not forecast or caused (G20) |
 | Curses | Calendar, cleared gates | Harder runs, more reward, titles, bounty | Five curses only (G24) |
 | Hell Tower | Level 10, 3 clears | 12 uniques, titles, story, abyss gold | Wardens reuse gate moves (G3) |
@@ -164,8 +164,8 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
 - ~~**G17. Raids are one dice roll.**~~ Closed by R6: expeditions to gates, the day's cursed gate, Tower bands, hunts and
   scavenges, three steps a night covered by roles, types and bonds, carried spoils and a dawn choice (press on, the risky
   path, come home), road events. Not yet: difficulties, the Rift, the rival's stash (R7) and Vane Abbey as targets.
-- **G18. Faith is a binary with a static buff.** Half closed by R8 PR A: five gods, devotion by deeds, vows, boons by
-  rank, shrines per god and passages; omens, sieges and dread still ignore the gods (R8 PR B). (Faith, omens, sieges, events, story.)
+- ~~**G18. Faith is a binary with a static buff.**~~ Closed by R8: five gods, devotion by deeds, vows, boons by rank,
+  shrines per god and passages (PR A); gods foresee, call and ward omens, open Temple chapels and move dread and sieges (PR B).
 - ~~**G19. The rival has no arc.**~~ Closed by R7: five chapters (wagers, their siege, their own gate built from your
   stolen dead, the Reckoning) and an ending you choose: end them for their book (three uniques, a set) or spare them for
   an ally in New Game+ (a weekly body trade, a siege's first wave).

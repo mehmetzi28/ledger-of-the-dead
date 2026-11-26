@@ -44,13 +44,13 @@ function brewCan(id){
   const B=BREWS[id]; if(!B||S.mode!=='town'||S.gold<brewGold(id)) return false;
   if(B.belt){ if((S.belt[B.belt]||0)>=beltMax()) return false; } else if(stashN(id)>=BREW_STASH) return false;
   if(B.hearts) return spareHearts().reduce((a,[,n])=>a+n,0)>=B.hearts;
-  return Object.keys(B.parts).every(r=>partCount(r,B.g)>=B.parts[r]);
+  const P=granary(B); return Object.keys(P).every(r=>partCount(r,B.g)>=P[r]);   /* Ulm's Granary */
 }
 function brewIt(id){   // spends the parts (cheapest first) or spare hearts (lowest first) and the gold
   if(!brewCan(id)) return false; const B=BREWS[id], free=freeBrew(); S.gold-=brewGold(id); if(free) S.freeBrew=S.day;
-  faithUsed(B.hearts||Object.values(B.parts).reduce((a,n)=>a+n,0));   /* Ulm's deed (game-pantheon.js) */
+  const PT=B.hearts?null:granary(B); faithUsed(B.hearts||Object.values(PT).reduce((a,n)=>a+n,0));   /* Ulm's deed (game-pantheon.js) */
   if(B.hearts){ let need=B.hearts; for(const [k,n] of spareHearts()){ const t=Math.min(n,need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
-  else for(const r of Object.keys(B.parts)){ let need=B.parts[r]; for(const k of partKeys(r,B.g)){ const t=Math.min(S.trophies[k],need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
+  else for(const r of Object.keys(PT)){ let need=PT[r]; for(const k of partKeys(r,B.g)){ const t=Math.min(S.trophies[k],need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
   const n=brewTwice()?2:1;   /* the Distillery (game-town2.js) */
   if(B.belt) S.belt[B.belt]=Math.min(beltMax(),(S.belt[B.belt]||0)+n); else { S.stash=S.stash||{}; S.stash[id]=Math.min(BREW_STASH,stashN(id)+n); }
   tally('brewed'); tally('brewG',brewGold(id)); sfx('heal'); return true;
@@ -110,7 +110,8 @@ function makeComm(){
 }
 function commissions(){ if(!S.comm||!Array.isArray(S.comm.list)||S.comm.week!==weekOf(S.day)) makeComm(); return S.comm.list; }
 const trosOf=(role,g)=>Object.keys(S.trophies||{}).filter(k=>!k.startsWith('b:')&&TROPHY[k]&&TROPHY[k].role===role&&trophyGate(k)===g&&S.trophies[k]>0).sort((a,b)=>TROPHY[a].value-TROPHY[b].value);
-function commPay(c){
+function commPay(c){ const o=commPay0(c); o.g=Math.round(o.g*godCommK()); return o; }   // Ulm's commissions pay more (game-pantheon.js)
+function commPay0(c){
   if(c.k==='tro') return {g:Math.round(TROPHY_VAL[c.g]*c.n*COMM_TRO_K)+50*(c.g+1),d:5*(c.g+1)};
   if(c.k==='hf') return {g:COMM_HF_GOLD+1000*topGate(),d:30};
   return {g:COMM_MIN_GOLD*c.st+100*S.player.lvl,d:20};

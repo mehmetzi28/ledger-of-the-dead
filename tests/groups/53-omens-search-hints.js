@@ -39,10 +39,10 @@ test('Tips: full devotion, Records, Nightmare and omens',()=>{
   S.omen={day:S.day,id:null}; ok(!tip('omen').when()); S.omen.id='ashfall'; ok(tip('omen').when());
   setLvl(30); S.ti=Object.assign(S.ti||{},{clr:{0:1,1:1,2:1}}); S.gold=1e6; delete S.faith; ok(!tip('bless').when()); swear('dis'); ok(!tip('bless').when()); S.faith.dev=DEV_RANKS*DEV_STEP; ok(tip('bless').when());
 });
-test('Omens: seven in all, the old three kept; new ids load, bogus ones are dropped',()=>{
-  ['bloodmoon','paletide','ashfall','eclipse','boneharvest','ironrain','soulstorm'].forEach(k=>ok(OMENS[k]&&OMENS[k].name&&OMENS[k].desc,k)); eq(Object.keys(OMENS).length,7);
+test('Omens: seven at dawn and three the gods call, the old three kept; new ids load, bogus ones are dropped',()=>{
+  ['bloodmoon','paletide','ashfall','eclipse','boneharvest','ironrain','soulstorm'].forEach(k=>ok(OMENS[k]&&OMENS[k].name&&OMENS[k].desc,k)); eq(Object.keys(OMENS).length,10); eq(OMEN_NAT.length,7,'three come only by a call');
   eq(normalizeSave({v:2,player:{lvl:5},omen:{day:3,id:'soulstorm'}}).omen.id,'soulstorm'); eq(normalizeSave({v:2,player:{lvl:5},omen:{day:3,id:'paletide'}}).omen.id,'paletide');
-  S.ti=S.ti||{}; S.ti.clr={0:1}; const seen=new Set(); for(let i=0;i<200;i++){ S.day++; seed(i); const o=omen(); if(o) seen.add(o); } eq(seen.size,7,'every omen comes up');
+  S.ti=S.ti||{}; S.ti.clr={0:1}; const seen=new Set(); for(let i=0;i<200;i++){ S.day++; seed(i); const o=omen(); if(o) seen.add(o); } eq(seen.size,7,'every dawn omen comes up'); ok(!['longnight','rotbloom','choirnight'].some(k=>seen.has(k)),'never a god\'s own');
   S.omen={day:S.day,id:null}; const h=cdx('omens'); Object.values(OMENS).forEach(O=>{ ok(h.includes(O.name),O.name); ok(trText(O.name)!==O.name&&trText(O.desc)!==O.desc,'Turkish '+O.name); });
 });
 test('Omens: Black Eclipse feeds Siphon and shadow, blunts foe crits and makes them miss',()=>{

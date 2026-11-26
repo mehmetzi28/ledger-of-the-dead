@@ -66,6 +66,8 @@ const ACTIONS={
   ord:k=>{ pickOrder(+k); },
   tithe:()=>{ const c=payTithe(); ui.msg=c?{mk:1,m:'You pay the Old Shrine '+c+' gold. The town breathes easier.',c:'ok'}:null; },
   standwatch:()=>{ standWatch(); },
+  gcall:k=>{ const o=callGodOmen(k||null); ui.msg=o?{mk:1,m:'Your god calls tomorrow\'s omen: '+OMENS[o].name+'.',c:'ok'}:null; },
+  gward:()=>{ const o=wardOmen(); ui.msg=o?{mk:1,m:'You ward off tomorrow\'s '+OMENS[o].name+'.',c:'ok'}:null; },
   callomen:()=>{ const id=callOmen(); ui.msg=id?{mk:1,m:'The Temple calls a new omen: '+OMENS[id].name+'.',c:'ok'}:null; },
   brewx:k=>{ const B=BREWS[k]; ui.msg=brewIt(k)?{mk:1,m:'You brew '+B.name+'.'+(B.belt?' It is on your belt.':' It waits in your stash.'),c:'ok'}:null; },
   prep:k=>{ const a=k.split('|'); prepSet(a[0],a[1]||null); },

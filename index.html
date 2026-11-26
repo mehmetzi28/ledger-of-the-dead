@@ -1902,7 +1902,7 @@ function normalizeSave(src){
   const L=obj(g.life)?g.life:{}; g.life={}; for(const k of LIFE_KEYS) g.life[k]=Math.max(0,num(L[k],0));
   if(!obj(g.build)) g.build={}; for(const k of Object.keys(g.build)){ const v=g.build[k]; if(!BUILD[k]||typeof v!=='number'||!(v>=1)) delete g.build[k]; else g.build[k]=Math.min(BUILD_MAX,Math.floor(v)); }
   g.dust=Math.max(0,Math.floor(num(g.dust,0)));
-  faithFix(g);   /* the pantheon; an old two-oath faith converts (game-pantheon.js) */
+  faithFix(g); omenNextFix(g);   /* the pantheon; an old two-oath faith converts (game-pantheon.js) */
   if(g.rec!==undefined){ if(!obj(g.rec)) delete g.rec; else { const R0=g.rec, okv=o=>obj(o)&&typeof o.v==='number'&&o.v>0&&typeof o.day==='number';
     for(const k of REC_NUM) if(k in R0&&!okv(R0[k])) delete R0[k];
     if('riftF' in R0){ if(!obj(R0.riftF)) delete R0.riftF; else for(const m of Object.keys(R0.riftF)){ const o=R0.riftF[m]; if(!(+m>=1)||!obj(o)||!(o.t>0)||typeof o.day!=='number'||!(o.d>=+m)) delete R0.riftF[m]; } }
@@ -2085,6 +2085,7 @@ const roll3=()=>S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&!
  ['f_dis','Deeds','Wholly Profane','Reach rank 5 on the Profane path.',()=>T_('r5_dis')>=1,{dmgp:4}],
  ['f_godless','Deeds','Godless','Finish a cycle on the Profane path (begin New Game+ while Profane).',()=>T_('godless')>=1,{dmgp:3,goldp:3}],
  ['f_turncoat','Deeds','Turncoat','Convert to another god at their shrine 3 times.',()=>T_('converted')>=3,{xpp:3}],
+ ['f_weather','Deeds','Weather-Maker','Have your god call 20 omens.',()=>T_('godCalls')>=20,{goldp:3,xpp:2}],
  ['r_5','Deeds','Rift-Walker','Clear depth 5 of the Rift.',()=>riftBest()>=5,{dmgp:4}],
  ['r_15','Deeds','Riftborn','Clear depth 15 of the Rift.',()=>riftBest()>=15,{dmgp:5,hpp:4}],
  ['r_30','Deeds','Lord of the Torn Sky','Clear depth 30 of the Rift.',()=>riftBest()>=30,{dmgp:6,mpow:6}],
@@ -2117,7 +2118,7 @@ const masteredN=ids=>allNames().filter(n=>{ const t=masteryOf(n); return !!t&&id
  ['x_mlv50','Deeds','Bonelord Ascendant','Raise a minion to level 50.',()=>recV('mlv')>=50,{mpow:4}],
  ['x_omen1','Curses and events','Omen-Born','Survive a run under an omen.',()=>T_('omenRuns')>=1,{xpp:2}],
  ['x_omen25','Curses and events','Omen-Reader','Win 25 runs under an omen.',()=>T_('omenWins')>=25,{drp:2}],
- ['x_omenall','Curses and events','Herald of Every Sign','Survive a run under every kind of omen.',()=>{ return Object.keys(OMENS).every(id=>T_('om_'+id)>=1); },{goldp:4}],
+ ['x_omenall','Curses and events','Herald of Every Sign','Survive a run under every kind of omen.',()=>{ return OMEN_NAT.every(id=>T_('om_'+id)>=1); },{goldp:4}],
  ['x_eclipse','Curses and events','Lord of the Eclipse','Win 5 runs under the Eclipse.',()=>{ return OMENS.eclipse?T_('omw_eclipse')>=5:T_('omenWins')>=15; },{dmgp:2,mpow:2}],
  ['x_mastered25','Deeds','Ledger-Scholar','Bring 25 kinds of foe to Mastered or better in the bestiary.',()=>masteredN(['mastered','ledgered'])>=25,{xpp:3}],
  ['x_ledger10','Deeds','Master of the Bestiary','Bring 10 kinds of foe to Ledgered in the bestiary.',()=>masteredN(['ledgered'])>=10,{dmgp:3}],
@@ -2175,7 +2176,7 @@ function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // d
 // rarer ones stay hidden ("???") until earned. Rarity follows how hard a title is: bot runs measured the reachable ones,
 // and deeds the bots skip (events, forging) were judged by hand.
 const TITLE_RARITY={hd1:1,hd2:2,nm0:3,nm1:3,nm2:3,nm3:4,nm4:4,nm5:5,dm3:5,sb0:5,sb1:5,sb2:5,sb3:5,sb4:5,sb5:5,g0:0,g1:0,d_raise1:0,d_kill100:0,d_death:0,d_armed1:0,d_lv10:0,d_study:0,s_venom:0,f_crit:0,d_tower1:0,d_quest7:0,d_army:0,g2:1,t10:1,t20:1,d_raise50:1,d_cancel:1,d_evolve:1,d_uq:1,d_gold:1,m0:1,m1:1,c_drought:1,c_fury:1,c_bulwark:1,c_horde:1,c_volatile:1,p_25:1,k_spear:1,k_blast:1,k_chill:1,g_items:1,g_sold:1,f_flawless:1,f_last:1,a_boss:1,e_strag:1,e_pedlar:1,e_trap:1,d_death10:1,g3:2,g4:2,t30:2,t40:2,t50:2,d_kill1000:2,d_lv25:2,d_raise200:2,d_tower50:2,d_cancel10:2,d_trophy500:2,d_altar:2,d_elder:2,m2:2,m3:2,d_armed3:2,d_master:2,d_bag:2,c_25:2,e_shrine:2,e_coffer:2,s_poison:2,s_cure:2,k_reap:2,k_master3:2,k_all:2,f_boss25:2,f_elite100:2,g_gold:2,g_roll3:2,a_traits:2,a_elders:2,e_day100:2,e_runs100:2,g_reforge:2,g5:3,t60:3,t70:3,m4:3,m5:3,tw75:3,d_lv50:3,p_100:3,f_crit1000:3,e_rooms1000:3,twruns:3,d_ngp:3,d_tower110:3,t80:4,t90:4,t100:4,d_kill5000:4,d_all:4,d_tower150:4,a_raise500:4,e_lv75:4,tw200:5,d_ngp3:5,d_tuq:5,a_ancient:3,a_eternal:4,a_raid1:1,a_raid25:3,r_5:3,r_15:4,r_30:5};
-Object.assign(TITLE_RARITY,{x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
+Object.assign(TITLE_RARITY,{x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
 const RARITY_MUL=[1,1,1.25,1.5,2,3], HIDDEN_FROM=3;
 TITLES.forEach(t=>{ t.r=TITLE_RARITY[t.id]!=null?TITLE_RARITY[t.id]:1; const m=RARITY_MUL[t.r]; for(const k in t.b) t.b[k]=Math.max(t.b[k],Math.round(t.b[k]*m)); });
 const titleHidden=t=>t.r>=HIDDEN_FROM&&!(S&&S.ti&&S.ti.got&&S.ti.got[t.id]);
@@ -2245,10 +2246,10 @@ function closeDay(){
   if(!S.quest.claimed&&questDone()) claimQuest();   // an unfinished quest simply lapses
   const hon=remembered(); S.day++; S.watches=WATCHES-pactWatch(); if(hon) syncArmy();   /* the Remembered buff ends at dawn */
   S.quest={kills:0,rooms:0,clears:0,claimed:false};
-  const rr=resolveRaids(); placeWaiting(); bondsDawn(); yardDawn(); embDawn(); upkeepDawn(); dreadDawn(); faithDawn();   /* upkeep and the town's dread (game-dread.js) */   /* the Charnel Yard, the Embalmery (game-town2.js) */
+  const rr=resolveRaids(); placeWaiting(); bondsDawn(); yardDawn(); embDawn(); upkeepDawn(); dreadDawn(); faithDawn(); godDreadDawn(); omenDusk();   /* upkeep and the town's dread (game-dread.js) */   /* the Charnel Yard, the Embalmery (game-town2.js) */
   P.hp=pMax(); P.mana=pMana(); P.shield=0;
   S.army.forEach(m=>m.hp=m.maxHp);
-  notify('Day '+S.day+' begins. You have '+S.watches+' watches.'+raidDayLine(rr));
+  notify('Day '+S.day+' begins. You have '+S.watches+' watches.'+raidDayLine(rr)+forecastLine());
   siegeTick(); rivalTick();
 }
 function restDay(){ if(S.mode!=='town') return; S.watches=0; endDay(); }
@@ -2685,7 +2686,7 @@ const RAISE_BOSS_EACH=10;   // less per boss already in the army or Reserve, so 
 const RAISE_LV=3, RAISE_ELITE=10, RAISE_BOSS=15,SHATTER_BASE=50, SHATTER_WILL=1, SHATTER_MIN=20, BIND_HP=.4;   // % per level you stand above the body, the elite and boss penalties; a downed minion's shatter chance after a fight (% , less per Will point, never below the floor)
 function shatterOdds(m){   // % chance a downed minion shatters for good when its room ends; otherwise it binds back at BIND_HP. Never in a siege (home ground), never Grave-bound, never with Bone Bank
   if(hasFlag('bonebank')||hasTrait(m,'gravebound')||(S.run&&S.run.siege)) return 0;
-  return Math.max(SHATTER_MIN,SHATTER_BASE-A('will')*SHATTER_WILL);
+  return Math.max(0,Math.max(SHATTER_MIN,SHATTER_BASE-A('will')*SHATTER_WILL)-hospice());   /* Morrow's Hospice */
 }
 const saltAdd=()=>hasMod('thrift','b')?SENSE_SALT:SALT_BONUS;   // Grave Sense
 const saltChance=c=>soulBound(c)?0:firstRaise()?100:clamp(raiseChance(c)+saltAdd(),RAISE_MIN,SALT_CAP);
@@ -3538,8 +3539,12 @@ const OMENS={
   eclipse:  {name:'Black Eclipse',desc:'Soul Siphon, the Siphon skills and blight deal 20% more. Foes crit 10% less often and miss 1 blow in 10.'},
   boneharvest:{name:'Bone Harvest',desc:'Foes drop trophies 25% more often and elites one more. Any kill may leave bone dust: 1 kill in 4, and 3 from a boss.'},
   ironrain: {name:'Iron Rain', desc:'Gear drops 10% more often and rolls bonus lines as if one tier higher. Foes wear heavier armor: 25% tougher to hurt, and they resist 15% of physical damage on top.'},
-  soulstorm:{name:'Soul Storm',desc:'Every room starts with one Soul harvested, and you regain 20% more mana each turn. Your shadow damage is 10% stronger. Foes deal 25% more damage.'}
+  soulstorm:{name:'Soul Storm',desc:'Every room starts with one Soul harvested, and you regain 20% more mana each turn. Your shadow damage is 10% stronger. Foes deal 25% more damage.'},
+  longnight:{name:'Long Night',desc:'Vesh holds back the dawn: one more watch today. Foes have 10% more HP.',god:'vesh'},   /* god: it comes only when called (game-pantheon.js) */
+  rotbloom: {name:'Rot Bloom', desc:'Ulm\'s season: every foe starts each room Blighted, so a body rots unless it is frozen first.',god:'ulm'},
+  choirnight:{name:'Choir Night',desc:'Each room begins in silence: your skills wait a turn and foes\' signature moves come a turn later. Minions deal 15% more damage.',god:'choir'}
 };
+const OMEN_NAT=Object.keys(OMENS).filter(k=>!OMENS[k].god);   // the omens a dawn may bring; the gods' own come only by a call
 const OMEN_CHANCE=.25, OMEN_RAISE=10, OMEN_BOSS_XP=1.25;
 const ECLIPSE_SHADOW=1.2, ECLIPSE_CRIT=.1, ECLIPSE_MISS=.1, HARVEST_TRO=.25, HARVEST_DUST=.25, HARVEST_DUST_BOSS=3, IRON_DROP=1.1, IRON_ARMOR=1.25, STORM_REGEN=.2, STORM_ATK=1.25;
 const shadowK=()=>omen()==='eclipse'?ECLIPSE_SHADOW:1;   // Black Eclipse: Soul Siphon, the Siphon skills (Corpse Explosion, Grave Chill, Reap) and blight
@@ -3550,12 +3555,13 @@ function roomStart(list){   // a fresh room or floor: Soul Storm, the Swift affi
   for(const m of S.army){ delete m.sx; if(m.hp>0&&hasTrait(m,'swift')) addSt(m,'hasted',2); }   // sx: Stitched used this room
   echoRoom(); kitSeen(list); delete S.run.mk;
   if(omen()==='soulstorm') gainSoul();
+  godOmenRoom(list);
   if(hasMod('bonearmor','a')) S.player.shield=Math.max(S.player.shield||0,Math.round(pMax()*OSSIFIED));
   planFoes();
   progRoom();
 }
-function foeRise(list){ progFoes(list); for(const e of list){ if(omen()==='soulstorm') e.atk=Math.max(1,Math.round(e.atk*STORM_ATK)); if(hasAff(e,'swift')) addSt(e,'hasted',3); } }   // also for foes called in mid-fight
-function dayOmen(){ if(!S.omen||S.omen.day!==S.day) S.omen={day:S.day,id:anyClear()&&Math.random()<OMEN_CHANCE?pick(Object.keys(OMENS)):null}; return S.omen; }
+function foeRise(list){ progFoes(list); for(const e of list){ godOmenRise(e); if(omen()==='soulstorm') e.atk=Math.max(1,Math.round(e.atk*STORM_ATK)); if(hasAff(e,'swift')) addSt(e,'hasted',3); } }   // also for foes called in mid-fight
+function dayOmen(){ if(!S.omen||S.omen.day!==S.day){ const f=S.omenNext; S.omen=f&&f.day===S.day?{day:S.day,id:f.id}:{day:S.day,id:anyClear()&&Math.random()<OMEN_CHANCE?pick(OMEN_NAT):null}; if(f&&f.day<=S.day) delete S.omenNext; } return S.omen; }   // a forecast (S.omenNext) is kept
 const omen=()=>(S&&S.player&&!(S.run&&(S.run.siege||S.run.trial)))?dayOmen().id:null;   // omens do not reach a siege or a Trial
 const eliteBase=()=>.1*(omen()==='bloodmoon'?2:1), eliteChance=()=>eliteBase()*(runHeat()>=1?HARD_ELITE:1);   // Hard and up: twice the elites
 const gateMod=di=>{ const m=dayMod(); return m.gi===di?m.id:null; };
@@ -4520,7 +4526,7 @@ const mausN=()=>S&&S.memorial?Math.min(MAUS_MAX,S.memorial.filter(e=>e.maus).len
 const mausCost=()=>MAUS_COST[mausN()]||0;
 const canMaus=e=>!!e&&!e.maus&&S.mode==='town'&&mausN()<MAUS_MAX&&S.gold>=mausCost();
 function raiseMaus(i){ const e=(S.memorial||[])[i]; if(!canMaus(e)) return false; S.gold-=mausCost(); e.maus=1; tally('maus'); syncArmy(); sfx('raise'); return true; }
-const extraMul=(m,k)=>(k==='atk'?bondMul(m):(1+headBonus()+fallenK())*townHpK(m))*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K+(rivalBook()?BOOK_K:0):1)*(k==='atk'?choirK():1);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
+const extraMul=(m,k)=>(k==='atk'?bondMul(m):(1+headBonus()+fallenK())*townHpK(m))*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K+(rivalBook()?BOOK_K:0):1)*(k==='atk'?choirK()*nightK():1);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
 // ===== THE PANTHEON (R8 PR A) =====
 // From level 8 and 3 clears the Pantheon (the Town tab) takes an oath to one of four Old Gods or to none (the Profane path).
 // S.faith = {id, day, dev, dd, dday, vb, cv}: the god, the day sworn, devotion points, points earned on day dday (dd), the
@@ -4595,7 +4601,7 @@ function vowBreak(g,why){   // the vow breaks: a rank and today's points, once a
 }
 const vowWarn=k=>k==='raise'?faithOf()==='hon'&&!!S.run&&(S.run.raised||0)>=MORROW_RAISE&&S.faith.vb!==S.day:k==='sell'?faithOf()==='ulm'&&S.faith.vb!==S.day:false;   // the UI asks once before an action that breaks the vow
 function faithDawn(){   // closeDay: the Profane path's devotion fades
-  const f=S.faith; if(!f||faithOf()!=='dis') return; const r0=faithRank(); f.dev=Math.max(0,(f.dev||0)-PROFANE_DECAY); if(faithRank()<r0) vitals(()=>{});
+  const f=S.faith; if(!f||faithOf()!=='dis') return; const r0=faithRank(); f.dev=Math.max(0,(f.dev||0)-profDecay()); if(faithRank()<r0) vitals(()=>{});
 }
 // ----- the deed and vow hooks (called from the systems they watch)
 function faithKill(e,r){   // checkDeaths, after a foe falls
@@ -4655,6 +4661,55 @@ STORY.push(
   {act:3,id:'g_choir5',when:()=>faithRank('choir')>=5,t:'Requiem',m:'The Choir sings through your army now. Every name you carved and every name you lost adds a voice, and the dead fight to the tune. The Ledger has started to hum while you write. You hope it is a hymn.'});
 ['g_vesh1','g_vesh5','g_ulm1','g_ulm5','g_choir1','g_choir5'].forEach(id=>{ STORY_BY[id]=STORY.find(s=>s.id===id); });
 const godStory=(id,k)=>({hon1:'oath_hon',dis1:'oath_dis',hon5:'bless_hon',dis5:'bless_dis'})[id+k]||'g_'+id+k;
+// ===== R8 PR B: the gods move the weather (forecast, call, ward), the Temple's chapels, dread and the siege =====
+const GOD_OMENS={hon:['paletide','ashfall'],vesh:['soulstorm','longnight'],ulm:['boneharvest','rotbloom'],choir:['eclipse','choirnight'],dis:['bloodmoon','ironrain']};
+const CALL_COST=DEV_STEP, LONG_HP=1.1, BLOOM_ROT=.02, CHOIR_NIGHT=1.15, HOSPICE_SHATTER=10, BELL_CHOIR=.8, PROFANE_DREAD=10, MORROW_DREAD=1, CHOIR_PAY=1.1, ULM_COMM=1.2;
+const godOmens=id=>GOD_OMENS[id]||[];
+const forecast=()=>faithOf()&&S.omenNext&&S.omenNext.day===S.day+1?S.omenNext:null;   // tomorrow's omen, seen by a sworn necromancer
+function omenDusk(){   // closeDay, after the day turns: Long Night's watch, then tomorrow is foreseen (sworn only, so no other game spends a roll on it)
+  const f=S.omenNext; if(f&&f.day===S.day&&f.id==='longnight'){ S.watches++; tally('longNights'); }
+  if(!faithOf()) return; dayOmen(); if(anyClear()) S.omenNext={day:S.day+1,id:Math.random()<OMEN_CHANCE?pick(OMEN_NAT):null};
+}
+const freeCall=()=>bl('temple')>=5&&!(S.omenCall&&S.day-S.omenCall<7);   // the Temple's free weekly call (shared with its old reroll)
+const profCall=()=>faithOf()==='dis'&&!(S.faith.pc&&S.day-S.faith.pc<7);   // the Profane: a free random call a week, no ward
+const callUsed=()=>!!S.faith&&S.faith.cd===S.day;
+function canCall(o){ const id=faithOf(), f=forecast(); if(!id||!f||S.mode!=='town'||callUsed()) return false;
+  if(id==='dis') return profCall(); return godOmens(id).includes(o)&&f.id!==o&&(freeCall()||faithDev()>=CALL_COST); }
+const canWard=()=>{ const id=faithOf(), f=forecast(); return !!id&&id!=='dis'&&!!f&&!!f.id&&S.mode==='town'&&!callUsed()&&faithDev()>=CALL_COST; };
+function spendDev(n){ const f=S.faith, r0=faithRank(); f.dev=Math.max(0,(f.dev||0)-n); tally('devSpent',n); if(faithRank()!==r0) vitals(()=>{}); }
+function callGodOmen(o){   // tomorrow becomes one of your god's two omens: a rank of devotion, or the Temple's free call
+  if(!canCall(o)) return false; const id=faithOf(), f=S.omenNext;
+  if(id==='dis'){ o=pick(Object.keys(OMENS).filter(k=>k!==f.id)); S.faith.pc=S.day; } else if(freeCall()) S.omenCall=S.day; else spendDev(CALL_COST);
+  f.id=o; f.by=id; S.faith.cd=S.day; tally('godCalls'); tally('call_'+o); sfx('skill'); return o;
+}
+function wardOmen(){ if(!canWard()) return false; const f=S.omenNext, o=f.id; spendDev(CALL_COST); f.id=null; f.ward=o; S.faith.cd=S.day; tally('wards'); sfx('skill'); return o; }
+const omenNextFix=g=>{ if(g.omenNext===undefined) return; const o=g.omenNext; if(!o||typeof o!=='object'||typeof o.day!=='number'||!isFinite(o.day)||!(o.id===null||OMENS[o.id])) delete g.omenNext; };
+// the new omens (OMENS in game-gate-rules.js; they come only when a god calls them)
+function godOmenRise(e){ const o=omen(); if(o==='longnight'){ e.maxHp=Math.max(1,Math.round(e.maxHp*LONG_HP)); e.hp=Math.min(e.maxHp,Math.round(e.hp*LONG_HP)); }
+  if(o==='rotbloom'&&e.hp>0) addDot(e,'blight',Math.max(1,Math.round(e.maxHp*BLOOM_ROT)),3); }
+function godOmenRoom(list){ if(omen()!=='choirnight'||!S.run) return; S.run.silence=Math.max(S.run.silence||0,silenceT(2)); for(const e of list) if(e.abilT!=null) e.abilT++; }
+const nightK=()=>S&&S.omen&&S.omen.day===S.day&&S.omen.id==='choirnight'&&!(S.run&&(S.run.siege||S.run.trial))?CHOIR_NIGHT:1;   // extraMul (minion attack); reads today's omen without rolling it, so syncArmy never spends a roll
+// the Temple at level 3: your god's chapel
+const chapel=id=>bl('temple')>=3&&faithOf()===id;
+const CHAPELS={hon:{name:'Hospice',d:'a downed minion shatters '+HOSPICE_SHATTER+'% less often'},vesh:{name:'Ice House',d:'bodies in the Embalmery never spoil'},
+  ulm:{name:'Granary',d:'a brew needs one part fewer'},choir:{name:'Bell Choir',d:'headstones cost '+Math.round((1-BELL_CHOIR)*100)+'% less'},dis:{name:'Black Chapel',d:'your devotion fades half as fast'}};
+const hospice=()=>chapel('hon')?HOSPICE_SHATTER:0;   // shatterOdds
+const iceHouse=()=>chapel('vesh');   // embDays
+function granary(B){ if(!B||!B.parts||!chapel('ulm')) return B&&B.parts; const p=Object.assign({},B.parts), k=Object.keys(p).sort((a,b)=>p[b]-p[a])[0]; if(k&&p[k]>1) p[k]--; return p; }   // brewCan/brewIt
+const bellChoir=()=>chapel('choir')?BELL_CHOIR:1;   // headCost
+const profDecay=()=>PROFANE_DECAY*(chapel('dis')?.5:1);   // faithDawn
+// the town's dread and the siege
+const dreadRest=()=>DREAD_REST+(faithOf()==='dis'?PROFANE_DREAD:0);   // dreadDawn drifts toward it
+function godDreadDawn(){ if(faithOf()==='hon'&&dreadOn()&&dreadOf()>0) dread(-MORROW_DREAD); }   // Morrow: the town breathes easier
+const godPayK=()=>faithOf()==='choir'?CHOIR_PAY:1;   // siegePayK
+const godCommK=()=>faithOf()==='ulm'?ULM_COMM:1;   // commPay
+function godSiegeWave(list,r){ if(faithOf()==='vesh'&&r.room===2){ for(const e of list) e.stun=Math.max(e.stun||0,1); log('Vesh breathes on the third wave. It stands frozen for a turn.','ok'); } }
+const CAPTAIN_SAYS={hon:'Your Last Light is a candle in a grave, necromancer',vesh:'The Cold Mother cannot keep you from the fire',ulm:'Ulm\'s rot will feed the pyre well',
+  choir:'Your Choir sings for the damned. Let them sing you down',dis:'No god at all? Then nothing will hear you burn'};
+const captainLine=()=>{ const id=faithOf(); return id?' The Captain: '+CAPTAIN_SAYS[id]+'.':''; };
+const forecastLine=()=>{ const f=forecast(); return f?' '+FAITH[faithOf()].short.replace(/^the /,'The ')+' shows you tomorrow: '+(f.id?OMENS[f.id].name:'no omen')+'.':''; };   // closeDay's notice
+const GOD_TOWN={hon:'the dread falls '+MORROW_DREAD+' more each dawn',vesh:'a siege\'s third wave stands frozen for a turn',ulm:'commissions pay '+Math.round((ULM_COMM-1)*100)+'% more gold',
+  choir:'sieges pay '+Math.round((CHOIR_PAY-1)*100)+'% more gold',dis:'the dread settles '+PROFANE_DREAD+' points higher, so sieges come sooner'};
 // ===== BOSS PHASES =====
 // At half HP a boss (gate or Tower) enters its second phase: its moves come a turn sooner, every move is announced a turn
 // ahead, and it adds Sundering Blow. Taunt turns that blow onto a vanguard; a Focus crit or Grave Chill breaks any charging move.
@@ -4809,7 +4864,7 @@ function honour(i){
 const HEAD_GOLD=3000, HEAD_GROW=1.5, HEAD_K=.005, HEAD_CAP=.06, HEAD_TOP=60;   /* HEAD_TOP: a sanity limit per stone (its next tier costs ~10^14 gold) */
 const headTiers=()=>S&&S.memorial?S.memorial.reduce((t,e)=>t+(e.hs|0),0):0;
 const headBonus=()=>HEAD_CAP*(1-Math.exp(-HEAD_K*headTiers()/HEAD_CAP));   // extraMul (syncMinion): max HP
-const headCost=e=>Math.round(HEAD_GOLD*Math.pow(HEAD_GROW,e.hs|0));
+const headCost=e=>Math.round(HEAD_GOLD*Math.pow(HEAD_GROW,e.hs|0)*bellChoir());   /* the Choir's Bell Choir */
 const canHead=e=>!!e&&S.mode==='town'&&(e.hs|0)<HEAD_TOP&&S.gold>=headCost(e);
 function carveHead(i){ const e=(S.memorial||[])[i]; if(!canHead(e)) return false; const c=headCost(e); S.gold-=c; e.hs=(e.hs|0)+1; tally('headG',c); deed('choir',10); syncArmy(); sfx('carve'); return true; }
 function memorialFix(g){   // normalizeSave: keep well-formed entries only
@@ -5108,7 +5163,7 @@ function spawnSiege(){   // one wave of the living
   if(r.room===r.rooms-1&&rivalSiegeNow()) rivalSiegeWave(list,r);   /* the rival's war, chapter 3 (game-rival-arc.js) */
   foeScale(list,DIFF.foeAtk[di]); affixAll(list); townSiegeWave(list,r);   /* the Bell Tower, the Library, the Apothecary (game-town2.js) */
   r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null;
-  log('Siege, wave '+(r.room+1)+' of '+r.rooms+'. '+(r.room===r.rooms-1?(r.rivalSiege?rv().name+' comes through the smoke with your stolen dead.':'The Inquisitor Captain comes through the smoke.'):r.room?'More of the living climb the walls.':'Torches at the walls. The living have come for you.'));
+  log('Siege, wave '+(r.room+1)+' of '+r.rooms+'. '+(r.room===r.rooms-1?(r.rivalSiege?rv().name+' comes through the smoke with your stolen dead.':'The Inquisitor Captain comes through the smoke.'+captainLine()):r.room?'More of the living climb the walls.':'Torches at the walls. The living have come for you.'));
   if(r.room&&bl('altar')){ const P=S.player, n=Math.round(pMana()*SIEGE_ALT*bl('altar')); P.mana=Math.min(pMana(),P.mana+n); log('The Altar answers: +'+n+' mana.','ok'); }
   if(r.room&&bl('ossuary')&&r.fallen&&r.fallen.length){ const c=r.fallen.splice(Math.floor(Math.random()*r.fallen.length),1)[0], lv=Math.max(1,c.lvl-SIEGE_OSS_GAP*Math.max(0,SIEGE_OSS_REF+1-bl('ossuary')));
     const m={uid:++S.uid,armed:false,eq:null,nick:freeNick(),name:c.name,kind:c.base,role:c.role,rankI:c.rankI,lvl:lv,lvl0:lv,xp:0,boss:false,elite:false,hf:c.hf,af:c.af,hp:1,maxHp:null,atk:0,stage:0,traits:[],thrall:true};
@@ -5881,13 +5936,13 @@ function brewCan(id){
   const B=BREWS[id]; if(!B||S.mode!=='town'||S.gold<brewGold(id)) return false;
   if(B.belt){ if((S.belt[B.belt]||0)>=beltMax()) return false; } else if(stashN(id)>=BREW_STASH) return false;
   if(B.hearts) return spareHearts().reduce((a,[,n])=>a+n,0)>=B.hearts;
-  return Object.keys(B.parts).every(r=>partCount(r,B.g)>=B.parts[r]);
+  const P=granary(B); return Object.keys(P).every(r=>partCount(r,B.g)>=P[r]);   /* Ulm's Granary */
 }
 function brewIt(id){   // spends the parts (cheapest first) or spare hearts (lowest first) and the gold
   if(!brewCan(id)) return false; const B=BREWS[id], free=freeBrew(); S.gold-=brewGold(id); if(free) S.freeBrew=S.day;
-  faithUsed(B.hearts||Object.values(B.parts).reduce((a,n)=>a+n,0));   /* Ulm's deed (game-pantheon.js) */
+  const PT=B.hearts?null:granary(B); faithUsed(B.hearts||Object.values(PT).reduce((a,n)=>a+n,0));   /* Ulm's deed (game-pantheon.js) */
   if(B.hearts){ let need=B.hearts; for(const [k,n] of spareHearts()){ const t=Math.min(n,need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
-  else for(const r of Object.keys(B.parts)){ let need=B.parts[r]; for(const k of partKeys(r,B.g)){ const t=Math.min(S.trophies[k],need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
+  else for(const r of Object.keys(PT)){ let need=PT[r]; for(const k of partKeys(r,B.g)){ const t=Math.min(S.trophies[k],need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
   const n=brewTwice()?2:1;   /* the Distillery (game-town2.js) */
   if(B.belt) S.belt[B.belt]=Math.min(beltMax(),(S.belt[B.belt]||0)+n); else { S.stash=S.stash||{}; S.stash[id]=Math.min(BREW_STASH,stashN(id)+n); }
   tally('brewed'); tally('brewG',brewGold(id)); sfx('heal'); return true;
@@ -5947,7 +6002,8 @@ function makeComm(){
 }
 function commissions(){ if(!S.comm||!Array.isArray(S.comm.list)||S.comm.week!==weekOf(S.day)) makeComm(); return S.comm.list; }
 const trosOf=(role,g)=>Object.keys(S.trophies||{}).filter(k=>!k.startsWith('b:')&&TROPHY[k]&&TROPHY[k].role===role&&trophyGate(k)===g&&S.trophies[k]>0).sort((a,b)=>TROPHY[a].value-TROPHY[b].value);
-function commPay(c){
+function commPay(c){ const o=commPay0(c); o.g=Math.round(o.g*godCommK()); return o; }   // Ulm's commissions pay more (game-pantheon.js)
+function commPay0(c){
   if(c.k==='tro') return {g:Math.round(TROPHY_VAL[c.g]*c.n*COMM_TRO_K)+50*(c.g+1),d:5*(c.g+1)};
   if(c.k==='hf') return {g:COMM_HF_GOLD+1000*topGate(),d:30};
   return {g:COMM_MIN_GOLD*c.st+100*S.player.lvl,d:20};
@@ -6021,11 +6077,11 @@ Object.assign(BUILD,{
   bell:  {name:'Bell Tower',   open:()=>T_('siegeWarned')>0, desc:'The siege warning comes one dawn earlier for every two levels.', now:n=>'sieges warned '+(1+Math.floor(n/2))+' dawn'+(Math.floor(n/2)?'s':'')+' ahead'},
   apoth: {name:'Apothecary',   open:()=>blRaw('forge')>=2, desc:'Potions cost '+b100(APO_POT)+'% less and brewing '+b100(APO_BREW)+'% less gold per level. At level 3 the belt holds one more of each.', now:n=>'potions '+b100(APO_POT*n)+'% and brewing '+b100(APO_BREW*n)+'% cheaper'+(n>=3?', one more on the belt':'')},
   war:   {name:'War Room',     open:()=>T_('raidsSent')>0, desc:'A Commander leads one more follower at levels 1, 3 and 5, and raids are '+b100(WAR_ODDS)+'% likelier to win per level.', now:n=>'+'+warSquad(n)+' squad, raids +'+b100(WAR_ODDS*n)+'%'},
-  temple:{name:'Temple',       open:()=>!!faithOf(), desc:'Devotion grows '+b100(TEMPLE_DEV)+'% faster per level. At level 3 your oath\'s gifts are '+b100(TEMPLE_BUFF)+'% stronger; at level 5 you can call a new omen once a week.', now:n=>'devotion '+b100(TEMPLE_DEV*n)+'% faster'+(n>=3?', gifts +'+b100(TEMPLE_BUFF)+'%':'')+(n>=5?', a weekly omen':'')}
+  temple:{name:'Temple',       open:()=>!!faithOf(), desc:'Devotion grows '+b100(TEMPLE_DEV)+'% faster per level. At level 3 your oath\'s gifts are '+b100(TEMPLE_BUFF)+'% stronger and your god\'s chapel opens; at level 5 you can call a new omen once a week, today\'s or, through your god, tomorrow\'s.', now:n=>'devotion '+b100(TEMPLE_DEV*n)+'% faster'+(n>=3?', gifts +'+b100(TEMPLE_BUFF)+'%':'')+(n>=5?', a weekly omen':'')}
 });
 const clearsN=()=>Object.keys((S.ti&&S.ti.clr)||{}).filter(k=>S.ti.clr[k]).length;
 const bOpen=k=>!!BUILD[k]&&(!BUILD[k].open||blRaw(k)>0||BUILD[k].open());
-const embDays=n=>EMB_DAYS+n+(hasSpec('embalm',3,'a')?3:0);
+const embDays=n=>iceHouse()?1e6:EMB_DAYS+n+(hasSpec('embalm',3,'a')?3:0);   /* Vesh's Ice House: never */
 const warSquad=n=>(n>=1?1:0)+(n>=3?1:0)+(n>=5?1:0);
 const buildReady=k=>blRaw(k)<B4_LOCK||throneDown();   // levels 4 and 5 wait for the Throne
 // ----- specializations
@@ -6093,9 +6149,9 @@ Object.assign(SIEGE_PERK,{
 function townSiegeWave(list,r){   // spawnSiege, after scaling
   const hpK=(1-SIEGE_BELL*bl('bell')), atkK=hasSpec('bell',3,'a')?.95:1;
   dreadWave(list,r); for(const e of list){ let k=hpK; if(e.boss) k*=(1-SIEGE_LIB*bl('library'))*(hasSpec('bell',5,'b')?.85:1); if(k!==1){ e.maxHp=e.hp=Math.max(1,Math.round(e.maxHp*k)); } if(atkK!==1) e.atk=Math.max(1,Math.round(e.atk*atkK)); }
-  bellDefense(list,r); if(r.room&&bl('apoth')){ const P=S.player, h=healAlly(P,Math.round(pMax()*SIEGE_APO*bl('apoth'))); if(h) log('The Apothecary\'s salves: +'+h+' HP.','ok'); }
+  bellDefense(list,r); godSiegeWave(list,r); if(r.room&&bl('apoth')){ const P=S.player, h=healAlly(P,Math.round(pMax()*SIEGE_APO*bl('apoth'))); if(h) log('The Apothecary\'s salves: +'+h+' HP.','ok'); }
 }
-const siegePayK=()=>(1+SIEGE_WAR*bl('war'))*(hasSpec('bell',3,'b')?1.2:1)*dreadPayK();   // siegeGoldPay
+const siegePayK=()=>(1+SIEGE_WAR*bl('war'))*(hasSpec('bell',3,'b')?1.2:1)*dreadPayK()*godPayK();   // siegeGoldPay (the Choir: game-pantheon.js)
 const siegeDustK=()=>hasSpec('bell',5,'a')?2:1;   // siegeWon
 function townSiegeWon(r){ dread(-DREAD_SIEGE_WON*tollK()); if(!bl('embalm')||!r.fallen||!r.fallen.length) return; const c=pick(r.fallen.concat(r.corpses||[]).filter(x=>x&&!x.boss)); if(c&&embKeep(c,true)) r.events.push({m:'The Embalmery takes in '+withArticle(c.base||c.name)+' from the walls.',c:'ok'}); }
 // ----- the Charnel Yard: dawn training
@@ -6140,7 +6196,7 @@ function embRaise(i){   // raise a kept body in town: the usual raise, with the 
 }
 // ----- the Temple: a weekly omen
 const omenReady=()=>bl('temple')>=5&&S.mode==='town'&&!(S.omenCall&&S.day-S.omenCall<7);
-function callOmen(){ if(!omenReady()) return false; const cur=dayOmen().id, ids=Object.keys(OMENS).filter(k=>k!==cur); S.omen={day:S.day,id:pick(ids)}; S.omenCall=S.day; tally('omensCalled'); sfx('skill'); return S.omen.id; }
+function callOmen(){ if(!omenReady()) return false; const cur=dayOmen().id, ids=OMEN_NAT.filter(k=>k!==cur); S.omen={day:S.day,id:pick(ids)}; S.omenCall=S.day; tally('omensCalled'); sfx('skill'); return S.omen.id; }
 // ----- save
 function townFix(g){
   if(g.build) for(const k of Object.keys(g.build)) g.build[k]=Math.min(BUILD_MAX,g.build[k]);
@@ -6184,7 +6240,7 @@ const titheCost=()=>Math.max(100,Math.round(S.gold*TITHE_K));
 const titheReady=()=>dreadOn()&&S.mode==='town'&&S.titheDay!==S.day&&S.gold>=titheCost();
 function payTithe(){ if(!titheReady()) return 0; const c=titheCost(); S.gold-=c; S.titheDay=S.day; dread(-DREAD_TITHE); tally('tithes'); sfx('coin'); return c; }
 function dreadDawn(){   // closeDay: drift, then the band's own dawn
-  if(!dreadOn()) return; const d=dreadOf(); if(d!==DREAD_REST) dread(d>DREAD_REST?-Math.min(1,d-DREAD_REST):Math.min(1,DREAD_REST-d));
+  if(!dreadOn()) return; const d=dreadOf(), rest=dreadRest(); if(d!==rest) dread(d>rest?-Math.min(1,d-rest):Math.min(1,rest-d));   /* the Profane's rest sits higher (game-pantheon.js) */
   const b=dreadBand().id;
   if(b==='calm'&&S.day%7===CALL_DAY&&bl('embalm')&&(S.embalm||[]).length<embHold()){ const g=topGate(), mob=pick(DUNGEONS[g].mobs);
     const c={name:mob[0],base:mob[0],role:mob[1],rankI:g,lvl:Math.max(1,S.player.lvl-2),hf:mob[2]||1,af:mob[3]||1,boss:false,elite:false};
@@ -10809,7 +10865,7 @@ TR_RX.push([/^Needs (\d+) spare boss hearts$/,"$1 yedek boss kalbi gerekir"],[/^
  ["The siege warning comes one dawn earlier for every two levels","Kuşatma uyarısı her iki seviyede bir şafak erken gelir"],
  ["Potions cost #% less and brewing #% less gold per level. At level # the belt holds one more of each","İksirler seviye başına %# ve demleme %# daha az altın tutar. # seviyesinde kemer her birinden bir fazla taşır"],
  ["A Commander leads one more follower at levels #, # and #, and raids are #% likelier to win per level","Bir Komutan #, # ve # seviyelerinde bir takipçi fazla yönetir ve akınların kazanma ihtimali seviye başına %# artar"],
- ["Devotion grows #% faster per level. At level # your oath's gifts are #% stronger; at level # you can call a new omen once a week","Bağlılık seviye başına %# daha hızlı büyür. # seviyesinde yemininin armağanları %# daha güçlü; # seviyesinde haftada bir yeni bir alamet çağırabilirsin"],
+ ["Devotion grows #% faster per level. At level # your oath's gifts are #% stronger and your god's chapel opens; at level # you can call a new omen once a week, today's or, through your god, tomorrow's","Bağlılık seviye başına %# daha hızlı büyür. # seviyesinde yemininin armağanları %# daha güçlü olur ve tanrının şapeli açılır; # seviyesinde haftada bir yeni bir alamet çağırabilirsin: bugünün ya da tanrın aracılığıyla yarının"],
  ["the Reserve gains #% of a level each dawn","Yedek her şafak bir seviyenin %#'ini kazanır"],["#% of kills count twice for study","öldürmelerin %#'i inceleme için iki kez sayılır"],["#% of kills count twice for study, stat respec","öldürmelerin %#'i inceleme için iki kez sayılır, nitelik sıfırlama"],
  ["keeps a body # days, +#% to raise it","bir cesedi # gün saklar, diriltmeye +%#"],["sieges warned # dawn ahead","kuşatmalar # şafak önceden haber verilir"],["sieges warned # dawns ahead","kuşatmalar # şafak önceden haber verilir"],
  ["potions #% and brewing #% cheaper","iksirler %# ve demleme %# daha ucuz"],["potions #% and brewing #% cheaper, one more on the belt","iksirler %# ve demleme %# daha ucuz, kemerde bir fazla"],
@@ -11090,6 +11146,29 @@ TR_RX.unshift([/^(.+?) grants you rank (\d+): (.+?)\.?$/,"$1 sana $2. rütbeyi v
  [/^Only for those sworn to (.+?), in about (\d+)% of events\.?$/,"Yalnızca $1 tanrısına yemin edenler için, olayların yaklaşık %$2'inde"],
  [/^(\d+) of (\d+) devotion for rank (\d+)\.?$/,"$3. rütbe için $1/$2 bağlılık"],[/^Your devotion is complete \((\d+) points\)\.?$/,"Bağlılığın tamamlandı ($1 puan)"],
  [/^(.+?) · (\d)$/,"$1 · $2"]);
+// R8 PR B: omens the gods call, the Temple's chapels, the town and the siege (src/game-pantheon.js)
+[["Long Night","Uzun Gece"],["Rot Bloom","Çürük Çiçeği"],["Choir Night","Koro Gecesi"],
+ ["Vesh holds back the dawn: one more watch today. Foes have #% more HP","Vesh şafağı geri tutuyor: bugün bir nöbet daha. Düşmanların canı %# daha fazla"],
+ ["Ulm's season: every foe starts each room Blighted, so a body rots unless it is frozen first","Ulm'un mevsimi: her düşman her odaya Çürümüş başlar, bu yüzden önce dondurulmayan her ceset çürür"],
+ ["Each room begins in silence: your skills wait a turn and foes' signature moves come a turn later. Minions deal #% more damage","Her oda sessizlikle başlar: yeteneklerin bir tur bekler ve düşmanların imza hamleleri bir tur geç gelir. Minyonlar %# daha fazla hasar verir"],
+ ["A sworn necromancer sees tomorrow's omen a day ahead. Once a day they may spend # devotion (a rank, or the points past rank #) to call one of their god's two omens for tomorrow, or to ward off the omen foreseen. The Temple at level # makes one call a week free. The Profane cannot ward, but once a week calls a random omen for free. Long Night, Rot Bloom and Choir Night never come at dawn: only a god calls them","Yemin etmiş bir ölü çağırıcı yarının alametini bir gün önceden görür. Günde bir kez # bağlılık harcayarak (bir rütbe ya da #. rütbeyi aşan puanlar) tanrısının iki alametinden birini yarın için çağırabilir ya da görülen alameti savuşturabilir. # seviyesindeki Tapınak haftada bir çağrıyı bedava yapar. Kâfir savuşturamaz ama haftada bir bedava rastgele bir alamet çağırır. Uzun Gece, Çürük Çiçeği ve Koro Gecesi asla şafakta gelmez: onları yalnızca bir tanrı çağırır"],
+ ["Tomorrow","Yarın"],["Tomorrow:","Yarın:"],["Omens:","Alametler:"],["Temple chapel","Tapınak şapeli"],["The town","Kasaba"],["no omen","alamet yok"],
+ ["Pale Tide, Ashfall","Soluk Gelgit, Kül Yağmuru"],["Soul Storm, Long Night","Ruh Fırtınası, Uzun Gece"],["Bone Harvest, Rot Bloom","Kemik Hasadı, Çürük Çiçeği"],["Black Eclipse, Choir Night","Kara Tutulma, Koro Gecesi"],["Blood Moon, Iron Rain","Kan Ayı, Demir Yağmuru"],
+ ["Hospice: a downed minion shatters #% less often","Darülaceze: düşen bir minyon %# daha az parçalanır"],["Ice House: bodies in the Embalmery never spoil","Buz Evi: Mumyahane'deki cesetler asla bozulmaz"],
+ ["Granary: a brew needs one part fewer","Ambar: bir karışım bir parça daha az ister"],["Bell Choir: headstones cost #% less","Çan Korosu: mezar taşları %# daha ucuz"],["Black Chapel: your devotion fades half as fast","Kara Şapel: bağlılığın yarı hızla söner"],
+ ["the dread falls # more each dawn","korku her şafakta # daha fazla düşer"],["a siege's third wave stands frozen for a turn","bir kuşatmanın üçüncü dalgası bir tur donmuş durur"],["commissions pay #% more gold","siparişler %# daha fazla altın öder"],
+ ["sieges pay #% more gold","kuşatmalar %# daha fazla altın öder"],["the dread settles # points higher, so sieges come sooner","korku # puan daha yüksekte durulur, bu yüzden kuşatmalar daha erken gelir"],
+ ["your god shows you tomorrow's omen once a gate is cleared","bir kapı temizlenince tanrın sana yarının alametini gösterir"],["Call a random omen · free this week","Rastgele bir alamet çağır · bu hafta bedava"],
+ ["You have spoken to your god today","Bugün tanrınla konuştun"],["Vesh breathes on the third wave. It stands frozen for a turn","Vesh üçüncü dalgaya nefesini üflüyor. Bir tur donmuş duruyor"],
+ ["Weather-Maker","Hava Yapıcı"],["Have your god call # omens","Tanrına # alamet çağırt"],
+ ["The Captain:","Kaptan:"],["Your Last Light is a candle in a grave, necromancer","Son Işığın bir mezardaki mumdan ibaret, ölü çağırıcı"],["The Cold Mother cannot keep you from the fire","Soğuk Ana seni ateşten koruyamaz"],
+ ["Ulm's rot will feed the pyre well","Ulm'un çürüğü odun yığınını iyi besleyecek"],["Your Choir sings for the damned. Let them sing you down","Koron lanetliler için şarkı söylüyor. Bırak seni de şarkıyla gömsünler"],["Your Choir sings for the damned","Koron lanetliler için şarkı söylüyor"],["Let them sing you down","Bırak seni de şarkıyla gömsünler"],["No god at all? Then nothing will hear you burn","Hiç tanrın yok mu? O zaman yanarken seni kimse duymayacak"]
+].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+TR_RX.unshift([/^(.+?) Only (.+?) calls it\.?$/,"{t1} Bunu yalnızca $2 çağırır"],[/^Your free call returns in (\d+) days\.?$/,"Bedava çağrın $1 gün sonra dönüyor"],
+ [/^Call (.+?) · free \(the Temple\)$/,"{t1} çağır · bedava (Tapınak)"],[/^Call (.+?) · (\d+) devotion$/,"{t1} çağır · $2 bağlılık"],[/^Ward it off · (\d+) devotion$/,"Savuştur · $1 bağlılık"],
+ [/^\(You warded off (.+?)\.?\)$/,"({t1} alametini savuşturdun)"],[/^Tomorrow: (.+?) \(foreseen by (.+?)\)\.?$/,"Yarın: {t1} ($2 önceden gördü)"],
+ [/^Your god calls tomorrow's omen: (.+?)\.?$/,"Tanrın yarının alametini çağırıyor: {t1}"],[/^You ward off tomorrow's (.+?)\.?$/,"Yarının {t1} alametini savuşturuyorsun"],
+ [/^(.*? )?([^.]+?) shows you tomorrow: ([^.]+?)\.?$/,"{t1}$2 sana yarını gösteriyor: {t3}"],[/^(.*? )?The Captain: (.+?)\.?$/,"{t1}Kaptan: {t2}"]);
 [["Raising another body breaks your vow to Morrow (no more than # in a run). Press again to raise anyway","Bir ceset daha diriltmek Morrow'a verdiğin yemini bozar (akında en fazla #). Yine de diriltmek için tekrar bas"],
  ["Selling a trophy breaks your vow to Ulm. Press again to sell anyway","Ganimet satmak Ulm'a verdiğin yemini bozar. Yine de satmak için tekrar bas"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
@@ -12661,7 +12740,7 @@ function histHTML(){
 }
 
 // ----- brewing, run prep, commissions and the black market (game-brew.js)
-const partsTxt=B=>B.hearts?B.hearts+' spare boss hearts':Object.keys(B.parts).map(r=>B.parts[r]+' '+r).join(' + ')+' parts'+(B.g?' from a gate of rank '+RANKS[B.g]+' or deeper':'');
+const partsTxt=B=>B.hearts?B.hearts+' spare boss hearts':(P=>Object.keys(P).map(r=>P[r]+' '+r))(granary(B)).join(' + ')+' parts'+(B.g?' from a gate of rank '+RANKS[B.g]+' or deeper':'');
 function brewHTML(){
   let h='<p class="group-h">Brewing</p>'+brief('brew2','Recipes take trophy parts of a role (the part words: Fang, Hide, Relic...) from a gate or deeper, plus a little gold. Tower trophies count as the deepest gate. Oils, incense and charms wait in your stash for the Gates tab, banners for tonight\'s raids; draughts go on your belt.','q-note');
   h+='<p class="q-note">Your parts: '+['striker','reaper','mender','vanguard'].map(r=>partCount(r,0)+' '+r).join(' &middot; ')+' &middot; spare hearts '+spareHearts().reduce((a,[,n])=>a+n,0)+'</p>';
@@ -12759,9 +12838,10 @@ function codexSection(k){
     +'<div class="btns"><button class="btn small" data-a="cx" data-k="army">Army</button><button class="btn small" data-a="cx" data-k="reserve">Reserve</button><button class="btn small" data-a="cx" data-k="fusion">Fusion</button></div>';
   if(k==='faith') return cxP('Once '+OPEN_AT.faith+' gates are cleared, from level '+FAITH_LV+', the Pantheon on the Town tab takes an oath to one of four Old Gods, or to none (the Profane path). Devotion is earned by deeds your god likes; every '+DEV_STEP+' points is a rank, up to '+DEV_RANKS+', and each rank opens a boon. Each god asks a vow: break it and you lose a rank and that day\'s devotion (once a day). Renouncing costs 100 gold per level and starts devotion over. Swearing and renouncing happen in town.')
     +cxP('In about '+pct(FAITH_EVENT)+' of the events between rooms a sworn necromancer meets a shrine: their own god\'s (pray: heal, refill mana, +'+DEV_SHRINE+' devotion), or another god\'s, which offers a conversion (that god, keeping '+pct(CONVERT_KEEP)+' of your devotion points). The Profane may desecrate another god\'s shrine instead.')
-    +cxList(GODS.map(k=>{ const F=FAITH[k]; return cxRow(F.name,F.domain+'. '+F.about+'<br><b>Vow:</b> '+F.vow+'<br><b>Deeds:</b> '+F.deeds+BOONS[k].map((b,i)=>'<br><b>Rank '+(i+1)+':</b> '+b.t+'.').join(''),faithOf()===k?'Sworn':''); }));
+    +cxList(GODS.map(k=>{ const F=FAITH[k]; return cxRow(F.name,F.domain+'. '+F.about+'<br><b>Vow:</b> '+F.vow+'<br><b>Deeds:</b> '+F.deeds+BOONS[k].map((b,i)=>'<br><b>Rank '+(i+1)+':</b> '+b.t+'.').join('')+'<br><b>Omens:</b> '+godOmens(k).map(o=>OMENS[o].name).join(', ')+'.<br><b>Temple chapel:</b> '+CHAPELS[k].name+': '+CHAPELS[k].d+'.<br><b>The town:</b> '+GOD_TOWN[k]+'.',faithOf()===k?'Sworn':''); }));
   if(k==='omens') return cxP('Once you have cleared a gate, about '+pct(OMEN_CHANCE)+' of dawns bring an omen. It lasts the whole day and touches every gate, the Tower and the Rift, but never a siege or a Trial. Today: '+(omen()?OMENS[omen()].name:'no omen')+'.')
-    +cxList(Object.keys(OMENS).map(o=>cxRow(OMENS[o].name,OMENS[o].desc,omen()===o?'Today':'')));
+    +cxP('A sworn necromancer sees tomorrow\'s omen a day ahead. Once a day they may spend '+CALL_COST+' devotion (a rank, or the points past rank '+DEV_RANKS+') to call one of their god\'s two omens for tomorrow, or to ward off the omen foreseen. The Temple at level 5 makes one call a week free. The Profane cannot ward, but once a week calls a random omen for free. Long Night, Rot Bloom and Choir Night never come at dawn: only a god calls them.')
+    +cxList(Object.keys(OMENS).map(o=>cxRow(OMENS[o].name,OMENS[o].desc+(OMENS[o].god?' Only '+FAITH[OMENS[o].god].short+' calls it.':''),omen()===o?'Today':forecast()&&forecast().id===o?'Tomorrow':'')));
   if(k==='roles') return cxP('Every creature, yours or the enemy\'s, has one of four roles.')+cxList(Object.keys(ROLES).map(r=>cxRow(ROLES[r].label,ROLES[r].text+' '+CDX_ROLE[r])))
     +'<p class="group-h">Rows</p>'+cxP('Every fighter stands in the front row or the back row. Your vanguards and reapers start in front; strikers, menders and you stand at the back. Out of battle, move a minion forward or back on the Army tab. Among foes, bosses, vanguards and reapers stand in front.')
     +cxList([cxRow('Melee','Vanguards and reapers fight up close. While the other side has anyone standing in its front row, they can only strike that row. So enemy melee cannot reach you while one of your minions holds the front, and your vanguards and reapers hit the weakest foe in front when your target stands at the back.'),
@@ -12985,6 +13065,16 @@ function codexHTML(){
    +codexSection(k))+'</section>';
 }
 function boonList(k,rank){ return '<ol class="boons">'+BOONS[k].map((b,i)=>'<li class="'+(i<rank?'ok':'dim')+'">'+b.t+'</li>').join('')+'</ol>'; }
+function omenCallHTML(id){   // the Pantheon: tomorrow's omen, the calls and the ward (game-pantheon.js)
+  const f=forecast(), dv=faithDev(), ch=bl('temple')>=3?'<div class="u-sub"><b>Temple chapel:</b> '+CHAPELS[id].name+': '+CHAPELS[id].d+'.</div>':'';
+  if(!f) return ch+'<div class="u-sub"><b>Tomorrow:</b> your god shows you tomorrow\'s omen once a gate is cleared.</div>';
+  const used=callUsed(), cost=freeCall()?'free (the Temple)':CALL_COST+' devotion';
+  let b='';
+  if(id==='dis') b='<button class="btn small" data-a="gcall"'+(canCall()?'':' disabled')+'>'+(profCall()?'Call a random omen &middot; free this week':'Your free call returns in '+(7-(S.day-S.faith.pc))+' days')+'</button>';
+  else b=godOmens(id).map(o=>'<button class="btn small" data-a="gcall" data-k="'+o+'"'+(canCall(o)?'':' disabled')+'>Call '+OMENS[o].name+' &middot; '+cost+'</button>').join(' ')
+    +(f.id?' <button class="btn small" data-a="gward"'+(canWard()?'':' disabled')+'>Ward it off &middot; '+CALL_COST+' devotion</button>':'');
+  return ch+'<div class="u-sub omen-fc"><b>Tomorrow:</b> '+(f.id?'<b>'+OMENS[f.id].name+'</b> <span>'+OMENS[f.id].desc+'</span>':'<span>no omen</span>')+(f.ward?' <span>(You warded off '+OMENS[f.ward].name+'.)</span>':'')+(used?' <span class="dim">You have spoken to your god today.</span>':'')+'</div><div class="btns">'+b+'</div>';
+}
 function faithHTML(){
   const id=faithOf();
   let h='<p class="group-h">The Pantheon &middot; faith</p>';
@@ -12992,7 +13082,7 @@ function faithHTML(){
   if(id){ const F=FAITH[id], k=faithRank(), dv=Math.floor(faithDev()), nx=k<DEV_RANKS?(k+1)*DEV_STEP:null, pc=nx?Math.round((dv-k*DEV_STEP)/DEV_STEP*100):100;
     return h+'<div class="items"><div class="tt-row on god-'+id+'"><div><h4>'+F.name+' <span class="u-tag">rank '+k+'/'+DEV_RANKS+'</span></h4><div class="u-sub">'+F.domain+'. '+F.about+'</div>'
       +'<div class="dev-bar" title="'+dv+' devotion"><i style="width:'+pc+'%"></i></div><div class="u-sub">'+(nx?dv+' of '+nx+' devotion for rank '+(k+1)+'.':'Your devotion is complete ('+dv+' points).')+(S.faith.dday===S.day&&S.faith.dd?' Today: +'+Math.round(S.faith.dd)+'.':'')+'</div>'
-      +'<div class="u-sub"><b>Vow:</b> '+F.vow+(S.faith.vb===S.day?' <span class="bad">Broken today.</span>':'')+'</div><div class="u-sub"><b>Deeds:</b> '+F.deeds+'</div>'+boonList(id,k)+'</div>'
+      +'<div class="u-sub"><b>Vow:</b> '+F.vow+(S.faith.vb===S.day?' <span class="bad">Broken today.</span>':'')+'</div><div class="u-sub"><b>Deeds:</b> '+F.deeds+'</div>'+boonList(id,k)+omenCallHTML(id)+'</div>'
       +'<button class="btn small warn" data-a="renounce"'+(S.gold<renounceCost()?' disabled':'')+'>'+(ui.confirm==='renounce'?'Confirm: renounce for '+renounceCost()+' gold':'Renounce &middot; '+gold(renounceCost()))+'</button></div></div>';
   }
   return h+brief('faith','Swear to a god. Devotion grows with the deeds they like, each rank opens a boon, and each god asks a vow. Renouncing costs gold and starts devotion over.','q-note')+'<div class="items">'
@@ -13325,7 +13415,7 @@ function townHTML(){
   h+=lastPageBanner();
   h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'+gateArmyHTML()
    +((n=>n<FIRST_STEPS.length&&!(S.tips&&S.tips.off)?'<p class="q-note guide-link"><button class="linkbtn" data-a="tab" data-k="help">How to play &middot; first steps '+n+'/'+FIRST_STEPS.length+'</button></p>':'')(stepsDone()))   /* for a new player; gone once every step is done or tips are switched off */
-   +(omen()?'<div class="omen-line" title="It touches every gate and the Tower until dawn."><b>Omen today: '+OMENS[omen()].name+'.</b> '+OMENS[omen()].desc+'</div>':'')+rivalWarnHTML()+arcGateHTML()
+   +(omen()?'<div class="omen-line" title="It touches every gate and the Tower until dawn."><b>Omen today: '+OMENS[omen()].name+'.</b> '+OMENS[omen()].desc+'</div>':'')+(forecast()?'<div class="omen-line dim">Tomorrow: '+(forecast().id?OMENS[forecast().id].name:'no omen')+' (foreseen by '+FAITH[faithOf()].short+').</div>':'')+rivalWarnHTML()+arcGateHTML()
    +prepHTML()+'<div class="gates">'+DUNGEONS.map((d,i)=>gateHTML(i)).join('')+'</div>'
    +'<div class="btns"><button class="btn small" data-a="rest">Rest until dawn</button></div></section>';
   return h;
@@ -13924,6 +14014,8 @@ const ACTIONS={
   ord:k=>{ pickOrder(+k); },
   tithe:()=>{ const c=payTithe(); ui.msg=c?{mk:1,m:'You pay the Old Shrine '+c+' gold. The town breathes easier.',c:'ok'}:null; },
   standwatch:()=>{ standWatch(); },
+  gcall:k=>{ const o=callGodOmen(k||null); ui.msg=o?{mk:1,m:'Your god calls tomorrow\'s omen: '+OMENS[o].name+'.',c:'ok'}:null; },
+  gward:()=>{ const o=wardOmen(); ui.msg=o?{mk:1,m:'You ward off tomorrow\'s '+OMENS[o].name+'.',c:'ok'}:null; },
   callomen:()=>{ const id=callOmen(); ui.msg=id?{mk:1,m:'The Temple calls a new omen: '+OMENS[id].name+'.',c:'ok'}:null; },
   brewx:k=>{ const B=BREWS[k]; ui.msg=brewIt(k)?{mk:1,m:'You brew '+B.name+'.'+(B.belt?' It is on your belt.':' It waits in your stash.'),c:'ok'}:null; },
   prep:k=>{ const a=k.split('|'); prepSet(a[0],a[1]||null); },

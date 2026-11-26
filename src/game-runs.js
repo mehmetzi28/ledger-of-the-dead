@@ -430,7 +430,7 @@ const RAISE_BOSS_EACH=10;   // less per boss already in the army or Reserve, so 
 const RAISE_LV=3, RAISE_ELITE=10, RAISE_BOSS=15,SHATTER_BASE=50, SHATTER_WILL=1, SHATTER_MIN=20, BIND_HP=.4;   // % per level you stand above the body, the elite and boss penalties; a downed minion's shatter chance after a fight (% , less per Will point, never below the floor)
 function shatterOdds(m){   // % chance a downed minion shatters for good when its room ends; otherwise it binds back at BIND_HP. Never in a siege (home ground), never Grave-bound, never with Bone Bank
   if(hasFlag('bonebank')||hasTrait(m,'gravebound')||(S.run&&S.run.siege)) return 0;
-  return Math.max(SHATTER_MIN,SHATTER_BASE-A('will')*SHATTER_WILL);
+  return Math.max(0,Math.max(SHATTER_MIN,SHATTER_BASE-A('will')*SHATTER_WILL)-hospice());   /* Morrow's Hospice */
 }
 const saltAdd=()=>hasMod('thrift','b')?SENSE_SALT:SALT_BONUS;   // Grave Sense
 const saltChance=c=>soulBound(c)?0:firstRaise()?100:clamp(raiseChance(c)+saltAdd(),RAISE_MIN,SALT_CAP);

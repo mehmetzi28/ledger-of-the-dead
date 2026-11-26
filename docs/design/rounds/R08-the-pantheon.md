@@ -154,3 +154,27 @@ the vow; call the god's best omen on boss days. `"off":["gods"]` uses today's bi
 - **Tests**: 98-pantheon (10); 826 in all.
 - **Left for PR B**: the omen forecast, call and ward; Long Night, Rot Bloom, Choir Night; Temple L3 per-god specs and
   the L5 free call; dread and siege hooks; the Captain names your god; Weather-Maker.
+
+## As built (PR B, #23)
+
+- **Forecast**: `S.omenNext = {day, id, by?, ward?}`. For a sworn necromancer only, `omenDusk` (closeDay) settles today's
+  omen and rolls tomorrow's with the dawn odds; `dayOmen` uses a forecast for its day. Unsworn games roll exactly as
+  before (the market bots are unchanged). The notice at dawn and the Gates tab name tomorrow; the Pantheon shows it.
+- **Call and ward** (`callGodOmen`, `wardOmen`, once a day, `S.faith.cd`): CALL_COST 100 devotion (a rank, or the
+  points past rank 5) or the Temple's free weekly call (`freeCall`, shared with its old reroll of today's omen). The
+  Profane cannot ward and calls a random omen from all ten once a week for free (`S.faith.pc`).
+- **The new omens** (OMENS with `god:`; OMEN_NAT holds the seven a dawn may bring): Long Night (a watch more when the
+  day starts, foes x1.1 HP), Rot Bloom (every foe starts each room with blight of 2% of its max HP for 3 turns),
+  Choir Night (each room starts with your skills silenced a turn and every foe's move timer a turn later; minions x1.15
+  attack). The title for every omen still counts the seven dawn omens.
+- **Temple chapels** (level 3, automatic for your god): Hospice (shatter odds -10 points), Ice House (Embalmery bodies
+  never spoil), Granary (a brew's largest part count -1), Bell Choir (headstones x0.8), Black Chapel (decay halved).
+  The specced Hospice (a full heal at dawn) already happens for everyone, so it changed.
+- **The town**: Morrow -1 dread each dawn, the Profane's dread drifts toward 50 instead of 40 (`dreadRest`), the Choir's
+  sieges pay x1.1, Ulm's commissions x1.2, Vesh freezes a siege's third wave for a turn. The Inquisitor Captain has a
+  line for each god. Not built: the Profane's extra witch-hunter (the higher dread already brings sieges sooner).
+- **Title**: Weather-Maker (20 calls), 184 titles.
+- **Bot**: with devotion past rank 5 or a free Temple call, calls its god's best omen (Pale Tide, Long Night, Bone
+  Harvest, Black Eclipse; the Profane its free random call) and wards Soul Storm; `"off":["calls"]`.
+- **Measured**: full 90/90%, Tower 87.6/86.6, Rift 20.0/18.7; 9-26 calls a bot; every god 89-92%. See 04-balance.
+- **Tests**: 98-pantheon (14); 830 in all; fuzz 12/12 clean.

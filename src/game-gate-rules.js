@@ -346,8 +346,12 @@ const OMENS={
   eclipse:  {name:'Black Eclipse',desc:'Soul Siphon, the Siphon skills and blight deal 20% more. Foes crit 10% less often and miss 1 blow in 10.'},
   boneharvest:{name:'Bone Harvest',desc:'Foes drop trophies 25% more often and elites one more. Any kill may leave bone dust: 1 kill in 4, and 3 from a boss.'},
   ironrain: {name:'Iron Rain', desc:'Gear drops 10% more often and rolls bonus lines as if one tier higher. Foes wear heavier armor: 25% tougher to hurt, and they resist 15% of physical damage on top.'},
-  soulstorm:{name:'Soul Storm',desc:'Every room starts with one Soul harvested, and you regain 20% more mana each turn. Your shadow damage is 10% stronger. Foes deal 25% more damage.'}
+  soulstorm:{name:'Soul Storm',desc:'Every room starts with one Soul harvested, and you regain 20% more mana each turn. Your shadow damage is 10% stronger. Foes deal 25% more damage.'},
+  longnight:{name:'Long Night',desc:'Vesh holds back the dawn: one more watch today. Foes have 10% more HP.',god:'vesh'},   /* god: it comes only when called (game-pantheon.js) */
+  rotbloom: {name:'Rot Bloom', desc:'Ulm\'s season: every foe starts each room Blighted, so a body rots unless it is frozen first.',god:'ulm'},
+  choirnight:{name:'Choir Night',desc:'Each room begins in silence: your skills wait a turn and foes\' signature moves come a turn later. Minions deal 15% more damage.',god:'choir'}
 };
+const OMEN_NAT=Object.keys(OMENS).filter(k=>!OMENS[k].god);   // the omens a dawn may bring; the gods' own come only by a call
 const OMEN_CHANCE=.25, OMEN_RAISE=10, OMEN_BOSS_XP=1.25;
 const ECLIPSE_SHADOW=1.2, ECLIPSE_CRIT=.1, ECLIPSE_MISS=.1, HARVEST_TRO=.25, HARVEST_DUST=.25, HARVEST_DUST_BOSS=3, IRON_DROP=1.1, IRON_ARMOR=1.25, STORM_REGEN=.2, STORM_ATK=1.25;
 const shadowK=()=>omen()==='eclipse'?ECLIPSE_SHADOW:1;   // Black Eclipse: Soul Siphon, the Siphon skills (Corpse Explosion, Grave Chill, Reap) and blight
@@ -358,12 +362,13 @@ function roomStart(list){   // a fresh room or floor: Soul Storm, the Swift affi
   for(const m of S.army){ delete m.sx; if(m.hp>0&&hasTrait(m,'swift')) addSt(m,'hasted',2); }   // sx: Stitched used this room
   echoRoom(); kitSeen(list); delete S.run.mk;
   if(omen()==='soulstorm') gainSoul();
+  godOmenRoom(list);
   if(hasMod('bonearmor','a')) S.player.shield=Math.max(S.player.shield||0,Math.round(pMax()*OSSIFIED));
   planFoes();
   progRoom();
 }
-function foeRise(list){ progFoes(list); for(const e of list){ if(omen()==='soulstorm') e.atk=Math.max(1,Math.round(e.atk*STORM_ATK)); if(hasAff(e,'swift')) addSt(e,'hasted',3); } }   // also for foes called in mid-fight
-function dayOmen(){ if(!S.omen||S.omen.day!==S.day) S.omen={day:S.day,id:anyClear()&&Math.random()<OMEN_CHANCE?pick(Object.keys(OMENS)):null}; return S.omen; }
+function foeRise(list){ progFoes(list); for(const e of list){ godOmenRise(e); if(omen()==='soulstorm') e.atk=Math.max(1,Math.round(e.atk*STORM_ATK)); if(hasAff(e,'swift')) addSt(e,'hasted',3); } }   // also for foes called in mid-fight
+function dayOmen(){ if(!S.omen||S.omen.day!==S.day){ const f=S.omenNext; S.omen=f&&f.day===S.day?{day:S.day,id:f.id}:{day:S.day,id:anyClear()&&Math.random()<OMEN_CHANCE?pick(OMEN_NAT):null}; if(f&&f.day<=S.day) delete S.omenNext; } return S.omen; }   // a forecast (S.omenNext) is kept
 const omen=()=>(S&&S.player&&!(S.run&&(S.run.siege||S.run.trial)))?dayOmen().id:null;   // omens do not reach a siege or a Trial
 const eliteBase=()=>.1*(omen()==='bloodmoon'?2:1), eliteChance=()=>eliteBase()*(runHeat()>=1?HARD_ELITE:1);   // Hard and up: twice the elites
 const gateMod=di=>{ const m=dayMod(); return m.gi===di?m.id:null; };
