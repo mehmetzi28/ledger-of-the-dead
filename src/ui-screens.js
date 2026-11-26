@@ -75,7 +75,7 @@ function stPills(u){
   return p.length?'<div class="pills">'+p.join('')+'</div>':'';
 }
 // A foe's next action under its name (intentInfo, game-gate-rules.js): a small glyph, a few words, the detail in the tooltip.
-const INTENT_ICO={atk:'M2 10L9 3M6.5 3H9V5.5M3 7l2 2',heal:'M6 2v8M2 6h8',abil:'M6 1l1.4 3.6L11 6 7.4 7.4 6 11 4.6 7.4 1 6l3.6-1.4z',frozen:'M6 1v10M1.7 3.5l8.6 5M1.7 8.5l8.6-5'};
+const INTENT_ICO={shield:'M6 1L10 2.6V6C10 8.4 8.2 10 6 10.8 3.8 10 2 8.4 2 6V2.6Z',atk:'M2 10L9 3M6.5 3H9V5.5M3 7l2 2',heal:'M6 2v8M2 6h8',abil:'M6 1l1.4 3.6L11 6 7.4 7.4 6 11 4.6 7.4 1 6l3.6-1.4z',frozen:'M6 1v10M1.7 3.5l8.6 5M1.7 8.5l8.6-5'};
 const KNOW_ANS={taunt:['Taunt','Taunt pulls this onto a vanguard.'],guard:['Guard','Guard has a front-row vanguard take it if it would kill you.'],ward:['Bone Ward','Bone Ward soaks it.'],chill:['Grave Chill','Grave Chill freezes it first.'],focus:['Focus','Focus breaks it.']};
 const aboutN=n=>n<50?n:Math.round(n/(n<200?5:10))*(n<200?5:10);   // "about": the roll spreads a blow by 15% either way
 const endDot=t=>/[.!?]$/.test(t)?t:t+'.';
@@ -94,7 +94,7 @@ function unitCard(u,side,mini){
   const tag=isP?'Necromancer':ROLES[u.role].label+(isArmed(u.base||u.name)?' &middot; Armed':'')+(u.boss?' &middot; Boss':'')
     +(u.elite?' &middot; Elite':'')+(u.abil&&!isP?' &middot; <span title="'+BOSS_ABIL[u.abil].desc+'">'+BOSS_ABIL[u.abil].name+'</span>':'')
     +(u.phase2&&!isP?' &middot; <span class="phase-t">Second phase</span>':'')
-    +(u.aff&&!isP?u.aff.map(a=>' &middot; <span class="aff" title="'+AFFIX[a].desc+'">'+AFFIX[a].name+'</span>').join(''):'')
+    +(u.aff&&!isP?u.aff.map(a=>' &middot; <span class="aff" title="'+AFFIX[a].desc+'">'+AFFIX[a].name+'</span>').join(''):'')+(side==='foe'&&!isP?kitChip(u):echoOf(u)?' &middot; <span class="kit" title="'+echoTxt(echoK(u))+'">Echo: '+KITS[echoOf(u)].name+'</span>':'')
     +(u.scd&&CORPSE_CONDS[u.scd]?' &middot; <span class="stash-t" title="A body the rival stole. '+CORPSE_CONDS[u.scd].when+'">'+CORPSE_CONDS[u.scd].name+'</span>':'');
   const rk=isP?'':'<span class="rk r'+u.rankI+'">'+RANKS[u.rankI]+'</span>';
   const fx=(f.d?'<span class="fx neg">-'+f.d+'</span>':f.h?'<span class="fx pos">+'+f.h+'</span>':'')+(f.c?'<span class="fx cmb">'+f.c+'</span>':'');   // c: a status combo fired on it
@@ -109,7 +109,7 @@ function unitCard(u,side,mini){
   if(mini){   // a minion in battle: icon, name, level, attack, HP; the rest lives on the Army tab
     const m='<div class="u-head">'+ico(u.base||u.kind||u.name,u.rankI,u)+'<div class="u-id"><div class="u-name">'+nick(u)+'</div><div class="u-sub num">'+(dead?'<span class="down-t">'+downTip(u)+'</span>':'Lv '+u.lvl+' &middot; ATK '+u.atk+(u.wall?' &middot; Wall':''))+'</div>'+dots+'</div></div>'
       +'<div class="bar"><i class="fill hp" style="width:'+pct(u.hp,max)+'%"></i></div><div class="num u-hp">'+Math.max(0,u.hp)+'/'+max+'</div>';
-    return '<div class="unit ally mini'+(dead?' dead':'')+(u.elite?' elite':'')+(f.d?' hit':'')+'" data-u="'+fxKey(u)+'" title="'+mName(u)+', '+ROLES[u.role].label+(u.wall?', on the wall':'')+'">'+fx+m+'</div>'; }
+    return '<div class="unit ally mini'+(dead?' dead':'')+(u.elite?' elite':'')+(f.d?' hit':'')+'" data-u="'+fxKey(u)+'" title="'+mName(u)+', '+ROLES[u.role].label+(u.wall?', on the wall':'')+(echoOf(u)?', Echo: '+KITS[echoOf(u)].name:'')+'">'+fx+m+'</div>'; }
   const cls='unit '+side+(dead?' dead':'')+(sel?' sel':'')+(ch?' charging':'')+(u.elite?' elite':'')+(f.d?' hit':'');
   return side==='foe'&&!dead?'<button class="'+cls+'" data-a="target" data-k="'+u.id+'" data-u="'+u.id+'" aria-pressed="'+sel+'">'+inner+'</button>':'<div class="'+cls+'" data-u="'+fxKey(u)+'">'+inner+'</div>';
 }
@@ -444,13 +444,13 @@ function raiseHTML(){
   }).join('');
   const done=r.cleared, q=r.quiet&&DOORS[r.quiet], st=stageOn()&&r.corpses.length>0;   /* st: the bodies lie on the battle stage (fx.js); the cards fold into a compact strip */
   return '<section class="win" aria-labelledby="h-raise"><h2 class="win-h" id="h-raise">'+(r.trial?'Trial &middot; '+D.name+' &middot; '+(done?'Complete':'Room '+(r.room+1)+'/'+r.rooms+' cleared'):r.siege?'Siege &middot; The necropolis holds':r.tw?'Hell Tower &middot; Floor '+r.tw+(done?' &middot; Conquered':' cleared'):(r.rift?'The Rift '+r.rift+' &middot; ':'')+D.name+' &middot; '+(done?'Cleared':'Room '+(r.room+1)+(q?'':' cleared')))+'</h2>'
-   +'<h3 class="win-title">'+(r.trial?(done?'The Trial is over.':'No bodies rise in a Trial. On to the next room.'):r.siege?'The living break and run. Their dead are yours.':r.tw?(done?'Abaddon is dead. The Tower is yours.':'The floor is still.'):(done?'The gate falls silent.':q?q.name:'The room is still.'))+'</h3>'
-   +(q?'<p class="lede">No fight here &middot; Mana '+P.mana+'/'+pMana()+'</p>':'<p class="lede">+'+r.lastXp+' XP'+(r.ups?' &middot; level up':'')+' &middot; Mana '+P.mana+'/'+pMana()+' &middot; <span title="Whatever you do not raise is gone when you move on">unraised bodies are lost</span></p>')
+   +'<h3 class="win-title">'+(r.trial?(done?'The Trial is over.':'No bodies rise in a Trial. On to the next room.'):r.siege?'The living break and run. Their dead are yours.':r.tw?(done?'Abaddon is dead. The Tower is yours.':'The floor is still.'):(r.sweep&&done?'Swept: the gate\'s dead never stood a chance.':done?'The gate falls silent.':q?q.name:'The room is still.'))+'</h3>'
+   +(r.sweep&&done?'<p class="lede">'+r.rooms+' rooms &middot; '+r.kills+' kills &middot; +'+r.gained+' XP'+(r.ups?' &middot; '+r.ups+' level'+(r.ups>1?'s':'')+' up':'')+' &middot; '+(r.goldTot||0)+' gold &middot; kill XP '+Math.round(SWEEP_XP*100)+'%, nothing raised</p>':q?'<p class="lede">No fight here &middot; Mana '+P.mana+'/'+pMana()+'</p>':'<p class="lede">+'+r.lastXp+' XP'+(r.ups?' &middot; level up':'')+' &middot; Mana '+P.mana+'/'+pMana()+' &middot; <span title="Whatever you do not raise is gone when you move on">unraised bodies are lost</span></p>')
    +(r.events.length?'<div class="notes">'+r.events.map(e=>'<div class="note '+e.c+'"><i>Log</i><span>'+e.m+'</span></div>').join('')+'</div>':'')
    +(st?'<div class="stage raise-st" aria-hidden="true" style="height:'+(FXS.h||300)+'px"></div>':'')
    +(full&&r.corpses.some(c=>!c.tried)?(w=>'<div class="note bad"><i>Full</i><span>'+(bench?'Army full &middot; Reserve: '+(reserveMax()-S.reserve.length)+' free':'Army full &middot; release someone')+'</span>'+(w?'<button class="btn small warn" data-a="release" data-k="'+w.uid+'">'+(ui.confirm===w.uid?'Confirm: release '+w.nick:'Release your weakest, '+w.nick+' (Lv '+w.lvl+' '+ROLES[w.role].label.toLowerCase()+')')+'</button>':'')+'</div>')(weakest()):'')
    +(!full&&r.corpses.filter(c=>!c.tried).length>=2?'<div class="btns"><button class="btn small primary" data-a="raisebest" title="Tries every body, most valuable first; uses salts on bosses and elites" aria-keyshortcuts="Space">Raise the best<kbd>Space</kbd></button></div>':'')
-   +(r.trial?trialResultHTML(r):'')+eventHTML()+spoilsHTML()+((q||r.trial)&&!r.corpses.length?'':'<p class="group-h">The fallen</p><div class="corpses'+(st?' staged':'')+'">'+(corpses||'<p class="lede">Nothing left to raise.</p>')+'</div>')
+   +(r.trial?trialResultHTML(r):'')+eventHTML()+spoilsHTML()+((q||r.trial||r.sweep)&&!r.corpses.length?'':'<p class="group-h">The fallen</p><div class="corpses'+(st?' staged':'')+'">'+(corpses||'<p class="lede">Nothing left to raise.</p>')+'</div>')
    +(r.doors&&!done?doorsHTML():'<div class="btns">'+(done?'<button class="btn primary" data-a="town">'+(r.siege?'Back to the necropolis &middot; dawn':'Return to the gate')+'</button>':'<button class="btn primary" data-a="descend">'+(r.tw?'Ascend to floor '+(r.tw+1)+' (heal ':'Descend (heal ')+Math.round(DIFF.heal*100)+'%, mana +'+Math.round(DIFF.mana*100)+'%)</button><button class="btn" data-a="town">'+(r.tw?'Descend with spoils':r.trial?'Leave the Trial':'Leave with spoils')+'</button>')+'</div>')+'</section>'
    +armyHTML();
 }
@@ -458,7 +458,7 @@ function doorLore(k){   // what the Ledger reads behind a door (doorSight, doorB
   const r=S.run, sight=doorSight(r.di), L=r.pre&&r.pre[k];
   if(k==='boss'){ const b=doorBoss(r.di); return b?'<span class="dl"><span class="dlb">'+b.name+'</span><span>'+b.tip+'</span></span>':''; }
   if(!sight||!L) return '';
-  return '<span class="dl"><span class="dlh">Behind it</span>'+L.map(e=>{ const af=(e.aff||[]).map(a=>AFFIX[a].name), row=rowOf(e)==='f'?'Front':'Back';
+  return '<span class="dl"><span class="dlh">Behind it</span>'+L.map(e=>{ const af=(e.aff||[]).map(a=>AFFIX[a].name).concat(kitOf(e)&&knowLv(e)>=1?[KITS[kitOf(e)].name]:[]), row=rowOf(e)==='f'?'Front':'Back';
     const tip=(e.elite?['Elite']:[]).concat(af).concat(sight>1?[row+' row','Lv '+e.lvl]:[]).join(' · ');
     return '<span class="df'+(e.elite?' el':'')+'"'+(tip?' title="'+tip+'"':'')+'>'+e.name+(af.length?'<small>'+af.join(', ')+'</small>':'')+(sight>1?'<small>'+row+'</small><small>Lv '+e.lvl+'</small>':'')+'</span>'; }).join('')+'</span>';
 }

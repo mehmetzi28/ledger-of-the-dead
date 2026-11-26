@@ -119,7 +119,7 @@ time ticks; then mana regen (1 + gear + Soul Well) and skill cooldowns.
 **Foe strength** (`mobStats`). HP and attack scale with the gate's rank multiplier (`RK`), the mob's factors, `DIFF.hp/atk`,
 `DIFF.gate[di]` and level (+16% HP, +12% attack per level). Living foes also get **armor** (`DIFF.armor`, 30% at E to 94%
 at S; 85% in the Tower), which blunts every hit you and your minions land, and a per-gate attack multiplier
-(`DIFF.foeAtk`, 1.2 at E up to 5.2 at B). Minions use the same formula, so `DIFF.hp/atk/gate` move both sides.
+(`DIFF.foeAtk`, 1.0 at E, 0.9 at D, up to 7.0 at B; lowered at E and D in R1 PR B to pay for kits). Minions use the same formula, so `DIFF.hp/atk/gate` move both sides.
 
 **Rows** (`rowOf`). Front and back. Vanguards, reapers and bosses stand in front; you stand at the back. Melee (vanguards
 and reapers) can reach only the other side's front row while it stands; strikers, menders and bosses reach anyone. A
@@ -150,6 +150,20 @@ elites hit fire and burn; Cinder Wave and Volatile bodies are fire. Your side re
 (`fres/frres/rres/sres`, up to `RES_CAP` 50%) and typed minion traits (Rimeborn frost, Cinderborn fire, Venomous/Necrotic
 rot, 25%); weapons and relics roll `fdmg/frdmg/rdmg/sdmg` (+% of that type for you and your army). Gate cards, the Tower and
 Rift cards and the battle header show the profile; Codex page "Damage types".
+
+**Foe kits** (`KITS`, `KIT_OF`, src/game-kits.js, R1 PR B). Every foe kind (not bosses, the rival or secret masters) has one of
+sixteen kits, and no gate repeats one: Shieldbearer (shields the most hurt foe every second turn), Ambusher (first blow
+ignores rows, +30%), Mana thief (drains 10% max mana), Gravecaller (calls a fallen body back at 40% once a fight; the
+second death pays nothing), Pack hunter (+10% per other foe, max +30%), Bomber (bursts 40% of its attack as fire on your
+front row unless killed frozen or reaped), Sapper (tears ward and minion ward twice as fast), Skirmisher (steps back below
+half HP), Bulwark stance (50% less damage every other turn; Sundered cannot brace), Hexer (hexes 1 time in 3), Marker
+(every third turn marks a minion that every foe in reach then strikes; Taunt overrides), Purifier (cleanses a foe with
+two or more wounds and conditions), Burrower (under every third turn, out of reach of single blows, surfaces +50%),
+Thorned (reflects 15% of melee hits), Frenzy (+15% per fallen foe), Banner-bearer (back row; others deal +10% and take
+-10%). Kits act through intents (`kitIntent`: shield, cleanse, call, burrow, mark), the blow (`kitAtk`), the hit
+(`kitOnHit`), damage taken (`kitTaken`), death (`kitDeath`) and the row (`kitBack`). The card shows "Kit ?" until the kind
+is Studied, then the kit and its rule; Known adds its state this turn, Ledgered the answer (`kitChip`). Door lore lists the
+kits behind a door. Codex page "Foe kits". Glass Sentinels are also weak to physical (`KIND_RES`).
 
 **Statuses** (`DOTS`, `CONDS`). Damage over time: poison, bleed (enemy striker crits), burn (Cinder Wave, Cinderborn),
 blight (halves healing received). Conditions: Sundered (+25% damage taken), Hexed (-20% damage dealt), Hasted (a 50%
@@ -188,6 +202,14 @@ Leeching, Stalwart, Grave-bound, Venomous, Wrathful, Warded), or the elite's aff
 Swift...), or a **death trait** from how its body died (`CORPSE_CONDS`: Preserved = frozen -> Rimeborn, Clean = reaped ->
 Unmarred, Rotten -> Necrotic, Tainted -> Venomous, Charred -> Cinderborn, Mangled -> Stitched; each also moves the raise
 chance). **Commander** comes only to raised elites (20%) and bosses (40%), at the raise or at an evolution.
+
+**The Undone** (`CORPSE_CONDS.undone`, `ECHO`, R1 PR B). A foe killed by damage of a type its place is weak to leaves an
+Undone body (+10 raise; after the DoT conditions in `deathCond`), which rises with the `undone` trait and an echo of its
+kind's kit, read from `m.kind` (`echoOf`): Shieldbearer (every second turn wards the most hurt minion for 9% of its HP),
+Pack hunter (+6% per other minion of its gate, max +18%), Bulwark stance (30% less damage every other turn), Thorned
+(reflects 9% of melee hits), Frenzy (+9% per fallen foe this fight), Banner-bearer (your other minions +6%), Marker (its
+first hit each room marks the target: +15% from your minions next turn), Gravecaller (once a room the first minion to fall
+gets up at 25%). Other kits give +10% damage (`ECHO_PLAIN`). Minion cards show "Echo: <kit>".
 
 **Evolution** (`checkEvolve`). At 5, 10, 18 and 28 levels above its raise level a minion becomes Greater, Elder, Ancient,
 then Eternal: more HP and attack and one more trait each time. **Evolution marks** (`MARK`): at Elder a minion picks one of
@@ -271,8 +293,13 @@ tempering, honour, Awakening, mausoleums, headstones (the only uncapped one).
 **The six gates** (`DUNGEONS`): Rat Warren (E, the Rat King: Call the Swarm), Sunken Crypt (D, the Crypt Warden: Bone
 Wall), Ashen Barrow (C, the Ember Knight: Cinder Wave), Hollow Cathedral (B, the Bishop of Teeth: Hymn of Silence), Iron
 Orchard (A, the Orchard Mother: Seedfall), Throne of Ash (S, the Pale Sovereign: Royal Decree). Each has 7 foe kinds (two
-of each role plus a gear-bearer), all sharing their role's stat factors; only the Whisper Choir has a mechanic of its own
-(it hexes).
+of each role plus a gear-bearer), sharing their role's stat factors; each kind has a foe kit (2.3).
+
+**Sweep** (`sweepOk`, `sweep`, R1 PR B). A gate cleared on Normal at least 5 times (`SWEEP_CLEARS`), Normal and uncursed
+today, with you at least 12 levels above its Recommended level (`SWEEP_LV`) and no rival there, offers Sweep on its card:
+one watch wins the whole run at once (rooms generated and won as usual, quiet rooms passed), with kill XP at 80%
+(`SWEEP_XP`), gold, trophies, drops, bestiary and quest kills, but nothing to raise, no events or doors and no
+fastest-clear record. A secret master stops the sweep at the boss room and is fought as usual.
 
 **Gate difficulty** (`HEAT`). After a clear: Hard (foes x1.8, elites doubled), Brutal (x2.5, boss phase at 65%, an affix
 on every front-row foe), Nightmare (x3.6, an elite in every room, bosses start in phase two). Rewards rise with it; each

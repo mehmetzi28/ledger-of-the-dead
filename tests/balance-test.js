@@ -54,6 +54,7 @@
 //              'rival' off: no rival (no thefts, no challenges). The rival only plays in the 'full' mode, so 'market' numbers stay
 //              comparable with earlier runs; there the bot goes to a challenge's gate on its day and fights it like any boss room.
 //              'trials' off: the full bot skips the weekly Trial (it tries it each day until it completes it, at most 3 tries a week).
+//              'kits' off: the bot ignores foe kits when it picks targets and wards; 'sweep' off: it never sweeps an outgrown gate.
 //   The full bot now swears faith by default (Honored on even bots, Dishonored on odd) and climbs to Hard on cleared gates
 //   (opts.heat:1); pass faith/heat to override, heat:0 for the old behaviour. Every run also reports secret masters met/slain.
 //   opts.faith ('hon'|'dis') swears an oath once the shrine opens (3 gates cleared, level 8); opts.ult ('toll'|'rise'|'prison') picks the ultimate; opts.heat (1-3) lets
@@ -159,12 +160,19 @@
   function pickGate(B){ const l=S.player.lvl; let g=0; for(let i=0;i<DUNGEONS.length;i++) if(l>=RK[i].unlock&&(B.push||l>=SAFE[i])) g=i; return g; }
 
   // ----- battle: one decision per turn
-  function chooseTarget(){
-    const f=liveFoes(), men=f.filter(e=>e.role==='mender'), pool=(men.length?men:f).slice().sort((a,b)=>a.hp-b.hp);
+  function chooseTarget(B){
+    const all=liveFoes(), f0=typeof reachable==='function'?all.filter(reachable):all, f=f0.length?f0:all;
+    if(B&&!(B.off&&B.off.kits)&&typeof kitOf==='function'){   /* foe kits: Banner-bearer, then a Gravecaller that can still call, Shieldbearer, Purifier; a Bomber last while your front row stands */
+      const rank=e=>{ const k=kitOf(e); return k==='banner'?0:k==='call'&&!e.gcU?1:k==='shield'?2:k==='purify'?3:e.role==='mender'?4:k==='bomb'&&S.army.some(m=>m.hp>0&&rowOf(m)==='f')?9:5; };
+      const pool=f.slice().sort((a,b)=>rank(a)-rank(b)||a.hp-b.hp); setTarget(pool[0].id); return pool[0]; }
+    const men=f.filter(e=>e.role==='mender'), pool=(men.length?men:f).slice().sort((a,b)=>a.hp-b.hp);
     setTarget(pool[0].id); return pool[0];
   }
+  const kitWard=(B,want)=>{ if(!B||(B.off&&B.off.kits)||typeof kitOf!=='function') return want;   /* never ward into a Sapper's blow; ward before an ambush or a surfacing Burrower on you */
+    const its=liveFoes().filter(e=>!(e.stun>0)&&e.it&&e.it.k==='atk'&&e.it.t==='p');
+    if(its.some(e=>hasKit(e,'sapper'))) return false; if(its.some(e=>e.it.amb||e.it.sf)) return true; return want; };
   function decide(B){
-    const P=S.player, t=chooseTarget(), max=pMax(), res=Math.min(15,Math.round(pMana()*.2)), foes=liveFoes();
+    const P=S.player, t=chooseTarget(B), max=pMax(), res=Math.min(15,Math.round(pMana()*.2)), foes=liveFoes();
     const charging=foes.find(e=>e.charging);   // a boss is winding up a telegraphed move: freeze it, or ward against the hit
     if(charging){
       const mv=charging.move||charging.abil;
@@ -191,11 +199,11 @@
       if(ok('curse')&&t.hp>pSiph()*3) return 'sk:curse';
       if(ok('spear')&&t.hp>pAtk()) return 'sk:spear';
     }
-    if(P.shield===0&&P.hp<max*.6&&P.mana>=6+res) return 'ward';
+    if(P.shield===0&&P.mana>=6+res&&kitWard(B,P.hp<max*.6)) return 'ward';
     if(P.mana>=8+res&&pSiph()>=pAtk()) return 'siphon';
     return 'strike';
   }
-  const RZ={t:0,ok:0};
+  const RZ={t:0,ok:0}, SWC={n:0,stop:0};
   const useRes=B=>B&&B.full&&!B.off.reserve&&typeof reserveOpen==='function'&&reserveOpen();   // the Reserve, switchable with "off":["reserve"]
   function raisePhase(B){
     const r=S.run, P=S.player;
@@ -229,6 +237,8 @@
     const duel=typeof rivalToday==='function'&&rivalToday()&&S.player.lvl>=RK[rv().gi].unlock, gi=duel?rv().gi:pickGate(B), lvl=S.player.lvl;   // a rival's challenge today: go and meet it (rivalOpen is off outside 'full')
     if(B.heat&&B.hw&&B.hw[gi]!=null&&S.day-B.hwDay[gi]>=3) delete B.hw[gi];   // try again a few days later
     if(B.heat){ B.hw=B.hw||{}; setHeat(gi,Math.min(B.heat,heatMax(gi),B.hw[gi]==null?9:B.hw[gi])); }   // opts.heat: the highest difficulty the bot picks; it steps down a level after each death there
+    if(!duel&&!B.off.sweep&&typeof sweepOk==='function'&&sweepOk(gi)){ sweep(gi); SWC.n++;   /* an outgrown gate is swept; only a stopped sweep (a secret master) is fought, and left out of the table */
+      if(S.mode==='raise'){ returnTown(); return; } SWC.stop++; let g=0; while(S.mode==='battle'&&g++<400) act(decide(B)); if(S.mode==='raise'){ raisePhase(B); } returnTown(); return; }
     startRun(gi);
     if(S.mode!=='battle'){ S.watches=0; endDay(); return; }
     const run={gate:gi,lvl,diff:lvl-SAFE[gi],heat:S.run.heat||0,cleared:false,died:false,left:false,rooms:0,turns:0,hpEnd:[]}; if(duel) run.rival=1; let guard=0;   // a challenge run is left out of the gate table (reported on the rival line)
@@ -349,7 +359,7 @@
     const tr=[].concat(...res.map(r=>r.trials||[])), trials=tr.length?{n:tr.length,done:pc(tr.filter(x=>x.done).length,tr.length),perBot:avg(res.map(r=>(r.trials||[]).length)),
       tiers:HEAT.slice(0,3).map((H,h)=>{ const g=tr.filter(x=>x.done&&x.t===h); return g.length?H.name+' '+g.length+': score median '+med(g.map(x=>x.s))+' (turns '+med(g.map(x=>x.tt))+', downed '+avg(g.map(x=>x.downs))+')'+(g[0].par!=null?', par beaten '+pc(g.filter(x=>x.s<=x.par).length,g.length):''):null; }).filter(Boolean),
       hearts:avg(res.map(r=>(r.trials||[]).reduce((a,x)=>a+(x.hearts||0),0)))}:null;   // the weekly Trial ('full'): attempts, completions, score by difficulty, and hearts won per bot
-    return {trials,gold,events,gates,heat,byLvl,tiers,sec,lore,raids,sieges,rival,rift,passives:avg(res.map(r=>r.passives||0)),raise:(z=>(RZ.t=RZ.ok=0,z))(RZ.t?pc(RZ.ok,RZ.t)+' of '+RZ.t:null),runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
+    return {trials,gold,events,gates,heat,byLvl,tiers,sec,lore,raids,sieges,rival,rift,passives:avg(res.map(r=>r.passives||0)),raise:(z=>(RZ.t=RZ.ok=0,z))(RZ.t?pc(RZ.ok,RZ.t)+' of '+RZ.t:null),sweeps:(z=>(SWC.n=SWC.stop=0,z))(SWC.n?{n:SWC.n,perBot:+(SWC.n/res.length).toFixed(1),stopped:SWC.stop}:null),runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
   }
 
   function run(opts){

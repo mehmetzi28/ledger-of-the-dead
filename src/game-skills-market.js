@@ -230,8 +230,9 @@ const AFFIX_TRAITS=['necrotic','crushing','hexing','swift'];
 TRAITS.rimeborn  ={name:'Rimeborn',  desc:'Its hits chill the target 1 time in 3: 20% more damage taken for 2 turns.'};
 TRAITS.unmarred  ={name:'Unmarred',  desc:'+15% max HP and attack.'};
 TRAITS.cinderborn={name:'Cinderborn',desc:'Its hits burn the target 1 time in 3 for 2 turns. Immune to burns.'};
+TRAITS.undone    ={name:'Undone',    desc:'Keeps an echo of its kind\'s kit, at 60% strength; kinds whose kit has no echo give +10% damage.'};
 TRAITS.stitched  ={name:'Stitched',  desc:'Once per room, when downed it rises again at 25% HP. -10% max HP.'};
-const DEATH_TRAITS=['rimeborn','unmarred','cinderborn','stitched'];
+const DEATH_TRAITS=['rimeborn','unmarred','cinderborn','stitched','undone'];
 // Compounds: formed only in the Flesh Pit, when a fusion brings both halves of a recipe together (never rolled, never from a death or
 // an affix, so outside TRAIT_IDS). One slot; counts as both halves (hasTrait) plus one extra. Recipes resolve in this order, each trait feeds
 // at most one, compounds are never ingredients. Found ones are kept in S.ti.compounds.
@@ -453,6 +454,9 @@ const TIPS=[
   {id:'records',t:'Records', m:'The Ledger tab keeps your best: deepest floor, biggest hit, most kills, and the fastest clear of each gate. Beat one and you will hear about it.', when:()=>S.mode==='town'&&S.runs>=10},
   {id:'nightmare',t:'Nightmare', m:'A gate now offers Nightmare: foes three times as strong, rewards to match, and a title of its own for the clear.', when:()=>S.mode==='town'&&DUNGEONS.some((D,i)=>heatMax(i)>=3)},
   {id:'omen',   t:'An omen', m:'Some days carry an omen that touches every gate and the Tower. Today\'s is shown above the gates.', when:()=>S.mode==='town'&&!!omen()},
+  {id:'kits',   t:'Every foe has a trick', m:'Foes carry kits: a rule of their own, such as shielding an ally or bursting when they die. A "Kit ?" chip means you have not studied that kind yet; study it and the chip names the kit. Hover it to read the rule.', when:()=>S.mode==='battle'&&S.run&&liveFoes().some(e=>kitOf(e))},
+  {id:'types',  t:'Weak and resistant', m:'Above the foes you can see what this place is weak to and what it resists. Each hit has a type: Strike and most minions are physical, Soul Siphon and Reap shadow, Grave Chill frost, Corpse Explosion and poison rot. The right type hits harder.', when:()=>S.mode==='battle'&&S.run&&S.player.lvl>=4&&DT_IDS.some(t=>placeRes()[t]<0)},
+  {id:'sweep',  t:'Sweep an outgrown gate', m:'A gate far below you can now be swept from its card: one watch wins the whole run at once, with 80% kill XP and the usual spoils, but nothing to raise.', when:()=>S.mode==='town'&&(ui.tab||'gates')==='gates'&&DUNGEONS.some((D,i)=>sweepOk(i))},
   {id:'tower',  t:'The Hell Tower is open', m:'A separate 100-floor climb, one fight per floor, with a unique item on every tenth floor. Floors you clear become checkpoints.', when:()=>S.mode==='town'&&towerOpen()},
 ];
 const currentTip=()=>{ if(!S||(S.tips&&S.tips.off)) return null; if(S.mode==='raise'&&S.run&&(S.run.events||[]).some(e=>e.c==='story')) return null; try{ return TIPS.find(t=>!(S.tips&&S.tips[t.id])&&t.when())||null; }catch(e){ return null; } };

@@ -104,7 +104,7 @@ function foeTarget(alive){ const w=alive.map(a=>a.role==='vanguard'?5:2); let ro
 // standing front row they reach only it. Strikers, menders and bosses reach anyone; Taunt, your Strike and skills, cleaves and splash ignore rows.
 // Your vanguards and reapers moved to the back row strike over the line for BACK_MELEE of their damage: safety costs reach.
 const MELEE={vanguard:1,reaper:1}, BACK_MELEE=.5;
-const rowOf=u=>u.id==='p'?'b':u.id!=null?(u.boss||u.rival||MELEE[u.role]?'f':'b'):(u.wall?'f':u.row==='f'||u.row==='b'?u.row:MELEE[u.role]?'f':'b');
+const rowOf=u=>u.id==='p'?'b':u.id!=null?((u.boss||u.rival||MELEE[u.role])&&!kitBack(u)?'f':'b'):(u.wall?'f':u.row==='f'||u.row==='b'?u.row:MELEE[u.role]?'f':'b');
 const rowK=m=>MELEE[m.role]&&rowOf(m)==='b'?BACK_MELEE:1;   // a minion's damage factor from its row
 const frontOf=L=>L.filter(u=>u.hp>0&&rowOf(u)==='f');
 const foeReach=(e,alive)=>{ const t=tauntPool(alive); if(t!==alive||!MELEE[e.role]||e.boss) return t; const f=frontOf(alive); return f.length?f:alive; };   // whom a foe may strike: Taunt first, then the row rule
@@ -118,12 +118,23 @@ function setRow(uid){ if(S.mode==='battle') return; const m=S.army.concat(S.rese
 const tauntPool=alive=>{ if(S.run.taunt>0){ const v=alive.filter(a=>a.role==='vanguard'&&a.id!=='p'); if(v.length) return v; } return alive; };
 const mendTarget=()=>liveFoes().filter(x=>x.hp<x.maxHp*.7).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
 function rollIntent(e,k){ k=k||'it';
+  const alive=allies().filter(a=>a.hp>0); if(!alive.length) return e[k]=null;
+  const T=S.run.turn+(k==='it2'?1:0), ki=kitIntent(e,k,T,alive);   /* a kit may plan its own action (game-kits.js) */
+  if(ki&&ki.k) return e[k]=ki;
   if(e.role==='mender'){ const h=mendTarget(); if(h) return e[k]={k:'heal',t:h.id}; }
-  const alive=allies().filter(a=>a.hp>0); if(!alive.length) return e[k]=null; const reach=foeReach(e,alive), tg=foeTarget(reach), bw=bulwarkFor(tg,reach);
+  const reach=foeReach(e,alive), taunted=tauntPool(alive)!==alive, mk=markedFor(T,reach);
+  let tg=mk||foeTarget(reach);
+  if(ki&&ki.amb&&!taunted){ const back=alive.filter(a=>a.id!=='p'&&rowOf(a)==='b'); tg=back.length?pick(back):S.player; }   /* an Ambusher's first blow ignores rows */
+  const bw=ki&&ki.amb?null:bulwarkFor(tg,reach);
   const it=e[k]=bw?{k:'atk',t:fxKey(bw),bw:1}:{k:'atk',t:fxKey(tg)};   // bw: a Bulwark steps in front of a blow meant for your back row
-  if(tauntPool(alive)!==alive) it.tn=1; return it;
+  if(ki&&ki.amb) it.amb=1; if(ki&&ki.sf) it.sf=1; if(mk) it.mk=1;
+  if(taunted) it.tn=1; return it;
 }
+function markedFor(T,reach){ const m=S.run.mk; if(!m||m.turn!==T||tauntPool(reach)!==reach) return null; return reach.find(a=>fxKey(a)===m.t)||null; }   // a foe Marker's mark: every foe that can reach it strikes it
 function intentOk(e,k){ const it=e[k||'it']; if(!it) return false;
+  { const ko=kitIntentOk(e,it); if(ko!=null) return ko; }
+  if(it.amb&&e.ambU) return false;
+  if(it.k==='atk'&&!it.mk&&S.run.mk&&S.run.mk.turn===S.run.turn+(k==='it2'?1:0)&&!(S.run.taunt>0)){ const alive=allies().filter(a=>a.hp>0); if(markedFor(S.run.mk.turn,foeReach(e,alive))) return false; }   /* the mark takes over a blow planned before it */
   if(it.k==='heal'){ const h=S.run.enemies.find(x=>x.id===it.t); return !!h&&h.hp>0; }
   if(it.tn&&!(S.run.taunt>0)) return false;
   const alive=allies().filter(a=>a.hp>0), tg=alive.find(a=>fxKey(a)===it.t); return !!tg&&foeReach(e,alive).includes(tg); }
@@ -137,8 +148,16 @@ function planFoes(){ const r=S.run; if(!r||!r.enemies) return;
 function planTxt(e,it){   // the words for a planned attack or heal
   if(!it) return null;
   if(it.k==='heal'){ const h=S.run.enemies.find(x=>x.id===it.t); if(!h) return null; return {k:'heal',txt:h===e?'Heals itself':'Heals '+h.name,tip:'Mends a wounded foe on its turn.'}; }
+  if(it.k==='shield'){ const h=S.run.enemies.find(x=>x.id===it.t); if(!h) return null; return {k:'shield',txt:h===e?'Shields itself':'Shields '+h.name,tip:KITS.shield.rule}; }
+  if(it.k==='cleanse'){ const h=S.run.enemies.find(x=>x.id===it.t); if(!h) return null; return {k:'heal',txt:h===e?'Cleanses itself':'Cleanses '+h.name,tip:KITS.purify.rule}; }
+  if(it.k==='call'){ const h=S.run.enemies.find(x=>x.id===it.t); if(!h) return null; return {k:'abil',txt:'Calls back '+h.name,tip:KITS.call.rule+' Burst the body or freeze the caller to stop it.'}; }
+  if(it.k==='burrow') return {k:'abil',txt:'Burrows',tip:KITS.burrow.rule};
+  if(it.k==='mark'){ const m=allies().find(a=>fxKey(a)===it.t); if(!m) return null; return {k:'abil',txt:'Marks '+nameOf(m),tip:KITS.marker.rule}; }
   const tg=allies().find(a=>fxKey(a)===it.t); if(!tg) return null;
   if(it.bw) return {k:'atk',tg,txt:'Attacks '+nameOf(tg),tip:'Bulwark: '+nameOf(tg)+' steps in front of a blow meant for your back row.'};
+  if(it.amb) return {k:'atk',tg,txt:'Ambushes '+(tg.id==='p'?'you':nameOf(tg)),tip:KITS.ambush.rule};
+  if(it.sf) return {k:'atk',tg,txt:'Surfaces at '+(tg.id==='p'?'you':nameOf(tg)),tip:KITS.burrow.rule};
+  if(it.mk) return {k:'atk',tg,txt:'Strikes the marked '+nameOf(tg),tip:KITS.marker.rule};
   return {k:'atk',tg,txt:tg.id==='p'?'Attacks you':'Attacks '+nameOf(tg),tip:'Its next blow. Taunt turns it onto a vanguard; freezing it costs it the turn.'};
 }
 const sigMove=e=>e.phase2&&e.alt?'sunder':e.abil, sigCharged=(e,mv)=>!!(BOSS_ABIL[mv].warn||e.phase2);
@@ -160,7 +179,7 @@ function nextInfo(e){   // the action after the next one (Known foes): read off 
 // What the Ledger shows on a foe's card by its kind's mastery tier (1 Studied, 2 Known, 3 Mastered, 4 Ledgered; masteryOf). Read only: no Math.random, no state change.
 const knowLv=e=>{ const t=masteryOf(e.base||e.name); return t?MASTERY.indexOf(t)+1:0; };
 const afterWard=(a,d)=>a.id==='p'?tetherCap(Math.max(0,d-(S.player.shield||0))):d;   // and the Soul Tether's cap (game-faith-story.js)
-const foeBlow=(e,tg)=>afterWard(tg,allyDr(tg,Math.max(1,Math.round(e.atk*enrage(e)*(hasAff(e,'enraged')&&e.hp<e.maxHp/2?1.6:1)*hexK(e)))));   // a plain blow without the roll's spread or a crit (act)
+const foeBlow=(e,tg)=>afterWard(tg,(d=>Math.max(1,Math.round(d*(1-allyRes(tg,foeHitType(e))))))(allyDr(tg,Math.max(1,Math.round(e.atk*enrage(e)*(hasAff(e,'enraged')&&e.hp<e.maxHp/2?1.6:1)*hexK(e)*kitAtk(e,e.it))))));   /* kits, and your resistance to its type */   // a plain blow without the roll's spread or a crit (act)
 function sigBlow(e,mv){   // what a damaging boss move deals (fireAbility): {you, army, van}; null for the others
   const P=S.player, k=enrage(e);
   if(mv==='cinder'){ const d=Math.round(e.atk*(e.secret?.45:.7)*k); return {you:afterWard(P,allyDr(P,d)),army:S.army.filter(m=>m.hp>0).reduce((s,m)=>s+allyDr(m,d),0)}; }
@@ -202,11 +221,12 @@ function combo(k,units,msg){ const r=S.run; tally('combos'); log(msg,'ok'); for(
 const frozenChilled=t=>!!t&&t.hp>0&&t.stun>0&&hasSt(t,'chilled');
 function frostbreak(t){ t.stun=0; combo('frostbreak',t,'Frostbreak: '+t.name+' shatters out of the ice.'); }
 function foeOnHit(e,tg){   // what a foe's hit leaves behind: affixes and the Whisper Choir
-  if(!(tg.hp>0)) return '';
+  if(!(tg.hp>0)) return kitOnHit(e,tg);
   let x='';
   if(hasAff(e,'plague')){ addDot(tg,'blight',e.atk*.2,2); if(tg.dots&&tg.dots.blight) x+=', blighted'; }
   if(hasAff(e,'sundering')&&Math.random()<ST_CH&&addSt(tg,'sundered',2)) x+=', sundered';
-  if((hasAff(e,'hexing')||e.base==='Whisper Choir')&&Math.random()<ST_CH&&addSt(tg,'hexed',2)) x+=', hexed';
+  if((hasAff(e,'hexing')||hasKit(e,'hexer'))&&Math.random()<ST_CH&&addSt(tg,'hexed',2)) x+=', hexed';
+  x+=kitOnHit(e,tg);
   if(hasAff(e,'frosty')&&Math.random()<ST_CH&&addSt(tg,'chilled',2)) x+=', chilled';
   if(hasAff(e,'burning')){ addDot(tg,'burn',e.atk*.15,2); if(tg.dots&&tg.dots.burn) x+=', burning'; }
   return x;
@@ -217,7 +237,7 @@ function hasteStrikes(){   // the end of the turn: every Hasted unit strikes onc
     let d=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*HASTE_MUL*hexK(m)*rowK(m)*breakK(m,tg)); const cr=blurCrit(m); if(cr) d=Math.round(d*1.8); hurtFoe(tg,d,minionType(m)); fxe('mhit',tg,{by:fxKey(m)}); log(m.nick+' is hasted and strikes '+tg.name+' again for '+d+(cr?' (crit)':'')+'.'); const x=minionOnHit(m,tg); if(x) combo('swift',tg,'Swift Blow: '+tg.name+' is '+x.split(' and ').filter(Boolean).map(v=>({poisons:'poisoned',blights:'blighted',sunders:'sundered',hexes:'hexed',chills:'chilled',burns:'burning'})[v.split(' ')[0]]).join(', ')+'.'); checkDeaths(); }
   for(const e of liveFoes()){ if(!hasSt(e,'hasted')||e.froze===r.turn) continue; let alive=allies().filter(a=>a.hp>0); if(!alive.length) break;
     alive=foeReach(e,alive);   // Taunt and the row rule hold for the follow-up too
-    let tg=foeTarget(alive), d=hit(e.atk*HASTE_MUL*hexK(e)*enrage(e)); const gv=guardBlow(tg,d); if(gv){ tg=gv; d=Math.round(d*SB_TAKE); } BLOW={n:e.name,k:'haste'}; hurtAlly(tg,d,foeHitType(e)); BLOW=null; fxe('hurt',tg,{by:e.id}); log(e.name+' is hasted and strikes '+(tg.id==='p'?'you':nameOf(tg))+' again for '+d+'.','bad');
+    let tg=foeTarget(alive), d=hit(e.atk*HASTE_MUL*hexK(e)*enrage(e)*kitAtk(e)); const gv=guardBlow(tg,d); if(gv){ tg=gv; d=Math.round(d*SB_TAKE); } BLOW={n:e.name,k:'haste'}; hurtAlly(tg,d,foeHitType(e)); BLOW=null; fxe('hurt',tg,{by:e.id}); log(e.name+' is hasted and strikes '+(tg.id==='p'?'you':nameOf(tg))+' again for '+d+'.','bad');
     if(tg.hp<=0&&tg.id!=='p') log(tg.nick+' is down.','bad'); if(S.player.hp<=0) return; }
 }
 function tickDots(){
@@ -253,10 +273,11 @@ const CORPSE_CONDS={
   rot:      {name:'Rotten',   raise:-10,trait:'necrotic',  when:'Died Blighted.',                                       story:'Risen from the rot: its hits Blight.'},
   tainted:  {name:'Tainted',  raise:-5, trait:'venom',     when:'Killed by poison.',                                    story:'Venom still in its veins: its hits Poison.'},
   charred:  {name:'Charred',  raise:-10,trait:'cinderborn',when:'Killed by a burn.',                                    story:'Raised from the ashes: its hits Burn.'},
+  undone:   {name:'Undone',   raise:10, trait:'undone',    when:'Killed by damage of a type it was weak to.',            story:'Undone by its weakness: it keeps an echo of its kind\'s kit.'},
   mangled:  {name:'Mangled',  raise:-8, trait:'stitched',  when:'The killing blow went past its HP by more than its max HP.',story:'Sewn back together: it gets up once more.'}
 };
 const RIME_CH=1/3, CINDER_CH=1/3, CINDER_K=.15, UNMARRED_K=.15, STITCH_HP=.25, STITCH_MAX=.9;   // death traits: proc chances, Cinderborn's burn (sized like Venomous poison), Unmarred's bonus, Stitched's rise and HP
-function deathCond(e,d){ return e.stun>0?'preserved':KILL==='reap'||KILL==='exec'?'clean':(e.dots&&e.dots.blight)||KILL==='blight'?'rot':KILL==='poison'?'tainted':KILL==='burn'?'charred':d-e.hp>e.maxHp?'mangled':null; }
+function deathCond(e,d){ return e.stun>0?'preserved':KILL==='reap'||KILL==='exec'?'clean':(e.dots&&e.dots.blight)||KILL==='blight'?'rot':KILL==='poison'?'tainted':KILL==='burn'?'charred':e.lt&&foeRes(e,e.lt)<0&&!e.risen?'undone':d-e.hp>e.maxHp?'mangled':null; }   // undone: a weakness kill (game-kits.js)
 const condRaise=c=>c.cd&&CORPSE_CONDS[c.cd]?CORPSE_CONDS[c.cd].raise:0;
 function stitchUp(a){ if(a.id==='p'||a.hp>0||!hasTrait(a,'stitched')||(a.sx||0)>=(hasTrait(a,'patchwork')?2:1)) return false; a.sx=(a.sx||0)+1; a.hp=Math.max(1,Math.round(a.maxHp*(hasTrait(a,'deathlesshusk')?.5:STITCH_HP))); log(a.nick+' is Stitched together and gets up again.','ok'); return true; }   // once per room (roomStart clears sx)
 function resolveEvent(ch){
@@ -316,6 +337,7 @@ function roomStart(list){   // a fresh room or floor: Soul Storm, the Swift affi
   cmdSync();   /* Command: measured as the room begins */
   foeRise(list);
   for(const m of S.army){ delete m.sx; if(m.hp>0&&hasTrait(m,'swift')) addSt(m,'hasted',2); }   // sx: Stitched used this room
+  echoRoom(); kitSeen(list); delete S.run.mk;
   if(omen()==='soulstorm') gainSoul();
   if(hasMod('bonearmor','a')) S.player.shield=Math.max(S.player.shield||0,Math.round(pMax()*OSSIFIED));
   planFoes();

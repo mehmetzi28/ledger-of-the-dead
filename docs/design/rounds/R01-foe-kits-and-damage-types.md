@@ -78,6 +78,27 @@ Per-kind overrides live in the kit table (section 3), for example the Glass Sent
 - Tests are group `80-damage-types` (79 was taken by Command).
 - Measured: nothing moved past noise (see 04-balance.md). The retune moves to PR B with the kits.
 
+### As built (PR B)
+
+- All kit code lives in `src/game-kits.js` (included after game-gate-rules.js): `KITS`, `KIT_OF`, the `KIT_*` numbers,
+  `kitIntent`/`kitAct` (shield, cleanse, call, burrow, mark), `kitAtk`, `kitTaken`, `kitOnHit`, `kitDeath`, `kitReflect`,
+  `kitChip`, the Undone echoes (`ECHO`, `echoOf`, `echoDmg`, `echoDr`, `echoCall`...) and Sweep.
+- Swaps from the table in 3.2: the Ember Herald is the Skirmisher and the Crownless Duelist the Banner-bearer (the Herald
+  is a vanguard, the only kind that steps back meaningfully). Glass Sentinels are also weak to physical (`KIND_RES`).
+- A Hexer never also rolls the Hexing affix and a Shieldbearer never the Shielded one (`giveAffixes`); the Whisper Choir's
+  old hex is now its Hexer kit.
+- No `e.kitT`, `e.stance` or `e.mark` fields: the stance turn comes from the turn and the foe's id, marks live on
+  `S.run.mk`. No `m.kit` on Undone minions either: the echo is read from `m.kind`, so no save repair is needed.
+- `undone` is checked after the DoT conditions (charred, rotten, tainted) in `deathCond`, so a burn tick still chars.
+- A called-back foe that dies again pays no kill, XP or trophy (`e.risen`).
+- Sweep passes quiet rooms (rest, treasure) without a fight and keeps a secret master's room as a normal fight; it also
+  requires no rival at the gate. Swept runs record no fastest clear.
+- Titles: Kit-Reader, Weakness Hunter, Defuser, Gravedigger's Bane (Deeds, 152 titles in all).
+- Tests: one group, `81-foe-kits` (kits, the card and Codex, the Undone, Sweep: 11 tests), next to `80-damage-types`.
+- Bot: the target order and ward rules in section 8; `"off":["kits"]` and `"off":["sweep"]` switch them off. The bot does
+  not yet choose typed minions for a gate's weakness.
+- Retune: `DIFF.foeAtk` E/D 1.2/.95 -> 1.0/.9 only; `REC_BASE` stands. Numbers in 04-balance.md.
+
 ## 3. Foe kits
 
 ### 3.1 The sixteen kits

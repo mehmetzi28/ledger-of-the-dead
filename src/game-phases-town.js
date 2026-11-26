@@ -40,7 +40,7 @@ const AFFIX_IDS=Object.keys(AFFIX), SPLIT_MAX=6;
 const hasAff=(e,a)=>!!(e&&e.aff&&e.aff.includes(a));
 const affixN=()=>S.run&&(S.run.tw?S.run.tw>=50:S.run.di>=3)?2:1;
 function giveAffixes(e,n){
-  e.aff=[]; for(let i=0;i<n;i++){ const left=AFFIX_IDS.filter(a=>!e.aff.includes(a)); if(left.length) e.aff.push(pick(left)); }
+  e.aff=[]; for(let i=0;i<n;i++){ const left=AFFIX_IDS.filter(a=>!e.aff.includes(a)&&!(a==='hexing'&&hasKit(e,'hexer'))&&!(a==='shielded'&&hasKit(e,'shield')));   /* a kit never doubles an affix */ if(left.length) e.aff.push(pick(left)); }
   if(e.aff.includes('shielded')) e.shield=Math.round(e.maxHp*.3);
 }
 function affixAll(list){ for(const e of list) if(e.stash&&hasAff(e,'shielded')&&!e.shield) e.shield=Math.round(e.maxHp*.3); else if(!e.aff&&(e.elite||(runHeat()>=2&&!e.boss&&!e.rival&&rowOf(e)==='f'))) giveAffixes(e,e.elite?affixN():1); }   // Brutal and up: one affix on every front-row foe, without elite stats   // after scaling, so the shield matches the final HP
