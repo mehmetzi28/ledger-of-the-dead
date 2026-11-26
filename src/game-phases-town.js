@@ -65,11 +65,11 @@ const BUILD={
   ossuary:{name:'Ossuary', desc:'+'+B_OSS+'% raise chance per level.', now:n=>'+'+B_OSS*n+'% raise chance', step:1},
   altar:  {name:'Altar',   desc:'+'+b100(B_ALT_MANA)+'% max mana per level, and the Bone Altar costs '+b100(B_ALT_COST)+'% less per level.', now:n=>'+'+b100(B_ALT_MANA*n)+'% max mana, Bone Altar '+b100(B_ALT_COST*n)+'% cheaper'}
 };
-const BUILD_MAX=3, BUILD_COST=[[1500,0],[5000,30],[14000,90]];   // [gold, bone dust] for levels 1, 2 and 3
+const BUILD_MAX=5, BUILD_COST=[[1500,0],[5000,30],[14000,90],[30000,180],[60000,300]], SIEGE_OSS_REF=3;   // [gold, bone dust] for levels 1-5 (4 and 5 after the Throne of Ash: game-town2.js); the Ossuary's siege rise is tuned on 3 levels
 const bl=k=>(S&&S.siege&&S.siege.dmg===k)?0:((S&&S.build&&S.build[k])||0);   // a building damaged in a siege works as if unbuilt until repaired
 const buildCost=k=>BUILD[k]&&blRaw(k)<BUILD_MAX&&!(S&&S.siege&&S.siege.dmg===k)?BUILD_COST[Math.max(0,blRaw(k)-(BUILD[k].step||0))]:null;
 function build(k){
-  if(!S||S.mode!=='town'||!BUILD[k]) return false; const c=buildCost(k); if(!c||S.gold<c[0]||(S.dust||0)<c[1]) return false;
+  if(!S||S.mode!=='town'||!BUILD[k]||!bOpen(k)||!buildReady(k)) return false; const c=buildCost(k); if(!c||S.gold<c[0]||(S.dust||0)<c[1]) return false;
   S.gold-=c[0]; S.dust=(S.dust||0)-c[1]; vitals(()=>{ S.build=S.build||{}; S.build[k]=blRaw(k)+1; }); tally('built'); sfx('level'); siegeTick(); return true;
 }
 
@@ -91,7 +91,7 @@ const towerOpen=()=>!!S&&((S.tower&&S.tower.best>0)||(distinctClears()>=OPEN_AT.
 // coming home they fill the army, then the Reserve, and when both are full (a burned Crypt, say) they wait at the gate (S.waiting). A Reserve loaded
 // over its limit is kept as it is; it only takes no one new.
 const reserveOpen=()=>townOpen();
-const reserveMax=()=>RESERVE_BASE+RESERVE_CRYPT*bl('crypt');
+const reserveMax=()=>RESERVE_BASE+RESERVE_CRYPT*bl('crypt')+reserveSpec();   /* Ossuary Halls (game-town2.js) */
 const benched=()=>(S.reserve||[]).concat(S.waiting||[]);
 const armyRoom=()=>armyUsed()<slots();
 const reserveRoom=()=>reserveOpen()&&(S.reserve||[]).length+S.army.filter(m=>m.wall).length+raidHeld(true)<reserveMax();   // the wall's minions keep their Reserve places
@@ -337,8 +337,8 @@ function rollLine(it,skip){ const d=ITEM[it.id], k=pick(rollKeys(d.slot).filter(
 // every temper this piece has had (it.tp; re-rolls and reforges keep it). Uniques cannot be tempered.
 const TEMPER_GOLD=150, TEMPER_STEP=.25, TEMPER_GROW=1.5;   // TEMPER_GOLD 60->150 (2026-11-20): the full bot ran out of lines to temper with ~35k in hand; it is a capped sink (three slots, uniques excluded)
 const rollMax=(it,k)=>Math.max(1,Math.round(ROLL_KEYS[k]*TM[ITEM[it.id].set]));   // rollLine's best roll
-const temperCost=it=>{ const d=ITEM[it.id]; return Math.round(TEMPER_GOLD*(d.tier+1)*(1+.5*d.set)*Math.pow(TEMPER_GROW,it.tp||0)); };
-function temperTo(it,i){ const l=it&&!ITEM[it.id].uq&&it.ro&&it.ro[i]; if(!l) return null; const mx=rollMax(it,l[0]); return l[1]>=mx?null:Math.min(mx,l[1]+Math.max(1,Math.ceil((mx-l[1])*TEMPER_STEP))); }
+const temperCost=it=>{ const d=ITEM[it.id]; return Math.round(TEMPER_GOLD*(d.tier+1)*(1+.5*d.set)*Math.pow(TEMPER_GROW,it.tp||0)*temperK()); };   /* Bonewright (game-town2.js) */
+function temperTo(it,i){ const l=it&&!ITEM[it.id].uq&&it.ro&&it.ro[i]; if(!l) return null; const mx=rollMax(it,l[0]); return l[1]>=mx?null:Math.min(mx,l[1]+Math.max(1,Math.ceil((mx-l[1])*Math.min(1,TEMPER_STEP*temperStep())))); }
 function temper(u,i){
   const it=findItem(u); if(!it||S.mode!=='town'||!workOpen()) return false;
   const v=temperTo(it,i), c=temperCost(it); if(v==null||S.gold<c) return false;
@@ -408,7 +408,7 @@ const SIEGE_WAVE=[['vanguard','vanguard','striker'],['vanguard','striker','mende
 const SIEGE_NAMES=Object.values(SIEGE_FOES).map(f=>f[0]).concat([SIEGE_BOSS]);
 const SIEGE_PERK={
   crypt:  {t:n=>'minions have +'+b100(SIEGE_CRYPT*n)+'% max HP',                         d:'Minions have +'+b100(SIEGE_CRYPT)+'% max HP per level.'},
-  ossuary:{t:n=>'a fallen attacker rises for you at waves 2 and 3, at its level -'+SIEGE_OSS_GAP*(BUILD_MAX+1-n), d:'At the start of waves 2 and 3 one fallen attacker rises to fight for you for the rest of the siege, '+SIEGE_OSS_GAP*BUILD_MAX+' levels below its own at level 1 and '+SIEGE_OSS_GAP+' fewer per level.'},
+  ossuary:{t:n=>'a fallen attacker rises for you at waves 2 and 3, at its level -'+SIEGE_OSS_GAP*Math.max(0,SIEGE_OSS_REF+1-n), d:'At the start of waves 2 and 3 one fallen attacker rises to fight for you for the rest of the siege, '+SIEGE_OSS_GAP*SIEGE_OSS_REF+' levels below its own at level 1 and '+SIEGE_OSS_GAP+' fewer per level.'},
   altar:  {t:n=>'waves 2 and 3 start with +'+b100(SIEGE_ALT*n)+'% mana',                d:'Waves 2 and 3 start with +'+b100(SIEGE_ALT)+'% of your max mana per level.'},
   forge:  {t:n=>'attackers have '+b100(SIEGE_FORGE*n)+'% less armor',                    d:'Attackers have '+b100(SIEGE_FORGE)+'% less armor per level.'}
 };
@@ -424,7 +424,7 @@ function siegeGap(){ let a=(Math.imul(S.day+1,2654435761)^Math.imul(T_('sieges')
 function siegeTick(){   // dawn, load and building: schedule the next siege, and warn the dawn before it
   if(!S||!siegeOpen()) return; const g=sg();
   if(!g.next||g.next<S.day) g.next=S.day+siegeGap();
-  if(S.day===g.next-1&&g.warned!==S.day){ g.warned=S.day; tally('siegeWarned'); notify('The living march on the necropolis tomorrow at dusk. When the day ends they will be at the walls. The Codex has a page on sieges.','bad'); }
+  if(S.day>=g.next-1-bellAhead()&&S.day<g.next&&!(g.warned>=g.next-1-bellAhead())){   /* the Bell Tower warns earlier (game-town2.js) */ g.warned=S.day; tally('siegeWarned'); notify('The living march on the necropolis tomorrow at dusk. When the day ends they will be at the walls. The Codex has a page on sieges.','bad'); }
 }
 function siegeHpMul(m){ return S&&S.run&&S.run.siege&&!m.thrall?1+SIEGE_CRYPT*bl('crypt'):1; }   // the Crypt's perk, for the length of the siege
 function siegeArmorK(){ return 1-SIEGE_FORGE*bl('forge'); }
@@ -448,11 +448,11 @@ function siegeFoe(role,lvl,di,boss,elite){
 }
 function spawnSiege(){   // one wave of the living
   const r=S.run, lvl=siegeLvl(), di=r.di, list=SIEGE_WAVE[r.room].map(k=>k==='boss'?siegeFoe('reaper',lvl+SIEGE_BOSS_LV,di,true,false):siegeFoe(k,lvl,di,false,k==='reaper'));
-  foeScale(list,DIFF.foeAtk[di]); affixAll(list);
+  foeScale(list,DIFF.foeAtk[di]); affixAll(list); townSiegeWave(list,r);   /* the Bell Tower, the Library, the Apothecary (game-town2.js) */
   r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null;
   log('Siege, wave '+(r.room+1)+' of '+r.rooms+'. '+(r.room===r.rooms-1?'The Inquisitor Captain comes through the smoke.':r.room?'More of the living climb the walls.':'Torches at the walls. The living have come for you.'));
   if(r.room&&bl('altar')){ const P=S.player, n=Math.round(pMana()*SIEGE_ALT*bl('altar')); P.mana=Math.min(pMana(),P.mana+n); log('The Altar answers: +'+n+' mana.','ok'); }
-  if(r.room&&bl('ossuary')&&r.fallen&&r.fallen.length){ const c=r.fallen.splice(Math.floor(Math.random()*r.fallen.length),1)[0], lv=Math.max(1,c.lvl-SIEGE_OSS_GAP*(BUILD_MAX+1-bl('ossuary')));
+  if(r.room&&bl('ossuary')&&r.fallen&&r.fallen.length){ const c=r.fallen.splice(Math.floor(Math.random()*r.fallen.length),1)[0], lv=Math.max(1,c.lvl-SIEGE_OSS_GAP*Math.max(0,SIEGE_OSS_REF+1-bl('ossuary')));
     const m={uid:++S.uid,armed:false,eq:null,nick:freeNick(),name:c.name,kind:c.base,role:c.role,rankI:c.rankI,lvl:lv,lvl0:lv,xp:0,boss:false,elite:false,hf:c.hf,af:c.af,hp:1,maxHp:null,atk:0,stage:0,traits:[],thrall:true};
     syncMinion(m); m.hp=m.maxHp; S.army.push(m); log('The Ossuary stirs: '+m.nick+', once '+withArticle(c.base)+', rises to fight for you tonight.','ok'); }
   roomStart(list); if(liveFoes().some(e=>e.boss)) fxe('boss',list[0]);   /* a wave is a fresh fight: Swift, Stitched, room wards, pacts (roomStart plans the foes) */
@@ -472,13 +472,13 @@ function nextWave(){   // between waves: the usual between-room heal, then the n
   r.cd={}; r.frenzy=0; r.silence=0; r.event=null; r.doors=null; allies().forEach(clearAll); r.room++; r.roomKind='fight';
   const ev=r.events; spawnSiege(); for(const x of ev) log(x.m,x.c==='bad'?'bad':'ok');
 }
-const siegeGoldPay=()=>{ const di=siegeGate(), lv=RK[di].lv+1; return Math.round(SIEGE_GOLD*20*(1+lv*.5)*(1+di*.5)*ngpReward()); };   // a clear is about 20 kills' worth of coin at the gate's level
+const siegeGoldPay=()=>{ const di=siegeGate(), lv=RK[di].lv+1; return Math.round(SIEGE_GOLD*20*(1+lv*.5)*(1+di*.5)*ngpReward()*siegePayK()); };   /* the War Room, the Belfry */   // a clear is about 20 kills' worth of coin at the gate's level
 function siegeWon(r){   // the last wave falls: pay, and the raise screen for its bodies
-  const di=r.di, g=siegeGoldPay(), d=Math.round(SIEGE_DUST*(6+Math.floor(S.player.lvl/4))*(1+BOUNTY_GATE*di)); r.cleared=true; S.quest.clears++;
+  const di=r.di, g=siegeGoldPay(), d=Math.round(SIEGE_DUST*(6+Math.floor(S.player.lvl/4))*(1+BOUNTY_GATE*di)*siegeDustK()); r.cleared=true; S.quest.clears++;
   S.gold+=g; S.dust=(S.dust||0)+d; tally('sieges'); tally('siegeWins'); sg().pending=false; sg().next=0;   /* settled: a reload from the raise screen does not fight it again */
   const id=pickNorm(tableFor(di,'reaper',true,false).filter(x=>!ITEM[x.id].uq&&(ROLL_LINES[ITEM[x.id].tier]||[0])[0]>0)), it=addItem(id,rollItem(id,true));   /* a tier that can carry a bonus line */
   if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name);
-  r.siegePay={g,d,item:it?ITEM[id].name:null};
+  r.siegePay={g,d,item:it?ITEM[id].name:null}; townSiegeWon(r);   /* the Embalmery keeps a body */
   r.events.push({m:'The living break and run. The town will remember this night. +'+g+' gold, +'+d+' bone dust'+(it?' and '+withArticle(ITEM[id].name)+' from the dead':'')+'.',c:'ok'});
   if(sg().guard&&BUILD[sg().guard]) r.events.push({m:'The '+BUILD[sg().guard].name+' stood under your guard all night.',c:'ok'});
   moment('The necropolis holds','gold'); return Math.round(RK[di].clear*SIEGE_XP);

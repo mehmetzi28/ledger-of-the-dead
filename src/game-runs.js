@@ -68,7 +68,7 @@ function startRun(di){
   if(S.mode!=='town'||S.watches<=0||!RK[di]||gateLocked(di)) return;
   S.watches--; S.runs++; S.notices=[];
   S.run={di,room:0,rooms:di===ABBEY?ABBEY_ROOMS:4,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:gateMod(di),heat:heatOf(di)};
-  S.mode='battle'; titheSouls(); prepTake(S.run); prepSoul(S.run);   /* run prep, the black market's Soul (game-brew.js) */
+  S.mode='battle'; titheSouls(); prepTake(S.run); prepSoul(S.run); townStart(S.run);   /* run prep, the black market's Soul (game-brew.js), the Soul Well (game-town2.js) */
   log('You step through the '+DUNGEONS[di].name+' gate.'+(S.run.mod?' It is cursed today: '+MODS[S.run.mod].name+'.':''));
   if(di===ABBEY) unlockStory('abbey3',S.run);
   spawnRoom();
@@ -81,7 +81,7 @@ function mark(u,d,h){ const id=fxKey(u); if(id==null) return; const f=S.run.fx[i
 function hit(b){ return Math.max(1,Math.round(b*rnd(.85,1.15))); }
 function hurtFoe(e,d,ty){ if(abbeyMiss(e)) return; ty=MARGIN||(DTYPE[ty]?ty:'phys');   /* an Unwritten foe; a Marginalia skill (game-abbey.js) */ if(e.curse) d=Math.round(d*e.curse.mul); { const mk=masteryDmg(e.base); if(mk) d=Math.round(d*(1+mk/100)); }   /* bestiary mastery: every hit from you and your army, once */ if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25); if(e.stun>0&&capOn('frost1')) d=Math.round(d*CAP_RIME);
   if(hasSt(e,'sundered')) d=Math.round(d*SUNDER_MUL); if(hasSt(e,'chilled')) d=Math.round(d*CHILL_MUL);   // conditions (game-gate-rules.js)
-  { const k=(1-foeRes(e,ty))*typeDmg(ty)*oilK(e,ty); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
+  { const k=(1-foeRes(e,ty))*typeDmg(ty)*oilK(e,ty)*archiveK(e); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
   e.lt=ty;   /* the type of the last hit it took (a weakness kill) */
   d=bossTaken(e,kitTaken(e,d));   /* Heartwood (game-boss-kits.js) */   /* Bulwark stance, a Banner-bearer beside it (game-kits.js) */
   if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e,0,0); return; } }   // Bone Wall shield soaks damage first
@@ -122,7 +122,7 @@ function healAlly(a,h){
 }
 function killXp(e){ return Math.round((4+e.lvl*2.5)*RK[e.rankI].xp*(e.boss?2.5*(omen()==='ashfall'?OMEN_BOSS_XP:1):1)*(e.elite?1.5:1)*(e.tw?1+e.tw/12:1)*(e.secret?SB_REWARD:1)*(e.rival?RIVAL_GOLD:1)*ngpReward()*(runMod()?MOD_XP:1)*heatK('xp')*(1+xb('xpp')/100)*(e.living?SIEGE_XP:1)*((e.boss||e.elite)&&hasMod('scholar','a')?INSIGHT:1)*(S.run&&S.run.sweep?SWEEP_XP:1)); }   // Insight
 function studyFoe(name){   // count a kill toward studying this kind of foe (its drop table opens in the bestiary)
-  const notes=hasMod('scholar','b')&&(tally('notes'),T_('notes')%2===0), n0=S.kills[name]||0, n=S.kills[name]=n0+(notes?2:1)+(Math.random()*100<xb('studyp')?1:0);   /* the Scribe's Regalia: some kills count twice */   // Field Notes: every second kill counts twice
+  const notes=hasMod('scholar','b')&&(tally('notes'),T_('notes')%2===0), n0=S.kills[name]||0, n=S.kills[name]=n0+(notes?2:1)+(Math.random()*100<xb('studyp')?1:0)+(libStudy()>0&&Math.random()*100<libStudy()?1:0);   /* the Library (game-town2.js) */   /* the Scribe's Regalia: some kills count twice */   // Field Notes: every second kill counts twice
   const hit=at=>n0<at&&n>=at;
   if(hit(KNOW_AT)) notify('Bestiary: you have studied '+name+'. Its drop table is now known.','ok');
   for(const x of masteryRungs(name)) if(x.t.id!=='studied'&&hit(x.at)) notify('Mastery: '+name+' is now '+x.t.name+'. '+masteryGives(x.t)+'.','ok');
@@ -417,7 +417,7 @@ function raiseChance(c){
   if(soulBound(c)) return 0;
   if(firstRaise()) return 100;
   let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+4*sk('mastery')+B_OSS*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*RAISE_LV-RK[c.rankI].pen;
-  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+(hasInsc('many')?INSC_RAISE:0)+incRaise();
+  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+(hasInsc('many')?INSC_RAISE:0)+incRaise()+townRaise(c);
   return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
 }
 const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*(hasFlag('cheapraise')?.5:1)*(hasMod('mastery','b')?.75:1)*(1-.06*sk('thrift')));

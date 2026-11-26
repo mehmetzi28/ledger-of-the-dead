@@ -46,7 +46,8 @@ const HF_POW={   // the minor powers of the secret masters and the Hunger (a thi
 const powOf=boss=>Object.keys(HF_POW).find(k=>HF_POW[k].boss===boss)||null;
 const hfPow=id=>!!(S&&S.equip)&&Object.values(S.equip).some(it=>it&&it.pw===id);
 // where a heart comes from: its gate (the piece's set), its forging price and how many lines it gives
-function hfInfo(boss){
+function hfInfo(boss){ const I=hfInfo0(boss); if(I&&hfTownK()!==1){ I.gold*=hfTownK(); I.dust=Math.round(I.dust*hfTownK()); } return I; }   // the Great Forge (game-town2.js)
+function hfInfo0(boss){
   if(!HF_LINES[boss]) return null;
   const gi=DUNGEONS.findIndex(D=>D.boss[0]===boss), tw=TW_BOSS.indexOf(boss), si=SECRET.findIndex(B=>B.name===boss);
   if(gi===ABBEY) return {boss,set:ABBEY,m:TM[ABBEY],gold:40000,dust:150,n:3,pw:'hungry'};
@@ -86,7 +87,7 @@ function forgeTower(slot){
   if(S.mode!=='town'||towerTrophies()<TW_FORGE_N||S.gold<TW_FORGE_GOLD||S.inv.length>=bagMax()||!SLOTS[slot]) return null;
   const pool=Object.values(ITEM).filter(d=>!d.uq&&!d.tower&&d.set===5&&d.slot===slot); if(!pool.length) return null;
   S.gold-=TW_FORGE_GOLD; spendTrophies(Object.keys(S.trophies).filter(k=>k.startsWith('t:')),TW_FORGE_N,()=>1);
-  const id=pick(pool).id; let ro=rollItem(id,true)||[]; const extra=Math.random()<TW_EXTRA;
+  const id=pick(pool).id; let ro=rollItem(id,true)||[]; const extra=Math.random()<TW_EXTRA+smithK();
   if(extra){ const left=rollKeys(slot).filter(k=>!ro.some(r=>r[0]===k)); if(left.length){ const k=pick(left); ro=ro.concat([[k,Math.max(1,Math.round(ROLL_KEYS[k]*TM[5]*rnd(.5,1)))]]); } }
   const it=addItem(id,ro.length?ro:null); sfx('level'); if(extra) tally('master'); return {it,extra};
 }

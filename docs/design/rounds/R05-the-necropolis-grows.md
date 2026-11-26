@@ -155,3 +155,41 @@ else the reward the bot values most that day.
 - **Upkeep feels like a tax**: it starts only past level 2 and is shown before building ("adds 120 gold a day").
 - **Ten buildings overwhelm**: they open over time (section 2.2's Opens column) and the first hour still sees one.
 - **Dread punishes raising**: raising adds only +2 per 20; sieges won pull it back. The default bot sits in Uneasy.
+
+## As built (PR A)
+
+- Code in `src/game-town2.js` (loaded last). `BUILD_MAX` 5, `BUILD_COST` adds 30k+180 and 60k+300; levels past
+  `B4_LOCK` (3) need the Throne of Ash (`buildReady`). Seven buildings join `BUILD`, each with an `open` test (`bOpen`):
+  Charnel Yard (town open), Library (3 gates cleared), Embalmery (4), Bell Tower (a siege warned), Apothecary (Forge 2),
+  War Room (a raid sent), Temple (an oath sworn). The Town tab lists only open buildings.
+- Specializations (`SPEC`, `S.spec[k][3|5]`, `chooseSpec`, `hasSpec`) for the ten buildings with picks; the Temple has
+  none until R8. Picks that needed systems not built yet were replaced with plain numbers: Smithy (+10% masterwork, the
+  Tower forge an extra line), Bonewright (temper 25% cheaper), Great Forge (heart-forging 25% cheaper), Tempering Pit
+  (each temper moves twice as far), Deep Ossuary (+5% on every raise), Bone Altar (Bone Altar 25% cheaper), Black Altar
+  (+10% max mana), Grave Altar (a Soul when a boss falls), Catacombs (the Yard trains twice as fast), Drill Yard (+50%
+  Yard XP), Bone Pits (Yard up to the army's top level), Yard of Heroes (the Yard also trains the army's three weakest),
+  Reading Room (+1 stat point, once; spec's Scriptorium), Archive (study counts twice 50% more often), Preservers (bodies
+  keep 3 days longer), Grand Embalmery (kept bodies +15%), Grave Garden (a kept body rises 3 levels higher, never past
+  your level + 2), Watchtower (attackers 5% softer), Toll of the Dead (twice the siege dust, until dread exists), Iron
+  Bells (the Captain 15% less HP), Distillery (each brew makes two), Plague Kitchen (a Healing Draught mends the army
+  15%), Map Table (raids +25% gold), Generals' Hall (raids +5%), Spy Network (the rival steals half as often).
+- The Charnel Yard (`yardDawn`, at `closeDay`) trains the Reserve 4% of a level per Yard level each dawn, never past the
+  army's top level - `YARD_GAP` (2); Grave Market sells a Reserve minion (`yardSell`, 150 x level x stage, x3 bosses).
+- The Library: kills count twice for study 20% per level (`libStudy`); the respec (`respec`, Library 2) returns every
+  stat point, free the first time, then 500 x level gold and 20 dust, once a week.
+- The Embalmery: one untried body a run (two with Body Thieves) is kept from the raise screen ("Keep for the
+  Embalmery"); it holds 2 + level bodies, which spoil after 3 + level days; `embRaise` raises one in town (no mana
+  spent) with +5% per level; a full army sends it to the Reserve, and with both full it waits.
+- The Temple at level 5 calls a new omen once a week (`callOmen`); the second boon waits for R8.
+- Siege perks (`SIEGE_PERK`): Yard minions on the wall +5% HP per level, the Library and Bell Tower weaken the Captain
+  and the attackers 3% per level, the Apothecary mends you 4% per level before waves 2 and 3, the War Room pays 4% more
+  per level, the Embalmery keeps one fallen attacker. Dread, orders, upkeep and the Bell Tower's wall defenses are PR B.
+- The full bot (`townPolicy`, `BOT_SPEC`) builds every open new building while 5,000 gold stays in hand, picks a fixed
+  spec per building, keeps the best untried body and raises kept bodies in town (`"off":["town2"]`, `["embalm"]`).
+- Measured (seeds 7700/9100, 40 bots x 100 days): market unchanged (89/90%, Tower 78.6/77.1). Full 91/91%, Tower
+  86.6/86.5, Rift 13.6/13.1, sieges 87/83%, rival 67/76%, raids 81/80%. With `"off":["town2","embalm"]`: 91%, Tower 86.1,
+  Rift 12.5, sieges 86%. The bot raises about 20 new-building levels and makes 9-10 picks a game (most buildings reach 3,
+  the old four 4), raises ~200 kept bodies, and holds ~19k gold at day 100: the new levels absorb gold that went to
+  headstones before.
+- Tests: `92-buildings` (9) and `93-yard-reserve` (10).
+

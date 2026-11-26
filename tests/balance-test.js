@@ -125,6 +125,7 @@
       if(B.full){
         if(typeof repairBuilding==='function'&&S.siege&&S.siege.dmg) repairBuilding();   // a building burned in a siege: repair it first
         if(townOpen()) for(const k of ['crypt','ossuary','altar','forge']){ const c=buildCost(k); if(!B.off[k]&&c&&S.gold-c[0]>=reserve) build(k); }
+        if(townOpen()&&!B.off.town2&&typeof townPolicy==='function') townPolicy(B,reserve);   // the R5 buildings and specializations ("off":["town2"])
         if(!B.off.enchant) for(const sl of GEAR_SLOTS){ const it=S.equip[sl]; if(it&&!ITEM[it.id].uq) while((it.ro||[]).length<lineMax(it)&&enchant(it.u,-1)); }
         if(!B.off.awaken&&typeof awaken==='function') for(let g=0;g<25;g++){   // awakening: the cheapest rank of a worn unique while 10000 gold stays in hand ("off":["awaken"])
           const c=GEAR_SLOTS.map(sl=>S.equip[sl]).filter(it=>it&&canAwaken(it)).sort((a,b)=>awakenCost(a).g-awakenCost(b).g)[0];
@@ -229,6 +230,7 @@
       }
       tryRaise(c.id, typeof S.salts==='number'&&S.salts>0&&(c.boss||c.elite));   // salts on the bodies worth the most
     }
+    if(B&&B.full&&!B.off.embalm&&typeof embCan==='function') for(const c of r.corpses.filter(c=>!c.tried&&!c.boss).sort((a,b)=>cval(b)-cval(a))) if(embCan(c)&&cval(c)>=Math.min(...S.army.map(cval),99)) embKeepId(c.id);   // the Embalmery: the best body left untried goes home
     for(const c of r.corpses) if(c.tried&&!c._z&&(c.result==='raised'||c.result==='failed')){ c._z=1; RZ.t++; if(c.result==='raised') RZ.ok++; }   // raise attempts and successes (the report's raise rate; bodies spent by Corpse Explosion or taken by the rival are not attempts)
   }
   // between-room events and event chains ('full' only; "off":["events"] walks past them all, as the other modes do): what a careful player
@@ -251,7 +253,16 @@
       for(const boss of hs){ const I=hfInfo(boss), c=hfCost(boss); if(S.gold-c.g<3000||(S.dust||0)<c.d) continue;
         const lines=hfLinesFor(boss,sl).sort((a,b)=>pref.indexOf(a)-pref.indexOf(b)).slice(0,I.n-(I.pw?1:0)); const it=heartforge(boss,sl,lines); if(it){ equip(it.u); HFC.n++; HFC.g+=c.g; } break; } }
   }
-  function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), incense, a Second Draft and a Banner of Courage armed; draughts on the belt; fill trophy commissions; trade dust, wardens and a Soul at the black market
+  // R5: the second ring of buildings, their specializations, the Embalmery and the Grave Market
+const BOT_SPEC={crypt:{3:'b',5:'b'},forge:{3:'a',5:'a'},ossuary:{3:'b',5:'b'},altar:{3:'a',5:'b'},yard:{3:'b',5:'a'},library:{3:'a',5:'a'},embalm:{3:'b',5:'a'},bell:{3:'b',5:'a'},apoth:{3:'a',5:'b'},war:{3:'a',5:'a'}};
+const TW2C={n:0,spec:0,emb:0,omen:0};
+function townPolicy(B,reserve){
+  for(const k of ['yard','library','embalm','apoth','war','bell','temple']){ if(B.off[k]||!bOpen(k)) continue; const c=buildCost(k); if(c&&S.gold-c[0]>=Math.max(reserve,5000)&&build(k)) TW2C.n++; }
+  for(const k in SPEC) for(const lv of specPend(k)) if(chooseSpec(k,lv,(BOT_SPEC[k]||{})[lv]||'a')) TW2C.spec++;
+  if(!B.off.embalm) for(let i=(S.embalm||[]).length-1;i>=0;i--){ if(!armyRoom()&&!reserveRoom()) break; if(embRaise(i)) TW2C.emb++; }
+  if(typeof omenReady==='function'&&omenReady()&&dayOmen().id&&/drought|plague|still/i.test(dayOmen().id)&&callOmen()) TW2C.omen++;
+}
+function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), incense, a Second Draft and a Banner of Courage armed; draughts on the belt; fill trophy commissions; trade dust, wardens and a Soul at the black market
     const keep=3000, mk=id=>{ if(S.gold-brewGold(id)<keep) return false; const g=S.gold; if(brewIt(id)){ BRC.n++; BRC.g+=g-S.gold; return true; } return false; };
     commissions().forEach((c,i)=>{ if(c.k==='tro'){ const p=commFill(i); if(p){ BRC.comm++; BRC.commG+=p.g; } } });
     if(bmOpen()){ for(const k of ['dust','warden']) if(bmTrade(k)) BRC.bm++; if(S.gold>20000&&bmTrade('soul')) BRC.bm++; }
@@ -326,7 +337,7 @@
   }
   function simBot(seed,B,days){
     Math.random=mulberry32(seed); newGame(); B.statI=0; B.hw={}; B.hwDay={}; if(typeof BOSS_KITS_ON!=='undefined') BOSS_KITS_ON=!B.off.bosskits;   /* 'bosskits' off: the old single boss moves */
-    let abbeyDay=null; HFC.n=0; HFC.g=0; BRC.n=0; BRC.g=0; BRC.comm=0; BRC.commG=0; BRC.bm=0; const rec=[], lvAt={}, firstClear={}, loreAt={}, tiers=[], trials=[], goldAt={}, gl={earn:0,spend:0,S:null};
+    let abbeyDay=null; HFC.n=0; HFC.g=0; TW2C.n=0; TW2C.spec=0; TW2C.emb=0; TW2C.omen=0; BRC.n=0; BRC.g=0; BRC.comm=0; BRC.commG=0; BRC.bm=0; const rec=[], lvAt={}, firstClear={}, loreAt={}, tiers=[], trials=[], goldAt={}, gl={earn:0,spend:0,S:null};
     const goldWatch=()=>{ if(gl.S===S) return; gl.S=S; let v=S.gold||0; Object.defineProperty(S,'gold',{enumerable:true,configurable:true,get:()=>v,set:x=>{ if(x>v) gl.earn+=x-v; else gl.spend+=v-x; v=x; }}); };   // lifetime gold earned and spent
     while(S.day<=days){
       goldWatch();
@@ -353,7 +364,7 @@
     const rival={met:T_('rivalMet'),wins:T_('rivalWins'),losses:T_('rivalLosses'),thefts:T_('rivalThefts'),day:(S.rival&&S.rival.met)||0};
     const head=typeof headBonus==='function'?{g:T_('headG'),t:headTiers(),b:headBonus()}:null;
     const awk={g:T_('awakenG'),n:T_('awakened')};   // awakening ranks bought and their gold
-    return {hf:{n:HFC.n,g:HFC.g},brew:{n:BRC.n,g:BRC.g,comm:BRC.comm,commG:BRC.commG,bm:BRC.bm,prep:T_('prepUsed')},abbeyDay,abbeyEnd,abbeyProbe,trials,ev:B.ev||{},chainsEnded:T_('chains'),head,awk,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
+    return {town2:{n:TW2C.n,spec:TW2C.spec,emb:TW2C.emb,omen:TW2C.omen,yard:T_('yardSold'),lv:Object.fromEntries(Object.keys(BUILD).map(k=>[k,blRaw(k)]))},hf:{n:HFC.n,g:HFC.g},brew:{n:BRC.n,g:BRC.g,comm:BRC.comm,commG:BRC.commG,bm:BRC.bm,prep:T_('prepUsed')},abbeyDay,abbeyEnd,abbeyProbe,trials,ev:B.ev||{},chainsEnded:T_('chains'),head,awk,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
   }
 
   // ----- reporting
@@ -387,6 +398,7 @@
     gold.maus=avg(res.map(r=>r.maus||0)); gold.bonds=avg(res.map(r=>r.bonds||0));   // mausoleums raised and bonded pairs at the end
     { const f=res.map(r=>r.hf).filter(Boolean); if(f.some(x=>x.n)) gold.hforge={n:avg(f.map(x=>x.n)),spent:Math.round(avg(f.map(x=>x.g)))}; }
     { const f=res.map(r=>r.brew).filter(Boolean); if(f.some(x=>x.n||x.comm)) gold.brew={n:avg(f.map(x=>x.n)),spent:Math.round(avg(f.map(x=>x.g))),comm:avg(f.map(x=>x.comm)),commG:Math.round(avg(f.map(x=>x.commG))),bm:avg(f.map(x=>x.bm)),prep:avg(f.map(x=>x.prep))}; }
+    { const f=res.map(r=>r.town2).filter(Boolean); if(f.length&&f.some(x=>x.n||x.spec)) gold.town2={n:avg(f.map(x=>x.n)),spec:avg(f.map(x=>x.spec)),emb:avg(f.map(x=>x.emb)),omen:avg(f.map(x=>x.omen)),lv:Object.keys(f[0].lv).map(k=>k+' '+avg(f.map(x=>x.lv[k]||0))).join(', ')}; }
     { const a=res.map(r=>r.awk).filter(Boolean); if(a.some(x=>x.n)) gold.awaken={spent:Math.round(avg(a.map(x=>x.g))),ranks:avg(a.map(x=>x.n))}; }
     { const h=res.map(r=>r.head).filter(Boolean); if(h.some(x=>x.g)) gold.headstones={spent:Math.round(avg(h.map(x=>x.g))),medianSpent:med(h.map(x=>x.g)),tiers:avg(h.map(x=>x.t)),hpBonus:avg(h.map(x=>x.b*100))+'%'}; }   // headstones ('full'): gold spent, tiers and the max HP bonus at the end, per bot
     const events={}; for(const r of res) for(const k in r.ev||{}) events[k]=(events[k]||0)+r.ev[k];   // events met by id:choice (summed over bots), and ok/bad outcomes

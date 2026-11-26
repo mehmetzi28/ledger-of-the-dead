@@ -14,8 +14,8 @@ FAITH.dis.bless={name:'Tithe of Souls',desc:'Every run begins with '+TITHE_SOULS
 const blessed=id=>faithOf()===id&&devotion()>=DEVOTION.length-1;
 function titheSouls(){ if(blessed('dis')&&S.run){ S.run.souls=Math.max(S.run.souls||0,Math.min(SOUL_MAX,TITHE_SOULS)); } }
 const faithOf=()=>(S&&S.faith&&FAITH[S.faith.id])?S.faith.id:null;
-const devotion=()=>{ if(!faithOf()) return 0; const d=S.day-S.faith.day; return d>=DEVOTION[2]?2:d>=DEVOTION[1]||hasInsc('faithful')?1:0; };   /* Of the Faithful: a new oath starts at the second rank */
-const faithBuff=id=>{ const F=FAITH[id], m=faithOf()===id?DEVOTION_MUL[devotion()]:1, o={}; for(const k in F.buff) o[k]=Math.round(F.buff[k]*m); return o; };
+const devotion=()=>{ if(!faithOf()) return 0; const d=(S.day-S.faith.day)*templeDev(); return d>=DEVOTION[2]?2:d>=DEVOTION[1]||hasInsc('faithful')?1:0; };   /* Of the Faithful: a new oath starts at the second rank */
+const faithBuff=id=>{ const F=FAITH[id], m=(faithOf()===id?DEVOTION_MUL[devotion()]:1)*(faithOf()===id?templeBuff():1), o={}; for(const k in F.buff) o[k]=Math.round(F.buff[k]*m); return o; };
 const faithB=k=>{ const id=faithOf(); if(!id) return 0; return (faithBuff(id)[k]||0)+(FAITH[id].debuff[k]||0); };
 const renounceCost=()=>100*S.player.lvl;
 function swear(id){ if(S.mode!=='town'||!FAITH[id]||faithOf()||!faithOpen()) return false; vitals(()=>{ S.faith={id,day:S.day}; }); tally('sworn'); return true; }
@@ -64,7 +64,7 @@ const skB=k=>{ if(!S||!S.player) return 0;
 const skMod=id=>(sk(id)>=SK_MAX&&S.player.skMod&&S.player.skMod[id])||null;
 const hasMod=(id,c)=>skMod(id)===c;
 function chooseMod(id,c){ const P=S.player; if(S.mode!=='town'||!SKILL_MODS[id]||!SKILL_MODS[id][c]||sk(id)<SK_MAX||skMod(id)) return false; vitals(()=>{ P.skMod=P.skMod||{}; P.skMod[id]=c; }); return true; }
-const skCost=s=>(hasMod('deathless','a')?Math.round(s.cost*DEEP_WELL):s.cost)*(S&&S.mode==='battle'&&S.run?naveK():1)*(marginReady()||hfFree()?0:1);   // Deep Well; the Bishop's Echoing nave; Marginalia (game-abbey.js)   // Deep Well; the Bishop's Echoing nave
+const skCost=s=>(hasMod('deathless','a')?Math.round(s.cost*DEEP_WELL):s.cost)*(S&&S.mode==='battle'&&S.run?naveK():1)*(marginReady()||hfFree()?0:1)*skillK();   /* Blood Altar (game-town2.js) */   // Deep Well; the Bishop's Echoing nave; Marginalia (game-abbey.js)   // Deep Well; the Bishop's Echoing nave
 const siphonCost=()=>hasMod('soulwell','b')?6:8;   // Soul Siphon: see the SOULS block for its armor piercing and Souls
 
 // ===== MINION COMMANDS =====
@@ -370,4 +370,4 @@ const mausN=()=>S&&S.memorial?Math.min(MAUS_MAX,S.memorial.filter(e=>e.maus).len
 const mausCost=()=>MAUS_COST[mausN()]||0;
 const canMaus=e=>!!e&&!e.maus&&S.mode==='town'&&mausN()<MAUS_MAX&&S.gold>=mausCost();
 function raiseMaus(i){ const e=(S.memorial||[])[i]; if(!canMaus(e)) return false; S.gold-=mausCost(); e.maus=1; tally('maus'); syncArmy(); sfx('raise'); return true; }
-const extraMul=(m,k)=>(k==='atk'?bondMul(m):1+headBonus()+fallenK())*(1+MAUS_K*mausN())*(1+chainK());   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
+const extraMul=(m,k)=>(k==='atk'?bondMul(m):(1+headBonus()+fallenK())*townHpK(m))*(1+MAUS_K*mausN())*(1+chainK());   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)

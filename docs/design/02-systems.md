@@ -325,8 +325,21 @@ Harvest omen.
 **The Market** (`marketHTML`): 4 pieces of stock a day from your top two gates, potions, Grave Salts (max 3), bag
 upgrades, and the Bone Altar (pay gold to level a minion, up to your level + 2).
 
-**Buildings** (`BUILD`): Crypt (+1 army slot and cap, +2 Reserve), Forge (reforge and enchant 15% cheaper), Ossuary
-(+3% raise chance), Altar (+5% mana, Bone Altar 12% cheaper). Three levels each (1.5k / 5k + 30 dust / 14k + 90 dust).
+**Buildings** (`BUILD`, `src/game-town2.js`): Crypt (+1 army slot and cap, +2 Reserve), Forge (reforge and enchant 15%
+cheaper), Ossuary (+3% raise chance), Altar (+5% mana, Bone Altar 12% cheaper), and seven that open as the town grows:
+Charnel Yard (town open: the Reserve gains 4% of a level per Yard level each dawn, never past the army's top level -2),
+Library (3 gates cleared: 20% of kills per level count twice for study; from level 2 a stat respec, the first free, then
+500 gold per hero level and 20 dust, once a week), Embalmery (4 gates cleared: keep one untried body a run, raise it in
+town later at +5% per level; it keeps 3 days + 1 per level, the Embalmery holds 2 + level), Bell Tower (first siege
+warned: the warning comes a dawn earlier per two levels), Apothecary (Forge 2: potions and brewing 10% cheaper per
+level, +1 belt at level 3), War Room (first raid sent: +1 raid follower at levels 1, 3 and 5, raids +2% per level) and
+Temple (an oath sworn: devotion 10% faster per level, gifts +25% at level 3, call a new omen once a week at level 5).
+Five levels each (1.5k / 5k + 30 dust / 14k + 90 dust / 30k + 180 / 60k + 300); levels 4 and 5 need the Throne of Ash.
+**Specializations** (`SPEC`): at levels 3 and 5 each building but the Temple offers one of two picks, final for the cycle
+(the Town tab lists both with what they do; the Codex's town page lists all forty). **Siege perks**: every new building but
+the Temple helps on siege nights (attackers 3% weaker per Bell level, the Captain 3% weaker per Library level, Yard
+minions on the wall +5% HP per level, the Apothecary's salves before waves 2 and 3, the War Room's pay, the Embalmery
+keeping a fallen attacker).
 
 **Bounty board** (`BOUNTIES`): up to 3 contracts, one new each dawn, never expiring: kills, elites, raises, rooms,
 bosses, the cursed gate, a flawless clear, arches, orders, Tower floors, poisonings. Pay gold, salts, dust or gear,
@@ -339,7 +352,8 @@ gate-C+ trophies for 50 dust, 8 Tower trophies for a warden's heart, a master's 
 1,500 gold and 5 dust for a Soul on your next run.
 
 **Sinks, in the order a player meets them**: potions and salts, bag, Bone Altar, reforging, buildings, fusion,
-tempering, honour, Awakening, heart-forging, mausoleums, headstones (the only uncapped one).
+tempering, honour, Awakening, heart-forging, brewing, building levels 4-5, the Library respec, mausoleums, headstones
+(the only uncapped one).
 
 ## 2.7 Content and modes
 

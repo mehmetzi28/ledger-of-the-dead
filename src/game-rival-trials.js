@@ -32,7 +32,7 @@ const distinctClears=()=>Object.keys((S.ti&&S.ti.clr)||{}).filter(k=>S.ti.clr[k]
 let rivalOpen=()=>!!S&&!!S.player&&(distinctClears()>=RIVAL_AT||(!!(S.rival&&S.rival.met)&&distinctClears()>=3));   // let: the balance bot switches the rival off with "off":["rival"]
 function dayHash(){ let a=0x9e3779b9; for(const x of arguments){ a=Math.imul(a^(x|0),2654435761)>>>0; a^=a>>>15; } a=Math.imul(a,2246822519)>>>0; return (a^(a>>>13))>>>0; }
 const rivalGap=salt=>RIVAL_GAP[0]+dayHash(S.day,salt,T_('rivalWins'),S.ngp||0,11)%(RIVAL_GAP[1]-RIVAL_GAP[0]+1);
-const theftGap=()=>(RIVAL_THEFT[0]+dayHash(S.day,T_('rivalThefts'),S.ngp||0,23)%(RIVAL_THEFT[1]-RIVAL_THEFT[0]+1))*(hasInsc('rival')?2:1);   /* Of the Rival */
+const theftGap=()=>(RIVAL_THEFT[0]+dayHash(S.day,T_('rivalThefts'),S.ngp||0,23)%(RIVAL_THEFT[1]-RIVAL_THEFT[0]+1))*(hasInsc('rival')?2:1)*spyK();   /* Of the Rival; the Spy Network (game-town2.js) */
 const rivalGates=()=>DUNGEONS.map((D,i)=>i).filter(i=>i<GATE_N&&S.ti&&S.ti.clr&&S.ti.clr[i]&&S.player.lvl>=RK[i].unlock);
 function rivalMeet(r){   // the third distinct clear: a name (once per save), a passage in the Ledger voice, a notice
   if(!rivalOpen()) return false; const g=rv(); if(g.name&&g.met) return false;
