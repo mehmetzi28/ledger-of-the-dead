@@ -49,6 +49,25 @@ the Codex, bestiary and defeat recap read the same table.
   and Called Shot; new columns `bossWin` and `bossActs`.
 - Measured: about 1 point of clears, no retune (04-balance.md).
 
+### As built (PR B)
+
+- Secret masters: `giveMasterKit` after their single move; they keep Sundering Blow between their moves (they start in
+  phase two) and their second rule wakes at half HP (`HALVES`, `e.half`). Simplifications: the Choir Eternal is one body
+  (Verse of Binding, Crescendo, Echoes summoning two Hollow Choristers) and its Last Note brings its moves a turn sooner;
+  Brood calls Marrow Mites that bite instead of mending; Unwriting silences all of a minion's traits for the fight
+  (`m.unw`).
+- Tower wardens: `wardenKit(f)` = the signature and the borrowed gate move; Abaddon all nine signatures and The Other
+  Half; abyssal wardens two signatures and the gate move, chosen by floor. Wardens keep Sundering Blow in phase two.
+  Simplifications: Three Heads is three bites in one turn; Swarm Cloud makes your minions (not you) miss; Dirge doubles
+  the damage of your side's wounds; Halo reflects skill damage onto you (`SKILLHIT`).
+- Tuned after a duel probe at day 50 (it also showed that a bot army with no front row is one-shot by any master):
+  flood 20%, regrowth 2.5% (5% at half), Crescendo 8% + 4% a verse, Decree of Nothing 40%, and the Edict of Ash at most
+  twice a fight. Tower: no retune needed.
+- Titles (7, not 6): one per gate boss for beating its twist without a minion falling (`ub_0`..`ub_5`; the Rat King's
+  needs Hard, where his phase two happens), and Ten Faces (`tf_0`..`tf_9`).
+- Deferred: trading secret-master hearts at the Bone Altar waits for heart-forging in R4.
+- Tests: group `83-masters-wardens` (6 tests) in place of 84.
+
 ## 3. Gate bosses
 
 | Boss | Moves (rotation) | Phase two | Resists / weak | Hazard |

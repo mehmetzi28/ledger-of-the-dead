@@ -9,7 +9,7 @@ test('Tower: checkpoints every ten floors, endlessly',()=>{ S.tower.best=35; eq(
 test('Tower: the progress bar stays inside its frame past floor 100',()=>{ richState(); S.tower.best=150; ui.tab='tower'; const h=renderAll('tower 150'); ok(/tw-prog"><i style="width:100%"/.test(h),'capped at 100%'); });
 test('Tower: wardens every tenth floor, with more guards higher up',()=>{
   setLvl(60); S.tower.best=200; const r=S.run={tw:10,di:5,room:0,rooms:1,enemies:[],corpses:[],events:[],log:[],turn:1,fx:{},loot:[],spoils:[],lostLoot:[]}; S.mode='battle';
-  spawnRoom(); ok(r.enemies[0].boss); eq(r.enemies[0].name,'The Gate Hound'); eq(r.enemies.length,3); eq(r.enemies[0].abil,'swarm');
+  spawnRoom(); ok(r.enemies[0].boss); eq(r.enemies[0].name,'The Gate Hound'); eq(r.enemies.length,3); eq(r.enemies[0].abil,'heads','its signature first'); ok(r.enemies[0].kit.includes('swarm'),'beside the borrowed move');
   r.tw=50; spawnRoom(); eq(r.enemies.length,4); eq(r.enemies[0].abilT,BOSS_ABIL[r.enemies[0].abil].every-1,'faster from floor 50');
   r.tw=100; spawnRoom(); eq(r.enemies.length,5); eq(r.enemies[0].name,'Abaddon, King of Hell');
   r.tw=110; spawnRoom(); eq(r.enemies[0].name,'Abyssal Gate Hound');

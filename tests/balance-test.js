@@ -186,6 +186,8 @@
       if(B.skills&&charging.charging&&canUse('chill')&&P.mana>=SKILL.chill.cost){ setTarget(charging.id); return 'sk:chill'; }
       if((mv==='decree'||mv==='cinder'||mv==='sunder'||mv==='lance'||mv==='called')&&charging.charging&&P.mana>=6&&P.shield<max*.3) return 'ward';
     }
+    { const ab=typeof BK_TIDE!=='undefined'&&foes.find(e=>e.tide>=BK_TIDE-1&&!(e.stun>0)); if(ab&&B.skills&&canUse('chill')){ setTarget(ab.id); return 'sk:chill'; } }   /* the Drowned Abbot's tide: freeze it before the flood */
+    if(S.run.conf&&P.mana>=6) return 'ward';   /* Confession: ward to end it */
     if(B.full&&!B.off.guard&&typeof canGuard==='function'&&canGuard()&&(foes.some(e=>{ if(!e.charging||e.stun>0) return false; const s=sigBlow(e,e.move||e.abil); return s&&s.you>=P.hp; })||P.hp<max*.25&&foes.some(e=>{ const i=e.stun>0?null:intentInfo(e); return i&&i.k==='atk'&&i.tg.id==='p'&&foeBlow(e,i.tg)>=P.hp; }))) return 'guard';   // Guard ('full' only; "off":["guard"]): a telegraphed move that would kill you, or under 25% HP a plain blow on you that would
     if(B.skills&&canUlt()){ const u=P.ult, down=S.army.filter(m=>m.hp<=0).length;
       if(u==='toll'&&foes.length>=2) return 'ult';
@@ -402,13 +404,13 @@
   // for tools: play one bot to a given day, then fight the boss room of each cleared gate many times, with and without the secret master
   // (fresh HP and army, straight into the boss room: kinder than a real run, so these rates are an upper bound)
   function duel(seed,days,trials,opts){ opts=opts||{}; const B={skills:true,market:true,full:true,off:{},faith:opts.faith,ult:opts.ult}, keep={S:JSON.stringify(S),rand:Math.random,save,roll:secretRoll}; save=function(){};
-    try{ simBot(seed,B,days); if(S.mode!=='town') returnTown(); town(B); const snap=JSON.stringify(S), out={lvl:S.player.lvl,gates:[]};
+    try{ simBot(seed,B,days); if(S.mode!=='town') returnTown(); town(B); const snap=JSON.stringify(S), out={lvl:S.player.lvl,gates:[],army:S.army.map(m=>m.role[0]+rowOf(m)+m.lvl).join(" ")};
       for(let di=0;di<DUNGEONS.length;di++){ if(!(S.ti&&S.ti.clr&&S.ti.clr[di])) continue; const row={gate:DUNGEONS[di].name};
         for(const sec of [false,true]){ let win=0,turns=0;
           for(let i=0;i<trials;i++){ S=JSON.parse(snap); S.mode='town'; S.watches=1; S.run=null; if(opts.heat) setHeat(di,Math.min(opts.heat,heatMax(di)));
             secretRoll=()=>sec; startRun(di); const r=S.run; r.room=r.rooms-1; spawnRoom(); let g=0;
             while(S.mode==='battle'&&g++<400){ act(decide(B)); turns++; }
-            if(S.mode==='raise') win++; else if(opts.log&&sec&&di===opts.log.gate&&i===0) { row.log=S.run.log.slice(-(opts.log.n||25)).map(l=>l.m); row.end=S.mode+' turn '+S.run.turn+' foes '+S.run.enemies.map(e=>e.name+' '+e.hp+'/'+e.maxHp+(e.shield?' sh'+e.shield:'')).join(', ')+' P '+S.player.hp+'/'+pMax(); } }
+            if(S.mode==='raise') win++; else if(opts.log&&sec&&di===opts.log.gate&&i===0) { row.log=(S.run.full||S.run.log.slice().reverse().map(l=>l.m)).slice(-(opts.log.n||25));   /* S.run.full: every line, when a probe keeps them */ row.end=S.mode+' turn '+S.run.turn+' foes '+S.run.enemies.map(e=>e.name+' '+e.hp+'/'+e.maxHp+(e.shield?' sh'+e.shield:'')).join(', ')+' P '+S.player.hp+'/'+pMax(); } }
           row[sec?'secret':'boss']=Math.round(win/trials*100)+'%'; row[sec?'secretTurns':'bossTurns']=Math.round(turns/trials); }
         out.gates.push(row); }
       return out; }

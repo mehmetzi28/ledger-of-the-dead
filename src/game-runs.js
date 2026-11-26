@@ -16,7 +16,7 @@ function makeSecret(di,lvl){
   const e=makeEnemy(di,Math.max(lvl+2,S.player.lvl+SB_LV),true), B=SECRET[di]; e.name=e.base=B.name; e.secret=true;   // never weaker than you: an outgrown gate still hides a real threat
   const sg=Math.max(di,topGate()); if(sg>di){ const st=mobStats(sg,e.lvl,1,1,true,false); e.maxHp=e.hp=st.hp; e.atk=st.atk; }   // fights with the strength of the hardest gate open to you
   const grow=1+SB_GROW*Math.max(0,S.player.lvl-SAFE[sg]);   // a necromancer far past the gates has an army to match: so does the master
-  giveAbility(e,GATE_ABIL[di]);   /* secret masters keep the single move until R2 PR B */
+  giveAbility(e,GATE_ABIL[di]); giveMasterKit(e);   /* the master's own kit (game-boss-kits.js) */
   e.maxHp=e.hp=Math.round(e.maxHp*SB_HP*grow); e.atk=Math.max(1,Math.round(e.atk*SB_ATK)); e.phase2=true; e.alt=true; e.fast=(e.fast||0)+1; e.abilT=2;
   tally('secretMet'); return e;
 }
@@ -82,11 +82,12 @@ function hurtFoe(e,d,ty){ ty=DTYPE[ty]?ty:'phys'; if(e.curse) d=Math.round(d*e.c
   if(hasSt(e,'sundered')) d=Math.round(d*SUNDER_MUL); if(hasSt(e,'chilled')) d=Math.round(d*CHILL_MUL);   // conditions (game-gate-rules.js)
   { const k=(1-foeRes(e,ty))*typeDmg(ty); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
   e.lt=ty;   /* the type of the last hit it took (a weakness kill) */
-  d=kitTaken(e,d);   /* Bulwark stance, a Banner-bearer beside it (game-kits.js) */
+  d=bossTaken(e,kitTaken(e,d));   /* Heartwood (game-boss-kits.js) */   /* Bulwark stance, a Banner-bearer beside it (game-kits.js) */
   if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e,0,0); return; } }   // Bone Wall shield soaks damage first
   if(e.hp>0&&d>=e.hp) e.cd=deathCond(e,d);   // the killing blow decides the body's condition
-  recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e,d,0); kitHurt(e); bossHurt(e,d); { const r=S.run; r.dd=(r.dd||0)+d; if(d>(r.mh||0)) r.mh=d; } }   /* damage dealt and the biggest hit this run, for the History */
+  recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e,d,0); kitHurt(e); bossHurt(e,d,ty); { const r=S.run; r.dd=(r.dd||0)+d; if(d>(r.mh||0)) r.mh=d; } }   /* damage dealt and the biggest hit this run, for the History */
 function hurtAlly(a,d,ty){
+  if(a.id==='p'&&S.run&&S.run.conf) d=Math.round(d*BK_CONFESS);   /* the Iron Inquisitor's Confession, until you ward */
   if(a.id==='p'&&BLOW){ const v=guardBlow(a,d); if(v) return hurtAlly(v,Math.round(d*SB_TAKE),ty); }   // Guard, for boss moves (plain hits swap their target before this)
   if(a.id==='p'&&S.run) S.run.blow=BLOW?blowNote(BLOW):null;   // what hits you, for the defeat recap (before the ward soaks it)
   d=allyDr(a,d); { const rs=allyRes(a,ty); if(rs) d=Math.max(1,Math.round(d*(1-rs))); }   /* damage types: your resistance lines, a minion's typed trait */
@@ -133,8 +134,8 @@ function checkDeaths(){
   const r=S.run;
   for(const e of r.enemies){
     if(!(e.hp<=0)||e.dead) continue;
-    if(e.risen){ e.dead=true; kitDeath(e); r.corpses.push(corpseOf(e)); log(e.name+' falls again.'); fxe('death',e); continue; }   /* called back by a Gravecaller: its reward was paid the first time */
-    e.dead=true; r.kills++; S.quest.kills++; kitDeath(e);
+    if(e.risen){ e.dead=true; kitDeath(e); bossFoeDies(e); r.corpses.push(corpseOf(e)); log(e.name+' falls again.'); fxe('death',e); continue; }   /* called back by a Gravecaller: its reward was paid the first time */
+    e.dead=true; r.kills++; S.quest.kills++; kitDeath(e); bossFoeDies(e);
     if(e.boss||e.elite) gainSoul();
     if(e.boss){ tally('bosses'); r.bossK=e.name; }   /* the History notes the boss that fell */
     if(e.elite) tally('elites');
@@ -199,9 +200,9 @@ function act(kind){
     log('Soul Siphon '+(low?'devours ':'drains ')+t.name+' for '+d+(h?', you recover '+h:'')+(got?' and harvest a Soul ('+S.run.souls+'/'+SOUL_MAX+')':'')+'.'); fxe('siphon',t);
   }else if(kind==='ward'){
     if(P.mana<6) return;
-    P.mana-=6; const w=Math.round(pWard()*smokeK()); P.shield=Math.min(Math.round(pMax()*.6),P.shield+w);
+    P.mana-=6; delete r.conf; const w=Math.round(pWard()*smokeK()); P.shield=Math.min(Math.round(pMax()*.6),P.shield+w);
     mark('p',0,0); log('Bone Ward raised. You hold '+P.shield+' ward.'); fxe('ward',P);
-  }else if(kind.startsWith('sk:')){ if(!useSkill(kind.slice(3),t)) return; }
+  }else if(kind.startsWith('sk:')){ SKILLHIT=1; const done=useSkill(kind.slice(3),t); SKILLHIT=null; if(!done) return; }
   else if(kind==='ult'){ if(!useUlt(t)) return; }
   else if(kind.startsWith('pot:')){ if(!drink(kind.slice(4))) return; }
   else if(kind==='guard'){ if(!guard()) return; }   // an order that costs the turn (game-faith-story.js)
@@ -215,6 +216,7 @@ function act(kind){
     if(!liveFoes().length) break;
     if(lockedNow(m)) continue;   /* locked or rooted by a boss move (game-boss-kits.js) */
     HITTER=m;
+    if(r.cloud>r.turn&&Math.random()<BK_CLOUD){ log(m.nick+' swings blind in the Swarm Cloud.'); continue; }
     if(m.role==='mender'){
       const hurt=allies().filter(a=>a.hp>0&&a.hp<(a.id==='p'?pMax():a.maxHp)*.85).sort((a,b)=>a.hp/(a.id==='p'?pMax():a.maxHp)-b.hp/(b.id==='p'?pMax():b.maxHp))[0];
       if(hurt){ const h=healAlly(hurt,Math.round(m.atk*.9*rnd(.9,1.1))); log(m.nick+' mends '+(hurt.id==='p'?'you':hurt===m?'itself':nameOf(hurt))+' for '+h+'.','ok'); markHeal(m,hurt,h); continue; }
@@ -330,7 +332,7 @@ function defeat(){
 // ----- the fall: the blow that felled you, and Instant Retry
 // BLOW: the foe blow being dealt right now (set around each hurtAlly on you); ROOM0: the room as it began. ROOM0 lives outside the save:
 // after a reload the defeat screen simply has no Retry.
-let BLOW=null, ROOM0=null, KILL=null, SAP=false, HITTER=null;   /* HITTER: who lands the hits now (you, then each minion), for reflects */   // SAP: a Sapper's blow is landing (its hits tear twice the ward)
+let BLOW=null, ROOM0=null, KILL=null, SAP=false, HITTER=null, SKILLHIT=null;   /* SKILLHIT: a skill's damage is landing (the Hollow Seraph's Halo) */   /* HITTER: who lands the hits now (you, then each minion), for reflects */   // SAP: a Sapper's blow is landing (its hits tear twice the ward)
 //   // KILL: what deals the blow to a foe right now ('reap', 'exec', a DoT kind; null: a hit), for the body's condition
 function blowNote(b){ const n=Object.assign({},b), c=blowCounters(b); if(c.length) n.c=c; return n; }   // the blow about to land, and the answers you had and did not use
 function blowCounters(b){   // the answers to a blow you have and have not used, only those that apply to it (the defeat recap and the bestiary's Ledgered hints)

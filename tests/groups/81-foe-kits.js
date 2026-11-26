@@ -100,11 +100,12 @@ test('Sweep: offered on an outgrown, Normal, uncursed gate cleared 5 times; pays
   fresh(); setLvl(40); S.ti=S.ti||{}; S.ti.clr={0:1}; S.watches=WATCHES; ok(!sweepOk(0),'not cleared often enough'); S.ti.clrN0=SWEEP_CLEARS; S.mod={day:S.day,gi:-1,id:null}; ok(sweepOk(0));
   S.heat={0:1}; ok(!sweepOk(0),'Normal only'); S.heat={}; setLvl(gateRec(0)+SWEEP_LV-1); ok(!sweepOk(0),'not far enough above'); setLvl(40);
   ui.tab='gates'; ok(/data-a="sweep" data-k="0"/.test(renderAll('gates')),'the gate card offers it');
-  const w0=S.watches, xp0=S.player.xp, k0=S.quest.kills, sw0=T_('sweeps'); secretRoll=()=>false;
+  const w0=S.watches, xp0=S.player.xp, k0=S.quest.kills, sw0=T_('sweeps'), roll0=secretRoll; secretRoll=()=>false;
   ok(sweep(0)); eq(S.watches,w0-1,'one watch'); eq(S.mode,'raise'); ok(S.run.cleared&&S.run.sweep); ok(S.run.kills>0); ok(S.quest.kills>k0,'quest progress'); eq(S.run.corpses.length,0,'nothing to raise'); eq(T_('sweeps'),sw0+1);
   ok(/Swept/.test(renderAll('swept'))); returnTown(); ok(!(S.rec&&S.rec.fast&&S.rec.fast[0]),'no fastest-clear record');
   const e=kf('Tunnel Rat',{lvl:10,rankI:0}); S.run={sweep:1}; const a=killXp(e); S.run={}; const b=killXp(e); S.run=null; near(a/b,SWEEP_XP,.02,'80% kill XP');
   fresh(); setLvl(40); S.ti={clr:{0:1},clrN0:SWEEP_CLEARS}; S.mod={day:S.day,gi:-1,id:null}; S.watches=WATCHES; secretRoll=()=>true; ok(sweep(0)); eq(S.mode,'battle','stopped at the master'); ok(S.run.enemies.some(x=>x.secret)); ok(!S.run.sweep,'fought as usual');
+  secretRoll=roll0;   /* put the real roll back: later tests (the playthrough) need it */
   ok(trText('Sweep')!=='Sweep');
 });
 
