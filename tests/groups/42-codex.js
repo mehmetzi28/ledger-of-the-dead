@@ -42,10 +42,10 @@ test('Codex: the numbers it states match what the game does',()=>{
 test('Codex: the stats list every benefit of each point, from the constants',()=>{
   const h=cdx('basics');
   ok(h.includes('3 + 2.2 per point')&&h.includes(STR_CRIT+'% crit chance per point (up to '+STR_CRIT_CAP+'%)')&&h.includes('per '+STR_PEN+' points (up to '+STR_PEN_CAP+'%)')&&h.includes(STR_MINION+'% minion attack per point'),'Strength');
-  ok(h.includes('24 + '+CON_HP+' per point')&&h.includes(CON_DR+'% less damage taken per point (up to '+CON_DR_CAP+'%)')&&h.includes(CON_HEAL+'% more healing received per point (up to '+CON_HEAL_CAP+'%)'),'Constitution');
+  ok(h.includes('24 + '+CON_HP+' per point')&&h.includes(CON_DR+'% less damage taken per point (up to '+CON_DR_CAP+'%)')&&h.includes(CON_HEAL+'% more healing received per point (up to '+CON_HEAL_CAP+'%)')&&h.includes(CON_MINION+'% minion max HP per point'),'Constitution');
   ok(h.includes('Mana (6 per point), Soul Siphon (2.8 per point), Bone Ward (3 per point), '+INT_SKILL+'% skill damage')&&h.includes(INT_MINION+'% minion attack per point'),'Intelligence');
   ok(h.includes(RAISE_WILL+'% raise chance per point')&&!h.includes('2.2% raise'),'Will follows RAISE_WILL');
-  for(const r of ['Strike damage: 3 + 2.2 per point + your level + gear. Also 0.5% crit chance per point (up to 15%), 1% of foe armor pierced by Strike per 2 points (up to 25%), and 1.3% minion attack per point.','Max HP: 24 + 5 per point + 4 per level + gear. Also 0.25% less damage taken per point (up to 8%) and 1.5% more healing received per point (up to 20%).','Mana (6 per point), Soul Siphon (2.8 per point), Bone Ward (3 per point), 2% skill damage per point (Bone Spear, Corpse Explosion, Grave Chill and Reap) and 1.2% minion attack per point.'])
+  for(const r of ['Strike damage: 3 + 2.2 per point + your level + gear. Also 0.5% crit chance per point (up to 15%), 1% of foe armor pierced by Strike per 2 points (up to 25%), and 1.3% minion attack per point.','Max HP: 24 + 5 per point + 4 per level + gear. Also 0.25% less damage taken per point (up to 8%), 1.5% more healing received per point (up to 20%) and 1% minion max HP per point.','Mana (6 per point), Soul Siphon (2.8 per point), Bone Ward (3 per point), 2% skill damage per point (Bone Spear, Corpse Explosion, Grave Chill and Reap) and 1.2% minion attack per point.'])
     ok(!/per point/.test(trText(r)),trText(r));
 });
 

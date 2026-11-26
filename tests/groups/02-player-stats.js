@@ -26,7 +26,7 @@ test('Stats: gear adds to stats, an old saved dawn debuff no longer cuts HP, Bon
 test('Stats: army slots grow with Will (one per 2.5) and level (one per 4), capped at 12',()=>{
   eq(slots(),2); S.player.stats.will=9; eq(slots(),4); S.player.lvl=10; eq(slots(),6); S.player.stats.will=99; eq(slots(),ARMY_CAP); eq(ARMY_CAP,12);
 });
-test('Stats: Strength adds crit and armor piercing, Constitution damage reduction and healing, Intelligence skill damage, each capped; Strength and Intelligence raise minion attack',()=>{
+test('Stats: Strength adds crit and armor piercing, Constitution damage reduction and healing, Intelligence skill damage, each capped; Strength and Intelligence raise minion attack, Constitution minion HP',()=>{
   const P=S.player, st=P.stats;
   st.strength=10; near(critChance(),.15,1e-9); eq(strPen(),.05); st.strength=11; eq(strPen(),.05,'one percent per 2 points'); st.strength=200; eq(strCrit(),STR_CRIT_CAP); eq(strPen(),STR_PEN_CAP/100);
   st.constitution=10; near(conDr(),2.5,1e-9); near(conHeal(),15,1e-9); st.constitution=200; eq(conDr(),CON_DR_CAP); eq(conHeal(),CON_HEAL_CAP); eq(pDr(),Math.min(DR_CAP,xb('drp')+CON_DR_CAP));
@@ -36,6 +36,8 @@ test('Stats: Strength adds crit and armor piercing, Constitution damage reductio
   P.hp=1; const h=healAlly(P,20); eq(h,Math.round(20*1.15),'+15% healing received');
   st.strength=10; st.intelligence=10; near(statMinion(),10*STR_MINION+10*INT_MINION,1e-9); const m=mkMinion({lvl:5}), a0=m.atk; st.strength=30; syncMinion(m); ok(m.atk>a0,'Strength reaches the army');
   st.strength=0; st.intelligence=0; syncMinion(m); const a1=m.atk; st.intelligence=50; syncMinion(m); near(m.atk/a1,1+50*INT_MINION/100,.1,'Intelligence: minion attack');
+  st.constitution=0; syncMinion(m); const h0=m.maxHp; st.constitution=40; eq(conMinion(),40*CON_MINION); syncMinion(m); near(m.maxHp/h0,1+40*CON_MINION/100,.05,'Constitution: minion max HP'); ok(m.hp<=m.maxHp);
+  st.constitution=-5; eq(conMinion(),0,'never below zero');
 });
 test('Stats: rank letter follows level',()=>{ [[1,0],[4,1],[8,2],[12,3],[17,4],[23,5],[60,5]].forEach(([l,r])=>{ S.player.lvl=l; eq(pRankI(),r,'level '+l); }); });
 

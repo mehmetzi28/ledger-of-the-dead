@@ -1658,6 +1658,7 @@ const strPen = ()=>Math.min(STR_PEN_CAP,Math.floor(Math.max(0,A('strength'))/STR
 const conDr = ()=>Math.min(CON_DR_CAP,Math.max(0,A('constitution'))*CON_DR);   // % less damage taken
 const conHeal = ()=>Math.min(CON_HEAL_CAP,Math.max(0,A('constitution'))*CON_HEAL);   // % more healing received
 const intSkill = ()=>Math.max(0,A('intelligence'))*INT_SKILL;   // % more skill damage
+const CON_MINION=1, conMinion=()=>Math.max(0,A('constitution'))*CON_MINION;   // % more minion max HP from Constitution: the vigor your Soul Tether shares (2026-11-26: with the tether Constitution was the one stat that gave the army nothing, and Will+Strength/Intelligence builds pulled 10 Tower floors ahead of Will+Constitution)
 const statMinion = ()=>Math.max(0,A('strength'))*STR_MINION+Math.max(0,A('intelligence'))*INT_MINION;   // % more minion attack from Strength and Intelligence
 const skMul = ()=>(1+intSkill()/100)*(S.run?hexK(S.player):1);   // Hexed: your skills hit 20% softer too
 const pDr = ()=>Math.min(DR_CAP,xb('drp')+conDr());   // all your damage reduction: titles, sets, faith, Calcified Hide and Constitution
@@ -1688,7 +1689,7 @@ function syncMinion(m){
   const s=m.tw?towerStats(m.tw,m.lvl,m.hf,m.af,m.boss,m.elite):mobStats(m.rankI,m.lvl,m.hf,m.af,m.boss,m.elite);
   const gg=gearBonus(m);
   const b=(1+.02*A('will'))*(1+(G('mpow')+gg.mpow+6*sk('gravepact'))/100);
-  const nh=Math.round((s.hp*b*stageMul(m,'hp')+gg.hp)*(hasTrait(m,'thick')?1.25:1)*(hasTrait(m,'unmarred')?1+UNMARRED_K:1)*(hasTrait(m,'stitched')?STITCH_MAX:1)*siegeHpMul(m)*(remembered()?1+MEM_HP:1)*extraMul(m,'hp')), na=Math.round((s.atk*b*stageMul(m,'atk')+gg.atk)*(hasTrait(m,'vicious')?1.2:1)*(hasTrait(m,'unmarred')?1+UNMARRED_K:1)*(1+statMinion()/100)*extraMul(m,'atk'));
+  const nh=Math.round((s.hp*b*stageMul(m,'hp')+gg.hp)*(hasTrait(m,'thick')?1.25:1)*(hasTrait(m,'unmarred')?1+UNMARRED_K:1)*(hasTrait(m,'stitched')?STITCH_MAX:1)*siegeHpMul(m)*(remembered()?1+MEM_HP:1)*(1+conMinion()/100)*extraMul(m,'hp')), na=Math.round((s.atk*b*stageMul(m,'atk')+gg.atk)*(hasTrait(m,'vicious')?1.2:1)*(hasTrait(m,'unmarred')?1+UNMARRED_K:1)*(1+statMinion()/100)*extraMul(m,'atk'));
   if(m.maxHp!=null && nh>m.maxHp) m.hp+=nh-m.maxHp;
   m.maxHp=nh; m.atk=na; m.hp=Math.min(m.hp,m.maxHp);
 }
@@ -7592,7 +7593,7 @@ const TR_DICT=new Map(Object.entries({
 "Mana, Siphon, Ward, skill damage":"Mana, Emme, Kalkan, yetenek hasarı",
 "Mana, army slots, raise odds, minion bond":"Mana, ordu yeri, diriltme şansı, hizmetkâr bağı",
 "Strike damage: # + # per point + your level + gear. Also #% crit chance per point (up to #%), #% of foe armor pierced by Strike per # points (up to #%), and #% minion attack per point":"Vuruş hasarı: # + puan başına # + seviyen + teçhizat. Ayrıca puan başına %# kritik şansı (en fazla %#), her # puanda Vuruş'un deldiği düşman zırhının %#'i (en fazla %#) ve puan başına %# hizmetkâr saldırısı",
-"Max HP: # + # per point + # per level + gear. Also #% less damage taken per point (up to #%) and #% more healing received per point (up to #%)":"Azami Can: # + puan başına # + seviye başına # + teçhizat. Ayrıca puan başına %# daha az alınan hasar (en fazla %#) ve puan başına %# daha fazla alınan iyileşme (en fazla %#)",
+"Max HP: # + # per point + # per level + gear. Also #% less damage taken per point (up to #%), #% more healing received per point (up to #%) and #% minion max HP per point":"Azami Can: # + puan başına # + seviye başına # + teçhizat. Ayrıca puan başına %# daha az alınan hasar (en fazla %#), puan başına %# daha fazla alınan iyileşme (en fazla %#) ve puan başına %# daha fazla hizmetkâr azami canı",
 "Mana (# per point), Soul Siphon (# per point), Bone Ward (# per point), #% skill damage per point (Bone Spear, Corpse Explosion, Grave Chill and Reap) and #% minion attack per point":"Mana (puan başına #), Ruh Emme (puan başına #), Kemik Kalkanı (puan başına #), puan başına %# yetenek hasarı (Kemik Mızrak, Ceset Patlaması, Mezar Soğuğu ve Biç) ve puan başına %# hizmetkâr saldırısı",
 "Buy max":"En fazlasını al",
 "Buy # for # gold":"# tane al: # altın",
@@ -8231,6 +8232,7 @@ TR_RX.push([/^Soul Tether: (.+?) takes (\d+) of the blow for you$/,"Ruh Bağı: 
 ].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
 TR_RX.push([/^Awakened (I|II|III|IV|V)$/,"Uyanmış $1"],[/^Awaken (I|II|III|IV|V)$/,"Uyandır $1"],[/^(.+) is now Awakened (I|II|III|IV|V)$/,"$1 artık Uyanmış $2"],[/^Heart of (.+?) (\d+)\/(\d+)$/,"$1 Kalbi $2/$3"]);
 [["A unique you wear can be awakened","Giydiğin bir eşsiz uyandırılabilir"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+[["Max HP, damage taken, healing received, minion HP","Azami Can, alınan hasar, alınan iyileşme, hizmetkâr canı"],["Minion HP","Hizmetkâr canı"],["minion HP","hizmetkâr canı"],["More max HP for all your minions","Tüm hizmetkârların için daha fazla azami can"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });   // Constitution feeds the army
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -9032,6 +9034,7 @@ const SG_PATH={
  raise:'<path d="M.6 8.4h8.8v1.2H.6Z"/><path d="M5 .8L8 4H6v3.8H4V4H2Z"/>',
  mpow:'<path d="M5 .8C2.7.8 1.3 2.4 1.3 4.4c0 1.2.6 2.1 1.4 2.6v2.2h4.6V7c.8-.5 1.4-1.4 1.4-2.6C8.7 2.4 7.3.8 5 .8Z"/><circle class="d" cx="3.6" cy="4.6" r="1"/><circle class="d" cx="6.4" cy="4.6" r="1"/><path class="k" d="M4 7.6v1.4M5 7.6v1.4M6 7.6v1.4"/>',
  matk:'<path class="o" d="M1.8 8.8L3.8 1.4M4.4 8.8L6.1 1.4M7 8.8L8.6 2.4"/>',
+ mhp:'<path class="o" d="M5 8.6C2 6.4 1.1 4.8 1.4 3.4 1.9 1.8 3.8 1.5 5 3 6.2 1.5 8.1 1.8 8.6 3.4 8.9 4.8 8 6.4 5 8.6Z"/><path class="k" d="M3.4 5.6h3.2"/>',
  regen:'<path d="M4.4 1.2C3 3.4 2 4.6 2 5.9a2.4 2.4 0 0 0 4.8 0C6.8 4.6 5.8 3.4 4.4 1.2Z"/><path d="M7.6 5.6h.9v1.2h1.2v.9H8.5v1.2h-.9V7.7H6.4v-.9h1.2Z"/>',
  slot:'<path d="M2 9.2V4C2 2.3 3.3 1 5 1s3 1.3 3 3v5.2Z"/><path class="k" d="M5 2.8v3.6M3.7 4h2.6"/>',
  pierce:'<path class="o" d="M1.2 8.8L8.2 1.8M5.6 1.6h2.8v2.8M3 4.4l2.6 2.6"/>',
@@ -9039,10 +9042,10 @@ const SG_PATH={
  heal:'<path d="M3.8 1h2.4v2.8H9v2.4H6.2V9H3.8V6.2H1V3.8h2.8Z"/>',
  skill:'<path class="o" d="M5 .8L7.5 9 1 3.9h8L2.5 9Z"/>'
 };
-const SG_WORD={pierce:'Armor pierce',dr:'Damage taken',heal:'Healing received',skill:'Skill damage',matk:'Minion attack'};
+const SG_WORD={pierce:'Armor pierce',dr:'Damage taken',heal:'Healing received',skill:'Skill damage',matk:'Minion attack',mhp:'Minion HP'};
 const SG_HINT={hp:'Damage it can take before it falls',atk:'Damage of a basic hit',crit:'Chance for Strike to land a critical hit',siph:'Soul Siphon drains life from a foe and heals you',mana:'Pays for skills and for raising the dead',ward:'Bone Ward: a shield that soaks up damage',
-  strength:'Strike damage, crit chance, armor piercing, minion attack',constitution:'Max HP, damage taken, healing received',intelligence:'Mana, Siphon, Ward, skill damage, minion attack',will:'Mana, army slots, raise odds, minion bond',
-  raise:'Chance that a fallen foe answers your call',mpow:'More HP and attack for all your minions',matk:'More attack for all your minions',regen:'Mana you regain every turn',slot:'How many minions your army can hold',
+  strength:'Strike damage, crit chance, armor piercing, minion attack',constitution:'Max HP, damage taken, healing received, minion HP',intelligence:'Mana, Siphon, Ward, skill damage, minion attack',will:'Mana, army slots, raise odds, minion bond',
+  raise:'Chance that a fallen foe answers your call',mpow:'More HP and attack for all your minions',matk:'More attack for all your minions',mhp:'More max HP for all your minions',regen:'Mana you regain every turn',slot:'How many minions your army can hold',
   pierce:'Share of foe armor your Strike ignores',dr:'Less damage from every hit you take',heal:'More healing from every source',skill:'More damage from your skills'};   // the stat tooltip's second line (sgTipShow, ui-input.js)
 const sgl=(k,lab)=>{ lab=lab||SG_WORD[k]||(STATL[k]&&STATL[k][0])||k; return '<span class="sg sg-'+k+'" role="img" data-k="'+k+'" aria-label="'+lab+'"><svg viewBox="0 0 10 10" aria-hidden="true">'+(SG_PATH[k]||'')+'</svg></span>'; };
 const manaCost=n=>'<span class="mcost">'+sgl('mana','Mana cost')+n+'</span>';   // battle buttons: what an action costs, so a bare "10" reads as 10 mana
@@ -9248,11 +9251,11 @@ function bestiaryHTML(){
 }
 
 // What one more point in a stat would change, worked out from the real formulas (shown next to each + button).
-const GAIN_G={Strike:'atk','Max HP':'hp',Mana:'mana',Siphon:'siph',Ward:'ward',Slots:'slot',crit:'crit','armor pierce':'pierce','damage taken':'dr','healing received':'heal','skill damage':'skill','minion attack':'matk',raise:'raise',minions:'mpow'};
+const GAIN_G={Strike:'atk','Max HP':'hp',Mana:'mana',Siphon:'siph',Ward:'ward',Slots:'slot',crit:'crit','armor pierce':'pierce','damage taken':'dr','healing received':'heal','skill damage':'skill','minion attack':'matk','minion HP':'mhp',raise:'raise',minions:'mpow'};
 const GAIN_W={Slots:'Army slots',crit:'Crit chance',raise:'Raise chance',minions:'Minion power'};   // the glyph's full word where the gain's own word is short
 function statGainList(k){   // [name, change, unit] for each thing one more point changes
   const P=S.player, f=()=>({Strike:pAtk(),'Max HP':pMax(),Mana:pMana(),Siphon:pSiph(),Ward:pWard(),Slots:slots()}),
-    g=()=>({crit:strCrit(),'armor pierce':strPen()*100,'damage taken':-conDr(),'healing received':conHeal(),'skill damage':intSkill(),'minion attack':statMinion()});   // percent parts
+    g=()=>({crit:strCrit(),'armor pierce':strPen()*100,'damage taken':-conDr(),'healing received':conHeal(),'skill damage':intSkill(),'minion attack':statMinion(),'minion HP':conMinion()});   // percent parts
   const a=f(), ga=g(); P.stats[k]++; const b=f(), gb=g(); P.stats[k]--;
   const out=Object.keys(a).filter(x=>b[x]!==a[x]).map(x=>[x,b[x]-a[x],'']);
   for(const x in ga){ const d=Math.round((gb[x]-ga[x])*100)/100; if(d) out.push([x,d,'%']); }
@@ -9263,7 +9266,7 @@ const statGain=k=>statGainList(k).map(([x,d,u])=>x+' '+(d>0?'+':'')+d+u).join(',
 const gainG=k=>statGainList(k).map(([x,d,u])=>'<span class="sv">'+sgl(GAIN_G[x],GAIN_W[x]||x[0].toUpperCase()+x.slice(1))+(d>0?'+':'')+d+u+'</span>').join(' ');
 function statusHTML(){
   const P=S.player, st=P.stats, ri=pRankI();
-  const rows=[['strength','Strength','Strike damage, crit chance, armor piercing, minion attack',['atk','crit','pierce','matk']],['constitution','Constitution','Max HP, damage taken, healing received',['hp','dr','heal']],['intelligence','Intelligence','Mana, Siphon, Ward, skill damage, minion attack',['mana','siph','ward','skill','matk']],['will','Will','Mana, army slots, raise odds, minion bond',['mana','slot','raise','mpow']]];
+  const rows=[['strength','Strength','Strike damage, crit chance, armor piercing, minion attack',['atk','crit','pierce','matk']],['constitution','Constitution','Max HP, damage taken, healing received, minion HP',['hp','dr','heal','mhp']],['intelligence','Intelligence','Mana, Siphon, Ward, skill damage, minion attack',['mana','siph','ward','skill','matk']],['will','Will','Mana, army slots, raise odds, minion bond',['mana','slot','raise','mpow']]];
   const canAlloc=P.pts>0&&S.mode!=='battle';
   return '<section class="win" aria-labelledby="h-status"><h2 class="win-h" id="h-status">Status</h2>'
    +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(faithOf()?'<div class="faith-l '+faithOf()+'">'+FAITH[faithOf()].name+'</div>':'')+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+'</div></div></div>'
@@ -9729,7 +9732,7 @@ function codexSection(k){
     +cxP('Each level gives 3 stat points and 1 skill point. Falling in a fight loses that room\'s spoils and '+pct(DIFF.deathXp)+' of a level in XP. Going on to the next room heals '+pct(DIFF.heal)+' of your HP, restores '+pct(DIFF.mana)+' of your mana and heals your minions '+pct(DIFF.mheal)+'.')
     +cxP('After a fall in a gate room, a Tower floor or the Rift, Retry on the defeat screen starts that room over as it began: the same foes at full strength, you and your army as you stood when you entered, and no watch spent. The XP loss stands, potions you drank stay drunk, and the defeat screen names the blow that felled you. Sieges, Trials and rooms the rival stood in cannot be retried.')
     +'<p class="group-h">Stats</p>'+cxList([cxRow('Strength','Strike damage: 3 + 2.2 per point + your level + gear. Also '+STR_CRIT+'% crit chance per point (up to '+STR_CRIT_CAP+'%), 1% of foe armor pierced by Strike per '+STR_PEN+' points (up to '+STR_PEN_CAP+'%), and '+STR_MINION+'% minion attack per point.'),
-      cxRow('Constitution','Max HP: 24 + '+CON_HP+' per point + 4 per level + gear. Also '+CON_DR+'% less damage taken per point (up to '+CON_DR_CAP+'%) and '+CON_HEAL+'% more healing received per point (up to '+CON_HEAL_CAP+'%).'),
+      cxRow('Constitution','Max HP: 24 + '+CON_HP+' per point + 4 per level + gear. Also '+CON_DR+'% less damage taken per point (up to '+CON_DR_CAP+'%), '+CON_HEAL+'% more healing received per point (up to '+CON_HEAL_CAP+'%) and '+CON_MINION+'% minion max HP per point.'),
       cxRow('Intelligence','Mana (6 per point), Soul Siphon (2.8 per point), Bone Ward (3 per point), '+INT_SKILL+'% skill damage per point (Bone Spear, Corpse Explosion, Grave Chill and Reap) and '+INT_MINION+'% minion attack per point.'),cxRow('Will','Mana (3 per point), one army slot per 2.5 points, '+RAISE_WILL+'% raise chance per point, 2% minion power per point, and '+SHATTER_WILL+'% less chance per point that a downed minion shatters (never below '+SHATTER_MIN+'%).'),
       cxRow('Limits','Strike crits 10% of the time before Strength, gear and skills. All your damage reduction together (Constitution, titles, sets, faith and Calcified Hide) stops at '+DR_CAP+'%.')])
     +'<p class="group-h">Everything gear can give</p>'+cxList(Object.keys(STATL).map(s=>cxRow(STATL[s][0],(ROLL_KEYS[s]?'Can appear as a bonus line.':'Only on base stats and uniques.')+(STATL[s][1]?' Measured in percent.':''))))

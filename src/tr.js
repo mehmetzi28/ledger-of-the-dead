@@ -1807,7 +1807,7 @@ const TR_DICT=new Map(Object.entries({
 "Mana, Siphon, Ward, skill damage":"Mana, Emme, Kalkan, yetenek hasarı",
 "Mana, army slots, raise odds, minion bond":"Mana, ordu yeri, diriltme şansı, hizmetkâr bağı",
 "Strike damage: # + # per point + your level + gear. Also #% crit chance per point (up to #%), #% of foe armor pierced by Strike per # points (up to #%), and #% minion attack per point":"Vuruş hasarı: # + puan başına # + seviyen + teçhizat. Ayrıca puan başına %# kritik şansı (en fazla %#), her # puanda Vuruş'un deldiği düşman zırhının %#'i (en fazla %#) ve puan başına %# hizmetkâr saldırısı",
-"Max HP: # + # per point + # per level + gear. Also #% less damage taken per point (up to #%) and #% more healing received per point (up to #%)":"Azami Can: # + puan başına # + seviye başına # + teçhizat. Ayrıca puan başına %# daha az alınan hasar (en fazla %#) ve puan başına %# daha fazla alınan iyileşme (en fazla %#)",
+"Max HP: # + # per point + # per level + gear. Also #% less damage taken per point (up to #%), #% more healing received per point (up to #%) and #% minion max HP per point":"Azami Can: # + puan başına # + seviye başına # + teçhizat. Ayrıca puan başına %# daha az alınan hasar (en fazla %#), puan başına %# daha fazla alınan iyileşme (en fazla %#) ve puan başına %# daha fazla hizmetkâr azami canı",
 "Mana (# per point), Soul Siphon (# per point), Bone Ward (# per point), #% skill damage per point (Bone Spear, Corpse Explosion, Grave Chill and Reap) and #% minion attack per point":"Mana (puan başına #), Ruh Emme (puan başına #), Kemik Kalkanı (puan başına #), puan başına %# yetenek hasarı (Kemik Mızrak, Ceset Patlaması, Mezar Soğuğu ve Biç) ve puan başına %# hizmetkâr saldırısı",
 "Buy max":"En fazlasını al",
 "Buy # for # gold":"# tane al: # altın",
@@ -2446,3 +2446,4 @@ TR_RX.push([/^Soul Tether: (.+?) takes (\d+) of the blow for you$/,"Ruh Bağı: 
 ].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
 TR_RX.push([/^Awakened (I|II|III|IV|V)$/,"Uyanmış $1"],[/^Awaken (I|II|III|IV|V)$/,"Uyandır $1"],[/^(.+) is now Awakened (I|II|III|IV|V)$/,"$1 artık Uyanmış $2"],[/^Heart of (.+?) (\d+)\/(\d+)$/,"$1 Kalbi $2/$3"]);
 [["A unique you wear can be awakened","Giydiğin bir eşsiz uyandırılabilir"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+[["Max HP, damage taken, healing received, minion HP","Azami Can, alınan hasar, alınan iyileşme, hizmetkâr canı"],["Minion HP","Hizmetkâr canı"],["minion HP","hizmetkâr canı"],["More max HP for all your minions","Tüm hizmetkârların için daha fazla azami can"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });   // Constitution feeds the army
