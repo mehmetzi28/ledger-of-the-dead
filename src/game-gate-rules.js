@@ -111,7 +111,8 @@ function foeTarget(alive){ const w=alive.map(a=>a.role==='vanguard'?5:2); let ro
 // standing front row they reach only it. Strikers, menders and bosses reach anyone; Taunt, your Strike and skills, cleaves and splash ignore rows.
 // Your vanguards and reapers moved to the back row strike over the line for BACK_MELEE of their damage: safety costs reach.
 const MELEE={vanguard:1,reaper:1}, BACK_MELEE=.5;
-const rowOf=u=>u.id==='p'?'b':u.id!=null?((u.boss||u.rival||MELEE[u.role])&&!kitBack(u)?'f':'b'):(u.wall?'f':u.row==='f'||u.row==='b'?u.row:MELEE[u.role]?'f':'b');
+const rowOf0=u=>u.id==='p'?'b':u.id!=null?((u.boss||u.rival||MELEE[u.role])&&!kitBack(u)?'f':'b'):(u.wall?'f':u.row==='f'||u.row==='b'?u.row:MELEE[u.role]?'f':'b');
+const rowOf=u=>{ const w=rowOf0(u); return guardFold(u)?(w==='f'?'b':'f'):w; };   /* the Folded Knight's Fold (game-rift.js) */
 const rowK=m=>MELEE[m.role]&&rowOf(m)==='b'?BACK_MELEE:1;   // a minion's damage factor from its row
 const frontOf=L=>L.filter(u=>u.hp>0&&rowOf(u)==='f');
 const foeReach=(e,alive)=>{ const t=tauntPool(alive); if(t!==alive||!MELEE[e.role]||e.boss) return t; const f=frontOf(alive); return f.length?f:alive; };   // whom a foe may strike: Taunt first, then the row rule
@@ -355,7 +356,7 @@ const OMEN_NAT=Object.keys(OMENS).filter(k=>!OMENS[k].god);   // the omens a daw
 const OMEN_CHANCE=.25, OMEN_RAISE=10, OMEN_BOSS_XP=1.25;
 const ECLIPSE_SHADOW=1.2, ECLIPSE_CRIT=.1, ECLIPSE_MISS=.1, HARVEST_TRO=.25, HARVEST_DUST=.25, HARVEST_DUST_BOSS=3, IRON_DROP=1.1, IRON_ARMOR=1.25, STORM_REGEN=.2, STORM_ATK=1.25;
 const shadowK=()=>omen()==='eclipse'?ECLIPSE_SHADOW:1;   // Black Eclipse: Soul Siphon, the Siphon skills (Corpse Explosion, Grave Chill, Reap) and blight
-const foeCrit=()=>.25-(omen()==='eclipse'?ECLIPSE_CRIT:0);   // an enemy striker's crit chance
+const foeCrit=()=>.25-(omen()==='eclipse'?ECLIPSE_CRIT:0)+sigCrit();   /* Thin Veil (game-rift.js) */   // an enemy striker's crit chance
 function roomStart(list){   // a fresh room or floor: Soul Storm, the Swift affix and trait, and Ossified
   cmdSync();   /* Command: measured as the room begins */
   foeRise(list);

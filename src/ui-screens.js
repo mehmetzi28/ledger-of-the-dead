@@ -274,7 +274,18 @@ function riftHTML(){
   return '<section class="win rift-w" aria-labelledby="h-rift"><h2 class="win-h" id="h-rift">The Rift &middot; deepest '+b+'</h2>'
    +'<div class="rift-pick"><button class="btn small" data-a="rdep" data-k="-1"'+(n<=1?' disabled':'')+' aria-label="Shallower">&minus;</button><b class="num">Depth '+n+'</b><button class="btn small" data-a="rdep" data-k="1"'+(n>b?' disabled':'')+' aria-label="Deeper">+</button>'
    +'<span class="u-sub num">Foes Lv '+riftLvl(n)+'+ &middot; x'+riftMul(n).toFixed(1)+' strength'+(n>b?' &middot; new depth':'')+'</span><span class="u-sub">'+resTag(riftRes(n),GATE_HITS[5])+'</span></div>'
-   +'<div class="btns"><button class="btn primary" data-a="rift" data-k="'+n+'"'+(S.watches<=0?' disabled':'')+'>Enter the Rift</button></div></section>';
+   +(guardAt(n)?'<p class="u-sub rift-g"><b>A guardian waits at the bottom:</b> '+guardAt(n).name+' &middot; '+guardAt(n).moves.map(m=>BOSS_ABIL[m].name).join(', ')+'.</p>':'')
+   +sigilHTML()
+   +'<div class="btns"><button class="btn primary" data-a="rift" data-k="'+n+'"'+(S.watches<=0?' disabled':'')+'>Enter the Rift'+(sigPicked().length?' &middot; rewards x'+riftRew(sigPicked()).toFixed(2):'')+'</button></div></section>';
+}
+function sigilHTML(){   // the sigil picker (game-rift.js)
+  const N=sigOpenN(), pk=sigPicked(), sh=riftShards();
+  let h='<p class="group-h">Sigils &middot; '+pk.length+'/'+SIGIL_MAX+' &middot; '+sh+' Rift Shard'+(sh===1?'':'s')+'</p>';
+  if(!N) return h+'<p class="u-sub">Sigils open once your deepest dive reaches depth '+SIGIL_AT+'. Each makes a dive harder and pays more for it.</p>';
+  h+='<div class="sig-list">'+SIGIL_IDS.map((k,i)=>{ const S0=SIGILS[k], on=pk.includes(k); if(i>=N) return ''; return '<button class="btn small sig'+(on?' primary':'')+'" data-a="rsig" data-k="'+k+'" aria-pressed="'+on+'"'+(!on&&pk.length>=SIGIL_MAX?' disabled':'')+' title="'+S0.desc+'">'+S0.name+' &middot; +'+Math.round(S0.rew*100)+'%</button>'; }).join('')+'</div>';
+  h+=pk.length?'<ul class="sig-on u-sub">'+pk.map(k=>'<li><b>'+SIGILS[k].name+':</b> '+SIGILS[k].desc+'</li>').join('')+'</ul>':'<p class="u-sub">No sigils: an ordinary dive.</p>';
+  if(N<SIGIL_IDS.length) h+='<p class="u-sub">Next sigil: '+SIGILS[SIGIL_IDS[N]].name+', at depth '+(SIGIL_AT+(N-2)*SIGIL_STEP-((S.rift&&S.rift.xs)||0)*SIGIL_STEP)+' or for '+unlockCost()+' shards. <button class="btn small" data-a="runlock"'+(sh>=unlockCost()?'':' disabled')+'>Unlock now &middot; '+unlockCost()+' shards</button></p>';
+  return h;
 }
 function raidHTML(){   // the War table: expeditions (game-exp.js)
   if(S.mode!=='town') return ''; const pool=raidPool(), cmds=pool.filter(isCommander).filter(m=>!inOrder(m)), out=raidOrders(), logs=S.raidLog||[], field=S.raids||[];

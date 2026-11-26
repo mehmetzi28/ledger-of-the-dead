@@ -189,7 +189,7 @@ function pickNorm(rows){ const tot=rows.reduce((a,r)=>a+r.p,0); let x=Math.rando
 const ownsItem=id=>!!S&&(S.inv.some(it=>it.id===id)||GEAR_SLOTS.some(sl=>S.equip[sl]&&S.equip[sl].id===id)||S.army.concat(S.reserve||[],S.waiting||[],...(S.raids||[]).map(x=>x.units)).some(m=>m.eq&&GEAR_SLOTS.some(sl=>m.eq[sl]&&m.eq[sl].id===id)));
 function rollDrops(e){
   const out=[], rows=e.tw?towerTable(e.tw,e.role,e.boss,e.elite):tableFor(e.rankI,e.role,e.boss,e.elite,SIG[e.base],e.hx);
-  const more=(S.run&&S.run.siege?SIEGE_DROP:1)*((!e.tw&&runMod())?MOD_DROP:1)*(roomKind()==='elite'?ELITE_DROP:1)*heatK('drop')*(S.run&&S.run.rift?Math.min(RIFT_DROP_MAX,1+RIFT_DROP*S.run.rift):1)*(omen()==='ironrain'?IRON_DROP:1)*(hasMod('robber','b')?KEEN_DROP:1)*pactDrop();   // Iron Rain, Keen Eye and New Game+ pacts
+  const more=(S.run&&S.run.siege?SIEGE_DROP:1)*((!e.tw&&runMod())?MOD_DROP:1)*(roomKind()==='elite'?ELITE_DROP:1)*heatK('drop')*(S.run&&S.run.rift?Math.min(RIFT_DROP_MAX,1+RIFT_DROP*S.run.rift)*riftRew():1)*(omen()==='ironrain'?IRON_DROP:1)*(hasMod('robber','b')?KEEN_DROP:1)*pactDrop();   // Iron Rain, Keen Eye and New Game+ pacts
   for(const c of dropChances(e.boss,e.elite)) if(Math.random()<c*more){ let id=pickRow(rows);
     if(ITEM[id].uq&&(ownsItem(id)||out.includes(id))) id=pickNorm(rows.filter(r=>!ITEM[r.id].uq));   // a unique you already carry becomes ordinary gear instead
     out.push(id); }
@@ -410,7 +410,7 @@ const tierRaw=(di,h,f)=>REC_BASE[di]+recShift(di)+(REC_TIER[h]||1)*(recShift(di,
 const tierRec=(di,h)=>{ let r=gateRec(di); for(let t=1;t<=(h||0)&&t<HEAT.length;t++) r=Math.max(r+1,Math.round(tierRaw(di,t,HEAT[t].foe))); return r; };   // each tier at least a level above the one below
 const NGP_FOE=.3, NGP_REWARD=.25, ngpFoe=()=>(1+NGP_FOE*((S&&S.ngp)||0))*ngpQuiet(), ngpReward=()=>(1+NGP_REWARD*((S&&S.ngp)||0))*pactReward();   // New Game+: tougher foes, richer rewards
 function foeScale(list,a){ const n=ngpFoe(); for(const e of list){ if(n!==1){ e.maxHp=e.hp=Math.round(e.maxHp*n); } if(a*n!==1) e.atk=Math.max(1,Math.round(e.atk*a*n)); } }
-const foeArmor=()=>{ if(!S.run) return 0; const a=S.run.tw?TW.armor:DIFF.armor[S.run.trial?TRIAL_GATE:S.run.di]*(S.run.siege?siegeArmorK():1); return omen()==='ironrain'?1-(1-a)/IRON_ARMOR:a; };   // Iron Rain: foes 25% tougher to hurt
+const foeArmor=()=>{ if(!S.run) return 0; const a=S.run.tw?TW.armor:DIFF.armor[S.run.trial?TRIAL_GATE:S.run.di]*(S.run.siege?siegeArmorK():1); return sigArmor(omen()==='ironrain'?1-(1-a)/IRON_ARMOR:a); };   /* Iron Sky (game-rift.js) */   // Iron Rain: foes 25% tougher to hurt
 // ===== DAMAGE TYPES =====
 // Every hit has one of five types (hurtFoe / hurtAlly take it; physical when none is given). A foe's resistance to a type comes from where it
 // stands (GATE_RES, the Tower, the Rift's depth, a siege) and scales the damage once, after armor and before shields: 0.25 = takes 25% less,
@@ -423,7 +423,7 @@ const GATE_HITS=['rot','frost','fire','shad','phys','shad','shad'];
 const TOWER_RES={frost:-.25,fire:.5}, TOWER_HITS='fire', SIEGE_RES={shad:-.25}, SIEGE_HITS='phys';
 const RES_CAP=.5, FOE_RES_MAX=.9, IRON_PHYS=.15, STORM_SHAD=1.1;   // RES_CAP: your own resistance to one type; Iron Rain: foes resist physical; Soul Storm: your shadow damage
 const riftRes=n=>{ const w=DT_IDS[(n*7+2)%5], r=DT_IDS[(n*3+(n>>2)+4)%5]; const o={}; o[w]=-.25; if(r!==w) o[r]=.25; else o[DT_IDS[(DT_IDS.indexOf(w)+2)%5]]=.25; return o; };   // one weakness and one resistance per depth, the same every time
-function placeRes(r){ r=r||S.run; if(!r) return {}; return r.siege?SIEGE_RES:r.tw?TOWER_RES:r.rift?riftRes(r.rift):GATE_RES[r.di]||{}; }
+function placeRes(r){ r=r||S.run; if(!r) return {}; return r.siege?SIEGE_RES:r.tw?TOWER_RES:r.rift?sigRes(riftRes(r.rift)):GATE_RES[r.di]||{}; }   /* Typed Dark */
 function foeRes(e,ty){ if(e&&e.imm===ty) return 1; let v=(placeRes()[ty]||0)+(e&&e.res&&e.res[ty]||0)+(e&&KIND_RES[e.base]&&KIND_RES[e.base][ty]||0); if(ty==='phys'&&omen()==='ironrain') v+=IRON_PHYS; return Math.min(FOE_RES_MAX,v); }
 const typeDmg=ty=>{ const k=DTYPE[ty]&&DTYPE[ty].dmg; return (k?1+G(k)/100:1)*(ty==='shad'&&omen()==='soulstorm'?STORM_SHAD:1); };   // your damage of one type: gear lines (you and your army), Soul Storm
 const TRAIT_RES={rimeborn:['frost',.25],cinderborn:['fire',.25],necrotic:['rot',.25],venom:['rot',.25]};   // a minion risen with a typed trait shrugs off its own element

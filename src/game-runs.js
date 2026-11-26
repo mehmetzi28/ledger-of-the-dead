@@ -34,13 +34,13 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
   const r=S.run, di=r.di, boss=room===r.rooms-1;
   const lvl=r.trial?r.tlv+Math.floor(room/2)+(boss?2:0):(r.rift?riftLvl(r.rift):RK[di].lv)+Math.floor(room/2)+(boss?2:0)+curseRise(di);   // a Trial's foes stand at the level fixed for its week
   const list=[];
-  const extra=hasRunMod('horde')?1:0, R0=Math.random;
+  const extra=(hasRunMod('horde')?1:0)+sigHands(), R0=Math.random;   /* Many Hands (game-rift.js) */
   if(r.trial) Math.random=trialRng(r.tseed,room);   // a Trial: the same rooms and foes for every attempt this week (src/game-rival-trials.js)
   try{
     if(r.rg) rgRoom(list,di,room,lvl); else if(r.rk) reckRoom(list,di,lvl);   /* the rival's own gate and the duel (game-rival-arc.js) */
-    else if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true)); const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
+    else if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(r.rift&&guardAt(r.rift)?makeGuardian(di,lvl,r.rift):!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true));   /* a Rift guardian every fifth depth (game-rift.js) */ const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
     else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
-    heatRoom(list,di); ledgerRoom(list,di); brewRoom(r); foeScale(list,foeAtkMul(di)); if(r.trial) trialPow(list,di); bulwark(list); riftScale(list);
+    heatRoom(list,di); ledgerRoom(list,di); brewRoom(r); foeScale(list,foeAtkMul(di)); if(r.trial) trialPow(list,di); bulwark(list); riftScale(list); if(boss&&r.rift) sigNamed(list);
     heatScale(list);
     if(!boss&&kind==='elite') for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*ELITE_ROOM); e.atk=Math.max(1,Math.round(e.atk*ELITE_ROOM)); }
     affixAll(list);
@@ -51,7 +51,7 @@ function spawnRoom(){
   if(S.run.tw) return spawnFloor();
   const r=S.run, room=r.room, boss=room===r.rooms-1;
   const list=(!boss&&r.pre&&r.pre[r.roomKind])||buildRoom(room,r.roomKind); r.pre=null;   // a door's room was rolled with the doors: what it showed is what waits
-  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; delete r.lcU; delete r.mirU; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null; roomStart(list);
+  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; delete r.lcU; delete r.mirU; delete r.mirS; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null; roomStart(list);
   log(boss?(list[0].rival?list[0].name+' stands where the master should be, with their own dead around them.':list[0].secret?'The air turns wrong. This is not the master you came for.':'The air thickens. Something large waits ahead.'):(r.trial?'Trial, room ':'Room ')+(room+1)+' of '+r.rooms+(r.roomKind==='elite'?', behind the bloodied arch. These foes are stronger.':'.'));
   if(boss){ bossSpeaks(list[0],'hi'); fxe('boss',list[0]); }
   if(hasFlag('infernal')) infernalWard();
@@ -82,13 +82,14 @@ function mark(u,d,h){ const id=fxKey(u); if(id==null) return; const f=S.run.fx[i
 function hit(b){ return Math.max(1,Math.round(b*rnd(.85,1.15))); }
 function hurtFoe(e,d,ty){ if(abbeyMiss(e)) return; ty=MARGIN||(DTYPE[ty]?ty:'phys');   /* an Unwritten foe; a Marginalia skill (game-abbey.js) */ if(e.curse) d=Math.round(d*e.curse.mul); { const mk=masteryDmg(e.base); if(mk) d=Math.round(d*(1+mk/100)); }   /* bestiary mastery: every hit from you and your army, once */ if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25); if(e.stun>0&&capOn('frost1')) d=Math.round(d*CAP_RIME); { const fk=faithHit(e); if(fk!==1) d=Math.round(d*fk); }   /* Vesh: frozen foes take more (game-pantheon.js) */
   if(hasSt(e,'sundered')) d=Math.round(d*SUNDER_MUL); if(hasSt(e,'chilled')) d=Math.round(d*CHILL_MUL);   // conditions (game-gate-rules.js)
-  { const k=(1-foeRes(e,ty))*typeDmg(ty)*oilK(e,ty)*archiveK(e)*rallyK(); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
+  { const k=(1-foeRes(e,ty))*typeDmg(ty)*oilK(e,ty)*archiveK(e)*rallyK()*widenK(); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
   e.lt=ty;   /* the type of the last hit it took (a weakness kill) */
   d=bossTaken(e,kitTaken(e,d));   /* Heartwood (game-boss-kits.js) */   /* Bulwark stance, a Banner-bearer beside it (game-kits.js) */
   if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e,0,0); return; } }   // Bone Wall shield soaks damage first
   if(e.hp>0&&d>=e.hp){ e.cd=deathCond(e,d); e.kb=d; }   /* kb: the killing blow (Morrow's scorch) */   // the killing blow decides the body's condition
   recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e,d,0); kitHurt(e); bossHurt(e,d,ty); { const r=S.run; r.dd=(r.dd||0)+d; if(d>(r.mh||0)) r.mh=d; } }   /* damage dealt and the biggest hit this run, for the History */
 function hurtAlly(a,d,ty){
+  if(S.run&&S.run.widen) d=Math.round(d*widenK());   /* the Tear Itself (game-rift.js) */
   if(a.id==='p'&&S.run&&S.run.conf) d=Math.round(d*BK_CONFESS);   /* the Iron Inquisitor's Confession, until you ward */
   if(a.id==='p'&&BLOW){ const v=guardBlow(a,d); if(v) return hurtAlly(v,Math.round(d*SB_TAKE),ty); }   // Guard, for boss moves (plain hits swap their target before this)
   if(a.id==='p'&&S.run) S.run.blow=BLOW?blowNote(BLOW):null;
@@ -112,6 +113,7 @@ function allyDr(a,d){   // a blow on you or a minion after its damage reduction,
 function healAlly(a,h){
   if(a.id==='p'){ const hp=xb('healp')+conHeal(); if(hp) h=Math.max(0,Math.round(h*(1+hp/100))); }   // faith, Sanguine Rites and Constitution change the healing you receive
   if(a.dots&&a.dots.blight) h=Math.round(h*BLIGHT_HEAL);   // Blight halves it
+  if(S.run&&S.run.rift) h=Math.round(h*sigHeal());   /* Hungry Dark (game-rift.js) */
   if(a.id==='p'&&pactOn('bitter')) h=Math.round(h*(1-PACT_BITTER));   // the Bitter Blood pact
   const max=a.id==='p'?pMax():a.maxHp, over=h-(max-a.hp);
   if(a.id==='p'&&over>0&&hasMod('sanguine','a')&&S.run){ const P=S.player; P.shield=Math.max(P.shield||0,Math.min((P.shield||0)+over,Math.round(pMax()*FEAST_CAP))); }   // Blood Feast: overhealing becomes Ward
@@ -121,7 +123,7 @@ function healAlly(a,h){
   if(a.id==='p'&&hasMod('sanguine','b')) a.mana=Math.min(pMana(),a.mana+Math.round(h*CLEAR_MIND));   // Clear Mind
   return h;
 }
-function killXp(e){ return Math.round((4+e.lvl*2.5)*RK[e.rankI].xp*(e.boss?2.5*(omen()==='ashfall'?OMEN_BOSS_XP:1):1)*(e.elite?1.5:1)*(e.tw?1+e.tw/12:1)*(e.secret?SB_REWARD:1)*(e.rival?RIVAL_GOLD:1)*ngpReward()*(runMod()?MOD_XP:1)*heatK('xp')*(1+xb('xpp')/100)*(e.living?SIEGE_XP:1)*((e.boss||e.elite)&&hasMod('scholar','a')?INSIGHT:1)*(S.run&&S.run.sweep?SWEEP_XP:1)); }   // Insight
+function killXp(e){ return Math.round((4+e.lvl*2.5)*RK[e.rankI].xp*(e.boss?2.5*(omen()==='ashfall'?OMEN_BOSS_XP:1):1)*(e.elite?1.5:1)*(e.tw?1+e.tw/12:1)*(e.secret?SB_REWARD:1)*(e.rival?RIVAL_GOLD:1)*ngpReward()*(runMod()?MOD_XP:1)*heatK('xp')*(S.run&&S.run.rift?riftRew():1)*(1+xb('xpp')/100)*(e.living?SIEGE_XP:1)*((e.boss||e.elite)&&hasMod('scholar','a')?INSIGHT:1)*(S.run&&S.run.sweep?SWEEP_XP:1)); }   // Insight
 function studyFoe(name){   // count a kill toward studying this kind of foe (its drop table opens in the bestiary)
   const notes=hasMod('scholar','b')&&(tally('notes'),T_('notes')%2===0), n0=S.kills[name]||0, n=S.kills[name]=n0+(notes?2:1)+(Math.random()*100<xb('studyp')?1:0)+(libStudy()>0&&Math.random()*100<libStudy()?1:0);   /* the Library (game-town2.js) */   /* the Scribe's Regalia: some kills count twice */   // Field Notes: every second kill counts twice
   const hit=at=>n0<at&&n>=at;
@@ -146,7 +148,7 @@ function checkDeaths(){
     studyFoe(e.base);
     r.pending+=killXp(e); if(!e.stash) r.loot.push(...rollDrops(e)); killLoot(e,r);   // a stolen body drops no gear: the body is the reward
     killPowers(); capKill(e); faithKill(e,r);
-    if(!e.rival){ const c=corpseOf(e); if(e.stash) rivalReclaim(e,c); r.corpses.push(c); }   // the rival leaves no body: they retreat
+    if(!e.rival&&!e.guard&&sigBody()){ const c=corpseOf(e);   /* guardians and Loud Grave leave no body (game-rift.js) */ if(e.stash) rivalReclaim(e,c); r.corpses.push(c); }   // the rival leaves no body: they retreat
     if(e.boss) bossSpeaks(e,'bye');
     log(e.rival?e.name+' is beaten.':e.name+' falls.'); sfx('kill'); fxe('death',e);
     const page=e.secret?'secret':e.boss?(e.tw?'warden':'boss'):e.elite?'elite':null;   // who may carry a torn page
@@ -277,7 +279,7 @@ function act(kind){
   tickDots(); if(P.hp<=0&&playerFalls()) return;
   if(P.hp<hpBefore){ sfx('hurt'); if(hpBefore-P.hp>=pMax()*.2) ui.shake=true; }   // a heavy turn shakes the screen
   checkDeaths(); if(!liveFoes().length){ roomWon(); return; }
-  r.turn++; if(!hasRunMod('drought')){ let g=1+G('regen')+sk('soulwell')+(hasMod('deathless','a')?DEEP_REGEN:0); if(omen()==='soulstorm'){ r.mf=(r.mf||0)+g*STORM_REGEN; const x=Math.floor(r.mf); r.mf-=x; g+=x; } P.mana=Math.min(pMana(),P.mana+g); } skillTick();   // Soul Storm: +20%, the fractions carried
+  r.turn++; if(!hasRunMod('drought')){ let g=1+G('regen')+sk('soulwell')+(hasMod('deathless','a')?DEEP_REGEN:0); g=sigRegen(g); if(omen()==='soulstorm'){ r.mf=(r.mf||0)+g*STORM_REGEN; const x=Math.floor(r.mf); r.mf-=x; g+=x; } P.mana=Math.min(pMana(),P.mana+g); } skillTick();   // Soul Storm: +20%, the fractions carried
   echoTurn(); bossEndTurn(); hfTurn();   /* Undone shieldbearers (game-kits.js), boss hazards (game-boss-kits.js) */
   if(hasFlag('halo')) allies().forEach(a=>{ if(a.hp>0) healAlly(a,Math.round((a.id==='p'?pMax():a.maxHp)*.04)); });
   if(r.turn===9&&liveFoes().some(e=>e.tw&&e.boss)) log('Wrath: the warden is enraged and hits harder every turn.','bad');
