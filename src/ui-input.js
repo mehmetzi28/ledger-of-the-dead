@@ -86,6 +86,7 @@ const ACTIONS={
   head:k=>{ const e=(S.memorial||[])[+k]; if(e&&carveHead(+k)) notify('A headstone for '+e.nick+', tier '+e.hs+'. Your minions have +'+(headBonus()*100).toFixed(1)+'% max HP for good.','ok'); },
   losave:k=>{ const i=+k, L=(S.loadouts||[])[i]; if(L&&L.s&&ui.confirm!=='lo'+i){ ui.confirm='lo'+i; return; } ui.confirm=null; if(saveLoadout(i)) notify('Saved to '+loadoutName(i)+'.','ok'); },
   louse:k=>{ useLoadout(+k); }, loreno:k=>{ ui.lren=+k; ui.lrn=loadoutName(+k); }, lorenx:()=>{ ui.lren=null; }, loren:k=>{ if(renameLoadout(+k,ui.lrn)) ui.lren=null; },
+  awaken:k=>{ const it=findItem(+k); ui.msg=awaken(+k)?{mk:1,m:ITEM[it.id].name+' is now Awakened '+AWAKEN_RN[it.aw]+'.',c:'ok'}:null; },
   reforge:k=>{ const it=findItem(+k), c=it&&reforgeCost(it); ui.msg=reforge(+k)?{mk:1,m:'Reforged '+ITEM[it.id].name+' for '+c+' gold.',c:'ok'}:null; },
   rift:k=>{ startRift(+k); }, gsub:k=>{ ui.gsub=['open','war','rift','trial'].includes(k)?k:'open'; ui.msg=null; }, trial:()=>{ startTrial(); },
   rdep:k=>{ const b=riftBest(); ui.rd=clamp((ui.rd||b+1)+(+k||0),1,b+1); },

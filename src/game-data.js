@@ -226,8 +226,9 @@ function rollItem(id,atLeast){
   }
   return out.length?out:null;
 }
-const itStat=(it,k)=>{ const d=ITEM[it.id]; let n=(d&&d.stats[k])||0; if(it.ro) for(const r of it.ro) if(r[0]===k) n+=r[1]; return n; };
-const itStats=it=>{ const o=Object.assign({},ITEM[it.id].stats); if(it.ro) for(const r of it.ro) o[r[0]]=(o[r[0]]||0)+r[1]; return o; };
+const baseStat=(it,d,k)=>{ const v=(d&&d.stats[k])||0; return v&&it&&it.aw&&d.uq&&!AWAKEN_FLAT[k]?Math.round(v*(1+AWAKEN_K*it.aw)):v; };   // an awakened unique's own stats (game-phases-town.js AWAKENING)
+const itStat=(it,k)=>{ const d=ITEM[it.id]; let n=baseStat(it,d,k); if(it.ro) for(const r of it.ro) if(r[0]===k) n+=r[1]; return n; };
+const itStats=it=>{ const d=ITEM[it.id], o={}; for(const k in d.stats) o[k]=baseStat(it,d,k); if(it.ro) for(const r of it.ro) o[r[0]]=(o[r[0]]||0)+r[1]; return o; };
 const G=k=>{ let n=0; if(S&&S.equip) for(const sl in S.equip){ const it=S.equip[sl]; if(it&&ITEM[it.id]) n+=itStat(it,k); } return n+xb(k); };   // gear plus the worn title
 const A=k=>S.player.stats[k]+G(k);
 const sk=id=>(S&&S.player&&S.player.skills&&S.player.skills[id])||0;   // learned rank of a skill (0 = not learned)
@@ -238,7 +239,10 @@ const hasFlag=f=>(!!(S&&S.equip)&&Object.values(S.equip).some(it=>it&&ITEM[it.id
 // 2026-11-19 after the stat rebalance the bots reached floor ~90 (market) / ~99 (full); hpG .025->.037 and atkG .021->.024 (health grows faster
 // than attack: that spread market and full the way they were) bring them back to ~72 / ~83, near the 71 / 82 before the stat rework.
 // The same day the new systems lifted them to ~73 / ~91; hpG .037->.042 brings them to ~71 / ~83 (seeds 7700/9100).
-const TW={unlock:10,hp0:4.7,hpG:.042,atk0:3.9,atkG:.024,repeat:.06,armor:.85,foeAtk:1.4};   // armor/foeAtk: enemy-only, see DIFF.armor
+// 2026-11-26, after the Soul Tether: nothing one-shots the hero, so a day-100 army walked all 100 floors (once the bot's step limit was lifted).
+// hpG .042->.06, atkG .024->.04 and a steeper climb past 60 keep the market bot's curve (floor ~43 on day 35, ~68 on day 60, ~78 on day 100;
+// it was 43/66/79) and bring the full bot from ~94 to ~88.
+const TW={unlock:10,hp0:4.7,hpG:.06,atk0:3.9,atkG:.04,repeat:.06,armor:.85,foeAtk:1.4};   // armor/foeAtk: enemy-only, see DIFF.armor
 const TW_MOBS=[['Imp','striker',.95,1.3],['Hellhound','striker',.95,1.3],['Chain Devil','vanguard',1.4,.9],['Pit Warden','vanguard',1.4,.9],['Soul Tender','mender',.8,.8],['Brimstone Chanter','mender',.8,.8]];
 TW_MOBS.push(['Hell Legionary','vanguard',1.4,.9],['Infernal Duelist','striker',.95,1.3]);
 const TW_BOSS=['The Gate Hound','Cinder Matron','The Iron Inquisitor','Lord of Flies','The Bone Cantor','Duke of Chains','The Pale Executioner','Archdevil Vael','The Hollow Seraph','Abaddon, King of Hell'];
@@ -261,9 +265,10 @@ const TW_IDS={};
 TW_UNIQ.forEach((u,i)=>{ const id='w'+(i+1); ITEM[id]=Object.assign({id,set:6,tier:5,uq:true,kind:'u',tower:true,floor:u.f},u); (TW_IDS[u.f]=TW_IDS[u.f]||[]).push(id); });
 const twLvl=f=>6+Math.round(f*.5);                       // enemy level on floor f
 const twRank=f=>Math.min(5,2+Math.floor(f/25));          // rank letter shown for tower enemies (C..S)
-// Above floor 60 the climb steepens more slowly (attack at half the rate, HP at 70%): the old curve one-shot level-70 players
-// on floor 90, so floor 100 was out of reach. The recommended level now also climbs faster up there, so it tells the truth.
-const twHpF=f=>f<=60?f:60+(f-60)*.7, twAtkF=f=>f<=60?f:60+(f-60)*.5;
+// Above floor 60 the climb steepens faster (HP and attack at 1.5x the rate). It used to slow down there (attack at half the rate, HP at 70%)
+// because the old curve one-shot level-70 players on floor 90; the Soul Tether ended one-shots, and the flatter top let a level-52 army
+// walk to floor 100. The recommended level climbs faster up there too, so it tells the truth.
+const twHpF=f=>f<=60?f:60+(f-60)*1.5, twAtkF=f=>f<=60?f:60+(f-60)*1.5;
 const recLv=f=>f<=60?10+Math.round(f*.5):40+Math.round((f-60)*1.2);   // level a decent player wants for floor f
 function towerStats(f,lvl,hf,af,boss,elite){
   let hp=14*TW.hp0*Math.pow(1+TW.hpG,twHpF(f)-1)*hf*DIFF.hp*(1+.16*(lvl-1));

@@ -7,8 +7,8 @@ test('Curses: after the Throne falls, a cursed gate\'s foes rise to five levels 
   S.mod={day:S.day,gi:1,id:'fury'}; S.watches=3; startRun(0); eq(curseRise(0),0,'a plain gate stays as it is'); flee();
   ui.tab='gates'; S.mod={day:S.day,gi:0,id:'horde'}; ok(/&middot; Foes Lv 35</.test(renderAll('gate card')));
 });
-test('Tower: the climb steepens more slowly past floor 60, and the recommended level tells the truth',()=>{
-  eq(twHpF(60),60); eq(twAtkF(60),60); eq(twHpF(100),88); eq(twAtkF(100),80); eq(towerStats(100,60,1,1,false,false).atk,Math.max(1,Math.round(3.2*TW.atk0*Math.pow(1+TW.atkG,79)*DIFF.atk*(1+.12*59))),'floor 100 attacks like old floor 80');
+test('Tower: the climb steepens faster past floor 60 (the Soul Tether ended one-shots), and the recommended level tells the truth',()=>{
+  eq(twHpF(60),60); eq(twAtkF(60),60); eq(twHpF(100),120); eq(twAtkF(100),120); eq(towerStats(100,60,1,1,false,false).atk,Math.max(1,Math.round(3.2*TW.atk0*Math.pow(1+TW.atkG,119)*DIFF.atk*(1+.12*59))),'floor 100 attacks like a straight floor 120');
   eq(recLv(20),20); eq(recLv(60),40); eq(recLv(90),76); eq(recLv(100),88); for(let f=2;f<=200;f++) ok(recLv(f)>=recLv(f-1),'never drops at floor '+f);
   eq(towerStats(30,20,1,1,false,false).hp,Math.round(14*TW.hp0*Math.pow(1+TW.hpG,29)*DIFF.hp*(1+.16*19)),'floors up to 60 are unchanged');
 });

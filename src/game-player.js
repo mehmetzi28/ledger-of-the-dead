@@ -74,9 +74,9 @@ const canNGP=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]);
 const ownedUniques=()=>[...new Set(S.inv.concat(Object.values(S.equip)).filter(it=>it&&ITEM[it.id]&&ITEM[it.id].uq).map(it=>it.id))];
 function startNGP(carry,pacts){
   if(S.mode!=='town'||!canNGP()) return false;
-  const own=ownedUniques(), keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts)};   // lifetime totals carry over too
+  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts)};   // lifetime totals carry over too
   newGame(); Object.assign(S,keep); S.ti.clr={};   // titles stay earned; New Game+ again needs another Throne of Ash clear
-  S.watches=WATCHES-pactWatch(); S.notices=[]; if(carry&&own.includes(carry)) addItem(carry,null); unlockStory('ngp');
+  S.watches=WATCHES-pactWatch(); S.notices=[]; if(carry&&own.includes(carry)){ const it=addItem(carry,null); if(it&&carryAw) it.aw=carryAw; }   /* an awakened unique keeps its ranks */ unlockStory('ngp');
   notify('New Game+ '+S.ngp+' begins. Foes have '+Math.round(NGP_FOE*S.ngp*100)+'% more HP and attack, and pay '+Math.round(NGP_REWARD*S.ngp*100)+'% more XP and gold.'+(carry&&own.includes(carry)?' '+ITEM[carry].name+' is in your bag.':''),'ok');
   return true;
 }
@@ -165,7 +165,8 @@ function normalizeSave(src){
   g.shop=(obj(g.shop)&&typeof g.shop.day==='number'&&Array.isArray(g.shop.stock)&&g.shop.stock.every(s=>s&&ITEM[s.id]))?g.shop:null;
   const fixRo=it=>{ if(!obj(it)) return; if(Array.isArray(it.ro)) it.ro=it.ro.filter(r=>Array.isArray(r)&&ROLL_KEYS[r[0]]&&typeof r[1]==='number'&&isFinite(r[1])&&r[1]>0).slice(0,3).map(r=>[r[0],Math.round(r[1])]);
     if(!Array.isArray(it.ro)||!it.ro.length||ITEM[it.id].uq) delete it.ro; if(it.lk!==true) delete it.lk;
-    if('tp' in it){ const t=Math.floor(num(+it.tp,0)); if(t>0&&!ITEM[it.id].uq) it.tp=Math.min(t,99); else delete it.tp; } };   // tp: times tempered
+    if('tp' in it){ const t=Math.floor(num(+it.tp,0)); if(t>0&&!ITEM[it.id].uq) it.tp=Math.min(t,99); else delete it.tp; }   // tp: times tempered
+    if('aw' in it){ const a=Math.floor(num(+it.aw,0)); if(a>0&&ITEM[it.id].uq) it.aw=Math.min(a,AWAKEN_MAX); else delete it.aw; } };   // aw: awakening ranks, uniques only
   g.inv.concat(Object.values(g.equip),...g.army.concat(g.reserve,g.waiting,...g.raids.map(x=>x.units)).map(m=>m.eq?Object.values(m.eq):[]),g.shop?g.shop.stock:[]).forEach(fixRo);
   delete P.dots; delete P.st; delete P.debuff; g.army.forEach(m=>{ delete m.dots; delete m.st; });   // status effects only live inside a fight
   g.mod=(obj(g.mod)&&typeof g.mod.day==='number'&&typeof g.mod.gi==='number'&&(g.mod.gi<0||(MODS[g.mod.id]&&RK[g.mod.gi])))?{day:g.mod.day,gi:g.mod.gi,id:g.mod.gi<0?null:g.mod.id}:null;

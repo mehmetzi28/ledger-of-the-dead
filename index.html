@@ -411,6 +411,7 @@ i,em{font-style:normal}
 .tw-uq{display:grid;gap:8px;margin-top:8px}
 .tw-got{font:600 10px/1 var(--font-data);letter-spacing:.12em;text-transform:uppercase;color:var(--ok)}
 .item .i-floor{color:#ff8a6a}
+.item .i-aw{color:var(--gold)}
 .ttl{font:400 15px/1.2 var(--font-lore);color:var(--gold);margin:1px 0 2px}
 .tt-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);background:rgba(0,0,0,.25)}
 .tt-row.on{border-color:var(--gold);background:rgba(211,166,77,.07)}
@@ -1469,8 +1470,9 @@ function rollItem(id,atLeast){
   }
   return out.length?out:null;
 }
-const itStat=(it,k)=>{ const d=ITEM[it.id]; let n=(d&&d.stats[k])||0; if(it.ro) for(const r of it.ro) if(r[0]===k) n+=r[1]; return n; };
-const itStats=it=>{ const o=Object.assign({},ITEM[it.id].stats); if(it.ro) for(const r of it.ro) o[r[0]]=(o[r[0]]||0)+r[1]; return o; };
+const baseStat=(it,d,k)=>{ const v=(d&&d.stats[k])||0; return v&&it&&it.aw&&d.uq&&!AWAKEN_FLAT[k]?Math.round(v*(1+AWAKEN_K*it.aw)):v; };   // an awakened unique's own stats (game-phases-town.js AWAKENING)
+const itStat=(it,k)=>{ const d=ITEM[it.id]; let n=baseStat(it,d,k); if(it.ro) for(const r of it.ro) if(r[0]===k) n+=r[1]; return n; };
+const itStats=it=>{ const d=ITEM[it.id], o={}; for(const k in d.stats) o[k]=baseStat(it,d,k); if(it.ro) for(const r of it.ro) o[r[0]]=(o[r[0]]||0)+r[1]; return o; };
 const G=k=>{ let n=0; if(S&&S.equip) for(const sl in S.equip){ const it=S.equip[sl]; if(it&&ITEM[it.id]) n+=itStat(it,k); } return n+xb(k); };   // gear plus the worn title
 const A=k=>S.player.stats[k]+G(k);
 const sk=id=>(S&&S.player&&S.player.skills&&S.player.skills[id])||0;   // learned rank of a skill (0 = not learned)
@@ -1481,7 +1483,10 @@ const hasFlag=f=>(!!(S&&S.equip)&&Object.values(S.equip).some(it=>it&&ITEM[it.id
 // 2026-11-19 after the stat rebalance the bots reached floor ~90 (market) / ~99 (full); hpG .025->.037 and atkG .021->.024 (health grows faster
 // than attack: that spread market and full the way they were) bring them back to ~72 / ~83, near the 71 / 82 before the stat rework.
 // The same day the new systems lifted them to ~73 / ~91; hpG .037->.042 brings them to ~71 / ~83 (seeds 7700/9100).
-const TW={unlock:10,hp0:4.7,hpG:.042,atk0:3.9,atkG:.024,repeat:.06,armor:.85,foeAtk:1.4};   // armor/foeAtk: enemy-only, see DIFF.armor
+// 2026-11-26, after the Soul Tether: nothing one-shots the hero, so a day-100 army walked all 100 floors (once the bot's step limit was lifted).
+// hpG .042->.06, atkG .024->.04 and a steeper climb past 60 keep the market bot's curve (floor ~43 on day 35, ~68 on day 60, ~78 on day 100;
+// it was 43/66/79) and bring the full bot from ~94 to ~88.
+const TW={unlock:10,hp0:4.7,hpG:.06,atk0:3.9,atkG:.04,repeat:.06,armor:.85,foeAtk:1.4};   // armor/foeAtk: enemy-only, see DIFF.armor
 const TW_MOBS=[['Imp','striker',.95,1.3],['Hellhound','striker',.95,1.3],['Chain Devil','vanguard',1.4,.9],['Pit Warden','vanguard',1.4,.9],['Soul Tender','mender',.8,.8],['Brimstone Chanter','mender',.8,.8]];
 TW_MOBS.push(['Hell Legionary','vanguard',1.4,.9],['Infernal Duelist','striker',.95,1.3]);
 const TW_BOSS=['The Gate Hound','Cinder Matron','The Iron Inquisitor','Lord of Flies','The Bone Cantor','Duke of Chains','The Pale Executioner','Archdevil Vael','The Hollow Seraph','Abaddon, King of Hell'];
@@ -1504,9 +1509,10 @@ const TW_IDS={};
 TW_UNIQ.forEach((u,i)=>{ const id='w'+(i+1); ITEM[id]=Object.assign({id,set:6,tier:5,uq:true,kind:'u',tower:true,floor:u.f},u); (TW_IDS[u.f]=TW_IDS[u.f]||[]).push(id); });
 const twLvl=f=>6+Math.round(f*.5);                       // enemy level on floor f
 const twRank=f=>Math.min(5,2+Math.floor(f/25));          // rank letter shown for tower enemies (C..S)
-// Above floor 60 the climb steepens more slowly (attack at half the rate, HP at 70%): the old curve one-shot level-70 players
-// on floor 90, so floor 100 was out of reach. The recommended level now also climbs faster up there, so it tells the truth.
-const twHpF=f=>f<=60?f:60+(f-60)*.7, twAtkF=f=>f<=60?f:60+(f-60)*.5;
+// Above floor 60 the climb steepens faster (HP and attack at 1.5x the rate). It used to slow down there (attack at half the rate, HP at 70%)
+// because the old curve one-shot level-70 players on floor 90; the Soul Tether ended one-shots, and the flatter top let a level-52 army
+// walk to floor 100. The recommended level climbs faster up there too, so it tells the truth.
+const twHpF=f=>f<=60?f:60+(f-60)*1.5, twAtkF=f=>f<=60?f:60+(f-60)*1.5;
 const recLv=f=>f<=60?10+Math.round(f*.5):40+Math.round((f-60)*1.2);   // level a decent player wants for floor f
 function towerStats(f,lvl,hf,af,boss,elite){
   let hp=14*TW.hp0*Math.pow(1+TW.hpG,twHpF(f)-1)*hf*DIFF.hp*(1+.16*(lvl-1));
@@ -1711,9 +1717,9 @@ const canNGP=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]);
 const ownedUniques=()=>[...new Set(S.inv.concat(Object.values(S.equip)).filter(it=>it&&ITEM[it.id]&&ITEM[it.id].uq).map(it=>it.id))];
 function startNGP(carry,pacts){
   if(S.mode!=='town'||!canNGP()) return false;
-  const own=ownedUniques(), keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts)};   // lifetime totals carry over too
+  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts)};   // lifetime totals carry over too
   newGame(); Object.assign(S,keep); S.ti.clr={};   // titles stay earned; New Game+ again needs another Throne of Ash clear
-  S.watches=WATCHES-pactWatch(); S.notices=[]; if(carry&&own.includes(carry)) addItem(carry,null); unlockStory('ngp');
+  S.watches=WATCHES-pactWatch(); S.notices=[]; if(carry&&own.includes(carry)){ const it=addItem(carry,null); if(it&&carryAw) it.aw=carryAw; }   /* an awakened unique keeps its ranks */ unlockStory('ngp');
   notify('New Game+ '+S.ngp+' begins. Foes have '+Math.round(NGP_FOE*S.ngp*100)+'% more HP and attack, and pay '+Math.round(NGP_REWARD*S.ngp*100)+'% more XP and gold.'+(carry&&own.includes(carry)?' '+ITEM[carry].name+' is in your bag.':''),'ok');
   return true;
 }
@@ -1802,7 +1808,8 @@ function normalizeSave(src){
   g.shop=(obj(g.shop)&&typeof g.shop.day==='number'&&Array.isArray(g.shop.stock)&&g.shop.stock.every(s=>s&&ITEM[s.id]))?g.shop:null;
   const fixRo=it=>{ if(!obj(it)) return; if(Array.isArray(it.ro)) it.ro=it.ro.filter(r=>Array.isArray(r)&&ROLL_KEYS[r[0]]&&typeof r[1]==='number'&&isFinite(r[1])&&r[1]>0).slice(0,3).map(r=>[r[0],Math.round(r[1])]);
     if(!Array.isArray(it.ro)||!it.ro.length||ITEM[it.id].uq) delete it.ro; if(it.lk!==true) delete it.lk;
-    if('tp' in it){ const t=Math.floor(num(+it.tp,0)); if(t>0&&!ITEM[it.id].uq) it.tp=Math.min(t,99); else delete it.tp; } };   // tp: times tempered
+    if('tp' in it){ const t=Math.floor(num(+it.tp,0)); if(t>0&&!ITEM[it.id].uq) it.tp=Math.min(t,99); else delete it.tp; }   // tp: times tempered
+    if('aw' in it){ const a=Math.floor(num(+it.aw,0)); if(a>0&&ITEM[it.id].uq) it.aw=Math.min(a,AWAKEN_MAX); else delete it.aw; } };   // aw: awakening ranks, uniques only
   g.inv.concat(Object.values(g.equip),...g.army.concat(g.reserve,g.waiting,...g.raids.map(x=>x.units)).map(m=>m.eq?Object.values(m.eq):[]),g.shop?g.shop.stock:[]).forEach(fixRo);
   delete P.dots; delete P.st; delete P.debuff; g.army.forEach(m=>{ delete m.dots; delete m.st; });   // status effects only live inside a fight
   g.mod=(obj(g.mod)&&typeof g.mod.day==='number'&&typeof g.mod.gi==='number'&&(g.mod.gi<0||(MODS[g.mod.id]&&RK[g.mod.gi])))?{day:g.mod.day,gi:g.mod.gi,id:g.mod.gi<0?null:g.mod.id}:null;
@@ -2743,7 +2750,7 @@ function buyStock(i){
   S.gold-=cost; s.sold=true; addItem(s.id,s.ro||null); sfx('coin'); return true;
 }
 function sellTrophy(k,all){ const n=S.trophies[k]||0; if(!n||!TROPHY[k]||S.mode!=='town') return 0; const q=all?n:1; S.trophies[k]-=q; if(!S.trophies[k]) delete S.trophies[k]; const g=q*TROPHY[k].value; S.gold+=g; tally('soldTro',q); sfx('coin'); return g; }
-function sellAllTrophies(){ let g=0; for(const k of Object.keys(S.trophies)) g+=sellTrophy(k,true); return g; }
+function sellAllTrophies(){ let g=0; for(const k of Object.keys(S.trophies)){ const keep=k.startsWith('b:')?heartsKept(k):0; if(!keep) g+=sellTrophy(k,true); else for(let n=S.trophies[k]-keep;n>0;n--) g+=sellTrophy(k); } return g; }   // keeps the hearts your uniques still need to awaken
 // Gold sinks: the Bone Altar levels a minion up (never past the usual cap of your level + 2), bag upgrades add space, salts help raising.
 const empowerCost=m=>Math.round(mneed(m.lvl)*.6*(1-B_ALT_COST*bl('altar')));
 function empower(uid){
@@ -2972,8 +2979,8 @@ function raidDayLine(rr){ if(!rr||!rr.length) return ''; const w=rr.filter(x=>x.
 // ===== THE RIFT =====
 // Endless endgame: from level 40, once the Throne of Ash has fallen. Each depth is a five-room run through a random gate's
 // dead, risen to your level and hardened by depth; rewards rise with it. Clearing your deepest depth opens the next and
-// leaves an extra legendary.
-const RIFT_LV=40, RIFT_ROOMS=5, RIFT_STEP=.1, RIFT_DROP=.05, RIFT_DROP_MAX=2.5;
+// leaves an extra legendary. RIFT_STEP .1->.3 on 2026-11-26: with the Soul Tether the market bot reached depth ~45 instead of ~23 (full ~18 instead of ~10).
+const RIFT_LV=40, RIFT_ROOMS=5, RIFT_STEP=.3, RIFT_DROP=.05, RIFT_DROP_MAX=2.5;
 const riftOpen=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5])&&S.player.lvl>=RIFT_LV;
 const riftBest=()=>(S.rift&&S.rift.best)||0;
 const riftMul=n=>1+RIFT_STEP*(n-1);
@@ -4220,6 +4227,30 @@ function temper(u,i){
   const v=temperTo(it,i), c=temperCost(it); if(v==null||S.gold<c) return false;
   S.gold-=c; vitals(()=>{ const r=it.ro.slice(); r[i]=[r[i][0],v]; it.ro=r; }); it.tp=(it.tp||0)+1; tally('tempered'); sfx('level'); return true;
 }
+// ===== AWAKENING =====
+// Uniques take no bonus lines, so reforging, enchanting and tempering pass them by, and late gold had nothing left to buy that made you
+// stronger (the bots held 20-40k at day 100 with ~17k a day coming in). In town a unique can be awakened up to AWAKEN_MAX times: each rank
+// adds AWAKEN_K of its own stats (army slots and mana per turn excepted) and costs gold, bone dust and hearts of the boss or warden that
+// drops it, so a cleared gate's boss hearts and the Tower's wardens keep paying long after their first unique. it.aw = ranks.
+// Cost per rank n (0-based): gold AWAKEN_GOLD x scale x AWAKEN_GROW^n, dust AWAKEN_DUST x scale x (n+1), n+1 hearts; scale 1 for the Rat Warren's
+// unique up to 2 for the Throne's, and 1.2-3 up the Tower. Five ranks of a Throne unique cost ~250k gold.
+const AWAKEN_MAX=5, AWAKEN_K=.08, AWAKEN_GOLD=4000, AWAKEN_GROW=2, AWAKEN_DUST=20, AWAKEN_FLAT={slot:1,regen:1};
+const AWAKEN_TXT='Each rank adds '+Math.round(AWAKEN_K*100)+'% to the unique\'s own stats (army slots and mana per turn excepted), up to '+AWAKEN_MAX+' ranks. It costs gold, bone dust and hearts of the boss or warden that drops it.';
+const AWAKEN_RN=['','I','II','III','IV','V'];
+function uniqHeart(id){ const d=ITEM[id]; if(!d||!d.uq) return null; return 'b:'+(d.tower?TW_BOSS[clamp(Math.round(d.floor/10)-1,0,TW_BOSS.length-1)]:DUNGEONS[d.set].boss[0]); }   // the trophy key of its boss's heart
+const awakenScale=d=>d.tower?1+d.floor/50:1+d.set*.2;
+function awakenCost(it){ const d=ITEM[it&&it.id]; if(!d||!d.uq||(it.aw|0)>=AWAKEN_MAX) return null; const n=it.aw|0, k=awakenScale(d);
+  return {g:Math.round(AWAKEN_GOLD*k*Math.pow(AWAKEN_GROW,n)/100)*100, d:Math.round(AWAKEN_DUST*k*(n+1)), h:n+1, key:uniqHeart(it.id)}; }
+const awakenTotal=set=>{ let g=0; const it={id:'u'+set}; for(let n=0;n<AWAKEN_MAX;n++){ it.aw=n; g+=awakenCost(it).g; } return g; };   // the Codex's figure: all five ranks of a gate's unique
+const canAwaken=it=>{ const c=awakenCost(it); return !!c&&S.mode==='town'&&workOpen()&&S.gold>=c.g&&(S.dust||0)>=c.d&&(S.trophies[c.key]||0)>=c.h; };
+function awaken(u){
+  const it=findItem(u); if(!it||!canAwaken(it)) return false; const c=awakenCost(it);
+  S.gold-=c.g; S.dust-=c.d; S.trophies[c.key]-=c.h; if(!S.trophies[c.key]) delete S.trophies[c.key];
+  vitals(()=>{ it.aw=(it.aw|0)+1; }); tally('awakened'); tally('awakenG',c.g); sfx('level'); return true;
+}
+function heartsKept(k){   // hearts of this kind that the uniques you hold still need to reach their last rank ("Sell all" keeps these)
+  let n=0; for(const it of S.inv.concat(Object.values(S.equip))) if(it&&ITEM[it.id]&&ITEM[it.id].uq&&uniqHeart(it.id)===k) for(let r=(it.aw|0);r<AWAKEN_MAX;r++) n+=r+1;
+  return n; }
 function enchant(u,line){   // line < 0 adds a line; otherwise re-rolls that line
   const it=findItem(u); if(!it||S.mode!=='town'||ITEM[it.id].uq) return false;
   const c=enchCost(it), ro=it.ro||[]; if((S.dust||0)<c) return false;
@@ -4251,7 +4282,7 @@ function enchant(u,line){   // line < 0 adds a line; otherwise re-rolls that lin
 // HP x1.5 -> x1.4 the same day after the gate retune (harder S foes): held 79-81% -> 84% (seed 7700) and 81% (9100).
 // HP x1.4 -> x1.7, attack x1.5 -> x1.8 the same day after the stat rebalance (minions hit harder): held 91% -> 85% on both seeds.
 // HP x1.7 -> x2.4, attack x1.8 -> x2.5 the same day after rows, foe intents, bonds and mausoleums: held 91% -> 86% (7700) and 84% (9100).
-const SIEGE_BUILT=2, SIEGE_GAP=[7,10], SIEGE_WAVES=3, SIEGE_LV=1, SIEGE_HP=2.4, SIEGE_ATK=2.5, SIEGE_XP=.4, SIEGE_BOSS_LV=1, SIEGE_MOVE='decree',
+const SIEGE_BUILT=2, SIEGE_GAP=[7,10], SIEGE_WAVES=3, SIEGE_LV=1, SIEGE_HP=2.2, SIEGE_ATK=2.5, SIEGE_XP=.4, SIEGE_BOSS_LV=1, SIEGE_MOVE='decree',
   SIEGE_GOLD=1.5, SIEGE_DUST=1, SIEGE_DROP=.5, SIEGE_REPAIR=.5, SIEGE_FINE=.1, SIEGE_FINE_MAX=1,
   SIEGE_CRYPT=.05, SIEGE_OSS_GAP=2, SIEGE_ALT=.10, SIEGE_FORGE=.05, SIEGE_WALL=2;
 const SIEGE_FOES={vanguard:['Militia Spearman',1.3,.85],striker:['Crossbowman',.9,1.25],mender:['Chaplain',.8,.8],reaper:['Witch-hunter',1.1,1.2]};   // [name, hp factor, atk factor]
@@ -4367,7 +4398,7 @@ const RIVAL_KIND='Rival Necromancer';
 const RIVAL_AT=4;                       // distinct gate clears before the rival appears (3 before: a rival met then stays)
 const RIVAL_GAP=[12,16], RIVAL_PUSH=7;  // days between challenges (about 14); a win pushes the next one back 7 more
 const RIVAL_THEFT=[2,6];                // days between thefts (about 4)
-const RIVAL_LV=1, RIVAL_HP=15.4, RIVAL_ATK=6.4, RIVAL_STEP=.1, RIVAL_GOLD=2, RIVAL_ABIL='decree';   // like a secret master: never weaker than you, as strong as the hardest gate open; +10% HP and attack per win (RIVAL_HP/ATK tuned on the full bot: about 68% of challenges won; 6/2.6 -> 6.5/2.8 on 2026-11-19 after the stat rework, -> 12/5.2 the same day after the stat rebalance: Strength and Intelligence now raise minion attack, and the bot won ~82%; -> 12.8/5.4 after rows, intents and bonds: 71%/70% -> 71%/62%; -> 14.8/6.2 on 2026-11-20 after the difficulty rules and evolution marks: 73%/75% -> 64%/71% (13.8/5.4 alone: 68%/78%); -> 15.4/6.4 the same day after the rival fields its stolen bodies: 73%/68% -> 68%/68%)
+const RIVAL_LV=1, RIVAL_HP=22, RIVAL_ATK=9, RIVAL_STEP=.1, RIVAL_GOLD=2, RIVAL_ABIL='decree';   // like a secret master: never weaker than you, as strong as the hardest gate open; +10% HP and attack per win (RIVAL_HP/ATK tuned on the full bot: about 68% of challenges won; 6/2.6 -> 6.5/2.8 on 2026-11-19 after the stat rework, -> 12/5.2 the same day after the stat rebalance: Strength and Intelligence now raise minion attack, and the bot won ~82%; -> 12.8/5.4 after rows, intents and bonds: 71%/70% -> 71%/62%; -> 14.8/6.2 on 2026-11-20 after the difficulty rules and evolution marks: 73%/75% -> 64%/71% (13.8/5.4 alone: 68%/78%); -> 15.4/6.4 the same day after the rival fields its stolen bodies: 73%/68% -> 68%/68%)
 const RIVAL_FOLLOW=[2,4];               // raised followers: 2, one more for every two wins, at most 4
 const RIVAL_STASH=6;                    // stolen bodies the rival keeps (the oldest is dropped)
 const RIVAL_FINE=.1;                    // a loss with no page to take: 10% of the gold you carry, at most one clear's worth
@@ -8192,6 +8223,13 @@ TR_RX.push([/^Curse \+ (Hard|Brutal|Nightmare)$/,"Lanet + {t1}"],[/^Cursed and (
  ["A boss is one soul: while one of its bodies serves you, in the army, the Reserve or on a raid, another will not rise","Bir boss tek bir ruhtur: bedenlerinden biri sana hizmet ettikçe, orduda, Yedekte ya da bir akında, bir başkası dirilmez"]
 ].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
 TR_RX.push([/^Soul Tether: (.+?) takes (\d+) of the blow for you$/,"Ruh Bağı: $1 darbenin $2 kadarını senin yerine alıyor"],[/^Soul Tether: (.+?) stands in front\. (.+)$/,"Ruh Bağı: $1 önde duruyor. {t2}"],[/^(.+)'s soul is already bound to you$/,"$1 ruhu zaten sana bağlı"]);
+[ // Awakening (game-phases-town.js AWAKENING; item cards, Codex gear page)
+ ["Awaken","Uyandır"],["Fully awakened","Tamamen uyanmış"],
+ ["Each rank adds #% to the unique's own stats (army slots and mana per turn excepted), up to # ranks. It costs gold, bone dust and hearts of the boss or warden that drops it","Her derece eşsizin kendi niteliklerine %# ekler (ordu yerleri ve tur başına mana hariç), en çok # dereceye kadar. Altın, kemik tozu ve onu düşüren boss ya da muhafızın kalplerine mal olur"],
+ ["Each rank adds #% to the unique's own stats (army slots and mana per turn excepted), up to # ranks. It costs gold, bone dust and hearts of the boss or warden that drops it. Five ranks of a Rat Warren unique cost about #k gold, of a Throne of Ash unique about #k. \"Sell all\" keeps the hearts your uniques still need","Her derece eşsizin kendi niteliklerine %# ekler (ordu yerleri ve tur başına mana hariç), en çok # dereceye kadar. Altın, kemik tozu ve onu düşüren boss ya da muhafızın kalplerine mal olur. Bir Rat Warren eşsizinin beş derecesi yaklaşık #k altın, bir Throne of Ash eşsizininki yaklaşık #k tutar. \"Tümünü sat\" eşsizlerinin hâlâ ihtiyaç duyduğu kalpleri tutar"],
+ ["One per gate boss and Tower warden. Fixed stats and a unique power. A unique you already carry never drops again: you get ordinary gear (or gold, from a warden) instead. Cannot be sold, salvaged or enchanted, and ignores the bag limit Gold, bone dust and its boss's hearts awaken it instead","Her kapı bossu ve Kule muhafızı için bir tane. Sabit nitelikler ve eşsiz bir güç. Zaten taşıdığın bir eşsiz bir daha düşmez: onun yerine sıradan teçhizat (ya da bir muhafızdan altın) alırsın. Satılamaz, parçalanamaz, büyülenemez ve çanta sınırını yok sayar Onun yerine altın, kemik tozu ve bossunun kalpleri onu uyandırır"]
+].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+TR_RX.push([/^Awakened (I|II|III|IV|V)$/,"Uyanmış $1"],[/^Awaken (I|II|III|IV|V)$/,"Uyandır $1"],[/^(.+) is now Awakened (I|II|III|IV|V)$/,"$1 artık Uyanmış $2"],[/^Heart of (.+?) (\d+)\/(\d+)$/,"$1 Kalbi $2/$3"]);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -9027,7 +9065,7 @@ const TIER_MARK=TIERS.map((n,t)=>'<svg class="tmark" viewBox="0 0 '+(t>=5?8:t*5+
 function iico(d){ const set=!d.uq&&!d.tower&&RANKS[d.set]!=null, g=iglyph(d), M=IMAT[g]||['metal',ITEM_HUE[d.slot]||'#6a655c'];   // each gate's set has its own metal and its rank letter in the corner; each piece its own shape and material
   return '<span class="ico t'+d.tier+(set?' s'+d.set:'')+'" aria-hidden="true"><svg viewBox="0 0 64 64" class="mt-'+M[0]+'" style="color:'+M[1]+'"><g filter="url(#paint)">'+(IC[g]||IC._)+'</g>'+(d.tier>=4?GLINT:'')+'</svg>'+(set?'<span class="rb gl r'+d.set+'">'+RANKS[d.set]+'</span>':'')+(TIER_MARK[d.tier]||'')+'</span>'; }
 const statTxt=(k,v)=>(v>0?'+':'&minus;')+Math.abs(v)+STATL[k][1]+' '+STATL[k][0];
-function statsHTML(d,it){ return Object.keys(d.stats).filter(k=>d.stats[k]).map(k=>'<span>'+statG(k,d.stats[k])+'</span>').join('')
+function statsHTML(d,it){ return Object.keys(d.stats).filter(k=>d.stats[k]).map(k=>'<span>'+statG(k,baseStat(it,d,k))+'</span>').join('')
   +((it&&it.ro)||[]).map(r=>'<span class="roll" title="Bonus line">'+statG(r[0],r[1])+'</span>').join(''); }
 // A fold for long text: a native <details>, so it opens from the keyboard; ui.det remembers it across renders (ui-input.js). With keep the summary
 // stays when open (a heading); without it the summary (a short line) gives way to the body, which holds the full text.
@@ -9046,11 +9084,11 @@ function setLine(d){ if(d.tower||SET_NAMES[d.set]==null) return usetLine(d); con
   return detl('gs'+d.set,SET_NAMES[d.set]+' set'+(n?' ('+n+'/3 worn)':''),'<span class="'+(n>=2?'on':'')+'">2: '+buffTxt(B[2])+'</span> &middot; <span class="'+(n>=3?'on':'')+'">3: '+buffTxt(B[3])+'</span>','setl',1)+usetLine(d); }
 function itemCard(it,acts,cmp){
   const d=ITEM[it.id];
-  return '<div class="item t'+d.tier+'">'+iico(d)+'<div class="i-body"><div class="i-top"><span class="i-name">'+d.name+'</span><span class="i-tag">'+TIERS[d.tier]+' &middot; '+SLOTS[d.slot]+(!d.uq&&!d.tower&&RANKS[d.set]?'<span class="sr"> &middot; gate '+RANKS[d.set]+' set</span>':'')+(d.tower?' &middot; <span class="i-floor">Hell Tower '+d.floor+'</span>':'')+'</span></div>'
+  return '<div class="item t'+d.tier+'">'+iico(d)+'<div class="i-body"><div class="i-top"><span class="i-name">'+d.name+'</span><span class="i-tag">'+TIERS[d.tier]+' &middot; '+SLOTS[d.slot]+(!d.uq&&!d.tower&&RANKS[d.set]?'<span class="sr"> &middot; gate '+RANKS[d.set]+' set</span>':'')+(d.tower?' &middot; <span class="i-floor">Hell Tower '+d.floor+'</span>':'')+(it.aw?' &middot; <span class="i-aw" title="'+AWAKEN_TXT+'">Awakened '+AWAKEN_RN[it.aw]+'</span>':'')+'</span></div>'
    +'<div class="i-stats">'+statsHTML(d,it)+'</div>'+(d.flag?detl('fx'+d.flag,FLAGS[d.flag].split(':')[0],FLAGS[d.flag],'i-fx'):'')+setLine(d)+(cmp?cmpHTML(it):'')+'</div><div class="i-acts">'+(acts||'')+'</div></div>';
 }
 const lockBtn=it=>'<button class="btn small lockb'+(it.lk?' on':'')+'" data-a="lock" data-k="'+it.u+'" aria-pressed="'+!!it.lk+'" title="'+(it.lk?'Locked: never sold, salvaged or discarded. Press to unlock.':'Lock it so it is never sold, salvaged or discarded')+'">'+(it.lk?'Locked':'Lock')+'</button>';
-const reforgeBtn=it=>ITEM[it.id].uq||S.mode!=='town'?'':'<button class="btn small" data-a="reforge" data-k="'+it.u+'"'+(S.gold<reforgeCost(it)?' disabled':'')+' title="Re-roll its bonus lines">Reforge &middot; '+gold(reforgeCost(it))+'</button>'+enchBtn(it);
+const reforgeBtn=it=>S.mode!=='town'?'':ITEM[it.id].uq?awakenBtn(it):'<button class="btn small" data-a="reforge" data-k="'+it.u+'"'+(S.gold<reforgeCost(it)?' disabled':'')+' title="Re-roll its bonus lines">Reforge &middot; '+gold(reforgeCost(it))+'</button>'+enchBtn(it);
 const dust=n=>'<span class="dust-n">'+n.toLocaleString()+' dust</span>';
 function enchBtn(it){   // Enchant opens the choices: add a line (if there is room) or re-roll one line
   if(ITEM[it.id].uq||S.mode!=='town'||!workOpen()) return '';
@@ -9061,6 +9099,10 @@ function enchBtn(it){   // Enchant opens the choices: add a line (if there is ro
     +(!ro.length&&!lineMax(it)?'<span class="u-sub">Common gear has no room for a bonus line.</span>':'')+'</div>';
   return h;
 }
+function awakenBtn(it){   // a unique: gold, bone dust and its boss's hearts raise its own stats a rank (game-phases-town.js AWAKENING)
+  if(!workOpen()) return ''; const c=awakenCost(it); if(!c) return '<span class="u-sub">Fully awakened</span>';
+  const T=TROPHY[c.key], have=S.trophies[c.key]||0;
+  return '<button class="btn small" data-a="awaken" data-k="'+it.u+'"'+(canAwaken(it)?'':' disabled')+' title="'+AWAKEN_TXT+'">Awaken '+AWAKEN_RN[(it.aw|0)+1]+' &middot; '+gold(c.g)+' &middot; '+dust(c.d)+' &middot; '+(T?T.name:'hearts')+' '+have+'/'+c.h+'</button>'; }
 function temperBtn(it,i){ const r=it.ro[i], to=temperTo(it,i), mx=rollMax(it,r[0]), c=temperCost(it);   // gold moves a line toward its best roll
   return to==null?'<span class="u-sub">'+statTxt(r[0],r[1])+': at its best</span>':'<button class="btn small" data-a="temper" data-k="'+it.u+'|'+i+'"'+(S.gold<c?' disabled':'')+' title="Move this line a quarter of the way to its best roll">Temper: '+r[1]+' &rarr; '+to+' (max '+mx+') &middot; '+gold(c)+'</button>'; }
 const pc=p=>{ p*=100; return (p>=10?p.toFixed(0):p>=1?p.toFixed(1):p.toFixed(2))+'%'; };
@@ -9774,9 +9816,10 @@ function codexSection(k){
   if(k==='tower') return cxP('Opens once '+OPEN_AT.tower+' gates are cleared, from level '+TW.unlock+'. One fight per floor and a warden every tenth floor, each carrying a unique: guaranteed the first time, '+pct(TW.repeat)+' after (as gold while you carry one). Floors you clear become checkpoints every ten floors. Past floor 100 the Abyss never ends, and each tenth floor pays gold and a legendary. Tower foes wear '+pct(TW.armor)+' armor.')
     +cxList(TW_BOSS.map((n,i)=>{ const f=(i+1)*10, seen=S.tower.best>=f-10; return cxRow(seen?n:'???','Floor '+f+' &middot; recommended level '+recLv(f)+(seen?' &middot; '+BOSS_ABIL[GATE_ABIL[i%GATE_ABIL.length]].name:''),S.tower.best>=f?'Defeated':''); }));
   if(k==='gear') return cxP('You wear a weapon, armor and a relic. Gear-bearer minions can wear them too. On a minion, attack, strength, crit, Siphon and intelligence add to its attack; HP, constitution, ward, mana and will add to its HP; minion power works as usual.')
-    +cxList(TIERS.map((t,i)=>cxRow(t,i===5?'One per gate boss and Tower warden. Fixed stats and a unique power. A unique you already carry never drops again: you get ordinary gear (or gold, from a warden) instead. Cannot be sold, salvaged or enchanted, and ignores the bag limit.':(ROLL_LINES[i]?'Up to '+ROLL_LINES[i][0]+' bonus line'+(ROLL_LINES[i][0]>1?'s':'')+', each rolled at '+pct(ROLL_LINES[i][1])+'.':'')+' Salvages for '+(DUST_TIER[i]||0)+' bone dust, plus 1 per two bonus lines.',i===5?'':'Tier '+(i+1))))
+    +cxList(TIERS.map((t,i)=>cxRow(t,i===5?'One per gate boss and Tower warden. Fixed stats and a unique power. A unique you already carry never drops again: you get ordinary gear (or gold, from a warden) instead. Cannot be sold, salvaged or enchanted, and ignores the bag limit. Gold, bone dust and its boss\'s hearts awaken it instead.':(ROLL_LINES[i]?'Up to '+ROLL_LINES[i][0]+' bonus line'+(ROLL_LINES[i][0]>1?'s':'')+', each rolled at '+pct(ROLL_LINES[i][1])+'.':'')+' Salvages for '+(DUST_TIER[i]||0)+' bone dust, plus 1 per two bonus lines.',i===5?'':'Tier '+(i+1))))
     +'<p class="group-h">Working on gear</p>'+cxList([cxRow('Reforge','Re-rolls every bonus line for '+pct(REFORGE_COST)+' of the merchant price in gold. Always leaves at least one line.'),cxRow('Enchant','Spends bone dust to add one bonus line to a piece with room for it, or to re-roll one line you choose.'),
       cxRow('Temper','Gold moves one bonus line '+pct(TEMPER_STEP)+' of the way to its best roll (at least 1 more). Each temper on the same piece costs '+pct(TEMPER_GROW-1)+' more than the last; re-rolling a line does not reset it. Not for uniques.'),
+      cxRow('Awaken',AWAKEN_TXT+' Five ranks of a Rat Warren unique cost about '+Math.round(awakenTotal(0)/1000)+'k gold, of a Throne of Ash unique about '+Math.round(awakenTotal(5)/1000)+'k. "Sell all" keeps the hearts your uniques still need.'),
       cxRow('Salvage','Breaks a piece into bone dust.'),cxRow('Lock','A locked piece cannot be sold, salvaged or discarded until you unlock it.'),cxRow('Sell','Gear sells for a quarter of the merchant price, plus a quarter more per bonus line.'),cxRow('Trophy forge',FORGE_N+' trophies from one gate (a boss heart counts as 5) and some gold forge that gate\'s gear in the slot you choose. '+pct(MASTERWORK)+' come out a masterwork from the next gate.')]);
   if(k==='uniques') return cxP('Each gate boss and Tower warden has its unique. A gate boss leaves one drop for sure and a second '+pct(dropChances(true,false)[1])+' of the time, and each drop has the chance below to be its unique. Ordinary foes of the gate carry it at '+(UQ_MOB*100)+'% of the boss\'s odds, elites at twice that. A Tower warden gives its unique the first time and '+pct(TW.repeat)+' of the time after. A unique you already carry never drops again: you get ordinary gear instead.')
     +cxList(DUNGEONS.map((D,i)=>cxRow(D.name,'Boss '+(+UQ[i].toFixed(4))+'% per drop &middot; elite '+(+(UQ[i]*UQ_MOB*2).toFixed(4))+'% &middot; foe '+(+(UQ[i]*UQ_MOB).toFixed(4))+'%',metName(D.boss[0])?D.boss[0]:'')))
@@ -10799,6 +10842,7 @@ const ACTIONS={
   head:k=>{ const e=(S.memorial||[])[+k]; if(e&&carveHead(+k)) notify('A headstone for '+e.nick+', tier '+e.hs+'. Your minions have +'+(headBonus()*100).toFixed(1)+'% max HP for good.','ok'); },
   losave:k=>{ const i=+k, L=(S.loadouts||[])[i]; if(L&&L.s&&ui.confirm!=='lo'+i){ ui.confirm='lo'+i; return; } ui.confirm=null; if(saveLoadout(i)) notify('Saved to '+loadoutName(i)+'.','ok'); },
   louse:k=>{ useLoadout(+k); }, loreno:k=>{ ui.lren=+k; ui.lrn=loadoutName(+k); }, lorenx:()=>{ ui.lren=null; }, loren:k=>{ if(renameLoadout(+k,ui.lrn)) ui.lren=null; },
+  awaken:k=>{ const it=findItem(+k); ui.msg=awaken(+k)?{mk:1,m:ITEM[it.id].name+' is now Awakened '+AWAKEN_RN[it.aw]+'.',c:'ok'}:null; },
   reforge:k=>{ const it=findItem(+k), c=it&&reforgeCost(it); ui.msg=reforge(+k)?{mk:1,m:'Reforged '+ITEM[it.id].name+' for '+c+' gold.',c:'ok'}:null; },
   rift:k=>{ startRift(+k); }, gsub:k=>{ ui.gsub=['open','war','rift','trial'].includes(k)?k:'open'; ui.msg=null; }, trial:()=>{ startTrial(); },
   rdep:k=>{ const b=riftBest(); ui.rd=clamp((ui.rd||b+1)+(+k||0),1,b+1); },

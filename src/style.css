@@ -400,6 +400,7 @@ i,em{font-style:normal}
 .tw-uq{display:grid;gap:8px;margin-top:8px}
 .tw-got{font:600 10px/1 var(--font-data);letter-spacing:.12em;text-transform:uppercase;color:var(--ok)}
 .item .i-floor{color:#ff8a6a}
+.item .i-aw{color:var(--gold)}
 .ttl{font:400 15px/1.2 var(--font-lore);color:var(--gold);margin:1px 0 2px}
 .tt-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);background:rgba(0,0,0,.25)}
 .tt-row.on{border-color:var(--gold);background:rgba(211,166,77,.07)}

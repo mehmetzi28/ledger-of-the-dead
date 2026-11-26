@@ -158,7 +158,7 @@ function buyStock(i){
   S.gold-=cost; s.sold=true; addItem(s.id,s.ro||null); sfx('coin'); return true;
 }
 function sellTrophy(k,all){ const n=S.trophies[k]||0; if(!n||!TROPHY[k]||S.mode!=='town') return 0; const q=all?n:1; S.trophies[k]-=q; if(!S.trophies[k]) delete S.trophies[k]; const g=q*TROPHY[k].value; S.gold+=g; tally('soldTro',q); sfx('coin'); return g; }
-function sellAllTrophies(){ let g=0; for(const k of Object.keys(S.trophies)) g+=sellTrophy(k,true); return g; }
+function sellAllTrophies(){ let g=0; for(const k of Object.keys(S.trophies)){ const keep=k.startsWith('b:')?heartsKept(k):0; if(!keep) g+=sellTrophy(k,true); else for(let n=S.trophies[k]-keep;n>0;n--) g+=sellTrophy(k); } return g; }   // keeps the hearts your uniques still need to awaken
 // Gold sinks: the Bone Altar levels a minion up (never past the usual cap of your level + 2), bag upgrades add space, salts help raising.
 const empowerCost=m=>Math.round(mneed(m.lvl)*.6*(1-B_ALT_COST*bl('altar')));
 function empower(uid){
@@ -387,8 +387,8 @@ function raidDayLine(rr){ if(!rr||!rr.length) return ''; const w=rr.filter(x=>x.
 // ===== THE RIFT =====
 // Endless endgame: from level 40, once the Throne of Ash has fallen. Each depth is a five-room run through a random gate's
 // dead, risen to your level and hardened by depth; rewards rise with it. Clearing your deepest depth opens the next and
-// leaves an extra legendary.
-const RIFT_LV=40, RIFT_ROOMS=5, RIFT_STEP=.1, RIFT_DROP=.05, RIFT_DROP_MAX=2.5;
+// leaves an extra legendary. RIFT_STEP .1->.3 on 2026-11-26: with the Soul Tether the market bot reached depth ~45 instead of ~23 (full ~18 instead of ~10).
+const RIFT_LV=40, RIFT_ROOMS=5, RIFT_STEP=.3, RIFT_DROP=.05, RIFT_DROP_MAX=2.5;
 const riftOpen=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5])&&S.player.lvl>=RIFT_LV;
 const riftBest=()=>(S.rift&&S.rift.best)||0;
 const riftMul=n=>1+RIFT_STEP*(n-1);
