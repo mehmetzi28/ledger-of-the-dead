@@ -147,8 +147,8 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
 
 **Content and modes**
 
-- **G16. The story has no ending.** (Part closed by R3 PR A: act VI and Vane Abbey lead to the Hunger; the choice itself
-  comes with PR B.) Five acts and twenty pages build to "write your name and close the book, or keep
+- ~~**G16. The story has no ending.**~~ Closed by R3: act VI and Vane Abbey lead to the Hunger, and the last page lets
+  the player close the book or keep writing, each with an epilogue, a title and its own New Game+. Five acts and twenty pages build to "write your name and close the book, or keep
   writing", and the game does not let the player choose. Tower floor 100 makes the book "whole" with no consequence.
   (Story, pages, Tower, secret masters, NG+.)
 - **G17. Raids are one dice roll.** Normal, cleared gates only; they never touch difficulty, curses, hearts, bounties,
@@ -159,7 +159,8 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
   (Rival, story, NG+, raids.)
 - **G20. Omens are weather, not choices.** Nothing forecasts, calls or wards off an omen, and the town never reacts to
   one. (Omens, faith, town, calendar.)
-- **G21. New Game+ is the same content harder.** Pacts are multipliers; there is no new content, foe or story per
+- **G21. New Game+ is the same content harder.** (Part closed by R3: the Quiet Valley and the Keeper's Cycle, Ledger
+  inscriptions and Ledger-form bosses.) Pacts are multipliers; there is no new content, foe or story per
   cycle beyond three passages. (NG+, story, content.)
 - **G22. The Rift only scales.** Endless stat growth and generic legendaries; no modifiers to choose, no Rift-only
   rewards, no link to Trials, omens or the rival. (Rift, gear, records.)

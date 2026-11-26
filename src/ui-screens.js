@@ -35,6 +35,8 @@ function townHTML(){
   if(sub==='war') return h+raidHTML()+armyBriefHTML();
   if(sub==='rift') return h+riftHTML()+armyBriefHTML();
   if(sub==='trial') return h+trialHTML()+armyBriefHTML();
+  if(S.lastPage&&S.mode==='town'&&((!S.ending&&!ui.lpLater)||ui.lpJust)) return h+lastPageHTML();   /* the last page (game-abbey.js): the Ledger itself, not a popup */
+  h+=lastPageBanner();
   h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'+gateArmyHTML()
    +((n=>n<FIRST_STEPS.length&&!(S.tips&&S.tips.off)?'<p class="q-note guide-link"><button class="linkbtn" data-a="tab" data-k="help">How to play &middot; first steps '+n+'/'+FIRST_STEPS.length+'</button></p>':'')(stepsDone()))   /* for a new player; gone once every step is done or tips are switched off */
    +(omen()?'<div class="omen-line" title="It touches every gate and the Tower until dawn."><b>Omen today: '+OMENS[omen()].name+'.</b> '+OMENS[omen()].desc+'</div>':'')+rivalWarnHTML()
@@ -431,6 +433,7 @@ function raiseHTML(){
     const ch=raiseChance(c), cost=raiseCost(c);
     let right;
     if(c.tried) right=c.result==='raised'?'<span class="ok num">'+(c.res?'Raised to the Reserve as ':'Raised as ')+c.minion+'</span>':c.result==='exploded'?'<span class="dim num">Burst apart</span>':c.result==='taken'?'<span class="dim num rival-took">Taken by '+c.taken+'</span>':'<span class="bad num">Crumbled</span>';
+    else if(quietLocked()) right='<span class="dim" title="The Quiet Valley: nothing rises until your first gate clear of this cycle.">The Ledger is quiet</span>';
     else if(soulBound(c)) right='<span class="dim num" title="'+SOUL_BOUND+'">Soul already bound</span>';
     else if(bench) right='<div class="btns" style="margin:0"><button class="btn primary small res-raise" data-a="raiseres" data-k="'+c.id+'"'+(P.mana<cost?' disabled':'')+' title="Your army is full: the minion goes to the Reserve">Raise to the Reserve &middot; '+ch+'% &middot; '+cost+' mana</button>'
       +(S.salts>0?'<button class="btn small" data-a="raiseressalt" data-k="'+c.id+'"'+(P.mana<cost?' disabled':'')+' title="Uses one Grave Salts ('+S.salts+' left)">With salts &middot; '+saltChance(c)+'%</button>':'')+'</div>';

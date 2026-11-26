@@ -271,12 +271,27 @@ const HEAT_SKULL='<svg viewBox="0 0 10 10"><path d="M5 .8C2.5.8 1 2.5 1 4.6c0 1.
 const heatMarks=lv=>'<i class="hm h'+lv+'" aria-hidden="true">'+HEAT_SKULL.repeat(lv+1)+'</i>';
 const bossMet=i=>metName(DUNGEONS[i].boss[0])||!!(S.ti&&S.ti.clr&&S.ti.clr[i]);   // a gate's boss stays ??? on its card until you have met or beaten it
 const gateStars=i=>HEAT.map((x,lv)=>lv?!!(S.heatMax&&S.heatMax[i]>=lv):!!(S.ti&&S.ti.clr&&S.ti.clr[i]));   // cleared on Normal, Hard, Brutal, Nightmare
+function inscChips(){ const o=inscOffer(); return o.length?'<p class="group-h">Write one inscription &middot; it stays in the Ledger for every cycle to come</p><div class="insc-list">'+o.map(id=>{ const I=INSCRIPTIONS[id]; return '<button class="btn small" data-a="inscribe" data-k="'+id+'" title="Earned: '+I.need+'"><b>'+I.name+'</b> &middot; '+I.desc+'</button>'; }).join('')+'</div>':''; }
+function lastPageHTML(){   // the Hunger has fallen: the Ledger open at its last page (chooseEnding, inscribe in game-abbey.js)
+  if(!S.ending) return '<section class="win last-page" aria-labelledby="h-lp"><h2 class="win-h" id="h-lp">The last page</h2><h3 class="win-title">The Ledger lies open, and the pen is in your hand</h3>'
+    +'<p class="lede">The Hunger is gone. What is left is a blank page and a choice Oswin never made. Answer now, or leave it: the page waits, and the gates stay open.</p><div class="lp-choices">'
+    +Object.entries(ENDINGS).map(([k,E])=>'<div class="lp-choice"><h4>'+E.name+'</h4><p class="lp-line">&ldquo;'+E.line+'&rdquo;</p><p class="dim">Title: '+E.title+'. New Game+ becomes '+E.cycle+': '+E.ngp+'</p><button class="btn '+(ui.confirm==='end:'+k?'warn':'primary')+'" data-a="ending" data-k="'+k+'">'+(ui.confirm==='end:'+k?'Press again: '+E.name.toLowerCase():E.name)+'</button></div>').join('')
+    +'</div><div class="btns"><button class="btn small" data-a="lplater">Not yet</button></div></section>';
+  const st=STORY_BY[S.ending.k==='closed'?'end_closed':'end_kept'];
+  return '<section class="win last-page" aria-labelledby="h-lp"><h2 class="win-h" id="h-lp">'+ENDINGS[S.ending.k].name+'</h2><h3 class="win-title">'+st.t+'</h3><p class="lp-text">'+st.m+'</p><p class="lp-text">'+S.ending.v+'</p>'
+    +inscChips()+'<p class="q-note">You can keep playing this cycle. New Game+ (Ledger tab, Settings) now begins '+ENDINGS[S.ending.k].cycle+'.</p><div class="btns"><button class="btn primary" data-a="lpseen">Close the Ledger</button></div></section>';
+}
+function lastPageBanner(){
+  if(!S.lastPage||S.mode!=='town') return '';
+  if(!S.ending) return '<div class="note story lp-banner"><i>Ledger</i><span>The last page waits for your answer.</span><button class="btn small" data-a="lpopen">Open the Ledger</button></div>';
+  return inscOffer().length?'<div class="note story lp-banner"><i>Ledger</i><span>An inscription waits to be written.</span><button class="btn small" data-a="lpopen">Open the Ledger</button></div>':'';
+}
 function abbeyDoorHTML(){   // Vane Abbey while sealed (game-abbey.js): the drowned door and its two key slots, either one opens it
   const D=DUNGEONS[ABBEY], A=abbeyState(), GL=BOSS_LOOK[D.boss[0]]||['#1a1714','#5a4a3a'];
   const slot=k=>{ const K=ABBEY_KEYS[k], ps=K.parts(), n=ps.filter(p=>p[1]).length; return '<div class="key-slot'+(A.keys[k]?' on':'')+'"><b>'+K.name+'</b> <span class="dim num">'+n+'/'+ps.length+'</span><ul>'+ps.map(p=>'<li class="'+(p[1]?'ok':'dim')+'"><i aria-hidden="true">'+(p[1]?'&#10003;':'&#9675;')+'</i> '+p[0]+'</li>').join('')+'</ul></div>'; };
   return '<div class="gate locked abbey-door" style="--g1:'+GL[0]+';--g2:'+GL[1]+'"><div class="g-head gs-g'+ABBEY+'" aria-hidden="true">'+G_SEAL+'<span class="g-sealtxt">Sealed &middot; two keys</span></div>'
    +'<div class="badge r'+ABBEY+'">'+RANKS[ABBEY]+'</div><div class="g-body"><h3>'+D.name+'</h3><p>'+D.blurb+'</p>'
-   +'<p class="lede">A door in the riverbed, bound in chain. Either key opens it.</p><div class="key-slots">'+slot('deep')+slot('secret')+'</div></div>'
+   +'<p class="lede">A door in the riverbed, bound in chain. Either key opens it.</p><div class="key-slots">'+abbeyKeyIds().map(slot).join('')+'</div></div>'
    +'<button class="btn" disabled>Sealed</button></div>';
 }
 function gateHTML(i){
@@ -471,6 +486,8 @@ function ngpHTML(){
   h+='<div class="danger-zone"><p class="q-note" style="margin-top:0">Begin New Game+ '+n+': level 1, day 1, a fresh army, bag and gold. You keep your titles and bestiary, and one unique. Foes get '+Math.round(NGP_FOE*n*100)+'% more HP and attack and pay '+Math.round(NGP_REWARD*n*100)+'% more XP and gold.</p>';
   h+=own.length?'<p class="q-note">Choose the unique to carry:</p><div class="chips">'+own.map(id=>'<button class="btn small'+(sel===id?' primary':'')+'" data-a="ngppick" data-k="'+id+'" aria-pressed="'+(sel===id)+'">'+ITEM[id].name+'</button>').join('')+'</div>'
     :'<p class="q-note">You hold no unique to carry.</p>';
+  if(S.ending) h+='<p class="q-note"><b>'+ENDINGS[S.ending.k].cycle+'.</b> '+ENDINGS[S.ending.k].ngp+'</p>';   /* the ending you chose (game-abbey.js) */
+  if((S.inscriptions||[]).length) h+='<p class="q-note">Ledger inscriptions you carry: '+S.inscriptions.map(id=>INSCRIPTIONS[id].name).join(', ')+'.</p>';
   h+=pactPickHTML();   // New Game+ pacts (src/ui-progression.js)
   return h+'<div class="btns"><button class="btn small warn" data-a="ngp">'+(ui.confirm==='ngp'?'Press again: this replaces your current game':'Begin New Game+ '+n+(sel?' with '+ITEM[sel].name:''))+'</button></div></div>';
 }
@@ -588,6 +605,7 @@ function recordsHTML(){
   const row=(t,v)=>'<div class="tt-row"><div><h4>'+t+'</h4></div><div class="rec-v">'+v+'</div></div>';
   let h='<section class="win" aria-labelledby="h-rec"><h2 class="win-h" id="h-rec">Records</h2><h3 class="win-title">Your best, kept through every New Game+</h3>'
    +'<div class="items">'+row('Deepest Tower floor',Rc.floor?'<b>'+Rc.floor.v+'</b>'+(Rc.floor.v>100?' <span class="dim">(Abyss)</span>':'')+' <span class="dim">&middot; day '+Rc.floor.day+'</span>':'<span class="dim">not yet</span>')
+   +row('Endings',(S.endHist||[]).length?S.endHist.map(e=>'<b>'+ENDINGS[e.k].name+'</b> <span class="dim">&middot; cycle '+(e.cycle+1)+', day '+e.day+'</span>').join('<br>'):'<span class="dim">not yet</span>')
    +row('Biggest single hit',on(Rc.hit))+row('Most foes slain in one run',on(Rc.kills))+row('Most gold from one run',on(Rc.gold))
    +row('Souls spent on ultimates','<b>'+n(T_('ults')*SOUL_MAX)+'</b> <span class="dim">&middot; '+n(T_('ults'))+' ultimate'+(T_('ults')===1?'':'s')+'</span>')
    +row('Sieges fought / held','<b>'+n(T_('sieges'))+'</b> <span class="dim">&middot; '+n(T_('siegeWins'))+' held</span>')
