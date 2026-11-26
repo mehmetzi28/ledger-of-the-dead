@@ -210,7 +210,7 @@
       }
       tryRaise(c.id, typeof S.salts==='number'&&S.salts>0&&(c.boss||c.elite));   // salts on the bodies worth the most
     }
-    for(const c of r.corpses) if(c.tried&&!c._z&&c.result){ c._z=1; RZ.t++; if(c.result==='raised') RZ.ok++; }   // raise attempts and successes (the report's raise rate)
+    for(const c of r.corpses) if(c.tried&&!c._z&&(c.result==='raised'||c.result==='failed')){ c._z=1; RZ.t++; if(c.result==='raised') RZ.ok++; }   // raise attempts and successes (the report's raise rate; bodies spent by Corpse Explosion or taken by the rival are not attempts)
   }
   // between-room events and event chains ('full' only; "off":["events"] walks past them all, as the other modes do): what a careful player
   // takes from what the screen shows (HP, gold, belt, army places), never from the hidden outcome of a chain

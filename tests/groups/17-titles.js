@@ -103,7 +103,7 @@ test('Titles: the new gate, Tower, Rift, army, omen and collection titles unlock
   S.omen={day:S.day,id:'ashfall'}; arena([foe({hp:0,dead:true})]); roomWon(); returnTown(); eq(T_('omenRuns'),1); eq(T_('om_ashfall'),1); checkTitles(); ok(S.ti.got.x_omen1,'Omen-Born');
   S.omen={day:S.day,id:null}; arena([foe()]); flee(); eq(T_('omenRuns'),1,'no omen, no count');
   Object.keys(OMENS).forEach(o=>{ S.ti['om_'+o]=1; }); checkTitles(); ok(S.ti.got.x_omenall,'every omen, whatever omens exist');
-  if(OMENS.eclipse){ S.ti.omw_eclipse=5; } else { S.ti.omenWins=15; ok(/15 runs under an omen/.test(TITLE.x_eclipse.req)); } checkTitles(); ok(S.ti.got.x_eclipse,'Lord of the Eclipse');
+  ok(OMENS.eclipse&&/^Win 5 runs under the Eclipse\./.test(TITLE.x_eclipse.req),'the stated requirement is the real one'); S.ti.omw_eclipse=4; checkTitles(); ok(!S.ti.got.x_eclipse,'4 is not enough'); S.ti.omw_eclipse=5; checkTitles(); ok(S.ti.got.x_eclipse,'Lord of the Eclipse');
   S.rec=S.rec||{}; S.rec.ftr={v:FUSE_TRAITS,day:1}; checkTitles(); ok(S.ti.got.x_ftr); ok(TITLE.x_ftr.req.includes(String(FUSE_TRAITS)));
   for(const id of ids) ok(TITLE[id].b&&Object.keys(TITLE[id].b).length,id+' bonus');
 });
