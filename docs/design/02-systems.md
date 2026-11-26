@@ -17,7 +17,7 @@ New players meet the game gradually. Most gates are counted in distinct gate cle
 |---|---|
 | Start | Rat Warren (E), the Market, Strike / Soul Siphon / Bone Ward, raising (the first raise always succeeds) |
 | Level 2+ | Skills, one per level band (Bone Spear at 2 ... Deathless Will at 22) |
-| Level 4 / 8 / 12 / 17 / 23 | Gates D / C / B / A / S (Recommended levels 1/5/9/16/19/27 at the current tuning, `gateRec`) |
+| Level 4 / 8 / 12 / 17 / 23 | Gates D / C / B / A / S (Recommended levels 1/5/9/16/19/27, Vane Abbey 31, at the current tuning, `gateRec`) |
 | First clear of a gate | Hard difficulty on it (then Brutal, then Nightmare); cursed days and omens start |
 | Level 6 (or holding bone dust) | Salvage, enchanting, tempering, Awakening (the workshop, `workOpen`) |
 | 2 distinct clears | Town tab: buildings, the Reserve, bounty board, Flesh Pit (fusion) |
@@ -30,6 +30,7 @@ New players meet the game gradually. Most gates are counted in distinct gate cle
 | Level 30 / 50 | First / second capstone of your main skill path |
 | Throne of Ash cleared | Weekly Trials, New Game+, cursed gates rise to near your level |
 | Throne cleared + level 40 | The Rift |
+| Throne cleared + a key (Tower floor 90 and 20 torn pages, or all six secret masters slain) | Vane Abbey (SS), the seventh gate (R3) |
 
 ## 2.1 The core loop
 
@@ -319,6 +320,25 @@ Wall), Ashen Barrow (C, the Ember Knight: Cinder Wave), Hollow Cathedral (B, the
 Orchard (A, the Orchard Mother: Seedfall), Throne of Ash (S, the Pale Sovereign: Royal Decree). Each has 7 foe kinds (two
 of each role plus a gear-bearer), sharing their role's stat factors; each kind has a foe kit (2.3).
 
+**Vane Abbey, the seventh gate** (`ABBEY`=6, rank SS, src/game-abbey.js, R3 PR A). Its card shows once the Throne of Ash
+falls, as a sealed door with two key slots (`ABBEY_KEYS`): the deep route (Throne cleared, Tower floor `ABBEY_TOWER` 90,
+`ABBEY_PAGES` 20 torn pages) or the secret route (Throne cleared, all six secret masters slain). Either key opens it for
+the cycle (`S.abbey`). `GATE_N`=6 keeps every "the six gates" rule (curses, raids, the rival, Trials, the Rift, shop
+stock, `topGate`, gate-count titles) on the valley's gates. Five rooms: three fights, the **Scriptorium** (a quiet door:
+cross out one minion of the army or Reserve for good, not to the Memorial; the Hunger then calls one echo fewer and every
+minion of yours carries its best trait in the boss room) and the boss. Seven kinds (one mender, two reapers) with two
+abbey-only kits: **Unwritten** (Ink Wraith: a minion's blow passes through unless a skill or your Siphon struck it this
+turn) and **Recitation** (Chained Lector: reads your strongest minion's best trait aloud; the minion loses it and the
+Lector hits 25% harder until it dies). The boss, **the Hunger**, has three pages at 100/60/30% HP, each with its own
+three moves (the boss-kit engine): The Blank Page (immune to shadow, mends 3% a turn unless fire hit it), The Remembered
+(calls up to three of your fallen from the Memorial as gold-ink echoes at 60%, three plague-year stand-ins for an empty
+Memorial; it takes 50% less while one stands; a minion bonded to an echo will not strike it and hits the Hunger 30%
+harder) and The Last Entry (Write Your Name sets you to 1 HP unless warded or frozen, Devour the Margin eats your
+strongest minion once unless Guarded; after six of your actions the book runs out and you win). Loot: the Scribe's
+Regalia (legendary set; 3 pieces give Marginalia: every third skill is free and lands as the target's weakest damage
+type) and Oswin's Ledger-Chain (+1% minion stats per headstone, up to 20%; a downed minion's last blow comes back as a
+free Bone Spear once a room). Five titles so far (Riverturner, Scriptor, Echo-Breaker, Unwritten, Seven Seals).
+
 **Sweep** (`sweepOk`, `sweep`, R1 PR B). A gate cleared on Normal at least 5 times (`SWEEP_CLEARS`), Normal and uncursed
 today, with you at least 12 levels above its Recommended level (`SWEEP_LV`) and no rival there, offers Sweep on its card:
 one watch wins the whole run at once (rooms generated and won as usual, quiet rooms passed), with kill XP at 80%
@@ -382,10 +402,10 @@ a next-objective callout and goals. **Tips**: 36 first-time tips, one at a time.
 
 ## 2.9 Story
 
-Five acts told by the Ledger (`STORY`, 53 passages): first clears of each gate and Tower milestones, plus milestone
+Six acts told by the Ledger (`STORY`, 60 passages; act VI is Vane Abbey's): first clears of each gate and Tower milestones, plus milestone
 passages (first raise, first fall, oaths, the town, curses, evolutions, raids, sieges, the Rift, the rival...). **Torn
-pages** (`LORE_PAGES`, 20): the Ledger's history from Oswin Vane to the blank page, found in order from bosses, wardens,
-elites, coffers and secret masters, each waiting for its level (page i at level 2 + 3i). Bosses speak on entry, phase and
+pages** (`LORE_PAGES`, 23): the Ledger's history from Oswin Vane to the blank page, found in order from bosses, wardens,
+elites, coffers and secret masters, each waiting for its level (page i at level 2 + 3i); the last three lie only in Vane Abbey. Bosses speak on entry, phase and
 death. The story builds to a choice ("write your own name and close the book, or keep writing") that the game does not yet
 let the player make.
 

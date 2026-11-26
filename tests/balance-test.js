@@ -158,7 +158,7 @@
     if(S.inv.length>20){ S.inv.sort((a,b)=>itemScore(ITEM[b.id])-itemScore(ITEM[a.id])); S.inv=S.inv.filter((it,i)=>i<12||ITEM[it.id].uq); }
   }
   // fair bots enter the highest gate they meet the Recommended level for; push bots enter the highest gate they have unlocked.
-  function pickGate(B){ const l=S.player.lvl; let g=0; for(let i=0;i<DUNGEONS.length;i++) if(l>=RK[i].unlock&&(B.push||l>=SAFE[i])) g=i; return g; }
+  function pickGate(B){ if(B.force!=null) return B.force; const l=S.player.lvl; let g=0; for(let i=0;i<DUNGEONS.length;i++) if((typeof gateLocked==='function'?!gateLocked(i):l>=RK[i].unlock)&&(B.push||l>=SAFE[i])) g=i; return g; }   /* Vane Abbey opens by its keys, not by level */
 
   // ----- battle: one decision per turn
   function chooseTarget(B){
@@ -276,7 +276,7 @@
     const T=B.tiers, snap=JSON.stringify(S), rand=Math.random, lvl=S.player.lvl;
     try{ for(const gi of T.gates) for(const h of (T.heats||[1,2,3])){
       if(lvl<RK[gi].unlock||(T.near!=null&&Math.abs(lvl-tierRec(gi,h))>T.near)) continue;
-      S=JSON.parse(snap); Math.random=mulberry32(seed*7919+S.day*31+gi*5+h); S.mode='town'; S.run=null; S.watches=Math.max(1,S.watches);
+      S=JSON.parse(snap); Math.random=mulberry32(seed*7919+S.day*31+gi*5+h); if(typeof ABBEY!=='undefined'&&gi===ABBEY) abbeyState().open=1;   /* the probe may fight the sealed abbey (the snapshot is restored after) */ S.mode='town'; S.run=null; S.watches=Math.max(1,S.watches);
       if(gateMod(gi)) continue; S.ti=S.ti||{}; S.ti.clr=S.ti.clr||{}; S.ti.clr[gi]=1; S.heatMax=S.heatMax||{}; S.heatMax[gi]=HEAT.length; S.heat=S.heat||{}; S.heat[gi]=h;
       startRun(gi); if(S.mode!=='battle') continue; const r={gate:gi,heat:h,lvl,cleared:false}; let guard=0;
       for(;;){ if(S.mode==='battle'){ if(++guard>400) break; act(decide(B)); continue; }
@@ -304,7 +304,7 @@
   }
   function simBot(seed,B,days){
     Math.random=mulberry32(seed); newGame(); B.statI=0; B.hw={}; B.hwDay={}; if(typeof BOSS_KITS_ON!=='undefined') BOSS_KITS_ON=!B.off.bosskits;   /* 'bosskits' off: the old single boss moves */
-    const rec=[], lvAt={}, firstClear={}, loreAt={}, tiers=[], trials=[], goldAt={}, gl={earn:0,spend:0,S:null};
+    let abbeyDay=null; const rec=[], lvAt={}, firstClear={}, loreAt={}, tiers=[], trials=[], goldAt={}, gl={earn:0,spend:0,S:null};
     const goldWatch=()=>{ if(gl.S===S) return; gl.S=S; let v=S.gold||0; Object.defineProperty(S,'gold',{enumerable:true,configurable:true,get:()=>v,set:x=>{ if(x>v) gl.earn+=x-v; else gl.spend+=v-x; v=x; }}); };   // lifetime gold earned and spent
     while(S.day<=days){
       goldWatch();
@@ -313,10 +313,14 @@
       town(B); const d=S.day; if(B.full&&!B.off.trials&&typeof trialReady==='function'&&trialReady()&&!trialBestWeek()&&(B.trw&&B.trw.w===trialWeek()?B.trw.n:0)<3){ B.trw=B.trw&&B.trw.w===trialWeek()?B.trw:{w:trialWeek(),n:0}; B.trw.n++; playTrial(B,trials); town(B); }   // until it completes the week's Trial, at most 3 tries a week
       playRun(B,rec); if(S.mode==='siege') fightSiege(B);
       const last=rec[rec.length-1]; if(last&&last.cleared&&firstClear[last.gate]==null) firstClear[last.gate]=d;
+      if(abbeyDay==null&&S.abbey&&S.abbey.open) abbeyDay=d;
       if(S.day!==d){ if(typeof loreCheck==='function') loreCheck(); lvAt[d]=S.player.lvl; goldAt[d]=[S.gold,gl.earn,gl.spend];   /* the game checks lore when it draws; bots never draw */ loreAt[d]=[Object.keys(S.story||{}).length,S.pages||0]; }
     }
     town(B);
     const tower=(typeof towerOpen==='function'?towerOpen():S.player.lvl>=TW.unlock)?climb(B):0;
+    let abbeyEnd=false, abbeyProbe=false; if(typeof abbeyCheck==='function'){ abbeyCheck(); abbeyEnd=!!(S.abbey&&S.abbey.open)&&abbeyDay==null; if(abbeyEnd) abbeyDay=days+1;   /* the deep route may open after the final climb */
+      if(!abbeyOpen()&&!B.off.abbeyprobe){ abbeyState().open=1; abbeyProbe=true; }   /* still sealed: open it anyway for a few measuring runs (reported apart from abbeyDay) */
+      if(abbeyOpen()){ B.force=ABBEY; for(let i=0;i<8&&!(S.ti.clr&&S.ti.clr[ABBEY]&&i>=4);i++){ S.mode='town'; S.run=null; S.watches=WATCHES; town(B); playRun(B,rec); if(S.mode!=='town') returnTown(); } delete B.force; } }
     let riftDeaths=0;   // the Rift: keep going one depth deeper until it has killed the bot 3 times (at most 120 runs; 40 capped it once the Soul Tether came in)
     if(typeof riftOpen==='function'&&riftOpen()&&!B.off.rift) for(let i=0;i<120&&riftDeaths<3;i++){
       S.mode='town'; S.run=null; S.watches=Math.max(1,S.watches); town(B); if(!startRift(riftBest()+1)) break; let guard=0;
@@ -327,7 +331,7 @@
     const rival={met:T_('rivalMet'),wins:T_('rivalWins'),losses:T_('rivalLosses'),thefts:T_('rivalThefts'),day:(S.rival&&S.rival.met)||0};
     const head=typeof headBonus==='function'?{g:T_('headG'),t:headTiers(),b:headBonus()}:null;
     const awk={g:T_('awakenG'),n:T_('awakened')};   // awakening ranks bought and their gold
-    return {trials,ev:B.ev||{},chainsEnded:T_('chains'),head,awk,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
+    return {abbeyDay,abbeyEnd,abbeyProbe,trials,ev:B.ev||{},chainsEnded:T_('chains'),head,awk,maus:typeof mausN==='function'?mausN():0,bonds:typeof bondPairs==='function'?bondPairs().length:0,rec,tiers,lvAt,goldAt,firstClear,lvl:S.player.lvl,tower,sec,loreAt,raids,sieges,rival,rift:typeof riftBest==='function'?riftBest():0,passives};
   }
 
   // ----- reporting
@@ -367,7 +371,8 @@
     const tr=[].concat(...res.map(r=>r.trials||[])), trials=tr.length?{n:tr.length,done:pc(tr.filter(x=>x.done).length,tr.length),perBot:avg(res.map(r=>(r.trials||[]).length)),
       tiers:HEAT.slice(0,3).map((H,h)=>{ const g=tr.filter(x=>x.done&&x.t===h); return g.length?H.name+' '+g.length+': score median '+med(g.map(x=>x.s))+' (turns '+med(g.map(x=>x.tt))+', downed '+avg(g.map(x=>x.downs))+')'+(g[0].par!=null?', par beaten '+pc(g.filter(x=>x.s<=x.par).length,g.length):''):null; }).filter(Boolean),
       hearts:avg(res.map(r=>(r.trials||[]).reduce((a,x)=>a+(x.hearts||0),0)))}:null;   // the weekly Trial ('full'): attempts, completions, score by difficulty, and hearts won per bot
-    return {trials,gold,events,gates,heat,byLvl,tiers,sec,lore,raids,sieges,rival,rift,passives:avg(res.map(r=>r.passives||0)),raise:(z=>(RZ.t=RZ.ok=0,z))(RZ.t?pc(RZ.ok,RZ.t)+' of '+RZ.t:null),sweeps:(z=>(SWC.n=SWC.stop=0,z))(SWC.n?{n:SWC.n,perBot:+(SWC.n/res.length).toFixed(1),stopped:SWC.stop}:null),runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
+    const ad=res.map(r=>r.abbeyDay).filter(x=>x!=null), abbey={open:ad.length+'/'+res.length,inSim:res.filter(r=>r.abbeyDay!=null&&!r.abbeyEnd).length,probed:res.filter(r=>r.abbeyProbe).length,day:avg(res.filter(r=>r.abbeyDay!=null&&!r.abbeyEnd).map(r=>r.abbeyDay))};   /* abbeyDay: the day the seventh gate opened (after the final climb counts as days+1) */
+    return {abbey,trials,gold,events,gates,heat,byLvl,tiers,sec,lore,raids,sieges,rival,rift,passives:avg(res.map(r=>r.passives||0)),raise:(z=>(RZ.t=RZ.ok=0,z))(RZ.t?pc(RZ.ok,RZ.t)+' of '+RZ.t:null),sweeps:(z=>(SWC.n=SWC.stop=0,z))(SWC.n?{n:SWC.n,perBot:+(SWC.n/res.length).toFixed(1),stopped:SWC.stop}:null),runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
   }
 
   function run(opts){

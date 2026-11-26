@@ -61,6 +61,7 @@ function kitTaken(e,d){   // a kit's share of the damage a foe takes (hurtFoe, b
 // ----- intents: what a kit plans for turn T (rollIntent passes the turn it plans for)
 function kitIntent(e,k,T,alive){
   const r=S.run, K=kitOf(e); if(!K) return null;
+  { const ab=abbeyIntent(e,K,T,alive); if(ab) return ab; }   /* the Chained Lector (game-abbey.js) */
   if(K==='burrow'){ if(e.burrow||(k==='it2'&&e.it&&e.it.k==='burrow')) return {sf:1}; if(T%3===0) return {k:'burrow'}; }
   if(K==='shield'&&T%2===0){ const f=liveFoes().filter(o=>!(o.shield>=o.maxHp*KIT_SHIELD_CAP)).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0]; if(f) return {k:'shield',t:f.id}; }
   if(K==='marker'&&T%3===1){ const ms=alive.filter(a=>a.id!=='p'); if(ms.length) return {k:'mark',t:fxKey(ms.sort((a,b)=>b.maxHp-a.maxHp)[0])}; }   // the sturdiest minion: the one your plan leans on
@@ -78,10 +79,11 @@ function kitIntentOk(e,it){   // a planned kit action still possible
   if(it.k==='call'){ const f=r.enemies.find(o=>o.id===it.t); return !!f&&f.dead&&!f.risen&&r.corpses.some(c=>c.id==='c'+f.id&&!c.tried); }
   if(it.k==='mark'){ return allies().some(a=>a.hp>0&&fxKey(a)===it.t); }
   if(it.k==='burrow') return true;
+  if(it.k==='read') return !!readable();
   return null;   // not a kit action: the usual checks
 }
 function kitAct(e,it){   // a foe spends its turn on its kit; true if it did
-  const r=S.run;
+  const r=S.run; if(abbeyKitAct(e,it)) return true;
   if(it.k==='shield'){ const f=r.enemies.find(o=>o.id===it.t); if(!f||!(f.hp>0)) return true; const add=Math.round(e.maxHp*KIT_SHIELD); f.shield=Math.min(Math.round(f.maxHp*KIT_SHIELD_CAP),(f.shield||0)+add); fxe('ward',f); log(e.name+' raises a shield over '+(f===e?'itself':f.name)+'.','bad'); return true; }
   if(it.k==='mark'){ const tg=allies().find(a=>a.hp>0&&fxKey(a)===it.t); if(tg){ r.mk={t:it.t,turn:r.turn+1}; log(e.name+' marks '+nameOf(tg)+': next turn every foe that can reach it strikes it.','bad'); } return true; }
   if(it.k==='cleanse'){ const f=r.enemies.find(o=>o.id===it.t); if(f&&f.hp>0){ delete f.dots; delete f.st; log(e.name+' cleanses '+(f===e?'itself':f.name)+' of every wound and condition.','bad'); } return true; }
@@ -91,7 +93,7 @@ function kitAct(e,it){   // a foe spends its turn on its kit; true if it did
 }
 function kitDeath(e){   // from checkDeaths, once per death
   const r=S.run; if(r.sweep) return;
-  if(hasKit(e,'call')&&!e.gcU) tally('gcBane');
+  if(hasKit(e,'call')&&!e.gcU) tally('gcBane'); abbeyKitDeath(e);
   if(hasKit(e,'bomb')){ if(e.cd==='preserved'||e.cd==='clean'||e.lt==='frost'){ tally('defused'); log(e.name+' falls without bursting.','ok'); } else bomb(e); }
   for(const o of r.enemies) if(o!==e&&o.hp>0&&hasKit(o,'frenzy')) o.fz=(o.fz||0)+1;
   if(e.lt&&foeRes(e,e.lt)<0) tally('weakK');
@@ -112,7 +114,7 @@ function kitSeen(list){ for(const e of list){ const k=kitOf(e); if(k&&!T_('ks_'+
 // ----- what the card shows: by the kind's mastery tier (knowLv): nothing learned shows "?", Studied the kit and its rule,
 // Known what it does this turn, Ledgered the answer.
 function kitState(e){   // the kit's state this turn, in words (Known and up)
-  const K=kitOf(e); if(!K||!S.run) return '';
+  const K=kitOf(e); if(!K||!S.run) return ''; if(K==='unwritten'||K==='recite') return abbeyKitState(e,K);
   if(K==='stance') return stanceOn(e)?'Braced: takes 50% less this turn':'Open this turn';
   if(K==='burrow') return e.burrow?'Burrowed: out of reach':'Burrows every third turn';
   if(K==='call') return e.gcU?'Call spent':'Can call one body back';

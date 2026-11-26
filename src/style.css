@@ -1195,3 +1195,14 @@ details.brief>summary .more-l,details.brief>summary .more-h{margin-left:0}detail
 .curse-tag{font:600 10.5px/1.2 var(--font-head);letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border:1px solid var(--blood);background:rgba(120,30,20,.35)}.curse-tag i{font-style:normal}
 .heat-note b.bad{cursor:help}.heat-note b.bad i{font-style:normal}
 .tip{padding:8px 12px;margin-bottom:10px}.tip-b b{font-size:14px}.tip-b p{font-size:14px;line-height:1.35;margin-top:2px}
+
+/* Vane Abbey: the sealed door's key slots, the Scriptorium page, echoes in gold ink */
+.key-slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin:6px 0}
+.key-slot{border:1px solid var(--line);padding:6px 8px;background:rgba(5,4,3,.4)}.key-slot.on{border-color:var(--gold)}
+.key-slot ul{list-style:none;margin:4px 0 0;padding:0;font-size:12px}.key-slot li.ok{color:var(--good,#8fbf7a)}
+.gate.abbey-door{opacity:.85}.gate.abbey-door .g-body{filter:none}
+.script-pg{border:1px solid var(--line);padding:8px 10px;margin:8px 0;background:rgba(10,9,7,.5)}
+.script-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:4px 0;border-top:1px solid var(--line)}.script-row:first-child{border-top:0}
+.script-nm{font-weight:600;min-width:7em}.script-row .btn{margin-left:auto}
+.ink-x{text-decoration-color:#a02a20;text-decoration-thickness:2px}
+.u-name.echo,.echo-nm{color:#e3c46a;text-shadow:0 0 6px rgba(227,196,106,.45);font-style:italic}

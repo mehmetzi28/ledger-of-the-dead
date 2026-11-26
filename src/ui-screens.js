@@ -102,7 +102,7 @@ function unitCard(u,side,mini){
   const sub=side==='foe'?'Lv '+u.lvl+' &middot; ATK '+u.atk+(dead?'':masteryTag(u.base))
     :(isP?'Lv '+u.lvl+' &middot; ATK '+pAtk():mName(u)+' &middot; Lv '+u.lvl+' &middot; ATK '+u.atk);
   const inner=fx+(ch?'<div class="charge"><b>Charging: '+ch.name+'</b><span class="charge-h">'+ch.hint+'</span>'+sigHTML(K.sig)+ansHTML(K.ans)+(canCommand('striker')?'<span class="kn-ord">Focus breaks this</span>':'')+'</div>':'')+'<div class="u-head">'+(isP?ico('Necromancer',pRankI(),{}):ico(u.base||u.kind||u.name,u.rankI,u))+'<div class="u-id"><div class="u-top">'+rk+'<span class="u-tag">'+tag+'</span></div>'
-   +'<div class="u-name">'+(side==='foe'?u.name:nick(u))+'</div><div class="u-sub num">'+sub+'</div>'+dots+'</div></div>'
+   +'<div class="u-name'+(u.echo?' echo':'')+'">'+(side==='foe'?u.name:nick(u))+'</div><div class="u-sub num">'+sub+'</div>'+dots+'</div></div>'
    +'<div class="bar"><i class="fill hp" style="width:'+pct(u.hp,max)+'%"></i></div>'
    +'<div class="num u-hp">'+Math.max(0,u.hp)+'/'+max+(isP&&u.shield?' <span class="sh-t">+'+u.shield+' ward</span>':'')+'</div>'
    +(isP?'<div class="bar"><i class="fill mp" style="width:'+pct(u.mana,pMana())+'%"></i></div><div class="num u-hp">Mana '+u.mana+'/'+pMana()+'</div>':'');
@@ -450,7 +450,7 @@ function raiseHTML(){
    +(st?'<div class="stage raise-st" aria-hidden="true" style="height:'+(FXS.h||300)+'px"></div>':'')
    +(full&&r.corpses.some(c=>!c.tried)?(w=>'<div class="note bad"><i>Full</i><span>'+(bench?'Army full &middot; Reserve: '+(reserveMax()-S.reserve.length)+' free':'Army full &middot; release someone')+'</span>'+(w?'<button class="btn small warn" data-a="release" data-k="'+w.uid+'">'+(ui.confirm===w.uid?'Confirm: release '+w.nick:'Release your weakest, '+w.nick+' (Lv '+w.lvl+' '+ROLES[w.role].label.toLowerCase()+')')+'</button>':'')+'</div>')(weakest()):'')
    +(!full&&r.corpses.filter(c=>!c.tried).length>=2?'<div class="btns"><button class="btn small primary" data-a="raisebest" title="Tries every body, most valuable first; uses salts on bosses and elites" aria-keyshortcuts="Space">Raise the best<kbd>Space</kbd></button></div>':'')
-   +(r.trial?trialResultHTML(r):'')+eventHTML()+spoilsHTML()+((q||r.trial||r.sweep)&&!r.corpses.length?'':'<p class="group-h">The fallen</p><div class="corpses'+(st?' staged':'')+'">'+(corpses||'<p class="lede">Nothing left to raise.</p>')+'</div>')
+   +(r.trial?trialResultHTML(r):'')+eventHTML()+scriptHTML()+spoilsHTML()+((q||r.trial||r.sweep)&&!r.corpses.length?'':'<p class="group-h">The fallen</p><div class="corpses'+(st?' staged':'')+'">'+(corpses||'<p class="lede">Nothing left to raise.</p>')+'</div>')
    +(r.doors&&!done?doorsHTML():'<div class="btns">'+(done?'<button class="btn primary" data-a="town">'+(r.siege?'Back to the necropolis &middot; dawn':'Return to the gate')+'</button>':'<button class="btn primary" data-a="descend">'+(r.tw?'Ascend to floor '+(r.tw+1)+' (heal ':'Descend (heal ')+Math.round(DIFF.heal*100)+'%, mana +'+Math.round(DIFF.mana*100)+'%)</button><button class="btn" data-a="town">'+(r.tw?'Descend with spoils':r.trial?'Leave the Trial':'Leave with spoils')+'</button>')+'</div>')+'</section>'
    +armyHTML();
 }
@@ -467,6 +467,14 @@ function doorsHTML(){
   return '<p class="group-h">Next room &middot; heal '+Math.round(DIFF.heal*100)+'%, mana +'+Math.round(DIFF.mana*100)+'% &middot; keys 1&ndash;'+r.doors.length+'</p><div class="doors">'
    +r.doors.map((k,i)=>'<button class="door d-'+k+'" data-a="door" data-k="'+k+'" aria-keyshortcuts="'+(i+1)+'"><b>'+DOORS[k].name+'<kbd>'+(i+1)+'</kbd></b><span'+(DOORS[k].s?' title="'+DOORS[k].desc+'"':'')+'>'+(DOORS[k].s||DOORS[k].desc)+'</span>'+doorLore(k)+'</button>').join('')+'</div>'
    +'<div class="btns"><button class="btn" data-a="town">Leave with spoils</button></div>';
+}
+function scriptHTML(){   // the Scriptorium of Vane Abbey (game-abbey.js): cross out one name from the army or the Reserve, or walk on
+  const r=S.run; if(!r||r.quiet!=='script') return '';
+  if(r.crossed) return '<div class="script-pg"><p class="group-h">The Ledger</p><p class="lede">You crossed out <s class="ink-x">'+r.crossed.nick+'</s>. The Hunger calls one echo fewer'+(r.lbless?', and every minion of yours carries <b>'+TRAITS[r.lbless].name+'</b> in the boss room.':'.')+'</p></div>';
+  const ms=S.army.concat(S.reserve||[]).filter(m=>!m.thrall);
+  return '<div class="script-pg"><p class="group-h">The Ledger &middot; cross out one name, or walk on</p><p class="lede dim">The minion leaves for good, not to the Memorial. In return the Hunger calls one echo fewer, and its trait is carried by every minion of yours in the boss room.</p><div class="script-list">'
+   +ms.map(m=>{ const t=topTrait(m), c=ui.confirm==='x'+m.uid; return '<div class="script-row"><span class="script-nm">'+m.nick+'</span><span class="dim">Lv '+m.lvl+' '+ROLES[m.role].label.toLowerCase()+(t?' &middot; carries '+TRAITS[t].name:' &middot; no trait')+'</span><button class="btn small'+(c?' warn':'')+'" data-a="cross" data-k="'+m.uid+'">'+(c?'Confirm: cross out '+m.nick:'Cross out')+'</button></div>'; }).join('')
+   +(ms.length?'':'<p class="lede">No name to cross out.</p>')+'</div></div>';
 }
 function eventHTML(){
   const r=S.run, ev=r.event; if(!ev||ev.done) return '';

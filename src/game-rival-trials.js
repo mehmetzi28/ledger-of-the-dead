@@ -33,7 +33,7 @@ let rivalOpen=()=>!!S&&!!S.player&&(distinctClears()>=RIVAL_AT||(!!(S.rival&&S.r
 function dayHash(){ let a=0x9e3779b9; for(const x of arguments){ a=Math.imul(a^(x|0),2654435761)>>>0; a^=a>>>15; } a=Math.imul(a,2246822519)>>>0; return (a^(a>>>13))>>>0; }
 const rivalGap=salt=>RIVAL_GAP[0]+dayHash(S.day,salt,T_('rivalWins'),S.ngp||0,11)%(RIVAL_GAP[1]-RIVAL_GAP[0]+1);
 const theftGap=()=>RIVAL_THEFT[0]+dayHash(S.day,T_('rivalThefts'),S.ngp||0,23)%(RIVAL_THEFT[1]-RIVAL_THEFT[0]+1);
-const rivalGates=()=>DUNGEONS.map((D,i)=>i).filter(i=>S.ti&&S.ti.clr&&S.ti.clr[i]&&S.player.lvl>=RK[i].unlock);
+const rivalGates=()=>DUNGEONS.map((D,i)=>i).filter(i=>i<GATE_N&&S.ti&&S.ti.clr&&S.ti.clr[i]&&S.player.lvl>=RK[i].unlock);
 function rivalMeet(r){   // the third distinct clear: a name (once per save), a passage in the Ledger voice, a notice
   if(!rivalOpen()) return false; const g=rv(); if(g.name&&g.met) return false;
   if(!g.name) g.name=RIVAL_NAMES[dayHash(S.day,S.ngp||0,T_('clrN0'),5)%RIVAL_NAMES.length];
@@ -135,7 +135,7 @@ const trialWeek=()=>Math.floor((S.day-1)/7)+1;
 function trialPlan(){   // this week's Trial, fixed the first time the week asks for it
   if(!trialOpen()) return null; const T=tri(), w=trialWeek();
   if(T.cur&&T.cur.w===w&&T.cur.di>=0) return T.cur;   // a week with no gate to try yet asks again (nothing was attempted)
-  const gs=DUNGEONS.map((D,i)=>i).filter(i=>S.ti&&S.ti.clr&&S.ti.clr[i]&&S.player.lvl>=RK[i].unlock);
+  const gs=DUNGEONS.map((D,i)=>i).filter(i=>i<GATE_N&&S.ti&&S.ti.clr&&S.ti.clr[i]&&S.player.lvl>=RK[i].unlock);
   if(!gs.length){ T.cur={w,di:-1}; return null; }
   const h=dayHash(w,101), ks=Object.keys(MODS), di=gs[h%gs.length], m1=ks[dayHash(w,103)%ks.length], two=dayHash(w,107)%2===1;
   const rest=ks.filter(k=>k!==m1), mods=two?[m1,rest[dayHash(w,109)%rest.length]]:[m1];

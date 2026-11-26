@@ -39,7 +39,7 @@ function canUse(id){
 function useSkill(id,t){
   if(!canUse(id)) return false;
   const s=SKILL[id], rk=sk(id), r=S.run, P=S.player;
-  P.mana-=skCost(s); r.naveU=1; r.lastSk=id; r.cd=r.cd||{}; r.cd[id]=s.cd+1; tally('sk_'+id);   // +1: the end-of-turn tick runs this same turn
+  const mg=marginReady(); P.mana-=skCost(s); marginSkill(r,t,mg); r.naveU=1; r.lastSk=id; r.cd=r.cd||{}; r.cd[id]=s.cd+1; tally('sk_'+id);   // +1: the end-of-turn tick runs this same turn
   if(id==='spear'){ const fb=frozenChilled(t), d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(hasMod('spear','a')?1:.5)*skMul()*(fb?FROSTBREAK:1)); hurtFoe(t,d,'phys'); log('Bone Spear impales '+t.name+' for '+d+'.'); fxe('spear',t); if(fb&&t.hp>0) frostbreak(t);
     if(hasMod('spear','b')){ const o=liveFoes().filter(x=>x!==t); if(o.length){ const o2=pick(o), d2=Math.round(d*.5); hurtFoe(o2,d2,'phys'); log('A splinter tears into '+o2.name+' for '+d2+'.'); } } }
   else if(id==='blast'){ const c=freeCorpse(); c.tried=true; c.result='exploded'; const base=pSiph()*(.6+.2*rk)*pierceMul(1)*(hasMod('blast','a')?1.3:1)*skMul()*shadowK(); let tot=0;
@@ -68,7 +68,7 @@ function useSkill(id,t){
   else if(id==='reap'){ const low=t.hp<t.maxHp*reapLow(); let d=hit(pSiph()*(1.2+.3*rk)*pierceMul(1)*skMul()*shadowK()); if(low) d*=2; else if(hasMod('reap','a')) d=Math.round(d*MOON_HIGH); const fb=frozenChilled(t); if(fb) d=Math.round(d*FROSTBREAK); KILL='reap'; hurtFoe(t,d,'shad'); KILL=null; fxe('strike',t,{crit:1});
     if(hasMod('reap','b')){ healAlly(P,Math.round(d*SOUL_REAP_HEAL)); if(t.hp<=0) P.mana=Math.min(pMana(),P.mana+SOUL_REAP_MANA); }   // Soul Reap
     log('You reap '+t.name+' for '+d+(low?' (harvest)':'')+'.'); if(fb&&t.hp>0) frostbreak(t); }
-  return true;
+  MARGIN=null; return true;
 }
 function skillTick(){
   const r=S.run;
@@ -96,13 +96,13 @@ function resetSkills(){
 // Every kill drops a little gold and often a trophy of that enemy type. Trophies stack in a pouch (no bag space) and sell at the market.
 // Like XP and items, a room's gold and trophies are only banked when the room is won.
 const TROPHY_PART={vanguard:['Hide','Shell','Bone Plate','Scale'],striker:['Fang','Claw','Talon','Tooth'],mender:['Relic','Prayer Bead','Vial','Bone Charm'],reaper:['Fang','Claw']};
-const TROPHY_VAL=[3,7,14,26,45,75];          // sell value of an ordinary trophy, per gate
+const TROPHY_VAL=[3,7,14,26,45,75,110];          // sell value of an ordinary trophy, per gate
 const TROPHY={};                             // key -> {name, value, ico, rankI}
 (function(){
   const h=s=>{ let x=0; for(const c of s) x=(x*31+c.charCodeAt(0))|0; return Math.abs(x); };
   const add=(key,name,value,ico,rankI,gate)=>{ if(!TROPHY[key]) TROPHY[key]={name,value,ico,rankI,gate}; };
   const part=(n,role)=>{ const p=TROPHY_PART[role]||TROPHY_PART.vanguard; return n+' '+p[h(n)%p.length]; };
-  DUNGEONS.forEach((D,i)=>{ D.mobs.forEach(m=>add(m[0],part(m[0],m[1]),TROPHY_VAL[i],m[0],i,i)); add('b:'+D.boss[0],'Heart of '+D.boss[0],TROPHY_VAL[i]*10,D.boss[0],i,i); });
+  DUNGEONS.forEach((D,i)=>{ D.mobs.forEach(m=>add(m[0],part(m[0],m[1]),TROPHY_VAL[i],m[0],i,i)); add('b:'+D.boss[0],i===ABBEY?'The Hunger\'s Tooth':'Heart of '+D.boss[0],TROPHY_VAL[i]*10,D.boss[0],i,i); });
   TW_MOBS.forEach(m=>add('t:'+m[0],part(m[0],m[1]),40,m[0],4));
   TW_BOSS.forEach((n,i)=>add('b:'+n,'Heart of '+n,120*(i+1),n,5));
   SECRET.forEach((B,i)=>add('b:'+B.name,'Heart of '+B.name.replace(/^The /,''),TROPHY_VAL[i]*40,B.name,i,i));
@@ -137,13 +137,13 @@ function drink(k){
   return true;
 }
 // Market prices. Gear sells for a quarter of what the merchant asks. Uniques cannot be sold.
-const SET_PRICE=[30,80,200,480,1100,2400];
-const buyPrice=d=>SET_PRICE[Math.min(d.set,5)];
+const SET_PRICE=[30,80,200,480,1100,2400,4000];
+const buyPrice=d=>SET_PRICE[Math.min(d.set,SET_PRICE.length-1)];
 const sellPrice=d=>d.uq?0:Math.max(1,Math.round(buyPrice(d)*.25));
 const sellValue=it=>{ const d=ITEM[it.id]; return d.uq?0:Math.round(sellPrice(d)*(1+.25*((it.ro&&it.ro.length)||0))); };   // each bonus line adds a quarter
 const STOCK_N=4;
 function shopStock(){   // four pieces of gear from your highest unlocked gate (and the one below); new every day and whenever a gate unlocks
-  let g=0; for(let i=0;i<RK.length;i++) if(S.player.lvl>=RK[i].unlock) g=i;
+  let g=0; for(let i=0;i<GATE_N;i++) if(S.player.lvl>=RK[i].unlock) g=i;
   if(!S.shop||S.shop.day!==S.day||S.shop.g!==g){
     const pool=Object.values(ITEM).filter(d=>!d.uq&&d.set<=g&&d.set>=g-1), ids=[];
     while(ids.length<Math.min(STOCK_N,pool.length)){ const d=pick(pool); if(!ids.includes(d.id)) ids.push(d.id); }
@@ -214,7 +214,7 @@ const STAGE_FX=[{hp:0,atk:0},{hp:.2,atk:.1},{hp:.1,atk:.2},{hp:.15,atk:.15},{hp:
 const stageMul=(m,k)=>{ let t=1; for(let i=1;i<=(m.stage||0)&&i<=STAGE_MAX;i++) t+=STAGE_FX[i][k]; return t; };
 const evoNext=m=>{ const st=m.stage||0; return st<STAGE_MAX&&m.lvl0!=null?m.lvl0+EVOLVE_AT[st+1]:null; };
 const fxText=f=>'+'+Math.round(f.hp*100)+'% HP, +'+Math.round(f.atk*100)+'% ATK';
-const hasTrait=(m,t)=>!m.unw&&!!(m.traits&&(m.traits.includes(t)||m.traits.some(x=>COMPOUND[x]&&COMPOUND[x].includes(t))));   // a fusion compound counts as both its halves
+const hasTrait=(m,t)=>!m.unw&&!(m.read&&(m.read===t||(COMPOUND[m.read]&&COMPOUND[m.read].includes(t))))&&(!!(m.traits&&(m.traits.includes(t)||m.traits.some(x=>COMPOUND[x]&&COMPOUND[x].includes(t))))||ledgerBless(m,t));   // a trait read aloud is muted; the Ledger blessing (game-abbey.js)   // a fusion compound counts as both its halves
 const mName=m=>{ const s=STAGES[m.stage||0]; return m.name.startsWith('The ')?'The '+s+m.name.slice(4):s+m.name; };   // "The Elder Rat King", "Greater Crypt Ghoul"
 const withArticle=n=>n.startsWith('The ')?n:(/^[AEIOU]/i.test(n)?'an ':'a ')+n;
 const theName=n=>n.startsWith('The ')?n:'the '+n;
@@ -336,7 +336,7 @@ const raidHeld=res=>((S&&S.raids)||[]).reduce((a,x)=>a+(Array.isArray(x.res)?x.u
 const armyUsed=()=>S.army.filter(m=>!m.thrall&&!m.wall).length+raidHeld(false);   /* a siege thrall or a minion on the wall holds no slot */   // raiders march at nightfall and keep their places overnight, so a siege raise cannot fill them; at dawn they step back in
 const raidPool=()=>S.army.concat(S.reserve||[]);   // a squad may be picked from the army and the Reserve
 const squadMax=m=>1+RAID_SQUAD+(m.stage||0)+(m.boss?1:0);   // the Commander and its followers
-const raidGates=()=>DUNGEONS.map((D,i)=>i).filter(i=>S.ti&&S.ti.clr&&S.ti.clr[i]);
+const raidGates=()=>DUNGEONS.map((D,i)=>i).filter(i=>i<GATE_N&&S.ti&&S.ti.clr&&S.ti.clr[i]);
 function gateThreat(di){ const lv=RK[di].lv+2, f=mobStats(di,lv,1,1,false,false), b=mobStats(di,lv+2,1,1,true,false); return {hp:f.hp*13+b.hp,atk:f.atk*3+b.atk*.5}; }
 function bestSquad(){ const P=raidPool(), c=P.filter(isCommander).sort((a,b)=>b.atk*b.maxHp-a.atk*a.maxHp)[0]; if(!c) return null;
   return [c].concat(P.filter(m=>m!==c).sort((a,b)=>b.atk*b.maxHp-a.atk*a.maxHp).slice(0,squadMax(c)-1)); }   // what a gate card's raid odds assume
@@ -396,7 +396,7 @@ const riftMul=n=>1+RIFT_STEP*(n-1);
 const riftLvl=n=>S.player.lvl+Math.floor(n/3);
 function startRift(n){
   n=Math.floor(+n); if(S.mode!=='town'||S.watches<=0||!riftOpen()||!(n>=1&&n<=riftBest()+1)) return false;
-  const di=Math.floor(Math.random()*DUNGEONS.length);
+  const di=Math.floor(Math.random()*GATE_N);   /* the Rift folds the six gates of the valley, never the abbey */
   S.watches--; S.runs++; S.notices=[];
   S.run={di,rift:n,room:0,rooms:RIFT_ROOMS,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:null,heat:0};
   S.mode='battle'; titheSouls(); tally('riftRuns');

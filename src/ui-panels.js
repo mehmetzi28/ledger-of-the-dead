@@ -142,7 +142,7 @@ function bestiaryHTML(){
    +'<p class="lede">Entries stay hidden until you kill the creature. Defeat one '+KNOW_AT+' times to study it and reveal its drop table. Ordinary enemies drop something 28% of the time, elites 65% with a lean toward better tiers, and bosses roll twice. Percentages are the share of drops.</p>'
    +'<div class="tiers-line">Met '+met+'/'+all.length+' &middot; Studied '+studied+'/'+all.length+'</div>';
   DUNGEONS.forEach((D,di)=>{
-    const list=D.mobs.map(m=>({name:m[0],role:m[1],boss:false})).concat([{name:D.boss[0],role:D.boss[1],boss:true}]).concat(kn(SECRET[di].name)>0?[{name:SECRET[di].name,role:'reaper',boss:true,secret:true}]:[]);
+    const list=D.mobs.map(m=>({name:m[0],role:m[1],boss:false})).concat([{name:D.boss[0],role:D.boss[1],boss:true}]).concat(SECRET[di]&&kn(SECRET[di].name)>0?[{name:SECRET[di].name,role:'reaper',boss:true,secret:true}]:[]);
     const anyStudied=list.some(e=>kn(e.name)>=KNOW_AT);
     h+='<div class="bes-gate"><div class="bes-h"><div class="badge r'+di+'">'+RANKS[di]+'</div><div><h3>'+D.name+'</h3><div class="tiers-line">'+(anyStudied?TIER_W[di].map((w,t)=>w?TIERS[t]+' '+w+'%':'').filter(Boolean).join(' &middot; '):'Tier mix unknown. Study an enemy here to learn it.')+'</div></div></div>';
     list.forEach(e=>{
@@ -271,8 +271,17 @@ const HEAT_SKULL='<svg viewBox="0 0 10 10"><path d="M5 .8C2.5.8 1 2.5 1 4.6c0 1.
 const heatMarks=lv=>'<i class="hm h'+lv+'" aria-hidden="true">'+HEAT_SKULL.repeat(lv+1)+'</i>';
 const bossMet=i=>metName(DUNGEONS[i].boss[0])||!!(S.ti&&S.ti.clr&&S.ti.clr[i]);   // a gate's boss stays ??? on its card until you have met or beaten it
 const gateStars=i=>HEAT.map((x,lv)=>lv?!!(S.heatMax&&S.heatMax[i]>=lv):!!(S.ti&&S.ti.clr&&S.ti.clr[i]));   // cleared on Normal, Hard, Brutal, Nightmare
+function abbeyDoorHTML(){   // Vane Abbey while sealed (game-abbey.js): the drowned door and its two key slots, either one opens it
+  const D=DUNGEONS[ABBEY], A=abbeyState(), GL=BOSS_LOOK[D.boss[0]]||['#1a1714','#5a4a3a'];
+  const slot=k=>{ const K=ABBEY_KEYS[k], ps=K.parts(), n=ps.filter(p=>p[1]).length; return '<div class="key-slot'+(A.keys[k]?' on':'')+'"><b>'+K.name+'</b> <span class="dim num">'+n+'/'+ps.length+'</span><ul>'+ps.map(p=>'<li class="'+(p[1]?'ok':'dim')+'"><i aria-hidden="true">'+(p[1]?'&#10003;':'&#9675;')+'</i> '+p[0]+'</li>').join('')+'</ul></div>'; };
+  return '<div class="gate locked abbey-door" style="--g1:'+GL[0]+';--g2:'+GL[1]+'"><div class="g-head gs-g'+ABBEY+'" aria-hidden="true">'+G_SEAL+'<span class="g-sealtxt">Sealed &middot; two keys</span></div>'
+   +'<div class="badge r'+ABBEY+'">'+RANKS[ABBEY]+'</div><div class="g-body"><h3>'+D.name+'</h3><p>'+D.blurb+'</p>'
+   +'<p class="lede">A door in the riverbed, bound in chain. Either key opens it.</p><div class="key-slots">'+slot('deep')+slot('secret')+'</div></div>'
+   +'<button class="btn" disabled>Sealed</button></div>';
+}
 function gateHTML(i){
-  const D=DUNGEONS[i], R=RK[i], P=S.player, locked=P.lvl<R.unlock, rec=tierRec(i,locked?0:heatOf(i)), diff=P.lvl-rec;   // advice and label follow the difficulty picked on the card
+  if(i===ABBEY&&!abbeyOpen()) return throneDown()?abbeyDoorHTML():'';   // the seventh gate shows once the Throne of Ash has fallen
+  const D=DUNGEONS[i], R=RK[i], P=S.player, locked=gateLocked(i), rec=tierRec(i,locked?0:heatOf(i)), diff=P.lvl-rec;   // advice and label follow the difficulty picked on the card
   const danger=locked?'Locked':diff<-2?'Deadly':diff<0?'Hard':diff<=3?'Fair':'Easy', met=bossMet(i), stars=gateStars(i), best=S.rec&&S.rec.fast&&S.rec.fast[i], det=ui.gdet===i;
   const GL=BOSS_LOOK[D.boss[0]]||['#1a1714','#5a4a3a']; scThumbs();
   return '<div class="gate'+(locked?' locked':'')+(gateMod(i)?' cursed':'')+'" style="--g1:'+GL[0]+';--g2:'+GL[1]+'">'
@@ -571,7 +580,7 @@ function loreHTML(){
      +(got.length<all.length?'<p class="q-note">'+(all.length-got.length)+' more in this act.</p>':''); }
   h+='<p class="group-h">Torn pages &middot; '+np+'/'+LORE_PAGES.length+'</p>'
    +LORE_PAGES.slice(0,np).map((P0,i)=>S.rival&&S.rival.page===i?'<details class="chron borrowed"><summary>'+(i+1)+'. Borrowed by '+S.rival.name+'</summary><p class="dim">The page is gone from the binding. Beat '+S.rival.name+' to bring it back.</p></details>':'<details class="chron"'+(i===np-1?' open':'')+'><summary>'+(i+1)+'. '+P0.t+'</summary><p>'+P0.m+'</p></details>').join('')
-   +(np<LORE_PAGES.length?'<p class="q-note">Bosses, Tower wardens, elites and sealed coffers sometimes hold the next page'+(S.player.lvl<PAGE_LV(np)?', but page '+(np+1)+' waits until you reach level '+PAGE_LV(np):'')+'. Secret masters always carry one.</p>':'<p class="q-note ok">Every page is home.</p>');
+   +(np<LORE_PAGES.length&&abbeyPage(np)?'<p class="q-note">The last pages lie only in Vane Abbey: its bosses, elites and coffers may hold them.</p>':np<LORE_PAGES.length?'<p class="q-note">Bosses, Tower wardens, elites and sealed coffers sometimes hold the next page'+(S.player.lvl<PAGE_LV(np)?', but page '+(np+1)+' waits until you reach level '+PAGE_LV(np):'')+'. Secret masters always carry one.</p>':'<p class="q-note ok">Every page is home.</p>');
   return h+'</section>';
 }
 function recordsHTML(){

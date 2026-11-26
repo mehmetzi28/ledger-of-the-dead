@@ -64,7 +64,7 @@ const skB=k=>{ if(!S||!S.player) return 0;
 const skMod=id=>(sk(id)>=SK_MAX&&S.player.skMod&&S.player.skMod[id])||null;
 const hasMod=(id,c)=>skMod(id)===c;
 function chooseMod(id,c){ const P=S.player; if(S.mode!=='town'||!SKILL_MODS[id]||!SKILL_MODS[id][c]||sk(id)<SK_MAX||skMod(id)) return false; vitals(()=>{ P.skMod=P.skMod||{}; P.skMod[id]=c; }); return true; }
-const skCost=s=>(hasMod('deathless','a')?Math.round(s.cost*DEEP_WELL):s.cost)*(S&&S.mode==='battle'&&S.run?naveK():1);   // Deep Well; the Bishop's Echoing nave
+const skCost=s=>(hasMod('deathless','a')?Math.round(s.cost*DEEP_WELL):s.cost)*(S&&S.mode==='battle'&&S.run?naveK():1)*(marginReady()?0:1);   // Deep Well; the Bishop's Echoing nave; Marginalia (game-abbey.js)   // Deep Well; the Bishop's Echoing nave
 const siphonCost=()=>hasMod('soulwell','b')?6:8;   // Soul Siphon: see the SOULS block for its armor piercing and Souls
 
 // ===== MINION COMMANDS =====
@@ -158,7 +158,7 @@ const STORY=[
   {act:4,id:'t200',t:'Where the ink runs out',when:()=>S.tower.best>=200,m:'At the two hundredth floor the ink in the Ledger thins to grey. The book is not running out of pages. It is running out of reasons. For the first time since the drowned chapel, it asks you a question: Why do you keep climbing?'},
   {act:4,id:'ngp2',t:'Twice told',when:()=>(S.ngp||0)>=2,m:'The second time through, the dead knew your face before you raised them. The Rat King called you by name. The Warden saluted. The book is beginning again, but it is not beginning from nothing anymore, and neither are you.'},
   {act:4,id:'ngp3',t:'The keeper who stays',when:()=>(S.ngp||0)>=3,m:'Three times you have closed the Ledger, and three times opened it. The Pale Sovereign wrote his own name to escape it. You have not. Perhaps that is the difference between a prisoner and a keeper. Perhaps there is none.'},
-  {act:4,id:'pages',t:'The last page',when:()=>(S.pages||0)>=LORE_PAGES.length,m:'Every torn page has found its way home, and the Ledger is whole in a way it never was. On the final page is the scribe\'s last instruction: whoever holds the book may close it forever by writing their own name. Your pen hovers over the page. Not yet.'},
+  {act:4,id:'pages',t:'The last page',when:()=>(S.pages||0)>=ABBEY_PAGES,m:'Every torn page has found its way home, and the Ledger is whole in a way it never was. On the final page is the scribe\'s last instruction: whoever holds the book may close it forever by writing their own name. Your pen hovers over the page. Not yet.'},
   {act:5,id:'cmd1',t:'One who leads',when:()=>T_('commanders')>=1||(S.army||[]).some(m=>hasTrait(m,'commander')),m:'This one rose differently. It looked over your other dead the way a sergeant looks over a muddy field, and they straightened under its gaze. You did not teach it that. Something it was in life remembered how to give orders, and the grave did not take it away.'},
   {act:5,id:'raid1',t:'An empty house',when:()=>T_('raidsSent')>=1,m:'You sent them out without you, and for the first time in a long while the house was quiet. No scraping at the door, no humming from the cellar. You sat with the Ledger open and realised you were listening for their footsteps, the way the living listen for children coming home late.'},
   {act:5,id:'raid10',t:'The war you do not see',when:()=>T_('raidWins')>=10,m:'Your squads come back with gold you did not earn and stories they cannot tell. The gates you cleared are being cleared again in your name, while you sleep. Somewhere a village has started telling tales of a dead captain who marches past at midnight and harms no one who keeps their door shut.'},
@@ -206,9 +206,9 @@ const LORE_PAGES=[
   {t:'How it ends',m:'There are only two endings, the scribe wrote. The keeper writes their own name and the book closes, as the Sovereign did, and the dead sleep at last. Or the keeper keeps writing, forever, and the dead never have to be alone.'},
   {t:'The blank page',m:'The last torn page holds no words at all, only the faint shape of a pen pressed hard and lifted again. Someone stood where you stand and could not decide. The page is yours now. The Ledger does not hurry you. It has all the time in the world.'}
 ];
-const PAGE_LV=i=>2+i*3;   // page i waits until this level, so the story keeps pace (the last page at level 59)
+const PAGE_LV=i=>i>=ABBEY_PAGES?1:2+i*3;   // the abbey's pages wait for the abbey instead (nextPage)   // page i waits until this level, so the story keeps pace (the last page at level 59)
 const PAGE_CHANCE={boss:.35,warden:.5,elite:.04,coffer:.2,secret:1};
-const nextPage=()=>{ const n=S.pages||0; return n<LORE_PAGES.length&&S.player.lvl>=PAGE_LV(n)?n:-1; };
+const nextPage=()=>{ const n=S.pages||0; return n<LORE_PAGES.length&&S.player.lvl>=PAGE_LV(n)&&(!abbeyPage(n)||!!(S.run&&S.run.di===ABBEY&&!S.run.tw&&!S.run.rift&&!S.run.siege&&!S.run.trial))?n:-1; };   // the last three pages lie only in Vane Abbey
 function findPage(src,r){
   const n=nextPage(); if(n<0||!(Math.random()<(PAGE_CHANCE[src]||0))) return false;
   S.pages=n+1; tally('pages'); const P0=LORE_PAGES[n], m='You find a torn page of the Ledger ('+(n+1)+'/'+LORE_PAGES.length+'): "'+P0.t+'". Read it on the Lore page (Ledger tab).';
@@ -370,4 +370,4 @@ const mausN=()=>S&&S.memorial?Math.min(MAUS_MAX,S.memorial.filter(e=>e.maus).len
 const mausCost=()=>MAUS_COST[mausN()]||0;
 const canMaus=e=>!!e&&!e.maus&&S.mode==='town'&&mausN()<MAUS_MAX&&S.gold>=mausCost();
 function raiseMaus(i){ const e=(S.memorial||[])[i]; if(!canMaus(e)) return false; S.gold-=mausCost(); e.maus=1; tally('maus'); syncArmy(); sfx('raise'); return true; }
-const extraMul=(m,k)=>(k==='atk'?bondMul(m):1+headBonus())*(1+MAUS_K*mausN());   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
+const extraMul=(m,k)=>(k==='atk'?bondMul(m):1+headBonus())*(1+MAUS_K*mausN())*(1+chainK());   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)

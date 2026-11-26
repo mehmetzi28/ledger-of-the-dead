@@ -7,7 +7,7 @@ const knownAt=n=>{ const t=MASTERY[1]; S.kills[n]=t.bossAt||t.at; };
 
 test('Boss kits: every gate boss and the Captain carry two or three moves, a twist and a personal resistance; the kits-off switch keeps one move',()=>{
   fresh(30);
-  DUNGEONS.forEach((D,di)=>{ const K=BOSS_KIT[D.boss[0]]; ok(K&&K.moves.length>=2&&K.moves.length<=3,D.name); ok(K.moves.every(m=>BOSS_ABIL[m]),'known moves'); ok(TWISTS[K.twist],'a twist'); if(K.hazard) ok(HAZARDS[K.hazard]);
+  DUNGEONS.slice(0,GATE_N).forEach((D,di)=>{ const K=BOSS_KIT[D.boss[0]]; ok(K&&K.moves.length>=2&&K.moves.length<=3,D.name); ok(K.moves.every(m=>BOSS_ABIL[m]),'known moves'); ok(TWISTS[K.twist],'a twist'); if(K.hazard) ok(HAZARDS[K.hazard]);
     const b=bossFight(di); eq(JSON.stringify(b.kit),JSON.stringify(K.moves)); eq(b.abil,K.moves[0]); for(const t in K.res) ok(foeRes(b,t)!==placeRes()[t]||0,'its own resistance '+t); });
   const b=bossFight(2); eq(foeRes(b,'fire'),Math.min(FOE_RES_MAX,(placeRes().fire||0)+.5));
   const c=siegeFoe('vanguard',20,5,true,false); eq(JSON.stringify(c.kit),JSON.stringify(['decree','purge','rally']));

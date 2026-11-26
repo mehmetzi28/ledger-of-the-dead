@@ -4,11 +4,11 @@ const {test,ok,eq,near,fix,H,fresh,setLvl,foe,arena,mkMinion,corpse,renderAll,cd
 const kf=(base,o)=>foe(Object.assign({base,name:base,hp:1e6,maxHp:1e6,atk:100},o||{}));   /* a foe of a kind, so it carries that kind's kit */
 const plan=(e,turn)=>{ S.run.turn=turn; delete e.it; return rollIntent(e); };
 
-test('Kits: every kind of foe has one; a gate never repeats a kit; all sixteen are carried; bosses, the rival and secret masters have none',()=>{
+test('Kits: every kind of foe has one; a gate never repeats a kit; all sixteen (and the abbey\'s two) are carried; bosses, the rival and secret masters have none',()=>{
   fresh(); eq(KIT_IDS.length,16);
   DUNGEONS.forEach(D=>{ const ks=D.mobs.map(m=>KIT_OF[m[0]]); ok(ks.every(k=>KITS[k]),D.name+': every kind'); eq(new Set(ks).size,ks.length,D.name+': no kit twice'); ok(!KIT_OF[D.boss[0]],'no boss kit'); });
   TW_MOBS.forEach(m=>ok(KITS[KIT_OF[m[0]]],m[0])); Object.values(SIEGE_FOES).forEach(f=>ok(KITS[KIT_OF[f[0]]],f[0]));
-  eq(new Set(Object.values(KIT_OF)).size,16,'all sixteen are carried');
+  eq(new Set(Object.values(KIT_OF)).size,18,'all sixteen are carried, and the abbey\'s Unwritten and Recitation'); ok(!KIT_IDS.includes('unwritten')&&!KIT_IDS.includes('recite'),'outside the Kit-Reader sixteen');
   ok(Object.keys(KIT_OF).every(n=>allNames().includes(n)||Object.values(SIEGE_FOES).some(f=>f[0]===n)),'only real kinds');
   eq(kitOf(kf('Tunnel Rat')),'pack'); eq(kitOf(kf('Tunnel Rat',{boss:true})),null); eq(kitOf(kf('Tunnel Rat',{rival:true})),null); eq(kitOf(kf('Tunnel Rat',{secret:true})),null);
   ok(Object.values(KITS).every(K=>K.name&&K.rule&&K.ans),'names, rules and answers');

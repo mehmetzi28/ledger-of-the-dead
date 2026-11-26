@@ -22,7 +22,7 @@ test('Tower: a warden gives its unique the first time, rarely after',()=>{
   S.inv=S.inv.filter(x=>x.id!=='w1'); towerBossLoot(10,S.run); eq(S.inv.filter(x=>x.id==='w1').length,1,'lost it (New Game+): it can drop again'); towerBossLoot(100,S.run); ok(['w10','w11','w12'].every(id=>S.tower.got[id]));
 });
 test('Drops: a gate unique you already carry turns into ordinary gear; the odds were halved twice',()=>{
-  eq(UQ.join(),'1,0.85,0.75,0.6,0.5,0.35'); eq(UQ_MOB,.01); near(tableFor(0,'vanguard',false,false).find(r=>r.id==='u0').p,UQ[0]*.01/100,1e-12,'ordinary foes: 1% of a boss'); setLvl(5); arena([foe()],0); const b=makeEnemy(0,3,true);
+  eq(UQ.join(),'1,0.85,0.75,0.6,0.5,0.35,0.3'); eq(UQ_MOB,.01); near(tableFor(0,'vanguard',false,false).find(r=>r.id==='u0').p,UQ[0]*.01/100,1e-12,'ordinary foes: 1% of a boss'); setLvl(5); arena([foe()],0); const b=makeEnemy(0,3,true);
   fix(.9999); let d=rollDrops(b); ok(d.includes('u0'),'the unique row is last, so .9999 picks it'); eq(d.filter(x=>x==='u0').length,1,'never twice from one boss');
   addItem('u0',null); d=rollDrops(b); ok(d.length&&!d.includes('u0')&&d.every(id=>ITEM[id]&&!ITEM[id].uq),'owned: ordinary gear instead');
   S.inv=S.inv.filter(x=>x.id!=='u0'); const m=mkMinion({armed:true,eq:{weapon:{u:++S.uid,id:'u0'},armor:null,relic:null}}); ok(ownsItem('u0'),'gear on a minion counts'); ok(!rollDrops(b).includes('u0'));

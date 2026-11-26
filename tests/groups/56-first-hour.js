@@ -7,10 +7,10 @@ function tuned(fn){ const keep=JSON.stringify({armor:DIFF.armor,foeAtk:DIFF.foeA
   try{ fn(); } finally{ const k=JSON.parse(keep); DIFF.armor=k.armor; DIFF.foeAtk=k.foeAtk; DIFF.gate=k.gate; RK.forEach((r,i)=>{ r.lv=lv[i]; }); } }
 
 test('Recommended level: measured per gate, at or above its unlock, and not drifted far from the measurement',()=>{
-  eq(REC_BASE.join(),'1,5,9,16,19,27','measured with the market bot (byLvl); re-measure before changing');
+  eq(REC_BASE.join(),'1,5,9,16,19,27,31','measured with the market bot (byLvl); re-measure before changing');
   tuned(()=>{ REC_AT.forEach((a,i)=>{ DIFF.armor[i]=a[0]; DIFF.foeAtk[i]=a[1]; DIFF.gate[i]=a[2]; RK[i].lv=a[3]; });
-    for(let i=0;i<6;i++) eq(gateRec(i),REC_BASE[i],RANKS[i]+' at the measured tuning'); });
-  for(let i=0;i<6;i++){ ok(gateRec(i)>=RK[i].unlock,RANKS[i]+' recommendation below its unlock level');
+    for(let i=0;i<7;i++) eq(gateRec(i),REC_BASE[i],RANKS[i]+' at the measured tuning'); });
+  for(let i=0;i<7;i++){ ok(gateRec(i)>=RK[i].unlock,RANKS[i]+' recommendation below its unlock level');
     ok(Math.abs(recShift(i))<=REC_DRIFT,RANKS[i]+' tuning moved the advice '+recShift(i).toFixed(1)+' levels: re-measure with node tests/run-balance.js \'{"byLvl":true}\' and update REC_BASE and REC_AT'); }
 });
 test('Recommended level: follows a gate\'s armor, foe attack, gate multiplier and foe level',()=>tuned(()=>{

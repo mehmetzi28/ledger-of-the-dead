@@ -147,7 +147,8 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
 
 **Content and modes**
 
-- **G16. The story has no ending.** Five acts and twenty pages build to "write your name and close the book, or keep
+- **G16. The story has no ending.** (Part closed by R3 PR A: act VI and Vane Abbey lead to the Hunger; the choice itself
+  comes with PR B.) Five acts and twenty pages build to "write your name and close the book, or keep
   writing", and the game does not let the player choose. Tower floor 100 makes the book "whole" with no consequence.
   (Story, pages, Tower, secret masters, NG+.)
 - **G17. Raids are one dice roll.** Normal, cleared gates only; they never touch difficulty, curses, hearts, bounties,

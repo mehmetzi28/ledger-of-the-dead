@@ -4,8 +4,8 @@ const {test,ok,eq,fix,setLvl,foe,arena,renderAll,BAD_TEXT,eventScene}=window.LOT
 test('Lore: every passage and page is written, unique and clean; acts run in order through the game',()=>{
   eq(new Set(STORY.map(s=>s.id)).size,STORY.length); eq(new Set(STORY.map(s=>s.t)).size,STORY.length,'titles unique');
   STORY.concat(LORE_PAGES).forEach(s=>{ ok(s.t&&s.m.length>120&&!BAD_TEXT.test(s.m),s.t); });
-  for(let a=1;a<=5;a++) ok(STORY.filter(s=>s.act===a).length>=6,'act '+a+' has substance');
-  eq(LORE_PAGES.length,20); for(let i=1;i<LORE_PAGES.length;i++) ok(PAGE_LV(i)>PAGE_LV(i-1)); ok(PAGE_LV(LORE_PAGES.length-1)<=60,'the last page is reachable in a first playthrough');
+  for(let a=1;a<=6;a++) ok(STORY.filter(s=>s.act===a).length>=6,'act '+a+' has substance');
+  eq(LORE_PAGES.length,23); eq(ABBEY_PAGES,20); for(let i=1;i<ABBEY_PAGES;i++) ok(PAGE_LV(i)>PAGE_LV(i-1)); ok(LORE_PAGES.slice(ABBEY_PAGES).every(p=>p.abbey),'the last three lie in Vane Abbey'); ok(PAGE_LV(ABBEY_PAGES-1)<=60,'the last page is reachable in a first playthrough');
   SECRET.forEach(B=>{ STORY.concat(LORE_PAGES).forEach(s=>ok(!s.m.includes(B.name),s.t+' keeps '+B.name+' secret')); });
 });
 test('Lore: milestone passages unlock as you reach them, once, and go to the room when you are in one',()=>{
@@ -23,10 +23,11 @@ test('Lore: more Tower milestones (10, 40, 60, 90) and the Abyss',()=>{
 });
 test('Lore: torn pages come in order, wait for their level, and drop from bosses, wardens, elites, coffers and secret masters',()=>{
   setLvl(1); S.pages=0; fix(0); ok(!findPage('elite',null),'page 1 waits for level '+PAGE_LV(0)); setLvl(PAGE_LV(0)); S.notices=[]; ok(findPage('elite',null)); eq(S.pages,1);
-  ok(S.notices.some(n=>/torn page of the Ledger \(1\/20\)/.test(n.m)&&n.m.includes(LORE_PAGES[0].t)));
+  ok(S.notices.some(n=>/torn page of the Ledger \(1\/23\)/.test(n.m)&&n.m.includes(LORE_PAGES[0].t)));
   ok(!findPage('boss',null),'page 2 waits for its level'); setLvl(PAGE_LV(1)); fix(.99); ok(!findPage('boss',null),'a miss'); fix(0); ok(findPage('boss',null)); eq(S.pages,2);
   setLvl(80); arena([foe({hp:1,boss:true})]); fix(0); const b=S.run.enemies[0]; b.hp=0; checkDeaths(); eq(S.pages,3,'a boss can hold one'); flee();
   eventScene('coffer'); fix(0); resolveEvent('open'); eq(S.pages,4,'a coffer can hold one'); flee();
+  S.pages=ABBEY_PAGES; ok(!findPage('secret',null),'the abbey\'s pages lie only in the abbey'); S.run={di:ABBEY,events:[]}; ok(findPage('secret',S.run),'found there'); eq(S.pages,ABBEY_PAGES+1); S.run=null;
   S.pages=LORE_PAGES.length; ok(!findPage('secret',null),'none past the last');
 });
 test('Lore: the Lore page shows acts as you reach them and the pages you hold; pages survive saves and New Game+',()=>{
@@ -39,6 +40,6 @@ test('Lore: the Lore page shows acts as you reach them and the pages you hold; p
   ok(LEDGER[0][0]==='lore','Lore is the first Ledger page');
 });
 test('Lore: the last passage opens only when every page is home',()=>{
-  setLvl(60); S.story={}; S.pages=LORE_PAGES.length-1; loreCheck(); ok(!S.story.pages); S.pages=LORE_PAGES.length; loreCheck(); ok(S.story.pages);
+  setLvl(60); S.story={}; S.pages=ABBEY_PAGES-1; loreCheck(); ok(!S.story.pages); S.pages=ABBEY_PAGES; loreCheck(); ok(S.story.pages,'the twentieth page: the abbey keeps three more');
 });
 })();

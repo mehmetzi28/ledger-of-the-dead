@@ -146,7 +146,7 @@ test('Gates tab: the War table and the Rift are sub-tabs, shown once they exist'
 });
 
 test('Backdrops: a painted scene for the town, every gate, the Rift and the Tower; none with backgrounds off',()=>{
-  eq(Object.keys(BACKDROPS).sort().join(),['g0','g1','g2','g3','g4','g5','rift','tower','town'].sort().join());
+  eq(Object.keys(BACKDROPS).sort().join(),['g0','g1','g2','g3','g4','g5','g6','rift','tower','town'].sort().join());
   for(const k in BACKDROPS){ const h=BACKDROPS[k](); ok(h.length>500&&!/NaN|undefined/.test(h),k+' draws cleanly'); eq(BACKDROPS[k](),h,k+' is the same every time'); }
   ui.tab='gates'; eq(sceneKey(),'town'); ui.tab='tower'; eq(sceneKey(),'tower'); ok(/sc-ray/.test(scAtmos('tower'))&&!/NaN|undefined/.test(scAtmos('b:The Rat King')),'shared atmosphere'); ui.tab='gates';
   setLvl(20); S.watches=3; startRun(3); eq(sceneKey(),'g3'); S.mode='town'; S.run=null;
@@ -173,7 +173,7 @@ test('Backdrops: layered depth stays modest and well formed; reduced motion draw
 });
 
 test('Boss arenas: every gate boss, Tower warden and secret master has its own, shown while it lives',()=>{
-  const all=DUNGEONS.map(D=>D.boss[0]).concat(TW_BOSS,SECRET.map(B=>B.name)); eq(all.length,22);
+  const all=DUNGEONS.map(D=>D.boss[0]).concat(TW_BOSS,SECRET.map(B=>B.name)); eq(all.length,23);
   all.forEach(n=>{ ok(ARENAS[n],n+' has an arena'); const h=ARENAS[n](scRand(5)); ok(h.length>800&&!/NaN|undefined/.test(h),n+' draws cleanly'); });
   const b=bossFight(2); eq(sceneKey(),'b:'+b.base,'the boss arena'); b.hp=0; eq(sceneKey(),'g2','the gate returns when it falls');
   VIEW.nobg=true; b.hp=10; eq(sceneKey(),'',' off in Settings'); VIEW.nobg=false;

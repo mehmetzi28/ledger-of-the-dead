@@ -24,6 +24,16 @@ to each constant in `src/` and in `claude.md`; this page is the summary to read 
 
 ## 4.2 Latest measurements (2026-11-26, seeds 7700 and 9100, 40 bots x 100 days)
 
+**After Vane Abbey (R3 PR A)**: the six gates are unchanged (market 90/89%, Tower 78.7/78.2, Rift 15.6/16.5; full
+92/92%, Tower 85.2/84.5, Rift 11.2/12.8, sieges 86/84%, rival 74/70%). The abbey opens for no bot inside 100 days: the
+bot climbs the Tower only after its days (85 floors on average) and holds the 20 valley pages only near day 100, and no
+bot slays all six masters. `ABBEY_TOWER` went 100 -> 90 as the spec says; the page key stays. Players who climb the
+Tower as they go reach the deep route around day 90-100 by the same page curve. Tier probe on the abbey (16 bots x 70
+days, Normal): 58-90% at Lv28, 80-100% at Lv30, 81-100% at Lv32 (market lowest), so `REC_BASE[6]` = 31 (S is 27);
+Hard 53-96% at Lv34, 80-100% at 38-40 (advice 39). At the end of the days (Lv53-62) the bots clear it 99-100% with the
+Hunger down in about 3 actions; the 7-10 action target is for Recommended level and could not be measured by the bot
+yet.
+
 **After secret-master and warden kits (R2 PR B)**: no retune of the Tower. market 90/89% gates, Tower 78.3/78.4, Rift
 22.2/22.5; full 91/91%, Tower 85.8/85.5, Rift 11.3/11.7, sieges 84/86%, rival 71/71%; secret masters slain 88-90% of
 meetings (86% before). A duel probe (each cleared gate's boss room at fresh HP, day 50) first showed the Choir Eternal, the

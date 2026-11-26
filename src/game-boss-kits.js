@@ -147,7 +147,7 @@ function rivalKitMove(){ const st=(S.rival&&S.rival.stash)||[]; if(!st.length) r
 const rivalKitName=()=>{ const k=rivalKitMove(); return k?BOSS_ABIL[RIVAL_MOVE[k]].name:''; };
 // ----- what the Ledger shows
 function bossKitTxt(name){   // the whole kit in words (the Codex, a Ledgered boss door)
-  const K=BOSS_KIT[name]; if(!K) return ''; const P=[K.moves.map(m=>BOSS_ABIL[m].name).join(' · ')];
+  const K=BOSS_KIT[name]; if(!K) return ''; if(K.phases) return hungerKitTxt(); const P=[K.moves.map(m=>BOSS_ABIL[m].name).join(' · ')];
   if(K.twist) P.push('Second phase: '+TWISTS[K.twist].name,TWISTS[K.twist].desc); if(K.half) P.push('At half HP: '+HALVES[K.half].name,HALVES[K.half].desc); if(K.hazard) P.push('Hazard: '+HAZARDS[K.hazard].name,HAZARDS[K.hazard].desc); return P.join('. '); }
 function bossRotChip(e){   // the rotation strip on a boss card (Known and up), and its hazard
   if(!e.kit||e.hp<=0) return ''; const kl=knowLv(e); let h='';
@@ -246,7 +246,7 @@ function fireKitMove2(e,mv){   // the masters' and wardens' moves (fireKitMove h
   else if(mv==='bargain'){ e.barg=1; log(e.name+' strikes an Infernal Bargain: it mends every turn frost does not touch it.','bad'); }
   else if(mv==='halo'){ e.halo=r.turn+3; log(e.name+' raises a Halo: for 2 turns your skills burn you too.','bad'); }
   else if(mv==='otherhalf'){ const n=r.souls||0; r.souls=0; const h=Math.min(e.maxHp-e.hp,Math.round(e.maxHp*.05*n)); e.hp+=h; log(n?e.name+' takes the Other Half: '+n+' Souls, and mends '+h+'.':e.name+' reaches for your Souls, but you hold none.','bad'); }
-  else return false;
+  else return fireKitMove3(e,mv);   /* the Hunger (game-abbey.js) */
   return true;
 }
 function blockTarget(e){ const m=S.army.filter(hittable).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0]; e.blockT=m?fxKey(m):null; return m; }
@@ -254,16 +254,16 @@ function blockLands(e){ const m=S.army.find(x=>fxKey(x)===e.blockT&&x.hp>0); del
   if(m.hp<m.maxHp*.4){ m.hp=0; fxe('death',m); log(e.name+' brings the axe down: '+m.nick+' is executed.','bad'); return; }
   const d=bossHit(e,m,1.5,'phys','block'); log(e.name+'\'s axe bites '+m.nick+' for '+d+'.','bad'); }
 // ----- the hooks for masters and wardens (called from the PR A hooks)
-function bossTaken(e,d){ if(e.hw>S.run.turn) d=Math.round(d*.5); return d; }   // hurtFoe, before shields: Heartwood
+function bossTaken(e,d){ if(e.hw>S.run.turn) d=Math.round(d*.5); return hungerTaken(e,d); }   /* the Hunger's echoes guard it (game-abbey.js) */   // hurtFoe, before shields: Heartwood
 function bossHurt2(e,d,ty){   // hurtFoe, after the damage
   const r=S.run;
-  if(ty==='frost') e.frostT=r.turn;
+  if(ty==='frost') e.frostT=r.turn; hungerHurt(e,d,ty);
   if(e.molten>r.turn&&d>0&&HITTER&&HITTER.id!=='p'&&MELEE[HITTER.role]&&HITTER.hp>0){ const h=HITTER; HITTER=null; hurtAlly(h,Math.max(1,Math.round(d*BK_MOLTEN)),'fire'); HITTER=h; }
   if(e.halo>r.turn&&d>0&&SKILLHIT){ const s=SKILLHIT; SKILLHIT=null; hurtAlly(S.player,Math.max(1,Math.round(d*BK_HALO)),'fire'); SKILLHIT=s; }
   if(e.chainT&&d>0){ const m=S.army.find(x=>fxKey(x)===e.chainT&&x.hp>0); if(m){ hurtAlly(m,Math.max(1,Math.round(d*BK_CHAIN)),'phys'); if(m.hp<=0){ delete e.chainT; log(m.nick+' falls under the chain.','bad'); } } else delete e.chainT; }
 }
 function bossRoomTurn2(b){   // every turn, for one master or warden
-  const r=S.run, K=BOSS_KIT[b.base]||{};
+  const r=S.run, K=BOSS_KIT[b.base]||{}; if(b.hunger) hungerTurn(b);
   if(b.secret&&b.kit&&!b.half&&K.half&&b.hp<=b.maxHp*.5){ b.half=K.half; if(b.half==='note') b.fast=(b.fast||0)+1; log(b.name+' wakes its second rule: '+HALVES[b.half].name+'. '+HALVES[b.half].desc,'bad'); sfx('phase'); moment(HALVES[b.half].name,'bad'); }
   if(b.tide!=null){ if(b.stun>0) b.tide=0; else { b.tide+=halfOn(b,'under')?2:1; if(b.tide>=BK_TIDE){ b.tide=0; let tot=0; allies().filter(hittable).forEach(a=>{ const d=Math.round((a.id==='p'?pMax():a.maxHp)*BK_FLOOD); BLOW=a.id==='p'?{n:b.name,k:'sig',mv:'drown'}:null; tot+=hurtAlly(a,d,'frost'); BLOW=null; if(a.hp<=0&&a.id!=='p') log(a.nick+' is down.','bad'); }); log('The tide floods the room: '+tot+' damage across your side.','bad'); } } }
   if(halfOn(b,'wyrm')) allies().filter(a=>hittable(a)&&rowOf(a)==='f').forEach(a=>addDot(a,'burn',b.atk*.2,2));
@@ -284,5 +284,5 @@ function bossChip2(e){   // state chips for masters and wardens
   for(const [k,n] of [['molten','Molten'],['hw','Heartwood'],['halo','Halo']]) if(e[k]>r.turn) h+=' &middot; <span class="kit" title="'+BOSS_ABIL[k==='hw'?'heartwood':k].desc+'">'+n+'</span>';
   if(e.barg) h+=' &middot; <span class="kit" title="'+BOSS_ABIL.bargain.desc+'">Bargain</span>';
   if(e.chainT){ const m=S.army.find(x=>fxKey(x)===e.chainT&&x.hp>0); if(m) h+=' &middot; <span class="kit" title="'+BOSS_ABIL.chain.desc+'">Chained to '+m.nick+'</span>'; }
-  return h;
+  return h+hungerChip(e);
 }
