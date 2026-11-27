@@ -201,7 +201,27 @@ Gold at day 100 (before Awakening and headstones): ~33-39k average held, ~1.1M l
 | `AWAKEN_*`, `TEMPER_*`, `HEAD_*`, `MAUS_*` | `game-phases-town.js`, `game-faith-story.js` | Late gold sinks |
 | `COMPOUNDS`, `MARK`, `CORPSE_CONDS` | `game-skills-market.js`, `game-gate-rules.js` | Army depth |
 | Capstone and pact constants | `game-progression.js` | Paths and New Game+ |
-| `NGP_FOE`, `ASC_*` | `game-data.js`, `game-asc.js` | Foe growth per ascension level (+15%) and each rule's cost and reward |
+| `NGP_FOE`, `REC_NGP`, `ASC_*` | `game-data.js`, `game-asc.js` | Foe growth per ascension level (+15%), how far the advice moves with it, and each rule's cost and reward |
+
+### Ascension probe (R10, 2026-11-27)
+
+`node tests/run-balance.js '{"seed":7700,"bots":20,"modes":["market"],"ngp":N,"asc":[...]}'` starts each bot as a fresh save at
+ascension level N (no carried unique, titles or bestiary, so it is the hard case). First cycle for reference: 89%.
+
+| Probe | Clears | Tower |
+|---|---|---|
+| NG+1, no rules, advice not moved | 82% | 78.7 |
+| NG+3, no rules, advice not moved | 30% | 48.6 |
+| NG+3, `REC_NGP` .2 / .5 / 1 | 74% / 92% / 95% | 76.8 / 78.6 / 74.6 |
+| NG+1 (`REC_NGP` .5) | 90% | 78.0 |
+| NG+1 + Two Faces, Elite Doors, Crowded Gates | 82% | 79.0 |
+| NG+1 + Hungry Ledger, No Retreat, Deep Scars, The Book Hungers | 90% | 78.6 |
+| NG+1 + Thin Tether, Kits Plus, Heavy Souls | 89% | 78.1 |
+| NG+1 + Cold Town, Black Omens, Iron Market, Blood Price, Wandering Masters | 90% | 78.7 |
+
+`REC_NGP` .5 keeps cycles at the first cycle's clear rate when the bot enters at the advice. The gate rules (Two Faces,
+Elite Doors, Crowded Gates) cost about 8 points together; the rest cost under 1 point for the market bot, which uses
+no Retry, few potions and little forging, so their rewards roughly pay them back.
 
 ## 4.6 How to measure
 

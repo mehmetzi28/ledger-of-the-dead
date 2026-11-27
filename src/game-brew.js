@@ -82,11 +82,11 @@ function brewFall(){ const r=S.run, P=S.player; if(r&&r.charm==='ch_draft'&&!r.d
 const brewDoors=(r,out)=>{ if(r.charm==='ch_door'&&out[0]==='fight'&&!out.includes('elite')) out.push('elite'); return out; };   // rollDoors
 const brewSight=(di,v)=>S.run&&S.run.charm==='ch_lantern'&&S.run.di===di?Math.min(2,v+DOOR_SIGHT):v;   // doorSight
 const xOrder=role=>{ const r=S.run; return !!(r&&r.charm==='ch_order'&&!r.xordU&&r.cmd&&r.cmd[role]); };   // canCommand: a second order of a kind
-const brewDr=a=>{ const r=S.run; return r&&r.iron>=r.turn&&(a.id==='p'||a.uid!=null)?1-IRON_DR:1; };   // hurtAlly
+const brewDr=a=>{ const r=S.run; return r&&r.iron>=r.turn&&(a.id==='p'||a.uid!=null)?1-IRON_DR*(r.ironH?PACT_DRY:1):1; };   // hurtAlly
 function drinkDraught(k){
   const P=S.player, r=S.run; if(!r||!(S.belt[k]>0)) return false;
-  if(k==='iron'){ S.belt.iron--; r.iron=r.turn+IRON_TURNS-1; log('You drink an Iron Draught: your side takes 25% less damage for '+IRON_TURNS+' turns.','ok'); }
-  else if(k==='blood'){ const all=allies().filter(u=>u.hp>0); if(all.every(u=>u.hp>=(u.id==='p'?pMax():u.maxHp))) return false; S.belt.blood--; let h=0; all.forEach(u=>{ h+=healAlly(u,Math.round((u.id==='p'?pMax():u.maxHp)*BLOOD_HEAL))||0; }); log('You drink Bloodwine: your side mends '+h+' HP.','ok'); }
+  if(k==='iron'){ S.belt.iron--; r.iron=r.turn+IRON_TURNS-1; r.ironH=pactOn('dry')?1:0; log('You drink an Iron Draught: your side takes 25% less damage for '+IRON_TURNS+' turns.','ok'); }
+  else if(k==='blood'){ const all=allies().filter(u=>u.hp>0); if(all.every(u=>u.hp>=(u.id==='p'?pMax():u.maxHp))) return false; S.belt.blood--; let h=0; all.forEach(u=>{ h+=healAlly(u,Math.round((u.id==='p'?pMax():u.maxHp)*BLOOD_HEAL*(pactOn('dry')?PACT_DRY:1)))||0; }); log('You drink Bloodwine: your side mends '+h+' HP.','ok'); }
   else return false;
   tally('drank'); return true;
 }

@@ -23,7 +23,7 @@ function expEvent(x){   // something on the road (10% of nights that hold): a lo
   const won=Math.random()<.6; if(!won){ const fol=x.units.slice(1).filter(m=>!hasTrait(m,'gravebound')); if(fol.length&&Math.random()<RAID_LOSS){ const m=pick(fol); returnGear(m); memorialize(m,{raid:di}); x.units=x.units.filter(y=>y!==m); x.lostN=(x.lostN||0)+1; return {k,won,m:'Another keeper\'s squad on the same road. '+m.nick+' fell in the skirmish.'}; } }
   return {k,won,m:'Another keeper\'s squad on the same road. '+(won?'Your dead drove them off and took their share: spoils +50% tonight.':'They slipped away.')};
 }
-const expNights=k=>k==='gate'||k==='curse'?[1,2]:k==='band'?[2]:[1];
+const expNights=(k,add)=>(k==='gate'||k==='curse'?[1,2]:k==='band'?[2]:[1]).map(n=>n+(add==null?pactWatch():add));   /* Short Nights: one night more (game-progression.js) */
 const tDi=t=>t.k==='band'?5:t.di;   // the gate whose loot and resistances a target uses
 function expTargets(){   // what the War table offers today
   const out=[], G=raidGates(); G.forEach(di=>out.push({k:'gate',di}));
@@ -102,11 +102,12 @@ function expChoose(i,c){   // the dawn choice for a squad still out: press on, t
 const expOut=()=>(S.raids||[]).filter(x=>(x.night||0)<(x.nights||1)&&(x.night||0)>0);   // squads in the field during the day
 function expFix(x){   // the loader: a raid from before expeditions is a one-night gate expedition
   const t=x.t&&EXP_TARGETS.includes(x.t.k)&&RK[x.t.di]?{k:x.t.k,di:x.t.di}:{k:'gate',di:x.di}; if(t.k==='band') t.f=Math.max(10,Math.floor((+x.t.f||10)/10)*10); if(t.k==='hunt'){ if(typeof x.t.kind==='string'&&TROPHY[bossKind(x.t.kind)?'b:'+x.t.kind:x.t.kind]) t.kind=x.t.kind; else { t.k='gate'; } }
-  const nights=expNights(t.k).includes(x.nights)?x.nights:expNights(t.k)[0], out={t,nights,night:clamp(Math.floor(+x.night||0),0,nights)};
+  const nights=expNights(t.k,0).concat(expNights(t.k,1)).includes(x.nights)?x.nights:expNights(t.k)[0],   /* either length: the loader does not read the pacts */ out={t,nights,night:clamp(Math.floor(+x.night||0),0,nights)};
   if(x.sp&&typeof x.sp==='object'){ const sp={g:Math.max(0,Math.floor(+x.sp.g||0)),dust:Math.max(0,Math.floor(+x.sp.dust||0)),items:Array.isArray(x.sp.items)?x.sp.items.filter(id=>ITEM[id]):[],tro:{}}; for(const k in x.sp.tro||{}) if(TROPHY[k]&&x.sp.tro[k]>0) sp.tro[k]=Math.floor(x.sp.tro[k]); out.sp=sp; }
   for(const k of ['won','pressed','saved','lostN']) if(x[k]>0) out[k]=Math.floor(x[k]); if(x.pick==='press'||x.pick==='risky') out.pick=x.pick;
   if(Array.isArray(x.log)) out.log=x.log.filter(r=>r&&typeof r==='object').slice(-3).map(r=>({n:Math.floor(+r.n||1),roll:Object.fromEntries(EXP_STEPS.filter(s=>r.roll&&s in r.roll).map(s=>[s,r.roll[s]?1:0])),ok:!!r.ok,lost:Array.isArray(r.lost)?r.lost.filter(s=>typeof s==='string').map(cleanNick):[],saved:typeof r.saved==='string'?cleanNick(r.saved):null,half:!!r.half}));
-  return out;
+  const o={}; for(const k of Object.keys(x)) if(k in out) o[k]=out[k]; for(const k in out) if(!(k in o)) o[k]=out[k];   /* keep the save's key order: a round trip must give the same game */
+  return o;
 }
 function expOrderFix(o){ const t=o.t&&EXP_TARGETS.includes(o.t.k)&&RK[o.t.di]?Object.assign({k:o.t.k,di:o.t.di},o.t.k==='band'?{f:Math.max(10,Math.floor((+o.t.f||10)/10)*10)}:{},o.t.k==='hunt'&&typeof o.t.kind==='string'?{kind:o.t.kind}:{}):null; return t?{t,nights:expNights(t.k).includes(o.nights)?o.nights:expNights(t.k)[0]}:{}; }
 function resolveRaid(x){   // one night for x; home when its nights are done (a raid from before expeditions is one night at a gate)

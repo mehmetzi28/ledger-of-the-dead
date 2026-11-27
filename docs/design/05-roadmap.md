@@ -28,7 +28,7 @@ substantial feature or rework; small fixes ride along inside one. Rounds name th
 | R7 | The rival's war: an arc with an ending | Shipped (#20, #21) | G19 | R2 | L | [spec](rounds/R07-the-rivals-war.md) |
 | R8 | The pantheon: faith rework, gods and omens | Shipped (#22, #23) | G18, G20 | R5 | L | [spec](rounds/R08-the-pantheon.md) |
 | R9 | Rift sigils and Riftborn gear | Shipped (#24, #25) | G22, B4 | R2 | L | [spec](rounds/R09-rift-sigils.md) |
-| R10 | Ascension: New Game+ rework | PR A shipped (#26); PR B next | G21 | R3 | L | [spec](rounds/R10-ascension.md) |
+| R10 | Ascension: New Game+ rework | Shipped (#26, PR B) | G21 | R3 | L | [spec](rounds/R10-ascension.md) |
 | R11 | Hero builds 2.0 | P2 | G25, B2 | | L | [spec](rounds/R11-hero-builds.md) |
 | R12 | Army roles 2.0: charms, minion actives, a fifth role | P2 | G7, G8 | R1 | XL | [spec](rounds/R12-army-roles.md) |
 | R13 | Nemeses and a living valley: content pack | P3 | G24, G20 | R1 | L | [spec](rounds/R13-nemeses-and-content.md) |

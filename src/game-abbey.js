@@ -239,9 +239,9 @@ const fallenK=()=>hasInsc('fallen')?Math.min(INSC_FALLEN_MAX,(S.memorial||[]).le
 const quietLocked=()=>!!(S&&S.quiet);   // the Quiet Valley: the Ledger is silent until the cycle's first gate clear
 const ENDINGS={
   closed:{name:'Close the book',line:'Write your own name, and let the rest rest.',title:'The Last Keeper',cycle:'The Quiet Valley',
-    ngp:'Gates are '+Math.round((1-QUIET_FOE)*100)+'% gentler for the whole cycle, rewards unchanged. Nothing rises until your first gate clear of the cycle.'},
+    ngp:'Gates are '+Math.round((1-QUIET_FOE)*100)+'% gentler for the whole cycle, rewards unchanged. Nothing rises until your first gate clear of the cycle. No ascension rule is drawn, and two things cross with you instead of one.'},
   kept:  {name:'Keep writing',  line:'The Ledger is not finished with you. You are not finished with it.',title:'The Hand That Writes',cycle:'The Keeper\'s Cycle',
-    ngp:'The usual New Game+, and one gate boss returns in Ledger form: in its second phase from the start, its heart paid twice. Vane Abbey opens with the Throne and the way the book remembers.'}
+    ngp:'The usual New Game+, and one gate boss returns in Ledger form: in its second phase from the start, its heart paid twice. Vane Abbey opens with the Throne and the way the book remembers. You pick two ascension rules instead of one.'}
 };
 function endingVariant(k){   // the epilogue's third paragraph: your oath, the rival, the size of the Memorial, an Eternal in the army
   const L=[], f=faithOf(), mem=(S.memorial||[]).length, eternal=S.army.concat(S.reserve||[]).some(m=>m.stage>=4), rv=S.rival&&S.rival.wins>0;

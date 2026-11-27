@@ -40,7 +40,7 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
     if(r.rg) rgRoom(list,di,room,lvl); else if(r.rk) reckRoom(list,di,lvl);   /* the rival's own gate and the duel (game-rival-arc.js) */
     else if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(r.rift&&guardAt(r.rift)?makeGuardian(di,lvl,r.rift):!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true));   /* a Rift guardian every fifth depth (game-rift.js) */ const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
     else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
-    heatRoom(list,di); ledgerRoom(list,di); ascRoom(list); brewRoom(r); foeScale(list,foeAtkMul(di)); if(r.trial) trialPow(list,di); bulwark(list); riftScale(list); if(boss&&r.rift) sigNamed(list);
+    heatRoom(list,di); ledgerRoom(list,di); rwRoom(list,di); ascKits(list); ascRoom(list); brewRoom(r); foeScale(list,foeAtkMul(di)); if(r.trial) trialPow(list,di); bulwark(list); riftScale(list); if(boss&&r.rift) sigNamed(list);
     heatScale(list);
     if(!boss&&kind==='elite') for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*ELITE_ROOM); e.atk=Math.max(1,Math.round(e.atk*ELITE_ROOM)); }
     affixAll(list);
@@ -69,7 +69,7 @@ function startRun(di){
   if(S.mode!=='town'||S.watches<=0||!RK[di]||gateLocked(di)) return;
   S.watches--; S.runs++; S.notices=[];
   S.run={di,room:0,rooms:di===ABBEY?ABBEY_ROOMS:4,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:gateMod(di),heat:heatOf(di)};
-  S.mode='battle'; titheSouls(); prepTake(S.run); prepSoul(S.run); townStart(S.run); ascRead(S.run);   /* run prep, the black market's Soul (game-brew.js), the Soul Well (game-town2.js) */
+  S.mode='battle'; titheSouls(); prepTake(S.run); prepSoul(S.run); townStart(S.run); ascRead(S.run); rwEnter(S.run);   /* run prep, the black market's Soul (game-brew.js), the Soul Well (game-town2.js) */
   log('You step through the '+DUNGEONS[di].name+' gate.'+(S.run.mod?' It is cursed today: '+MODS[S.run.mod].name+'.':''));
   if(di===ABBEY) unlockStory('abbey3',S.run);
   spawnRoom();
@@ -125,8 +125,8 @@ function healAlly(a,h){
   return h;
 }
 function killXp(e){ return Math.round((4+e.lvl*2.5)*RK[e.rankI].xp*(e.boss?2.5*(omen()==='ashfall'?OMEN_BOSS_XP:1):1)*(e.elite?1.5:1)*(e.tw?1+e.tw/12:1)*(e.secret?SB_REWARD:1)*(e.rival?RIVAL_GOLD:1)*ngpReward()*(runMod()?MOD_XP:1)*heatK('xp')*(S.run&&S.run.rift?riftRew():1)*(1+xb('xpp')/100)*(e.living?SIEGE_XP:1)*((e.boss||e.elite)&&hasMod('scholar','a')?INSIGHT:1)*(S.run&&S.run.sweep?SWEEP_XP:1)); }   // Insight
-function studyFoe(name){   // count a kill toward studying this kind of foe (its drop table opens in the bestiary)
-  const notes=hasMod('scholar','b')&&(tally('notes'),T_('notes')%2===0), n0=S.kills[name]||0, n=S.kills[name]=n0+(notes?2:1)+(Math.random()*100<xb('studyp')?1:0)+(libStudy()>0&&Math.random()*100<libStudy()?1:0);   /* the Library (game-town2.js) */   /* the Scribe's Regalia: some kills count twice */   // Field Notes: every second kill counts twice
+function studyFoe(name,x){   // count a kill toward studying this kind of foe (its drop table opens in the bestiary)
+  const notes=hasMod('scholar','b')&&(tally('notes'),T_('notes')%2===0), n0=S.kills[name]||0, n=S.kills[name]=n0+(notes?2:1)+(x|0)+(Math.random()*100<xb('studyp')?1:0)+(libStudy()>0&&Math.random()*100<libStudy()?1:0);   /* the Library (game-town2.js) */   /* the Scribe's Regalia: some kills count twice */   // Field Notes: every second kill counts twice
   const hit=at=>n0<at&&n>=at;
   if(hit(KNOW_AT)) notify('Bestiary: you have studied '+name+'. Its drop table is now known.','ok');
   for(const x of masteryRungs(name)) if(x.t.id!=='studied'&&hit(x.at)) notify('Mastery: '+name+' is now '+x.t.name+'. '+masteryGives(x.t)+'.','ok');
@@ -146,7 +146,7 @@ function checkDeaths(){
     if(e.boss||e.elite) gainSoul();
     if(e.boss){ tally('bosses'); r.bossK=e.name; }   /* the History notes the boss that fell */
     if(e.elite) tally('elites');
-    studyFoe(e.base);
+    studyFoe(e.base,ascStudy(e));
     r.pending+=killXp(e); if(!e.stash) r.loot.push(...rollDrops(e)); killLoot(e,r);   // a stolen body drops no gear: the body is the reward
     killPowers(); capKill(e); faithKill(e,r);
     if(!e.rival&&!e.guard&&sigBody()){ const c=corpseOf(e);   /* guardians and Loud Grave leave no body (game-rift.js) */ if(e.stash) rivalReclaim(e,c); r.corpses.push(c); }   // the rival leaves no body: they retreat
@@ -258,14 +258,14 @@ function act(kind){
     if(it.amb) e.ambU=1;
     if(it.k==='heal'){
       const hurt=r.enemies.find(x=>x.id===it.t);
-      if(hurt){ const h=Math.min(Math.round(e.atk*.9*(1-foeArmor())*blightK(hurt)),hurt.maxHp-hurt.hp); /* scaled by armor like your damage, so menders can't stall a fight */ hurt.hp+=h; log(e.name+' mends '+hurt.name+'.'); continue; }
+      if(hurt){ const h=Math.min(Math.round(e.atk*.9*(1-foeArmor())*blightK(hurt)),hurt.maxHp-hurt.hp); /* scaled by armor like your damage, so menders can't stall a fight */ hurt.hp+=h; if(pactOn('regen')&&(hurt.dots||hurt.st)){ delete hurt.dots; delete hurt.st; log(e.name+' mends '+hurt.name+' and knits its wounds shut.'); continue; } log(e.name+' mends '+hurt.name+'.'); continue; }   /* Knitting Flesh: a mender cleanses too */
     }
     let tg=alive.find(a=>fxKey(a)===it.t)||foeTarget(foeReach(e,alive));
     if(it.bw&&fxKey(tg)===it.t) log('Bulwark: '+tg.nick+' intercepts '+e.name+'\'s blow.','ok');   // planned with the intent, so the card already showed it
     if(omen()==='eclipse'&&Math.random()<ECLIPSE_MISS){ log(e.name+' misses '+(tg.id==='p'?'you':nameOf(tg))+' in the dark.','ok'); continue; }   // Black Eclipse
     let d=hit(e.atk*enrage(e)*(hasAff(e,'enraged')&&e.hp<e.maxHp/2?1.6:1)*hexK(e)*kitAtk(e,it)); let crit=e.role==='striker'&&Math.random()<foeCrit(); if(crit&&hasSt(e,'hexed')){ crit=false; combo('fizzle',e,'Fizzle: the hex spoils '+e.name+'\'s killing blow.'); } if(crit&&tg.id==='p'&&hasMod('calcify','a')) crit=false;   /* Petrified: rolled, then refused */ if(crit) d=Math.round(d*1.8);
     { const gv=guardBlow(tg,d); if(gv){ tg=gv; d=Math.round(d*SB_TAKE); } }   // Guard: swapped here so the log names who was hit
-    BLOW={n:e.name,k:crit?'crit':'hit'}; SAP=hasKit(e,'sapper'); hurtAlly(tg,d,foeHitType(e)); SAP=false; BLOW=null; fxe('hurt',tg,{crit:crit?1:0,by:e.id}); if(crit) addDot(tg,'bleed',e.atk*.3,2);   // a striker's crit opens a wound
+    BLOW={n:e.name,k:crit?'crit':'hit'}; SAP=hasKit(e,'sapper'); hurtAlly(tg,d,foeHitType(e)); SAP=false; BLOW=null; fxe('hurt',tg,{crit:crit?1:0,by:e.id}); if(crit) addDot(tg,'bleed',e.atk*(pactOn('claws')?PACT_CLAW_BLEED:.3),pactOn('claws')?PACT_CLAW_T:2);   // a striker's crit opens a wound (deeper under Sharp Claws)
     if(hasAff(e,'vampiric')){ const h=Math.min(e.maxHp-e.hp,Math.round(d*.4*blightK(e))); if(h>0){ e.hp+=h; mark(e,0,h); } }
     const ex=foeOnHit(e,tg)+echoThorns(e,tg,d);
     log(e.name+' hits '+(tg.id==='p'?'you':nameOf(tg))+' for '+d+(crit?' (crit'+(tg.hp>0&&tg.dots&&tg.dots.bleed?', bleeding':'')+')':'')+ex+'.','bad');
@@ -288,7 +288,7 @@ function act(kind){
 }
 function gateCleared(r){   // the boss room of a gate is won: story, clear tallies (titles, difficulty, curses) and the secret-master hint; returns the clear bonus XP
   const di=r.di, fk=runFarm(); unlockStory('g'+di,r); r.cleared=true; S.quest.clears++;   /* fk before the clear is marked: a first clear pays in full */
-  S.ti=S.ti||{}; S.ti.clr=S.ti.clr||{}; S.ti.clr[di]=1; tally('clrN'+di); orderEv('clear',di);
+  S.ti=S.ti||{}; S.ti.clr=S.ti.clr||{}; S.ti.clr[di]=1; tally('clrN'+di); orderEv('clear',di); rwCleared(r);   /* a rewritten gate (game-asc.js) */
   if(T_('clrN'+di)===SECRET_HINT&&secretHinted(di)) notify('A torn page in the Ledger: '+SECRET[di].hint,'');
   if(r.heat){
     S.heatMax=S.heatMax||{}; S.heatMax[di]=Math.max(S.heatMax[di]||0,r.heat); tally('heat'+r.heat); if(r.mod) tally('damned');
@@ -447,10 +447,11 @@ function tryRaise(id,salt,bench){   // bench: raise to the Reserve, only when th
   if(quietLocked()){ r.events.push({m:'The Ledger is quiet. Nothing rises until your first gate clear of this cycle.',c:'bad'}); return; }   /* the Quiet Valley (game-abbey.js) */
   const toRes=!!bench&&armyUsed()>=slots()&&reserveRoom();
   if(armyUsed()>=slots()&&!toRes){ r.events.push({m:'Your army is full. Release someone first.',c:'bad'}); return; }
+  if(c.boss&&pactOn('deaf')&&!((r.souls||0)>0)){ r.events.push({m:'Deaf Graves: a boss\'s body needs a Soul to answer. You have none.',c:'bad'}); return; }   /* the Pact of Deaf Graves */
   const cost=raiseCost(c);
   if(P.mana<cost){ r.events.push({m:'Not enough mana. You need '+cost+'.',c:'bad'}); return; }
   const salted=!!(salt&&S.salts>0);
-  P.mana-=cost; c.tried=true; if(salted) S.salts--;
+  P.mana-=cost; c.tried=true; if(salted) S.salts--; if(c.boss&&pactOn('deaf')) r.souls--;
   if(Math.random()*100<(salted?saltChance(c):raiseChance(c))){
     const m={uid:++S.uid,armed:!!c.armed,eq:c.armed?{weapon:null,armor:null,relic:null}:null,nick:c.mem&&!S.army.concat(S.reserve).some(x=>x.nick===c.mem)?c.mem:freeNick(),name:c.name,kind:c.base,role:c.role,rankI:c.rankI,lvl:c.lvl,xp:0,boss:c.boss,elite:c.elite,hf:c.hf,af:c.af,tw:c.tw,hp:1,maxHp:null,atk:0};
     if(hasFlag('bindsouls')) m.lvl=Math.min(S.player.lvl+2,m.lvl+2);
@@ -458,6 +459,7 @@ function tryRaise(id,salt,bench){   // bench: raise to the Reserve, only when th
     { const ml=masteryLv(c.base); if(ml) m.lvl=Math.max(m.lvl,Math.min(S.player.lvl+2,m.lvl+ml)); }   // a Ledgered kind rises higher, never past your level + 2
     m.lvl0=m.lvl; m.stage=0; m.traits=[c.cd&&CORPSE_CONDS[c.cd]?CORPSE_CONDS[c.cd].trait:rollTrait([])]; if(c.boss) m.traits.push(rollTrait(m.traits)); if(c.cd&&CORPSE_CONDS[c.cd]) m.cd=c.cd; if(c.recl){ m.recl=1; tally('reclaimed'); }   // bosses rise with two traits; how the body died replaces the random one
     if(c.aff&&c.aff.length){ const t=AFFIX[pick(c.aff)].trait; if(!m.traits.includes(t)) m.traits.push(t); }   // an elite keeps one of its affixes
+    { const ct=carryTrait(m); if(ct) r.events.push({m:m.nick+' rises with the trait you carried: '+TRAITS[ct].name+'.',c:'ok'}); }   /* a carried trait (game-asc.js) */
     if(rollCommand(m)) tally('commanders');
     syncMinion(m); m.hp=m.maxHp; if(toRes){ S.reserve.push(m); c.res=1; } else S.army.push(m); r.raised++; faithRaised(c); if(faithOf()==='hon'&&r.raised>MORROW_RAISE) vowBreak('hon','body '+r.raised+' raised in one run'); S.firstRaise=0; S.ti=S.ti||{}; S.ti.raised=(S.ti.raised||0)+1; if(m.armed) S.ti.armed=(S.ti.armed||0)+1;
     if(!r.siege){ dread(DREAD_RAISE); orderEv('raise',c); } if(c.free) tally('straggler'); if(c.boss) tally('raisedBoss'); c.result='raised'; if(c.boss||c.elite) moment(m.nick+' rises: '+(c.boss?'a boss':'an elite')+' serves you','ok'); c.minion=m.nick+' ('+m.traits.map(t=>TRAITS[t].name).join(', ')+')'; sfx('raise'); fxe('raise',c);

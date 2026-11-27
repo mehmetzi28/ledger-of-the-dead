@@ -489,9 +489,12 @@ cycle); the rival is gone for good either way. The bot finishes the arc by day ~
 
 **New Game+** (`startNGP`). After the Throne: start again at level 1 keeping titles, bestiary, tips, lifetime counts,
 story, records, pages, Rift best, Memorial, rival name and record, and one unique (with its Awakening ranks). Foes +15%
-per cycle (the **ascension level**, R10), rewards +25%. Each cycle start offers three **ascension rules** (`ASC_RULES`,
-src/game-asc.js: Two Faces, Elite Doors, Crowded Gates, Cold Town, Black Omens and more); a chosen rule stays for every
-later cycle and brings its own reward. Up to 3 of 7 **pacts** (`PACTS`) make the cycle harder for more XP, gold and drops.
+per cycle (the **ascension level**, R10), rewards +25%. Each cycle start offers three **ascension rules** (15 in `ASC_RULES`,
+src/game-asc.js: Two Faces, Elite Doors, Crowded Gates, Cold Town, Black Omens, Kits Plus and more); a chosen rule stays
+for every later cycle and brings its own reward. Each cycle also **rewrites one gate** (a Ledger-form boss with a borrowed
+move, two Ink-Wet kinds) and lets one more thing **cross** besides the unique (a trait, a building at level 2, a Riftborn
+or heartforged piece). Close the book: no rule, no rewrite, two carries; Keep writing: two rules from four. Up to 3 of 7 **pacts** (`PACTS`) make the cycle harder for more XP, gold and drops, and each adds a rule (stance foes brace at once, deeper crit
+bleeds, menders cleanse, boss bodies cost a Soul, draughts at half, Dark Mending heals foes, expeditions a night longer).
 
 ## 2.8 Meta-progression and knowledge
 

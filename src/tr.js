@@ -3426,3 +3426,41 @@ TR_RX.unshift([/^Weekly dive · Depth (\d+) · Guardian · (.+?) · Turn (\d+)$/
 TR_RX.unshift([/^The Ledger reads (.+?)\. It fights at (\d+)% this run, and learns twice as fast\.?$/,"Defter $1'i okuyor. Bu akında %$2 güçle dövüşür ve iki kat hızlı öğrenir"],[/^Level (\d+) · (.+)$/,"Seviye $1 · {t2}"],[/^Level (\d+)$/,"Seviye $1"]);
 [["a fresh army, bag and gold","yeni bir ordu, çanta ve altın"],["You keep your titles and bestiary, and one unique","Unvanların, bestiyerin ve bir eşsiz eşyan kalır"],["Foes get #% more HP and attack and pay #% more XP and gold, and you pick a rule for ascension level #","Düşmanlar %# daha fazla can ve saldırı kazanır, %# daha fazla XP ve altın öder; sen de yükseliş seviyesi # için bir kural seçersin"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
 [["Begin New Game+ #: level #, day #, a fresh army, bag and gold","Yeni Oyun+ # başlat: seviye #, gün #, yeni bir ordu, çanta ve altın"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+// R10 PR B: Kits Plus, Heavy Souls, rewritten gates, carries, the endings' picks, the pacts' rules
+[["Kits Plus","Ek Kitler"],["Heavy Souls","Ağır Ruhlar"],["Rewritten","Yeniden Yazılmış"],["Rewritten gates","Yeniden yazılmış kapılar"],["Carries","Taşınanlar"],["Written over","Üzerine yazıldı"],["Cleared this cycle","Bu döngüde temizlendi"],
+ ["Ordinary gate foes carry a second kit, taken from another kind of their gate","Sıradan kapı düşmanları, kapılarının başka bir türünden alınmış ikinci bir kit taşır"],["Every second kill of a two-kit foe counts twice in the bestiary","İki kitli bir düşmanın her ikinci öldürülüşü bestiyerde iki kez sayılır"],
+ ["An ultimate needs one Soul more","Bir nihai yetenek bir Ruh fazlasını ister"],["Ultimates are #% stronger","Nihai yetenekler %# daha güçlüdür"],
+ ["The Quiet Valley draws no rule; the Keeper's Cycle takes two from four","Sessiz Vadi kural çekmez; Bekçinin Döngüsü dört kuraldan ikisini alır"],
+ ["Every ascension cycle but the Quiet Valley, the Ledger writes over one gate, never the same twice in a row","Sessiz Vadi dışındaki her yükseliş döngüsünde Defter bir kapının üzerine yazar, aynı kapıyı asla art arda iki kez seçmez"],
+ ["Its boss returns in Ledger form: in its second phase from the start, with a move borrowed from another gate's boss, its heart paid twice","Patronu Defter biçiminde döner: baştan ikinci evresinde, başka bir kapının patronundan ödünç alınmış bir hamleyle ve kalbi iki kat ödenmiş olarak"],
+ ["Two of its kinds come back Ink-Wet, with another kit, #% more HP and twice the trophies","Türlerinden ikisi Mürekkebi Kurumamış olarak döner: başka bir kitle, %# daha fazla canla ve iki kat ganimetle"],["The gate card shows the seal","Kapı kartı mührü gösterir"],
+ ["Besides the unique, one more thing crosses into a new cycle (two into the Quiet Valley): a trait from one of your minions, given to your first raise; a building at level #; a Riftborn piece at half its depth; or a heartforged piece with its lines at #%","Eşsiz eşyanın yanında yeni döngüye bir şey daha geçer (Sessiz Vadi'ye iki): minyonlarından birinin bir özelliği, ilk diriltmene verilir; # seviyesinde bir yapı; derinliğinin yarısında bir Yarık doğumlu parça; ya da satırları %# olan kalpte dövülmüş bir parça"],
+ ["Nothing else to carry: a minion's trait, a building at level # or more, a Riftborn or heartforged piece could cross","Taşınacak başka bir şey yok: bir minyonun özelliği, # ya da üstü seviyede bir yapı, bir Yarık doğumlu ya da kalpte dövülmüş parça geçebilirdi"],
+ ["Carry one more thing into the new cycle (optional)","Yeni döngüye bir şey daha taşı (isteğe bağlı)"],["Carry up to two more things into the new cycle (optional)","Yeni döngüye en çok iki şey daha taşı (isteğe bağlı)"],
+ ["The Quiet Valley draws no rule","Sessiz Vadi kural çekmez"],["Pick up to two rules for ascension level # (optional): they stay for every later cycle","Yükseliş seviyesi # için en çok iki kural seç (isteğe bağlı): sonraki her döngüde kalırlar"],
+ ["Foes get #% more HP and attack and pay #% more XP and gold, and you pick a rule for ascension level # and one more thing to carry","Düşmanlar %# daha fazla can ve saldırı kazanır, %# daha fazla XP ve altın öder; sen de yükseliş seviyesi # için bir kural ve taşınacak bir şey daha seçersin"],
+ ["Clear six gates the Ledger wrote over (one a cycle)","Defterin üzerine yazdığı altı kapıyı temizle (döngü başına bir)"],["Rewritten gates cleared","Temizlenen yeniden yazılmış kapılar"],
+ ["Bulwark-stance foes brace from the first turn","Siper duruşlu düşmanlar ilk turdan itibaren siper alır"],["A striker's crit opens a deeper wound: #% of its attack for # turns","Bir vurucunun kritik vuruşu daha derin bir yara açar: # tur boyunca saldırısının %#'i"],
+ ["A foe mender's heal also clears its target's wounds and conditions","Bir düşman şifacının iyileştirmesi hedefinin yaralarını ve durumlarını da temizler"],["A boss's body needs a Soul to raise","Bir patronun bedenini diriltmek için bir Ruh gerekir"],
+ ["Draughts still work, at half effect","Şuruplar yine işe yarar, yarı etkiyle"],["Dark Mending also heals every foe #%","Karanlık Onarım her düşmanı da %# iyileştirir"],["Expeditions take one night more","Seferler bir gece fazla sürer"],
+ ["No ascension rule is drawn, and two things cross with you instead of one","Yükseliş kuralı çekilmez ve seninle bir yerine iki şey geçer"],["You pick two ascension rules instead of one","Bir yerine iki yükseliş kuralı seçersin"],
+ ["The page was written over","Sayfanın üzerine yazıldı"],["Bitter Blood: the foes drink from your mending too","Acı Kan: düşmanlar da onarımından içiyor"],["Deaf Graves: a boss's body needs a Soul to answer","Sağır Mezarlar: bir patronun bedeninin cevap vermesi için bir Ruh gerekir"],["You have none","Hiç yok"],
+ ["Ledger-form boss · two Ink-Wet kinds","Defter biçimli patron · iki Mürekkebi Kurumamış tür"],["Trait","Özellik"],["Building","Yapı"],["Riftborn","Yarık doğumlu"],["Heartforged","Kalpte dövülmüş"],
+ ["You knew this gate","Bu kapıyı biliyordun"],["You had its turns by heart, the drip of it, the place the floor gave","Dönemeçlerini ezbere bilirdin, damlamasını, zeminin çöktüğü yeri"],["The Ledger knew it too, and it has written over the page: the same walls in a wetter ink, the same dead with new habits, and its master waiting in the shape the book remembers best","Defter de biliyordu ve sayfanın üzerine yazdı: daha ıslak bir mürekkeple aynı duvarlar, yeni alışkanlıklarla aynı ölüler ve kitabın en iyi hatırladığı biçimde bekleyen efendisi"],["Nothing here is a mistake","Burada hiçbir şey hata değil"],["The book is practising","Kitap pratik yapıyor"]
+].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+TR_RX.unshift(
+ [/^Ink-Wet (.+)$/,"Mürekkebi Kurumamış {t1}"],[/^(.+), Written Over$/,"{t1}, Üzerine Yazılmış"],[/^\+ (.+)$/,"+ {t1}"],
+ [/^(Trait|Building|Riftborn|Heartforged): (.+)$/,"{t1}: {t2}"],
+ [/^This cycle: (.+?)(, cleared)?\.?$/,"Bu döngü: {t1}$2"],
+ [/^Kits Plus: (.+)$/,"Ek Kitler: {t1}"],
+ [/^The Ledger has written over (.+?)\. Its boss waits in Ledger form with a borrowed move, and two of its kinds have changed\.?$/,"Defter {t1} üzerine yazdı. Patronu ödünç bir hamleyle Defter biçiminde bekliyor ve türlerinden ikisi değişti"],
+ [/^The page was written over\. (.+?) is not the place you remember\.?$/,"Sayfanın üzerine yazıldı. {t1} hatırladığın yer değil"],
+ [/^You cleared the rewritten (.+?)\.?$/,"Yeniden yazılmış {t1} kapısını temizledin"],
+ [/^Carried into the new cycle: (.+?)\.?$/,"Yeni döngüye taşınan: $1"],
+ [/^(.+?) rises with the trait you carried: (.+?)\.?$/,"$1 taşıdığın özellikle diriliyor: {t2}"],
+ [/^(.+?) mends (.+?) and knits its wounds shut\.?$/,"{t1}, {t2} düşmanını onarıyor ve yaralarını kapatıyor"],
+ [/^Your first raise of the cycle rises with (.+?) \(from (.+?)\)\.?$/,"Döngünün ilk diriltmesi {t1} ile kalkar ($2'den)"],
+ [/^The (.+?) stands at level (\d+) from the first day\.?$/,"{t1} ilk günden $2. seviyede durur"],
+ [/^This Riftborn piece crosses at depth (\d+) \(now (\d+)\)\.?$/,"Bu Yarık doğumlu parça $1 derinlikte geçer (şimdi $2)"],
+ [/^This heartforged piece crosses with its lines at (\d+)%\.?$/,"Bu kalpte dövülmüş parça satırları %$1 olarak geçer"]
+);

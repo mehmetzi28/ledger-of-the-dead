@@ -1214,3 +1214,6 @@ details.brief>summary .more-l,details.brief>summary .more-h{margin-left:0}detail
 .lp-banner{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.lp-banner .btn{margin-left:auto}
 .i-hf{font-size:12px;color:#e0a060;margin-top:2px}
 .i-rb{font-size:12px;color:#9a8cff;margin-top:2px}
+/* R10 PR B: the rewritten gate's seal, a second kit (Kits Plus) */
+.rw-line .rw-tag{color:#c9a3ff}
+.kit.kit2{border-style:dashed}
