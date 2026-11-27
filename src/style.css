@@ -702,7 +702,7 @@ body.calm .moment{animation:none}
 .door:hover,.door:focus-visible{border-color:var(--gold);background:#24201c}
 .dl{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:4px;padding-top:6px;border-top:1px solid var(--line-2)}.dl .dlh,.dl .dlb{color:var(--bone);font-weight:600}.door .df{color:var(--bone)}.df small{margin-left:4px;color:var(--mute)}.door .df.el{color:#ee8f6f}
 @media (max-width:540px){.df small{display:none}}
-.door.d-elite b{color:#ee8f6f}.door.d-rest b{color:var(--ok)}.door.d-treasure b{color:var(--gold)}.door.d-boss b{color:#ff9a78}
+.door.d-elite b{color:#ee8f6f}.door.d-rest b{color:var(--ok)}.door.d-treasure b{color:var(--gold)}.door.d-boss b{color:#ff9a78}.door.d-nem b{color:#d77ad0}
 .setl{font:400 12px/1.4 var(--font-body);color:var(--mute)}.setl .on{color:var(--ok)}
 .cmds{align-items:center}.cmd-l{font:500 13px/1.2 var(--font-body);color:var(--mute);margin-right:4px}
 .log li.story,.note.story span{font:400 16px/1.5 var(--font-lore);color:var(--gold)}
@@ -901,7 +901,8 @@ body.compact .unit.mini .ico{width:34px;height:34px}body.compact .unit.mini .ico
 .mem-row .ico{filter:grayscale(.85) brightness(.7)}.mem-row .rk{opacity:.7}.mem-row b{color:var(--ward);font-weight:600}
 .mem-t{min-width:0;overflow-wrap:anywhere}.mem-tr{opacity:.8}
 .mem-hon b{color:var(--bone)}.chip.mem-buff{border-color:var(--brass);color:var(--gold)}
-.mem-b{display:flex;flex-direction:column;align-items:flex-end;gap:4px}.mem-b:empty{display:none}.mem-hs{color:var(--bone)}
+.mem-b{display:flex;flex-direction:column;align-items:flex-end;gap:4px}.mem-b:empty{display:none}.mem-hs{color:var(--bone)}.mem-av{color:#d77ad0}
+.nem-strip{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}.nem-strip .rub{margin-right:4px}.nem-c{display:inline-flex;flex-direction:column;padding:4px 8px;border:1px solid #6b3b68;border-radius:6px;background:rgba(120,50,110,.12);max-width:100%}.nem-c.arch{border-color:#d77ad0}.nem-c small{color:var(--dim,#9a8f80);font-size:.8em}
 @media (max-width:520px){.mem-row{grid-template-columns:auto auto minmax(0,1fr)}.mem-row>.btn,.mem-row>.mem-b{grid-column:1/-1;justify-self:start}.mem-b{flex-direction:row;flex-wrap:wrap}}
 /* Loadouts: three named setups on the Gear tab */
 .lo-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}

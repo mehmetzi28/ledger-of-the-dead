@@ -37,7 +37,7 @@ function townHTML(){
   if(sub==='trial') return h+trialHTML()+armyBriefHTML();
   if(S.lastPage&&S.mode==='town'&&((!S.ending&&!ui.lpLater)||ui.lpJust)) return h+lastPageHTML();   /* the last page (game-abbey.js): the Ledger itself, not a popup */
   h+=lastPageBanner();
-  h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'+gateArmyHTML()
+  h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'+gateArmyHTML()+nemStripHTML()
    +((n=>n<FIRST_STEPS.length&&!(S.tips&&S.tips.off)?'<p class="q-note guide-link"><button class="linkbtn" data-a="tab" data-k="help">How to play &middot; first steps '+n+'/'+FIRST_STEPS.length+'</button></p>':'')(stepsDone()))   /* for a new player; gone once every step is done or tips are switched off */
    +(omen()?'<div class="omen-line" title="It touches every gate and the Tower until dawn."><b>Omen today: '+OMENS[omen()].name+'.</b> '+OMENS[omen()].desc+'</div>':'')+(forecast()?'<div class="omen-line dim">Tomorrow: '+(forecast().id?OMENS[forecast().id].name:'no omen')+' (foreseen by '+FAITH[faithOf()].short+').</div>':'')+rivalWarnHTML()+arcGateHTML()
    +prepHTML()+'<div class="gates">'+DUNGEONS.map((d,i)=>gateHTML(i)).join('')+'</div>'
@@ -486,12 +486,18 @@ function raiseHTML(){
    +armyHTML();
 }
 function doorLore(k){   // what the Ledger reads behind a door (doorSight, doorBoss in game-gate-rules.js); on phones the details move to the tooltips
-  const r=S.run, sight=doorSight(r.di), L=r.pre&&r.pre[k];
+  const r=S.run, sight=k==='nem'?2:doorSight(r.di), L=r.pre&&r.pre[k];   /* a nemesis's door is always read */
   if(k==='boss'){ const b=doorBoss(r.di); return b?'<span class="dl"><span class="dlb">'+b.name+'</span><span>'+b.tip+'</span></span>':''; }
   if(!sight||!L) return '';
   return '<span class="dl"><span class="dlh">Behind it</span>'+L.map(e=>{ const af=(e.aff||[]).map(a=>AFFIX[a].name).concat(kitOf(e)&&knowLv(e)>=1?[KITS[kitOf(e)].name]:[]), row=rowOf(e)==='f'?'Front':'Back';
     const tip=(e.elite?['Elite']:[]).concat(af).concat(sight>1?[row+' row','Lv '+e.lvl]:[]).join(' · ');
     return '<span class="df'+(e.elite?' el':'')+'"'+(tip?' title="'+tip+'"':'')+'>'+e.name+(af.length?'<small>'+af.join(', ')+'</small>':'')+(sight>1?'<small>'+row+'</small><small>Lv '+e.lvl+'</small>':'')+'</span>'; }).join('')+'</span>';
+}
+function nemStripHTML(){   // the Gates tab: the nemeses alive (game-nemesis.js)
+  const L=S.nem||[]; if(!L.length) return '';
+  return '<div class="nem-strip" role="list" aria-label="Nemeses"><span class="rub">Nemeses</span>'+L.map(n=>{ const w=Math.floor((S.day-n.born)/7);
+    return '<span class="nem-c'+(n.arch?' arch':'')+'" role="listitem" title="'+nemTitle(n)+'. Downed: '+n.v.map(v=>v.n).join(', ')+'.'+(n.tr?' Stole '+TRAITS[n.tr].name+'.':'')+'"><b>'+n.name+'</b>'+(n.arch?' <small>Arch-nemesis</small>':'')
+      +'<small>'+DUNGEONS[n.g].name+' &middot; Lv +'+nemUp(n)+' &middot; Victims '+n.k+' &middot; '+(w?w+(w>1?' weeks':' week'):'New')+'</small></span>'; }).join('')+'</div>';
 }
 function doorsHTML(){
   const r=S.run;

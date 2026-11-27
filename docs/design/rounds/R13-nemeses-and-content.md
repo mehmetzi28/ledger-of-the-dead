@@ -121,3 +121,36 @@ Fever Pit unless the minion is in the Reserve. `"off":["nemesis"]`.
   nemesis door is optional.
 - **Name generator output that reads badly in Turkish**: names stay untranslated proper nouns; epithets are translated
   whole ("who ate {victim}").
+
+## As built (PR A: nemeses)
+
+- **Code**: `src/game-nemesis.js` (new, after game-army.js). Births roll on `dayHash`, never Math.random.
+- **Birth**: a foe that downs a minion of Greater stage or above records it (`e.nv`, from the foes' turn in `act`). If that
+  foe still stands when the room ends with you falling (`defeat`) or fleeing (`flee`), it becomes a nemesis at 35%
+  (`NEM_CH`, raised from the spec's 25% after the bots met too few), +10% per victim stage past Greater. Ordinary gate runs
+  only: no Tower, siege, Trial, weekly dive, Rift, rival gate or Reckoning. Skirmishers that step away do not count (no such
+  rule exists in combat yet).
+- **What it carries** (`S.nem`, at most 3; a fourth pushes out the weakest):
+  - A name from its gate's list (seven names a gate, proper nouns kept in Turkish) and its first victim:
+    "Gutter-Tooth, who gnawed down Ash".
+  - +1 level above its room for every minion downed (`k`) and every week alive (`wk`, the first dawn of each week, with a
+    taunt notice).
+  - The top trait of its best victim; a second kit from its gate (`kit2`) at 2 victims.
+  - At 3 victims it is an arch-nemesis: once, at half HP, it eats the stolen trait and heals 20%.
+  - The rival's recruiting of arch-nemeses is not built (the rival is gone for good after its war).
+- **The sigil door** (`DOORS.nem`): once a run, in a gate a nemesis haunts, an extra door joins the doors. The room behind it
+  is an ordinary room whose first foe is the strongest nemesis of that gate, as an elite; the door is always read (door
+  sight 2), whatever you know of the gate.
+- **Death**: +4 trophies of its kind, one roll on its gate boss's table, and the body rises **Avenged** (`c.avg`): +15% to
+  raise, and the stolen trait replaces the condition's or the random one. The victims' Memorial entries get "Avenged on
+  day N" (`av`). `memorialFix` now keeps a save's key order (`keepOrder`), so late keys such as `hs`, `maus` and `av` round-trip.
+- **UI**: a Nemeses strip on the Gates tab (name, gate, levels, victims, weeks); the sigil door; the Memorial line; a
+  Nemeses page in the Codex (after Foe kits). Titles: *Avenger I/II/III* (1, 5, 15), *Old Grudge* (one that lived 4 weeks).
+  208 titles. Turkish for all of it.
+- **Bot**: takes the sigil door when the nemesis stands at most 5 levels above the room (`"off":["nemesis"]` never takes it).
+  The report prints births, kills, arch-nemeses and those alive at the end.
+- **Tests**: `tests/groups/98-nemesis.js` (5 tests). 873 tests. Fuzz 12/12.
+- **Balance** (market, seeds 7700/9100): gates 91/90%, Tower 82.4/81.8, Rift 20.1/18.8 (R12: 91/90%, 82.1/81.7, 20/19.5).
+  Nemeses a bot: market 0.9/1 born, 0.8/0.9 avenged; full (7700) 2.6 born, 2.5 avenged, 0.3 arch; full gates 90%,
+  Tower 85.6, Rift 27.8. The bot avenges about 95%, above the spec's 70%, because it always takes a door it can win.
+- **PR B next**: five curses, ten events, three chains and three omens.

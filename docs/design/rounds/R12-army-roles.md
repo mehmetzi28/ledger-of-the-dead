@@ -221,7 +221,7 @@ beats the hero's best action; specs by a fixed table.
   - A Bomber echo dragged under by a boss hazard at the end of a turn could burst the last foes and leave the room open
     with no foes; the turn now checks for a won room after the end-of-turn hooks.
   - The Blood Moon omen no longer changes elite odds on weekly-dive and Trial runs (the seeded rooms must match).
-- **Titles**: *Witch-Keeper* (raise a hexer), *Every Role* (all five in the army at once), *By My Order* (500 actives).
+- **Titles**: *Witch-Keeper* (an Eternal hexer), *Every Role* (all five roles at Elder or above at once), *By My Order* (500 actives).
   204 titles.
 - **Bot**: uses actives when they beat its own action (Execute Order for a kill, Collect into a crowd, Last Rites under
   half, Hold the Line on a charge, Doom on a boss); picks specs from a table; keeps hexers to the cap.
