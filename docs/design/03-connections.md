@@ -201,9 +201,10 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
 link between existing ones)
 
 - **G28. The valley is a list, not a place.** Gates, Tower, Rift and town are cards; the lore's river, roads, villages
-  and chapel are never somewhere the player stands. Watches have no geography. (Map, travel, story.) R19. **Half closed
-  by R19 PR A**: a map with roads, fog and travel in steps that every run start pays, and graveyards and battlefields
-  (sieges feed the fields) as body sources outside the gates. The other sites, road encounters and scouting follow in PR B.
+  and chapel are never somewhere the player stands. Watches have no geography. (Map, travel, story.) R19. **Closed by
+  R19**: a map with roads, fog and travel in steps that every run start pays (PR A); graveyards and battlefields as body
+  sources (sieges feed the fields); and in PR B five shrines, a crossroads, a hermit, an iron mine and a wolf den (two
+  site fights), gallows, standing stones and a ford, road encounters, scouting from the War Room and a raven familiar.
 - **G29. The living are faceless.** They exist only as siege waves; there is no one to trade with, help or prey on, so
   dread and raising have no moral or economic face. (Villages, dread, raising.) R20.
 - **G30. Power has no personal cost.** The hero's body and kit never change with what they do; the Ledger's corruption

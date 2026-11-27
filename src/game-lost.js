@@ -15,7 +15,7 @@ function lostRecord(r){   // the fall: keep the room for the History
   const foes=(r.enemies||[]).filter(e=>e.hp>0&&!e.dead).slice(0,8).map(e=>{ const o={n:e.name,hp:Math.round(e.hp),mx:Math.round(e.maxHp)}; if(e.boss) o.b=1; const k=kitOf(e); if(k) o.k=k; o.kn=knowLv(e); return o; });
   const fb=r.felled||null, by=fb&&fb.n?(r.enemies||[]).find(e=>e.name===fb.n):null;
   const rec={d:S.day,g:r.tw?-1:r.di|0,room:r.room|0,lv:S.player.lvl,turns:r.tj.slice(),hp:Object.assign({},r.tjh||{}),foes};
-  if(r.tw) rec.tw=r.tw; if(r.rift) rec.rift=r.rift; if(r.heat) rec.heat=r.heat; if(fb) rec.fb=fb;
+  if(r.tw) rec.tw=r.tw; if(r.rift) rec.rift=r.rift; if(r.sv) rec.sv=r.sv; if(r.heat) rec.heat=r.heat; if(fb) rec.fb=fb;
   if(by){ rec.kn=knowLv(by); const k=kitOf(by); if(k) rec.kit=k; rec.kills=(S.kills&&S.kills[by.base||by.name])|0; }
   S.lost=[rec].concat(Array.isArray(S.lost)?S.lost:[]).slice(0,LOST_N);
   return rec;
@@ -28,7 +28,7 @@ function lostFix(g){   // normalizeSave: only well-formed records, at most LOST_
     hp:x.hp&&typeof x.hp==='object'?x.hp:{},foes:Array.isArray(x.foes)?x.foes.filter(f=>f&&typeof f.n==='string').slice(0,8):[]}));
   if(L.length) g.lost=L; else delete g.lost;
 }
-const lostWhere=x=>x.g<0?'Hell Tower, floor '+(x.tw||1):x.rift?'The Rift, depth '+x.rift:(DUNGEONS[x.g]?DUNGEONS[x.g].name:'A gate')+', room '+(x.room+1);
+const lostWhere=x=>x.g<0?'Hell Tower, floor '+(x.tw||1):x.sv?(x.sv==='mine'?'The Old Iron Mine':x.sv==='den'?'The Wolf Den':'On the road'):x.rift?'The Rift, depth '+x.rift:(DUNGEONS[x.g]?DUNGEONS[x.g].name:'A gate')+', room '+(x.room+1);
 function lostShown(x){   // was the blow shown before it landed?
   const b=x.fb; if(!b||!b.k) return null;
   if(b.k==='dot') return 'Wounds tick at the end of each turn and go past your ward; your card showed the wound and its turns left.';

@@ -428,6 +428,21 @@ the nearest gate's kinds (-10% to raise), then rests 5 days; a battlefield fills
 of the fallen living (+10% to raise) and empties once walked. A site needs a watch in hand but none left over. Dug
 bodies wait in the valley view until dawn and rise in town at no mana, into the army or the Reserve; at dawn the rest
 crumble. Two titles: Grave Digger (dig 100) and Wayfarer (300 steps). The Gates list still starts every gate.
+**Roads and sites** (R19 PR B, `src/game-roads.js`): the map grows to 27 nodes. A **shrine** to each of the five gods
+(swear, pray for devotion, convert, or desecrate it for the Dissonance), a **crossroads** with a daily offer from
+`dayHash` (a pedlar's potion at half price, a bounty-man buying trophies, a stranger's raven, a map of two unknown
+places), a **hermit** (trophies for a torn page or a lesson on a kind), **gallows** (cut down a hexer's body, or sing
+for the hanged), the **standing stones** (call tomorrow's omen), a **ford** (a toll for a step off longer walks that
+day, or a drowned Preserved body), an **iron mine** (a two-room fight against Iron Orchard kinds that pays ore, which
+cheapens heart-forging) and a **wolf den** (a fight against the valley's beasts, Dire Wolf, Carrion Crows and Grave
+Bear, whose pelts make a charm). Each site rests 3-7 days after use (`SITE_REST`). A walk to any site must leave a
+watch over, so a day never ends on the road. A walked road can roll an **encounter** (`ENC_CH` 5%, more under
+terror): a patrol (fight or bribe), an elite, a body-cart, or a pilgrim (spare or take); fights are where they stand,
+at no watch. **Scouting**: a step of walking lifts the fog on a neighbouring node; at dawn the War Room's scouts (level
+2) and the **raven** (Library 3, or the stranger's) each find one more, and the raven shows nemeses on the map. The
+siege's coming road, squads out and the encounter are markers too. Site fights are runs flagged `r.sv` and leave out
+rivals, orders, events, doors, nemesis births and theft. Four titles: Cartographer, Every Road, Ford-Crosser and
+Wolf-Skinner.
 
 **Vane Abbey, the seventh gate** (`ABBEY`=6, rank SS, src/game-abbey.js, R3 PR A). Its card shows once the Throne of Ash
 falls, as a sealed door with two key slots (`ABBEY_KEYS`): the deep route (Throne cleared, Tower floor `ABBEY_TOWER` 90,

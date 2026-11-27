@@ -1295,4 +1295,9 @@ body.cv-skin .win{border-color:#9a7a66;box-shadow:inset 0 0 0 2px rgba(154,122,1
 .vmap .v-node.k-gate circle{stroke:#c9a565}.vmap .v-node.k-tower path{fill:#e5776a}.vmap .v-node.k-grave path{fill:#b8a48c}.vmap .v-node.k-field path{fill:#c98a6a}.vmap .v-node.rest{opacity:.55}
 .vmap .v-node.sel circle{stroke:#f0d48a;stroke-width:.9}.vmap .v-node:hover circle{stroke:#f0d48a}.vmap .v-name{fill:#e8dcc8;font:600 2.3px/1 var(--font-body);text-anchor:middle;paint-order:stroke;stroke:#0a0807;stroke-width:.6}
 .vmap .v-me path{fill:#e8c66a;stroke:#0a0807;stroke-width:.3}
+.vmap .v-fog.scout{cursor:pointer}.vmap .v-fog.scout ellipse{fill:#6a5a44;opacity:.7}.vmap .v-fog.scout.sel ellipse{fill:#8a7454}.vmap .v-q{fill:#e8dcc8;font:700 2.4px/1 var(--font-body);text-anchor:middle;pointer-events:none}
+.vmap .v-node.k-shrine path{fill:#e8c66a}.vmap .v-node.k-den path{fill:#c9a090}.vmap .v-node.k-mine path{fill:#a8a8a0}.vmap .v-node.k-ford path{fill:#9ab8b0}.vmap .v-node.k-stones path{fill:#b8b0a0}.vmap .v-node.k-gallows path{fill:#b89a80}
+.vmap .v-siege{stroke:#d24a2a;stroke-width:.8;stroke-dasharray:1.6 1;opacity:.9}.vmap .v-squad path{fill:#c9a565;stroke:#0a0807;stroke-width:.25}.vmap .v-nem circle{fill:#b3261e;stroke:#0a0807;stroke-width:.3}
+.vmap .v-enc{cursor:pointer}.vmap .v-enc circle{fill:#d8a24a;stroke:#0a0807;stroke-width:.3}.vmap .v-enc text{fill:#0a0807;font:700 2.2px/1 var(--font-body);text-anchor:middle;pointer-events:none}
+.v-opts{flex-wrap:wrap}.v-enc-card{border-color:#d8a24a}
 .v-card{padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:rgba(0,0,0,.2)}.v-card h3{margin:0 0 2px}.v-list{margin:6px 0}.v-dug{margin-top:10px}

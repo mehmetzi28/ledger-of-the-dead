@@ -37,7 +37,7 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
   const extra=(hasRunMod('horde')?1:0)+sigHands()+ascExtra(), R0=Math.random;   /* Crowded Gates (game-asc.js) */   /* Many Hands (game-rift.js) */
   if(r.trial||r.wk) Math.random=trialRng(r.tseed,room); else if(chOn()) Math.random=chRng(CH_SYS.room,S.day,di,room,CH_KIND[kind]|0,r.rift|0);   /* a challenge code's rooms (game-playlog.js) */   // a Trial: the same rooms and foes for every attempt this week (src/game-rival-trials.js)
   try{
-    if(r.rg) rgRoom(list,di,room,lvl); else if(r.rk) reckRoom(list,di,lvl);   /* the rival's own gate and the duel (game-rival-arc.js) */
+    if(r.sv) svRoom(list,r,room); else if(r.rg) rgRoom(list,di,room,lvl); else if(r.rk) reckRoom(list,di,lvl);   /* the rival's own gate and the duel (game-rival-arc.js) */
     else if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(r.rift&&guardAt(r.rift)?makeGuardian(di,lvl,r.rift):!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true));   /* a Rift guardian every fifth depth (game-rift.js) */ const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
     else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
     if(kind==='nem') nemRoom(list,di,lvl);   /* the sigil door (game-nemesis.js) */
@@ -328,15 +328,15 @@ function roomWon(){
     const f=r.tw; S.tower.best=Math.max(S.tower.best,f); recBest('floor',f); towerSplit(r); for(const k of [10,25,40,50,60,75,90,100]) if(S.tower.best>=k) unlockStory('t'+k,r);
     if(f%10===0){ xp+=120*f; S.quest.clears++; towerBossLoot(f,r); }
     if(f===100) r.cleared=true;   // floor 100 ends the first climb; floor 101 onward is the endless abyss
-  } else if(last){ xp+=r.siege?siegeWon(r):r.rift?riftCleared(r):r.trial?trialCleared(r):r.rg?rgCleared(r):r.rk?reckCleared(r):gateCleared(r); if(!r.siege&&!r.rift&&!r.trial&&!r.rg&&!r.rk) rivalMeet(r); }
+  } else if(last){ xp+=r.siege?siegeWon(r):r.rift?riftCleared(r):r.trial?trialCleared(r):r.rg?rgCleared(r):r.rk?reckCleared(r):r.sv?svCleared(r):gateCleared(r); if(!r.siege&&!r.rift&&!r.trial&&!r.rg&&!r.rk&&!r.sv) rivalMeet(r); }   /* a site's or the road's fight (game-roads.js) */
   if(r.trial){ r.loot=[]; r.gold=0; r.troph={}; r.corpses=[]; }
   if(r.wk){ r.loot=[]; r.gold=0; r.troph={}; r.bdust=0; }   /* nor gear, gold or trophies: shards and a Riftborn piece only */   /* a Trial pays only its first completion each week: no gear, gold, trophies or bodies */
   for(const id of r.loot){ const it=addItem(id); if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name); } r.loot=[];
   if(r.rift){ if(r.wk) weekRoom(r); rbDrop(r,last); }   /* the weekly dive's depth; Riftborn pieces (game-rift.js) */
-  bankLoot(r); r.won=(r.won||0)+1; S.quest.rooms=(S.quest.rooms||0)+1; tally('rooms'); if(r.tw){ tally('floors'); orderEv('floor'); } else if(!r.siege&&!r.rift&&!r.trial&&!r.rg&&!r.rk) orderEv('room',{ok:(r.downs||0)===dn0,di:r.di}); if(P.hp>0&&P.hp<=pMax()*.1) tally('lastBreath');
+  bankLoot(r); r.won=(r.won||0)+1; S.quest.rooms=(S.quest.rooms||0)+1; tally('rooms'); if(r.tw){ tally('floors'); orderEv('floor'); } else if(!r.siege&&!r.rift&&!r.trial&&!r.rg&&!r.rk&&!r.sv) orderEv('room',{ok:(r.downs||0)===dn0,di:r.di}); if(P.hp>0&&P.hp<=pMax()*.1) tally('lastBreath');
   plogWon(); chSeeded(()=>{   /* a challenge code's doors and events (game-playlog.js) */
-  r.event=(!r.tw&&!r.siege&&!r.trial&&!r.rg&&!r.rk&&!r.wk&&!last&&Math.random()<EVENT_CHANCE)?rollEvent():null;   // something waits between rooms
-  r.doors=(!r.tw&&!r.siege&&!r.trial&&!r.rg&&!r.rk&&!r.wk&&!last)?rollDoors(r):null;   // which way next
+  r.event=(!r.tw&&!r.siege&&!r.trial&&!r.rg&&!r.rk&&!r.wk&&!r.sv&&!last&&Math.random()<EVENT_CHANCE)?rollEvent():null;   // something waits between rooms
+  r.doors=(!r.tw&&!r.siege&&!r.trial&&!r.rg&&!r.rk&&!r.wk&&!r.sv&&!last)?rollDoors(r):null;   // which way next
   },CH_SYS.doors,S.day,r.di|0,r.room,r.rift|0);
   r.gained+=xp; r.lastXp=xp;
   r.ups+=addXp(xp); preRooms(r);   // after the level-up: the rooms behind the doors stand at the level you will enter them at
@@ -351,7 +351,7 @@ function defeat(){
   S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); });
   if(rivalStanding(r)) rivalLost(r); if(reckStanding(r)) reckLost(r); nemBirth(r);   /* a foe that downed a Greater minion may live on (game-nemesis.js) */
   if(r.blow) r.felled=r.blow; plogDeath(r); lostRecord(r);   /* Why did I lose (game-lost.js) */   /* the play log (game-playlog.js) */
-  if(r.wk) notify('The weekly dive ends at depth '+(r.wkD||0)+'. It costs you no XP.','bad'); else notify('You were dragged out of '+(r.tw?'the Hell Tower on floor '+r.tw:'the '+DUNGEONS[r.di].name)+'. That room\'s spoils are lost, and you lose '+Math.round(DIFF.deathXp*100)+'% of a level in XP.','bad');
+  if(r.wk) notify('The weekly dive ends at depth '+(r.wkD||0)+'. It costs you no XP.','bad'); else notify('You were dragged out of '+(r.tw?'the Hell Tower on floor '+r.tw:r.sv?svWhere(r):'the '+DUNGEONS[r.di].name)+'. That room\'s spoils are lost, and you lose '+Math.round(DIFF.deathXp*100)+'% of a level in XP.','bad');
 }
 // ----- the fall: the blow that felled you, and Instant Retry
 // BLOW: the foe blow being dealt right now (set around each hurtAlly on you); ROOM0: the room as it began. ROOM0 lives outside the save:

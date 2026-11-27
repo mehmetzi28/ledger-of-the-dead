@@ -6,7 +6,7 @@ const clr=o=>{ S.ti=S.ti||{}; S.ti.clr=o; };
 const town=()=>{ S.mode='town'; S.run=null; S.watches=WATCHES; };
 test('Valley: the roads and nodes are whole: every node is reachable, every road joins two nodes, every gate has a node',()=>{
   for(const [a,b,n] of VALLEY_ROADS){ ok(VALLEY_NODES[a]&&VALLEY_NODES[b],a+'-'+b); ok(n>=1&&n<=3,'steps '+n); }
-  for(const id of MAP_IDS){ ok(isFinite(mapDist('T',id)),'reachable '+id); const n=VALLEY_NODES[id]; ok(n.x>=0&&n.x<=100&&n.y>=0&&n.y<=70,'on the vellum '+id); ok(MAP_GLYPH[n.k],'glyph '+id); }
+  for(const id of MAP_IDS){ ok(isFinite(mapDist('T',id)),'reachable '+id); const n=VALLEY_NODES[id]; ok(n.x>=0&&n.x<=100&&n.y>=0&&n.y+6.4<=76,'on the vellum '+id); ok(MAP_GLYPH[n.k],'glyph '+id); }
   for(let i=0;i<GATE_N;i++) eq(VALLEY_NODES[gateNode(i)].g,i);
   eq(mapDist('T','T'),0); eq(mapDist('T','g0'),1); eq(mapDist('g0','g1'),1); eq(mapDist('T','nope'),Infinity);
 });
@@ -50,9 +50,10 @@ test('Valley: a battlefield fills after a siege with the fallen living, '+MAP_FR
   S.map.pos='g1'; const b=siteVisit('bf0'); ok(b&&b.length>=MAP_BF_N[0]&&b.length<=MAP_BF_N[1]); ok(b.every(c=>c.fresh)); eq(mapRaise(b[0]),MAP_FRESH);
   ok(!siteReady('bf0'),'walked'); eq(T_('mapField'),b.length);
 });
-test('Valley: a site needs a watch in hand but none left over; not mid-fight',()=>{
+test('Valley: the walk to a site must leave a watch (a day never ends on the road); not mid-fight',()=>{
   fresh(20); town(); clr({0:1}); mapSt(); S.watches=1; S.map.st=1; S.map.pos='T';
-  ok(mapCan('gy0',0),'2 steps with 1 over: the watch goes'); ok(siteVisit('gy0')); eq(S.watches,0);
+  eq(siteVisit('gy0'),null,'2 steps with 1 over would take the last watch'); eq(S.watches,1);
+  S.watches=2; ok(siteVisit('gy0')); eq(S.watches,1); eq(S.mode,'town');
   fresh(20); town(); clr({0:1}); mapSt(); S.watches=0; eq(siteVisit('gy0'),null,'no watch, no walk');
   S.watches=1; S.mode='battle'; eq(siteVisit('gy0'),null,'only in town');
 });

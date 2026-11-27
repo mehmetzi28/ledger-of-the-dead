@@ -15,7 +15,7 @@ const NEM_NAMES=[   // one list a gate: proper nouns, never translated
   ['The Erasure','Blot','Margin-Walker','Ink-Drowned','The Unwritten Clerk','Palimpsest','Smudge']
 ];
 const NEM_VERB=['gnawed down','drowned','burned','silenced','cut down','unmade','erased'];   // "Gutter-Tooth, who gnawed down Ash"
-const nemOn=r=>!!r&&!r.tw&&!r.siege&&!r.trial&&!r.wk&&!r.rift&&!r.rg&&!r.rk&&!!DUNGEONS[r.di];   // ordinary gate runs only
+const nemOn=r=>!!r&&!r.tw&&!r.siege&&!r.trial&&!r.wk&&!r.rift&&!r.rg&&!r.rk&&!r.sv&&!!DUNGEONS[r.di];   // ordinary gate runs only
 const nemById=id=>(S.nem||[]).find(n=>n.id===id)||null;
 const nemAt=di=>(S.nem||[]).filter(n=>n.g===di).sort((a,b)=>nemUp(b)-nemUp(a))[0]||null;   // the strongest one haunting a gate
 const nemUp=n=>(n.k|0)+(n.wk|0);   // levels above its room
