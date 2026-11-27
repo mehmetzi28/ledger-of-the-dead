@@ -1,7 +1,7 @@
 // ----- the Codex: every rule and list in the game, read straight from the game's own tables so it never goes stale.
 // Enemies you have not met yet stay hidden, as in the bestiary.
 const CODEX=[['basics','Basics'],['raising','Raising'],['faith','Faith'],['omens','Omens'],['roles','Roles'],['traits','Traits'],['minions','Minion stats'],['army','Army'],['reserve','Reserve'],['fusion','Fusion'],['affixes','Elite affixes'],['bosses','Bosses'],['status','Status effects'],['types','Damage types'],['kits','Foe kits'],['nemeses','Nemeses'],['skills','Skills'],['orders','Orders'],
-  ['gates','Gates'],['tower','Hell Tower'],['gear','Gear'],['forge','Heartforge'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['trade','Commissions and black market'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['records','Records'],['endings','Endings']];
+  ['gates','Gates'],['tower','Hell Tower'],['gear','Gear'],['forge','Heartforge'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['trade','Commissions and black market'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['records','Records'],['modes','Modes'],['endings','Endings']];
 const CDX_ROLE={
   hexer:'Only raised from the hexer foes (one in each gate). It stands in the back row with low HP and attack, and each of its hits leaves a condition: a Hex by default, or its trait\'s wound (Rimeborn chills, Venomous poisons, Necrotic blights, Cinderborn burns). At most one hexer for every four army places brings its conditions; more fight plainly. As a foe it hexes your side.',
   vanguard:'When a foe picks a target, each vanguard counts 5 and everyone else (you included) counts 2, so vanguards draw most blows. They take Taunt orders and stand in front of a Sundering Blow.',
@@ -265,6 +265,12 @@ function codexSection(k){
       +cxList(Object.values(ENDINGS).map(E=>cxRow(E.name,'&ldquo;'+E.line+'&rdquo; Title: '+E.title+'. New Game+ becomes '+E.cycle+': '+E.ngp)))
       +'<p class="group-h">Ledger inscriptions</p>'+cxP('Each ending lets you write one inscription you earned in that cycle. Inscriptions are permanent and stay through every New Game+, at most '+INSC_MAX+'.')
       +cxList(INSC_IDS.map(id=>{ const I=INSCRIPTIONS[id]; return cxRow(I.name,'Earned by '+I.need+'. '+I.desc+(hasInsc(id)?' Written.':'')); })); }
+  if(k==='modes') return cxP('A mode is chosen at New game (Settings) and kept for the whole game, New Game+ too.')
+    +cxList(Object.keys(NG_MODES).map(m=>cxRow(NG_MODES[m].name,NG_MODES[m].desc)))
+    +'<p class="group-h">Custom difficulty</p>'+cxP('Each setting moves in steps of 10%. A game that eases any of them (foes or sieges below 100%, raise or gold above) is Custom and earns no titles; making it only harder keeps them.')
+    +cxList(CUSTOM_IDS.map(c=>cxRow(CUSTOM_KEYS[c][3],(c==='siege'?50:CUSTOM_KEYS[c][0])+'% to '+CUSTOM_KEYS[c][1]+'%'+(c==='siege'?', or off':'')+(custOf()?'. This game: '+(c==='siege'&&!custOf()[c]?'off':custOf()[c]+'%'):''))))
+    +'<p class="group-h">Ironman titles</p>'+cxList(IRON_TITLES.map(id=>cxRow(TITLE[id].name,TITLE[id].req)))
+    +(ironOn()?cxP('This is an Ironman game: '+(S.ironDeaths|0)+' falls so far.'):'');
   if(k==='records') return cxP('The Records page on the Ledger tab keeps your personal bests through every New Game+. A new best flashes a banner, once per run and kind, but never for a first record.')
     +cxList(REC_NUM.map(r=>cxRow(REC_NAME[r].charAt(0).toUpperCase()+REC_NAME[r].slice(1),CDX_REC[r]||'')).concat([cxRow('Fastest clears','The fewest turns from the first room to the fallen boss, for each gate, on any difficulty.'),
       cxRow('Fastest Rift dives','The fewest turns to clear a dive, for each band of '+RIFT_BAND+' depths. A dive at depth 12 counts for 10 and deeper.'),cxRow('Secret masters','The day you first slew each one.')]))

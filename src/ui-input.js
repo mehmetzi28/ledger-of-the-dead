@@ -168,12 +168,13 @@ const ACTIONS={
   inscribe:k=>{ inscribe(k); },
   lplater:()=>{ ui.lpLater=1; ui.lpJust=0; }, lpopen:()=>{ ui.lpLater=0; ui.lpJust=S.ending?1:0; }, lpseen:()=>{ ui.lpJust=0; },
   cross:k=>{ if(ui.confirm==='x'+k){ scriptCross(+k); ui.confirm=null; } else ui.confirm='x'+k; },   /* the Scriptorium (game-abbey.js): a second press confirms */
-  newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); OPEN_HELP.on=false; ui.tab='gates'; ui.gsub='open'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
+  ngmode:k=>{ if(NG_MODES[k]){ ui.ng=Object.assign(ngPick(),{mode:k}); ui.confirm='new'; } }, ngstep:k=>{ const [id,d]=String(k).split('|'), n=ngPick(); if(CUSTOM_KEYS[id]){ let v=n.c[id]+(+d)*CUSTOM_KEYS[id][2]; if(id==='siege'&&v>0&&v<50) v=+d<0?0:50; n.c=custClamp(Object.assign({},n.c,{[id]:v}));   /* siege frequency: off, then 50% and up */ n.mode='custom'; ui.ng=n; ui.confirm='new'; } },
+  newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; const n=ngPick(); newGameMode(n.mode,n.c); ui.ng=null; OPEN_HELP.on=false; ui.tab='gates'; ui.gsub='open'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
 };
 function settled(){ sgTipHide(); if(S&&S.mode==='town') cmdSync(); checkTitles(); try{ loreCheck(); }catch(e){} render(); }   // after an action: award titles and lore passages, then draw
 // the vow warning (game-pantheon.js): the first press says what breaks; the next one goes ahead (ui.vowOk for the rest of the day)
 function vowAsk(k){ if(!vowWarn(k)||ui.vowOk===k+S.day) return false; ui.vowOk=k+S.day; ui.msg={m:k==='raise'?'Raising another body breaks your vow to Morrow (no more than '+MORROW_RAISE+' in a run). Press again to raise anyway.':'Selling a trophy breaks your vow to Ulm. Press again to sell anyway.',c:'bad'}; return true; }
-const CONFIRM_ACTS=['ascpick','carrypick','release','respec','cross','ending','hforge','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
+const CONFIRM_ACTS=['ngmode','ngstep','ascpick','carrypick','release','respec','cross','ending','hforge','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
 document.addEventListener('click',e=>{
   MUSIC.armed=true;
   const b=e.target.closest('[data-a]'); if(!b||b.disabled) return;

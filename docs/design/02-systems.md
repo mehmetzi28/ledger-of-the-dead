@@ -517,6 +517,11 @@ the strongest unguarded perk for the night. On the night you pick a wall: North 
 Inquisition's arc; reaching tier 5 brings the Purge (every wall, tier 5 whatever the dread). Break it: 20 days of peace,
 Calm, the Grand Inquisitor's heart, tier 3 again. Lose it: tier 3.
 
+**Modes** (R15, `src/game-modes.js`). At New game: Normal, Ironman (`S.iron`: no Retry or save slots; a fall costs the
+run's banked gold, trophies and gear and shatters one fallen minion; three Iron titles), or custom difficulty (`S.custom`:
+foe HP, foe attack, raise, gold, siege frequency in 10% steps; Story and Hardened presets). Easing anything makes the save
+Custom: no titles.
+
 **The Rival** (`RIVAL_*`). After 4 distinct clears a rival keeper (one of six names) appears. Every 2-6 days they steal
 the best body of the role your army leans on; about every two weeks (warned a day ahead) they wait in a cleared gate's
 boss room with 2-4 followers, fielding the bodies they stole. They grow 10% per win of yours. Beat them: a legendary,

@@ -86,7 +86,7 @@ const canNGP=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]);
 const ownedUniques=()=>[...new Set(S.inv.concat(Object.values(S.equip)).filter(it=>it&&ITEM[it.id]&&ITEM[it.id].uq).map(it=>it.id))];
 function startNGP(carry,pacts,rule,carries){
   if(S.mode!=='town'||!canNGP()) return false; if(faithOf()==='dis') tally('godless');   /* Godless: a cycle finished Profane (game-pantheon.js) */
-  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts),ally:S.ally||null}; ngpEnding(keep); ascStart(keep,rule,carries);   /* the ascension rule (game-asc.js) */   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
+  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts),ally:S.ally||null}; if(S.iron){ keep.iron=true; keep.ironDeaths=S.ironDeaths|0; } if(S.custom) keep.custom=S.custom;   /* the mode carries into New Game+ (game-modes.js) */ ngpEnding(keep); ascStart(keep,rule,carries);   /* the ascension rule (game-asc.js) */   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
   newGame(); Object.assign(S,keep); S.ti.clr={}; ngpEndingStart(); ascBegin();   // titles stay earned; New Game+ again needs another Throne of Ash clear
   S.watches=WATCHES-pactWatch(); S.notices=[]; if(carry&&own.includes(carry)){ const it=addItem(carry,null); if(it&&carryAw) it.aw=carryAw; }   /* an awakened unique keeps its ranks */ unlockStory('ngp');
   notify('New Game+ '+S.ngp+' begins. Foes have '+Math.round(NGP_FOE*S.ngp*100)+'% more HP and attack, and pay '+Math.round(NGP_REWARD*S.ngp*100)+'% more XP and gold.'+(carry&&own.includes(carry)?' '+ITEM[carry].name+' is in your bag.':''),'ok');
@@ -211,7 +211,7 @@ function normalizeSave(src){
   { const c=g.player.cmd; if(!hadCmd||!(obj(c)&&c.a>=0&&c.h>=0&&isFinite(c.a)&&isFinite(c.h))) g.player.cmd=cmdPow(Array.isArray(g.army)?g.army:[]); else g.player.cmd={a:Math.round(c.a),h:Math.round(c.h)}; }   // Command: an old or damaged save measures its army again
   const okB=b=>obj(b)&&BOUNTIES[b.id]&&typeof b.n==='number'&&typeof b.base==='number'&&obj(b.rw)&&typeof b.claimed==='boolean';
   g.bounty=(obj(g.bounty)&&typeof g.bounty.day==='number'&&Array.isArray(g.bounty.list)&&g.bounty.list.every(okB))?g.bounty:null;
-  memorialFix(g); nemFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
+  memorialFix(g); nemFix(g); modesFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
   return g;
 }
 function validSave(g){ return !!normalizeSave(g); }
@@ -225,7 +225,7 @@ function applyLoaded(g){
   else siegeTick();   /* the rival's schedule waits for dawn or a clear: loading never changes the game */
 }
 function slotRead(i){ try{ const r=localStorage.getItem(slotKey(i)); if(!r) return null; const g=JSON.parse(r); return validSave(g.data)?g:null; }catch(e){ return null; } }
-function slotWrite(i){ if(S.mode!=='town') return false; try{ S.savedAt=Date.now(); localStorage.setItem(slotKey(i),JSON.stringify({t:Date.now(),data:S})); return true; }catch(e){ return false; } }
+function slotWrite(i){ if(S.mode!=='town'||ironOn()) return false;   /* Ironman: no slots (game-modes.js) */ try{ S.savedAt=Date.now(); localStorage.setItem(slotKey(i),JSON.stringify({t:Date.now(),data:S})); return true; }catch(e){ return false; } }
 function slotDelete(i){ try{ localStorage.removeItem(slotKey(i)); }catch(e){} }
 function adoptSave(g){   // load a slot or code; on any problem the current game is left exactly as it was
   const n=normalizeSave(g); if(!n) return false;
@@ -464,6 +464,9 @@ const masteredN=ids=>allNames().filter(n=>{ const t=masteryOf(n); return !!t&&id
  ['a_keeper','Deeds','The Last Keeper','Close the book: write your own name on the last page.',()=>endedAs('closed'),{hpp:4,drp:2}],
  ['a_hand','Deeds','The Hand That Writes','Keep writing: turn the last page and go on.',()=>endedAs('kept'),{dmgp:4,mpow:4}],
  ['a_both','Deeds','Both Endings','End one cycle each way.',()=>endedAs('closed')&&endedAs('kept'),{xpp:5,goldp:5}],
+ ['i_keeper','Deeds','Iron Keeper','Clear the Throne of Ash in an Ironman game.',()=>ironOn()&&!!(S.ti.clr&&S.ti.clr[5]),{hpp:4,drp:2}],
+ ['i_book','Deeds','Iron Book','End a cycle in an Ironman game.',()=>ironOn()&&(endedAs('closed')||endedAs('kept')),{dmgp:4,xpp:3}],
+ ['i_climb','Deeds','Iron Climb','Reach Hell Tower floor 100 in an Ironman game.',()=>ironOn()&&S.tower.best>=100,{mpow:4,hpp:3}],
  ['s_unburnt','Deeds','The Unburnt','Break the Inquisition\'s Purge.',()=>T_('purgeWon')>0,{drp:3,hpp:3}],
  ['s_road','Deeds','Holding the Road','Hold 10 sieges on the North road.',()=>T_('roadNorth')>=10,{dmgp:3}],
  ['s_tiers','Deeds','Ten Tiers','Bring the sieges to tier 5 twice.',()=>T_('stier5')>=2,{goldp:4}],
@@ -500,7 +503,7 @@ function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // d
 // rarer ones stay hidden ("???") until earned. Rarity follows how hard a title is: bot runs measured the reachable ones,
 // and deeds the bots skip (events, forging) were judged by hand.
 const TITLE_RARITY={hd1:1,hd2:2,nm0:3,nm1:3,nm2:3,nm3:4,nm4:4,nm5:5,dm3:5,sb0:5,sb1:5,sb2:5,sb3:5,sb4:5,sb5:5,g0:0,g1:0,d_raise1:0,d_kill100:0,d_death:0,d_armed1:0,d_lv10:0,d_study:0,s_venom:0,f_crit:0,d_tower1:0,d_quest7:0,d_army:0,g2:1,t10:1,t20:1,d_raise50:1,d_cancel:1,d_evolve:1,d_uq:1,d_gold:1,m0:1,m1:1,c_drought:1,c_fury:1,c_bulwark:1,c_horde:1,c_volatile:1,p_25:1,k_spear:1,k_blast:1,k_chill:1,g_items:1,g_sold:1,f_flawless:1,f_last:1,a_boss:1,e_strag:1,e_pedlar:1,e_trap:1,d_death10:1,g3:2,g4:2,t30:2,t40:2,t50:2,d_kill1000:2,d_lv25:2,d_raise200:2,d_tower50:2,d_cancel10:2,d_trophy500:2,d_altar:2,d_elder:2,m2:2,m3:2,d_armed3:2,d_master:2,d_bag:2,c_25:2,e_shrine:2,e_coffer:2,s_poison:2,s_cure:2,k_reap:2,k_master3:2,k_all:2,f_boss25:2,f_elite100:2,g_gold:2,g_roll3:2,a_traits:2,a_elders:2,e_day100:2,e_runs100:2,g_reforge:2,g5:3,t60:3,t70:3,m4:3,m5:3,tw75:3,d_lv50:3,p_100:3,f_crit1000:3,e_rooms1000:3,twruns:3,d_ngp:3,d_tower110:3,t80:4,t90:4,t100:4,d_kill5000:4,d_all:4,d_tower150:4,a_raise500:4,e_lv75:4,tw200:5,d_ngp3:5,d_tuq:5,a_ancient:3,a_eternal:4,a_raid1:1,a_raid25:3,r_5:3,r_15:4,r_30:5};
-Object.assign(TITLE_RARITY,{s_unburnt:5,s_road:3,s_tiers:4,s_pyre:3,s_works:3,c_five:4,c_paid:3,nm_1:2,nm_5:3,nm_15:4,nm_old:4,x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,as_3:3,as_6:4,as_10:5,as_all:5,as_rw:4,b_haul:2,b_five:3,b_runes:4,b_sgn:3,ar_charmed:4,ar_hundred:2,ar_tennames:5,ar_witch:4,ar_roles:4,ar_order:3,r_six:4,r_sigil3:4,r_weekly:3,r_attuned:3,r_half:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
+Object.assign(TITLE_RARITY,{i_keeper:5,i_book:5,i_climb:5,s_unburnt:5,s_road:3,s_tiers:4,s_pyre:3,s_works:3,c_five:4,c_paid:3,nm_1:2,nm_5:3,nm_15:4,nm_old:4,x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,as_3:3,as_6:4,as_10:5,as_all:5,as_rw:4,b_haul:2,b_five:3,b_runes:4,b_sgn:3,ar_charmed:4,ar_hundred:2,ar_tennames:5,ar_witch:4,ar_roles:4,ar_order:3,r_six:4,r_sigil3:4,r_weekly:3,r_attuned:3,r_half:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
 const RARITY_MUL=[1,1,1.25,1.5,2,3], HIDDEN_FROM=3;
 TITLES.forEach(t=>{ t.r=TITLE_RARITY[t.id]!=null?TITLE_RARITY[t.id]:1; const m=RARITY_MUL[t.r]; for(const k in t.b) t.b[k]=Math.max(t.b[k],Math.round(t.b[k]*m)); });
 const titleHidden=t=>t.r>=HIDDEN_FROM&&!(S&&S.ti&&S.ti.got&&S.ti.got[t.id]);
@@ -522,7 +525,7 @@ function checkTitles(){
   const sel0=T.sel, valid=T.sel&&T.got[T.sel]&&TITLE[T.sel];
   let next=valid?T.sel:null; const won=[];
   for(const t of TITLES){
-    if(T.got[t.id]) continue;
+    if(T.got[t.id]||custEasy()) continue;   /* a Custom save earns no titles (game-modes.js) */
     let ok=false; try{ ok=t.ok(); }catch(e){}
     if(ok){ T.got[t.id]=S.day; if(!next) next=t.id; won.push(t); }   // only auto-worn if you wear none
   }

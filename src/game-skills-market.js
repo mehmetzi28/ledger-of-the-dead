@@ -129,8 +129,8 @@ function killLoot(e,r){   // called once per kill, from checkDeaths
   if(n){ const q=quillK(r,n); r.troph=r.troph||{}; r.troph[key]=(r.troph[key]||0)+n*q; }   /* Pickpocket: the first trophy of a room drops twice (game-rival-arc.js) */
 }
 function bankLoot(r){     // called when a room is won
-  r.lastGold=r.gold||0; if(r.lastGold) sfx('coin'); r.lastTroph=r.troph||{};
-  S.gold+=r.lastGold; r.goldTot=(r.goldTot||0)+r.lastGold; for(const k in r.lastTroph) S.trophies[k]=(S.trophies[k]||0)+r.lastTroph[k];
+  r.lastGold=Math.round((r.gold||0)*custK('gold')); if(r.lastGold) sfx('coin'); r.lastTroph=r.troph||{};   /* custom gold (game-modes.js) */
+  S.gold+=r.lastGold; r.goldTot=(r.goldTot||0)+r.lastGold; for(const k in r.lastTroph){ S.trophies[k]=(S.trophies[k]||0)+r.lastTroph[k]; if(ironOn()){ r.trTot=r.trTot||{}; r.trTot[k]=(r.trTot[k]||0)+r.lastTroph[k]; } }   /* Ironman counts them for a fall */
   r.lastDust=r.bdust||0; if(r.lastDust){ S.dust=(S.dust||0)+r.lastDust; if(r.events) r.events.push({m:'Bone Harvest: +'+r.lastDust+' bone dust.',c:'ok'}); }
   r.gold=0; r.troph={}; r.bdust=0;
 }
