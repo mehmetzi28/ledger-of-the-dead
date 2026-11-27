@@ -7,7 +7,7 @@ test('NG+: restarts at level 1, keeps titles, bestiary, tips and one unique',()=
   ok(startNGP('u3')); eq(S.ngp,1); eq(S.player.lvl,1); eq(S.gold,0); eq(S.army.length,0); eq(S.kills['Tunnel Rat'],30); eq(S.ti.got.g0,3); eq(S.tips.stats,1);
   eq(S.inv.map(x=>x.id).join(),'u3'); eq(Object.keys(S.ti.clr).length,0); ok(!canNGP()); ok(S.notices.some(n=>/New Game\+ 1/.test(n.m)));
 });
-test('NG+: a unique you do not own cannot be carried; NG+ stacks',()=>{ S.ti={clr:{5:1}}; S.ngp=1; ok(startNGP('w12')); eq(S.inv.length,0); eq(S.ngp,2); near(ngpFoe(),1.6,1e-9); near(ngpReward(),1.5,1e-9); });
-test('NG+: foes in NG+ rooms really are tougher',()=>{ seed(4); startRun(0); const a=S.run.enemies[0].maxHp; fresh(); S.ngp=1; seed(4); startRun(0); eq(S.run.enemies[0].maxHp,Math.round(a*1.3)); });
+test('NG+: a unique you do not own cannot be carried; NG+ stacks',()=>{ S.ti={clr:{5:1}}; S.ngp=1; ok(startNGP('w12')); eq(S.inv.length,0); eq(S.ngp,2); near(ngpFoe(),1.3,1e-9); near(ngpReward(),1.5,1e-9); });
+test('NG+: foes in NG+ rooms really are tougher',()=>{ seed(4); startRun(0); const a=S.run.enemies[0].maxHp; fresh(); S.ngp=1; seed(4); startRun(0); eq(S.run.enemies[0].maxHp,Math.round(a*1.15)); });
 
 })();

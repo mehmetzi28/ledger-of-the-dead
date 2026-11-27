@@ -116,7 +116,7 @@ function killLoot(e,r){   // called once per kill, from checkDeaths
   if(omen()==='boneharvest'&&!r.trial&&(e.boss||Math.random()<HARVEST_DUST)) r.bdust=(r.bdust||0)+(e.boss?HARVEST_DUST_BOSS:1);   // Bone Harvest: bone dust from the dead
   const key=trophyKey(e); if(!TROPHY[key]||e.stash) return;
   const har=omen()==='boneharvest', tch=(.6*(har?1+HARVEST_TRO:1)+(hasMod('robber','b')?KEEN_TRO:0))*faithTro();   /* Ulm (game-pantheon.js) */   // Bone Harvest and Keen Eye
-  const n=(e.boss?(1+(e.secret&&hasInsc('masters')?1:0))*(e.ledger?LEDGER_HEART:1):e.elite?2+(har?1:0):(Math.random()<tch?1:0))*cursed;
+  const n=(e.boss?(1+(e.secret&&hasInsc('masters')?1:0))*(e.ledger?LEDGER_HEART:1)+ascHearts(e):e.elite?2+(har?1:0):(Math.random()<tch?1:0))*cursed;
   if(n){ const q=quillK(r,n); r.troph=r.troph||{}; r.troph[key]=(r.troph[key]||0)+n*q; }   /* Pickpocket: the first trophy of a room drops twice (game-rival-arc.js) */
 }
 function bankLoot(r){     // called when a room is won
@@ -128,14 +128,14 @@ function bankLoot(r){     // called when a room is won
 // Potions: carried on the belt, drunk in battle as your action.
 const BELT_MAX=3;
 const POTIONS={
-  hp:{name:'Healing Draught',key:'Q',desc:'Restores 35% of your max HP and cures bleeding, burns, poison and blight. Drinking it uses your turn.',price:()=>Math.round((15+S.player.lvl*5)*apoPotK()*dreadPriceK())},
-  mp:{name:'Mana Tonic',key:'W',desc:'Restores 40% of your max mana. Drinking it uses your turn.',price:()=>Math.round((12+S.player.lvl*4)*apoPotK()*dreadPriceK())}
+  hp:{name:'Healing Draught',key:'Q',desc:'Restores 35% of your max HP and cures bleeding, burns, poison and blight. Drinking it uses your turn.',price:()=>Math.round((15+S.player.lvl*5)*apoPotK()*dreadPriceK()*ascPotPrice())},
+  mp:{name:'Mana Tonic',key:'W',desc:'Restores 40% of your max mana. Drinking it uses your turn.',price:()=>Math.round((12+S.player.lvl*4)*apoPotK()*dreadPriceK()*ascPotPrice())}
 };
 function drink(k){
   const P=S.player; if(!S.belt[k]||pactOn('dry')) return false;   // the Dry Throat pact
   if(DRAUGHTS[k]) return drinkDraught(k);   /* Iron Draught, Bloodwine (game-brew.js) */
-  if(k==='hp'){ if(P.hp>=pMax()&&!P.dots) return false; S.belt.hp--; const h=healAlly(P,Math.round(pMax()*.35)), cured=!!P.dots; clearDots(P); if(kitchenHeal()) S.army.forEach(m=>{ if(m.hp>0) healAlly(m,Math.round(m.maxHp*.15)); });   /* Plague Kitchen (game-town2.js) */ tally('drank'); if(cured) tally('cures'); log('You drink a Healing Draught and recover '+h+' HP'+(cured?'. Your wounds close':'')+'.','ok'); }
-  else { if(P.mana>=pMana()) return false; S.belt.mp--; tally('drank'); const m=Math.min(pMana()-P.mana,Math.round(pMana()*.4)); P.mana+=m; mark('p',0,0); log('You drink a Mana Tonic and recover '+m+' mana.','ok'); }
+  if(k==='hp'){ if(P.hp>=pMax()&&!P.dots) return false; S.belt.hp--; const h=healAlly(P,Math.round(pMax()*.35*ascPotHeal())), cured=!!P.dots; clearDots(P); if(kitchenHeal()) S.army.forEach(m=>{ if(m.hp>0) healAlly(m,Math.round(m.maxHp*.15)); });   /* Plague Kitchen (game-town2.js) */ tally('drank'); if(cured) tally('cures'); log('You drink a Healing Draught and recover '+h+' HP'+(cured?'. Your wounds close':'')+'.','ok'); }
+  else { if(P.mana>=pMana()) return false; S.belt.mp--; tally('drank'); const m=Math.min(pMana()-P.mana,Math.round(pMana()*.4*ascPotHeal())); P.mana+=m; mark('p',0,0); log('You drink a Mana Tonic and recover '+m+' mana.','ok'); }
   return true;
 }
 // Market prices. Gear sells for a quarter of what the merchant asks. Uniques cannot be sold.
@@ -149,7 +149,7 @@ function shopStock(){   // four pieces of gear from your highest unlocked gate (
   let g=0; for(let i=0;i<GATE_N;i++) if(S.player.lvl>=RK[i].unlock) g=i;
   if(!S.shop||S.shop.day!==S.day||S.shop.g!==g){
     const pool=Object.values(ITEM).filter(d=>!d.uq&&d.set<=g&&d.set>=g-1), ids=[];
-    while(ids.length<Math.min(STOCK_N,pool.length)){ const d=pick(pool); if(!ids.includes(d.id)) ids.push(d.id); }
+    while(ids.length<Math.min(ascStock(),pool.length)){ const d=pick(pool); if(!ids.includes(d.id)) ids.push(d.id); }
     S.shop={day:S.day,g,stock:ids.map(id=>{ const s={id,sold:false}, ro=rollItem(id); if(ro) s.ro=ro; return s; })};   // rolls are shown before you buy
   }
   return S.shop.stock;

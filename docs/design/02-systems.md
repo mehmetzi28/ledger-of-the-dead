@@ -488,8 +488,10 @@ stolen body back Reclaimed) or **spare them** (`S.ally`: a weekly body trade and
 cycle); the rival is gone for good either way. The bot finishes the arc by day ~70.
 
 **New Game+** (`startNGP`). After the Throne: start again at level 1 keeping titles, bestiary, tips, lifetime counts,
-story, records, pages, Rift best, Memorial, rival name and record, and one unique (with its Awakening ranks). Foes +30%
-per cycle, rewards +25%. Up to 3 of 7 **pacts** (`PACTS`) make the cycle harder for more XP, gold and drops.
+story, records, pages, Rift best, Memorial, rival name and record, and one unique (with its Awakening ranks). Foes +15%
+per cycle (the **ascension level**, R10), rewards +25%. Each cycle start offers three **ascension rules** (`ASC_RULES`,
+src/game-asc.js: Two Faces, Elite Doors, Crowded Gates, Cold Town, Black Omens and more); a chosen rule stays for every
+later cycle and brings its own reward. Up to 3 of 7 **pacts** (`PACTS`) make the cycle harder for more XP, gold and drops.
 
 ## 2.8 Meta-progression and knowledge
 

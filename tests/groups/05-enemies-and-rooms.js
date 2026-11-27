@@ -22,8 +22,8 @@ test('Enemies: foe armor and attack follow the gate tables',()=>{
   eq(foeArmor(),0,'no armor in town'); setLvl(30);
   for(let di=0;di<6;di++){ S.watches=3; startRun(di); eq(foeArmor(),DIFF.armor[di]); near(dmgMul(),1-DIFF.armor[di],1e-9); S.run=null; S.mode='town'; }
 });
-test('Enemies: New Game+ adds 30% HP and attack per level',()=>{
-  const a=foe({hp:100,atk:10}); S.ngp=1; foeScale([a],1); eq(a.maxHp,130); eq(a.hp,130); eq(a.atk,13);
+test('Enemies: New Game+ adds 15% HP and attack per ascension level',()=>{
+  const a=foe({hp:100,atk:10}); S.ngp=1; foeScale([a],1); eq(a.maxHp,115); eq(a.hp,115); eq(a.atk,Math.round(10*1.15));
   S.ngp=0; const b=foe({hp:100,atk:10}); foeScale([b],2); eq(b.hp,100); eq(b.atk,20);
 });
 test('Enemies: gates stay locked below their level',()=>{ startRun(1); eq(S.mode,'town'); setLvl(4); startRun(1); eq(S.mode,'battle'); eq(S.run.di,1); });
