@@ -33,7 +33,8 @@ const KIT_OF={
   'Thorn Troll':'thorns','Rust Knight':'sapper','Sap Weaver':'call','Iron Scarecrow':'marker','Fruit Reaver':'bomb','Grove Shepherd':'purify','Orchard Marshal':'banner',
   'Throne Guard':'shield','Ash Revenant':'frenzy','Whisper Choir':'hexer','Ember Herald':'skirm','Crownless Duelist':'banner','Pallbearer':'call','Ash Praetorian':'sapper',
   'Imp':'bomb','Hellhound':'pack','Chain Devil':'marker','Pit Warden':'stance','Soul Tender':'call','Brimstone Chanter':'banner','Hell Legionary':'shield','Infernal Duelist':'thief',
-  'Militia Spearman':'shield','Crossbowman':'ambush','Chaplain':'purify','Witch-hunter':'marker'
+  'Militia Spearman':'shield','Crossbowman':'ambush','Chaplain':'purify','Witch-hunter':'marker',
+  'Bog Witch':'hexer','Crypt Augur':'marker','Ash Seer':'hexer','Choir Cantor':'thief','Iron Oracle':'hexer','Court Astrologer':'marker'   /* R12 PR B: the hexers */
 };
 const KIND_RES={'Glass Sentinel':{phys:-.25}};   // kinds with a weakness of their own on top of their place's (foeRes)
 const kitOf=e=>!e||e.boss||e.rival||e.secret||e.id==null?null:e.kitO||KIT_OF[e.base]||null;   /* kitO: a kit given by a boss (the Rat King's Crown of Rats) */

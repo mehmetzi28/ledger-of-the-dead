@@ -124,7 +124,7 @@ function dreadFix(g){
   const u={}; if(g.unpaid&&typeof g.unpaid==='object') for(const k in g.unpaid) if(BUILD[k]&&g.unpaid[k]) u[k]=1; g.unpaid=u;
   const O=g.orders; if(O&&typeof O==='object'&&isFinite(O.day)&&Array.isArray(O.list)){
     const list=O.list.filter(o=>o&&ORDERS[o.k]&&(o.g==null||DUNGEONS[o.g])&&(o.k!=='harvest'||ROLES[o.role])&&(o.k!=='hunt'&&o.k!=='clean'||DUNGEONS[o.g])).slice(0,3);
-    g.orders={day:Math.floor(O.day),list,pick:Number.isInteger(O.pick)&&O.pick>=0&&O.pick<list.length?O.pick:-1,n:Math.max(0,Math.floor(+O.n||0)),done:!!O.done}; if(O.bg) g.orders.bg=Math.max(0,+O.bg||0);
+    g.orders={day:Math.floor(O.day),list,pick:Number.isInteger(O.pick)&&O.pick>=0&&O.pick<list.length?O.pick:-1,n:Math.max(0,Math.floor(+O.n||0)),done:!!O.done}; if(typeof O.bg==='number'&&isFinite(O.bg)) g.orders.bg=Math.max(0,O.bg);
   } else g.orders=null;
   for(const k of ['titheDay','cleanDay']) if(g[k]!=null&&!isFinite(g[k])) delete g[k];
 }

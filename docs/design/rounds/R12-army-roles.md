@@ -189,5 +189,47 @@ beats the hero's best action; specs by a fixed table.
     - Charms off: Tower 79.3.
     - Gear powers off: Tower 81.7.
     - So charms are worth about 3 Tower floors and gear-bearer powers about 1. Gates moved 1 point.
-  - Full (7700): 91%, Tower 86.4, Rift 26 (R11: 90%, Tower 85.5, Rift 21.2). The full bot's extra gold buys more charms; left for the R12 PR B retune, once actives and specs land.
+  - Full (7700): 91%, Tower 86.4, Rift 26 (R11: 90%, Tower 85.5, Rift 21.2). The full bot's extra gold buys more charms; retuned in PR B (charms at 75%).
   - Fuzz 12/12.
+
+## As built (PR B)
+
+- **The Hexer** (`ROLES.hexer`, the fifth role). Six new foes, one per gate (Bog Witch, Crypt Augur, Ash Seer, Choir Cantor,
+  Iron Oracle, Court Astrologer), raise as hexers: back row, low HP and attack (`ROLE_BIAS` relic/weapon). Every hit leaves a
+  condition for 2 turns, chosen by trait: Rimeborn chills, Venom poisons, Necrotic blights, Cinderborn burns, the rest Hex
+  (`hexHit`, no Math.random). One hexer per 4 army places brings conditions (`hexCap`); more fight plainly, so a hexer army
+  cannot lock a room. Two new marks: *Augur* (+1 turn per level) and *Malefic* (+damage to a foe under any condition,
+  `condOn`). Hexer foes hex you or a minion on hit. Icons reuse their source kinds with an eye overlay.
+- **Specializations** (`SPECS`, `m.spec`): at Elder (stage 2) a minion picks one of two for its role, for good, on the Army
+  tab (`mspecPend`, `chooseMSpec`; named so they do not collide with the town buildings' `SPEC`/`chooseSpec`):
+  - Vanguard: **Bastion** (+20% HP, Taunt one turn longer) or **Avenger** (hits back 30% of every blow).
+  - Striker: **Duelist** (+20% crit on a foe it already hit) or **Cleaver** (25% splash).
+  - Mender: **Saint** (heals 25% more) or **Plague-doctor** (heals clear wounds and conditions, 15% less).
+  - Reaper: **Soul-taker** (first kill a room harvests a Soul) or **Executioner** (Execute under 50%, Collect under 25%).
+  - Hexer: **Seer** (its target takes 10% more from minions next turn) or **Malign** (also Hexes).
+- **Elder actives** (`ACTIVES`): from Elder each minion has one order on the battle bar. It costs your action, once a room
+  (twice from Eternal); Ancient makes it x1.5 (`maEmp`):
+  - Vanguard **Hold the Line**: this turn every foe strikes it, and it takes 30% less.
+  - Striker **Execute Order**: 160% of its attack at your target; a kill gives your action back.
+  - Mender **Last Rites**: every minion heals 15% of its max HP.
+  - Reaper **Collect**: a foe that is not a boss under 15% HP dies at once; the body is Clean.
+  - Hexer **Doom**: your target takes 25% more from the next three hits.
+- **Charm retune**: a charm now carries its echo at 75% of an Undone body's (`CHARM_K`; Ledgered x1.5 on top). At full
+  strength charms were worth almost 4 Tower floors on the market bot.
+- **Fixes found on the way**:
+  - A bounty order worth 0 gold (`S.orders.bg = 0`) was dropped on load (fuzz seed 5); the save repair keeps any number now.
+  - A Bomber echo dragged under by a boss hazard at the end of a turn could burst the last foes and leave the room open
+    with no foes; the turn now checks for a won room after the end-of-turn hooks.
+  - The Blood Moon omen no longer changes elite odds on weekly-dive and Trial runs (the seeded rooms must match).
+- **Titles**: *Witch-Keeper* (raise a hexer), *Every Role* (all five in the army at once), *By My Order* (500 actives).
+  204 titles.
+- **Bot**: uses actives when they beat its own action (Execute Order for a kill, Collect into a crowd, Last Rites under
+  half, Hold the Line on a charge, Doom on a boss); picks specs from a table; keeps hexers to the cap.
+  `"off"` switches: `actives`, `specs`, `hexer`.
+- **Tests**: 4 more in `tests/groups/98-army.js`. 868 tests. Fuzz 12/12.
+- **Balance** (market, seeds 7700/9100): gates 91/90%, Tower 82.1/81.7, Rift 20/19.5 (PR A: 90/90%, 82.6/83.9,
+  17.5/18.9). Off probes (seed 7700, before the charm retune, base Tower 83.5): actives off 82.8, specs off 80.7,
+  hexer off 82.2, charms off 79.8. So specs are worth about 3 floors, the hexer about 1, actives under 1 (the bot is
+  careful with them). Full (7700): 90%, Tower 85.7, Rift 22 (PR A: 91%, 86.4, 26).
+- **Done when**: charm, active, spec and hexer use are measurable with `"off"` (above). The bot report does not yet print
+  the army's role mix.

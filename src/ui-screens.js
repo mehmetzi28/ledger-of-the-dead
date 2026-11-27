@@ -121,7 +121,7 @@ function ultHTML(){   // Souls and the ultimate, from level 20
   const P=S.player; if(P.lvl<ULT_LV) return '';
   const n=S.run.souls||0, U=ULTS[P.ult]; let pips=''; for(let i=0;i<ultCost();i++) pips+='<i class="soul'+(i<n?' on':'')+'"></i>';
   return '<div class="btns ult-row"><span class="souls" aria-label="'+n+' of '+ultCost()+' Souls">Souls '+pips+'</span>'
-   +(U?'<button class="btn ult'+(canUlt()?' primary':'')+'" data-a="act" data-k="ult" title="'+U.desc+'"'+(canUlt()?'':' disabled')+'>'+U.name+'<kbd>R</kbd></button>':'<span class="u-sub">Choose an ultimate on the Skills tab.</span>')+sgnBtnHTML()+'</div>';
+   +(U?'<button class="btn ult'+(canUlt()?' primary':'')+'" data-a="act" data-k="ult" title="'+U.desc+'"'+(canUlt()?'':' disabled')+'>'+U.name+'<kbd>R</kbd></button>':'<span class="u-sub">Choose an ultimate on the Skills tab.</span>')+sgnBtnHTML()+maBtnsHTML()+'</div>';
 }
 const ANS_M='<span class="ans-m" aria-hidden="true" title="Answers the charge"></span>', ANS_S='<span class="sr-only">, answers the charge</span>';
 function chargeAns(){ const c=S.run&&S.mode==='battle'&&S.run.enemies.map(chargeInfo).find(Boolean); return c?c.ans:[]; }   // answer keys for the pending charge (none when nothing charges)
@@ -376,7 +376,7 @@ function armyView(list){
   return L;
 }
 const avBtn=(a,k,t,on)=>'<button class="btn small'+(on?' primary':'')+'" data-a="'+a+'" data-k="'+k+'" aria-pressed="'+on+'">'+t+'</button>';
-function armyTabHTML(){ return armySumHTML()+charmsHTML()+markPickHTML()+bondsArmyHTML()+armyRaidHTML()+armyFilterHTML()+armyHTML(armyView)+quickGearHTML()+evoHTML(); }
+function armyTabHTML(){ return armySumHTML()+charmsHTML()+markPickHTML()+specPickHTML()+bondsArmyHTML()+armyRaidHTML()+armyFilterHTML()+armyHTML(armyView)+quickGearHTML()+evoHTML(); }
 function armySumHTML(){
   const A=S.army, R=S.reserve||[], sum=(L,f)=>L.reduce((a,m)=>a+f(m),0), n=r=>A.filter(m=>m.role===r).length;
   const st=(l,v,t)=>'<div class="as-st"'+(t?' title="'+t+'"':'')+'><span class="u-tag">'+l+'</span><b class="num">'+v+'</b></div>';
@@ -594,10 +594,13 @@ function siegeChoiceHTML(){   // the intro screen's two choices: the guarded bui
 function armyLineHTML(m,can){   // under a minion's traits: its charm (a picker in town), its kills, its gear-bearer powers
   const town=S.mode==='town'&&can, P=Array.isArray(S.charms)?S.charms:[], fl=mfFlags(m);
   let h='<div class="u-sub m-charm">';
-  h+=m.charm?'<span class="kit" title="'+echoTxt(m.charm.k)+(charmV(m.charm)>1?' (x1.5: its kind is Ledgered)':'')+'">'+charmName(m.charm)+' <span class="dim">from '+cleanText(m.charm.src)+'</span></span>':'<span class="dim">No charm</span>';
+  h+=m.charm?'<span class="kit" title="'+echoTxt(m.charm.k)+(charmV(m.charm)>CHARM_K?' (x1.5: its kind is Ledgered)':'')+'">'+charmName(m.charm)+' <span class="dim">from '+cleanText(m.charm.src)+'</span></span>':'<span class="dim">No charm</span>';
   if(town&&(P.length||m.charm)) h+=' <select class="ch-sel" data-a="charm" aria-label="Charm for '+m.nick+'"><option value="">'+(m.charm?'Change charm':'Give a charm')+'</option>'
     +P.map((c,i)=>'<option value="'+m.uid+'|'+i+'">'+charmName(c)+' ('+cleanText(c.src)+')</option>').join('')+(m.charm?'<option value="'+m.uid+'|x">Take it off</option>':'')+'</select>';
   if(m.kills) h+=' &middot; <span>Kills '+m.kills+(m.nl?' (named in the Ledger)':'')+'</span>';
+  if(m.spec&&SPECS[m.spec]) h+=' &middot; <span class="kit" title="'+SPECS[m.spec].desc+'">'+SPECS[m.spec].name+'</span>';
+  if(m.role==='hexer'&&!hexOn(m)&&S.army.includes(m)) h+=' &middot; <span class="dim" title="At most one hexer for every '+HEX_PER+' army places brings its conditions">Crowded</span>';
+  if((m.stage||0)>=MA_AT&&ACTIVES[m.role]) h+=' &middot; <span class="kit" title="'+ACTIVES[m.role].desc+'">Active: '+ACTIVES[m.role].name+'</span>';
   h+='</div>';
   if(fl.length) h+='<div class="u-sub m-mf">'+fl.map(f=>'<span class="kit" title="'+MINION_FLAG[f]+'">'+FLAGS[f].split(':')[0]+'</span>: '+MINION_FLAG[f]).join('<br>')+'</div>';
   return h;
@@ -618,5 +621,16 @@ function charmsHTML(){   // the charm pouch and the bench where they are made (t
 function nameLinesHTML(){   // the Memorial: names written into the Ledger at NAME_AT kills
   const L=Array.isArray(S.nameLines)?S.nameLines:[]; if(!L.length) return '<p class="q-note">A minion that takes '+NAME_AT+' lives has its name written into the Ledger: +'+Math.round(NAME_K*100)+'% HP and attack for every minion of its role, for good ('+NAME_MAX+' names at most).</p>';
   return '<p class="group-h">Names in the Ledger &middot; '+L.length+'/'+NAME_MAX+'</p><p class="u-sub">'+L.map(l=>'<b>'+cleanText(l.name)+'</b> <span class="dim">('+ROLES[l.role].label+', day '+l.day+')</span>').join(', ')+'</p>';
+}
+function maBtnsHTML(){   // the Elder actives: one button per Elder minion, in the battle bar (each costs your action, once a room)
+  if(S.mode!=='battle'||!S.run) return ''; const L=S.army.filter(m=>m.hp>0&&(m.stage||0)>=MA_AT&&ACTIVES[m.role]); if(!L.length) return '';
+  return '<div class="ma-row" role="group" aria-label="Elder actives">'+L.map(m=>{ const ok=canActive(m), left=maUses(m)-((S.run.maU||{})[m.uid]||0);
+    return '<button class="btn small'+(ok?'':' dim')+'" data-a="act" data-k="ma:'+m.uid+'" title="'+ACTIVES[m.role].desc+' Uses your action.'+'"'+(ok?'':' disabled')+'>'+m.nick+': '+ACTIVES[m.role].name+(left>1?' &times;'+left:'')+'</button>'; }).join('')+'</div>';
+}
+function specPickHTML(){   // Elder minions with a specialization to choose (final), out of battle
+  const L=raidPool().filter(m=>mspecPend(m)); if(!L.length||S.mode==='battle') return '';
+  return '<section class="win" aria-labelledby="h-spec"><h2 class="win-h" id="h-spec">Specializations</h2>'+brief('mspec','At Elder each minion picks one of two specializations for its role. The choice is final.','q-note')
+   +'<div class="evo-list">'+L.map(m=>'<div class="mark-row"><span class="mr-name"><b>'+m.nick+'</b> <span class="dim">'+theName(mName(m))+'</span></span><div class="chips">'
+     +roleSpecs(m.role).map(k=>'<button class="btn small" data-a="mspec" data-k="'+m.uid+'|'+k+'" title="'+SPECS[k].desc+'">'+SPECS[k].name+'</button>').join('')+'</div></div>').join('')+'</div></section>';
 }
 

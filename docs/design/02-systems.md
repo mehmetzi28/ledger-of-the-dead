@@ -273,6 +273,15 @@ the unique's power at about 40% (`MINION_FLAG`, `game-army.js`); powers with no 
 kind's kit as an echo (the Undone's table, now with an echo for all sixteen kits). One per minion, moved freely in town,
 back to the pouch (`S.charms`) when its minion leaves; fusion keeps the stronger; a Ledgered kind's charm is x1.5.
 
+**The Hexer** (R12 PR B, `ROLES.hexer`). The fifth role, raised from six hexer foes (one per gate): back row, low HP and
+attack; each hit leaves a condition for 2 turns by its trait (chill, poison, blight, burn, else a Hex). One hexer per 4
+army places brings conditions (`hexCap`). Marks *Augur* (+1 turn) and *Malefic* (+damage to a conditioned foe).
+
+**Specializations and Elder actives** (R12 PR B). At Elder a minion picks one of two specializations for its role, for good
+(`SPECS`, `m.spec`: Bastion/Avenger, Duelist/Cleaver, Saint/Plague-doctor, Soul-taker/Executioner, Seer/Malign), and gains
+an active on the battle bar (`ACTIVES`: Hold the Line, Execute Order, Last Rites, Collect, Doom) that costs your action,
+once a room (twice from Eternal, x1.5 from Ancient). A charm carries its echo at 75% (`CHARM_K`).
+
 **Kills and names** (R12). Each minion counts its kills (`m.kills`, kept on its headstone); at 100 its name is written
 into the Ledger (`S.nameLines`, at most 10): +1% HP and attack for every minion of its role, for good.
 

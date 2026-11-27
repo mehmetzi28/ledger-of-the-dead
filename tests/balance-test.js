@@ -125,6 +125,7 @@
     }
     if(B.skills&&!B.off.mgear&&S.mode==='town') for(const m of S.army.concat(S.reserve||[])) if(m.armed) for(const sl of GEAR_SLOTS){ const cur=m.eq&&m.eq[sl]; let best=null, bs=cur?itemScore(ITEM[cur.id])+(ITEM[cur.id].flag?50:0):-1;   /* R12: gear-bearers take the best spare piece (a unique first); "off":["mgear"] */
       for(const it of S.inv){ const d=ITEM[it.id]; const sc=itemScore(d)+(d.flag?50:0); if(d.slot===sl&&sc>bs){ best=it; bs=sc; } } if(best) giveGear(m.uid,best.u); }
+    if(!B.off.specs&&typeof chooseMSpec==='function'&&S.mode==='town'){ const T={vanguard:'bastion',striker:'cleaver',mender:'saint',reaper:'executioner',hexer:'malign'}; for(const m of S.army.concat(S.reserve||[])) if(mspecPend(m)) chooseMSpec(m.uid,T[m.role]); }   /* R12: specs by a fixed table; "off":["specs"] */
     if(B.skills&&!B.off.charms&&typeof craftCharm==='function'&&S.mode==='town'){   /* R12: make charms (best kits first) and give them out, front row the guards; "off":["charms"] */
       const want=['banner','shield','call','stance','pack','frenzy','marker','ambush','thief','skirm','burrow','thorns','hexer','bomb','purify','sapper'], need=S.army.filter(m=>!m.charm).length;
       for(let g=0;g<need;g++){ const n=charmKinds().filter(x=>!craftWhy(x)).sort((a,b)=>want.indexOf(KIT_OF[a])-want.indexOf(KIT_OF[b])||charmV({k:KIT_OF[b],src:b})-charmV({k:KIT_OF[a],src:a}))[0]; if(!n||S.gold<charmCost(n)*3) break; craftCharm(n); }
@@ -211,6 +212,13 @@
     const its=liveFoes().filter(e=>!(e.stun>0)&&e.it&&e.it.k==='atk'&&e.it.t==='p');
     if(its.some(e=>hasKit(e,'sapper'))) return false; if(its.some(e=>e.it.amb||e.it.sf)) return true; return want; };
   function decide(B){
+    if(!B.off.actives&&typeof canActive==='function'){ const fo=liveFoes(), boss=fo.some(e=>e.boss), t0=currentTarget();   /* R12: Elder actives when they beat the hero's action; "off":["actives"] */
+      for(const m of S.army){ if(!canActive(m)) continue; const R=m.role;
+        if(R==='striker'&&t0&&t0.hp<m.atk*dmgMul()*MA_EXEC*maEmp(m)*.8) return 'ma:'+m.uid;
+        if(R==='reaper'&&fo.length>=2) return 'ma:'+m.uid;
+        if(R==='mender'){ const L=S.army.filter(a=>a.hp>0); if(L.length>=3&&L.reduce((s,a)=>s+a.hp/a.maxHp,0)/L.length<.5) return 'ma:'+m.uid; }
+        if(R==='vanguard'&&fo.some(e=>e.charging)) return 'ma:'+m.uid;
+        if(R==='hexer'&&boss&&t0&&t0.boss&&S.run.turn<=2) return 'ma:'+m.uid; } }
     if(B.skills&&!B.off.sig&&typeof canSgn==='function'&&canSgn()){ const sp=sgnPath(), fo=liveFoes(), live=S.army.filter(m=>m.hp>0); if(fo.some(e=>e.boss)||fo.length>=3||(sp==='blood'&&live.length&&live.reduce((a,m)=>a+m.hp/m.maxHp,0)/live.length<.5)){ useSgn(); if(S.mode!=='battle') return 'none'; } }   /* R11: the signature (a free action) on a boss or a crowd; "off":["sig"] */
     const P=S.player, t=chooseTarget(B), max=pMax(), res=Math.min(15,Math.round(pMana()*.2)), foes=liveFoes();
     if(B.full&&!(B.off&&B.off.rally)&&typeof canRally==='function'&&canRally()){ const aff=S.army.filter(m=>m.hp>0&&(Object.keys(m.st||{}).length||Object.keys(m.dots||{}).length)).length; rally(aff>=2?'cleanse':'dmg'); }   // R6: a Commander's free Rally, once a room
@@ -259,7 +267,8 @@
   function raisePhase(B){
     const r=S.run, P=S.player;
     for(const c of r.corpses.filter(c=>!c.tried).sort((a,b)=>cval(b)-cval(a))){
-      if(P.mana<raiseCost(c)) continue; if(typeof vowWarn==='function'&&vowWarn('raise')) break;   // R8: Morrow's vow (no more than 10 a run)
+      if(P.mana<raiseCost(c)) continue; if(typeof vowWarn==='function'&&vowWarn('raise')) break;
+      if(c.role==='hexer'&&(B.off.hexer||(typeof hexCap==='function'&&S.army.filter(m=>m.role==='hexer').length>=hexCap()))) continue;   /* R12: hexers up to the cap; "off":["hexer"] raises none */   // R8: Morrow's vow (no more than 10 a run)
       if(S.army.length>=slots()){
         const w=S.army.slice().sort((a,b)=>cval(a)-cval(b))[0];
         const better=w&&cval(w)<cval(c)-3&&raiseChance(c)>=40;   // worth an army place now

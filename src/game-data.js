@@ -17,7 +17,8 @@ const ROLES = {
   vanguard:{label:'Vanguard', text:'Draws enemy blows.'},
   striker:{label:'Striker', text:'25% chance to crit for 1.8x.'},
   mender:{label:'Mender', text:'Mends the most hurt ally instead of striking.'},
-  reaper:{label:'Reaper', text:'Cleaves a second foe for half damage.'}
+  reaper:{label:'Reaper', text:'Cleaves a second foe for half damage.'},
+  hexer:{label:'Hexer', text:'Fights from the back row; every hit leaves a condition (a hex, or its trait\'s wound).'}   /* R12 PR B (game-army.js) */
 };
 const ELITE = ['Gravetouched','Ashen','Hollowed','Bone-sworn','Pale'];
 const NICKS = ['Vesk','Moth','Cairn','Ossa','Pike','Wren','Tallow','Brine','Hollis','Dusk','Marrow','Sable','Rook','Thimble','Ash','Gaunt','Lorn','Nettle','Bram','Cinder','Fenn','Grist','Harrow','Ivo','Juniper','Kest','Lull','Mire','Nox','Orrin','Pall','Quill','Rue','Sorrel','Thane','Umber','Vale','Wick','Yarrow','Zed'];
@@ -62,6 +63,9 @@ EXTRA.forEach((l,i)=>DUNGEONS[i].mobs.push(...l));
 const ARMED_G=[['Warren Bandit','striker',.85,1.1],['Crypt Legionnaire','vanguard',1.3,.9],['Barrow Champion','striker',.9,1.3],
   ['Cathedral Templar','vanguard',1.4,.9],['Orchard Marshal','vanguard',1.45,.9],['Ash Praetorian','vanguard',1.4,.9]];
 ARMED_G.forEach((m,i)=>DUNGEONS[i].mobs.push(m));
+// R12 PR B: a hexer per gate (low HP and attack; every hit leaves a condition). Raised, they become the fifth role.
+const HEXER_FOES=[['Bog Witch','hexer',.7,.7],['Crypt Augur','hexer',.7,.7],['Ash Seer','hexer',.7,.75],['Choir Cantor','hexer',.7,.7],['Iron Oracle','hexer',.75,.7],['Court Astrologer','hexer',.7,.75]];
+HEXER_FOES.forEach((m,i)=>DUNGEONS[i].mobs.push(m));
 const ARMED_T=[['Hell Legionary','vanguard',1.4,.9],['Infernal Duelist','striker',.95,1.3]];
 const ARMED=new Set(ARMED_G.concat(ARMED_T).map(m=>m[0]));
 const isArmed=n=>ARMED.has(n);
@@ -166,7 +170,8 @@ Object.assign(SIG,{'Warren Bandit':'0-wa','Crypt Legionnaire':'1-aa','Barrow Cha
  'Iron Scarecrow':'4-ab','Fruit Reaver':'4-tc','Grove Shepherd':'4-wb',
  'Ember Herald':'5-tc','Crownless Duelist':'5-ta','Pallbearer':'5-ab',
  'Plague-Year Mourner':'6-aa','Drowned Novice':'6-wa','Brother of the Binding':'6-tb','Ink Wraith':'6-ab','Chained Lector':'6-ta','Censer-Bearer':'6-wb','Weeping Unnamed':'6-tc'});
-const ROLE_BIAS={vanguard:{armor:1.8},striker:{weapon:1.8},mender:{relic:1.8},reaper:{weapon:1.3,armor:1.3}};
+Object.assign(SIG,{'Bog Witch':'0-tc','Crypt Augur':'1-tb','Ash Seer':'2-tb','Choir Cantor':'3-tb','Iron Oracle':'4-ta','Court Astrologer':'5-tc'});   /* their signature relics */
+const ROLE_BIAS={vanguard:{armor:1.8},striker:{weapon:1.8},mender:{relic:1.8},reaper:{weapon:1.3,armor:1.3},hexer:{relic:1.4,weapon:1.2}};
 const tcache={}, UQ_MOB=.01;   // ordinary foes carry a gate's unique at 1% of a boss's odds (elites twice that)
 function tableFor(di,role,boss,elite,sig,mob){   // mob: an elite of the difficulty rules, with an ordinary foe's unique odds
   const key=[di,role,boss?1:0,elite?1:0,sig||'',mob?1:0].join('|'); if(tcache[key]) return tcache[key];

@@ -123,7 +123,7 @@ function setRow(uid){ if(S.mode==='battle') return; const m=S.army.concat(S.rese
 // and shown on its card; on its turn it does exactly that. Rolled again only if its target fell, Taunt pulled it onto a vanguard (or lapsed: tn) or a row change put the target out of reach;
 // a frozen foe loses it. Same weights and odds as rolling on its turn. Boss moves are read off the boss (bossTurn) and shown over it; a move turn keeps e.it.
 // e.it2 is the action after it, rolled with it and moved up when e.it is spent, checked by the same rules (a mender heals whoever is most hurt then); Known foes show it.
-const tauntPool=alive=>{ if(S.run.taunt>0){ const v=alive.filter(a=>a.role==='vanguard'&&a.id!=='p'); if(v.length) return v; } return alive; };
+const tauntPool=alive=>{ const hp=holdPool(alive); if(hp) return hp; if(S.run.taunt>0){ const v=alive.filter(a=>a.role==='vanguard'&&a.id!=='p'); if(v.length) return v; } return alive; };
 const mendTarget=()=>liveFoes().filter(x=>x.hp<x.maxHp*.7).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0];
 function rollIntent(e,k){ k=k||'it';
   const alive=allies().filter(hittable); if(!alive.length) return e[k]=null;
@@ -236,6 +236,7 @@ function foeOnHit(e,tg){   // what a foe's hit leaves behind: affixes and the Wh
   if(!(tg.hp>0)) return kitOnHit(e,tg);
   let x='';
   if(hasAff(e,'plague')){ addDot(tg,'blight',e.atk*.2,2); if(tg.dots&&tg.dots.blight) x+=', blighted'; }
+  if(e.role==='hexer'&&!hasKit(e,'hexer')&&addSt(tg,'hexed',2)) x+=', hexed';   /* a hexer foe (R12 PR B) */
   if(hasAff(e,'sundering')&&Math.random()<ST_CH&&addSt(tg,'sundered',2)) x+=', sundered';
   if((hasAff(e,'hexing')||hasKit(e,'hexer'))&&Math.random()<ST_CH&&addSt(tg,'hexed',2)) x+=', hexed';
   x+=kitOnHit(e,tg);
@@ -373,7 +374,7 @@ function roomStart(list){   // a fresh room or floor: Soul Storm, the Swift affi
 function foeRise(list){ progFoes(list); for(const e of list){ godOmenRise(e); if(omen()==='soulstorm') e.atk=Math.max(1,Math.round(e.atk*STORM_ATK)); if(hasAff(e,'swift')) addSt(e,'hasted',3); } }   // also for foes called in mid-fight
 function dayOmen(){ if(!S.omen||S.omen.day!==S.day){ const f=S.omenNext; const ao=f&&f.day===S.day?undefined:ascOmen(); S.omen=f&&f.day===S.day?{day:S.day,id:f.id}:ao!==undefined?{day:S.day,id:anyClear()?ao:null}:{day:S.day,id:anyClear()&&Math.random()<OMEN_CHANCE?pick(OMEN_NAT):null};   /* Black Omens (game-asc.js) */ if(f&&f.day<=S.day) delete S.omenNext; } return S.omen; }   // a forecast (S.omenNext) is kept
 const omen=()=>(S&&S.player&&!(S.run&&(S.run.siege||S.run.trial)))?dayOmen().id:null;   // omens do not reach a siege or a Trial
-const eliteBase=()=>.1*(omen()==='bloodmoon'?2:1), eliteChance=()=>eliteBase()*(runHeat()>=1?HARD_ELITE:1);   // Hard and up: twice the elites
+const eliteBase=()=>S.run&&(S.run.wk||S.run.trial)?.1:.1*(omen()==='bloodmoon'?2:1),   /* a Trial and the weekly dive keep the same rooms all week, whatever the day's omen */ eliteChance=()=>eliteBase()*(runHeat()>=1?HARD_ELITE:1);   // Hard and up: twice the elites
 const gateMod=di=>{ const m=dayMod(); return m.gi===di?m.id:null; };
 const runMod=()=>(S.run&&!S.run.tw&&S.run.mod)||null;
 const hasRunMod=id=>{ const r=S.run; return !!r&&!r.tw&&(r.mod===id||r.mod2===id); };   // a Trial can carry a second curse (r.mod2)

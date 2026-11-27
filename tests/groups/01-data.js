@@ -1,9 +1,9 @@
 // Data tests. Helpers and the runner live in tests/game-tests.js; this file only adds tests.
 (function(){
 const {test,ok,eq,near,finite,fmt,BAD_TEXT,cleanHTML,mulberry32,seed,fix,seq,H,fresh,setLvl,foe,arena,mkMinion,corpse,raiseScene,wear,give,canon,firstDiff,renderAll,TABS,richState,invariants,NODE,bossFight,earn,eventScene,cursedRun,wonRoom,master,board,cdx}=window.LOTD_T;
-test('Data: every gate has 7 enemies with known roles and a reaper boss',()=>{
+test('Data: every gate has 8 enemies (the abbey 7) with known roles and a reaper boss',()=>{
   eq(DUNGEONS.length,7); eq(GATE_N,6); eq(ABBEY,6);
-  DUNGEONS.forEach((D,i)=>{ eq(D.mobs.length,7,D.name); D.mobs.forEach(m=>{ ok(ROLES[m[1]],m[0]+' role'); ok(m[2]>0&&m[3]>0,m[0]+' factors'); }); eq(D.boss[1],'reaper',D.name+' boss role');
+  DUNGEONS.forEach((D,i)=>{ eq(D.mobs.length,i===ABBEY?7:8,D.name); D.mobs.forEach(m=>{ ok(ROLES[m[1]],m[0]+' role'); ok(m[2]>0&&m[3]>0,m[0]+' factors'); }); eq(D.boss[1],'reaper',D.name+' boss role');
     if(i===ABBEY){ eq(D.mobs.filter(m=>m[1]==='mender').length,1,'the abbey: one mender'); eq(D.mobs.filter(m=>m[1]==='reaper').length,2,'and two reapers'); return; }
     eq(D.mobs.filter(m=>m[1]==='mender').length,2,D.name+' menders'); ok(ARMED.has(D.mobs[6][0]),D.name+' gear-bearer'); });
 });

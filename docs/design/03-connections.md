@@ -124,9 +124,9 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
 - ~~**G6. The Reserve is only storage.**~~ Closed by R5 PR A: the Charnel Yard trains the Reserve each dawn (Bone Pits up
   to the army's top level), the Grave Market sells a benched minion, and Yard minions on the siege wall have more HP.
   (Was: benched minions did not grow or do anything.) (Reserve, town, sieges.)
-- **G7. Most minions cannot use gear.** (Part closed by R12 PR A: every minion takes a charm made from trophies, and a
-  unique on a gear-bearer gives the minion its power.) Open: the Elder actives, specializations and the Hexer (PR B).
-  (Gear, army, uniques.)
+- ~~**G7. Most minions cannot use gear.**~~ Closed by R12: every minion takes a charm made from trophies, a unique on a
+  gear-bearer gives the minion its power, Elder minions gain an active order and a specialization, and the Hexer is a
+  fifth role. (Gear, army, uniques, commands, crafting, Memorial.)
 - ~~**G8. Commander only matters for raids.**~~ Closed by R6: a Commander in your army gives a free Rally once a room
   (+20% minion damage or a condition off every minion), and an Elder Commander lengthens Taunt and strengthens Bone Shield.
 - **G9. Hero power vs army strength.** ~~The hero alone can still carry rooms.~~ Closed by Command (PR #5): the hero's
