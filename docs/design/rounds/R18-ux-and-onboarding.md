@@ -60,3 +60,43 @@ None; this round is measured by the timings and by the play log (R15) if a human
 ## 10. Risks
 
 - **A UX pass that never ends**: this round has a fixed list (sections 2-7); new findings go to the catalogue.
+
+## As built
+
+### PR A: tips, What next, Codex links, Why did I lose
+- **The first hour, measured.** An instrumented bot run (6 bots, 12 days) logged the day each tip's moment first came and
+  each system opened. About 15 tips fired on day 1; the Forge, the workbench and brewing opened on day 1, curses and
+  raids on day 2, omens on day 4, the town, bounties, the Yard and the Reserve on day 5, faith and the Tower on day 11,
+  orders, sieges and dread on day 13.
+- **Paced tips** (`TIP_META`, `tipKind`, `tipCx`, `S.tips.pace`). Every tip has a kind and a Codex page:
+  - 11 core tips (the first hour's how-to: stats, a fight, raising, traits, skills, orders, doors...) show whenever their
+    moment comes.
+  - 17 moment tips (a charging boss, a second phase, a nemesis born, a mark to choose) show when it happens.
+  - 21 system tips (a system opening) wait if another system was introduced that day: at most one new system a day. A
+    second waits for the next dawn. The day's count lives in `S.tips.pace` and is checked by normalizeSave.
+  - In town the tip box has a "Read more in the Codex" link (not mid-fight, where it would jump tabs).
+- **Pruned and rewritten.** Stale tips fixed: traits evolve at 5, 10, 18 and 28 levels (not 5 and 10); the gods are five
+  (also in the Codex and How to play); a second phase adds Sundering Blow or the boss's own twist; the trophy tip reads
+  its numbers from the forge and brew constants. New tips for the systems added since: boss hearts at the Forge,
+  brewing, daily orders, the town's dread, nemeses, marks, awakening, the black market, inscriptions and cosmetics.
+  Two old tips that were only half in Turkish (orders, affixes) are now whole.
+- **What next** (`goalsAll`, `goals`): the goal list now also covers a siege warning, today's orders, a nemesis waiting
+  (by name and gate), a free inscription slot, a boss heart that can be forged (never one a unique still needs), a tithe
+  when the town is afraid, a brew you have the parts for, and the black market's day. Still at most three shown.
+- **Codex links** (`H_CX`, `cxHeads`): 31 town panel headings carry a small "?" that opens the Codex page explaining
+  them (not inside the Codex itself). A test renders every tab of a rich save and walks every `cxgo` link to a page that
+  exists. The spec's "every number in a tooltip" was narrowed to every panel: tooltips are plain titles and cannot hold a link.
+- **Why did I lose** (`src/game-lost.js`, new, after game-playlog.js):
+  - Every fight room keeps a turn journal: each log line with its turn (`S.run.tj`, at most 120 lines), and at the end
+    of each turn your HP and how many minions stand (`S.run.tjh`).
+  - A fall keeps the room in `S.lost` (the last 3): the blow (from the existing defeat recap), the foes still standing,
+    and what the bestiary knew of the killer's kind (mastery tier, kills, whether its kit was on its card).
+  - The view (`lostHTML`) answers three questions: was it shown (a telegraphed move and its warning, a plain blow's
+    intent, a wound's ticking), the answers (the move's counters from `chargeInfo`, the kit's answer from `KITS`, a
+    wound's cures), and the bestiary. Below, the room turn by turn.
+  - The defeat screen opens it ("Why did I fall?"); the History lists the last 3 falls. Lines from a save are escaped.
+    New Game+ starts with none.
+- **Fixed on the way**: building a siege work stored the works in build order, while a save loads them in table order,
+  so a save/load could change the game (found by the fuzzer). Works are now stored in table order.
+- **Measured**: no rule changed. Bots match R17 exactly (market 95% clears, Tower 83, Rift 22.4; full 94%, Tower 86.5).
+- **Tests**: `tests/groups/98-ux.js` (8 tests).

@@ -165,7 +165,7 @@ const SIEGE_ARC=[
 ];
 const worksOwn=k=>!!(sg().works&&sg().works[k]);
 const workCan=k=>!!WORKS[k]&&S.mode==='town'&&siegeOpen()&&!worksOwn(k)&&S.gold>=WORKS[k].g&&(S.dust||0)>=WORKS[k].d;
-function buildWork(k){ if(!workCan(k)) return false; const W=WORKS[k]; S.gold-=W.g; S.dust=(S.dust||0)-W.d; const g=sg(); g.works=Object.assign({},g.works||{},{[k]:1}); tally('works'); sfx('level'); return true; }
+function buildWork(k){ if(!workCan(k)) return false; const W=WORKS[k]; S.gold-=W.g; S.dust=(S.dust||0)-W.d; const g=sg(), w={}; for(const id of WORK_IDS) if((g.works&&g.works[id])||id===k) w[id]=1; g.works=w;   /* in WORK_IDS order, as a save loads it */ tally('works'); sfx('level'); return true; }
 const siegePeace=()=>!!S&&!!sg().peace&&S.day<sg().peace.until;
 const purgeDue=()=>!!S&&!!sg().pd;
 function worksWave(list,r){   // townSiegeWave: the works, then the Ward stones reset for the wave

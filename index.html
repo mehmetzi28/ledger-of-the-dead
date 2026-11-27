@@ -1281,6 +1281,16 @@ body.cv-skin .win{border-color:#9a7a66;box-shadow:inset 0 0 0 2px rgba(154,122,1
 .epi-art{margin:4px 0 14px;aspect-ratio:16/7;overflow:hidden;border:1px solid var(--line)}.epi-art svg{width:100%;height:100%;display:block}
 .mvol{min-width:44px;text-align:center;align-self:center}
 @media (max-width:540px){.ts-page{min-width:0;flex:1 1 100%;max-width:none}}
+/* R18: the Codex "?" on panel headings, and the tip's Codex link */
+.cx-ln{order:1;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;min-height:0;padding:0;border:1px dotted var(--line);border-radius:50%;background:none;color:var(--mute);font:600 11px/1 var(--font-body);letter-spacing:0;text-transform:none;cursor:pointer;flex:none}
+.cx-ln:hover,.cx-ln:focus-visible{color:var(--gold);border-color:var(--gold)}
+/* R18: the lost room view (History and the defeat screen) */
+.lost{margin:8px 0 4px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:rgba(0,0,0,.18)}
+.lost-q{display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:8px 0}.lost-q dt{color:var(--gold);font-weight:600}.lost-q dd{margin:0}
+.lost-turns{margin:6px 0 0;padding-left:0;list-style:none;max-height:360px;overflow:auto}.lost-turns>li{padding:4px 0;border-top:1px solid var(--line)}
+.lost-turns ul{margin:2px 0 0;padding-left:16px;font-size:.92em}.lost-turns .bad{color:var(--bad,#e5776a)}.lost-turns .ok{color:var(--ok,#9fd47a)}
+.lost-list{list-style:none;padding:0;margin:0}.lost-list>li{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--line)}.lost-list>li>.lost{flex-basis:100%}
+@media (max-width:520px){.lost-q{grid-template-columns:1fr}}
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
@@ -1950,7 +1960,7 @@ function normalizeSave(src){
     for(const k of ['got','clr']) if(k in T&&!obj(T[k])) T[k]={}; if(T.got) for(const k in T.got) if(!(fin(T.got[k])&&T.got[k]>0)) delete T.got[k];
     if('sel' in T&&T.sel!==null&&typeof T.sel!=='string') delete T.sel;
     if('compounds' in T) T.compounds=Array.isArray(T.compounds)?T.compounds.filter((c,i,a)=>COMPOUND[c]&&a.indexOf(c)===i):[]; }
-  g.tips=obj(g.tips)?g.tips:{}; g.ngp=Math.max(0,Math.floor(num(g.ngp,0)));
+  g.tips=obj(g.tips)?g.tips:{}; if('pace' in g.tips){ const q=g.tips.pace; if(!obj(q)||!isFinite(q.d)||!isFinite(q.sys)) delete g.tips.pace; else g.tips.pace={d:Math.floor(q.d),sys:Math.max(0,Math.floor(q.sys))}; }   /* R18: the day's tip pacing */ g.ngp=Math.max(0,Math.floor(num(g.ngp,0)));
   g.pacts=g.ngp?cleanPacts(g.pacts):[]; ascFix(g); runesFix(g); armyFix(g); if(!PATHS[P.capPath]) delete P.capPath;   // New Game+ pacts and the chosen capstone path (src/game-progression.js)
   g.firstRaise=('firstRaise' in g)?(g.firstRaise?1:0):(g.army.length||g.raids.length||g.reserve.length||(obj(g.ti)&&g.ti.raised)||g.runs||(Array.isArray(g.hist)&&g.hist.length)||(obj(g.life)&&g.life.runs)||g.day>1||P.lvl>1||g.ngp?0:1);   // saves from before the sure first raise: any army, history or progress counts as having raised already
   g.bagLv=clamp(Math.floor(num(g.bagLv,0)),0,BAG_COST.length); g.salts=clamp(Math.floor(num(g.salts,0)),0,SALT_MAX);
@@ -1987,7 +1997,7 @@ function normalizeSave(src){
   { const c=g.player.cmd; if(!hadCmd||!(obj(c)&&c.a>=0&&c.h>=0&&isFinite(c.a)&&isFinite(c.h))) g.player.cmd=cmdPow(Array.isArray(g.army)?g.army:[]); else g.player.cmd={a:Math.round(c.a),h:Math.round(c.h)}; }   // Command: an old or damaged save measures its army again
   const okB=b=>obj(b)&&BOUNTIES[b.id]&&typeof b.n==='number'&&typeof b.base==='number'&&obj(b.rw)&&typeof b.claimed==='boolean';
   g.bounty=(obj(g.bounty)&&typeof g.bounty.day==='number'&&Array.isArray(g.bounty.list)&&g.bounty.list.every(okB))?g.bounty:null;
-  memorialFix(g); nemFix(g); modesFix(g); codeFix(g); inscFix(g); collFix(g); cosFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
+  memorialFix(g); nemFix(g); modesFix(g); codeFix(g); inscFix(g); collFix(g); cosFix(g); lostFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
   return g;
 }
 function validSave(g){ return !!normalizeSave(g); }
@@ -2360,7 +2370,7 @@ function closeDay0(){
 function restDay(){ if(S.mode!=='town') return; S.watches=0; endDay(); }
 
 // ----- dungeon runs
-function log(m,c){ const r=S.run; r.log.unshift({m,c:c||''}); r.log.length=Math.min(r.log.length,10); }
+function log(m,c){ const r=S.run; r.log.unshift({m,c:c||''}); r.log.length=Math.min(r.log.length,10); tjLog(r,m,c); }   /* the turn journal for Why did I lose (game-lost.js) */
 function makeEnemy(di,lvl,boss){
   const D=DUNGEONS[di]; let name,role,hf=1,af=1;
   if(boss){ name=D.boss[0]; role=D.boss[1]; }
@@ -2414,7 +2424,7 @@ function spawnRoom(){
   if(S.run.tw){ plogEnter('floor'); return chSeeded(spawnFloor,CH_SYS.floor,S.run.tw); }   /* challenge codes and the play log (game-playlog.js) */
   const r=S.run, room=r.room, boss=roomBoss(r,room);
   const list=(!boss&&r.pre&&r.pre[r.roomKind])||buildRoom(room,r.roomKind); r.pre=null;   // a door's room was rolled with the doors: what it showed is what waits
-  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; delete r.lcU; delete r.mirU; delete r.mirS; delete r.flU; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null; curseRoom(r); roomStart(list); plogEnter(r.roomKind,PLOG_OF); PLOG_OF=null;   /* Hunger (game-valley.js) */
+  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.tj=[]; r.tjh={}; r.fx={}; r.target=list[0].id; delete r.lcU; delete r.mirU; delete r.mirS; delete r.flU; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null; curseRoom(r); roomStart(list); plogEnter(r.roomKind,PLOG_OF); PLOG_OF=null;   /* Hunger (game-valley.js) */
   log(boss?(list[0].rival?list[0].name+' stands where the master should be, with their own dead around them.':list[0].secret?'The air turns wrong. This is not the master you came for.':'The air thickens. Something large waits ahead.'):(r.trial?'Trial, room ':'Room ')+(room+1)+' of '+r.rooms+(r.roomKind==='elite'?', behind the bloodied arch. These foes are stronger.':'.'));
   if(boss){ bossSpeaks(list[0],'hi'); fxe('boss',list[0]); }
   if(hasFlag('infernal')) infernalWard();
@@ -2650,7 +2660,7 @@ function act(kind){
   tickDots(); if(P.hp<=0&&playerFalls()) return;
   if(P.hp<hpBefore){ sfx('hurt'); if(hpBefore-P.hp>=pMax()*.2) ui.shake=true; }   // a heavy turn shakes the screen
   checkDeaths(); if(!liveFoes().length){ roomWon(); return; }
-  r.turn++; if(!hasRunMod('drought')){ let g=1+G('regen')+sk('soulwell')+(hasMod('deathless','a')?DEEP_REGEN:0); g=rbLungs(sigRegen(g)); if(omen()==='soulstorm'){ r.mf=(r.mf||0)+g*STORM_REGEN; const x=Math.floor(r.mf); r.mf-=x; g+=x; } P.mana=Math.min(pMana(),P.mana+g); } skillTick();   // Soul Storm: +20%, the fractions carried
+  tjTurn(r); r.turn++; if(!hasRunMod('drought')){ let g=1+G('regen')+sk('soulwell')+(hasMod('deathless','a')?DEEP_REGEN:0); g=rbLungs(sigRegen(g)); if(omen()==='soulstorm'){ r.mf=(r.mf||0)+g*STORM_REGEN; const x=Math.floor(r.mf); r.mf-=x; g+=x; } P.mana=Math.min(pMana(),P.mana+g); } skillTick();   // Soul Storm: +20%, the fractions carried
   echoTurn(); mfTurn(); bossEndTurn(); hfTurn();   /* Undone shieldbearers (game-kits.js), boss hazards (game-boss-kits.js) */
   if(!liveFoes().length){ checkDeaths(); if(S.mode==='battle'&&!liveFoes().length){ roomWon(); return; } }   /* a Bomber echo dragged under by a boss hazard can burst the last foes */
   if(hasFlag('halo')) allies().forEach(a=>{ if(a.hp>0) healAlly(a,Math.round((a.id==='p'?pMax():a.maxHp)*.04)); });
@@ -2711,7 +2721,7 @@ function defeat(){
   ironFall(r);   /* Ironman: the run's spoils and one of the fallen (game-modes.js) */
   S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); });
   if(rivalStanding(r)) rivalLost(r); if(reckStanding(r)) reckLost(r); nemBirth(r);   /* a foe that downed a Greater minion may live on (game-nemesis.js) */
-  if(r.blow) r.felled=r.blow; plogDeath(r);   /* the play log (game-playlog.js) */
+  if(r.blow) r.felled=r.blow; plogDeath(r); lostRecord(r);   /* Why did I lose (game-lost.js) */   /* the play log (game-playlog.js) */
   if(r.wk) notify('The weekly dive ends at depth '+(r.wkD||0)+'. It costs you no XP.','bad'); else notify('You were dragged out of '+(r.tw?'the Hell Tower on floor '+r.tw:'the '+DUNGEONS[r.di].name)+'. That room\'s spoils are lost, and you lose '+Math.round(DIFF.deathXp*100)+'% of a level in XP.','bad');
 }
 // ----- the fall: the blow that felled you, and Instant Retry
@@ -3291,11 +3301,11 @@ const TIPS=[
   {id:'stats',  t:'Spend your points', m:'Strength: Strike. Constitution: HP. Intelligence: mana and skills. Will: army and raise odds. Press + by a stat.', when:()=>S.mode==='town'&&S.player.pts>0&&S.player.lvl===1},
   {id:'battle', t:'How a fight works', m:'Pick a target; your army strikes with you. 1 Strike: mana. 2 Soul Siphon: heal and a Soul. 3 Bone Ward: shield. Then foes hit back.', when:()=>S.mode==='battle'},
   {id:'raise',  t:'Raise the dead', m:'Every kill leaves a body. Raising costs mana and can fail; your first never does. Will and level lift the odds.', when:()=>S.mode==='raise'&&S.run&&S.run.corpses.length>0},
-  {id:'trait',  t:'Minion traits', m:'Each minion has a trait. It evolves 5 and 10 levels after it rose: stronger, with another trait.', when:()=>(S.mode==='town'||S.mode==='raise')&&S.army.some(m=>m.traits&&m.traits.length)},
+  {id:'trait',  t:'Minion traits', m:'Each minion has a trait. It evolves 5, 10, 18 and 28 levels after it rose (Greater, Elder, Ancient, Eternal): stronger each time, with another trait.', when:()=>(S.mode==='town'||S.mode==='raise')&&S.army.some(m=>m.traits&&m.traits.length)},
   {id:'skill',  t:'You have a skill point', m:'Open the Skills tab and learn Bone Spear. Active skills appear in battle on keys 4 and up. You get one point every level.', when:()=>S.mode==='town'&&S.player.sp>0},
   {id:'armor',  t:'These foes wear armor', m:'Armor blunts every hit you and your army land, so fights take longer. Bone Spear pierces half of it, and Corpse Explosion and Reap ignore it completely.', when:()=>S.mode==='battle'&&foeArmor()>=.5},
   {id:'boss',   t:'A boss is winding up', m:'Moves marked Charging land next turn. Raise Bone Ward to soak the hit, or freeze the boss with Grave Chill to break its focus and cancel the move.', when:()=>S.mode==='battle'&&S.run&&liveFoes().some(e=>e.charging)},
-  {id:'trophy', t:'Trophies', m:'Fallen foes drop trophies. Sell them at the Market, forge six from one gate into gear, or brew four into a potion.', when:()=>S.mode==='town'&&Object.keys(S.trophies).length>0},
+  {id:'trophy', t:'Trophies', m:'Fallen foes drop trophies. Sell them at the Market, forge '+FORGE_N+' from one gate into gear, or brew '+BREW_N+' into a potion.', when:()=>S.mode==='town'&&Object.keys(S.trophies).length>0},
   {id:'market', t:'The Bone Market', m:'Buy potions (drunk in battle with Q and W) and Grave Salts, buy or forge gear, empower minions at the Bone Altar, and sell what you do not need.', when:()=>S.mode==='town'&&ui.tab==='market'},
   {id:'defeat', t:'You fell', m:'Come back stronger, or try an easier gate.', when:()=>S.mode==='defeat'},
   {id:'event',  t:'Something between rooms', m:'Sometimes a room leaves something behind: a blood shrine, a pedlar, a sealed coffer or a wounded straggler. Each offers a choice. Walking past is always safe.', when:()=>S.mode==='raise'&&S.run&&S.run.event&&!S.run.event.done},
@@ -3306,12 +3316,12 @@ const TIPS=[
   {id:'cmd',    t:'Give orders', m:'Each kind of minion can take one order per room, for free: Taunt, Focus, Bone Shield or Execute. The buttons sit above your skills.', when:()=>S.mode==='battle'&&S.army.some(m=>m.hp>0)},
   {id:'skmod',  t:'Choose an upgrade', m:'One of your skills reached its last rank. Open the Skills tab and choose one of its two upgrades.', when:()=>S.mode==='town'&&SKILLS.some(x=>sk(x.id)>=SK_MAX&&!skMod(x.id))},
   {id:'affix',  t:'Elite affixes', m:'Elites carry affixes, shown on their card: Shielded, Splitting, Vampiric, Enraged or Warded. Hover one to read it. Raise a fallen elite and the minion keeps one as a trait.', when:()=>S.mode==='battle'&&S.run&&liveFoes().some(e=>e.aff)},
-  {id:'phase',  t:'A second phase', m:'At half HP a boss turns dangerous: it moves sooner and adds Sundering Blow. Every move is announced a turn ahead. Taunt sends the blow at a vanguard, and a Focus crit or Grave Chill breaks a charging move.', when:()=>S.mode==='battle'&&S.run&&liveFoes().some(e=>e.phase2)},
+  {id:'phase',  t:'A second phase', m:'At half HP a boss turns dangerous: it moves sooner and adds Sundering Blow, or a twist of its own if it has a move set. Every move is announced a turn ahead. Taunt sends the blow at a vanguard, and a Focus crit or Grave Chill breaks a charging move.', when:()=>S.mode==='battle'&&S.run&&liveFoes().some(e=>e.phase2)},
   {id:'bounty', t:'A bounty is done', m:'You finished a contract on the bounty board in the side panel. Claim it in town before dawn.', when:()=>S.mode==='town'&&S.bounty&&S.bounty.day===S.day&&S.bounty.list.some(b=>!b.claimed&&bountyDone(b))},
   {id:'salvage',t:'Salvage and enchant', m:'Gear you will not wear can be salvaged into bone dust on the Gear tab. Dust enchants gear (add or re-roll a bonus line) and builds the higher levels of town buildings.', when:()=>S.mode==='town'&&ui.tab==='gear'&&S.inv.length>=6&&workOpen()},
   {id:'townopen',t:'The town opens', m:'A Town tab has appeared: build up the necropolis and fuse minions in the Flesh Pit. A bounty board in the side panel now holds up to three contracts, with a new one each dawn.', when:()=>S.mode==='town'&&townOpen()},
   {id:'reserve',t:'The Reserve', m:'Your army list now has a Reserve below it: a bench for minions you want to keep but not take along. Benched minions do not fight or grow. Moving one in or out is free, in town. When your army is full, a raised body can go straight to the Reserve.', when:()=>S.mode==='town'&&reserveOpen()},
-  {id:'faith',  t:'The Pantheon', m:'The Pantheon on the Town tab now takes an oath to one of four Old Gods, or to none. Each god grows with the deeds it likes, gives a boon at every rank and asks a vow.', when:()=>S.mode==='town'&&townOpen()&&faithOpen()&&!faithOf()},
+  {id:'faith',  t:'The Pantheon', m:'The Pantheon on the Town tab now takes an oath to one of five Old Gods, or to none. Each god grows with the deeds it likes, gives a boon at every rank and asks a vow.', when:()=>S.mode==='town'&&townOpen()&&faithOpen()&&!faithOf()},
   {id:'ult',    t:'Your ultimate awaits', m:'At level 20 you can choose an ultimate on the Skills tab. Soul Siphon, elites and bosses give Souls; with five, press R in battle to unleash it.', when:()=>S.mode==='town'&&S.player.lvl>=ULT_LV&&!S.player.ult},
   {id:'siege',  t:'A siege is coming', m:'The living march on the necropolis tomorrow at dusk. When the day ends you defend it in three waves. Each building lends a perk (Town tab), and a raid ordered for tonight marches before they come. Hold, and the town pays; fall, and a building burns until you repair it.', when:()=>S.mode==='town'&&siegeWarned()},
   {id:'raid',   t:'A Commander', m:'One of your minions can lead. Open the War table under the Gates tab to order it and a squad against a gate you have cleared. They fight beside you until nightfall, march when the day ends and come back at dawn.', when:()=>S.mode==='town'&&raidPool().some(isCommander)},
@@ -3325,9 +3335,35 @@ const TIPS=[
   {id:'types',  t:'Weak and resistant', m:'Above the foes you can see what this place is weak to and what it resists. Each hit has a type: Strike and most minions are physical, Soul Siphon and Reap shadow, Grave Chill frost, Corpse Explosion and poison rot. The right type hits harder.', when:()=>S.mode==='battle'&&S.run&&S.player.lvl>=4&&DT_IDS.some(t=>placeRes()[t]<0)},
   {id:'sweep',  t:'Sweep an outgrown gate', m:'A gate far below you can now be swept from its card: one watch wins the whole run at once, with 80% kill XP and the usual spoils, but nothing to raise.', when:()=>S.mode==='town'&&(ui.tab||'gates')==='gates'&&DUNGEONS.some((D,i)=>sweepOk(i))},
   {id:'tower',  t:'The Hell Tower is open', m:'A separate 100-floor climb, one fight per floor, with a unique item on every tenth floor. Floors you clear become checkpoints.', when:()=>S.mode==='town'&&towerOpen()},
+  {id:'heart',  t:'A heart to forge', m:'You carry a boss heart. At the Forge on the Market tab it becomes a heartforged piece of that boss\'s set, in the slot you pick, with the bonus lines you choose at the top of their range.', when:()=>S.mode==='town'&&hfHearts().length>0},
+  {id:'brews',  t:'Brewing', m:'Trophy parts of a role (the part word in a trophy\'s name) brew drinks, oils and charms at the Market. Arm one oil or charm on the Gates tab before a run.', when:()=>S.mode==='town'&&Object.keys(BREWS).some(brewCan)},
+  {id:'orders', t:'Daily orders', m:'A building stands, so the daily quest gives way to orders: three are posted each dawn in the side panel. Take one and it pays once; only a Hunt pays a stat point.', when:()=>S.mode==='town'&&ordersOn()},
+  {id:'dread',  t:'The town\'s dread', m:'The living now fear the necropolis. Raising in the gates, raids on near gates and new buildings raise dread; sieges won, commissions and a tithe calm it. Its band (Town tab) sets market prices and how often and how hard sieges come.', when:()=>S.mode==='town'&&dreadOn()},
+  {id:'nemesis',t:'A nemesis', m:'A foe that downed one of your grown minions lived on and took a name. It waits in its gate behind a sigil-marked door and grows with every minion it downs. Kill it to avenge them: it pays well, and its body rises.', when:()=>S.mode==='town'&&(S.nem||[]).length>0},
+  {id:'mark',   t:'Choose a mark', m:'A minion has grown enough to take a mark. Open the Army tab and pick one on its card: a lasting edge of its own.', when:()=>S.mode==='town'&&raidPool().some(m=>markPend(m))},
+  {id:'awaken', t:'Awaken a unique', m:'A unique you wear can be awakened on the Gear tab: gold, bone dust and its boss\'s heart make its power stronger.', when:()=>S.mode==='town'&&GEAR_SLOTS.some(sl=>S.equip[sl]&&canAwaken(S.equip[sl]))},
+  {id:'bmarket',t:'The black market', m:'Every seventh day a stall in the Market trades without gold: hearts, bone dust, a set piece or a Soul, each trade once a week.', when:()=>S.mode==='town'&&bmOpen()},
+  {id:'insc',   t:'Inscriptions', m:'With 40 titles you can inscribe one beside the title you wear, on the Collection tab. It gives its family\'s perk; more slots open at 80 and 120 titles.', when:()=>S.mode==='town'&&inscSlots()>0&&!inscList().length},
+  {id:'cosmetic',t:'A new look', m:'You have earned a look for your banner, frame or stage. Wear it from the Collection tab; looks change nothing but how the game appears.', when:()=>S.mode==='town'&&cosCount()>0&&!S.cos},
 ];
-const currentTip=()=>{ if(!S||(S.tips&&S.tips.off)) return null; if(S.mode==='raise'&&S.run&&(S.run.events||[]).some(e=>e.c==='story')) return null; try{ return TIPS.find(t=>!(S.tips&&S.tips[t.id])&&t.when())||null; }catch(e){ return null; } };
-function dismissTip(id){ S.tips=S.tips||{}; S.tips[id]=1; }
+// R18: every tip has a kind and a Codex page (its "Read more" link). core: the first hour's how-to, shown whenever its moment comes;
+// ctx: a moment in play (a charging boss, a nemesis born), shown when it happens; sys: a system opening, at most one a day, so the
+// first ten days bring one new thing at a time (a second waits for the next dawn). The day's count lives in S.tips.pace.
+const TIP_META={stats:['core','basics'],battle:['core','basics'],raise:['core','raising'],trait:['core','traits'],skill:['core','skills'],armor:['ctx','types'],
+  boss:['core','bosses'],trophy:['core','supplies'],market:['core','supplies'],defeat:['core','basics'],event:['ctx','rooms'],dots:['ctx','status'],rolls:['ctx','gear'],
+  curse:['sys','curses'],doors:['core','rooms'],cmd:['core','orders'],skmod:['ctx','skills'],affix:['ctx','affixes'],phase:['ctx','bosses'],bounty:['ctx','bounties'],
+  salvage:['sys','gear'],townopen:['sys','town'],reserve:['sys','reserve'],faith:['sys','faith'],ult:['sys','skills'],siege:['ctx','sieges'],raid:['sys','raids'],
+  rift:['sys','rift'],heat:['sys','gates'],bless:['ctx','faith'],records:['sys','records'],nightmare:['ctx','gates'],omen:['sys','omens'],kits:['ctx','kits'],
+  types:['ctx','types'],sweep:['sys','gates'],tower:['sys','tower'],heart:['sys','forge'],brews:['sys','supplies'],orders:['sys','town'],dread:['sys','town'],
+  nemesis:['ctx','nemeses'],mark:['ctx','army'],awaken:['ctx','uniques'],bmarket:['sys','trade'],trial:['sys','trials'],insc:['sys','collection'],
+  cosmetic:['ctx','collection'],rival:['sys','rival']};
+const TIP_SYS_DAY=1;
+const tipKind=t=>t.k||(TIP_META[t.id]||[])[0]||'ctx', tipCx=t=>t.cx||(TIP_META[t.id]||[])[1]||'basics';
+const tipPace=()=>{ const p=S.tips&&S.tips.pace; return p&&p.d===S.day?p:{d:S.day,sys:0}; };
+const currentTip=()=>{ if(!S||(S.tips&&S.tips.off)) return null; if(S.mode==='raise'&&S.run&&(S.run.events||[]).some(e=>e.c==='story')) return null;
+  const sysFull=tipPace().sys>=TIP_SYS_DAY;
+  try{ return TIPS.find(t=>!(S.tips&&S.tips[t.id])&&!(sysFull&&tipKind(t)==='sys')&&t.when())||null; }catch(e){ return null; } };
+function dismissTip(id){ S.tips=S.tips||{}; if(S.tips[id]) return; S.tips[id]=1; const t=TIPS.find(x=>x.id===id); if(t&&tipKind(t)==='sys'){ const p=tipPace(); p.sys++; S.tips.pace=p; } }
 
 // ===== BOSS ABILITIES =====
 // Every gate boss has a signature move it uses every few turns instead of attacking. Moves marked warn are telegraphed a turn
@@ -4706,7 +4742,7 @@ const canMaus=e=>!!e&&!e.maus&&S.mode==='town'&&mausN()<MAUS_MAX&&S.gold>=mausCo
 function raiseMaus(i){ const e=(S.memorial||[])[i]; if(!canMaus(e)) return false; S.gold-=mausCost(); e.maus=1; tally('maus'); syncArmy(); sfx('raise'); return true; }
 const extraMul=(m,k)=>(1+(m?nameK(m.role)+mfStat(m)+(k==='atk'?0:specHp(m)):0))*(k==='atk'?bondMul(m)*ascReadK(m):(1+headBonus()+fallenK()+inscArmy())*townHpK(m)*ascArmyHp())*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K+(rivalBook()?BOOK_K:0):1)*(k==='atk'?choirK()*nightK():1);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
 // ===== THE PANTHEON (R8 PR A) =====
-// From level 8 and 3 clears the Pantheon (the Town tab) takes an oath to one of four Old Gods or to none (the Profane path).
+// From level 8 and 3 clears the Pantheon (the Town tab) takes an oath to one of five Old Gods or to none (the Profane path).
 // S.faith = {id, day, dev, dd, dday, vb, cv}: the god, the day sworn, devotion points, points earned on day dday (dd), the
 // last day the vow broke (vb) and conversions this oath (cv). Devotion grows by DEEDS the god likes; every DEV_STEP points is a
 // rank, five ranks, and each rank opens a boon. Breaking the vow costs a rank and that day's points (once a day).
@@ -7979,7 +8015,7 @@ const SIEGE_ARC=[
 ];
 const worksOwn=k=>!!(sg().works&&sg().works[k]);
 const workCan=k=>!!WORKS[k]&&S.mode==='town'&&siegeOpen()&&!worksOwn(k)&&S.gold>=WORKS[k].g&&(S.dust||0)>=WORKS[k].d;
-function buildWork(k){ if(!workCan(k)) return false; const W=WORKS[k]; S.gold-=W.g; S.dust=(S.dust||0)-W.d; const g=sg(); g.works=Object.assign({},g.works||{},{[k]:1}); tally('works'); sfx('level'); return true; }
+function buildWork(k){ if(!workCan(k)) return false; const W=WORKS[k]; S.gold-=W.g; S.dust=(S.dust||0)-W.d; const g=sg(), w={}; for(const id of WORK_IDS) if((g.works&&g.works[id])||id===k) w[id]=1; g.works=w;   /* in WORK_IDS order, as a save loads it */ tally('works'); sfx('level'); return true; }
 const siegePeace=()=>!!S&&!!sg().peace&&S.day<sg().peace.until;
 const purgeDue=()=>!!S&&!!sg().pd;
 function worksWave(list,r){   // townSiegeWave: the works, then the Ward stones reset for the wave
@@ -8186,6 +8222,55 @@ function plogStats(){   // what How I play shows: runs, deaths by cause, actions
   const unseen=R.filter(e=>e.death&&e.death.sh===0).length, dn=R.filter(e=>e.death).length;
   return {runs:R.length,clears:R.filter(e=>e.out==='clear').length,deaths,dn,unseen,rooms,apr:rooms?acts/rooms:0,bpr:rooms?bot/rooms:0,doors,picks,tab,ms:R.length?R.reduce((a,e)=>a+(e.ms|0),0)/R.length:0,
     botClr:gates.length?gates.reduce((a,e)=>a+(PLOG_BOT.clr[e.g]||90),0)/gates.length:0,gClr:gates.length?gates.filter(e=>e.out==='clear').length/gates.length*100:0,gn:gates.length};
+}
+// ===== R18 PR A: WHY DID I LOSE =====
+// Every fight room keeps a turn journal (S.run.tj: [turn, log line, class], oldest first, at most TJ_MAX lines) and, at the end of
+// each turn, where you and your army stood (S.run.tjh[turn]=[your HP, your max HP, minions standing, minions]). When you fall, the
+// room goes into S.lost (the last LOST_N falls, newest first) with the blow, the foes still standing and what the bestiary knew of
+// them then. The History tab and the defeat screen read it back turn by turn (ui-panels.js lostHTML). Reads the run, changes no rule.
+const TJ_MAX=120, LOST_N=3;
+function tjLog(r,m,c){ if(!r||!Array.isArray(r.tj)) return; r.tj.push([r.turn|0,String(m),c||'']); if(r.tj.length>TJ_MAX) r.tj.splice(0,r.tj.length-TJ_MAX); }
+function tjTurn(r){   // the end of a turn: where your side stands
+  if(!r||!r.tjh||!S.player) return; const a=(S.army||[]).filter(m=>!m.thrall);
+  r.tjh[r.turn|0]=[Math.max(0,Math.round(S.player.hp)),pMax(),a.filter(m=>m.hp>0).length,a.length];
+  const ks=Object.keys(r.tjh); if(ks.length>TJ_MAX) delete r.tjh[ks[0]];
+}
+function lostRecord(r){   // the fall: keep the room for the History
+  if(!r||r.siege||!Array.isArray(r.tj)) return null; tjTurn(r);
+  const foes=(r.enemies||[]).filter(e=>e.hp>0&&!e.dead).slice(0,8).map(e=>{ const o={n:e.name,hp:Math.round(e.hp),mx:Math.round(e.maxHp)}; if(e.boss) o.b=1; const k=kitOf(e); if(k) o.k=k; o.kn=knowLv(e); return o; });
+  const fb=r.felled||null, by=fb&&fb.n?(r.enemies||[]).find(e=>e.name===fb.n):null;
+  const rec={d:S.day,g:r.tw?-1:r.di|0,room:r.room|0,lv:S.player.lvl,turns:r.tj.slice(),hp:Object.assign({},r.tjh||{}),foes};
+  if(r.tw) rec.tw=r.tw; if(r.rift) rec.rift=r.rift; if(r.heat) rec.heat=r.heat; if(fb) rec.fb=fb;
+  if(by){ rec.kn=knowLv(by); const k=kitOf(by); if(k) rec.kit=k; rec.kills=(S.kills&&S.kills[by.base||by.name])|0; }
+  S.lost=[rec].concat(Array.isArray(S.lost)?S.lost:[]).slice(0,LOST_N);
+  return rec;
+}
+function lostFix(g){   // normalizeSave: only well-formed records, at most LOST_N, each with bounded lines
+  if(!('lost' in g)) return; const ok=x=>x&&typeof x==='object'&&isFinite(x.d)&&isFinite(x.g)&&Array.isArray(x.turns);
+  const L=(Array.isArray(g.lost)?g.lost:[]).filter(ok).slice(0,LOST_N).map(x=>Object.assign({},x,{
+    room:Math.max(0,x.room|0),lv:Math.max(1,x.lv|0),g:x.g|0,d:x.d|0,
+    turns:x.turns.filter(t=>Array.isArray(t)&&isFinite(t[0])&&typeof t[1]==='string').slice(-TJ_MAX).map(t=>[t[0]|0,t[1],typeof t[2]==='string'?t[2]:'']),
+    hp:x.hp&&typeof x.hp==='object'?x.hp:{},foes:Array.isArray(x.foes)?x.foes.filter(f=>f&&typeof f.n==='string').slice(0,8):[]}));
+  if(L.length) g.lost=L; else delete g.lost;
+}
+const lostWhere=x=>x.g<0?'Hell Tower, floor '+(x.tw||1):x.rift?'The Rift, depth '+x.rift:(DUNGEONS[x.g]?DUNGEONS[x.g].name:'A gate')+', room '+(x.room+1);
+function lostShown(x){   // was the blow shown before it landed?
+  const b=x.fb; if(!b||!b.k) return null;
+  if(b.k==='dot') return 'Wounds tick at the end of each turn and go past your ward; your card showed the wound and its turns left.';
+  if(b.mv&&BOSS_ABIL[b.mv]) return BOSS_ABIL[b.mv].warn===false&&!b.w?BOSS_ABIL[b.mv].name+' lands without a warning.':BOSS_ABIL[b.mv].name+' was announced'+(b.w?' '+b.w+' turn'+(b.w>1?'s':'')+' ahead':' a turn ahead')+' (Charging on its card).';
+  return 'Its card showed whom it would strike this turn.';
+}
+function lostAnswers(x){   // the answers the rules give for that blow: its move's counters, or its kit's answer
+  const out=[], b=x.fb||{};
+  if(b.mv){ try{ const c=chargeInfo({charging:true,hp:1,move:b.mv,abil:b.mv}); if(c&&c.hint) out.push(c.hint+'.'); }catch(e){} }
+  if(x.kit&&KITS[x.kit]) out.push(KITS[x.kit].name+': '+KITS[x.kit].ans);
+  if(b.k==='dot') out.push('A Healing Draught cures you; Dark Mending cures your whole side.');
+  return out;
+}
+function lostKnew(x){   // what the bestiary knew of the foe that dealt the blow, then
+  const b=x.fb; if(!b||!b.n||b.k==='dot') return null;
+  if(x.kn>0) return 'The bestiary had its kind at '+MASTERY[x.kn-1].name+' ('+x.kills+' kills)'+(x.kit?', so its kit was on its card.':'.');
+  return 'You had not studied its kind ('+(x.kills|0)+' of '+KNOW_AT+' kills)'+(x.kit?': its card showed "Kit ?".':'.');
 }
 // ===== R16 PR A: TITLES AND COLLECTION 2.0 =====
 // Families: every title belongs to one of ten families (FAM_OF, from its id; a new title falls back on its group). Inscribed
@@ -13013,15 +13098,15 @@ TR_RX.unshift([/^Reflection of (.+)$/,"$1 Yansıması"],[/^(.+?)'s Lieutenant$/,
  ["Soul Siphon +#% per living minion (up to #%)","Ruh Emme, yaşayan her yaratık için +%# (en fazla %#)"],["Silences on you last a turn less","Sana yapılan susturmalar bir tur daha kısa sürer"],["A Memorial honour lasts two days","Anıt onurlandırması iki gün sürer"],
  ["#% army damage per name with a headstone (up to #%)","%# ordu hasarı, mezar taşı olan her isim için (en fazla %#)"],["Requiem Chorus: +#% army damage per name in the Memorial (up to #%)","Ağıt Korosu: Anıt'taki her isim için ordu hasarı +%# (en fazla %#)"],
  ["#% damage","%# daha fazla hasar"],["#% gold","%# daha fazla altın"],["# Soul held past the ultimate's five","# Ruh daha, nihai gücün beşinin ötesinde tutulur"],["#% damage, -#% max HP","%# daha fazla hasar, azami can -%#"],["Tithe of Souls: every run begins with # Souls","Ruh Öşrü: her akın # Ruhla başlar"],
- ["Once # gates are cleared, from level #, the Pantheon on the Town tab takes an oath to one of four Old Gods, or to none (the Profane path). Devotion is earned by deeds your god likes; every # points is a rank, up to #, and each rank opens a boon. Each god asks a vow: break it and you lose a rank and that day's devotion (once a day). Renouncing costs # gold per level and starts devotion over. Swearing and renouncing happen in town",
-  "# kapı temizlendikten sonra, #. seviyeden itibaren Kasaba sekmesindeki Panteon dört Eski Tanrıdan birine ya da hiçbirine (Kâfir yolu) yemin alır. Bağlılık tanrının sevdiği işlerle kazanılır; her # puan bir rütbedir, en fazla #, ve her rütbe bir lütuf açar. Her tanrı bir yemin ister: bozarsan bir rütbeni ve o günün bağlılığını kaybedersin (günde bir kez). Yeminden dönmek seviye başına # altına mal olur ve bağlılığı sıfırlar. Yemin etmek ve dönmek kasabada olur"],
+ ["Once # gates are cleared, from level #, the Pantheon on the Town tab takes an oath to one of five Old Gods, or to none (the Profane path). Devotion is earned by deeds your god likes; every # points is a rank, up to #, and each rank opens a boon. Each god asks a vow: break it and you lose a rank and that day's devotion (once a day). Renouncing costs # gold per level and starts devotion over. Swearing and renouncing happen in town",
+  "# kapı temizlendikten sonra, #. seviyeden itibaren Kasaba sekmesindeki Panteon beş Eski Tanrıdan birine ya da hiçbirine (Kâfir yolu) yemin alır. Bağlılık tanrının sevdiği işlerle kazanılır; her # puan bir rütbedir, en fazla #, ve her rütbe bir lütuf açar. Her tanrı bir yemin ister: bozarsan bir rütbeni ve o günün bağlılığını kaybedersin (günde bir kez). Yeminden dönmek seviye başına # altına mal olur ve bağlılığı sıfırlar. Yemin etmek ve dönmek kasabada olur"],
  ["In about #% of the events between rooms a sworn necromancer meets a shrine: their own god's (pray: heal, refill mana, +# devotion), or another god's, which offers a conversion (that god, keeping #% of your devotion points). The Profane may desecrate another god's shrine instead",
   "Odalar arasındaki olayların yaklaşık %#'inde yeminli bir ölü çağırıcı bir sunakla karşılaşır: kendi tanrısınınki (dua: iyileşme, mana dolumu, +# bağlılık) ya da başka bir tanrınınki, ki o bir din değiştirme sunar (o tanrıya, bağlılık puanlarının %#'ini koruyarak). Kâfirler bunun yerine başka bir tanrının sunağına saygısızlık edebilir"],
  ["A ring of cracked altars at the edge of town. They will hear an oath once # gates are cleared, from a necromancer of level # or more","Kasabanın kenarında bir çember çatlak sunak. # kapı temizlendiğinde, # ya da daha yüksek seviyede bir ölü çağırıcının yeminini dinlerler"],
  ["Swear to a god. Devotion grows with the deeds they like, each rank opens a boon, and each god asks a vow. Renouncing costs gold and starts devotion over","Bir tanrıya yemin et. Bağlılık sevdikleri işlerle büyür, her rütbe bir lütuf açar ve her tanrı bir yemin ister. Yeminden dönmek altına mal olur ve bağlılığı sıfırlar"],
- ["The Pantheon on the Town tab now takes an oath to one of four Old Gods, or to none. Each god grows with the deeds it likes, gives a boon at every rank and asks a vow","Kasaba sekmesindeki Panteon artık dört Eski Tanrıdan birine ya da hiçbirine yemin alıyor. Her tanrı sevdiği işlerle büyür, her rütbede bir lütuf verir ve bir yemin ister"],
+ ["The Pantheon on the Town tab now takes an oath to one of five Old Gods, or to none. Each god grows with the deeds it likes, gives a boon at every rank and asks a vow","Kasaba sekmesindeki Panteon artık beş Eski Tanrıdan birine ya da hiçbirine yemin alıyor. Her tanrı sevdiği işlerle büyür, her rütbede bir lütuf verir ve bir yemin ister"],
  ["Your god has granted its fifth rank and its last boon. The Pantheon on the Town tab shows what it does","Tanrın beşinci rütbesini ve son lütfunu verdi. Kasaba sekmesindeki Panteon ne yaptığını gösterir"],
- ["Once # gates are cleared, from level #, the Pantheon (Town tab) takes an oath to one of four Old Gods or to none: devotion grows with deeds, every rank gives a boon, and each god asks a vow","# kapı temizlendikten sonra, #. seviyeden itibaren Panteon (Kasaba sekmesi) dört Eski Tanrıdan birine ya da hiçbirine yemin alır: bağlılık işlerle büyür, her rütbe bir lütuf verir ve her tanrı bir yemin ister"],
+ ["Once # gates are cleared, from level #, the Pantheon (Town tab) takes an oath to one of five Old Gods or to none: devotion grows with deeds, every rank gives a boon, and each god asks a vow","# kapı temizlendikten sonra, #. seviyeden itibaren Panteon (Kasaba sekmesi) beş Eski Tanrıdan birine ya da hiçbirine yemin alır: bağlılık işlerle büyür, her rütbe bir lütuf verir ve her tanrı bir yemin ister"],
  ["A new oath starts at rank # of devotion","Yeni bir yemin #. bağlılık rütbesinden başlar"],
  ["A shrine of Morrow","Morrow'un sunağı"],["A shrine of Vesh","Vesh'in sunağı"],["A shrine of Ulm","Ulm'un sunağı"],["A shrine of the Choir","Koro'nun sunağı"],["Another god's shrine","Başka bir tanrının sunağı"],
  ["A clean stone in a dirty place, still warm with the Last Light. Morrow knows its own","Kirli bir yerde temiz bir taş, Son Işık'la hâlâ sıcak. Morrow kendininkini tanır"],
@@ -13667,6 +13752,45 @@ TR_RX.unshift([/^Gathering against it: (.+)$/,"Ona karşı toplanan: $1"],[/^(.+
  ["Music quieter","Müzik daha kısık"],["Music louder","Müzik daha yüksek"],["Music volume","Müzik ses düzeyi"]
 ].forEach(([k,v])=>{ TR_DICT.set(k,v); });
 TR_RX.unshift([/^Press again to open slot (\d+)$/,"Yuva $1'i açmak için tekrar bas"],[/^Slot (\d+)$/,"Yuva $1"],[/^Day (\d+) · Level (\d+) · (\d+) gates? cleared(.*)$/,"Gün $1 · Seviye $2 · $3 kapı temizlendi$4"]);
+
+// ----- R18 PR A: paced tips, What next, Codex links and Why did I lose
+[
+ ["Each minion has a trait. It evolves #, #, # and # levels after it rose (Greater, Elder, Ancient, Eternal): stronger each time, with another trait","Her hizmetkârın bir özelliği var. Dirildiği seviyenin #, #, # ve # üstünde evrilir (Greater, Elder, Ancient, Eternal): her seferinde daha güçlü ve bir özellik daha"],
+ ["At half HP a boss turns dangerous: it moves sooner and adds Sundering Blow, or a twist of its own if it has a move set. Every move is announced a turn ahead. Taunt sends the blow at a vanguard, and a Focus crit or Grave Chill breaks a charging move","Canının yarısında bir boss tehlikeli olur: daha erken hamle yapar ve Parçalayan Darbe'yi, hamle takımı varsa kendine özgü bir dönemeci ekler. Her hamle bir tur önceden duyurulur. Kışkırtma darbeyi bir öncüye yollar; Odak kritiği ya da Mezar Ayazı yüklenen hamleyi bozar"],
+ ["Fallen foes drop trophies. Sell them at the Market, forge # from one gate into gear, or brew # into a potion","Düşen düşmanlar ganimet bırakır. Pazarda sat, bir kapıdan #'ini teçhizata döv ya da #'ünü iksire demle"],
+ ["The Bone Market","Kemik Pazarı"],["The town opens","Kasaba açılıyor"],["The Hell Tower is open","Cehennem Kulesi açık"],
+ ["A heart to forge","Dövülecek bir yürek"],["You carry a boss heart. At the Forge on the Market tab it becomes a heartforged piece of that boss's set, in the slot you pick, with the bonus lines you choose at the top of their range","Bir boss yüreği taşıyorsun. Pazar sekmesindeki Demirhanede o bossun takımından, seçtiğin yuvada, seçtiğin bonus satırları aralıklarının en üstünde olan yürekten dövülmüş bir parçaya dönüşür"],
+ ["Brewing","Demleme"],["Trophy parts of a role (the part word in a trophy's name) brew drinks, oils and charms at the Market. Arm one oil or charm on the Gates tab before a run","Bir rolün ganimet parçaları (ganimet adındaki parça sözcüğü) Pazarda içecek, yağ ve tılsım olarak demlenir. Bir koşudan önce Kapılar sekmesinde bir yağ ya da tılsım kuşan"],
+ ["Daily orders","Günlük emirler"],["A building stands, so the daily quest gives way to orders: three are posted each dawn in the side panel. Take one and it pays once; only a Hunt pays a stat point","Bir bina ayakta, bu yüzden günlük görev yerini emirlere bırakıyor: her şafak yan panele üç emir asılır. Birini al, bir kez öder; yalnızca Av bir stat puanı verir"],
+ ["The town's dread","Kasabanın dehşeti"],["The living now fear the necropolis. Raising in the gates, raids on near gates and new buildings raise dread; sieges won, commissions and a tithe calm it. Its band (Town tab) sets market prices and how often and how hard sieges come","Yaşayanlar artık nekropolden korkuyor. Kapılarda diriltmek, yakın kapılara akınlar ve yeni binalar dehşeti artırır; kazanılan kuşatmalar, siparişler ve bir öşür onu yatıştırır. Kuşağı (Kasaba sekmesi) pazar fiyatlarını ve kuşatmaların ne sıklıkta ve ne sertlikte geldiğini belirler"],
+ ["A nemesis","Bir baş düşman"],["A foe that downed one of your grown minions lived on and took a name. It waits in its gate behind a sigil-marked door and grows with every minion it downs. Kill it to avenge them: it pays well, and its body rises","Büyümüş hizmetkârlarından birini deviren bir düşman hayatta kaldı ve bir ad aldı. Kapısında mühürlü bir kapının ardında bekler ve devirdiği her hizmetkârla büyür. Onların öcünü almak için öldür: iyi öder ve bedeni dirilir"],
+ ["Choose a mark","Bir nişan seç"],["A minion has grown enough to take a mark. Open the Army tab and pick one on its card: a lasting edge of its own","Bir hizmetkâr bir nişan alacak kadar büyüdü. Ordu sekmesini aç ve kartında birini seç: kendine özgü kalıcı bir üstünlük"],
+ ["Awaken a unique","Bir eşsizi uyandır"],["A unique you wear can be awakened on the Gear tab: gold, bone dust and its boss's heart make its power stronger","Kuşandığın bir eşsiz Teçhizat sekmesinde uyandırılabilir: altın, kemik tozu ve bossunun yüreği gücünü artırır"],
+ ["The black market","Kara borsa"],["Every seventh day a stall in the Market trades without gold: hearts, bone dust, a set piece or a Soul, each trade once a week","Her yedinci gün Pazardaki bir tezgâh altınsız takas yapar: yürekler, kemik tozu, bir takım parçası ya da bir Ruh; her takas haftada bir kez"],
+ ["Inscriptions","Kazımalar"],["With # titles you can inscribe one beside the title you wear, on the Collection tab. It gives its family's perk; more slots open at # and # titles","# unvanla taktığın unvanın yanına birini Koleksiyon sekmesinde kazıyabilirsin. Ailesinin avantajını verir; # ve # unvanda yeni yuvalar açılır"],
+ ["A new look","Yeni bir görünüm"],["You have earned a look for your banner, frame or stage. Wear it from the Collection tab; looks change nothing but how the game appears","Sancağın, çerçeven ya da sahnen için bir görünüm kazandın. Koleksiyon sekmesinden kuşan; görünümler oyunun nasıl göründüğünden başka bir şey değiştirmez"],
+ ["Read more in the Codex","Kodekste daha fazlasını oku"],["Read about this in the Codex","Bunu Kodekste oku"],
+ ["Today's orders are posted: take one","Bugünün emirleri asıldı: birini al"],["An inscription slot is free","Bir kazıma yuvası boş"],["A boss heart can be forged into gear","Bir boss yüreği teçhizata dövülebilir"],
+ ["The living are afraid: a tithe would calm them","Yaşayanlar korkuyor: bir öşür onları yatıştırır"],["You have the parts for a brew","Bir demleme için parçaların var"],["The black market is open today","Kara borsa bugün açık"],
+ ["A siege comes when this day ends: look to the walls","Bu gün bitince bir kuşatma geliyor: surlara bak"],["A siege comes when tomorrow's day ends: look to the walls","Yarının günü bitince bir kuşatma geliyor: surlara bak"],
+ ["Why did I fall? See the room, turn by turn","Neden düştüm? Odayı tur tur gör"],["Hide the room","Odayı gizle"],["See the room","Odayı gör"],["Was it shown","Gösterilmiş miydi"],["The answers","Yanıtlar"],["The bestiary","Canavar kitabı"],
+ ["No turns were written down","Hiçbir tur yazılmadı"],["The lost room","Kaybedilen oda"],
+ ["Its card showed whom it would strike this turn","Kartı bu tur kime vuracağını gösteriyordu"],
+ ["Wounds tick at the end of each turn and go past your ward; your card showed the wound and its turns left","Yaralar her turun sonunda işler ve kalkanını aşar; kartın yarayı ve kalan turlarını gösteriyordu"],
+ ["A Healing Draught cures you; Dark Mending cures your whole side","Şifa İksiri seni iyileştirir; Karanlık Onarım tüm tarafını iyileştirir"],
+ ["Each kind of minion can take one order per room, for free: Taunt, Focus, Bone Shield or Execute. The buttons sit above your skills","Her hizmetkâr türü oda başına bir emir alabilir, bedavaya: Kışkırt, Odak, Kemik Siper ya da İnfaz. Düğmeler becerilerinin üstünde durur"],
+ ["Elites carry affixes, shown on their card: Shielded, Splitting, Vampiric, Enraged or Warded. Hover one to read it. Raise a fallen elite and the minion keeps one as a trait","Seçkinler kartlarında görünen ekler taşır: Kalkanlı, Bölünen, Vampirik, Öfkeli ya da Korunaklı. Okumak için birinin üstüne gel. Düşmüş bir seçkini dirilt; hizmetkâr birini özellik olarak tutar"]
+].forEach(([k,v])=>{ TR_DICT.set(k,v); });
+TR_RX.unshift(
+ [/^(.+) waits for you in the (.+)$/,"$1 seni {t2} içinde bekliyor"],[/^Why you fell$/,"Neden düştün"],[/^the last (\d+)$/,"son $1"],[/^(.+), room (\d+)$/,"{t1}, oda $2"],[/^Turn (\d+)$/,"Tur $1"],
+ [/^You (\d+)\/(\d+) HP$/,"Sen $1/$2 Can"],[/^army (\d+)\/(\d+) standing$/,"ordu $1/$2 ayakta"],[/^Still standing: (.+)$/,"Hâlâ ayakta: $1"],
+ [/^The bestiary had its kind at (.+) \((\d+) kills\), so its kit was on its card$/,"Canavar kitabı türünü {t1} düzeyinde biliyordu ($2 öldürme), bu yüzden takımı kartındaydı"],
+ [/^The bestiary had its kind at (.+) \((\d+) kills\)$/,"Canavar kitabı türünü {t1} düzeyinde biliyordu ($2 öldürme)"],
+ [/^You had not studied its kind \((\d+) of (\d+) kills\): its card showed "Kit \?"$/,"Türünü incelememiştin ($1/$2 öldürme): kartında \"Takım ?\" yazıyordu"],
+ [/^You had not studied its kind \((\d+) of (\d+) kills\)$/,"Türünü incelememiştin ($1/$2 öldürme)"],
+ [/^(.+) was announced (\d+) turns? ahead \(Charging on its card\)$/,"$1 $2 tur önceden duyurulmuştu (kartında Yükleniyor)"],[/^(.+) was announced a turn ahead \(Charging on its card\)$/,"$1 bir tur önceden duyurulmuştu (kartında Yükleniyor)"],
+ [/^(.+) lands without a warning$/,"$1 uyarısız iner"],[/^Felled by (.+)'s blow$/,"$1 darbesiyle düştün"]
+);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -15136,7 +15260,7 @@ function ngpHTML(){
 }
 function tipHTML(){
   const t=currentTip(); if(!t) return '';
-  return '<div class="tip" role="note"><div class="tip-b"><i>Tip</i><b>'+t.t+'</b><p>'+t.m+'</p></div><div class="btns" style="margin:0;align-items:center"><button class="btn small primary" data-a="tip" data-k="'+t.id+'">Got it</button><button class="linkbtn" data-a="tipsoff">Stop showing tips</button></div></div>';
+  return '<div class="tip" role="note"><div class="tip-b"><i>Tip</i><b>'+t.t+'</b><p>'+t.m+'</p></div><div class="btns" style="margin:0;align-items:center"><button class="btn small primary" data-a="tip" data-k="'+t.id+'">Got it</button>'+(S.mode==='town'?'<button class="linkbtn" data-a="cxgo" data-k="'+tipCx(t)+'">Read more in the Codex</button>':'')+'<button class="linkbtn" data-a="tipsoff">Stop showing tips</button></div></div>';
 }
 // First steps: a short guide that ticks itself off as you play. Every rule and number lives in the Codex.
 const FIRST_STEPS=[
@@ -15154,7 +15278,7 @@ const FIRST_STEPS=[
 const HELP_LATER=()=>[
   ['Town and bounties','Once '+OPEN_AT.town+' gates are cleared: buildings, the Flesh Pit, the Reserve (a bench of '+RESERVE_BASE+' places for spare minions) and a board of up to three contracts.',townOpen()],
   ['Salvage and enchanting','At level 6 or once you have bone dust: break spare gear into dust and add bonus lines.',workOpen()],
-  ['Faith','Once '+OPEN_AT.faith+' gates are cleared, from level '+FAITH_LV+', the Pantheon (Town tab) takes an oath to one of four Old Gods or to none: devotion grows with deeds, every rank gives a boon, and each god asks a vow.',faithOpen()],
+  ['Faith','Once '+OPEN_AT.faith+' gates are cleared, from level '+FAITH_LV+', the Pantheon (Town tab) takes an oath to one of five Old Gods or to none: devotion grows with deeds, every rank gives a boon, and each god asks a vow.',faithOpen()],
   ['The Hell Tower','Once '+OPEN_AT.tower+' gates are cleared, from level '+TW.unlock+': one fight per floor and a unique on every tenth floor.',towerOpen()],
   ['Harder gates','A cleared gate offers Hard, then Brutal and Nightmare: stronger foes, bigger rewards.',DUNGEONS.some((D,i)=>heatMax(i)>0)],
   ['Cursed gates','Each day one cleared gate is cursed: harder, and pays more.',DUNGEONS.some((D,i)=>S.ti&&S.ti.clr&&S.ti.clr[i])],
@@ -15338,6 +15462,22 @@ function histDetail(x){   // the expandable line under a run; runs from before t
   if(out.length&&!x.siege&&x.g>=0) out.push('<div><span>Difficulty</span> <b>'+(HEAT[x.heat||0]?HEAT[x.heat||0].name:'Normal')+'</b></div>');
   return out.length?'<details class="h-det"><summary>Details</summary>'+out.join('')+'</details>':'';
 }
+// ----- R18: the lost room, turn by turn (game-lost.js): on the defeat screen and in the History
+const escH=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+function lostHTML(x){
+  if(!x) return ''; const T={}; for(const [t,m,c] of x.turns) (T[t]=T[t]||[]).push([m,c]);
+  const ts=Object.keys(T).map(Number).sort((a,b)=>a-b), sh=lostShown(x), an=lostAnswers(x), kn=lostKnew(x);
+  const row=t=>{ const h=x.hp[t]; return '<li><b>Turn '+t+'</b>'+(h?' <span class="u-sub">You '+h[0]+'/'+h[1]+' HP &middot; army '+h[2]+'/'+h[3]+' standing</span>':'')
+    +'<ul>'+T[t].map(([m,c])=>'<li class="'+escH(c)+'">'+escH(m)+'</li>').join('')+'</ul></li>'; };
+  return '<div class="lost"><p class="group-h">The lost room &middot; '+lostWhere(x)+' &middot; Day '+x.d+' &middot; Level '+x.lv+'</p>'+felledHTML(x.fb)
+   +((sh||an.length||kn)?'<dl class="lost-q">'+(sh?'<dt>Was it shown?</dt><dd>'+sh+'</dd>':'')+(an.length?'<dt>The answers</dt><dd>'+an.join(' ')+'</dd>':'')+(kn?'<dt>The bestiary</dt><dd>'+kn+'</dd>':'')+'</dl>':'')
+   +(x.foes.length?'<p class="u-sub">Still standing: '+x.foes.map(f=>cleanText(f.n)+' '+f.hp+'/'+f.mx).join(', ')+'</p>':'')
+   +(ts.length?'<ol class="lost-turns">'+ts.map(row).join('')+'</ol>':'<p class="q-note">No turns were written down.</p>')+'</div>';
+}
+function lostListHTML(){   // the History: the last falls, each opening its room
+  const L=S.lost||[]; if(!L.length) return '';
+  return '<p class="group-h">Why you fell &middot; the last '+L.length+'</p><ul class="lost-list">'+L.map((x,i)=>'<li><span>Day '+x.d+' &middot; '+lostWhere(x)+'</span><button class="btn small" data-a="lostv" data-k="'+i+'" aria-expanded="'+(ui.lostV===i)+'">'+(ui.lostV===i?'Hide the room':'See the room')+'</button>'+(ui.lostV===i?lostHTML(x):'')+'</li>').join('')+'</ul>';
+}
 function histHTML(){
   const L=S.life||{}, n=v=>(v||0).toLocaleString(), H=(S.hist||[]).slice().reverse();
   const where=h=>h.trial&&DUNGEONS[h.g]?'Trial, week '+h.trial+' &middot; '+DUNGEONS[h.g].name:h.siege?'Siege on the necropolis':h.g<0?'Hell Tower, floor'+(h.f1>h.f0?'s '+h.f0+'&ndash;'+h.f1:' '+h.f0):h.rift?'The Rift, depth '+h.rift+(h.rr?' &middot; new deepest':''):DUNGEONS[h.g].name;
@@ -15351,13 +15491,13 @@ function histHTML(){
    +histStatsHTML(L)
    +(()=>{ const sl=SECRET.filter((B,i)=>T_('secret_'+i)); return sl.length?'<p class="group-h">Secret masters slain &middot; '+sl.length+'/'+SECRET.length+'</p><div class="sec-list">'+sl.map(B=>'<span class="sec-k">&#9760; '+B.name+(T_('secret_'+secretOf(B.name))>1?' x'+T_('secret_'+secretOf(B.name)):'')+'</span>').join('')+'</div>':''; })()
    +'<p class="group-h">Last '+HIST_N+' runs</p>';
-  if(!H.length) return h+'<p class="lede">No runs yet. Enter a gate and the ledger will remember it.</p></section>';
+  if(!H.length) return h+'<p class="lede">No runs yet. Enter a gate and the ledger will remember it.</p>'+lostListHTML()+'</section>';
   return h+'<div class="hist-wrap"><table class="hist"><thead><tr><th>Day</th><th>Where</th><th>Result</th><th class="num">Turns</th><th class="num">Rooms</th><th class="num">Kills</th><th class="num">XP</th><th class="num">Gold</th><th class="num">Gear</th><th class="num">Raised</th></tr></thead><tbody>'
    +H.map(x=>'<tr><td class="num">'+x.d+'</td><td>'+where(x)+(x.mod&&MODS[x.mod]?' <span class="dim">('+MODS[x.mod].name+')</span>':'')
      +(x.heat&&HEAT[x.heat]?' <span class="dim">'+HEAT[x.heat].name+'</span>':'')+(x.om&&OMENS[x.om]?' <span class="dim h-om">'+OMENS[x.om].name+'</span>':'')+(x.sec?'<div class="sec-k">&#9760; '+x.sec+' slain</div>':'')+histDetail(x)
      +'</td><td class="res-'+x.res+'">'+(x.siege&&x.res==='cleared'?'Held':RES[x.res]||x.res)+(x.bo&&!x.sec?'<div class="u-sub h-bo">'+(x.bo[1]?'&#9760; ':'')+cleanText(x.bo[0])+'</div>':'')+'</td><td class="num">'+(x.tt?x.tt:'&ndash;')+'</td><td class="num">'+x.rooms+'</td><td class="num">'+x.kills+'</td><td class="num">'
      +n(x.xp)+'</td><td class="num">'+n(x.gold)+'</td><td class="num">'+x.items+'</td><td class="num">'+x.raised+'</td></tr>').join('')
-   +'</tbody></table></div></section>';
+   +'</tbody></table></div>'+lostListHTML()+'</section>';
 }
 
 // ----- brewing, run prep, commissions and the black market (game-brew.js)
@@ -15505,7 +15645,7 @@ function codexSection(k){
     +cxList([cxRow('Army slots','1, plus one per 2.5 Will, one per 4 levels, gear and the Crypt. At most '+ARMY_CAP+', plus the Crypt\'s levels.'),cxRow('Gear-bearers','Armed foes (marked Armed) can wear a weapon, armor and relic from your bag once raised.'),cxRow('Bone Altar','Gold raises a minion one level at once, never past your level + 2.'),
       cxRow('Reserve','Opens with the Town tab: '+RESERVE_BASE+' places, +'+RESERVE_CRYPT+' per Crypt level. Benched minions do not fight, take damage or earn XP, and keep their gear. Moving one is free, in town; a full army can raise straight into it.')])
     +'<div class="btns"><button class="btn small" data-a="cx" data-k="army">Army</button><button class="btn small" data-a="cx" data-k="reserve">Reserve</button><button class="btn small" data-a="cx" data-k="fusion">Fusion</button></div>';
-  if(k==='faith') return cxP('Once '+OPEN_AT.faith+' gates are cleared, from level '+FAITH_LV+', the Pantheon on the Town tab takes an oath to one of four Old Gods, or to none (the Profane path). Devotion is earned by deeds your god likes; every '+DEV_STEP+' points is a rank, up to '+DEV_RANKS+', and each rank opens a boon. Each god asks a vow: break it and you lose a rank and that day\'s devotion (once a day). Renouncing costs 100 gold per level and starts devotion over. Swearing and renouncing happen in town.')
+  if(k==='faith') return cxP('Once '+OPEN_AT.faith+' gates are cleared, from level '+FAITH_LV+', the Pantheon on the Town tab takes an oath to one of five Old Gods, or to none (the Profane path). Devotion is earned by deeds your god likes; every '+DEV_STEP+' points is a rank, up to '+DEV_RANKS+', and each rank opens a boon. Each god asks a vow: break it and you lose a rank and that day\'s devotion (once a day). Renouncing costs 100 gold per level and starts devotion over. Swearing and renouncing happen in town.')
     +cxP('In about '+pct(FAITH_EVENT)+' of the events between rooms a sworn necromancer meets a shrine: their own god\'s (pray: heal, refill mana, +'+DEV_SHRINE+' devotion), or another god\'s, which offers a conversion (that god, keeping '+pct(CONVERT_KEEP)+' of your devotion points). The Profane may desecrate another god\'s shrine instead.')
     +cxList(GODS.map(k=>{ const F=FAITH[k]; return cxRow(F.name,F.domain+'. '+F.about+'<br><b>Vow:</b> '+F.vow+'<br><b>Deeds:</b> '+F.deeds+BOONS[k].map((b,i)=>'<br><b>Rank '+(i+1)+':</b> '+b.t+'.').join('')+'<br><b>Omens:</b> '+godOmens(k).map(o=>OMENS[o].name).join(', ')+'.<br><b>Temple chapel:</b> '+CHAPELS[k].name+': '+CHAPELS[k].d+'.<br><b>The town:</b> '+GOD_TOWN[k]+'.',faithOf()===k?'Sworn':''); }));
   if(k==='omens') return cxP('Once you have cleared a gate, about '+pct(OMEN_CHANCE)+' of dawns bring an omen. It lasts the whole day and touches every gate, the Tower and the Rift, but never a siege or a Trial. Today: '+(omen()?OMENS[omen()].name:'no omen')+'.')
@@ -15775,6 +15915,17 @@ function cxMark(root){   // after the Turkish pass: highlight the search words i
     while((j=low.indexOf(q,i))>=0){ if(j>i) f.appendChild(document.createTextNode(v.slice(i,j))); const m=document.createElement('mark'); m.className='cx-hit'; m.textContent=v.slice(j,j+q.length); f.appendChild(m); i=j+q.length; }
     if(i<v.length) f.appendChild(document.createTextNode(v.slice(i))); t.parentNode.replaceChild(f,t); }
 }
+// ----- R18: a small "?" on each town panel's heading opens the Codex page that explains it (every target is checked by a test)
+const H_CX={'h-status':'basics','h-sk':'skills','h-army':'army','h-asum':'orders','h-res':'reserve','h-gear':'gear','h-bag':'gear','h-qg':'gear','h-lo':'gear','h-gates':'gates',
+  'h-tw':'tower','h-rift':'rift','h-bld':'town','h-spec':'town','h-siege':'sieges','h-bty':'bounties','h-raid':'raids','h-araid':'raids','h-trial':'trials','h-mem':'raising',
+  'h-ms':'collection','h-tt':'titles','h-cos':'collection','h-rec':'records','h-hist':'records','h-mk':'supplies','h-charm':'supplies','h-evo':'traits','h-mark':'army','h-bonds':'bonds','h-bes':'kits'};
+const hCx=id=>id==='h-quest'?(ordersOn()?'town':'basics'):H_CX[id];
+function cxHeads(html){
+  if(!S||S.mode!=='town'||ui.tab==='codex'||typeof html!=='string') return html;
+  return html.replace(/(<h2 class="win-h" id="(h-[a-z]+)">)([\s\S]*?)(<\/h2>)/g,(all,open,id,inner,close)=>{ const k=hCx(id); if(!k||!CODEX.some(c=>c[0]===k)) return all;
+    const q='<button class="cx-ln" data-a="cxgo" data-k="'+k+'" title="Read about this in the Codex" aria-label="Read about this in the Codex">?</button>', i=inner.search(/<span class="fold-sum"|<button class="fold"/);
+    return open+(i<0?inner+q:inner.slice(0,i)+q+inner.slice(i))+close; });
+}
 function codexHTML(){
   const k=CODEX.some(c=>c[0]===ui.cx)?ui.cx:'basics', name=CODEX.find(c=>c[0]===k)[1];
   return '<section class="win" aria-labelledby="h-cx"><h2 class="win-h" id="h-cx">Codex &middot; '+name+'</h2>'
@@ -15868,12 +16019,14 @@ function nextObjective(){   // after the Throne of Ash: its next difficulty, the
   return beat(top)<HEAT.length-1?heat:null;
 }
 const GOAL_N=3;
-function goals(){
+function goalsAll(){   // every goal that applies, in order; What next shows the first GOAL_N
   if(!S||S.mode!=='town') return [];
   const P=S.player, g=[], add=(t,b,k)=>g.push({t,b,k});
   if(townOpen()&&bounties().some(b=>bountyDone(b)&&!b.claimed)) add('A bounty is ready to claim.','Bounty board','||bounty');
   if(questDone()&&!S.quest.claimed) add('Today\'s quest is done: claim the reward.','Daily quest','||quest');
   if(P.pts>0) add(P.pts+' stat point'+(P.pts>1?'s':'')+' to spend.','Status','||status');
+  if(siegeWarned()) add('A siege comes when '+(S.day>=sg().next?'this':'tomorrow\'s')+' day ends: look to the walls.','Town','town');   /* R18: the systems added since What next was written */
+  if(ordersOn()&&orders().pick<0) add('Today\'s orders are posted: take one.','Daily orders','||quest');
   if(P.sp>0) add(P.sp+' skill point'+(P.sp>1?'s':'')+' to spend.','Skills','skills');
   if(SKILLS.some(s=>SKILL_MODS[s.id]&&sk(s.id)>=SK_MAX&&!skMod(s.id))) add('A rank 3 skill upgrade is waiting for your choice.','Skills','skills');
   if(betterGear()) add('Your bag holds gear of a higher tier than you wear.','Gear','gear');
@@ -15884,8 +16037,15 @@ function goals(){
   if(raidPool().some(m=>markPend(m))) add('A minion is ready to choose its mark.','Army','army');
   if((S.memorial||[]).some(canHonour)) add('You can honour a fallen minion in the Memorial.','Memorial','mem');
   if(GEAR_SLOTS.some(sl=>S.equip[sl]&&canAwaken(S.equip[sl]))) add('A unique you wear can be awakened.','Gear','gear');
-  return g.slice(0,GOAL_N);
+  { const n=(S.nem||[])[0]; if(n&&DUNGEONS[n.g]) add(n.name+' waits for you in the '+DUNGEONS[n.g].name+'.','Gates','gates|open'); }
+  if(inscSlots()>inscList().length) add('An inscription slot is free.','Collection','titles');
+  if(workOpen()&&hfHearts().some(k=>!hfGuard(k.slice(2)))&&S.inv.length<bagMax()) add('A boss heart can be forged into gear.','Forge','market');
+  if(titheReady()&&dreadOf()>=DREAD_BANDS[2].min) add('The living are afraid: a tithe would calm them.','Town','town');
+  if(Object.keys(BREWS).some(brewCan)) add('You have the parts for a brew.','Market','market');
+  if(bmOpen()) add('The black market is open today.','Market','market');
+  return g;
 }
+const goals=()=>goalsAll().slice(0,GOAL_N);
 function goalsHTML(){
   const g=goals(), n=nextObjective(); if(!g.length&&!n) return '';
   return '<section class="win goals'+foldCls('goal')+'" aria-labelledby="h-goal"><h2 class="win-h" id="h-goal">What next<span class="fold-sum">'+(g.length+(n?1:0))+'</span>'+foldBtn('goal')+'</h2>'
@@ -16666,7 +16826,7 @@ function defeatHTML(){
    +'<p class="lede">'+(r.siegeLoss||'')+'</p><div class="facts" title="You lose no XP, and none of your dead were lost: they dragged themselves back into the crypts before dawn."><span class="ok">No XP lost</span><span class="ok">No minions lost</span></div>'
    +'<div class="btns"><button class="btn primary" data-a="town">Wait for dawn</button></div>'+logHTML()+'</section>';
   return '<section class="win" aria-labelledby="h-def"><h2 class="win-h" id="h-def">Fallen</h2><h3 class="win-title">'+(r.tw?'You fell on floor '+r.tw+' of the Hell Tower.':'You went down in room '+(r.room+1)+'.')+'</h3>'
-   +felledHTML(r.felled)+'<div class="facts" title="Loot from rooms already cleared is kept. This room\'s spoils are lost and you lose some XP. Your army carried you out and bound itself back together."><span class="ok">Earlier loot kept</span><span class="bad">Room spoils lost</span><span class="bad">&minus;XP</span><span class="ok">Army intact</span></div>'
+   +felledHTML(r.felled)+(()=>{ const x=(S.lost||[])[0]; return x&&x.d===S.day&&!r.siege?'<div class="btns lost-go"><button class="linkbtn" data-a="lostv" data-k="0" aria-expanded="'+(ui.lostV===0)+'">'+(ui.lostV===0?'Hide the room':'Why did I fall? See the room, turn by turn')+'</button></div>'+(ui.lostV===0?lostHTML(x):''):''; })()+'<div class="facts" title="Loot from rooms already cleared is kept. This room\'s spoils are lost and you lose some XP. Your army carried you out and bound itself back together."><span class="ok">Earlier loot kept</span><span class="bad">Room spoils lost</span><span class="bad">&minus;XP</span><span class="ok">Army intact</span></div>'
    +'<div class="btns"><button class="btn primary" data-a="town">Return to the gate</button>'+(canRetry()?'<button class="btn" data-a="retry" title="Retry starts this room over as it began: the same foes at full strength, you and your army as you entered. No watch is spent; the XP loss stands.">Retry the room<kbd>R</kbd></button>':'')+'</div>'
    +(canRetry()?'<p class="u-sub">Same foes &middot; no watch spent</p>':r.trial?'<p class="u-sub">A Trial room cannot be retried: its score counts every attempt.</p>':'')+logHTML()+'</section>';
 }
@@ -16795,7 +16955,7 @@ function titleHTML(){
   const hdr='<header class="top"><div class="brand"><svg class="sigil" viewBox="0 0 64 64" width="54" height="54" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="32" cy="32" r="30"/><circle cx="32" cy="32" r="24" stroke-dasharray="1.5 3.5"/><rect x="16" y="16" width="32" height="32"/><rect x="16" y="16" width="32" height="32" transform="rotate(45 32 32)"/><circle cx="32" cy="32" r="6"/><circle cx="32" cy="32" r="2" fill="currentColor"/></g></svg><div><h1>Ledger of the Dead</h1><p class="tag">Every name in this book answers to you.</p></div></div><div class="top-meta">'+(S.ngp?'<span class="ngp-b" title="New Game+">NG+'+S.ngp+'</span>':'')+'<span>Day '+S.day+'</span><span title="Gold">'+gold(S.gold)+'</span><span title="Each dungeon you enter uses a watch. When the third is spent, the day closes.">Watches<span class="pips" aria-label="'+S.watches+' of '+WATCHES+' watches left">'+pips+'</span></span></div>'
    +'<button class="gearbtn'+((ui.tab==='settings'&&S.mode==='town')?' on':'')+'" data-a="settings" aria-label="Settings" aria-pressed="'+(ui.tab==='settings'&&S.mode==='town')+'"'+(S.mode==='town'?' title="Settings: save, load, new game"':' disabled title="Settings open when you are back in town"')+'><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M10.3 2h3.4l.5 2.6c.6.2 1.2.5 1.7.9l2.5-.9 1.7 2.9-2 1.7c.1.6.1 1.3 0 1.9l2 1.7-1.7 2.9-2.5-.9c-.5.4-1.1.7-1.7.9l-.5 2.6h-3.4l-.5-2.6c-.6-.2-1.2-.5-1.7-.9l-2.5.9-1.7-2.9 2-1.7a6 6 0 0 1 0-1.9l-2-1.7 1.7-2.9 2.5.9c.5-.4 1.1-.7 1.7-.9zM12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z"/></svg></button></header>'
    ;
-  paintApp(hdr,tabNote+mo+tipHTML()+main,[goalsHTML(),questHTML(),statusHTML(),equipHTML(),townOpen()?bountyHTML():''].filter(Boolean),ui.keys?keysHTML():'');
+  paintApp(hdr,tabNote+mo+tipHTML()+cxHeads(main),[goalsHTML(),questHTML(),statusHTML(),equipHTML(),townOpen()?bountyHTML():''].filter(Boolean).map(cxHeads),ui.keys?keysHTML():'');
   try{ cxMark(app); if(document.documentElement) document.documentElement.lang=VIEW.lang; }catch(e){}
   if(key){ const n=app.querySelector(key); if(n){ n.focus({preventScroll:true}); if(n.tagName==='INPUT'&&n.type==='search'){ const l=n.value.length; try{ n.setSelectionRange(l,l); }catch(e){} } } }
   const scr=S.mode+'|'+(S.mode==='town'?ui.tab:(S.run?(S.run.tw||'g')+':'+S.run.room:''));   // entering a gate, a new room or another tab starts at the top
@@ -16949,7 +17109,7 @@ const ACTIONS={
   ttf:k=>{ ui.ttf=(k in {all:1,got:1,locked:1,close:1}||/^r[0-5]$/.test(k))?k:'all'; },
   tower:k=>startTower(+k),
   act:k=>act(k),
-  target:k=>setTarget(k), logall:()=>{ ui.logAll=!ui.logAll; },
+  target:k=>setTarget(k), logall:()=>{ ui.logAll=!ui.logAll; }, lostv:k=>{ ui.lostV=ui.lostV===+k?null:+k; },
   flee:()=>flee(),
   raise:k=>{ if(!vowAsk('raise')) tryRaise(k); }, descend:()=>descend(), town:()=>returnTown(), retry:()=>{ retryRoom(); }, rest:()=>restDay(),
   release:k=>{ if(ui.confirm===+k){ release(+k); ui.confirm=null; } else ui.confirm=+k; },

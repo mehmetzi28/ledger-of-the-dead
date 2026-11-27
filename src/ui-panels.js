@@ -573,7 +573,7 @@ function ngpHTML(){
 }
 function tipHTML(){
   const t=currentTip(); if(!t) return '';
-  return '<div class="tip" role="note"><div class="tip-b"><i>Tip</i><b>'+t.t+'</b><p>'+t.m+'</p></div><div class="btns" style="margin:0;align-items:center"><button class="btn small primary" data-a="tip" data-k="'+t.id+'">Got it</button><button class="linkbtn" data-a="tipsoff">Stop showing tips</button></div></div>';
+  return '<div class="tip" role="note"><div class="tip-b"><i>Tip</i><b>'+t.t+'</b><p>'+t.m+'</p></div><div class="btns" style="margin:0;align-items:center"><button class="btn small primary" data-a="tip" data-k="'+t.id+'">Got it</button>'+(S.mode==='town'?'<button class="linkbtn" data-a="cxgo" data-k="'+tipCx(t)+'">Read more in the Codex</button>':'')+'<button class="linkbtn" data-a="tipsoff">Stop showing tips</button></div></div>';
 }
 // First steps: a short guide that ticks itself off as you play. Every rule and number lives in the Codex.
 const FIRST_STEPS=[
@@ -591,7 +591,7 @@ const FIRST_STEPS=[
 const HELP_LATER=()=>[
   ['Town and bounties','Once '+OPEN_AT.town+' gates are cleared: buildings, the Flesh Pit, the Reserve (a bench of '+RESERVE_BASE+' places for spare minions) and a board of up to three contracts.',townOpen()],
   ['Salvage and enchanting','At level 6 or once you have bone dust: break spare gear into dust and add bonus lines.',workOpen()],
-  ['Faith','Once '+OPEN_AT.faith+' gates are cleared, from level '+FAITH_LV+', the Pantheon (Town tab) takes an oath to one of four Old Gods or to none: devotion grows with deeds, every rank gives a boon, and each god asks a vow.',faithOpen()],
+  ['Faith','Once '+OPEN_AT.faith+' gates are cleared, from level '+FAITH_LV+', the Pantheon (Town tab) takes an oath to one of five Old Gods or to none: devotion grows with deeds, every rank gives a boon, and each god asks a vow.',faithOpen()],
   ['The Hell Tower','Once '+OPEN_AT.tower+' gates are cleared, from level '+TW.unlock+': one fight per floor and a unique on every tenth floor.',towerOpen()],
   ['Harder gates','A cleared gate offers Hard, then Brutal and Nightmare: stronger foes, bigger rewards.',DUNGEONS.some((D,i)=>heatMax(i)>0)],
   ['Cursed gates','Each day one cleared gate is cursed: harder, and pays more.',DUNGEONS.some((D,i)=>S.ti&&S.ti.clr&&S.ti.clr[i])],
@@ -775,6 +775,22 @@ function histDetail(x){   // the expandable line under a run; runs from before t
   if(out.length&&!x.siege&&x.g>=0) out.push('<div><span>Difficulty</span> <b>'+(HEAT[x.heat||0]?HEAT[x.heat||0].name:'Normal')+'</b></div>');
   return out.length?'<details class="h-det"><summary>Details</summary>'+out.join('')+'</details>':'';
 }
+// ----- R18: the lost room, turn by turn (game-lost.js): on the defeat screen and in the History
+const escH=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+function lostHTML(x){
+  if(!x) return ''; const T={}; for(const [t,m,c] of x.turns) (T[t]=T[t]||[]).push([m,c]);
+  const ts=Object.keys(T).map(Number).sort((a,b)=>a-b), sh=lostShown(x), an=lostAnswers(x), kn=lostKnew(x);
+  const row=t=>{ const h=x.hp[t]; return '<li><b>Turn '+t+'</b>'+(h?' <span class="u-sub">You '+h[0]+'/'+h[1]+' HP &middot; army '+h[2]+'/'+h[3]+' standing</span>':'')
+    +'<ul>'+T[t].map(([m,c])=>'<li class="'+escH(c)+'">'+escH(m)+'</li>').join('')+'</ul></li>'; };
+  return '<div class="lost"><p class="group-h">The lost room &middot; '+lostWhere(x)+' &middot; Day '+x.d+' &middot; Level '+x.lv+'</p>'+felledHTML(x.fb)
+   +((sh||an.length||kn)?'<dl class="lost-q">'+(sh?'<dt>Was it shown?</dt><dd>'+sh+'</dd>':'')+(an.length?'<dt>The answers</dt><dd>'+an.join(' ')+'</dd>':'')+(kn?'<dt>The bestiary</dt><dd>'+kn+'</dd>':'')+'</dl>':'')
+   +(x.foes.length?'<p class="u-sub">Still standing: '+x.foes.map(f=>cleanText(f.n)+' '+f.hp+'/'+f.mx).join(', ')+'</p>':'')
+   +(ts.length?'<ol class="lost-turns">'+ts.map(row).join('')+'</ol>':'<p class="q-note">No turns were written down.</p>')+'</div>';
+}
+function lostListHTML(){   // the History: the last falls, each opening its room
+  const L=S.lost||[]; if(!L.length) return '';
+  return '<p class="group-h">Why you fell &middot; the last '+L.length+'</p><ul class="lost-list">'+L.map((x,i)=>'<li><span>Day '+x.d+' &middot; '+lostWhere(x)+'</span><button class="btn small" data-a="lostv" data-k="'+i+'" aria-expanded="'+(ui.lostV===i)+'">'+(ui.lostV===i?'Hide the room':'See the room')+'</button>'+(ui.lostV===i?lostHTML(x):'')+'</li>').join('')+'</ul>';
+}
 function histHTML(){
   const L=S.life||{}, n=v=>(v||0).toLocaleString(), H=(S.hist||[]).slice().reverse();
   const where=h=>h.trial&&DUNGEONS[h.g]?'Trial, week '+h.trial+' &middot; '+DUNGEONS[h.g].name:h.siege?'Siege on the necropolis':h.g<0?'Hell Tower, floor'+(h.f1>h.f0?'s '+h.f0+'&ndash;'+h.f1:' '+h.f0):h.rift?'The Rift, depth '+h.rift+(h.rr?' &middot; new deepest':''):DUNGEONS[h.g].name;
@@ -788,13 +804,13 @@ function histHTML(){
    +histStatsHTML(L)
    +(()=>{ const sl=SECRET.filter((B,i)=>T_('secret_'+i)); return sl.length?'<p class="group-h">Secret masters slain &middot; '+sl.length+'/'+SECRET.length+'</p><div class="sec-list">'+sl.map(B=>'<span class="sec-k">&#9760; '+B.name+(T_('secret_'+secretOf(B.name))>1?' x'+T_('secret_'+secretOf(B.name)):'')+'</span>').join('')+'</div>':''; })()
    +'<p class="group-h">Last '+HIST_N+' runs</p>';
-  if(!H.length) return h+'<p class="lede">No runs yet. Enter a gate and the ledger will remember it.</p></section>';
+  if(!H.length) return h+'<p class="lede">No runs yet. Enter a gate and the ledger will remember it.</p>'+lostListHTML()+'</section>';
   return h+'<div class="hist-wrap"><table class="hist"><thead><tr><th>Day</th><th>Where</th><th>Result</th><th class="num">Turns</th><th class="num">Rooms</th><th class="num">Kills</th><th class="num">XP</th><th class="num">Gold</th><th class="num">Gear</th><th class="num">Raised</th></tr></thead><tbody>'
    +H.map(x=>'<tr><td class="num">'+x.d+'</td><td>'+where(x)+(x.mod&&MODS[x.mod]?' <span class="dim">('+MODS[x.mod].name+')</span>':'')
      +(x.heat&&HEAT[x.heat]?' <span class="dim">'+HEAT[x.heat].name+'</span>':'')+(x.om&&OMENS[x.om]?' <span class="dim h-om">'+OMENS[x.om].name+'</span>':'')+(x.sec?'<div class="sec-k">&#9760; '+x.sec+' slain</div>':'')+histDetail(x)
      +'</td><td class="res-'+x.res+'">'+(x.siege&&x.res==='cleared'?'Held':RES[x.res]||x.res)+(x.bo&&!x.sec?'<div class="u-sub h-bo">'+(x.bo[1]?'&#9760; ':'')+cleanText(x.bo[0])+'</div>':'')+'</td><td class="num">'+(x.tt?x.tt:'&ndash;')+'</td><td class="num">'+x.rooms+'</td><td class="num">'+x.kills+'</td><td class="num">'
      +n(x.xp)+'</td><td class="num">'+n(x.gold)+'</td><td class="num">'+x.items+'</td><td class="num">'+x.raised+'</td></tr>').join('')
-   +'</tbody></table></div></section>';
+   +'</tbody></table></div>'+lostListHTML()+'</section>';
 }
 
 // ----- brewing, run prep, commissions and the black market (game-brew.js)

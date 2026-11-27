@@ -1,5 +1,5 @@
 // ----- dungeon runs
-function log(m,c){ const r=S.run; r.log.unshift({m,c:c||''}); r.log.length=Math.min(r.log.length,10); }
+function log(m,c){ const r=S.run; r.log.unshift({m,c:c||''}); r.log.length=Math.min(r.log.length,10); tjLog(r,m,c); }   /* the turn journal for Why did I lose (game-lost.js) */
 function makeEnemy(di,lvl,boss){
   const D=DUNGEONS[di]; let name,role,hf=1,af=1;
   if(boss){ name=D.boss[0]; role=D.boss[1]; }
@@ -53,7 +53,7 @@ function spawnRoom(){
   if(S.run.tw){ plogEnter('floor'); return chSeeded(spawnFloor,CH_SYS.floor,S.run.tw); }   /* challenge codes and the play log (game-playlog.js) */
   const r=S.run, room=r.room, boss=roomBoss(r,room);
   const list=(!boss&&r.pre&&r.pre[r.roomKind])||buildRoom(room,r.roomKind); r.pre=null;   // a door's room was rolled with the doors: what it showed is what waits
-  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; delete r.lcU; delete r.mirU; delete r.mirS; delete r.flU; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null; curseRoom(r); roomStart(list); plogEnter(r.roomKind,PLOG_OF); PLOG_OF=null;   /* Hunger (game-valley.js) */
+  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.tj=[]; r.tjh={}; r.fx={}; r.target=list[0].id; delete r.lcU; delete r.mirU; delete r.mirS; delete r.flU; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null; curseRoom(r); roomStart(list); plogEnter(r.roomKind,PLOG_OF); PLOG_OF=null;   /* Hunger (game-valley.js) */
   log(boss?(list[0].rival?list[0].name+' stands where the master should be, with their own dead around them.':list[0].secret?'The air turns wrong. This is not the master you came for.':'The air thickens. Something large waits ahead.'):(r.trial?'Trial, room ':'Room ')+(room+1)+' of '+r.rooms+(r.roomKind==='elite'?', behind the bloodied arch. These foes are stronger.':'.'));
   if(boss){ bossSpeaks(list[0],'hi'); fxe('boss',list[0]); }
   if(hasFlag('infernal')) infernalWard();
@@ -289,7 +289,7 @@ function act(kind){
   tickDots(); if(P.hp<=0&&playerFalls()) return;
   if(P.hp<hpBefore){ sfx('hurt'); if(hpBefore-P.hp>=pMax()*.2) ui.shake=true; }   // a heavy turn shakes the screen
   checkDeaths(); if(!liveFoes().length){ roomWon(); return; }
-  r.turn++; if(!hasRunMod('drought')){ let g=1+G('regen')+sk('soulwell')+(hasMod('deathless','a')?DEEP_REGEN:0); g=rbLungs(sigRegen(g)); if(omen()==='soulstorm'){ r.mf=(r.mf||0)+g*STORM_REGEN; const x=Math.floor(r.mf); r.mf-=x; g+=x; } P.mana=Math.min(pMana(),P.mana+g); } skillTick();   // Soul Storm: +20%, the fractions carried
+  tjTurn(r); r.turn++; if(!hasRunMod('drought')){ let g=1+G('regen')+sk('soulwell')+(hasMod('deathless','a')?DEEP_REGEN:0); g=rbLungs(sigRegen(g)); if(omen()==='soulstorm'){ r.mf=(r.mf||0)+g*STORM_REGEN; const x=Math.floor(r.mf); r.mf-=x; g+=x; } P.mana=Math.min(pMana(),P.mana+g); } skillTick();   // Soul Storm: +20%, the fractions carried
   echoTurn(); mfTurn(); bossEndTurn(); hfTurn();   /* Undone shieldbearers (game-kits.js), boss hazards (game-boss-kits.js) */
   if(!liveFoes().length){ checkDeaths(); if(S.mode==='battle'&&!liveFoes().length){ roomWon(); return; } }   /* a Bomber echo dragged under by a boss hazard can burst the last foes */
   if(hasFlag('halo')) allies().forEach(a=>{ if(a.hp>0) healAlly(a,Math.round((a.id==='p'?pMax():a.maxHp)*.04)); });
@@ -350,7 +350,7 @@ function defeat(){
   ironFall(r);   /* Ironman: the run's spoils and one of the fallen (game-modes.js) */
   S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); });
   if(rivalStanding(r)) rivalLost(r); if(reckStanding(r)) reckLost(r); nemBirth(r);   /* a foe that downed a Greater minion may live on (game-nemesis.js) */
-  if(r.blow) r.felled=r.blow; plogDeath(r);   /* the play log (game-playlog.js) */
+  if(r.blow) r.felled=r.blow; plogDeath(r); lostRecord(r);   /* Why did I lose (game-lost.js) */   /* the play log (game-playlog.js) */
   if(r.wk) notify('The weekly dive ends at depth '+(r.wkD||0)+'. It costs you no XP.','bad'); else notify('You were dragged out of '+(r.tw?'the Hell Tower on floor '+r.tw:'the '+DUNGEONS[r.di].name)+'. That room\'s spoils are lost, and you lose '+Math.round(DIFF.deathXp*100)+'% of a level in XP.','bad');
 }
 // ----- the fall: the blow that felled you, and Instant Retry
