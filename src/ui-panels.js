@@ -115,8 +115,10 @@ function salvJunkHTML(){
   const n=j.reduce((a,it)=>a+dustValue(it),0);
   return '<button class="btn small" data-a="sjunk">'+(ui.confirm==='sjunk'?'Press again to salvage '+j.length+' for '+dust(n):'Salvage junk &middot; '+dust(n))+'</button>';
 }
+const BAG_PAGE=60;   // R18: a long bag shows BAG_PAGE pieces at a time ("Show more"), so a late save's Gear tab stays quick
 function bagHTML(){
-  const rows=sortedBag().map(it=>{ const d=ITEM[it.id], cur=S.equip[d.slot], conf=ui.confirm==='d'+it.u;
+  const all=sortedBag(), n=Math.max(BAG_PAGE,ui.bagN|0), more=all.length-n;
+  const rows=all.slice(0,n).map(it=>{ const d=ITEM[it.id], cur=S.equip[d.slot], conf=ui.confirm==='d'+it.u;
     return itemCard(it,'<button class="btn small primary" data-a="equip" data-k="'+it.u+'">'+(cur?'Swap':'Equip')+'</button>'+(d.uq?'':lockBtn(it))
       +reforgeBtn(it)
       +(d.uq||it.lk?'':(workOpen()?'<button class="btn small" data-a="salvage" data-k="'+it.u+'" title="Break it into bone dust">Salvage &middot; '
@@ -126,7 +128,8 @@ function bagHTML(){
    +'<p class="lede">Uniques ignore the bag limit. Green lines are bonus rolls.</p>'
    +(ui.msg&&ui.msg.mk?'<div class="note '+(ui.msg.c||'')+'"><span>'+ui.msg.m+'</span></div>':'')
    +(S.inv.length?'<div class="bag-tools">Sort: '+Object.keys(BAG_SORTS).map(k=>'<button class="linkbtn" data-a="sort" data-k="'+k+'" aria-pressed="'+((ui.sort||'tier')===k)+'">'+BAG_SORTS[k]+'</button>').join('')+junkHTML()+salvJunkHTML()+tierBulkHTML('salv')+'</div>':'')
-   +(rows?'<div class="items">'+rows+'</div>':'<p class="lede">Empty. Kill things and clear rooms to fill it.</p>')+'</section>';
+   +(rows?'<div class="items">'+rows+'</div>':'<p class="lede">Empty. Kill things and clear rooms to fill it.</p>')
+   +(more>0?'<div class="btns"><button class="btn small" data-a="bagmore">Show '+Math.min(BAG_PAGE,more)+' more ('+more+' not shown)</button></div>':'')+'</section>';
 }
 const traitTip=(m,t)=>TRAITS[t].desc+(TRAITS[t].story?' '+TRAITS[t].story:'')+(m.cd&&CORPSE_CONDS[m.cd]&&CORPSE_CONDS[m.cd].trait===t?' '+CORPSE_CONDS[m.cd].story:'');   // a death trait tells how its body died
 function traitChips(m){
@@ -280,7 +283,7 @@ function armorTag(a){   // foe armor with its rule spelled out (pierceMul): hove
   return '<span class="armor-tag" title="'+t+'.">armor '+p+'%<span class="sr-only">. '+t+'.</span></span>';
 }
 function resTag(res,hits){   // where foes stand against your damage types (placeRes) and what their strikers hit with: chips with the rule in the hover
-  res=res||{}; const nm=t=>'<b class="dt dt-'+t+'">'+DTYPE[t].name+'</b>', grp=(lab,l)=>l.length?'<span class="dt-g">'+lab+': '+l.map(nm).join(', ')+'</span>':'';
+  res=res||{}; const nm=t=>'<b class="dt dt-'+t+'">'+dtGlyph(t)+DTYPE[t].name+'</b>', grp=(lab,l)=>l.length?'<span class="dt-g">'+lab+': '+l.map(nm).join(', ')+'</span>':'';
   const w=DT_IDS.filter(t=>res[t]<0), r=DT_IDS.filter(t=>res[t]>0&&res[t]<.5), rs=DT_IDS.filter(t=>res[t]>=.5);
   const parts=[grp('Weak',w),grp('Resists',r),grp('Resists strongly',rs),hits&&hits!=='phys'?grp('Strikers deal',[hits]):''].filter(Boolean); if(!parts.length) return '';
   return '<span class="dt-tag" title="Weak: takes 25% more damage of that type. Resists: takes 25% less. Resists strongly: takes 50% less. Strikers deal: the damage type of their hits; your resistance lines soften it.">'+parts.join(' &middot; ')+'</span>';
@@ -630,8 +633,8 @@ function saveTabHTML(){
    +'<button class="btn small'+(MUSIC.on?'':' primary')+'" data-a="music" aria-pressed="'+MUSIC.on+'">'+(MUSIC.on?'Turn off':'Turn on')+'</button></div></div>'
    +'<p class="group-h">Language</p><div class="tt-row"><div><h4>Language</h4><div class="u-sub">Names of places, foes and items stay in English.</div></div><div class="btns" style="margin:0">'
      +Object.keys(LANGS).map(k=>'<button class="btn small'+(VIEW.lang===k?' primary':'')+'" data-a="view" data-k="lang|'+k+'" aria-pressed="'+(VIEW.lang===k)+'" lang="'+k+'">'+LANGS[k]+'</button>').join('')+'</div></div>'
-   +'<p class="group-h">Display</p><div class="items"><div class="tt-row"><div><h4>Size</h4><div class="u-sub">Compact fits more on a phone: smaller text, tighter spacing and tabs on one swipeable line'+(window.innerWidth<=540&&VIEW.size!==-1?' (recommended on this screen)':'')+'. Large and Larger make the whole page bigger.</div></div><div class="btns" style="margin:0">'
-   +[['Compact',-1],['Normal',0],['Large',1],['Larger',2]].map(([t,i])=>'<button class="btn small'+(VIEW.size===i?' primary':'')+'" data-a="view" data-k="size|'+i+'" aria-pressed="'+(VIEW.size===i)+'">'+t+'</button>').join('')+'</div></div>'
+   +'<p class="group-h">Display</p><div class="items"><div class="tt-row"><div><h4>Text size</h4><div class="u-sub">90% is the compact view: it fits more on a phone, with tighter spacing and tabs on one swipeable line'+(window.innerWidth<=540&&VIEW.size!==-1?' (recommended on this screen)':'')+'. 110% to 130% make the whole page bigger.</div></div><div class="btns" style="margin:0">'
+   +[['90%',-1],['100%',0],['110%',1],['120%',2],['130%',3]].map(([t,i])=>'<button class="btn small'+(VIEW.size===i?' primary':'')+'" data-a="view" data-k="size|'+i+'" aria-pressed="'+(VIEW.size===i)+'">'+t+'</button>').join('')+'</div></div>'
    +'<div class="tt-row'+(VIEW.calm?' on':'')+'"><div><h4>Reduce motion</h4><div class="u-sub">Stops embers, flames, pulses and shake.</div></div><button class="btn small'+(VIEW.calm?'':' primary')+'" data-a="view" data-k="calm" aria-pressed="'+VIEW.calm+'">'+(VIEW.calm?'Turn off':'Turn on')+'</button></div>'
    +'<div class="tt-row'+(VIEW.notitle?'':' on')+'"><div><h4>Title screen</h4><div class="u-sub">The drowned chapel when the page opens.</div></div><button class="btn small'+(VIEW.notitle?' primary':'')+'" data-a="view" data-k="notitle" aria-pressed="'+!VIEW.notitle+'">'+(VIEW.notitle?'Turn on':'Turn off')+'</button></div>'
    +'<div class="tt-row'+(VIEW.nobg?'':' on')+'"><div><h4>Backgrounds</h4><div class="u-sub">Painted scenes and boss arenas.</div></div><button class="btn small'+(VIEW.nobg?' primary':'')+'" data-a="view" data-k="nobg" aria-pressed="'+!VIEW.nobg+'">'+(VIEW.nobg?'Turn on':'Turn off')+'</button></div>'
@@ -659,6 +662,7 @@ function saveTabHTML(){
   h+='</div><p class="group-h">Save file</p><p class="q-note">Download your game as a small file to keep as a backup or move to another browser, then load it back here.</p>'
    +'<div class="btns"><button class="btn small primary" data-a="dlsave">Download save file</button><label class="btn small filebtn">Load a save file<input type="file" id="loadfile" accept=".txt,.json,text/plain,application/json"></label></div>'
    +(ui.file?'<div class="btns"><button class="btn small warn" data-a="loadfile">'+(ui.confirm==='lf'?'Press again: '+ui.file.name+' replaces your current game':'Load '+ui.file.name)+'</button><button class="linkbtn" data-a="dropfile">Cancel</button></div>':'');
+  h+='<p class="u-sub save-size">Save size: '+Math.max(1,Math.round((TAB.size||0)/1024)).toLocaleString()+' KB'+(TAB.size>SAVE_WARN?' &middot; <b class="bad">large: download a save file</b>':'')+'</p>';   /* R18 */
   h+='<p class="group-h">Save code</p><p class="q-note">Copy this text somewhere safe. Pasting it back restores this exact character.</p>'
    +(ui.exp?'<textarea id="exp" class="codebox" readonly rows="4">'+ui.exp+'</textarea><div class="btns"><button class="btn small primary" data-a="copycode">Copy code</button></div>'
      :'<div class="btns"><button class="btn small primary" data-a="mkcode">Create save code</button></div>')

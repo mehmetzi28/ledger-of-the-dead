@@ -446,7 +446,7 @@ i,em{font-style:normal}
   .unit .u-sub{font-size:12px}
   .actbar{position:sticky;bottom:0;z-index:2;margin:10px -12px 0;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));background:linear-gradient(0deg,rgba(8,7,6,.97) 70%,rgba(8,7,6,.85));border-top:1px solid var(--line);gap:8px}
   .actbar .btns{gap:6px}
-  .actbar .pstrip{display:flex;gap:3px;height:6px;margin:0 0 6px}
+  .actbar .pstrip{display:flex;gap:3px;height:6px;margin:0 0 6px;overflow:hidden}   /* R18: a large army thins its pips instead of widening the bar */
   .actbar .btn{flex:1 1 calc(50% - 6px);min-height:40px;padding:9px 8px;font-size:12px;letter-spacing:.08em}
   .actbar kbd{display:none}
   .tabs kbd,.tabs .keyhint{display:none}
@@ -583,7 +583,7 @@ kbd{border:0;background:rgba(0,0,0,.35);border-radius:3px;padding:1px 5px;opacit
 .danger-easy{color:var(--mute)}.danger-fair{color:var(--ok)}.danger-hard{color:var(--ember)}.danger-deadly{color:var(--blood-text)}
 .gate .meta .rec-lv{color:var(--bone)}.armor-tag{cursor:help;border-bottom:1px dotted currentColor}
 .kit{color:#e0b878;cursor:help;border-bottom:1px dotted currentColor}.kit.unk{color:var(--mute)}.kit-st{font-size:.85em;color:var(--mute)}.intent.i-shield,.strip .c-i.i-shield{color:var(--ward)}
-.dt-tag{cursor:help;border-bottom:1px dotted currentColor}.dt-tag .dt-g+.dt-g{margin-left:0}.dt{font-weight:600}.dt-phys{color:#d8c8a8}.dt-shad{color:#b48cf0}.dt-frost{color:#8fd0ff}.dt-fire{color:#ff8a4c}.dt-rot{color:#a8d05a}
+.dt-tag{cursor:help;border-bottom:1px dotted currentColor}.dt-tag .dt-g+.dt-g{margin-left:0}.dt{font-weight:600}.dt-phys{color:#c9b28a}.dt-shad{color:#8a7a76}.dt-frost{color:#eef6f4}.dt-fire{color:#e25a24}.dt-rot{color:#dde27a}
 .sg-fres svg,.sg-fdmg svg{color:#ff8a4c}.sg-frres svg,.sg-frdmg svg{color:#8fd0ff}.sg-rres svg,.sg-rdmg svg{color:#a8d05a}.sg-sres svg,.sg-sdmg svg{color:#b48cf0}
 .u-tag,.i-tag{font:500 12px/1.2 var(--font-body)}
 .u-name{font-weight:600}
@@ -607,7 +607,7 @@ kbd{border:0;background:rgba(0,0,0,.35);border-radius:3px;padding:1px 5px;opacit
 .event-box p{margin:0;font:400 16px/1.4 var(--font-lore)}
 .curse-line{display:block;margin-top:6px;color:#ff9a78}
 .farm-line{margin-top:4px;font-size:13px}
-.pstrip{display:none}.pt{flex:1 1 0;max-width:44px;min-width:8px;background:rgba(0,0,0,.55);border:1px solid var(--line);overflow:hidden}.pt b{display:block;height:100%;background:var(--soul)}.pt.low b{background:var(--blood)}.pt.down{opacity:.3}
+.pstrip{display:none}.pt{flex:1 1 0;max-width:44px;min-width:0;background:rgba(0,0,0,.55);border:1px solid var(--line);overflow:hidden}.pt b{display:block;height:100%;background:var(--soul)}.pt.low b{background:var(--blood)}.pt.down{opacity:.3}
 .a-dens{display:inline-flex;gap:10px;margin-left:auto}.a-dens .linkbtn.on{color:var(--bone);text-decoration:none}
 .army.compact{gap:4px}
 .mrow{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto;grid-template-areas:"ico rk name role st" "ico hp hp hp acts";align-items:center;gap:3px 8px;padding:5px 8px;min-width:0;border:1px solid rgba(63,107,43,.5);background:var(--panel-2);font:500 13px/1.3 var(--font-body)}
@@ -726,7 +726,7 @@ body.calm .moment{animation:none}
 .chron p{margin:8px 0 2px;font:400 16px/1.5 var(--font-lore);color:var(--bone)}
 .filebtn{position:relative;overflow:hidden;cursor:pointer}.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
 /* display settings */
-body.ts1 #app{zoom:1.12}body.ts2 #app{zoom:1.25}
+body.ts1 #app{zoom:1.1}body.ts2 #app{zoom:1.2}body.ts3 #app{zoom:1.3}   /* R18: text size 90-130% */
 /* Compact (Settings > Size): fits more on a phone screen */
 body.compact{padding-block:10px 40px}
 body.compact #app{zoom:.9}
@@ -1291,6 +1291,12 @@ body.cv-skin .win{border-color:#9a7a66;box-shadow:inset 0 0 0 2px rgba(154,122,1
 .lost-turns ul{margin:2px 0 0;padding-left:16px;font-size:.92em}.lost-turns .bad{color:var(--bad,#e5776a)}.lost-turns .ok{color:var(--ok,#9fd47a)}
 .lost-list{list-style:none;padding:0;margin:0}.lost-list>li{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--line)}.lost-list>li>.lost{flex-basis:100%}
 @media (max-width:520px){.lost-q{grid-template-columns:1fr}}
+/* R18: a tooltip opened by a tap on a touch screen */
+#tsheet{position:fixed;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:30;max-width:560px;margin:0 auto;padding:12px 14px;border:1px solid var(--trim-hi,#a8843f);border-radius:10px;background:rgba(14,12,10,.98);color:var(--ink,#e8dcc8);font:400 14px/1.45 var(--font-body);box-shadow:0 8px 30px rgba(0,0,0,.6)}
+#tsheet[hidden]{display:none}
+/* R18: long lists on a late save: the browser skips laying out cards that are off screen */
+.items>.item{content-visibility:auto;contain-intrinsic-size:auto 150px}
+.army>.unit,.army>.mport,.army>.trow{content-visibility:auto;contain-intrinsic-size:auto 190px}
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
@@ -1888,9 +1894,9 @@ function snapshot(){
   return c;
 }
 // TAB guards against two open tabs overwriting each other: when another tab saves, this one stops saving until you reload.
-const TAB={blocked:false,last:null,out:null,bakDay:null};
+const TAB={blocked:false,last:null,out:null,bakDay:null,size:0,full:false}, SAVE_WARN=4e6;   // SAVE_WARN: a save past 4 MB is flagged (browsers keep about 5 MB a site)
 function save(){ if(TAB.blocked) return; try{ const t=S.savedAt; S.savedAt=0; const j=JSON.stringify(snapshot()); if(j===TAB.last&&localStorage.getItem(SAVE_KEY)===TAB.out){ S.savedAt=t; return; }   // nothing changed and the save is still there: no write
-  S.savedAt=Date.now(); const out=JSON.stringify(snapshot()); localStorage.setItem(SAVE_KEY,out); TAB.last=j; TAB.out=out; dayBackup(out); }catch(e){} plogTick(); }
+  S.savedAt=Date.now(); const out=JSON.stringify(snapshot()); TAB.size=out.length; try{ localStorage.setItem(SAVE_KEY,out); TAB.full=false; }catch(e){ TAB.full=true; return; } TAB.last=j; TAB.out=out; dayBackup(out); }catch(e){} plogTick(); }   /* R18: the save's size, and a write the browser refused (storage full) */
 // Earlier autosaves: the first save of each new day also goes into a ring of three (newest first), restorable from Settings.
 const BAK_N=3, bakKey=i=>SAVE_KEY+'-bak'+i;
 function bakRead(i){ try{ const r=localStorage.getItem(bakKey(i)); if(!r) return null; const g=JSON.parse(r); return g&&validSave(g.data)?g:null; }catch(e){ return null; } }
@@ -8228,8 +8234,8 @@ function plogStats(){   // what How I play shows: runs, deaths by cause, actions
 // each turn, where you and your army stood (S.run.tjh[turn]=[your HP, your max HP, minions standing, minions]). When you fall, the
 // room goes into S.lost (the last LOST_N falls, newest first) with the blow, the foes still standing and what the bestiary knew of
 // them then. The History tab and the defeat screen read it back turn by turn (ui-panels.js lostHTML). Reads the run, changes no rule.
-const TJ_MAX=120, LOST_N=3;
-function tjLog(r,m,c){ if(!r||!Array.isArray(r.tj)) return; r.tj.push([r.turn|0,String(m),c||'']); if(r.tj.length>TJ_MAX) r.tj.splice(0,r.tj.length-TJ_MAX); }
+const TJ_MAX=120, TJ_LINE=200, LOST_N=3;
+function tjLog(r,m,c){ if(!r||!Array.isArray(r.tj)) return; r.tj.push([r.turn|0,String(m).slice(0,TJ_LINE),c||'']); if(r.tj.length>TJ_MAX) r.tj.splice(0,r.tj.length-TJ_MAX); }
 function tjTurn(r){   // the end of a turn: where your side stands
   if(!r||!r.tjh||!S.player) return; const a=(S.army||[]).filter(m=>!m.thrall);
   r.tjh[r.turn|0]=[Math.max(0,Math.round(S.player.hp)),pMax(),a.filter(m=>m.hp>0).length,a.length];
@@ -9197,7 +9203,7 @@ const fxLight=()=>VIEW.fx==='light'||(VIEW.fx==='auto'&&((window.innerWidth||120
 try{
   const v=JSON.parse(localStorage.getItem('lotd-view')||'null');
   if(v&&typeof v==='object'){
-    VIEW.size=clamp(+v.size||0,-1,2);
+    VIEW.size=clamp(+v.size||0,-1,3);
     VIEW.calm=!!v.calm;
     VIEW.hc=!!v.hc;
     VIEW.nobg=!!v.nobg;
@@ -9773,13 +9779,14 @@ function fxStageStep(tk){
 // moment, every boss move's wind-up pose and who it threatens, and the evolution stages' looks. Everything here reads the
 // state and never changes it; the log line and the number always come with the effect.
 
-// ----- damage types: the colour of the number, a glyph beside it and the stage's burst (never blue or purple: the palette)
+// ----- damage types: the colour of the number, a glyph beside it and the stage's burst (never blue or purple: the palette).
+// R18: chosen to stay apart under protanopia, deuteranopia and tritanopia (a test simulates each), and always shown with the glyph.
 const DT_FX={
-  phys: {c:'#e8dcc8',x:0xe8dcc8,fx:'spark',g:[[5,0,7,7,5,10,3,7]]},
-  frost:{c:'#dfe6e2',x:0xdfe6e2,fx:'shard',g:[[5,0,6,4,10,5,6,6,5,10,4,6,0,5,4,4]]},
-  fire: {c:'#f0a05a',x:0xf0a05a,fx:'ember',g:[[5,0,8,5,7,9,3,9,2,5,4,4]]},
-  rot:  {c:'#b9b46a',x:0xb9b46a,fx:'mist', g:[[3,1,7,1,9,4,8,8,2,8,1,4]]},
-  shad: {c:'#a8968c',x:0xa8968c,fx:'ink',  g:[[6,0,3,2,2,5,3,8,6,10,4,7,4,3]]}
+  phys: {c:'#c9b28a',x:0xc9b28a,fx:'spark',g:[[5,0,7,7,5,10,3,7]]},
+  frost:{c:'#eef6f4',x:0xeef6f4,fx:'shard',g:[[5,0,6,4,10,5,6,6,5,10,4,6,0,5,4,4]]},
+  fire: {c:'#e25a24',x:0xe25a24,fx:'ember',g:[[5,0,8,5,7,9,3,9,2,5,4,4]]},
+  rot:  {c:'#dde27a',x:0xdde27a,fx:'mist', g:[[3,1,7,1,9,4,8,8,2,8,1,4]]},
+  shad: {c:'#8a7a76',x:0x8a7a76,fx:'ink',  g:[[6,0,3,2,2,5,3,8,6,10,4,7,4,3]]}
 };
 const glyphSVG=(g,c,cls)=>'<svg class="'+(cls||'dtg')+'" viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">'+g.map(p=>'<polygon points="'+p.join(',')+'" fill="'+c+'"/>').join('')+'</svg>';
 const dtGlyph=ty=>DT_FX[ty]?glyphSVG(DT_FX[ty].g,DT_FX[ty].c):'';
@@ -13791,11 +13798,26 @@ TR_RX.unshift(
  [/^(.+) was announced (\d+) turns? ahead \(Charging on its card\)$/,"$1 $2 tur önceden duyurulmuştu (kartında Yükleniyor)"],[/^(.+) was announced a turn ahead \(Charging on its card\)$/,"$1 bir tur önceden duyurulmuştu (kartında Yükleniyor)"],
  [/^(.+) lands without a warning$/,"$1 uyarısız iner"],[/^Felled by (.+)'s blow$/,"$1 darbesiyle düştün"]
 );
+
+// ----- R18 PR B: text size, save size, the phone
+[
+ ["Text size","Yazı boyutu"],["#% is the compact view: it fits more on a phone, with tighter spacing and tabs on one swipeable line","%# sıkışık görünümdür: telefona daha çok sığdırır, aralıklar daralır ve sekmeler kaydırılabilir tek satıra dizilir"],
+ ["#% is the compact view: it fits more on a phone, with tighter spacing and tabs on one swipeable line (recommended on this screen)","%# sıkışık görünümdür: telefona daha çok sığdırır, aralıklar daralır ve sekmeler kaydırılabilir tek satıra dizilir (bu ekranda önerilir)"],
+ ["#% to #% make the whole page bigger","%# ile %# arası tüm sayfayı büyütür"],["large: download a save file","büyük: bir kayıt dosyası indir"],
+ ["The browser refused the last save: its storage for this page is full. Download a save file from Settings now, then clear old save slots or backups","Tarayıcı son kaydı reddetti: bu sayfa için ayırdığı alan dolu. Hemen Ayarlar'dan bir kayıt dosyası indir, sonra eski kayıt yuvalarını ya da yedekleri temizle"]
+].forEach(([k,v])=>{ TR_DICT.set(k,v); });
+TR_RX.unshift([/^Save size: ([\d,.]+) KB$/,"Kayıt boyutu: $1 KB"],[/^Your save is ([\d.]+) MB, close to what a browser keeps for one page\. Download a save file from Settings to be safe$/,"Kaydın $1 MB; bir tarayıcının tek sayfa için tuttuğu sınıra yakın. Güvende olmak için Ayarlar'dan bir kayıt dosyası indir"]);
+TR_RX.unshift([/^Show (\d+) more \((\d+) not shown\)$/,"$1 tane daha göster ($2 gösterilmiyor)"]);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
+const phoneW=()=>typeof innerWidth==='number'&&innerWidth<=600;   // R18: a phone-width window (the short battle log)
+const TR_MEMO=new Map();   // R18: trText is a pure function of its text (the tables never change after load), so each text is worked out once
 function trText(s){
-  if(!s||!/[A-Za-z]/.test(s)) return s;
+  if(!s||!/[A-Za-z]/.test(s)) return s; const hit=TR_MEMO.get(s); if(hit!==undefined) return hit;
+  const v=trText1(s); if(TR_MEMO.size>20000) TR_MEMO.clear(); TR_MEMO.set(s,v); return v;
+}
+function trText1(s){
   const m=s.match(/^([\s·.,:;+\-−–]*)([\s\S]*?)([\s·.,:;!?\-–]*)$/), pre=m[1], core=m[2], post=m[3]; if(!core) return s;
   let v=trCore(core);
   if(v==null&&/\((vanguard|striker|mender|reaper)/.test(core)){ const r2=core.replace(/\((vanguard|striker|mender|reaper)(, gear-bearer)?\)/g,(x,a,b)=>'('+trCore(a)+(b?', '+trCore('gear-bearer'):'')+')'); if(r2!==core) v=r2; }   // creature lists: names stay, roles translate
@@ -13814,7 +13836,7 @@ function trDom(root){
   root.querySelectorAll('[title],[aria-label],[placeholder]').forEach(el=>{ for(const a of ['title','aria-label','placeholder']){ const v=el.getAttribute(a); if(v){ const t=trText(v); if(t!==v) el.setAttribute(a,t); } } });
 }
 function saveView(){ try{ localStorage.setItem('lotd-view',JSON.stringify(VIEW)); }catch(e){} }
-function applyView(){ const c=document.body.classList; c.toggle('compact',VIEW.size===-1); c.toggle('ts1',VIEW.size===1); c.toggle('ts2',VIEW.size===2); c.toggle('calm',VIEW.calm); c.toggle('hc',VIEW.hc); c.toggle('nobg',VIEW.nobg); c.toggle('lite',fxLight()); }
+function applyView(){ const c=document.body.classList; c.toggle('compact',VIEW.size===-1); c.toggle('ts1',VIEW.size===1); c.toggle('ts2',VIEW.size===2); c.toggle('ts3',VIEW.size===3); c.toggle('calm',VIEW.calm); c.toggle('hc',VIEW.hc); c.toggle('nobg',VIEW.nobg); c.toggle('lite',fxLight()); }
 // ----- save files: the same text as a save code, as a download
 function downloadSave(){
   try{ const code=exportCode(); if(!code) return false; const url=URL.createObjectURL(new Blob([code],{type:'text/plain'})), a=document.createElement('a');
@@ -14802,8 +14824,10 @@ function salvJunkHTML(){
   const n=j.reduce((a,it)=>a+dustValue(it),0);
   return '<button class="btn small" data-a="sjunk">'+(ui.confirm==='sjunk'?'Press again to salvage '+j.length+' for '+dust(n):'Salvage junk &middot; '+dust(n))+'</button>';
 }
+const BAG_PAGE=60;   // R18: a long bag shows BAG_PAGE pieces at a time ("Show more"), so a late save's Gear tab stays quick
 function bagHTML(){
-  const rows=sortedBag().map(it=>{ const d=ITEM[it.id], cur=S.equip[d.slot], conf=ui.confirm==='d'+it.u;
+  const all=sortedBag(), n=Math.max(BAG_PAGE,ui.bagN|0), more=all.length-n;
+  const rows=all.slice(0,n).map(it=>{ const d=ITEM[it.id], cur=S.equip[d.slot], conf=ui.confirm==='d'+it.u;
     return itemCard(it,'<button class="btn small primary" data-a="equip" data-k="'+it.u+'">'+(cur?'Swap':'Equip')+'</button>'+(d.uq?'':lockBtn(it))
       +reforgeBtn(it)
       +(d.uq||it.lk?'':(workOpen()?'<button class="btn small" data-a="salvage" data-k="'+it.u+'" title="Break it into bone dust">Salvage &middot; '
@@ -14813,7 +14837,8 @@ function bagHTML(){
    +'<p class="lede">Uniques ignore the bag limit. Green lines are bonus rolls.</p>'
    +(ui.msg&&ui.msg.mk?'<div class="note '+(ui.msg.c||'')+'"><span>'+ui.msg.m+'</span></div>':'')
    +(S.inv.length?'<div class="bag-tools">Sort: '+Object.keys(BAG_SORTS).map(k=>'<button class="linkbtn" data-a="sort" data-k="'+k+'" aria-pressed="'+((ui.sort||'tier')===k)+'">'+BAG_SORTS[k]+'</button>').join('')+junkHTML()+salvJunkHTML()+tierBulkHTML('salv')+'</div>':'')
-   +(rows?'<div class="items">'+rows+'</div>':'<p class="lede">Empty. Kill things and clear rooms to fill it.</p>')+'</section>';
+   +(rows?'<div class="items">'+rows+'</div>':'<p class="lede">Empty. Kill things and clear rooms to fill it.</p>')
+   +(more>0?'<div class="btns"><button class="btn small" data-a="bagmore">Show '+Math.min(BAG_PAGE,more)+' more ('+more+' not shown)</button></div>':'')+'</section>';
 }
 const traitTip=(m,t)=>TRAITS[t].desc+(TRAITS[t].story?' '+TRAITS[t].story:'')+(m.cd&&CORPSE_CONDS[m.cd]&&CORPSE_CONDS[m.cd].trait===t?' '+CORPSE_CONDS[m.cd].story:'');   // a death trait tells how its body died
 function traitChips(m){
@@ -14967,7 +14992,7 @@ function armorTag(a){   // foe armor with its rule spelled out (pierceMul): hove
   return '<span class="armor-tag" title="'+t+'.">armor '+p+'%<span class="sr-only">. '+t+'.</span></span>';
 }
 function resTag(res,hits){   // where foes stand against your damage types (placeRes) and what their strikers hit with: chips with the rule in the hover
-  res=res||{}; const nm=t=>'<b class="dt dt-'+t+'">'+DTYPE[t].name+'</b>', grp=(lab,l)=>l.length?'<span class="dt-g">'+lab+': '+l.map(nm).join(', ')+'</span>':'';
+  res=res||{}; const nm=t=>'<b class="dt dt-'+t+'">'+dtGlyph(t)+DTYPE[t].name+'</b>', grp=(lab,l)=>l.length?'<span class="dt-g">'+lab+': '+l.map(nm).join(', ')+'</span>':'';
   const w=DT_IDS.filter(t=>res[t]<0), r=DT_IDS.filter(t=>res[t]>0&&res[t]<.5), rs=DT_IDS.filter(t=>res[t]>=.5);
   const parts=[grp('Weak',w),grp('Resists',r),grp('Resists strongly',rs),hits&&hits!=='phys'?grp('Strikers deal',[hits]):''].filter(Boolean); if(!parts.length) return '';
   return '<span class="dt-tag" title="Weak: takes 25% more damage of that type. Resists: takes 25% less. Resists strongly: takes 50% less. Strikers deal: the damage type of their hits; your resistance lines soften it.">'+parts.join(' &middot; ')+'</span>';
@@ -15317,8 +15342,8 @@ function saveTabHTML(){
    +'<button class="btn small'+(MUSIC.on?'':' primary')+'" data-a="music" aria-pressed="'+MUSIC.on+'">'+(MUSIC.on?'Turn off':'Turn on')+'</button></div></div>'
    +'<p class="group-h">Language</p><div class="tt-row"><div><h4>Language</h4><div class="u-sub">Names of places, foes and items stay in English.</div></div><div class="btns" style="margin:0">'
      +Object.keys(LANGS).map(k=>'<button class="btn small'+(VIEW.lang===k?' primary':'')+'" data-a="view" data-k="lang|'+k+'" aria-pressed="'+(VIEW.lang===k)+'" lang="'+k+'">'+LANGS[k]+'</button>').join('')+'</div></div>'
-   +'<p class="group-h">Display</p><div class="items"><div class="tt-row"><div><h4>Size</h4><div class="u-sub">Compact fits more on a phone: smaller text, tighter spacing and tabs on one swipeable line'+(window.innerWidth<=540&&VIEW.size!==-1?' (recommended on this screen)':'')+'. Large and Larger make the whole page bigger.</div></div><div class="btns" style="margin:0">'
-   +[['Compact',-1],['Normal',0],['Large',1],['Larger',2]].map(([t,i])=>'<button class="btn small'+(VIEW.size===i?' primary':'')+'" data-a="view" data-k="size|'+i+'" aria-pressed="'+(VIEW.size===i)+'">'+t+'</button>').join('')+'</div></div>'
+   +'<p class="group-h">Display</p><div class="items"><div class="tt-row"><div><h4>Text size</h4><div class="u-sub">90% is the compact view: it fits more on a phone, with tighter spacing and tabs on one swipeable line'+(window.innerWidth<=540&&VIEW.size!==-1?' (recommended on this screen)':'')+'. 110% to 130% make the whole page bigger.</div></div><div class="btns" style="margin:0">'
+   +[['90%',-1],['100%',0],['110%',1],['120%',2],['130%',3]].map(([t,i])=>'<button class="btn small'+(VIEW.size===i?' primary':'')+'" data-a="view" data-k="size|'+i+'" aria-pressed="'+(VIEW.size===i)+'">'+t+'</button>').join('')+'</div></div>'
    +'<div class="tt-row'+(VIEW.calm?' on':'')+'"><div><h4>Reduce motion</h4><div class="u-sub">Stops embers, flames, pulses and shake.</div></div><button class="btn small'+(VIEW.calm?'':' primary')+'" data-a="view" data-k="calm" aria-pressed="'+VIEW.calm+'">'+(VIEW.calm?'Turn off':'Turn on')+'</button></div>'
    +'<div class="tt-row'+(VIEW.notitle?'':' on')+'"><div><h4>Title screen</h4><div class="u-sub">The drowned chapel when the page opens.</div></div><button class="btn small'+(VIEW.notitle?' primary':'')+'" data-a="view" data-k="notitle" aria-pressed="'+!VIEW.notitle+'">'+(VIEW.notitle?'Turn on':'Turn off')+'</button></div>'
    +'<div class="tt-row'+(VIEW.nobg?'':' on')+'"><div><h4>Backgrounds</h4><div class="u-sub">Painted scenes and boss arenas.</div></div><button class="btn small'+(VIEW.nobg?' primary':'')+'" data-a="view" data-k="nobg" aria-pressed="'+!VIEW.nobg+'">'+(VIEW.nobg?'Turn on':'Turn off')+'</button></div>'
@@ -15346,6 +15371,7 @@ function saveTabHTML(){
   h+='</div><p class="group-h">Save file</p><p class="q-note">Download your game as a small file to keep as a backup or move to another browser, then load it back here.</p>'
    +'<div class="btns"><button class="btn small primary" data-a="dlsave">Download save file</button><label class="btn small filebtn">Load a save file<input type="file" id="loadfile" accept=".txt,.json,text/plain,application/json"></label></div>'
    +(ui.file?'<div class="btns"><button class="btn small warn" data-a="loadfile">'+(ui.confirm==='lf'?'Press again: '+ui.file.name+' replaces your current game':'Load '+ui.file.name)+'</button><button class="linkbtn" data-a="dropfile">Cancel</button></div>':'');
+  h+='<p class="u-sub save-size">Save size: '+Math.max(1,Math.round((TAB.size||0)/1024)).toLocaleString()+' KB'+(TAB.size>SAVE_WARN?' &middot; <b class="bad">large: download a save file</b>':'')+'</p>';   /* R18 */
   h+='<p class="group-h">Save code</p><p class="q-note">Copy this text somewhere safe. Pasting it back restores this exact character.</p>'
    +(ui.exp?'<textarea id="exp" class="codebox" readonly rows="4">'+ui.exp+'</textarea><div class="btns"><button class="btn small primary" data-a="copycode">Copy code</button></div>'
      :'<div class="btns"><button class="btn small primary" data-a="mkcode">Create save code</button></div>')
@@ -16471,7 +16497,7 @@ function battleHTML(){
    +grpHTML('Potions',(DRINK_IDS.some(k=>S.belt[k])?'<div class="btns">'+DRINK_IDS.filter(k=>S.belt[k]&&(!pactOn('dry')||DRAUGHTS[k])).map(k=>{ const p=drinkDef(k), full=k==='hp'?P.hp>=pMax()&&!P.dots:k==='mp'?P.mana>=pMana():k==='blood'?allies().filter(u=>u.hp>0).every(u=>u.hp>=(u.id==='p'?pMax():u.maxHp)):false;
       return '<button class="btn potion" data-a="act" data-k="pot:'+k+'"'+(full?' disabled title="Already full"':' title="'+p.desc+'"')+'>'+p.name+' &times;'+S.belt[k]+'<kbd>'+p.key+'</kbd></button>'; }).join('')+'</div>':'')
    )
-   +'</div>'+logHTML(st)+'</div></div></section>';
+   +'</div>'+logHTML(st||phoneW())+'</div></div></section>';   /* R18: a phone shows the newest three lines too */
 }
 function slotsHTML(){ const n=slots(), u=armyUsed(); let s='<span class="slots" aria-label="'+u+' of '+n+' slots used">'; for(let i=0;i<n;i++) s+='<i class="slot'+(i<u?' on':'')+'"></i>'; return s+'</span>'; }
 function minionDetail(m){   // everything about one minion, readable without hovering
@@ -16949,13 +16975,15 @@ function titleHTML(){
   if(f&&f.dataset&&f.dataset.a) key='[data-a="'+f.dataset.a+'"]'+(f.dataset.k?'[data-k="'+f.dataset.k+'"]':'');
   let pips=''; for(let i=0;i<WATCHES;i++) pips+='<i class="pip'+(i<S.watches?' on':'')+'"></i>';
   const tabNote=TAB.blocked?'<div class="note bad tab-note"><span>This game was just saved from another tab. This tab has stopped saving so it cannot overwrite that progress. Close one of the tabs, or load the newer save here.</span><button class="btn small primary" data-a="tabsync">Load the newer save</button></div>':'';
+  const big=TAB.full?'<div class="note bad tab-note"><span>The browser refused the last save: its storage for this page is full. Download a save file from Settings now, then clear old save slots or backups.</span></div>'
+    :TAB.size>SAVE_WARN?'<div class="note bad tab-note"><span>Your save is '+(TAB.size/1e6).toFixed(1)+' MB, close to what a browser keeps for one page. Download a save file from Settings to be safe.</span></div>':'';   /* R18 */
   const mo=MOMENTS.length?'<div class="moments" role="status">'+MOMENTS.map(x=>'<div class="moment '+x.c+(x.k?' big '+x.k:'')+'">'+x.t+'</div>').join('')+'</div>':''; MOMENTS.length=0;
   if(ui.title){ paintApp('',titleHTML(),[],''); try{ scene(); }catch(e){} try{ music(); }catch(e){} return; }   /* R17: the title screen (ui-screens.js) */
   const main=S.mode==='battle'?battleHTML():S.mode==='raise'?raiseHTML():S.mode==='defeat'?defeatHTML():S.mode==='siege'?siegeHTML():townHTML();
   const hdr='<header class="top"><div class="brand"><svg class="sigil" viewBox="0 0 64 64" width="54" height="54" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="32" cy="32" r="30"/><circle cx="32" cy="32" r="24" stroke-dasharray="1.5 3.5"/><rect x="16" y="16" width="32" height="32"/><rect x="16" y="16" width="32" height="32" transform="rotate(45 32 32)"/><circle cx="32" cy="32" r="6"/><circle cx="32" cy="32" r="2" fill="currentColor"/></g></svg><div><h1>Ledger of the Dead</h1><p class="tag">Every name in this book answers to you.</p></div></div><div class="top-meta">'+(S.ngp?'<span class="ngp-b" title="New Game+">NG+'+S.ngp+'</span>':'')+'<span>Day '+S.day+'</span><span title="Gold">'+gold(S.gold)+'</span><span title="Each dungeon you enter uses a watch. When the third is spent, the day closes.">Watches<span class="pips" aria-label="'+S.watches+' of '+WATCHES+' watches left">'+pips+'</span></span></div>'
    +'<button class="gearbtn'+((ui.tab==='settings'&&S.mode==='town')?' on':'')+'" data-a="settings" aria-label="Settings" aria-pressed="'+(ui.tab==='settings'&&S.mode==='town')+'"'+(S.mode==='town'?' title="Settings: save, load, new game"':' disabled title="Settings open when you are back in town"')+'><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M10.3 2h3.4l.5 2.6c.6.2 1.2.5 1.7.9l2.5-.9 1.7 2.9-2 1.7c.1.6.1 1.3 0 1.9l2 1.7-1.7 2.9-2.5-.9c-.5.4-1.1.7-1.7.9l-.5 2.6h-3.4l-.5-2.6c-.6-.2-1.2-.5-1.7-.9l-2.5.9-1.7-2.9 2-1.7a6 6 0 0 1 0-1.9l-2-1.7 1.7-2.9 2.5.9c.5-.4 1.1-.7 1.7-.9zM12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z"/></svg></button></header>'
    ;
-  paintApp(hdr,tabNote+mo+tipHTML()+cxHeads(main),[goalsHTML(),questHTML(),statusHTML(),equipHTML(),townOpen()?bountyHTML():''].filter(Boolean).map(cxHeads),ui.keys?keysHTML():'');
+  paintApp(hdr,tabNote+big+mo+tipHTML()+cxHeads(main),[goalsHTML(),questHTML(),statusHTML(),equipHTML(),townOpen()?bountyHTML():''].filter(Boolean).map(cxHeads),ui.keys?keysHTML():'');
   try{ cxMark(app); if(document.documentElement) document.documentElement.lang=VIEW.lang; }catch(e){}
   if(key){ const n=app.querySelector(key); if(n){ n.focus({preventScroll:true}); if(n.tagName==='INPUT'&&n.type==='search'){ const l=n.value.length; try{ n.setSelectionRange(l,l); }catch(e){} } } }
   const scr=S.mode+'|'+(S.mode==='town'?ui.tab:(S.run?(S.run.tw||'g')+':'+S.run.room:''));   // entering a gate, a new room or another tab starts at the top
@@ -17045,7 +17073,7 @@ const ACTIONS={
   titlego:()=>{ ui.title=false; },
   titleslot:k=>{ if(ui.confirm!=='sl'+k){ ui.confirm='sl'+k; return; } ui.confirm=null; if(slotLoad(+k)){ ui.title=false; ui.msg={m:'Loaded slot '+k+'.',c:'ok'}; } },
   titlenew:()=>{ ui.title=false; ui.tab='settings'; S.mode==='town'&&(ui.confirm='new'); },
-  view:k=>{ const a=k.split('|'); if(a[0]==='size') VIEW.size=clamp(+a[1]||0,-1,2); else if(a[0]==='calm'||a[0]==='hc'||a[0]==='nobg'||a[0]==='notitle') VIEW[a[0]]=!VIEW[a[0]]; else if(a[0]==='lang'&&LANGS[a[1]]) VIEW.lang=a[1]; else if(a[0]==='fx'&&FX_MODES[a[1]]) VIEW.fx=a[1]; else if(a[0]==='army'&&(a[1]==='grid'||a[1]==='compact')) VIEW.army=a[1]; saveView(); applyView(); },
+  view:k=>{ const a=k.split('|'); if(a[0]==='size') VIEW.size=clamp(+a[1]||0,-1,3); else if(a[0]==='calm'||a[0]==='hc'||a[0]==='nobg'||a[0]==='notitle') VIEW[a[0]]=!VIEW[a[0]]; else if(a[0]==='lang'&&LANGS[a[1]]) VIEW.lang=a[1]; else if(a[0]==='fx'&&FX_MODES[a[1]]) VIEW.fx=a[1]; else if(a[0]==='army'&&(a[1]==='grid'||a[1]==='compact')) VIEW.army=a[1]; saveView(); applyView(); },
   dlsave:()=>{ ui.msg=downloadSave()?{m:'Save file downloaded.',c:'ok'}:{m:'This browser would not create the file. Use a save code instead.',c:'bad'}; },
   loadfile:()=>{ if(!ui.file) return; if(ui.confirm!=='lf'){ ui.confirm='lf'; return; } ui.confirm=null; const ok=importText(ui.file.text); ui.msg=ok?{m:'Loaded '+ui.file.name+'.',c:'ok'}:{m:ui.file.name+' is not a valid save.',c:'bad'}; ui.file=null; ui.exp=''; },
   dropfile:()=>{ ui.file=null; }, goal:k=>goGoal(k), fold:k=>{ if(!['equip','quest','bounty','goal'].includes(k)) return; if(VIEW.fold[k]) delete VIEW.fold[k]; else VIEW.fold[k]=true; saveView(); }, sort:k=>{ ui.sort=BAG_SORTS[k]?k:'tier'; }, mk:k=>{ ui.mk=k; ui.msg=null; },
@@ -17109,7 +17137,7 @@ const ACTIONS={
   ttf:k=>{ ui.ttf=(k in {all:1,got:1,locked:1,close:1}||/^r[0-5]$/.test(k))?k:'all'; },
   tower:k=>startTower(+k),
   act:k=>act(k),
-  target:k=>setTarget(k), logall:()=>{ ui.logAll=!ui.logAll; }, lostv:k=>{ ui.lostV=ui.lostV===+k?null:+k; },
+  target:k=>setTarget(k), logall:()=>{ ui.logAll=!ui.logAll; }, bagmore:()=>{ ui.bagN=Math.max(BAG_PAGE,ui.bagN|0)+BAG_PAGE; }, lostv:k=>{ ui.lostV=ui.lostV===+k?null:+k; },
   flee:()=>flee(),
   raise:k=>{ if(!vowAsk('raise')) tryRaise(k); }, descend:()=>descend(), town:()=>returnTown(), retry:()=>{ retryRoom(); }, rest:()=>restDay(),
   release:k=>{ if(ui.confirm===+k){ release(+k); ui.confirm=null; } else ui.confirm=+k; },
@@ -17157,6 +17185,13 @@ document.addEventListener('pointerover',e=>{ if(e.pointerType==='touch') return;
 document.addEventListener('pointerout',e=>{ if(e.target.closest&&e.target.closest('.sg[data-k]')) sgTipHide(); });
 document.addEventListener('pointerdown',e=>{ const g=e.target.closest&&e.target.closest('.sg[data-k]'); if(g&&e.pointerType==='touch'){ sgTipShow(g); clearTimeout(sgTimer); sgTimer=setTimeout(sgTipHide,2600); } else if(!g) sgTipHide(); });
 window.addEventListener('scroll',sgTipHide,{passive:true});
+// R18: on a touch screen, a tap on anything with a tooltip that is not itself a control opens the tooltip's text in a sheet at the
+// bottom of the screen (the text is already in the page's language); the next tap anywhere closes it
+let tsheet=null;
+function tsheetShow(t){ if(!tsheet){ tsheet=document.createElement('div'); tsheet.id='tsheet'; tsheet.setAttribute('role','status'); document.body.appendChild(tsheet); } tsheet.textContent=t; tsheet.hidden=false; }
+const tsheetHide=()=>{ if(tsheet) tsheet.hidden=true; };
+const tsheetFor=el=>{ const t=el&&el.closest&&el.closest('[title]'); return t&&!t.closest('button,a,input,select,textarea,summary,[data-a],.sg,#tsheet')?t.getAttribute('title'):null; };
+document.addEventListener('pointerup',e=>{ if(e.pointerType!=='touch') return; const t=tsheetFor(e.target); if(t&&!(tsheet&&!tsheet.hidden&&tsheet.textContent===t)) tsheetShow(t); else tsheetHide(); });
 window.addEventListener('storage',e=>{   // another tab of this game saved: stop saving here so neither overwrites the other
   if(e.key===SAVE_KEY&&e.newValue!=null&&!TAB.blocked){ TAB.blocked=true; try{ settled(); }catch(x){} } });
 window.addEventListener('resize',()=>{ if(VIEW.fx==='auto') try{ applyView(); }catch(e){} });   // Auto effects follow the window size

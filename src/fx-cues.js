@@ -4,13 +4,14 @@
 // moment, every boss move's wind-up pose and who it threatens, and the evolution stages' looks. Everything here reads the
 // state and never changes it; the log line and the number always come with the effect.
 
-// ----- damage types: the colour of the number, a glyph beside it and the stage's burst (never blue or purple: the palette)
+// ----- damage types: the colour of the number, a glyph beside it and the stage's burst (never blue or purple: the palette).
+// R18: chosen to stay apart under protanopia, deuteranopia and tritanopia (a test simulates each), and always shown with the glyph.
 const DT_FX={
-  phys: {c:'#e8dcc8',x:0xe8dcc8,fx:'spark',g:[[5,0,7,7,5,10,3,7]]},
-  frost:{c:'#dfe6e2',x:0xdfe6e2,fx:'shard',g:[[5,0,6,4,10,5,6,6,5,10,4,6,0,5,4,4]]},
-  fire: {c:'#f0a05a',x:0xf0a05a,fx:'ember',g:[[5,0,8,5,7,9,3,9,2,5,4,4]]},
-  rot:  {c:'#b9b46a',x:0xb9b46a,fx:'mist', g:[[3,1,7,1,9,4,8,8,2,8,1,4]]},
-  shad: {c:'#a8968c',x:0xa8968c,fx:'ink',  g:[[6,0,3,2,2,5,3,8,6,10,4,7,4,3]]}
+  phys: {c:'#c9b28a',x:0xc9b28a,fx:'spark',g:[[5,0,7,7,5,10,3,7]]},
+  frost:{c:'#eef6f4',x:0xeef6f4,fx:'shard',g:[[5,0,6,4,10,5,6,6,5,10,4,6,0,5,4,4]]},
+  fire: {c:'#e25a24',x:0xe25a24,fx:'ember',g:[[5,0,8,5,7,9,3,9,2,5,4,4]]},
+  rot:  {c:'#dde27a',x:0xdde27a,fx:'mist', g:[[3,1,7,1,9,4,8,8,2,8,1,4]]},
+  shad: {c:'#8a7a76',x:0x8a7a76,fx:'ink',  g:[[6,0,3,2,2,5,3,8,6,10,4,7,4,3]]}
 };
 const glyphSVG=(g,c,cls)=>'<svg class="'+(cls||'dtg')+'" viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">'+g.map(p=>'<polygon points="'+p.join(',')+'" fill="'+c+'"/>').join('')+'</svg>';
 const dtGlyph=ty=>DT_FX[ty]?glyphSVG(DT_FX[ty].g,DT_FX[ty].c):'';

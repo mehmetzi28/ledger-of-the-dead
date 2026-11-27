@@ -7,7 +7,7 @@ test('Music: a switch in Settings, remembered; picks a scene; silent without Web
 });
 test('Display: text size, reduced motion and high contrast apply and are remembered',()=>{
   const keep=Object.assign({},VIEW);
-  try{ ACTIONS.view('size|2'); eq(VIEW.size,2); ok(document.body.classList.contains('ts2')); ACTIONS.view('size|9'); eq(VIEW.size,2,'clamped'); ACTIONS.view('size|0'); ok(!document.body.classList.contains('ts2')); ACTIONS.view('size|-1'); eq(VIEW.size,-1,'compact'); ok(document.body.classList.contains('compact')); ACTIONS.view('size|-5'); eq(VIEW.size,-1,'clamped low'); ui.tab='settings'; ok(/data-k="size\|-1"[^>]*aria-pressed="true">Compact/.test(renderAll('compact'))); ACTIONS.view('size|0'); ok(!document.body.classList.contains('compact'));
+  try{ ACTIONS.view('size|2'); eq(VIEW.size,2); ok(document.body.classList.contains('ts2')); ACTIONS.view('size|9'); eq(VIEW.size,3,'clamped at 130%'); ok(document.body.classList.contains('ts3')); ACTIONS.view('size|0'); ok(!document.body.classList.contains('ts2')); ACTIONS.view('size|-1'); eq(VIEW.size,-1,'compact'); ok(document.body.classList.contains('compact')); ACTIONS.view('size|-5'); eq(VIEW.size,-1,'clamped low'); ui.tab='settings'; ok(/data-k="size\|-1"[^>]*aria-pressed="true">90%/.test(renderAll('compact'))); ACTIONS.view('size|0'); ok(!document.body.classList.contains('compact'));
     const c=VIEW.calm; ACTIONS.view('calm'); eq(VIEW.calm,!c); eq(document.body.classList.contains('calm'),VIEW.calm); ACTIONS.view('hc'); ok(document.body.classList.contains('hc')||!VIEW.hc);
     eq(JSON.parse(localStorage.getItem('lotd-view')).size,0); ui.tab='settings'; ok(/data-a="view" data-k="size\|1"/.test(renderAll('display'))); }
   finally{ Object.assign(VIEW,keep); saveView(); applyView(); }

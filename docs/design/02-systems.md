@@ -619,7 +619,16 @@ the Hunger (2.7).
   (Bestiary, Titles, Lore, Records, History, Memorial), Help, Settings. Keyboard shortcuts for every action (`?` lists them).
 - **Language**: English in the page, Turkish laid over it after each render (`tr.js`, ~2,450 lines of `TR_DICT` and
   `TR_RX`). Every new string needs a Turkish entry.
-- **Display settings**: text size, reduced motion, high contrast, light effects (per browser).
+- **Display settings**: text size (90% to 130% in five steps, R18), reduced motion, high contrast, light effects (per
+  browser). Damage types use colours that stay apart under protanopia, deuteranopia and tritanopia and always carry their
+  glyph (R18).
+- **Phones** (R18): one-thumb battle (the sticky command bar: actions, then skills, orders and potions as swipeable rows),
+  the battle log cut to its newest three lines with a toggle, and a tap on anything with a tooltip opens it in a sheet at
+  the bottom of the screen. `tools/mobile-check.js` (Playwright, run by hand) checks every tab, a fight and the raise
+  screen at 360 px for anything wider than the screen.
+- **Late saves** (R18): the bag shows 60 pieces at a time (Show more); off-screen item and minion cards skip layout
+  (`content-visibility`); Turkish text is worked out once per string (`TR_MEMO`). The save's size shows in Settings, and a
+  save past 4 MB, or a write the browser refused, warns on every screen.
 
 ## 2.11 Saves and safety
 

@@ -3,8 +3,8 @@
 // each turn, where you and your army stood (S.run.tjh[turn]=[your HP, your max HP, minions standing, minions]). When you fall, the
 // room goes into S.lost (the last LOST_N falls, newest first) with the blow, the foes still standing and what the bestiary knew of
 // them then. The History tab and the defeat screen read it back turn by turn (ui-panels.js lostHTML). Reads the run, changes no rule.
-const TJ_MAX=120, LOST_N=3;
-function tjLog(r,m,c){ if(!r||!Array.isArray(r.tj)) return; r.tj.push([r.turn|0,String(m),c||'']); if(r.tj.length>TJ_MAX) r.tj.splice(0,r.tj.length-TJ_MAX); }
+const TJ_MAX=120, TJ_LINE=200, LOST_N=3;
+function tjLog(r,m,c){ if(!r||!Array.isArray(r.tj)) return; r.tj.push([r.turn|0,String(m).slice(0,TJ_LINE),c||'']); if(r.tj.length>TJ_MAX) r.tj.splice(0,r.tj.length-TJ_MAX); }
 function tjTurn(r){   // the end of a turn: where your side stands
   if(!r||!r.tjh||!S.player) return; const a=(S.army||[]).filter(m=>!m.thrall);
   r.tjh[r.turn|0]=[Math.max(0,Math.round(S.player.hp)),pMax(),a.filter(m=>m.hp>0).length,a.length];

@@ -68,8 +68,8 @@ test('Damage types: Iron Rain toughens foes against physical, Soul Storm and dam
   ok(/resist 15% of physical/.test(OMENS.ironrain.desc)&&/shadow damage is 10% stronger/.test(OMENS.soulstorm.desc));
 });
 test('Damage types: the gate card, the Tower, the Rift and the battle show the profile; the Codex page; Turkish',()=>{
-  fresh(30); ui.tab='gates'; const g=renderAll('gates'); ok(/class="dt-tag"/.test(g)&&/Weak: <b class="dt dt-fire">Fire<\/b>/.test(g),'gate cards');
-  arena([foe({hp:1e6})],1); const b=renderAll('battle'); ok(/Weak: <b class="dt dt-frost">Frost<\/b>/.test(b)&&/Resists: <b class="dt dt-fire">Fire<\/b>/.test(b)&&/Strikers deal: <b class="dt dt-frost">/.test(b),'battle header');
+  fresh(30); ui.tab='gates'; const g=renderAll('gates'); ok(/class="dt-tag"/.test(g)&&/Weak: <b class="dt dt-fire"><svg class="dtg"[^]*?<\/svg>Fire<\/b>/.test(g),'gate cards');
+  arena([foe({hp:1e6})],1); const b=renderAll('battle'); ok(/Weak: <b class="dt dt-frost"><svg[^]*?<\/svg>Frost<\/b>/.test(b)&&/Resists: <b class="dt dt-fire"><svg[^]*?<\/svg>Fire<\/b>/.test(b)&&/Strikers deal: <b class="dt dt-frost">/.test(b),'battle header');
   const t=resTag(riftRes(4),GATE_HITS[5]); ok(/Weak:/.test(t)&&/Resists:/.test(t));
   ok(resTag(TOWER_RES,TOWER_HITS).includes('Resists strongly'),'the Tower resists fire strongly'); eq(resTag({},'phys'),'');
   ok(CODEX.some(c=>c[0]==='types')); const c=codexSection('types'); DUNGEONS.forEach(D=>ok(c.includes(D.name),D.name)); DT_IDS.forEach(t=>ok(c.includes(DTYPE[t].name)));

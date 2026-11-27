@@ -100,3 +100,48 @@ None; this round is measured by the timings and by the play log (R15) if a human
   so a save/load could change the game (found by the fuzzer). Works are now stored in table order.
 - **Measured**: no rule changed. Bots match R17 exactly (market 95% clears, Tower 83, Rift 22.4; full 94%, Tower 86.5).
 - **Tests**: `tests/groups/98-ux.js` (8 tests).
+
+### PR B: phones, late saves, accessibility
+- **Measured first, in a real browser.** `tools/mobile-check.js` (new; Playwright's Chromium, run by hand, since
+  run-tests needs no packages) builds the spec's late save (520 items, 60 minions, every title, 200 Memorial names),
+  checks every tab, a fight and the raise screen at 360 px for anything wider than the screen, and times each tab switch
+  (draw and layout, the best of 9) in English and Turkish. On main it found:
+  - The Gear tab drew all 520 pieces: 2 MB of HTML, 272 ms (586 ms in Turkish).
+  - The Army tab took 43 ms (69 ms in Turkish).
+  - At 360 px a 40-minion fight's party pips pushed the command bar to 475 px.
+  - The battle log stayed long on a phone.
+- **Late saves**:
+  - The bag shows 60 pieces at a time with "Show 60 more" (`BAG_PAGE`, `ui.bagN`).
+  - Item cards and minion portraits off screen skip layout (`content-visibility:auto`).
+  - Turkish text is worked out once per string (`TR_MEMO`; `trText` is pure).
+  - After: Gear 18 ms (21 in Turkish), Army 23 (25), Town 26 (27). Every tab is under 30 ms.
+  - A battle turn's logic takes about 2 ms in the Node test.
+  - History was already capped at 20 runs, the Memorial at 200 names, and lost rooms at 3. Journal lines are now cut at 200
+    characters. A 100-day bot save is about 60 KB, a third of it the lost rooms.
+  - Save size: `save()` records it (`TAB.size`) and Settings shows it. A save past 4 MB (`SAVE_WARN`), or a write the
+    browser refused (`TAB.full`, storage full; before, it was silently dropped), puts a warning on every screen.
+- **Phones**:
+  - The one-thumb command bar and its swipeable skill, order and potion rows were already there (an earlier pass).
+  - The party pips now thin out instead of widening the bar.
+  - The battle log shows its newest three lines with a toggle on a phone, as it does with the stage on (`phoneW`).
+  - A tap on anything with a tooltip that is not a control opens its text in a sheet at the bottom of the screen; the
+    next tap closes it (`tsheetFor`).
+  - The town map from the spec does not exist (the Town tab is a list), so there is nothing to pin.
+- **Accessibility**:
+  - Text size now runs 90%, 100%, 110%, 120%, 130%.
+  - Damage type colours were redrawn:
+    - physical tan
+    - frost near-white
+    - fire red-orange
+    - rot pale yellow-green
+    - shadow grey-brown
+
+    A test simulates protanopia, deuteranopia and tritanopia and wants every pair at least 12 apart (CIE Lab). The
+    old frost and physical were 11 apart for everyone, and fire and rot 5.5 for protanopia. The type classes in the CSS
+    used a blue frost and a purple shadow against the palette rule; they now match the table. Type names in a place's
+    weak and resist line carry their glyph.
+  - Focus is visible everywhere (it already was), and every action is a button.
+- **Measured**: no rule changed; bots unchanged (market 95% clears, Tower 83; full 94%, Tower 86.5).
+- **Tests**: `tests/groups/98-ux-b.js` (9 tests): the late save's render budgets and a battle turn under 16 ms, the save
+  caps through a load, the size warnings, the colour-blind distances, text sizes and the phone log, tap tooltips, the bag's
+  pages, Turkish.

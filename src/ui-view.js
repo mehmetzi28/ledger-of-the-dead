@@ -1,8 +1,13 @@
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
+const phoneW=()=>typeof innerWidth==='number'&&innerWidth<=600;   // R18: a phone-width window (the short battle log)
+const TR_MEMO=new Map();   // R18: trText is a pure function of its text (the tables never change after load), so each text is worked out once
 function trText(s){
-  if(!s||!/[A-Za-z]/.test(s)) return s;
+  if(!s||!/[A-Za-z]/.test(s)) return s; const hit=TR_MEMO.get(s); if(hit!==undefined) return hit;
+  const v=trText1(s); if(TR_MEMO.size>20000) TR_MEMO.clear(); TR_MEMO.set(s,v); return v;
+}
+function trText1(s){
   const m=s.match(/^([\s·.,:;+\-−–]*)([\s\S]*?)([\s·.,:;!?\-–]*)$/), pre=m[1], core=m[2], post=m[3]; if(!core) return s;
   let v=trCore(core);
   if(v==null&&/\((vanguard|striker|mender|reaper)/.test(core)){ const r2=core.replace(/\((vanguard|striker|mender|reaper)(, gear-bearer)?\)/g,(x,a,b)=>'('+trCore(a)+(b?', '+trCore('gear-bearer'):'')+')'); if(r2!==core) v=r2; }   // creature lists: names stay, roles translate
@@ -21,7 +26,7 @@ function trDom(root){
   root.querySelectorAll('[title],[aria-label],[placeholder]').forEach(el=>{ for(const a of ['title','aria-label','placeholder']){ const v=el.getAttribute(a); if(v){ const t=trText(v); if(t!==v) el.setAttribute(a,t); } } });
 }
 function saveView(){ try{ localStorage.setItem('lotd-view',JSON.stringify(VIEW)); }catch(e){} }
-function applyView(){ const c=document.body.classList; c.toggle('compact',VIEW.size===-1); c.toggle('ts1',VIEW.size===1); c.toggle('ts2',VIEW.size===2); c.toggle('calm',VIEW.calm); c.toggle('hc',VIEW.hc); c.toggle('nobg',VIEW.nobg); c.toggle('lite',fxLight()); }
+function applyView(){ const c=document.body.classList; c.toggle('compact',VIEW.size===-1); c.toggle('ts1',VIEW.size===1); c.toggle('ts2',VIEW.size===2); c.toggle('ts3',VIEW.size===3); c.toggle('calm',VIEW.calm); c.toggle('hc',VIEW.hc); c.toggle('nobg',VIEW.nobg); c.toggle('lite',fxLight()); }
 // ----- save files: the same text as a save code, as a download
 function downloadSave(){
   try{ const code=exportCode(); if(!code) return false; const url=URL.createObjectURL(new Blob([code],{type:'text/plain'})), a=document.createElement('a');

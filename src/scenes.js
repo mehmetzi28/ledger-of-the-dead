@@ -750,7 +750,7 @@ const fxLight=()=>VIEW.fx==='light'||(VIEW.fx==='auto'&&((window.innerWidth||120
 try{
   const v=JSON.parse(localStorage.getItem('lotd-view')||'null');
   if(v&&typeof v==='object'){
-    VIEW.size=clamp(+v.size||0,-1,2);
+    VIEW.size=clamp(+v.size||0,-1,3);
     VIEW.calm=!!v.calm;
     VIEW.hc=!!v.hc;
     VIEW.nobg=!!v.nobg;

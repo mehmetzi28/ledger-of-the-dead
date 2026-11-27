@@ -204,7 +204,7 @@ function battleHTML(){
    +grpHTML('Potions',(DRINK_IDS.some(k=>S.belt[k])?'<div class="btns">'+DRINK_IDS.filter(k=>S.belt[k]&&(!pactOn('dry')||DRAUGHTS[k])).map(k=>{ const p=drinkDef(k), full=k==='hp'?P.hp>=pMax()&&!P.dots:k==='mp'?P.mana>=pMana():k==='blood'?allies().filter(u=>u.hp>0).every(u=>u.hp>=(u.id==='p'?pMax():u.maxHp)):false;
       return '<button class="btn potion" data-a="act" data-k="pot:'+k+'"'+(full?' disabled title="Already full"':' title="'+p.desc+'"')+'>'+p.name+' &times;'+S.belt[k]+'<kbd>'+p.key+'</kbd></button>'; }).join('')+'</div>':'')
    )
-   +'</div>'+logHTML(st)+'</div></div></section>';
+   +'</div>'+logHTML(st||phoneW())+'</div></div></section>';   /* R18: a phone shows the newest three lines too */
 }
 function slotsHTML(){ const n=slots(), u=armyUsed(); let s='<span class="slots" aria-label="'+u+' of '+n+' slots used">'; for(let i=0;i<n;i++) s+='<i class="slot'+(i<u?' on':'')+'"></i>'; return s+'</span>'; }
 function minionDetail(m){   // everything about one minion, readable without hovering
