@@ -6,7 +6,7 @@ const clr=o=>{ S.ti=S.ti||{}; S.ti.clr=o; };
 const town=()=>{ S.mode='town'; S.run=null; S.watches=WATCHES; };
 test('Valley: the roads and nodes are whole: every node is reachable, every road joins two nodes, every gate has a node',()=>{
   for(const [a,b,n] of VALLEY_ROADS){ ok(VALLEY_NODES[a]&&VALLEY_NODES[b],a+'-'+b); ok(n>=1&&n<=3,'steps '+n); }
-  for(const id of MAP_IDS){ ok(isFinite(mapDist('T',id)),'reachable '+id); const n=VALLEY_NODES[id]; ok(n.x>=0&&n.x<=100&&n.y>=0&&n.y+6.4<=76,'on the vellum '+id); ok(MAP_GLYPH[n.k],'glyph '+id); }
+  for(const id of MAP_IDS){ ok(isFinite(mapDist('T',id)),'reachable '+id); const n=VALLEY_NODES[id]; ok(n.x>=0&&n.x<=100&&n.y>=0&&n.y+6.4<=84,'on the vellum '+id); ok(MAP_GLYPH[n.k],'glyph '+id); }
   for(let i=0;i<GATE_N;i++) eq(VALLEY_NODES[gateNode(i)].g,i);
   eq(mapDist('T','T'),0); eq(mapDist('T','g0'),1); eq(mapDist('g0','g1'),1); eq(mapDist('T','nope'),Infinity);
 });

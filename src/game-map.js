@@ -9,7 +9,7 @@
 // The layout is fixed data, the same for every save: S.map = {pos, st, seen, sites:{id:{rest, fresh}}, steps, dug, bodies}.
 const MAP_STEP=3, MAP_GY_REST=5, MAP_GY_N=[2,4], MAP_BF_N=[3,6], MAP_OLD=10, MAP_FRESH=10, MAP_BODIES=8;
 let MAP_ON=true;   // the balance bot's off-switch ("off":["map"]): every node is where you stand, as before the map
-// x, y on a 100 x 76 vellum. k: town, gate (g: its DUNGEONS index), tower, grave (an old graveyard), field (a battlefield)
+// x, y on a 100 x 84 vellum. k: town, gate (g: its DUNGEONS index), tower, grave (an old graveyard), field (a battlefield)
 const VALLEY_NODES={
   T:  {k:'town', name:'The necropolis',     x:50,y:40},
   g0: {k:'gate', g:0, x:40,y:49}, g1:{k:'gate',g:1,x:61,y:50}, g2:{k:'gate',g:2,x:33,y:33}, g3:{k:'gate',g:3,x:66,y:31},
@@ -22,14 +22,17 @@ const VALLEY_NODES={
   mn: {k:'mine',   name:'The Old Iron Mine', x:34,y:68}, gl:{k:'gallows',name:'Gallows Hill',x:74,y:69}, fd:{k:'ford',name:'The Ford',x:71,y:56},
   wd: {k:'den',    name:'The Wolf Den',      x:88,y:15},
   sh0:{k:'shrine',g:'hon',  name:'Morrow\'s Lamp',   x:90,y:27}, sh1:{k:'shrine',g:'vesh',name:'The Cold Well',x:91,y:41}, sh2:{k:'shrine',g:'ulm',name:'Furrow Cross',x:20,y:51},
-  sh3:{k:'shrine',g:'choir',name:'The Hollow Bell',   x:65,y:8},  sh4:{k:'shrine',g:'dis', name:'The Black Altar',x:8,y:43}
+  sh3:{k:'shrine',g:'choir',name:'The Hollow Bell',   x:65,y:8},  sh4:{k:'shrine',g:'dis', name:'The Black Altar',x:8,y:43},
+  // R20 (game-villages.js): the villages of the living, known from the start
+  vm: {k:'village',name:'Miller\'s Ford',  x:56,y:75}, vg:{k:'village',name:'Greyhollow',x:22,y:76}, va:{k:'village',name:'Saint Aldric\'s',x:77,y:22}
 };
 const VALLEY_ROADS=[['T','g0',1],['T','g1',1],['g0','g1',1],['T','g2',2],['g0','g2',1],['T','g3',2],['g1','g3',1],['T','g4',2],['g0','g4',1],
   ['T','g5',2],['g3','g5',1],['g2','g5',2],['T','tw',2],['g5','tw',1],['g1','g6',2],
   ['g0','gy0',1],['T','gy0',2],['g1','gy1',1],['g3','gy1',1],['g2','gy2',1],['g4','gy3',1],['g4','gy2',2],['g1','bf0',1],['T','bf0',2],['g2','bf1',1],['g5','bf1',1],
   ['T','cr',1],['cr','g2',1],['cr','g3',2],['cr','bf1',1],['hm','bf1',2],['hm','gy2',2],['st','gy2',1],['st','hm',2],['mn','g4',1],['mn','gy0',1],
   ['fd','g1',1],['fd','g6',1],['fd','bf0',1],['gl','fd',1],['gl','g6',1],['wd','g3',2],['wd','sh0',2],['sh0','g3',2],['sh0','sh1',1],['sh1','gy1',1],['sh1','g6',2],
-  ['sh2','g4',1],['sh2','gy2',1],['sh2','gy3',2],['sh3','tw',1],['sh3','g5',1],['sh4','gy2',1],['sh4','sh2',2],['sh4','st',2]];
+  ['sh2','g4',1],['sh2','gy2',1],['sh2','gy3',2],['sh3','tw',1],['sh3','g5',1],['sh4','gy2',1],['sh4','sh2',2],['sh4','st',2],
+  ['vm','bf0',1],['vm','gy0',1],['vm','fd',2],['vm','mn',2],['vg','mn',1],['vg','gy3',1],['vg','g4',2],['va','g3',1],['va','wd',1],['va','sh0',1],['va','sh3',2]];
 const MAP_IDS=Object.keys(VALLEY_NODES), MAP_START=['T','g0','g1'];
 const VALLEY_ADJ=(()=>{ const a={}; for(const id of MAP_IDS) a[id]=[]; for(const [p,q,n] of VALLEY_ROADS){ a[p].push([q,n]); a[q].push([p,n]); } return a; })();
 const nodeName=id=>{ const n=VALLEY_NODES[id]; return !n?'':n.k==='gate'?(DUNGEONS[n.g]||{}).name||'':n.name; };
@@ -45,7 +48,7 @@ function mapPath(a,b){   // the fewest-steps road from a to b (Dijkstra over a s
 const mapDist=(a,b)=>mapPath(a,b).d;
 const roadIx=(a,b)=>VALLEY_ROADS.findIndex(([p,q])=>(p===a&&q===b)||(p===b&&q===a));
 function mapSeen(id){   // known on the map: the start, an open gate, the Tower once open, anything next to a cleared gate, or scouted
-  const n=VALLEY_NODES[id]; if(!n) return false; if(MAP_START.includes(id)||(S.map&&S.map.seen&&S.map.seen[id])) return true;
+  const n=VALLEY_NODES[id]; if(!n) return false; if(MAP_START.includes(id)||n.k==='village'||(S.map&&S.map.seen&&S.map.seen[id])) return true;
   if(n.k==='gate'&&!gateLocked(n.g)) return true; if(n.k==='tower'&&towerOpen()) return true;
   const clr=S.ti&&S.ti.clr||{}; return VALLEY_ADJ[id].some(([v])=>VALLEY_NODES[v].k==='gate'&&clr[VALLEY_NODES[v].g]);
 }
@@ -59,7 +62,7 @@ function mapGo(id,need){   // walk there: the steps add up today and every MAP_S
   const p=mapPath(mapPos(),id).path; M.rw=Array.isArray(M.rw)?M.rw:[]; for(let i=1;i<p.length;i++){ const j=roadIx(p[i-1],p[i]); if(j>=0&&!M.rw.includes(j)) M.rw.push(j); } M.rw.sort((a,b)=>a-b);   /* Every Road */
   M.st=(M.st||0)+d; M.steps=(M.steps||0)+d; while(M.st>=MAP_STEP){ M.st-=MAP_STEP; S.watches--; tally('mapW'); } M.pos=id; tally('mapSteps',d); encRoll(d,p); return true;
 }
-function mapDawn(){ if(!S.map) return; const M=S.map, lost=(M.bodies||[]).length; M.pos='T'; M.st=0; M.bodies=[]; delete M.enc; if(lost) notify(lost+' dug bod'+(lost>1?'ies':'y')+' crumbled back into the earth at dawn.','info'); }
+function mapDawn(){ if(!S.map) return; const M=S.map, keep=vilSalt(M), lost=(M.bodies||[]).length-keep.length; M.pos='T'; M.st=0; M.bodies=keep;   /* grain-salt (game-villages.js) */ delete M.enc; if(lost) notify(lost+' dug bod'+(lost>1?'ies':'y')+' crumbled back into the earth at dawn.','info'); }
 // ----- sites
 const siteState=id=>{ const M=mapSt(); M.sites=M.sites||{}; return M.sites[id]=M.sites[id]||{}; };
 const siteRest=id=>Math.max(0,((S.map&&S.map.sites&&S.map.sites[id]&&S.map.sites[id].rest)||0)-S.day);
@@ -86,7 +89,7 @@ function siteRaise(i){   // raise a dug body in town: the usual raise (no mana: 
   const c=Object.assign({id:'map'+i,tried:false},x.c), run0=S.run, mode0=S.mode, mana=S.player.mana; let res=null;
   S.run={corpses:[c],events:[],raised:0,di:c.rankI|0,enemies:[],log:[]}; S.mode='raise';
   try{ S.player.mana=Math.max(mana,raiseCost(c)); tryRaise(c.id,false,true); if(c.tried) res={ok:c.result==='raised',m:(S.run.events[0]||{}).m||null,minion:c.minion}; } finally{ S.run=run0; S.mode=mode0; S.player.mana=mana; }
-  if(c.tried){ M.bodies.splice(i,1); if(res&&res.ok) tally('mapRaised'); } return res;
+  if(c.tried){ M.bodies.splice(i,1); if(res&&res.ok){ tally('mapRaised'); vilGrave(x.s); } } return res;
 }
 const mapRaise=c=>c&&c.old?-MAP_OLD:c&&c.fresh?MAP_FRESH:0;   // raiseChance: old bones and fresh dead
 function mapSiege(){ for(const id of MAP_IDS) if(VALLEY_NODES[id].k==='field') siteState(id).fresh=1; }   // siegeEnd: the battlefields fill

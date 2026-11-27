@@ -443,6 +443,17 @@ at no watch. **Scouting**: a step of walking lifts the fog on a neighbouring nod
 siege's coming road, squads out and the encounter are markers too. Site fights are runs flagged `r.sv` and leave out
 rivals, orders, events, doors, nemesis births and theft. Four titles: Cartographer, Every Road, Ford-Crosser and
 Wolf-Skinner.
+**The villages of the living** (R20 PR A, `src/game-villages.js`): three villages on the map, known from the start:
+**Miller's Ford** (sells grain-salt, which keeps a dug body through a dawn, and Healing Draughts at 70%), **Greyhollow**
+(ore, and an iron charm once a week for friends) and **Saint Aldric's** (relics for devotion, incense that calms the
+town). Each has a **standing** from -100 to +100 (from -20) in five bands (Hatred, Fear, Wary, Friendly, Allegiance)
+and a population. Standing moves with deeds: a weekly **favor** (+10; from a hash of the week: clear the den or the
+mine, search the ford, escort a cart on the road (a fight with no watch), send a dug body as a worker, bury a
+battlefield, keep a shrine), each purchase (+1), tribute (25 gold a level for +5, once a day), sieges won (+3 to all)
+or lost (-5), raising a body from the graveyard a village buries its dead in (-3), the town's dread (Terror -1 a day,
+Calm +1), pilgrims spared (+3) or taken (-5) and shrines desecrated (-5). Prices move up to 25% with standing; at -60
+and below the doors shut. Favors pay grain-salt and a draught, ore and gold, or a week's blessing (menders heal 5%
+more). Three titles at +60. Raids, allegiance rewards and the companion come in PR B.
 
 **Vane Abbey, the seventh gate** (`ABBEY`=6, rank SS, src/game-abbey.js, R3 PR A). Its card shows once the Throne of Ash
 falls, as a sealed door with two key slots (`ABBEY_KEYS`): the deep route (Throne cleared, Tower floor `ABBEY_TOWER` 90,
