@@ -85,9 +85,11 @@ const aboutN=n=>n<50?n:Math.round(n/(n<200?5:10))*(n<200?5:10);   // "about": th
 const endDot=t=>/[.!?]$/.test(t)?t:t+'.';
 function sigHTML(s){ return s?(s.you!=null?'<b class="kn">you '+s.you+'</b>':'')+(s.army?'<b class="kn">army '+s.army+'</b>':'')+(s.van!=null?'<b class="kn">vanguard '+aboutN(s.van)+'</b>':''):''; }
 function ansHTML(c){ return c&&c.length?'<div class="kn-ans" title="'+c.map(k=>KNOW_ANS[k][1]).join(' ')+'">'+c.map(k=>'<span>'+KNOW_ANS[k][0]+'</span>').join(' &middot; ')+'</div>':''; }
+const INT_SEEN=new WeakMap();   // view only: each foe's last intent and the turn it changed
 function intentHTML(u){ const i=intentInfo(u); if(!i) return ''; const K=foeKnow(u);   // bestiary knowledge (foeKnow) adds figures by tier; the tooltip carries the detail
   const tip=[i.tip].concat(K.aff?K.aff.map(a=>endDot(AFFIX[a].name+': '+AFFIX[a].desc)):[],K.ans?K.ans.map(k=>KNOW_ANS[k][1]):[]).join(' ');
-  return '<div class="intent i-'+i.k+'" title="'+tip+'"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="'+INTENT_ICO[i.k]+'"/></svg><span>'+i.txt+'</span>'
+  const ik=i.k+'|'+i.txt, im=INT_SEEN.get(u)||{}, T=S.run?S.run.turn:0; if(im.k!==ik){ if(im.k!=null) im.t=T; im.k=ik; INT_SEEN.set(u,im); }   /* R17: an intent that changed this turn pulses once */
+  return '<div class="intent i-'+i.k+(im.t===T?' i-chg':'')+'" title="'+tip+'"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="'+INTENT_ICO[i.k]+'"/></svg><span>'+i.txt+'</span>'
    +(K.dmg!=null?'<b class="kn">about '+aboutN(K.dmg)+'</b>':'')+(K.crit?'<span class="kn-crit" title="A striker: its blow can crit for 80% more and open a wound.">can crit</span>':'')+sigHTML(K.sig)+'</div>'
    +(K.next?'<div class="intent-2"><span>then likely</span> <span>'+K.next.txt+'</span></div>':'')+ansHTML(K.ans);
 }
@@ -101,7 +103,10 @@ function unitCard(u,side,mini){
     +(u.aff&&!isP?u.aff.map(a=>' &middot; <span class="aff" title="'+AFFIX[a].desc+'">'+AFFIX[a].name+'</span>').join(''):'')+(side==='foe'&&!isP?kitChip(u):echoKits(u).length?echoKits(u).map(k=>' &middot; <span class="kit" title="'+echoTxt(k)+'">Echo: '+KITS[k].name+'</span>').join(''):'')
     +(u.scd&&CORPSE_CONDS[u.scd]?' &middot; <span class="stash-t" title="A body the rival stole. '+CORPSE_CONDS[u.scd].when+'">'+CORPSE_CONDS[u.scd].name+'</span>':'');
   const rk=isP?'':'<span class="rk r'+u.rankI+'">'+RANKS[u.rankI]+'</span>';
-  const fx=(f.d?'<span class="fx neg">-'+f.d+'</span>':f.h?'<span class="fx pos">+'+f.h+'</span>':'')+(f.c?'<span class="fx cmb">'+f.c+'</span>':'');   // c: a status combo fired on it
+  const D=f.ty&&f.ty!=='phys'&&DT_FX[f.ty], th=!dead&&side!=='foe'?threatMap().get(String(fxKey(u))):null;   /* R17: the hit's type and a telegraph that names this unit (fx-cues.js) */
+  const fx=(f.d?'<span class="fx neg'+(D?' dt-'+f.ty:'')+(f.w==='weak'?' wk':'')+'"'+(D?' style="color:'+D.c+'"':'')+'>'+(D?dtGlyph(f.ty):'')+'-'+f.d+'</span>':f.h?'<span class="fx pos">+'+f.h+'</span>':'')
+    +(f.d&&f.w==='weak'?'<span class="fx wkt">Weak</span>':f.d&&f.w==='res'?'<span class="fx rst">Resisted</span>':'')+(f.c?'<span class="fx cmb">'+f.c+'</span>':'')   // c: a status combo fired on it
+    +(th?'<span class="thr-t" title="Gathering against it: '+th.join(', ')+'">Threatened</span>':'');
   const dots=stPills(u)+(side==='foe'?intentHTML(u)+(!dead&&execMark(u)?'<div class="kn-exe" title="Below 40% HP: Execute doubles your reapers\' blows on it this turn.">Execute</div>':''):''), K=ch?foeKnow(u):null;
   const sub=side==='foe'?'Lv '+u.lvl+' &middot; ATK '+u.atk+(dead?'':masteryTag(u.base))
     :(isP?'Lv '+u.lvl+' &middot; ATK '+pAtk():mName(u)+' &middot; Lv '+u.lvl+' &middot; ATK '+u.atk);
@@ -113,8 +118,8 @@ function unitCard(u,side,mini){
   if(mini){   // a minion in battle: icon, name, level, attack, HP; the rest lives on the Army tab
     const m='<div class="u-head">'+ico(u.base||u.kind||u.name,u.rankI,u)+'<div class="u-id"><div class="u-name">'+nick(u)+'</div><div class="u-sub num">'+(dead?'<span class="down-t">'+downTip(u)+'</span>':'Lv '+u.lvl+' &middot; ATK '+u.atk+(u.wall?' &middot; Wall':''))+'</div>'+dots+'</div></div>'
       +'<div class="bar"><i class="fill hp" style="width:'+pct(u.hp,max)+'%"></i></div><div class="num u-hp">'+Math.max(0,u.hp)+'/'+max+'</div>';
-    return '<div class="unit ally mini'+(dead?' dead':'')+(u.elite?' elite':'')+(f.d?' hit':'')+'" data-u="'+fxKey(u)+'" title="'+mName(u)+', '+ROLES[u.role].label+(u.wall?', on the wall':'')+(echoKits(u).length?', Echo: '+echoKits(u).map(k=>KITS[k].name).join(', '):'')+'">'+fx+m+'</div>'; }
-  const cls='unit '+side+(dead?' dead':'')+(sel?' sel':'')+(ch?' charging':'')+(u.elite?' elite':'')+(f.d?' hit':'');
+    return '<div class="unit ally mini'+(dead?' dead':'')+(u.elite?' elite':'')+(f.d?' hit':'')+(th?' threat':'')+'" data-u="'+fxKey(u)+'" title="'+mName(u)+', '+ROLES[u.role].label+(u.wall?', on the wall':'')+(echoKits(u).length?', Echo: '+echoKits(u).map(k=>KITS[k].name).join(', '):'')+'">'+fx+m+'</div>'; }
+  const cls='unit '+side+(dead?' dead':'')+(sel?' sel':'')+(ch?' charging':'')+(u.elite?' elite':'')+(f.d?' hit':'')+(th?' threat':'')+(ch?' pose-'+cueOf(u.move||u.abil).pose:'');
   return side==='foe'&&!dead?'<button class="'+cls+'" data-a="target" data-k="'+u.id+'" data-u="'+u.id+'" aria-pressed="'+sel+'">'+inner+'</button>':'<div class="'+cls+'" data-u="'+fxKey(u)+'">'+inner+'</div>';
 }
 const ORDER_KEYS={z:'vanguard',x:'striker',c:'mender',v:'reaper'}, ORDER_KEY=Object.fromEntries(Object.entries(ORDER_KEYS).map(([k,r])=>[r,k.toUpperCase()]));

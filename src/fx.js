@@ -226,6 +226,30 @@ function fxUlt(e,r,col){   // one stronger version of the fitting effect, across
   else (foes.length?foes:r?[r]:[]).forEach((f,i)=>fxWard(f,i*40,col,true));
 }
 
+// R17: what kind of hit it was (fx-cues.js): frost shards, fire embers, rot mist, shadow ink, physical sparks; a weakness cracks
+// with a bright pop, a resisted hit leaves a dull grey ring. The reduced view keeps the pop and the ring and drops the burst.
+function fxTyped(r,t,col,o){
+  const c=fxC(r), D=DT_FX[o&&o.ty]||DT_FX.phys, tint=D.x, few=fxQuiet();
+  if(!few) for(let i=0;i<6;i++){ const a=fxR(0,6.3), v=fxR(.04,.12), x=c.x+fxR(-8,8), y=c.y+fxR(-8,8);
+    if(D.fx==='shard') fxP({tex:'streak',x,y,rot:a,vx:Math.cos(a)*v,vy:Math.sin(a)*v,sx0:.22,sx1:.1,sy0:.5,sy1:.3,life:fxR(260,380),delay:t,tint,add:1,a0:.95});
+    else if(D.fx==='ember') fxP({tex:'core',x,y,vx:Math.cos(a)*v*.6,vy:-fxR(.05,.12),life:fxR(420,620),delay:t,tint:i%2?tint:col.gold,add:1,sx0:fxR(.35,.55),sx1:.1,a0:.95,fi:.15});
+    else if(D.fx==='mist') fxP({tex:'dot',x,y,vx:fxR(-.015,.015),vy:-fxR(.01,.03),life:fxR(600,800),delay:t+i*25,tint,sx0:.35,sx1:.9,a0:.35,a1:0,fi:.3});
+    else if(D.fx==='ink') fxP({tex:'dot',x,y,vx:Math.cos(a)*v*.4,vy:Math.sin(a)*v*.4+.02,g:.0003,life:fxR(450,650),delay:t,tint:i%2?tint:col.soot,sx0:.3,sy0:.45,sx1:.15,sy1:.7,a0:.75});
+    else fxP({tex:'core',x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,g:.0005,life:fxR(180,300),delay:t,tint,add:1,sx0:.4,sx1:.12,a0:.9}); }
+  if(o&&o.w>0){ fxP({tex:'streak',x:c.x,y:c.y,rot:.9,sx0:.2,sx1:.6,sy0:1,sy1:.6,life:260,delay:t+20,tint:col.gold,add:1,a0:.95}); fxP({tex:'streak',x:c.x,y:c.y,rot:-.5,sx0:.15,sx1:.5,sy0:.9,sy1:.5,life:240,delay:t+50,tint:0xffffff,add:1,a0:.8});
+    fxP({tex:'ring',x:c.x,y:c.y,sx0:r.w/120,sx1:r.w/48,life:300,delay:t+20,tint:col.gold,add:1,a0:.8}); }   // weak: a cracked-shield pop
+  else if(o&&o.w<0) fxP({tex:'ring',x:c.x,y:c.y,sx0:r.w/70,sy0:r.h/70,sx1:r.w/60,sy1:r.h/60,life:420,delay:t,tint:0x8a8580,a0:.6});   // resisted: a dull grey ring
+}
+function fxKit(r,t,col,o){   // a kit's moment: a shield raised, a burrow, a body called up, a mark, a cleanse, a step back
+  const m=KIT_FX[o&&o.k]&&KIT_FX[o.k].m, c=fxC(r);
+  if(m==='ward') fxWard(r,t,col,false);
+  else if(m==='dust'){ fxChips({x:c.x,y:r.y+r.h*.8},10,t,col,false); fxP({tex:'dot',x:c.x,y:r.y+r.h*.85,sx0:r.w/80,sy0:r.h/200,sx1:r.w/34,sy1:r.h/90,life:500,delay:t,tint:col.soot,a0:.6}); }
+  else if(m==='motes') fxMotes(r,t,col,10,col.ember);
+  else if(m==='mark') fxP({tex:'ring',x:c.x,y:c.y,sx0:r.w/30,sy0:r.h/30,sx1:r.w/70,sy1:r.h/70,life:600,delay:t,tint:0xc9402c,add:1,a0:.2,a1:.9,fi:.3});
+  else if(m==='cleanse') fxMotes(r,t,col,8,0x9fd47a);
+  else if(m==='step') fxWisp(r,t,col);
+}
+
 // Plays the queued moments in order on a short clock, so a full army's turn reads as a flurry rather than one flash.
 function fxFlush(){
   const q=FXL.q, hit={}; FXL.q=[]; if(!q.length) return hit;   // hit: when each unit is first struck this turn (the stage's numbers wait for it)
@@ -234,7 +258,7 @@ function fxFlush(){
   for(const e of q){
     if(t>1600) break;   // a very long turn: the rest would play long after the numbers changed
     const r=fxRect(e.k)||e.r; if(!r&&e.kind!=='ult') continue;
-    let at=t;
+    let at=e.kind==='typed'?prev:t;
     switch(e.kind){
       case 'strike': fxSlash(r,at,col,e.o&&e.o.crit); t+=120; break;
       case 'mhit': fxSpark(r,at,col,sparks); t+=nM>8?35:55; break;
@@ -250,6 +274,9 @@ function fxFlush(){
       case 'boss': fxBoss(r,at,col); break;
       case 'charge': fxCharge(r,at,col); t+=120; break;
       case 'ult': fxUlt(e,r,col); t+=300; break;
+      case 'typed': fxTyped(r,prev,col,e.o); break;
+      case 'kit': fxKit(r,at,col,e.o); t+=120; break;
+      case 'phase': fxBoss(r,at,col); if(FXS.app&&!fxQuiet()) FXS.slow=400; FXS.ph={k:String(e.k),age:-at}; t+=200; break;
     }
     prev=at;
     if(HIT_K[e.kind]){ const h=hit[e.k]||(hit[e.k]={t:at,c:0}); if(e.o&&e.o.crit) h.c=1; try{ fxStageMove(e,at); }catch(x){} }
@@ -298,7 +325,7 @@ async function fxStageInit(){
   }catch(e){ FXS.ok=false; try{ console.info('Battle stage is off: '+(e&&e.message)+'. The cards show the fight instead.'); }catch(x){} }
 }
 function fxStageDrop(){   // the layer is going away: the stage too, and the cards come back
-  const a=FXS.app, was=FXS.ok; FXS.ok=false; FXS.app=null; FXS.root=null; FXS.floor=null; FXS.f.clear(); FXS.nums=[]; FXS.seen=null; FXS.W=0; FXS.lk=''; FXS.bgk=null;
+  const a=FXS.app, was=FXS.ok; FXS.ok=false; FXS.app=null; FXS.root=null; FXS.floor=null; FXS.f.clear(); FXS.nums=[]; FXS.seen=null; FXS.W=0; FXS.lk=''; FXS.bgk=null;  FXS.ph=null; FXS.hs=FXS.slow=FXS.nud=0;
   try{ document.body.style.removeProperty('--stage-bg'); if(FXS.bgu) URL.revokeObjectURL(FXS.bgu); }catch(e){} FXS.bgu=null;
   if(a) try{ a.ticker.remove(fxStageStep); for(const k in FXS.tex) FXS.tex[k].destroy(true); FXS.ico.forEach(t=>{ if(t) t.destroy(true); }); a.destroy({removeView:true},{children:true}); }catch(e){}
   FXS.tex=null; FXS.ico.clear();
@@ -316,7 +343,7 @@ function fxIcoCss(){   // the icon rules from the page's stylesheet, so the pict
 function fxIcoTex(html){   // null until the image has loaded; the fighters that wear it are updated then
   if(FXS.ico.has(html)) return FXS.ico.get(html);
   FXS.ico.set(html,null);
-  const m=/^<span class="([^"]*)"[^>]*>(<svg[\s\S]*<\/svg>)/.exec(html), defs=document.getElementById('paint');
+  const m=/^<span class="([^"]*)"[^>]*>(<svg[\s\S]*?<\/svg>)/.exec(html), defs=document.getElementById('paint');
   if(!m||!defs||!window.URL||!URL.createObjectURL) return null;
   const svg='<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="-4 -4 72 72"><style>'+fxIcoCss()+'</style><defs>'+defs.parentNode.innerHTML+'</defs><g class="'+m[1]+'">'+m[2].replace('<svg ','<svg x="0" y="0" width="64" height="64" ')+'</g></svg>';
   const img=new Image(), url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));
@@ -331,13 +358,13 @@ function fxFighter(k,foe){
   const c=new PIXI.Container(), sp=(t,add)=>{ const s=new PIXI.Sprite(FXS.tex[t]); s.anchor.set(.5); if(add) s.blendMode='add'; s.visible=false; return s; };
   const F={k,foe,c,x:0,y:0,cx:null,cy:0,s:0,ph:fxR(0,6.3),a:[],dead:null,key:'',html:''};
   F.shadow=sp('dot'); F.shadow.tint=0; F.shadow.visible=true;
-  F.glow=sp('dot',1); F.ring=sp('ring',1); F.chg=sp('ring',1); F.chg.tint=FXS.col.ember; F.bk=sp('ring',1); F.bk.tint=FXS.col.ward;
+  F.glow=sp('dot',1); F.ring=sp('ring',1); F.chg=sp('ring',1); F.chg.tint=FXS.col.ember; F.bk=sp('ring',1); F.bk.tint=FXS.col.ward; F.thr=sp('ring',1); F.thr.tint=0xc9402c;
   F.body=new PIXI.Container(); F.spr=new PIXI.Sprite(PIXI.Texture.EMPTY); F.spr.anchor.set(.5,1); F.body.addChild(F.spr);
   F.plate=new PIXI.Graphics();
   F.name=new PIXI.Text({text:'',style:{fontFamily:FXS.fontH,fontSize:13,fontWeight:'600',fill:FXS.col.bone,stroke:{color:0x0a0806,width:3}}}); F.name.anchor.set(.5,0);
   F.tag=foe?new PIXI.Text({text:'',style:{fontFamily:FXS.font,fontSize:11,fontWeight:'700',fill:0xe5776a,stroke:{color:0x0a0806,width:3}}}):new PIXI.Graphics();
   if(foe) F.tag.anchor.set(.5,1);
-  c.addChild(F.shadow,F.glow,F.ring,F.chg,F.body,F.bk,F.plate,F.name,F.tag);
+  c.addChild(F.shadow,F.thr,F.glow,F.ring,F.chg,F.body,F.bk,F.plate,F.name,F.tag);
   if(foe){ c.eventMode='static'; c.cursor='pointer'; c.on('pointertap',()=>{ try{ if(foe===2) stageRaise(k); else stageTap(k); }catch(e){} }); }   // foe 2: a body on the raise stage
   FXS.root.addChild(c); FXS.f.set(k,F); return F;
 }
@@ -351,18 +378,21 @@ function fxFitText(T,s,w,two){   // one line if it fits; else a size smaller; el
 function fxUpd(F,p,cell,tg,r){
   const u=p.u, s=p.s, dead=u.hp<=0, isP=u.id==='p', max=isP?pMax():u.maxHp;
   F.u=u; F.x=p.x; F.y=p.y; if(F.cx==null){ F.cx=p.x; F.cy=p.y; } if(F.dead===null) F.dead=dead;
-  const html=isP?ico('Necromancer',pRankI(),{}):ico(u.base||u.kind||u.name,u.rankI,{boss:u.boss,secret:u.secret,elite:u.elite});
+  const html=isP?ico('Necromancer',pRankI(),{}):ico(u.base||u.kind||u.name,u.rankI,{boss:u.boss,secret:u.secret,elite:u.elite,stage:u.stage,role:u.role});
   if(F.html!==html){ F.html=html; F.spr.texture=fxIcoTex(html)||PIXI.Texture.EMPTY; F.s=0; }
-  if(F.s!==s){ F.s=s; fxFit(F); F.shadow.scale.set(s/34,s/120); F.glow.scale.set(s/26,s/76); F.ring.scale.set(s/52,s/150); F.bk.position.set(0,-s*.5); F.c.hitArea=new PIXI.Rectangle(-cell/2,-s-20,cell,s+64); }
+  if(F.s!==s){ F.s=s; fxFit(F); F.shadow.scale.set(s/34,s/120); F.glow.scale.set(s/26,s/76); F.ring.scale.set(s/52,s/150); F.thr.scale.set(s/44,s/130); F.bk.position.set(0,-s*.5); F.c.hitArea=new PIXI.Rectangle(-cell/2,-s-20,cell,s+64); }
   const nm=F.foe?u.name:(isP?'You':nick(u)), st=fxStatus(u), sel=F.foe&&!dead&&r.target===u.id, ch=F.foe&&!dead?chargeInfo(u):null, it=F.foe&&!dead&&!ch?intentInfo(u):null;
   const kd=it&&it.k==='atk'?foeKnow(u).dmg:null, lab=ch?'Charging: '+ch.name:it?it.txt+(kd!=null?' · '+aboutN(kd):''):'', kind=ch?'abil':it?it.k:'', bw=Math.round(Math.max(s*1.2,cell*.94)), bb=Math.round(Math.min(bw*.9,s*1.15));   /* bw: the name's room, bb: the HP bar */
-  const key=[nm,u.hp,max,s,bw,dead,st.join(','),sel,lab,kind,tg.has(F.k),VIEW.lang,isP?u.shield:0].join('|');
+  const kt=F.foe&&!dead&&kitOf(u)&&knowLv(u)>=1?kitOf(u):'', th=!F.foe&&!dead&&FXS.thr?FXS.thr.get(F.k):null;   /* R17: the kit's glyph, a telegraph's mark under its targets */
+  F.pose=ch?cueOf(u.move||u.abil).pose:null; F.thr.visible=!!th;
+  const key=[nm,u.hp,max,s,bw,dead,st.join(','),sel,lab,kind,tg.has(F.k),VIEW.lang,isP?u.shield:0,kt].join('|');
   if(key===F.key) return; F.key=key;
   F.name.style.fill=u.boss||u.elite?FXS.col.gold:FXS.col.bone; F.name.style.fontSize=s<56?12:14; fxFitText(F.name,fxTr(nm),bw,true); F.name.y=6;
   const g=F.plate.clear(), by=F.name.y+F.name.height+2, w=Math.max(0,Math.min(1,u.hp/max));
   g.rect(-bb/2-1,by-1,bb+2,8).fill({color:0x0a0806,alpha:.85}).rect(-bb/2,by,bb*w,6).fill(F.foe?0xb83a2a:0x6f9a4c);
   if(isP&&u.shield>0) g.rect(-bb/2,by,bb*Math.min(1,u.shield/max),2).fill(FXS.col.ward);
   st.slice(0,6).forEach((c,i,a)=>{ const x=(i-(a.length-1)/2)*8; g.poly([x,by+10,x+3,by+13,x,by+16,x-3,by+13]).fill(c).stroke({width:1,color:0x0a0806,alpha:.8}); });
+  if(kt&&KIT_FX[kt]){ const x0=bb/2+4, y0=by-2; for(const pl of KIT_FX[kt].g) g.poly(pl.map((v,i)=>v+(i%2?y0:x0))).fill(FXS.col.bone).stroke({width:1,color:0x0a0806,alpha:.9}); }
   F.glow.visible=!!st.length; if(st.length){ F.glow.tint=st[0]; F.glow.alpha=.45; }
   F.ring.visible=sel; F.ring.tint=FXS.col.bone; F.chg.visible=!!ch;
   if(F.foe){ F.tag.style.fill=INT_COL[kind]||FXS.col.bone; F.tag.style.fontSize=s<56?11:12; fxFitText(F.tag,fxTr(lab),Math.max(cell*.96,70)); F.tag.y=-s-4; }
@@ -373,12 +403,13 @@ function fxStage(){
   const A=FXS.app; if(!A) return;
   const rs=typeof S!=='undefined'&&S&&S.run&&S.mode==='raise', host=typeof S!=='undefined'&&S&&(S.mode==='battle'||rs)&&S.run&&app.querySelector('.stage');   /* rs: the raise screen, bodies where the foes stood */
   if(!host){ FXS.md=null; if(A.canvas.parentNode) A.canvas.parentNode.removeChild(A.canvas); A.ticker.stop();
-    if(FXS.f.size||FXS.nums.length){ FXS.f.forEach(F=>F.c.destroy({children:true})); FXS.f.clear(); FXS.nums.forEach(n=>n.T.destroy()); FXS.nums=[]; } return; }
+    if(FXS.f.size||FXS.nums.length){ FXS.f.forEach(F=>F.c.destroy({children:true})); FXS.f.clear(); FXS.nums.forEach(n=>n.T.destroy()); FXS.nums=[]; } if(FXS.ph&&FXS.ph.T) FXS.ph.T.destroy(); FXS.ph=null; FXS.hs=FXS.slow=FXS.nud=0; return; }
   if(A.canvas.parentNode!==host) host.appendChild(A.canvas);
   const r=S.run, fresh=!FXS.f.size, from=FXS.md, W=Math.max(200,host.clientWidth|0), all=[S.player].concat(S.army), foes=rs?fxBodies(r):r.enemies, fk=rs?2:1;
   const L=[[foes,'b',fk],[foes,'f',fk],[all,'f',0],[all,'b',0]].map(([l,k,foe])=>({foe,u:l.filter(u=>rowOf(u)===k)})).filter(l=>l.u.length);
   const n=Math.max(3,...L.map(l=>l.u.length)), cell=W/n, s=Math.round(Math.max(W<520?40:56,Math.min(96,cell*.72))), pos=new Map(), tg=new Set();   // the fighters fill the stage; a crowded row shrinks them
   if(!rs) for(const e of r.enemies){ const i=e.hp>0&&intentInfo(e); if(i&&i.k==='atk'&&i.tg) tg.add(fxKey(i.tg)); }
+  FXS.thr=rs?null:threatMap();
   let y=6, mid=0;
   for(const l of L){
     if(!l.foe&&!mid){ mid=y+4; y+=12; }
@@ -461,13 +492,16 @@ function fxStageMove(e,at){   // from fxFlush, on the same clock as the overlay:
 function fxNum(F,txt,col,t,big,small){   // a number that rises off a fighter and fades
   const T=new PIXI.Text({text:txt,style:{fontFamily:FXS.fontH,fontSize:Math.round((small?12:big?28:19)*(F.s<50?.85:1)),fontWeight:'700',fill:col,stroke:{color:0x0a0806,width:4}}});
   T.anchor.set(.5,1); T.visible=false; T.zIndex=2e4; FXS.root.addChild(T);
-  FXS.nums.push({T,x:F.x+fxR(-F.s*.15,F.s*.15),y:F.y-F.s*(small?1.05:.7),age:-t,life:big?1050:850,big});
+  const n=FXS.nums.filter(o=>o.F===F&&o.age<500).length;   // R17: numbers on the same fighter stack and drift instead of overlapping
+  FXS.nums.push({T,F,x:F.x+fxR(-F.s*.1,F.s*.1)+(n%2?1:-1)*Math.min(n,3)*F.s*.12,y:F.y-F.s*(small?1.05:.7)-n*14,age:-t,life:big?1050:850,big,dx:(n%2?1:-1)*.012});
 }
 function fxStageAfter(hit){   // numbers, blocks and deaths for this turn, once per turn (r.fx is new on every action)
   const r=typeof S!=='undefined'&&S&&S.run; if(!FXS.app||!FXS.f.size||!r) return;
   if(r.fx!==FXS.seen){ FXS.seen=r.fx;
     for(const k in r.fx){ const f=r.fx[k], F=FXS.f.get(k); if(!F) continue; const h=hit[k], t=h?h.t:0;
-      if(f.d) fxNum(F,String(f.d),h&&h.c?FXS.col.gold:F.foe?FXS.col.bone:0xe5776a,t+60,h&&h.c);
+      if(f.d){ const D=f.ty&&f.ty!=='phys'&&DT_FX[f.ty], max=F.u&&(F.u.id==='p'?pMax():F.u.maxHp)||1, big=!!(h&&h.c)||f.w==='weak'||f.d>=max*.25;
+        fxNum(F,String(f.d)+(f.w==='weak'?'!':''),h&&h.c?FXS.col.gold:D?D.x:F.foe?FXS.col.bone:0xe5776a,t+60,big,f.w==='res');
+        if(F.foe&&(h&&h.c||f.x)&&!fxQuiet()){ FXS.hs=60; FXS.nud=1; } }   // a crit or an execution: hit-stop and a nudge
       if(f.h) fxNum(F,'+'+f.h,0x9fd47a,t+(f.d?220:0));
       if(f.c) fxNum(F,fxTr(f.c),FXS.col.gold,t+300,false,true); }
     for(const k in hit){ const f=r.fx[k], F=FXS.f.get(k); if(F&&!(f&&(f.d||f.h))) fxAnim(F,'block',hit[k].t,420); } }   // struck for nothing: a ward or shield took it
@@ -477,8 +511,17 @@ function fxStageAfter(hit){   // numbers, blocks and deaths for this turn, once 
   for(const F of FXS.f.values()){ if(F.foe===2) continue; const dead=F.u.hp<=0; if(dead&&F.dead===false) fxAnim(F,'die',(hit[F.k]?hit[F.k].t:0)+180,700); F.dead=dead; }
 }
 const fxMix=(a,b,k)=>{ const c=s=>Math.round(((a>>s)&255)*(1-k)+((b>>s)&255)*k); return (c(16)<<16)|(c(8)<<8)|c(0); };
+function fxPhaseStep(ms){   // a boss's second phase: its name and the words across the stage for a moment
+  const P=FXS.ph; if(!P) return; P.age+=ms; const F=FXS.f.get(P.k);
+  if(!P.T){ if(P.age<0) return; P.T=new PIXI.Text({text:fxTr((F&&F.u?F.u.name:'The boss')+' · Second phase'),style:{fontFamily:FXS.fontH,fontSize:24,fontWeight:'700',fill:FXS.col.gold,stroke:{color:0x0a0806,width:5}}}); P.T.anchor.set(.5); P.T.zIndex=3e4; FXS.root.addChild(P.T); }
+  const k=P.age/1600; if(k>=1){ P.T.destroy(); FXS.ph=null; return; } P.T.x=FXS.W/2; P.T.y=FXS.h*.42; P.T.alpha=k<.15?k/.15:k>.75?(1-k)/.25:1; P.T.scale.set(1+.06*k);
+}
 function fxStageStep(tk){
-  const dt=Math.min(50,tk.deltaMS), T=(FXS.t+=dt);
+  let dt=Math.min(50,tk.deltaMS);
+  if(FXS.hs>0){ FXS.hs-=dt; dt*=.04; } else if(FXS.slow>0){ FXS.slow-=dt; dt*=.3; }   /* R17: hit-stop on a crit or execution, a slow beat on a phase change */
+  if(FXS.nud>0){ FXS.nud=Math.max(0,FXS.nud-tk.deltaMS/160); FXS.root.x=Math.sin(FXS.nud*20)*3*FXS.nud; } else if(FXS.root.x) FXS.root.x=0;
+  fxPhaseStep(tk.deltaMS);
+  const T=(FXS.t+=dt);
   for(const F of FXS.f.values()){
     if(F.foe===2){ fxBodyStep(F,dt,T); continue; }
     const e=Math.min(1,dt/120); F.cx+=(F.x-F.cx)*e; F.cy+=(F.y-F.cy)*e; if(!F.a.length) F.c.zIndex=F.y;
@@ -499,11 +542,15 @@ function fxStageStep(tk){
     F.spr.tint=gone?0x5a5450:fl>0?fxMix(0xffffff,0xff6a55,fl):dk>0?fxMix(0xffffff,0x5a5450,dk):0xffffff;
     F.plate.visible=F.name.visible=F.tag.visible=!gone;
     if(F.ring.visible) F.ring.alpha=.5+.25*Math.sin(T/280);
+    if(F.thr.visible) F.thr.alpha=.45+.35*Math.sin(T/200);
+    if(F.pose&&!gone){ const w=.5+.5*Math.sin(T/260);   /* R17: the boss's wind-up pose while it gathers (fx-cues.js BOSS_CUE) */
+      if(F.pose==='rear') F.body.rotation=-.07*w; else if(F.pose==='lunge') F.body.rotation=.05*w; else if(F.pose==='cast') F.body.y-=F.s*.05*w; else if(F.pose==='call') F.body.scale.x*=1+.04*w; else F.body.scale.y*=1-.03*w; }
+    else if(F.body.rotation) F.body.rotation=0;
     if(F.chg.visible){ const p=(T%900)/900; F.chg.alpha=.8*(1-p)+.1; F.chg.scale.set(F.s/34*(1.35-.6*p),F.s/100*(1.35-.6*p)); }
     F.bk.visible=bk>=0; if(bk>=0){ F.bk.alpha=.9*(1-bk); F.bk.scale.set(F.s/90*(1+bk*.6)); }
   }
   for(let i=FXS.nums.length-1;i>=0;i--){ const n=FXS.nums[i]; n.age+=dt; if(n.age<0) continue;
     const k=n.age/n.life; if(k>=1){ n.T.destroy(); FXS.nums.splice(i,1); continue; }
-    n.T.visible=true; n.T.x=n.x; n.T.y=n.y-36*(1-(1-k)*(1-k)); n.T.alpha=k>.6?(1-k)/.4:1; n.T.scale.set(n.big?1.5-.5*Math.min(1,k*5):1);
+    n.T.visible=true; n.T.x=n.x+(n.dx||0)*n.age; n.T.y=n.y-36*(1-(1-k)*(1-k)); n.T.alpha=k>.6?(1-k)/.4:1; n.T.scale.set(n.big?1.5-.5*Math.min(1,k*5):1);
   }
 }

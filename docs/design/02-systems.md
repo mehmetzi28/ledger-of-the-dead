@@ -594,6 +594,13 @@ the Hunger (2.7).
   per place; boss arenas; gate tiles and the village strip as small paintings.
 - **Battle stage** (`fx.js`): a PixiJS 8 layer (vendored, loaded at runtime) draws big fighters from their icons on the
   painted scene, plus short effects; off without PixiJS, on Light effects or reduced motion, where cards show instead.
+- **What the fight shows** (R17 PR A, `fx-cues.js`): each hit's type colours its number and adds a glyph (frost shards,
+  fire embers, rot mist, shadow ink, physical sparks on the stage); a weakness reads Weak and cracks, a resistance reads
+  Resisted. Foe kits have glyphs and their acting moments flash. Every boss move has a cue (`BOSS_CUE`: a wind-up pose and
+  who it lands on), so a telegraph marks its targets Threatened on the cards and with a red ring on the stage. Crits and
+  executions get a 60 ms hit-stop and a nudge, a phase change a slow beat and a banner (not in the quiet view: reduced
+  motion, Light effects or a phone). Evolution stages show on the icon (outline, role glow, larger with motes, halo);
+  unique, heartforged, Riftborn and Awakened items have frames; stage numbers stack and drift; a changed intent pulses.
 - **Sound and music** (`scenes.js`): synthesized Web Audio effects and per-place themes; no audio files.
 - **Tabs**: Gates (with Tower, Rift, Trial and War table views), Army, Gear, Market, Skills, Town, Codex, the Ledger
   (Bestiary, Titles, Lore, Records, History, Memorial), Help, Settings. Keyboard shortcuts for every action (`?` lists them).

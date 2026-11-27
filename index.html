@@ -1245,6 +1245,27 @@ body.cv-leather .win{border-color:#6a4a2e;box-shadow:inset 0 0 0 2px rgba(106,74
 body.cv-iron .win{border-color:#5a6068;box-shadow:inset 0 0 0 2px rgba(90,96,104,.6)}
 body.cv-vellum .win{border-color:#cbbd98;box-shadow:inset 0 0 0 2px rgba(203,189,152,.35)}
 body.cv-skin .win{border-color:#9a7a66;box-shadow:inset 0 0 0 2px rgba(154,122,102,.45)}
+/* R17 PR A: what the fight shows (fx-cues.js) */
+.fx .dtg{width:11px;height:11px;margin-right:2px;vertical-align:-1px}
+.fx.neg.wk{font-size:18px}
+.fx.wkt,.fx.rst{left:8px;right:auto;top:auto;bottom:8px;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.fx.wkt{color:var(--gold)} .fx.rst{color:#8a8580}
+.unit.mini .fx.wkt,.unit.mini .fx.rst{left:4px;bottom:4px;font-size:10px}
+.unit.threat{box-shadow:0 0 0 1px #c9402c,0 6px 14px -6px rgba(201,64,44,.85);animation:threat 1.1s ease-in-out infinite alternate}
+@keyframes threat{from{box-shadow:0 0 0 1px #c9402c,0 6px 14px -8px rgba(201,64,44,.6)}to{box-shadow:0 0 0 2px #c9402c,0 8px 18px -4px rgba(201,64,44,.95)}}
+.thr-t{position:absolute;left:6px;top:-9px;z-index:2;padding:1px 6px;font:700 10px/1.4 var(--font-data);letter-spacing:.06em;text-transform:uppercase;color:#f4e6d0;background:#7a2418;border:1px solid #c9402c;cursor:help}
+.unit{position:relative}
+.unit.charging.pose-rear .ico{transform:rotate(-5deg)} .unit.charging.pose-lunge .ico{transform:translateY(3px) rotate(3deg)} .unit.charging.pose-cast .ico{transform:translateY(-3px)} .unit.charging.pose-call .ico{transform:scale(1.06)}
+.ktg{width:10px;height:10px;margin-right:3px;vertical-align:-1px}
+.intent.i-chg{animation:ichg .9s ease-out 1}
+@keyframes ichg{0%{background:rgba(211,166,77,.35);transform:translateX(-3px)}40%{transform:translateX(2px)}100%{background:transparent;transform:none}}
+.ico .motes circle{animation:mote 3.2s ease-in-out infinite alternate;opacity:.8}.ico .motes circle:nth-child(2n){animation-delay:-1.6s}
+@keyframes mote{from{transform:translateY(2px);opacity:.3}to{transform:translateY(-3px);opacity:.9}}
+.ico .halo{filter:drop-shadow(0 0 2px #d3a64d)}
+.item.f-uq{box-shadow:inset 0 0 0 1px rgba(211,166,77,.55),inset 0 0 0 3px rgba(10,8,6,.9),inset 0 0 0 4px rgba(211,166,77,.3)}
+.item.f-hf{box-shadow:inset 0 0 18px -6px rgba(240,140,60,.6),inset 0 -2px 0 rgba(200,80,30,.6)}
+.item.f-rb{outline:1px dashed rgba(201,185,143,.45);outline-offset:-5px}
+.item.f-aw .i-name::after{content:" \2726";color:var(--gold)}
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
@@ -2407,17 +2428,19 @@ const allies = ()=>[S.player].concat(S.army);
 const liveFoes = ()=>S.run.enemies.filter(e=>e.hp>0);
 const fxKey=u=>u==null?null:typeof u==='string'?u:u.id!=null?u.id:u.uid!=null?'m'+u.uid:null;   // the key a unit's card answers to (data-u, r.fx): minions have no id, only a uid
 function mark(u,d,h){ const id=fxKey(u); if(id==null) return; const f=S.run.fx[id]||(S.run.fx[id]={d:0,h:0}); f.d+=d; f.h+=h; if(id==='p'&&d>0) S.run.dt=(S.run.dt||0)+d; }   // dt: damage you took this run (History, Records)
+function markType(u,d,ty,rs){   // R17: the type of the biggest hit this turn and whether it struck a weakness or a resistance (the number's colour, Weak, Resisted)
+  const f=S.run.fx[fxKey(u)]; if(!f||!(d>0)) return; if(DTYPE[ty]&&d>=(f.td|0)){ f.ty=ty; f.td=d; } if(rs<0) f.w='weak'; else if(rs>0&&f.w!=='weak') f.w='res'; if(KILL==='exec'&&u.hp<=0) f.x=1; }
 function hit(b){ return Math.max(1,Math.round(b*rnd(.85,1.15))); }
 function hurtFoe(e,d,ty){ if(abbeyMiss(e)) return; ty=MARGIN||(DTYPE[ty]?ty:'phys');   /* an Unwritten foe; a Marginalia skill (game-abbey.js) */ if(e.curse) d=Math.round(d*e.curse.mul); { const mk=masteryDmg(e.base); if(mk) d=Math.round(d*(1+mk/100)); }   /* bestiary mastery: every hit from you and your army, once */ if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25); if(e.stun>0&&capOn('frost1')) d=Math.round(d*CAP_RIME); { const fk=faithHit(e); if(fk!==1) d=Math.round(d*fk); }   /* Vesh: frozen foes take more (game-pantheon.js) */
   if(hasSt(e,'sundered')) d=Math.round(d*SUNDER_MUL); if(hasSt(e,'chilled')) d=Math.round(d*CHILL_MUL);   // conditions (game-gate-rules.js)
   if(e.doom>0&&d>0){ d=Math.round(d*(e.doomK||1)); e.doom--; }   /* Doom, a hexer's active (game-army.js) */
-  { const k=(1-foeRes(e,ty))*typeDmg(ty)*oilK(e,ty)*archiveK(e)*rallyK()*widenK()*rbDescent(); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
+  const rs=foeRes(e,ty); { const k=(1-rs)*typeDmg(ty)*oilK(e,ty)*archiveK(e)*rallyK()*widenK()*rbDescent(); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
   e.lt=ty;   /* the type of the last hit it took (a weakness kill) */
   { const ik=inscDmgK(); if(ik!==1) d=Math.round(d*ik); }   /* the Gates, Tower and Rift, and Rival inscriptions (game-collection.js) */
   d=bossTaken(e,kitTaken(e,d));   /* Heartwood (game-boss-kits.js) */   /* Bulwark stance, a Banner-bearer beside it (game-kits.js) */
   if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e,0,0); return; } }   // Bone Wall shield soaks damage first
   if(e.hp>0&&d>=e.hp){ e.cd=deathCond(e,d); e.kb=d; }   /* kb: the killing blow (Morrow's scorch) */   // the killing blow decides the body's condition
-  recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e,d,0); siegeHurt(e); kitHurt(e); nemHurt(e); bossHurt(e,d,ty); { const r=S.run; r.dd=(r.dd||0)+d; if(d>(r.mh||0)) r.mh=d; } }   /* damage dealt and the biggest hit this run, for the History */
+  recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e,d,0); markType(e,d,ty,rs); if(ty!=='phys'||rs) fxe('typed',e,{ty,w:rs<0?1:rs>0?-1:0}); siegeHurt(e); kitHurt(e); nemHurt(e); bossHurt(e,d,ty); { const r=S.run; r.dd=(r.dd||0)+d; if(d>(r.mh||0)) r.mh=d; } }   /* damage dealt and the biggest hit this run, for the History */
 function hurtAlly(a,d,ty){
   d=siegeTaken(a,d);   /* the Mark of the Witch (game-siege2.js) */
   if(S.run&&S.run.widen) d=Math.round(d*widenK());   /* the Tear Itself (game-rift.js) */
@@ -2427,7 +2450,7 @@ function hurtAlly(a,d,ty){
   hfScales(a,d);   /* Scales (game-forge.js) */   // what hits you, for the defeat recap (before the ward soaks it)
   d=allyDr(a,d); { const ik=brewDr(a); if(ik!==1) d=Math.round(d*ik); }   /* Iron Draught (game-brew.js) */ { const rs=allyRes(a,ty); if(rs) d=Math.max(1,Math.round(d*(1-rs))); }   /* damage types: your resistance lines, a minion's typed trait */
   if(a.id==='p'){ const sk=SAP?KIT_SAP:1, s=Math.min(S.player.shield,d*sk); S.player.shield-=s; d-=Math.round(s/sk); if(BLOW&&d>0) d=tetherBlow(d); /* the Soul Tether (game-faith-story.js) */ } else if(a.mw>0){ const sk=SAP?KIT_SAP:1, s=Math.min(a.mw,d*sk); a.mw-=s; d-=Math.round(s/sk); }   // a Warden's ward on a minion
-  d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a,d,0); if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p'&&!mfSave(a)&&!echoCall(a)&&!stitchUp(a)&&!faithSave(a)){ fxe('death',a); echoBomb(a); chainSpear(); }   /* gear-bearer powers, the Bomber echo (game-army.js, game-kits.js) */
+  d=Math.min(d,a.hp); a.hp-=d; if(d>0){ mark(a,d,0); markType(a,d,ty,0); } if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p'&&!mfSave(a)&&!echoCall(a)&&!stitchUp(a)&&!faithSave(a)){ fxe('death',a); echoBomb(a); chainSpear(); }   /* gear-bearer powers, the Bomber echo (game-army.js, game-kits.js) */
   return d;
 }
 function allyDr(a,d){   // a blow on you or a minion after its damage reduction, before your ward (pure: the bestiary's damage figures use it too)
@@ -3900,6 +3923,7 @@ function kitIntentOk(e,it){   // a planned kit action still possible
 }
 function kitAct(e,it){   // a foe spends its turn on its kit; true if it did
   const r=S.run; if(abbeyKitAct(e,it)) return true;
+  { const K={shield:'shield',mark:'marker',cleanse:'purify',call:'call',burrow:'burrow'}[it.k], t=it.k==='shield'||it.k==='cleanse'?r.enemies.find(o=>o.id===it.t):it.k==='mark'?allies().find(a=>fxKey(a)===it.t):e; if(K&&t) fxe('kit',t,{k:K}); }   /* R17: the kit's moment on the stage (fx-cues.js) */
   if(it.k==='shield'){ const f=r.enemies.find(o=>o.id===it.t); if(!f||!(f.hp>0)) return true; const add=Math.round(e.maxHp*KIT_SHIELD); f.shield=Math.min(Math.round(f.maxHp*KIT_SHIELD_CAP),(f.shield||0)+add); fxe('ward',f); log(e.name+' raises a shield over '+(f===e?'itself':f.name)+'.','bad'); return true; }
   if(it.k==='mark'){ const tg=allies().find(a=>a.hp>0&&fxKey(a)===it.t); if(tg){ r.mk={t:it.t,turn:r.turn+1}; log(e.name+' marks '+nameOf(tg)+': next turn every foe that can reach it strikes it.','bad'); } return true; }
   if(it.k==='cleanse'){ const f=r.enemies.find(o=>o.id===it.t); if(f&&f.hp>0){ delete f.dots; delete f.st; log(e.name+' cleanses '+(f===e?'itself':f.name)+' of every wound and condition.','bad'); } return true; }
@@ -3922,7 +3946,7 @@ function kitOnHit(e,tg){   // what a kit's hit leaves behind (foeOnHit): the log
   if(hasKit(e,'thief')&&tg.id==='p'){ const P=S.player, m=Math.min(P.mana,Math.round(pMana()*KIT_THIEF)); if(m>0){ P.mana-=m; x+=', '+m+' mana stolen'; } }
   return x;
 }
-function kitHurt(e){ if(hasKit(e,'skirm')&&e.hp>0&&e.hp<e.maxHp*KIT_SKIRM&&!e.back){ e.back=1; log(e.name+' steps back out of reach.','bad'); } }   // hurtFoe, after the damage
+function kitHurt(e){ if(hasKit(e,'skirm')&&e.hp>0&&e.hp<e.maxHp*KIT_SKIRM&&!e.back){ e.back=1; fxe('kit',e,{k:'skirm'}); log(e.name+' steps back out of reach.','bad'); } }   // hurtFoe, after the damage
 function kitReflect(e,m,d){   // Thorned: your melee minion's hit bites back
   if(!hasKit(e,'thorns')||!MELEE[m.role]||!(m.hp>0)) return ''; const t=Math.max(1,Math.round(d*KIT_THORN)); hurtAlly(m,t,'phys'); return ', and the thorns bite back for '+t;
 }
@@ -3944,7 +3968,7 @@ function kitChip(e){
   const K=kitOf(e); if(!K||!(e.hp>0)) return '';
   const lv=knowLv(e); if(lv<1) return ' &middot; <span class="kit unk" title="It has a kit you have not learned. Study its kind to read it.">Kit ?</span>'+kit2Chip(e);
   const st=lv>=2?kitState(e):'', tip=KITS[K].rule+(lv>=4?' Answer: '+KITS[K].ans:'');
-  return ' &middot; <span class="kit" title="'+tip+'">'+KITS[K].name+'</span>'+(st?' <span class="kit-st">'+st+'</span>':'')+kit2Chip(e);
+  return ' &middot; <span class="kit" title="'+tip+'">'+(typeof kitGlyph==='function'?kitGlyph(K):'')+KITS[K].name+'</span>'+(st?' <span class="kit-st">'+st+'</span>':'')+kit2Chip(e);
 }
 const kit2Chip=e=>e.kit2&&KITS[e.kit2]?' &middot; <span class="kit kit2" title="Kits Plus: '+KITS[e.kit2].rule+'">+ '+KITS[e.kit2].name+'</span>':'';   /* Kits Plus (game-asc.js): the rule's kit shows from the start */
 // ----- the Undone: a body killed by damage it was weak to rises Undone, with an echo of its kind's kit (60% strength).
@@ -4867,7 +4891,7 @@ function checkPhase(){
   for(const e of liveFoes()) if(e.boss&&e.abil&&!e.phase2&&!e.hunger&&(e.tw||e.rival||e.rankI>=1||runHeat()>=2)&&e.hp<=e.maxHp*phaseAt()&&!hibernates(e)){   /* Vesh's Hibernation (game-pantheon.js) */   // the Rat King, a new player's first boss, keeps one phase
     e.phase2=true; e.fast=(e.fast||0)+1; e.alt=true; e.abilT=Math.min(e.abilT,2); if(e.reck) reckLastPage(e);   /* The Last Page (game-rival-arc.js) */   // Sundering Blow comes first (a boss with a move set has a twist instead)
     const l=PHASE_LINES[e.base]; log(e.name+(l?': "'+l+'"':' rises in fury.'),'boss'); const tw=bossTwist(e);
-    log(tw?e.name+' enters its second phase: '+tw.name+'. '+tw.desc+' It moves faster and warns before every move.':e.name+' enters its second phase. It moves faster, warns before every move, and adds Sundering Blow.','bad'); sfx('phase'); tally('phases'); moment(e.name+' enters its second phase','bad');
+    log(tw?e.name+' enters its second phase: '+tw.name+'. '+tw.desc+' It moves faster and warns before every move.':e.name+' enters its second phase. It moves faster, warns before every move, and adds Sundering Blow.','bad'); sfx('phase'); fxe('phase',e); tally('phases'); moment(e.name+' enters its second phase','bad');
   }
 }
 function breakCharge(e,why){ const mv=e.move||e.abil; e.charging=false; e.move=null; delete e.edictT; delete e.blockT; if(e.kit&&mv!=='sunder') nextMove(e); e.abilT=BOSS_ABIL[mv].every; log(why+' '+BOSS_ABIL[mv].name+' is lost.','ok'); tally('cancels'); moment(BOSS_ABIL[mv].name+' broken','ok'); }
@@ -9205,6 +9229,30 @@ function fxUlt(e,r,col){   // one stronger version of the fitting effect, across
   else (foes.length?foes:r?[r]:[]).forEach((f,i)=>fxWard(f,i*40,col,true));
 }
 
+// R17: what kind of hit it was (fx-cues.js): frost shards, fire embers, rot mist, shadow ink, physical sparks; a weakness cracks
+// with a bright pop, a resisted hit leaves a dull grey ring. The reduced view keeps the pop and the ring and drops the burst.
+function fxTyped(r,t,col,o){
+  const c=fxC(r), D=DT_FX[o&&o.ty]||DT_FX.phys, tint=D.x, few=fxQuiet();
+  if(!few) for(let i=0;i<6;i++){ const a=fxR(0,6.3), v=fxR(.04,.12), x=c.x+fxR(-8,8), y=c.y+fxR(-8,8);
+    if(D.fx==='shard') fxP({tex:'streak',x,y,rot:a,vx:Math.cos(a)*v,vy:Math.sin(a)*v,sx0:.22,sx1:.1,sy0:.5,sy1:.3,life:fxR(260,380),delay:t,tint,add:1,a0:.95});
+    else if(D.fx==='ember') fxP({tex:'core',x,y,vx:Math.cos(a)*v*.6,vy:-fxR(.05,.12),life:fxR(420,620),delay:t,tint:i%2?tint:col.gold,add:1,sx0:fxR(.35,.55),sx1:.1,a0:.95,fi:.15});
+    else if(D.fx==='mist') fxP({tex:'dot',x,y,vx:fxR(-.015,.015),vy:-fxR(.01,.03),life:fxR(600,800),delay:t+i*25,tint,sx0:.35,sx1:.9,a0:.35,a1:0,fi:.3});
+    else if(D.fx==='ink') fxP({tex:'dot',x,y,vx:Math.cos(a)*v*.4,vy:Math.sin(a)*v*.4+.02,g:.0003,life:fxR(450,650),delay:t,tint:i%2?tint:col.soot,sx0:.3,sy0:.45,sx1:.15,sy1:.7,a0:.75});
+    else fxP({tex:'core',x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,g:.0005,life:fxR(180,300),delay:t,tint,add:1,sx0:.4,sx1:.12,a0:.9}); }
+  if(o&&o.w>0){ fxP({tex:'streak',x:c.x,y:c.y,rot:.9,sx0:.2,sx1:.6,sy0:1,sy1:.6,life:260,delay:t+20,tint:col.gold,add:1,a0:.95}); fxP({tex:'streak',x:c.x,y:c.y,rot:-.5,sx0:.15,sx1:.5,sy0:.9,sy1:.5,life:240,delay:t+50,tint:0xffffff,add:1,a0:.8});
+    fxP({tex:'ring',x:c.x,y:c.y,sx0:r.w/120,sx1:r.w/48,life:300,delay:t+20,tint:col.gold,add:1,a0:.8}); }   // weak: a cracked-shield pop
+  else if(o&&o.w<0) fxP({tex:'ring',x:c.x,y:c.y,sx0:r.w/70,sy0:r.h/70,sx1:r.w/60,sy1:r.h/60,life:420,delay:t,tint:0x8a8580,a0:.6});   // resisted: a dull grey ring
+}
+function fxKit(r,t,col,o){   // a kit's moment: a shield raised, a burrow, a body called up, a mark, a cleanse, a step back
+  const m=KIT_FX[o&&o.k]&&KIT_FX[o.k].m, c=fxC(r);
+  if(m==='ward') fxWard(r,t,col,false);
+  else if(m==='dust'){ fxChips({x:c.x,y:r.y+r.h*.8},10,t,col,false); fxP({tex:'dot',x:c.x,y:r.y+r.h*.85,sx0:r.w/80,sy0:r.h/200,sx1:r.w/34,sy1:r.h/90,life:500,delay:t,tint:col.soot,a0:.6}); }
+  else if(m==='motes') fxMotes(r,t,col,10,col.ember);
+  else if(m==='mark') fxP({tex:'ring',x:c.x,y:c.y,sx0:r.w/30,sy0:r.h/30,sx1:r.w/70,sy1:r.h/70,life:600,delay:t,tint:0xc9402c,add:1,a0:.2,a1:.9,fi:.3});
+  else if(m==='cleanse') fxMotes(r,t,col,8,0x9fd47a);
+  else if(m==='step') fxWisp(r,t,col);
+}
+
 // Plays the queued moments in order on a short clock, so a full army's turn reads as a flurry rather than one flash.
 function fxFlush(){
   const q=FXL.q, hit={}; FXL.q=[]; if(!q.length) return hit;   // hit: when each unit is first struck this turn (the stage's numbers wait for it)
@@ -9213,7 +9261,7 @@ function fxFlush(){
   for(const e of q){
     if(t>1600) break;   // a very long turn: the rest would play long after the numbers changed
     const r=fxRect(e.k)||e.r; if(!r&&e.kind!=='ult') continue;
-    let at=t;
+    let at=e.kind==='typed'?prev:t;
     switch(e.kind){
       case 'strike': fxSlash(r,at,col,e.o&&e.o.crit); t+=120; break;
       case 'mhit': fxSpark(r,at,col,sparks); t+=nM>8?35:55; break;
@@ -9229,6 +9277,9 @@ function fxFlush(){
       case 'boss': fxBoss(r,at,col); break;
       case 'charge': fxCharge(r,at,col); t+=120; break;
       case 'ult': fxUlt(e,r,col); t+=300; break;
+      case 'typed': fxTyped(r,prev,col,e.o); break;
+      case 'kit': fxKit(r,at,col,e.o); t+=120; break;
+      case 'phase': fxBoss(r,at,col); if(FXS.app&&!fxQuiet()) FXS.slow=400; FXS.ph={k:String(e.k),age:-at}; t+=200; break;
     }
     prev=at;
     if(HIT_K[e.kind]){ const h=hit[e.k]||(hit[e.k]={t:at,c:0}); if(e.o&&e.o.crit) h.c=1; try{ fxStageMove(e,at); }catch(x){} }
@@ -9277,7 +9328,7 @@ async function fxStageInit(){
   }catch(e){ FXS.ok=false; try{ console.info('Battle stage is off: '+(e&&e.message)+'. The cards show the fight instead.'); }catch(x){} }
 }
 function fxStageDrop(){   // the layer is going away: the stage too, and the cards come back
-  const a=FXS.app, was=FXS.ok; FXS.ok=false; FXS.app=null; FXS.root=null; FXS.floor=null; FXS.f.clear(); FXS.nums=[]; FXS.seen=null; FXS.W=0; FXS.lk=''; FXS.bgk=null;
+  const a=FXS.app, was=FXS.ok; FXS.ok=false; FXS.app=null; FXS.root=null; FXS.floor=null; FXS.f.clear(); FXS.nums=[]; FXS.seen=null; FXS.W=0; FXS.lk=''; FXS.bgk=null;  FXS.ph=null; FXS.hs=FXS.slow=FXS.nud=0;
   try{ document.body.style.removeProperty('--stage-bg'); if(FXS.bgu) URL.revokeObjectURL(FXS.bgu); }catch(e){} FXS.bgu=null;
   if(a) try{ a.ticker.remove(fxStageStep); for(const k in FXS.tex) FXS.tex[k].destroy(true); FXS.ico.forEach(t=>{ if(t) t.destroy(true); }); a.destroy({removeView:true},{children:true}); }catch(e){}
   FXS.tex=null; FXS.ico.clear();
@@ -9295,7 +9346,7 @@ function fxIcoCss(){   // the icon rules from the page's stylesheet, so the pict
 function fxIcoTex(html){   // null until the image has loaded; the fighters that wear it are updated then
   if(FXS.ico.has(html)) return FXS.ico.get(html);
   FXS.ico.set(html,null);
-  const m=/^<span class="([^"]*)"[^>]*>(<svg[\s\S]*<\/svg>)/.exec(html), defs=document.getElementById('paint');
+  const m=/^<span class="([^"]*)"[^>]*>(<svg[\s\S]*?<\/svg>)/.exec(html), defs=document.getElementById('paint');
   if(!m||!defs||!window.URL||!URL.createObjectURL) return null;
   const svg='<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="-4 -4 72 72"><style>'+fxIcoCss()+'</style><defs>'+defs.parentNode.innerHTML+'</defs><g class="'+m[1]+'">'+m[2].replace('<svg ','<svg x="0" y="0" width="64" height="64" ')+'</g></svg>';
   const img=new Image(), url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));
@@ -9310,13 +9361,13 @@ function fxFighter(k,foe){
   const c=new PIXI.Container(), sp=(t,add)=>{ const s=new PIXI.Sprite(FXS.tex[t]); s.anchor.set(.5); if(add) s.blendMode='add'; s.visible=false; return s; };
   const F={k,foe,c,x:0,y:0,cx:null,cy:0,s:0,ph:fxR(0,6.3),a:[],dead:null,key:'',html:''};
   F.shadow=sp('dot'); F.shadow.tint=0; F.shadow.visible=true;
-  F.glow=sp('dot',1); F.ring=sp('ring',1); F.chg=sp('ring',1); F.chg.tint=FXS.col.ember; F.bk=sp('ring',1); F.bk.tint=FXS.col.ward;
+  F.glow=sp('dot',1); F.ring=sp('ring',1); F.chg=sp('ring',1); F.chg.tint=FXS.col.ember; F.bk=sp('ring',1); F.bk.tint=FXS.col.ward; F.thr=sp('ring',1); F.thr.tint=0xc9402c;
   F.body=new PIXI.Container(); F.spr=new PIXI.Sprite(PIXI.Texture.EMPTY); F.spr.anchor.set(.5,1); F.body.addChild(F.spr);
   F.plate=new PIXI.Graphics();
   F.name=new PIXI.Text({text:'',style:{fontFamily:FXS.fontH,fontSize:13,fontWeight:'600',fill:FXS.col.bone,stroke:{color:0x0a0806,width:3}}}); F.name.anchor.set(.5,0);
   F.tag=foe?new PIXI.Text({text:'',style:{fontFamily:FXS.font,fontSize:11,fontWeight:'700',fill:0xe5776a,stroke:{color:0x0a0806,width:3}}}):new PIXI.Graphics();
   if(foe) F.tag.anchor.set(.5,1);
-  c.addChild(F.shadow,F.glow,F.ring,F.chg,F.body,F.bk,F.plate,F.name,F.tag);
+  c.addChild(F.shadow,F.thr,F.glow,F.ring,F.chg,F.body,F.bk,F.plate,F.name,F.tag);
   if(foe){ c.eventMode='static'; c.cursor='pointer'; c.on('pointertap',()=>{ try{ if(foe===2) stageRaise(k); else stageTap(k); }catch(e){} }); }   // foe 2: a body on the raise stage
   FXS.root.addChild(c); FXS.f.set(k,F); return F;
 }
@@ -9330,18 +9381,21 @@ function fxFitText(T,s,w,two){   // one line if it fits; else a size smaller; el
 function fxUpd(F,p,cell,tg,r){
   const u=p.u, s=p.s, dead=u.hp<=0, isP=u.id==='p', max=isP?pMax():u.maxHp;
   F.u=u; F.x=p.x; F.y=p.y; if(F.cx==null){ F.cx=p.x; F.cy=p.y; } if(F.dead===null) F.dead=dead;
-  const html=isP?ico('Necromancer',pRankI(),{}):ico(u.base||u.kind||u.name,u.rankI,{boss:u.boss,secret:u.secret,elite:u.elite});
+  const html=isP?ico('Necromancer',pRankI(),{}):ico(u.base||u.kind||u.name,u.rankI,{boss:u.boss,secret:u.secret,elite:u.elite,stage:u.stage,role:u.role});
   if(F.html!==html){ F.html=html; F.spr.texture=fxIcoTex(html)||PIXI.Texture.EMPTY; F.s=0; }
-  if(F.s!==s){ F.s=s; fxFit(F); F.shadow.scale.set(s/34,s/120); F.glow.scale.set(s/26,s/76); F.ring.scale.set(s/52,s/150); F.bk.position.set(0,-s*.5); F.c.hitArea=new PIXI.Rectangle(-cell/2,-s-20,cell,s+64); }
+  if(F.s!==s){ F.s=s; fxFit(F); F.shadow.scale.set(s/34,s/120); F.glow.scale.set(s/26,s/76); F.ring.scale.set(s/52,s/150); F.thr.scale.set(s/44,s/130); F.bk.position.set(0,-s*.5); F.c.hitArea=new PIXI.Rectangle(-cell/2,-s-20,cell,s+64); }
   const nm=F.foe?u.name:(isP?'You':nick(u)), st=fxStatus(u), sel=F.foe&&!dead&&r.target===u.id, ch=F.foe&&!dead?chargeInfo(u):null, it=F.foe&&!dead&&!ch?intentInfo(u):null;
   const kd=it&&it.k==='atk'?foeKnow(u).dmg:null, lab=ch?'Charging: '+ch.name:it?it.txt+(kd!=null?' · '+aboutN(kd):''):'', kind=ch?'abil':it?it.k:'', bw=Math.round(Math.max(s*1.2,cell*.94)), bb=Math.round(Math.min(bw*.9,s*1.15));   /* bw: the name's room, bb: the HP bar */
-  const key=[nm,u.hp,max,s,bw,dead,st.join(','),sel,lab,kind,tg.has(F.k),VIEW.lang,isP?u.shield:0].join('|');
+  const kt=F.foe&&!dead&&kitOf(u)&&knowLv(u)>=1?kitOf(u):'', th=!F.foe&&!dead&&FXS.thr?FXS.thr.get(F.k):null;   /* R17: the kit's glyph, a telegraph's mark under its targets */
+  F.pose=ch?cueOf(u.move||u.abil).pose:null; F.thr.visible=!!th;
+  const key=[nm,u.hp,max,s,bw,dead,st.join(','),sel,lab,kind,tg.has(F.k),VIEW.lang,isP?u.shield:0,kt].join('|');
   if(key===F.key) return; F.key=key;
   F.name.style.fill=u.boss||u.elite?FXS.col.gold:FXS.col.bone; F.name.style.fontSize=s<56?12:14; fxFitText(F.name,fxTr(nm),bw,true); F.name.y=6;
   const g=F.plate.clear(), by=F.name.y+F.name.height+2, w=Math.max(0,Math.min(1,u.hp/max));
   g.rect(-bb/2-1,by-1,bb+2,8).fill({color:0x0a0806,alpha:.85}).rect(-bb/2,by,bb*w,6).fill(F.foe?0xb83a2a:0x6f9a4c);
   if(isP&&u.shield>0) g.rect(-bb/2,by,bb*Math.min(1,u.shield/max),2).fill(FXS.col.ward);
   st.slice(0,6).forEach((c,i,a)=>{ const x=(i-(a.length-1)/2)*8; g.poly([x,by+10,x+3,by+13,x,by+16,x-3,by+13]).fill(c).stroke({width:1,color:0x0a0806,alpha:.8}); });
+  if(kt&&KIT_FX[kt]){ const x0=bb/2+4, y0=by-2; for(const pl of KIT_FX[kt].g) g.poly(pl.map((v,i)=>v+(i%2?y0:x0))).fill(FXS.col.bone).stroke({width:1,color:0x0a0806,alpha:.9}); }
   F.glow.visible=!!st.length; if(st.length){ F.glow.tint=st[0]; F.glow.alpha=.45; }
   F.ring.visible=sel; F.ring.tint=FXS.col.bone; F.chg.visible=!!ch;
   if(F.foe){ F.tag.style.fill=INT_COL[kind]||FXS.col.bone; F.tag.style.fontSize=s<56?11:12; fxFitText(F.tag,fxTr(lab),Math.max(cell*.96,70)); F.tag.y=-s-4; }
@@ -9352,12 +9406,13 @@ function fxStage(){
   const A=FXS.app; if(!A) return;
   const rs=typeof S!=='undefined'&&S&&S.run&&S.mode==='raise', host=typeof S!=='undefined'&&S&&(S.mode==='battle'||rs)&&S.run&&app.querySelector('.stage');   /* rs: the raise screen, bodies where the foes stood */
   if(!host){ FXS.md=null; if(A.canvas.parentNode) A.canvas.parentNode.removeChild(A.canvas); A.ticker.stop();
-    if(FXS.f.size||FXS.nums.length){ FXS.f.forEach(F=>F.c.destroy({children:true})); FXS.f.clear(); FXS.nums.forEach(n=>n.T.destroy()); FXS.nums=[]; } return; }
+    if(FXS.f.size||FXS.nums.length){ FXS.f.forEach(F=>F.c.destroy({children:true})); FXS.f.clear(); FXS.nums.forEach(n=>n.T.destroy()); FXS.nums=[]; } if(FXS.ph&&FXS.ph.T) FXS.ph.T.destroy(); FXS.ph=null; FXS.hs=FXS.slow=FXS.nud=0; return; }
   if(A.canvas.parentNode!==host) host.appendChild(A.canvas);
   const r=S.run, fresh=!FXS.f.size, from=FXS.md, W=Math.max(200,host.clientWidth|0), all=[S.player].concat(S.army), foes=rs?fxBodies(r):r.enemies, fk=rs?2:1;
   const L=[[foes,'b',fk],[foes,'f',fk],[all,'f',0],[all,'b',0]].map(([l,k,foe])=>({foe,u:l.filter(u=>rowOf(u)===k)})).filter(l=>l.u.length);
   const n=Math.max(3,...L.map(l=>l.u.length)), cell=W/n, s=Math.round(Math.max(W<520?40:56,Math.min(96,cell*.72))), pos=new Map(), tg=new Set();   // the fighters fill the stage; a crowded row shrinks them
   if(!rs) for(const e of r.enemies){ const i=e.hp>0&&intentInfo(e); if(i&&i.k==='atk'&&i.tg) tg.add(fxKey(i.tg)); }
+  FXS.thr=rs?null:threatMap();
   let y=6, mid=0;
   for(const l of L){
     if(!l.foe&&!mid){ mid=y+4; y+=12; }
@@ -9440,13 +9495,16 @@ function fxStageMove(e,at){   // from fxFlush, on the same clock as the overlay:
 function fxNum(F,txt,col,t,big,small){   // a number that rises off a fighter and fades
   const T=new PIXI.Text({text:txt,style:{fontFamily:FXS.fontH,fontSize:Math.round((small?12:big?28:19)*(F.s<50?.85:1)),fontWeight:'700',fill:col,stroke:{color:0x0a0806,width:4}}});
   T.anchor.set(.5,1); T.visible=false; T.zIndex=2e4; FXS.root.addChild(T);
-  FXS.nums.push({T,x:F.x+fxR(-F.s*.15,F.s*.15),y:F.y-F.s*(small?1.05:.7),age:-t,life:big?1050:850,big});
+  const n=FXS.nums.filter(o=>o.F===F&&o.age<500).length;   // R17: numbers on the same fighter stack and drift instead of overlapping
+  FXS.nums.push({T,F,x:F.x+fxR(-F.s*.1,F.s*.1)+(n%2?1:-1)*Math.min(n,3)*F.s*.12,y:F.y-F.s*(small?1.05:.7)-n*14,age:-t,life:big?1050:850,big,dx:(n%2?1:-1)*.012});
 }
 function fxStageAfter(hit){   // numbers, blocks and deaths for this turn, once per turn (r.fx is new on every action)
   const r=typeof S!=='undefined'&&S&&S.run; if(!FXS.app||!FXS.f.size||!r) return;
   if(r.fx!==FXS.seen){ FXS.seen=r.fx;
     for(const k in r.fx){ const f=r.fx[k], F=FXS.f.get(k); if(!F) continue; const h=hit[k], t=h?h.t:0;
-      if(f.d) fxNum(F,String(f.d),h&&h.c?FXS.col.gold:F.foe?FXS.col.bone:0xe5776a,t+60,h&&h.c);
+      if(f.d){ const D=f.ty&&f.ty!=='phys'&&DT_FX[f.ty], max=F.u&&(F.u.id==='p'?pMax():F.u.maxHp)||1, big=!!(h&&h.c)||f.w==='weak'||f.d>=max*.25;
+        fxNum(F,String(f.d)+(f.w==='weak'?'!':''),h&&h.c?FXS.col.gold:D?D.x:F.foe?FXS.col.bone:0xe5776a,t+60,big,f.w==='res');
+        if(F.foe&&(h&&h.c||f.x)&&!fxQuiet()){ FXS.hs=60; FXS.nud=1; } }   // a crit or an execution: hit-stop and a nudge
       if(f.h) fxNum(F,'+'+f.h,0x9fd47a,t+(f.d?220:0));
       if(f.c) fxNum(F,fxTr(f.c),FXS.col.gold,t+300,false,true); }
     for(const k in hit){ const f=r.fx[k], F=FXS.f.get(k); if(F&&!(f&&(f.d||f.h))) fxAnim(F,'block',hit[k].t,420); } }   // struck for nothing: a ward or shield took it
@@ -9456,8 +9514,17 @@ function fxStageAfter(hit){   // numbers, blocks and deaths for this turn, once 
   for(const F of FXS.f.values()){ if(F.foe===2) continue; const dead=F.u.hp<=0; if(dead&&F.dead===false) fxAnim(F,'die',(hit[F.k]?hit[F.k].t:0)+180,700); F.dead=dead; }
 }
 const fxMix=(a,b,k)=>{ const c=s=>Math.round(((a>>s)&255)*(1-k)+((b>>s)&255)*k); return (c(16)<<16)|(c(8)<<8)|c(0); };
+function fxPhaseStep(ms){   // a boss's second phase: its name and the words across the stage for a moment
+  const P=FXS.ph; if(!P) return; P.age+=ms; const F=FXS.f.get(P.k);
+  if(!P.T){ if(P.age<0) return; P.T=new PIXI.Text({text:fxTr((F&&F.u?F.u.name:'The boss')+' · Second phase'),style:{fontFamily:FXS.fontH,fontSize:24,fontWeight:'700',fill:FXS.col.gold,stroke:{color:0x0a0806,width:5}}}); P.T.anchor.set(.5); P.T.zIndex=3e4; FXS.root.addChild(P.T); }
+  const k=P.age/1600; if(k>=1){ P.T.destroy(); FXS.ph=null; return; } P.T.x=FXS.W/2; P.T.y=FXS.h*.42; P.T.alpha=k<.15?k/.15:k>.75?(1-k)/.25:1; P.T.scale.set(1+.06*k);
+}
 function fxStageStep(tk){
-  const dt=Math.min(50,tk.deltaMS), T=(FXS.t+=dt);
+  let dt=Math.min(50,tk.deltaMS);
+  if(FXS.hs>0){ FXS.hs-=dt; dt*=.04; } else if(FXS.slow>0){ FXS.slow-=dt; dt*=.3; }   /* R17: hit-stop on a crit or execution, a slow beat on a phase change */
+  if(FXS.nud>0){ FXS.nud=Math.max(0,FXS.nud-tk.deltaMS/160); FXS.root.x=Math.sin(FXS.nud*20)*3*FXS.nud; } else if(FXS.root.x) FXS.root.x=0;
+  fxPhaseStep(tk.deltaMS);
+  const T=(FXS.t+=dt);
   for(const F of FXS.f.values()){
     if(F.foe===2){ fxBodyStep(F,dt,T); continue; }
     const e=Math.min(1,dt/120); F.cx+=(F.x-F.cx)*e; F.cy+=(F.y-F.cy)*e; if(!F.a.length) F.c.zIndex=F.y;
@@ -9478,14 +9545,110 @@ function fxStageStep(tk){
     F.spr.tint=gone?0x5a5450:fl>0?fxMix(0xffffff,0xff6a55,fl):dk>0?fxMix(0xffffff,0x5a5450,dk):0xffffff;
     F.plate.visible=F.name.visible=F.tag.visible=!gone;
     if(F.ring.visible) F.ring.alpha=.5+.25*Math.sin(T/280);
+    if(F.thr.visible) F.thr.alpha=.45+.35*Math.sin(T/200);
+    if(F.pose&&!gone){ const w=.5+.5*Math.sin(T/260);   /* R17: the boss's wind-up pose while it gathers (fx-cues.js BOSS_CUE) */
+      if(F.pose==='rear') F.body.rotation=-.07*w; else if(F.pose==='lunge') F.body.rotation=.05*w; else if(F.pose==='cast') F.body.y-=F.s*.05*w; else if(F.pose==='call') F.body.scale.x*=1+.04*w; else F.body.scale.y*=1-.03*w; }
+    else if(F.body.rotation) F.body.rotation=0;
     if(F.chg.visible){ const p=(T%900)/900; F.chg.alpha=.8*(1-p)+.1; F.chg.scale.set(F.s/34*(1.35-.6*p),F.s/100*(1.35-.6*p)); }
     F.bk.visible=bk>=0; if(bk>=0){ F.bk.alpha=.9*(1-bk); F.bk.scale.set(F.s/90*(1+bk*.6)); }
   }
   for(let i=FXS.nums.length-1;i>=0;i--){ const n=FXS.nums[i]; n.age+=dt; if(n.age<0) continue;
     const k=n.age/n.life; if(k>=1){ n.T.destroy(); FXS.nums.splice(i,1); continue; }
-    n.T.visible=true; n.T.x=n.x; n.T.y=n.y-36*(1-(1-k)*(1-k)); n.T.alpha=k>.6?(1-k)/.4:1; n.T.scale.set(n.big?1.5-.5*Math.min(1,k*5):1);
+    n.T.visible=true; n.T.x=n.x+(n.dx||0)*n.age; n.T.y=n.y-36*(1-(1-k)*(1-k)); n.T.alpha=k>.6?(1-k)/.4:1; n.T.scale.set(n.big?1.5-.5*Math.min(1,k*5):1);
   }
 }
+// ===== R17 PR A: WHAT THE FIGHT SHOWS =====
+// Tables and readers that let the cards and the battle stage show what kind of thing happened, not only that something did:
+// damage types (a colour, a glyph and a burst of their own on the stage), weak and resisted hits, each foe kit's glyph and its
+// moment, every boss move's wind-up pose and who it threatens, and the evolution stages' looks. Everything here reads the
+// state and never changes it; the log line and the number always come with the effect.
+
+// ----- damage types: the colour of the number, a glyph beside it and the stage's burst (never blue or purple: the palette)
+const DT_FX={
+  phys: {c:'#e8dcc8',x:0xe8dcc8,fx:'spark',g:[[5,0,7,7,5,10,3,7]]},
+  frost:{c:'#dfe6e2',x:0xdfe6e2,fx:'shard',g:[[5,0,6,4,10,5,6,6,5,10,4,6,0,5,4,4]]},
+  fire: {c:'#f0a05a',x:0xf0a05a,fx:'ember',g:[[5,0,8,5,7,9,3,9,2,5,4,4]]},
+  rot:  {c:'#b9b46a',x:0xb9b46a,fx:'mist', g:[[3,1,7,1,9,4,8,8,2,8,1,4]]},
+  shad: {c:'#a8968c',x:0xa8968c,fx:'ink',  g:[[6,0,3,2,2,5,3,8,6,10,4,7,4,3]]}
+};
+const glyphSVG=(g,c,cls)=>'<svg class="'+(cls||'dtg')+'" viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">'+g.map(p=>'<polygon points="'+p.join(',')+'" fill="'+c+'"/>').join('')+'</svg>';
+const dtGlyph=ty=>DT_FX[ty]?glyphSVG(DT_FX[ty].g,DT_FX[ty].c):'';
+
+// ----- foe kits: a glyph over the foe (once you know its kit) and, for the kits that act, the moment the stage flashes
+// m: ward (a shield raised), dust (a burrow), motes (a body called up), mark (a target marked), cleanse, step (a step back)
+const KIT_FX={
+  shield:{m:'ward',  g:[[2,1,8,1,8,5,5,9,2,5]]},
+  ambush:{m:null,    g:[[5,0,6,6,5,7,4,6],[3,7,7,7,7,8,3,8]]},
+  thief: {m:null,    g:[[5,1,8,6,5,9,2,6]]},
+  call:  {m:'motes', g:[[5,1,8,5,6,5,6,9,4,9,4,5,2,5]]},
+  pack:  {m:null,    g:[[1,2,3,8,5,3,7,8,9,2,9,1,1,1]]},
+  bomb:  {m:null,    g:[[5,3,7,4,8,6,7,8,5,9,3,8,2,6,3,4],[5,3,6,0,7,0,6,3]]},
+  sapper:{m:null,    g:[[1,2,9,2,9,3,6,3,6,9,4,9,4,3,1,3]]},
+  skirm: {m:'step',  g:[[1,5,5,1,5,4,9,4,9,6,5,6,5,9]]},
+  stance:{m:null,    g:[[1,2,3,2,3,1,7,1,7,2,9,2,9,8,1,8]]},
+  hexer: {m:null,    g:[[1,5,5,2,9,5,5,8]]},
+  marker:{m:'mark',  g:[[4,1,6,1,6,4,9,4,9,6,6,6,6,9,4,9,4,6,1,6,1,4,4,4]]},
+  purify:{m:'cleanse',g:[[5,0,6,4,10,5,6,6,5,10,4,6,0,5,4,4]]},
+  burrow:{m:'dust',  g:[[1,8,9,8,9,9,1,9],[4,1,6,1,6,4,8,4,5,7,2,4,4,4]]},
+  thorns:{m:null,    g:[[0,9,2,3,4,9,5,2,6,9,8,3,10,9]]},
+  frenzy:{m:null,    g:[[5,0,8,5,7,9,3,9,2,5,4,4]]},
+  banner:{m:null,    g:[[2,1,3,1,3,10,2,10],[3,1,9,3,3,5]]}
+};
+const kitGlyph=k=>KIT_FX[k]?glyphSVG(KIT_FX[k].g,'currentColor','ktg'):'';
+
+// ----- boss moves: the wind-up pose on the stage and who the move threatens, so a telegraph marks its targets
+// pose: lunge (a blow), rear (a great blow drawn back), cast (a spell), call (a summons), guard (itself)
+// at: p (you), all (your side), front / back (that row of yours), one (one minion it names), foes (its own side), self
+const BOSS_CUE={
+  swarm:{pose:'call',at:'foes'}, bonewall:{pose:'guard',at:'foes'}, cinder:{pose:'cast',at:'all'}, hymn:{pose:'cast',at:'p'}, seedfall:{pose:'call',at:'foes'},
+  decree:{pose:'rear',at:'p'}, sunder:{pose:'rear',at:'p'}, gnaw:{pose:'lunge',at:'front'}, lock:{pose:'cast',at:'one'}, bash:{pose:'lunge',at:'front'},
+  burnground:{pose:'cast',at:'front'}, lance:{pose:'rear',at:'back'}, tithe:{pose:'cast',at:'p'}, bite:{pose:'lunge',at:'one'}, ironthorns:{pose:'cast',at:'one'},
+  graft:{pose:'guard',at:'self'}, summons:{pose:'call',at:'foes'}, edict:{pose:'cast',at:'one'}, mirror:{pose:'cast',at:'p'}, rampart:{pose:'guard',at:'foes'},
+  called:{pose:'rear',at:'back'}, blackmass:{pose:'cast',at:'foes'}, harvest:{pose:'lunge',at:'one'}, purge:{pose:'cast',at:'one'}, rally:{pose:'call',at:'foes'},
+  brood:{pose:'call',at:'foes'}, plague:{pose:'cast',at:'all'}, feed:{pose:'guard',at:'self'}, drown:{pose:'lunge',at:'one'}, litany:{pose:'cast',at:'self'},
+  breath:{pose:'rear',at:'front'}, molten:{pose:'guard',at:'self'}, tail:{pose:'lunge',at:'back'}, verse:{pose:'cast',at:'p'}, crescendo:{pose:'cast',at:'p'},
+  echoes:{pose:'call',at:'foes'}, spread:{pose:'cast',at:'one'}, heartwood:{pose:'guard',at:'self'}, unwrite:{pose:'cast',at:'one'}, nothing:{pose:'rear',at:'p'},
+  heads:{pose:'lunge',at:'all'}, moth:{pose:'cast',at:'back'}, confess:{pose:'cast',at:'p'}, cloud:{pose:'cast',at:'all'}, dirge:{pose:'cast',at:'all'},
+  chain:{pose:'cast',at:'one'}, block:{pose:'rear',at:'one'}, bargain:{pose:'guard',at:'self'}, halo:{pose:'guard',at:'p'}, otherhalf:{pose:'cast',at:'p'},
+  erase:{pose:'cast',at:'p'}, hollow:{pose:'cast',at:'all'}, hunger:{pose:'lunge',at:'one'}, remember:{pose:'call',at:'foes'}, readaloud:{pose:'cast',at:'one'},
+  writename:{pose:'rear',at:'p'}, devour:{pose:'lunge',at:'one'}, fold:{pose:'cast',at:'all'}, gateedge:{pose:'rear',at:'back'}, opendoor:{pose:'call',at:'foes'},
+  closedoor:{pose:'cast',at:'one'}, repeat:{pose:'cast',at:'p'}, delay:{pose:'cast',at:'p'}, hymnbrass:{pose:'guard',at:'self'}, brassbell:{pose:'rear',at:'front'},
+  widen:{pose:'cast',at:'all'}, swallow:{pose:'guard',at:'self'}, count:{pose:'cast',at:'one'}, tally:{pose:'guard',at:'self'}, witchmark:{pose:'cast',at:'one'},
+  pyre:{pose:'rear',at:'one'}, pillar:{pose:'rear',at:'all'}, sermon:{pose:'call',at:'foes'}
+};
+const CUE_AT={p:'you',all:'your whole side',front:'your front row',back:'your back row',one:'one of your minions',foes:'its own side',self:'itself'};
+const cueOf=mv=>BOSS_CUE[mv]||{pose:'cast',at:'p'};
+function threatKeys(e){   // the units a gathering move will land on (empty when it lands on its own side, or nothing gathers)
+  if(!e||!e.charging||!(e.hp>0)||!S.run) return [];
+  const mv=e.move||e.abil, at=cueOf(mv).at, side=[S.player].concat(S.army||[]).filter(u=>u.hp>0&&!(u.lock>S.run.turn)), K=u=>String(fxKey(u));
+  if(at==='p') return ['p'];
+  if(at==='all') return side.map(K);
+  if(at==='front'){ const f=side.filter(u=>u.id!=='p'&&rowOf(u)==='f'); return (f.length?f:[S.player]).map(K); }
+  if(at==='back') return side.filter(u=>rowOf(u)==='b').map(K);
+  if(at==='one'){ const k=mv==='edict'?e.edictT:mv==='block'?e.blockT:null; if(k!=null) return [String(k)]; const m=typeof strongestMinion==='function'?strongestMinion():null; return [m?K(m):'p']; }
+  return [];
+}
+function threatMap(){   // unit key -> the moves gathering against it this turn
+  const m=new Map(); if(!S.run||S.mode!=='battle') return m;
+  for(const e of S.run.enemies||[]){ const ks=threatKeys(e); if(!ks.length) continue; const n=BOSS_ABIL[e.move||e.abil]?BOSS_ABIL[e.move||e.abil].name:e.name;
+    for(const k of ks){ if(!m.has(k)) m.set(k,[]); m.get(k).push(n); } }
+  return m;
+}
+
+// ----- evolution looks: Greater a darker outline, Elder a glow in the role's colour, Ancient a tenth larger with motes,
+// Eternal a halo. Drawn into the icon's own markup, so the cards and the stage show the same.
+const ROLE_GLOW={vanguard:'#c9b98f',striker:'#e5776a',mender:'#9fd47a',reaper:'#d3a64d',hexer:'#b8a48c'};
+const STAGE_LOOK=[null,{ol:1},{ol:1,glow:1},{ol:1,glow:1,big:1.1,motes:1},{ol:1,glow:1,big:1.1,motes:1,halo:1}];
+function evoLook(o){   // {cls, style, pre, post} for ico(): the svg's filter, a scaled group and the halo and motes
+  const st=o&&o.stage|0, L=STAGE_LOOK[Math.min(st,STAGE_LOOK.length-1)]; if(!L) return null;
+  const f=['drop-shadow(0 0 1px #0a0807)','drop-shadow(0 0 1px #0a0807)']; if(L.glow) f.push('drop-shadow(0 0 3px '+(ROLE_GLOW[o.role]||'#c9b98f')+')');
+  return {cls:' st'+st, style:'filter:'+f.join(' '), pre:L.big?'<g transform="translate(32 36) scale('+L.big+') translate(-32 -36)">':'', post:(L.big?'</g>':'')
+    +(L.motes?'<g class="motes" fill="'+(ROLE_GLOW[o.role]||'#c9b98f')+'"><circle cx="8" cy="40" r="1.4"/><circle cx="57" cy="30" r="1.2"/><circle cx="12" cy="18" r="1"/><circle cx="54" cy="52" r="1.3"/></g>':'')
+    +(L.halo?'<ellipse class="halo" cx="32" cy="3" rx="13" ry="3.2" fill="none" stroke="#d3a64d" stroke-width="2.2"/>':'')};
+}
+
+// ----- the reduced view: Light effects or reduced motion turn off hit-stop, the stage's nudge and dense bursts
+const fxQuiet=()=>{ try{ return !!VIEW.calm||fxReduced()||fxLight(); }catch(e){ return true; } };   // also the phone view (Auto on a small screen)
 // ===== LANGUAGE =====
 // English is written into the page; Turkish is laid over it after every render. Each text piece is looked up with its
 // numbers as # (so "Lv 12 · ATK 40" finds "Lv # · ATK #"), split on " · ", ", " and ": " when the whole is unknown,
@@ -13362,6 +13525,14 @@ TR_DICT.set("A cosmetic","Bir görünüm");
 TR_RX.unshift([/^Cosmetics · (\d+)\/(\d+)$/,"Görünümler · $1/$2"],[/^Earn every (.+) title$/,"Her {t1} unvanını kazan"],[/^Earn the title (.+)$/,"$1 unvanını kazan"],
  [/^the (.+) (robe|staff head|banner|night backdrop|Ledger cover)$/,"$1 {t2}"],[/^(.+) family complete$/,"{t1} ailesi tamam"],[/^(.+) banner$/,"$1 sancağı"],
  [/^(Bestiary Ledgered|Uniques found|Sets completed|Trophy kinds held|Pages|Memorial): (\d+) (.+)$/,"{t1}: $2 {t3}"]);
+
+// ----- R17 PR A: what the fight shows
+[
+ ["Weak","Zayıf"],["Each evolution stage also shows on the minion: Greater a darker outline, Elder a glow in its role's colour, Ancient a tenth larger with motes about it, Eternal a halo","Her evrim basamağı minyonda da görünür: Greater daha koyu bir dış hat, Elder rolünün renginde bir parıltı, Ancient onda bir daha büyük ve çevresinde zerreler, Eternal bir hale"],["Resisted","Dirençli"],["Threatened","Tehdit altında"],["Second phase","İkinci evre"],
+ ["In a fight each hit shows its type: its number takes the type's colour and glyph, a hit on a weakness reads Weak and cracks, a resisted one reads Resisted. On the battle stage frost throws shards, fire embers, rot a mist and shadow ink","Dövüşte her vuruş türünü gösterir: sayısı türün rengini ve simgesini alır, zayıflığa isabet eden vuruş Zayıf yazar ve çatlar, direnilen vuruş Dirençli yazar. Savaş sahnesinde ayaz kıymıklar, ateş kıvılcımlar, çürüme bir sis, gölge mürekkep saçar"],
+ ["While a move gathers (Charging), the units it will land on are marked Threatened, and on the battle stage the boss draws back for the blow and a red ring marks the ground under them","Bir hamle toplanırken (Yükleniyor) ineceği birimler Tehdit altında olarak işaretlenir; savaş sahnesinde patron darbe için geri çekilir ve altlarındaki zemini kırmızı bir halka işaretler"]
+].forEach(([k,v])=>{ TR_DICT.set(k,v); });
+TR_RX.unshift([/^Gathering against it: (.+)$/,"Ona karşı toplanan: $1"],[/^(.+) · Second phase$/,"$1 · İkinci evre"]);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -14150,7 +14321,8 @@ const STAFF_HEAD={
 };
 function heroArt(o){ const st=o.staff!==undefined?o.staff:(typeof cosOf==='function'?cosOf('staff'):null); const b=IC.Necromancer; return st&&STAFF_HEAD[st]?b.replace(STAFF_SKULL,STAFF_HEAD[st]):b; }
 const heroRobe=o=>{ const rb=o.robe!==undefined?o.robe:(typeof cosOf==='function'?cosOf('robe'):null); return rb&&COS.robe[rb]?COS.robe[rb].c:null; };
-function ico(key,rankI,o){ o=o||{}; const M=matOf(key), hero=key==='Necromancer', col=(hero&&heroRobe(o))||M[1]; return '<span class="ico r'+rankI+(o.boss?' boss':'')+(o.secret?' secret':'')+(o.elite?' elite':'')+'" aria-hidden="true"><svg viewBox="0 0 64 64" class="mt-'+M[0]+'" style="color:'+col+'"><g filter="url(#paint)">'+(hero?heroArt(o):(IC[key]||IC._))+'</g></svg>'+(key!=='Necromancer'?roleBadge(o.role):'')+'</span>'; }
+function ico(key,rankI,o){ o=o||{}; const M=matOf(key), hero=key==='Necromancer', col=(hero&&heroRobe(o))||M[1], E=!hero&&o.stage?evoLook(o):null;   /* R17: evolution looks (fx-cues.js) */
+  return '<span class="ico r'+rankI+(o.boss?' boss':'')+(o.secret?' secret':'')+(o.elite?' elite':'')+(E?E.cls:'')+'" aria-hidden="true"><svg viewBox="0 0 64 64" class="mt-'+M[0]+'" style="color:'+col+(E?';'+E.style:'')+'">'+(E?E.pre:'')+'<g filter="url(#paint)">'+(hero?heroArt(o):(IC[key]||IC._))+'</g>'+(E?E.post:'')+'</svg>'+(key!=='Necromancer'?roleBadge(o.role):'')+'</span>'; }
 const app=document.getElementById('app');
 const ui={confirm:null};
 const pct=(v,m)=>Math.max(0,Math.min(100,m?v/m*100:0));
@@ -14293,7 +14465,7 @@ function setLine(d){ if(d.tower||SET_NAMES[d.set]==null) return usetLine(d); con
   return detl('gs'+d.set,SET_NAMES[d.set]+' set'+(n?' ('+n+'/3 worn)':''),'<span class="'+(n>=2?'on':'')+'">2: '+buffTxt(B[2])+'</span> &middot; <span class="'+(n>=3?'on':'')+'">3: '+buffTxt(B[3])+'</span>','setl',1)+usetLine(d); }
 function itemCard(it,acts,cmp){
   const d=ITEM[it.id];
-  return '<div class="item t'+d.tier+'">'+iico(d)+'<div class="i-body"><div class="i-top"><span class="i-name">'+d.name+'</span><span class="i-tag">'+TIERS[d.tier]+' &middot; '+SLOTS[d.slot]+(!d.uq&&!d.tower&&RANKS[d.set]?'<span class="sr"> &middot; gate '+RANKS[d.set]+' set</span>':'')+(d.tower?' &middot; <span class="i-floor">Hell Tower '+d.floor+'</span>':'')+(it.aw?' &middot; <span class="i-aw" title="'+AWAKEN_TXT+'">Awakened '+AWAKEN_RN[it.aw]+'</span>':'')+'</span></div>'
+  return '<div class="item t'+d.tier+(d.uq?' f-uq':'')+(it.hf?' f-hf':'')+(it.rb?' f-rb':'')+(it.aw?' f-aw':'')+'">'+iico(d)+'<div class="i-body"><div class="i-top"><span class="i-name">'+d.name+'</span><span class="i-tag">'+TIERS[d.tier]+' &middot; '+SLOTS[d.slot]+(!d.uq&&!d.tower&&RANKS[d.set]?'<span class="sr"> &middot; gate '+RANKS[d.set]+' set</span>':'')+(d.tower?' &middot; <span class="i-floor">Hell Tower '+d.floor+'</span>':'')+(it.aw?' &middot; <span class="i-aw" title="'+AWAKEN_TXT+'">Awakened '+AWAKEN_RN[it.aw]+'</span>':'')+'</span></div>'
    +'<div class="i-stats">'+statsHTML(d,it)+'</div>'+(it.rb&&RB_POW[it.rb.p]?'<div class="i-rb">Riftborn &middot; depth '+it.rb.d+' &middot; <b>'+RB_POW[it.rb.p].name+'</b>: '+rbDesc(it)+'</div>':'')+(it.hf?'<div class="i-hf">Heartforged from '+it.hf+(it.pw?' &middot; <b>'+HF_POW[it.pw].name+'</b>: '+HF_POW[it.pw].desc:'')+'</div>':'')+(d.flag?detl('fx'+d.flag,FLAGS[d.flag].split(':')[0],FLAGS[d.flag],'i-fx'):'')+setLine(d)+(cmp?cmpHTML(it):'')+'</div><div class="i-acts">'+(acts||'')+'</div></div>';
 }
 const lockBtn=it=>'<button class="btn small lockb'+(it.lk?' on':'')+'" data-a="lock" data-k="'+it.u+'" aria-pressed="'+!!it.lk+'" title="'+(it.lk?'Locked: never sold, salvaged or discarded. Press to unlock.':'Lock it so it is never sold, salvaged or discarded')+'">'+(it.lk?'Locked':'Lock')+'</button>';
@@ -15213,12 +15385,12 @@ function codexSection(k){
     +DUNGEONS.map((D,di)=>{ const lv=RK[di].lv, list=D.mobs.map(t=>({n:t[0],role:t[1],hf:t[2],af:t[3],boss:false})).concat([{n:D.boss[0],role:D.boss[1],hf:1,af:1,boss:true}]);
       return '<p class="group-h">'+D.name+' &middot; Lv '+lv+'</p>'+cxList(list.map(x=>{ const met=!!(S.kills&&S.kills[x.n]); if(!met) return cxRow('???','Not met yet.');
         const st=mobStats(di,lv,x.hf,x.af,x.boss,false); return cxRow(x.n,'HP '+st.hp+' &middot; ATK '+st.atk+(x.boss?' &middot; boss':''),ROLES[x.role].label); })); }).join('');
-  if(k==='traits') return cxP('Every raised minion rolls one trait (bosses two). It evolves at set levels above the level it was raised at; each stage adds its own buff and one more trait. A raised elite also keeps one of its affixes as a trait. Fusion can stack traits up to '+FUSE_TRAITS+'.')
+  if(k==='traits') return cxP('Each evolution stage also shows on the minion: Greater a darker outline, Elder a glow in its role\'s colour, Ancient a tenth larger with motes about it, Eternal a halo.')+cxP('Every raised minion rolls one trait (bosses two). It evolves at set levels above the level it was raised at; each stage adds its own buff and one more trait. A raised elite also keeps one of its affixes as a trait. Fusion can stack traits up to '+FUSE_TRAITS+'.')
     +cxList(STAGES.slice(1).map((n,i)=>cxRow(n.trim(),fxText(STAGE_FX[i+1])+' and one more trait.','+'+EVOLVE_AT[i+1]+' levels')))
     +cxList(['commander'].concat(TRAIT_IDS,AFFIX_TRAITS,DEATH_TRAITS).map(t=>{ const from=AFFIX_IDS.filter(a=>AFFIX[a].trait===t).map(a=>AFFIX[a].name), died=Object.keys(CORPSE_CONDS).filter(k=>CORPSE_CONDS[k].trait===t).map(k=>CORPSE_CONDS[k].name); return cxRow(TRAITS[t].name,TRAITS[t].desc+(from.length?' Kept from '+withArticle(from.join(' or '))+' elite.':'')+(died.length?' Rises from '+withArticle(died.join(' or ').toLowerCase())+' body.':'')); }));
   if(k==='affixes') return cxP('About one foe in ten is an elite: '+pct(.5)+' more HP, 30% more attack, more XP, gold, trophies and better drops, and harder to raise. Every elite carries a named affix, two in the '+DUNGEONS[3].name+' and deeper and from Tower floor 50.')
     +cxList(AFFIX_IDS.map(a=>cxRow(AFFIX[a].name,AFFIX[a].desc+' Raised, it becomes '+TRAITS[AFFIX[a].trait].name+': '+TRAITS[AFFIX[a].trait].desc)));
-  if(k==='bosses') return cxP('Every gate boss fights with a move set: two or three moves it uses in turn every few turns in place of attacking, shown on its card once Known ("Next: ..."). Moves marked telegraphed are announced a turn ahead (Charging): soak a blow with Bone Ward, or freeze the boss with Grave Chill to cancel the move. A boss calls at most '+SUMMON_CAP+' helpers a fight. Some bosses also bring a hazard, a rule for the whole room while they stand. Tower wardens bring a signature move of their own beside the gate move they borrow (Abaddon all of them, abyssal wardens two); wardens move a turn sooner from floor 50 and grow wrathful after turn 8: every turn after that they hit 7% harder (12% on floor 100).')
+  if(k==='bosses') return cxP('While a move gathers (Charging), the units it will land on are marked Threatened, and on the battle stage the boss draws back for the blow and a red ring marks the ground under them.')+cxP('Every gate boss fights with a move set: two or three moves it uses in turn every few turns in place of attacking, shown on its card once Known ("Next: ..."). Moves marked telegraphed are announced a turn ahead (Charging): soak a blow with Bone Ward, or freeze the boss with Grave Chill to cancel the move. A boss calls at most '+SUMMON_CAP+' helpers a fight. Some bosses also bring a hazard, a rule for the whole room while they stand. Tower wardens bring a signature move of their own beside the gate move they borrow (Abaddon all of them, abyssal wardens two); wardens move a turn sooner from floor 50 and grow wrathful after turn 8: every turn after that they hit 7% harder (12% on floor 100).')
     +cxP('At '+pct(PHASE_AT)+' HP a boss (from the Sunken Crypt on, and every Tower warden) enters its second phase: its moves come a turn sooner and every move is telegraphed. A gate boss turns its fight with a twist of its own; wardens and secret masters alternate their moves with Sundering Blow. Taunt sends that blow at a vanguard, and a Focus crit breaks any charging move.')
     +'<p class="group-h">Gate bosses</p>'+cxList(DUNGEONS.map(D=>{ const n=D.boss[0], met=metName(n); return cxRow(met?n:'An unmet boss',met?bossKitTxt(n):'Meet it to learn its moves.',D.name); }))
     +SIEGE_BOSSES.map((n,i)=>cxRow(n,bossKitTxt(n)+(SBOSS_PASSIVE[n]?'. '+SBOSS_PASSIVE[n][0]+': '+SBOSS_PASSIVE[n][1]:''),i?'Sieges, tier '+(i+2):'Sieges')).join('')
@@ -15252,6 +15424,7 @@ function codexSection(k){
       +((S.nem||[]).length?'<p class="group-h">Alive now</p>'+cxList(S.nem.map(n=>cxRow(n.name,nemTitle(n)+'. '+DUNGEONS[n.g].name+', Lv +'+nemUp(n)+'.',n.arch?'Arch-nemesis':''))):'');
   if(k==='types'){ const pc=v=>Math.round(Math.abs(v)*100)+'%', prof=(res,hits)=>{ const w=DT_IDS.filter(t=>res[t]<0), r=DT_IDS.filter(t=>res[t]>0); return (w.length?'Weak to '+w.map(t=>DTYPE[t].name+' (+'+pc(res[t])+')').join(', ')+'. ':'')+(r.length?'Resists '+r.map(t=>DTYPE[t].name+' (-'+pc(res[t])+')').join(', ')+'. ':'')+'Strikers deal '+DTYPE[hits].name+'.'; };
     return cxP('Every hit has one of five damage types: Physical, Shadow, Frost, Fire and Rot. Where foes stand decides what they are weak to and what they resist. A weakness adds to the damage, a resistance takes from it, once, after armor and before any shield. Armor and resistance are separate: piercing beats armor, the right type beats resistance.')
+      +cxP('In a fight each hit shows its type: its number takes the type\'s colour and glyph, a hit on a weakness reads Weak and cracks, a resisted one reads Resisted. On the battle stage frost throws shards, fire embers, rot a mist and shadow ink.')
       +'<p class="group-h">Your damage</p>'+cxList([cxRow(DTYPE.phys.name,'Strike, Echo, Hellfire, Cleave, Bone Spear and its Splinter, Thorns, Barbed Hide, the Spiked and Volley marks, bleeding, and every minion hit without a typed trait.'),
         cxRow(DTYPE.shad.name,'Soul Siphon and Chorus, Reap, Death\'s Toll, and Bloodfiend minions.'),
         cxRow(DTYPE.frost.name,'Grave Chill, the Deep Winter capstone, and Rimeborn, Glaciermaul and Shatterwrought minions (Shatterwrought alternates frost and fire).'),
@@ -15882,9 +16055,11 @@ const aboutN=n=>n<50?n:Math.round(n/(n<200?5:10))*(n<200?5:10);   // "about": th
 const endDot=t=>/[.!?]$/.test(t)?t:t+'.';
 function sigHTML(s){ return s?(s.you!=null?'<b class="kn">you '+s.you+'</b>':'')+(s.army?'<b class="kn">army '+s.army+'</b>':'')+(s.van!=null?'<b class="kn">vanguard '+aboutN(s.van)+'</b>':''):''; }
 function ansHTML(c){ return c&&c.length?'<div class="kn-ans" title="'+c.map(k=>KNOW_ANS[k][1]).join(' ')+'">'+c.map(k=>'<span>'+KNOW_ANS[k][0]+'</span>').join(' &middot; ')+'</div>':''; }
+const INT_SEEN=new WeakMap();   // view only: each foe's last intent and the turn it changed
 function intentHTML(u){ const i=intentInfo(u); if(!i) return ''; const K=foeKnow(u);   // bestiary knowledge (foeKnow) adds figures by tier; the tooltip carries the detail
   const tip=[i.tip].concat(K.aff?K.aff.map(a=>endDot(AFFIX[a].name+': '+AFFIX[a].desc)):[],K.ans?K.ans.map(k=>KNOW_ANS[k][1]):[]).join(' ');
-  return '<div class="intent i-'+i.k+'" title="'+tip+'"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="'+INTENT_ICO[i.k]+'"/></svg><span>'+i.txt+'</span>'
+  const ik=i.k+'|'+i.txt, im=INT_SEEN.get(u)||{}, T=S.run?S.run.turn:0; if(im.k!==ik){ if(im.k!=null) im.t=T; im.k=ik; INT_SEEN.set(u,im); }   /* R17: an intent that changed this turn pulses once */
+  return '<div class="intent i-'+i.k+(im.t===T?' i-chg':'')+'" title="'+tip+'"><svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="'+INTENT_ICO[i.k]+'"/></svg><span>'+i.txt+'</span>'
    +(K.dmg!=null?'<b class="kn">about '+aboutN(K.dmg)+'</b>':'')+(K.crit?'<span class="kn-crit" title="A striker: its blow can crit for 80% more and open a wound.">can crit</span>':'')+sigHTML(K.sig)+'</div>'
    +(K.next?'<div class="intent-2"><span>then likely</span> <span>'+K.next.txt+'</span></div>':'')+ansHTML(K.ans);
 }
@@ -15898,7 +16073,10 @@ function unitCard(u,side,mini){
     +(u.aff&&!isP?u.aff.map(a=>' &middot; <span class="aff" title="'+AFFIX[a].desc+'">'+AFFIX[a].name+'</span>').join(''):'')+(side==='foe'&&!isP?kitChip(u):echoKits(u).length?echoKits(u).map(k=>' &middot; <span class="kit" title="'+echoTxt(k)+'">Echo: '+KITS[k].name+'</span>').join(''):'')
     +(u.scd&&CORPSE_CONDS[u.scd]?' &middot; <span class="stash-t" title="A body the rival stole. '+CORPSE_CONDS[u.scd].when+'">'+CORPSE_CONDS[u.scd].name+'</span>':'');
   const rk=isP?'':'<span class="rk r'+u.rankI+'">'+RANKS[u.rankI]+'</span>';
-  const fx=(f.d?'<span class="fx neg">-'+f.d+'</span>':f.h?'<span class="fx pos">+'+f.h+'</span>':'')+(f.c?'<span class="fx cmb">'+f.c+'</span>':'');   // c: a status combo fired on it
+  const D=f.ty&&f.ty!=='phys'&&DT_FX[f.ty], th=!dead&&side!=='foe'?threatMap().get(String(fxKey(u))):null;   /* R17: the hit's type and a telegraph that names this unit (fx-cues.js) */
+  const fx=(f.d?'<span class="fx neg'+(D?' dt-'+f.ty:'')+(f.w==='weak'?' wk':'')+'"'+(D?' style="color:'+D.c+'"':'')+'>'+(D?dtGlyph(f.ty):'')+'-'+f.d+'</span>':f.h?'<span class="fx pos">+'+f.h+'</span>':'')
+    +(f.d&&f.w==='weak'?'<span class="fx wkt">Weak</span>':f.d&&f.w==='res'?'<span class="fx rst">Resisted</span>':'')+(f.c?'<span class="fx cmb">'+f.c+'</span>':'')   // c: a status combo fired on it
+    +(th?'<span class="thr-t" title="Gathering against it: '+th.join(', ')+'">Threatened</span>':'');
   const dots=stPills(u)+(side==='foe'?intentHTML(u)+(!dead&&execMark(u)?'<div class="kn-exe" title="Below 40% HP: Execute doubles your reapers\' blows on it this turn.">Execute</div>':''):''), K=ch?foeKnow(u):null;
   const sub=side==='foe'?'Lv '+u.lvl+' &middot; ATK '+u.atk+(dead?'':masteryTag(u.base))
     :(isP?'Lv '+u.lvl+' &middot; ATK '+pAtk():mName(u)+' &middot; Lv '+u.lvl+' &middot; ATK '+u.atk);
@@ -15910,8 +16088,8 @@ function unitCard(u,side,mini){
   if(mini){   // a minion in battle: icon, name, level, attack, HP; the rest lives on the Army tab
     const m='<div class="u-head">'+ico(u.base||u.kind||u.name,u.rankI,u)+'<div class="u-id"><div class="u-name">'+nick(u)+'</div><div class="u-sub num">'+(dead?'<span class="down-t">'+downTip(u)+'</span>':'Lv '+u.lvl+' &middot; ATK '+u.atk+(u.wall?' &middot; Wall':''))+'</div>'+dots+'</div></div>'
       +'<div class="bar"><i class="fill hp" style="width:'+pct(u.hp,max)+'%"></i></div><div class="num u-hp">'+Math.max(0,u.hp)+'/'+max+'</div>';
-    return '<div class="unit ally mini'+(dead?' dead':'')+(u.elite?' elite':'')+(f.d?' hit':'')+'" data-u="'+fxKey(u)+'" title="'+mName(u)+', '+ROLES[u.role].label+(u.wall?', on the wall':'')+(echoKits(u).length?', Echo: '+echoKits(u).map(k=>KITS[k].name).join(', '):'')+'">'+fx+m+'</div>'; }
-  const cls='unit '+side+(dead?' dead':'')+(sel?' sel':'')+(ch?' charging':'')+(u.elite?' elite':'')+(f.d?' hit':'');
+    return '<div class="unit ally mini'+(dead?' dead':'')+(u.elite?' elite':'')+(f.d?' hit':'')+(th?' threat':'')+'" data-u="'+fxKey(u)+'" title="'+mName(u)+', '+ROLES[u.role].label+(u.wall?', on the wall':'')+(echoKits(u).length?', Echo: '+echoKits(u).map(k=>KITS[k].name).join(', '):'')+'">'+fx+m+'</div>'; }
+  const cls='unit '+side+(dead?' dead':'')+(sel?' sel':'')+(ch?' charging':'')+(u.elite?' elite':'')+(f.d?' hit':'')+(th?' threat':'')+(ch?' pose-'+cueOf(u.move||u.abil).pose:'');
   return side==='foe'&&!dead?'<button class="'+cls+'" data-a="target" data-k="'+u.id+'" data-u="'+u.id+'" aria-pressed="'+sel+'">'+inner+'</button>':'<div class="'+cls+'" data-u="'+fxKey(u)+'">'+inner+'</div>';
 }
 const ORDER_KEYS={z:'vanguard',x:'striker',c:'mender',v:'reaper'}, ORDER_KEY=Object.fromEntries(Object.entries(ORDER_KEYS).map(([k,r])=>[r,k.toUpperCase()]));
