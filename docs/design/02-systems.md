@@ -457,11 +457,19 @@ fastest-clear record. A secret master stops the sweep at the boss room and is fo
 on every front-row foe), Nightmare (x3.6, an elite in every room, bosses start in phase two). Rewards rise with it; each
 tier's Recommended level is modeled (`tierRec`).
 
-**Cursed gates** (`MODS`): each day one cleared gate is cursed (Volatile dead, Drought, Fury, Bulwark, Horde): harder
+**Cursed gates** (`MODS`): each day one cleared gate is cursed (Volatile dead, Drought, Fury, Bulwark, Horde; R13 adds
+Hunger, Mirror, Silent, Long and Thin, `game-valley.js`; a Trial never draws Long): harder
 (+15% foes), double gold and trophies, +25% XP, +50% gear. After the Throne, cursed foes rise to 5 levels below you.
 
 **Omens** (`OMENS`): 25% of days once a gate is cleared: Blood Moon, Pale Tide, Ashfall, Black Eclipse, Bone Harvest,
-Iron Rain, Soul Storm. They touch every gate and the Tower, never sieges or Trials.
+Iron Rain, Soul Storm, and from R13 Red Mist (+10% crit for every unit), Grave Wind (+5% raise, one Soul fewer) and Still Air
+(no damage over time). They touch every gate and the Tower, never sieges or Trials. Volatile dead bursts for 30% of the
+foe's attack, at most 6% of your max HP (R13; it was half, uncapped).
+
+**Valley events and chains** (R13, `game-valley.js`): ten more events between rooms (Mourners only when the town is Calm,
+the Saint only for the sworn, the Ledger thief once the rival is met), and three three-step chains that start and continue
+only in their own gate: the Tanner's Debt (Rat Warren, title *Paid in Full*), the Warden's Relief (Sunken Crypt, the
+Reserve gains a level) and the Ash Choir (Hollow Cathedral: Choir devotion, or a cantor's body that rises at Elder).
 
 **Secret masters** (`SECRET`). A cleared gate's boss room very rarely (1%, +1% per difficulty tier, +0.05% per boss room
 since the last) holds an older master: 3.5x HP growing with your level, 1.7x attack, second phase from turn one, x4

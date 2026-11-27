@@ -71,7 +71,7 @@ flowchart LR
 | Trials | Throne clear, curses, tiers, seed | Gold, dust, hearts, records | Good: pays the Awakening economy |
 | Faith (the pantheon) | Kills, healing, raises, trophies, Siphon, headstones, the Memorial, shrines | Boons by rank, vows, conversion, titles, story, omen forecast/call/ward, Temple chapels, dread, sieges, commissions | |
 | Omens | Calendar | Rule changes for a day, titles | Not forecast or caused (G20) |
-| Curses | Calendar, cleared gates | Harder runs, more reward, titles, bounty | Five curses only (G24) |
+| Curses | Calendar, cleared gates | Harder runs, more reward, titles, bounty | Ten curses (G24 closed by R13) |
 | Hell Tower | Level 10, 3 clears | 12 uniques, titles, story, abyss gold | Wardens reuse gate moves (G3) |
 | Rift | Level 40, Throne, sigils, the Memorial (events) | Legendaries, Riftborn gear, Rift Shards (attunement, secret hearts for the Heartforge), records, titles, story (the other half) | - |
 | Titles | Tallies, records, everything | One worn bonus, collection gold | 148 titles, small effect (G26) |
@@ -183,8 +183,9 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
   pages (PR B). (Rift, gear, records.)
 - **G23. Sieges never change.** One roster, three waves, the same Captain; the Inquisition has no story that escalates
   with your wins and losses. (Sieges, story, town.)
-- **G24. Curses and events repeat.** Five curses for the whole game; six events and three chains (the full bot meets ~264
-  events in 100 days). (Curses, events, Trials.)
+- ~~**G24. Curses and events repeat.**~~ Closed by R13: ten curses, twenty events (ten in R13, touching dread, faith,
+  omens, traits, the Reserve, commissions and the rival), six chains (three tied to their gates, three steps each) and
+  nemeses that remember your dead. (Curses, events, Trials, nemeses.)
 
 **Hero and meta**
 

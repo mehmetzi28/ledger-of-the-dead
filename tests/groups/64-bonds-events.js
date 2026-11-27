@@ -68,7 +68,7 @@ test('Event chains: each choice leads to its own follow-up, and paid choices nee
   S.day=10; const want={relic_curse:1,deserter_true:1,priest_kin:1}, seen={}; for(let i=0;i<60;i++){ Math.random=(()=>{ let n=0; return ()=>[0,i/60][n++]||0; })(); const id=chainDue(); if(id) seen[id]=1; }
   eq(Object.keys(seen).sort().join(),Object.keys(want).sort().join());
   for(const [id,ch] of [['relic_curse','endure'],['deserter_true','take'],['priest_kin','pay']]){ eventScene(id,10); S.run.event={id}; S.player.hp=pMax(); ok(resolveEvent(ch),id); ok(S.run.event.done); }
-  ok(CHAIN_IDS.every(id=>S.chains[id].s==='end'),'all three ended'); eq(chainDue(),null); invariants('chains');
+  ok(['priest','reliquary','deserter'].every(id=>S.chains[id].s==='end'),'all three ended'); eq(chainDue(),null); invariants('chains');
   S.chains={deserter:{s:'fedFalse',d:1}}; eventScene('deserter_false',10); S.run.event={id:'deserter_false'}; const hp=S.player.hp=pMax(); ok(resolveEvent('fight')); ok(S.player.hp<hp);
 });
 

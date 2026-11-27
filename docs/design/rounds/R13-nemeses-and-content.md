@@ -153,4 +153,51 @@ Fever Pit unless the minion is in the Reserve. `"off":["nemesis"]`.
 - **Balance** (market, seeds 7700/9100): gates 91/90%, Tower 82.4/81.8, Rift 20.1/18.8 (R12: 91/90%, 82.1/81.7, 20/19.5).
   Nemeses a bot: market 0.9/1 born, 0.8/0.9 avenged; full (7700) 2.6 born, 2.5 avenged, 0.3 arch; full gates 90%,
   Tower 85.6, Rift 27.8. The bot avenges about 95%, above the spec's 70%, because it always takes a door it can win.
-- **PR B next**: five curses, ten events, three chains and three omens.
+- PR B followed with the curses, events, chains and omens (below).
+
+## As built (PR B: a living valley)
+
+- **Code**: `src/game-valley.js` (new, after game-nemesis.js). Its tables join `MODS`, `EVENTS`, `OMENS`, `CHAIN_EV`,
+  `CHAIN_IDS`, `CHAIN_NEXT`, `OMEN_NAT` and `GOD_OMENS`; the rules are small hooks in combat, rooms and raising.
+- **Curses** (10 now). The rewards stay the same for every curse (double gold and trophies, +25% XP, +50% gear); the
+  spec's per-curse reward shares were dropped.
+  - **Hunger**: a Soul drains at the start of each room (`curseRoom`).
+  - **Mirror**: every foe takes your army's most common trait (`armyTrait`). A wound trait (Venomous, Necrotic,
+    Cinderborn, Rimeborn) goes on its hits (`foeTraitHit`, also used by a nemesis's stolen trait); any other is +15% HP
+    and attack.
+  - **Silent**: no free orders (`canCommand`).
+  - **Long**: one more room before the boss. The spec's "one more foe" was already Horde. A Trial never draws Long, so it
+    keeps four rooms.
+  - **Thin**: only two bodies stay after a room, a boss's and the elites' first. Simpler than the spec's one-turn decay.
+- **Volatile dead retuned**: the market bot cleared only 39-62% of Volatile gates, against 93-98% for every other curse.
+  It now bursts for 30% of the foe's attack, at most 6% of your max HP (was half, uncapped), and clears 94-99%.
+- **Omens** (13 now; 10 can come at dawn). Each is also in one god's call list:
+  - **Red Mist** (the Profane): +10% crit for you, your minions and foe strikers.
+  - **Grave Wind** (the Choir): +5% raise, and the Soul cap is one lower (never below 1).
+  - **Still Air** (Vesh): no damage over time ticks, on either side.
+- **Events** (`VEV`, ten; `when` limits who meets them):
+  - **Mourners** (Calm town only): a free body, or dread -4.
+  - **The Hanged Choir**: -15% HP for the gate's hexer body, or Choir devotion +15 (sworn to the Choir).
+  - **The lost patrol**: dread -3, or two free bodies and dread +3.
+  - **The bone merchant**: your lowest-level minion leaves; a free body of the gate at least its level waits.
+  - **A drowned bell**: tomorrow's omen is a random dawn omen, or none.
+  - **The weeping statue**: a torn page (50%) or XP; or a mana draught (gold if the belt is full).
+  - **The Ledger thief** (once the rival is met): -20% HP for a torn page or gold.
+  - **The fever pit**: your lowest-level minion's last trait rerolls, and 30% of the time it is lost to the Memorial.
+  - **The broken wagon**: 3 trophies of the gate's first kind, or dread -2 and gold.
+  - **The hollow saint** (sworn only): convert keeping 75% of your devotion, or break it (dread +2, Profane devotion +20).
+- **Chains** (three steps each; the first meeting and each follow-up appear only in their own gate, `chainGate`):
+  - **The Tanner's Debt** (Rat Warren): take the ledger, fight or pay the creditors, settle the debt, which gives the
+    title *Paid in Full* (+5% gold). The unique-power reward was dropped.
+  - **The Warden's Relief** (Sunken Crypt): the roster, lay three watchmen to rest (-25% HP), stand the last watch (-20% HP):
+    every Reserve minion gains a level (up to your level + 2). No Silent fight and no lore passage.
+  - **The Ash Choir** (Hollow Cathedral): listen, search (-15% HP), then free the cantor (Choir devotion +50, or a Soul
+    and full mana) or bind it (a free Choir Cantor body that rises at Elder with two more traits, `cantorStage`).
+- **Titles**: *Five Curses Broken* (a clear under each new curse) and *Paid in Full*. 210 titles.
+- **Bot**: event picks for every new event and chain step (it walks past the bone merchant, the bell and the fever pit).
+  The report adds clears by curse.
+- **Tests**: `tests/groups/98-valley.js` (4 tests). 877 tests. Fuzz 12/12.
+- **Balance** (market, seeds 7700/9100): gates 95/95%, Tower 84/83, Rift 20.8/22 (PR A: 91/90%, 82.4/81.8, 20.1/18.8).
+  The gate rise is mostly the Volatile fix: those runs had cost about 3 points of clears. Clears by curse (7700): Bulwark
+  98, Drought 98, Fury 97, Horde 93, Hunger 98, Long 95, Mirror 95, Silent 98, Thin 93, Volatile 97. Full (7700): 94%,
+  Tower 86.1, Rift 27.4.
