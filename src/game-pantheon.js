@@ -59,7 +59,7 @@ function swear(id){ if(S.mode!=='town'||!FAITH[id]||faithOf()||!faithOpen()) ret
 function renounce(){ if(S.mode!=='town'||!faithOf()) return false; const c=renounceCost(); if(S.gold<c) return false; S.gold-=c; tally('renounced'); vitals(()=>{ delete S.faith; }); S.player.hp=Math.min(S.player.hp,pMax()); return true; }
 // ----- devotion: deeds, ranks, the vow
 function deed(g,pts){   // a deed your god likes: points (x the god's pace and the Temple), a rank-up notice, a passage at ranks 1 and 5
-  const id=faithOf(); if(!id||id!==g||!(pts>0)) return 0; const f=S.faith, r0=faithRank(), p=pts*DEED_K[id]*templeDev();
+  const id=faithOf(); if(!id||id!==g||!(pts>0)) return 0; const f=S.faith, r0=faithRank(), p=pts*DEED_K[id]*templeDev()*inscFaith();   /* the Faith inscription (game-collection.js) */
   if(f.dday!==S.day){ f.dday=S.day; f.dd=0; } f.dev=(f.dev||0)+p; f.dd+=p; tally('devPts',p);
   const r1=faithRank(); if(r1>r0){ vitals(()=>{}); tally('rankUps'); const b=BOONS[id][r1-1]; notify(FAITH[id].short.replace(/^the /,'The ')+' grants you rank '+r1+': '+b.t+'.','ok'); if(r1===1||r1===DEV_RANKS) unlockStory(godStory(id,r1),S.run&&S.mode==='battle'?S.run:null); if(r1===DEV_RANKS) tally('r5_'+id); }
   return p;

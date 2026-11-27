@@ -1471,7 +1471,7 @@ function pickNorm(rows){ const tot=rows.reduce((a,r)=>a+r.p,0); let x=Math.rando
 const ownsItem=id=>!!S&&(S.inv.some(it=>it.id===id)||GEAR_SLOTS.some(sl=>S.equip[sl]&&S.equip[sl].id===id)||S.army.concat(S.reserve||[],S.waiting||[],...(S.raids||[]).map(x=>x.units)).some(m=>m.eq&&GEAR_SLOTS.some(sl=>m.eq[sl]&&m.eq[sl].id===id)));
 function rollDrops(e){
   const out=[], rows=e.tw?towerTable(e.tw,e.role,e.boss,e.elite):tableFor(e.rankI,e.role,e.boss,e.elite,SIG[e.base],e.hx);
-  const more=ascDrop()*(S.run&&S.run.siege?SIEGE_DROP:1)*((!e.tw&&runMod())?MOD_DROP:1)*(roomKind()==='elite'?ELITE_DROP:1)*heatK('drop')*(S.run&&S.run.rift?Math.min(RIFT_DROP_MAX,1+RIFT_DROP*S.run.rift)*riftRew():1)*(omen()==='ironrain'?IRON_DROP:1)*(hasMod('robber','b')?KEEN_DROP:1)*pactDrop();   // Iron Rain, Keen Eye and New Game+ pacts
+  const more=ascDrop()*(S.run&&S.run.siege?SIEGE_DROP:1)*((!e.tw&&runMod())?MOD_DROP:1)*(roomKind()==='elite'?ELITE_DROP:1)*heatK('drop')*(S.run&&S.run.rift?Math.min(RIFT_DROP_MAX,1+RIFT_DROP*S.run.rift)*riftRew():1)*(omen()==='ironrain'?IRON_DROP:1)*inscDrop()*(hasMod('robber','b')?KEEN_DROP:1)*pactDrop();   // Iron Rain, Keen Eye and New Game+ pacts
   for(const c of dropChances(e.boss,e.elite)) if(Math.random()<c*more){ let id=pickRow(rows);
     if(ITEM[id].uq&&(ownsItem(id)||out.includes(id))) id=pickNorm(rows.filter(r=>!ITEM[r.id].uq));   // a unique you already carry becomes ordinary gear instead
     out.push(id); }
@@ -1479,7 +1479,7 @@ function rollDrops(e){
   return out;
 }
 const BAG_MAX=30, BAG_STEP=5, BAG_COST=[250,600,1500,3500];   // bag upgrades: +5 slots each, bought at the market
-const bagMax=()=>BAG_MAX+BAG_STEP*((S&&S.bagLv)||0);
+const bagMax=()=>BAG_MAX+BAG_STEP*((S&&S.bagLv)||0)+(S?collBag():0);   /* the Sets milestone (game-collection.js) */
 const KNOW_AT=25;   // kills of one enemy type needed to study its drop table in the bestiary
 // Bestiary mastery: a ladder on S.kills only (no save fields; New Game+ keeps the bestiary, so mastery carries over).
 // at = kills for an ordinary foe, bossAt = for gate bosses, Tower wardens and secret masters (null: not a rung for them).
@@ -1815,7 +1815,7 @@ const canNGP=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]);
 const ownedUniques=()=>[...new Set(S.inv.concat(Object.values(S.equip)).filter(it=>it&&ITEM[it.id]&&ITEM[it.id].uq).map(it=>it.id))];
 function startNGP(carry,pacts,rule,carries){
   if(S.mode!=='town'||!canNGP()) return false; if(faithOf()==='dis') tally('godless');   /* Godless: a cycle finished Profane (game-pantheon.js) */
-  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts),ally:S.ally||null}; if(S.iron){ keep.iron=true; keep.ironDeaths=S.ironDeaths|0; } if(S.custom) keep.custom=S.custom; if(S.code) keep.code=S.code;   /* the mode carries into New Game+ (game-modes.js) */ ngpEnding(keep); ascStart(keep,rule,carries);   /* the ascension rule (game-asc.js) */   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
+  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts),ally:S.ally||null}; if(S.iron){ keep.iron=true; keep.ironDeaths=S.ironDeaths|0; } if(S.custom) keep.custom=S.custom; if(S.code) keep.code=S.code; if(S.insc) keep.insc=S.insc; if(S.coll) keep.coll=S.coll;   /* inscriptions and milestones (game-collection.js) */   /* the mode carries into New Game+ (game-modes.js) */ ngpEnding(keep); ascStart(keep,rule,carries);   /* the ascension rule (game-asc.js) */   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
   newGame(); Object.assign(S,keep); S.ti.clr={}; ngpEndingStart(); ascBegin();   // titles stay earned; New Game+ again needs another Throne of Ash clear
   S.watches=WATCHES-pactWatch(); S.notices=[]; if(carry&&own.includes(carry)){ const it=addItem(carry,null); if(it&&carryAw) it.aw=carryAw; }   /* an awakened unique keeps its ranks */ unlockStory('ngp');
   notify('New Game+ '+S.ngp+' begins. Foes have '+Math.round(NGP_FOE*S.ngp*100)+'% more HP and attack, and pay '+Math.round(NGP_REWARD*S.ngp*100)+'% more XP and gold.'+(carry&&own.includes(carry)?' '+ITEM[carry].name+' is in your bag.':''),'ok');
@@ -1940,7 +1940,7 @@ function normalizeSave(src){
   { const c=g.player.cmd; if(!hadCmd||!(obj(c)&&c.a>=0&&c.h>=0&&isFinite(c.a)&&isFinite(c.h))) g.player.cmd=cmdPow(Array.isArray(g.army)?g.army:[]); else g.player.cmd={a:Math.round(c.a),h:Math.round(c.h)}; }   // Command: an old or damaged save measures its army again
   const okB=b=>obj(b)&&BOUNTIES[b.id]&&typeof b.n==='number'&&typeof b.base==='number'&&obj(b.rw)&&typeof b.claimed==='boolean';
   g.bounty=(obj(g.bounty)&&typeof g.bounty.day==='number'&&Array.isArray(g.bounty.list)&&g.bounty.list.every(okB))?g.bounty:null;
-  memorialFix(g); nemFix(g); modesFix(g); codeFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
+  memorialFix(g); nemFix(g); modesFix(g); codeFix(g); inscFix(g); collFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
   return g;
 }
 function validSave(g){ return !!normalizeSave(g); }
@@ -2225,7 +2225,7 @@ const titleColB=n=>Math.min(TCOL_MAX,Math.floor((n==null?titlesGot():n)/TCOL_STE
 const titleColTxt=n=>{ const b=titleColB(n); return 'Collection: '+n+'/'+TITLES.length+' titles &middot; +'+b+'% gold from kills &middot; '+(b<TCOL_MAX?'next at '+(b+1)*TCOL_STEP:'full bonus'); };
 function wearTitle(id){   // wear or take off a title; HP and mana follow the change like gear
   const T=S.ti; if(S.mode==='battle'||!T||!T.got||!T.got[id]) return false;
-  const P=S.player; vitals(()=>{ T.sel=T.sel===id?null:id; }); P.hp=Math.min(P.hp,pMax()); P.mana=Math.min(P.mana,pMana()); return true;
+  const P=S.player; vitals(()=>{ T.sel=T.sel===id?null:id; }); P.hp=Math.min(P.hp,pMax()); P.mana=Math.min(P.mana,pMana()); syncArmy(); return true;
 }
 function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // deed counters for titles
 // Title rarity uses the item tier names and colours (Common to Unique). Rarer titles give bigger bonuses, and Epic and
@@ -2251,6 +2251,7 @@ function checkTitles(){
   if(S.army.some(m=>m.armed&&m.eq&&GEAR_SLOTS.every(sl=>m.eq[sl]))) T.fullGear=true;
   if(!T.hasUq&&(S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&ITEM[it.id].uq))) T.hasUq=true;
   recArmy();   // records for the highest minion level and the most gold held
+  collCheck();   /* collection milestones (game-collection.js) */
   const sel0=T.sel, valid=T.sel&&T.got[T.sel]&&TITLE[T.sel];
   let next=valid?T.sel:null; const won=[];
   for(const t of TITLES){
@@ -2262,7 +2263,7 @@ function checkTitles(){
   else if(won.length>1) notify(won.length+' titles earned: '+won.map(t=>t.name).join(', ')+'. See the Titles tab for what each one gives.','ok');   // one line, not a pile
   if(won.length&&typeof moment==='function') moment(won.length>1?won.length+' titles earned':'Title earned: '+won[0].name,'gold','title');
   // a title put on or taken off here changes stats like wearing it by hand: HP, mana and the army follow
-  if(next!==sel0){ const P=S.player; T.sel=sel0; vitals(()=>{ T.sel=next; }); P.hp=Math.min(P.hp,pMax()); P.mana=Math.min(P.mana,pMana()); }
+  if(next!==sel0){ const P=S.player; T.sel=sel0; vitals(()=>{ T.sel=next; }); P.hp=Math.min(P.hp,pMax()); P.mana=Math.min(P.mana,pMana()); syncArmy(); }   // a title's army bonus follows too
 }
 const titleName=()=>{ const t=S.ti&&S.ti.sel&&TITLE[S.ti.sel]; return t?t.name:''; };
 
@@ -2401,6 +2402,7 @@ function hurtFoe(e,d,ty){ if(abbeyMiss(e)) return; ty=MARGIN||(DTYPE[ty]?ty:'phy
   if(e.doom>0&&d>0){ d=Math.round(d*(e.doomK||1)); e.doom--; }   /* Doom, a hexer's active (game-army.js) */
   { const k=(1-foeRes(e,ty))*typeDmg(ty)*oilK(e,ty)*archiveK(e)*rallyK()*widenK()*rbDescent(); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
   e.lt=ty;   /* the type of the last hit it took (a weakness kill) */
+  { const ik=inscDmgK(); if(ik!==1) d=Math.round(d*ik); }   /* the Gates, Tower and Rift, and Rival inscriptions (game-collection.js) */
   d=bossTaken(e,kitTaken(e,d));   /* Heartwood (game-boss-kits.js) */   /* Bulwark stance, a Banner-bearer beside it (game-kits.js) */
   if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e,0,0); return; } }   // Bone Wall shield soaks damage first
   if(e.hp>0&&d>=e.hp){ e.cd=deathCond(e,d); e.kb=d; }   /* kb: the killing blow (Morrow's scorch) */   // the killing blow decides the body's condition
@@ -2465,7 +2467,7 @@ function checkDeaths(){
     if(e.boss){ tally('bosses'); r.bossK=e.name; }   /* the History notes the boss that fell */
     if(e.elite) tally('elites');
     studyFoe(e.base,ascStudy(e));
-    r.pending+=killXp(e); if(!e.stash) r.loot.push(...rollDrops(e)); killLoot(e,r);   // a stolen body drops no gear: the body is the reward
+    r.pending+=Math.round(killXp(e)*inscBossXp(e));   /* the Story inscription (game-collection.js) */ if(!e.stash) r.loot.push(...rollDrops(e)); killLoot(e,r);   // a stolen body drops no gear: the body is the reward
     killPowers(); capKill(e); faithKill(e,r); runeDrop(e,r); nemSlain(e,r);   /* a nemesis avenged (game-nemesis.js) */   /* skill runes (game-builds.js) */
     if(!e.rival&&!e.guard&&sigBody()){ const c=corpseOf(e);   /* guardians and Loud Grave leave no body (game-rift.js) */ if(e.stash) rivalReclaim(e,c); r.corpses.push(c); longNameRise(e,r); }   /* The Long Name (game-builds.js) */   // the rival leaves no body: they retreat
     if(e.boss) bossSpeaks(e,'bye');
@@ -2510,7 +2512,7 @@ function act(kind){
   const r=S.run, P=S.player; r.fx={};
   const t=currentTarget(); if(!t) return; HITTER=P;
   if(kind==='strike'){
-    let d=hit(pAtk()*pierceMul(strPen())*(1+.1*sk('edge'))*hexK(P)), crit=Math.random()<critChance(); if(crit){ d=Math.round(d*1.8); tally('crits'); } if(hasFlag('execute')&&t.hp<t.maxHp*.35) d=Math.round(d*1.5);
+    let d=hit(pAtk()*pierceMul(strPen())*(1+.1*sk('edge'))*hexK(P)*inscHero()), crit=Math.random()<critChance(); if(crit){ d=Math.round(d*1.8); tally('crits'); } if(hasFlag('execute')&&t.hp<t.maxHp*.35) d=Math.round(d*1.5);
     const fb=frozenChilled(t); if(fb) d=Math.round(d*FROSTBREAK);
     hurtFoe(t,d); P.mana=Math.min(pMana(),P.mana+3); if(hasMod('edge','b')){ healAlly(P,Math.round(d*.1)); addDot(t,'bleed',d*BLOODLET,2); } if(crit&&hasMod('edge','a')) addSt(t,'sundered',2);   // Bloodletting, Rending
     log('You strike '+t.name+' for '+d+(crit?' (crit)':'')+'. +3 mana.'); fxe('strike',t,crit?{crit:1}:null); if(fb&&t.hp>0) frostbreak(t);
@@ -2519,7 +2521,7 @@ function act(kind){
     else if(hasFlag('cleave')){ const o=liveFoes().filter(x=>x!==t); if(o.length) hurtFoe(pick(o),Math.round(d*.6)); }
   }else if(kind==='siphon'){
     if(P.mana<siphonCost()) return;
-    P.mana-=siphonCost(); const low=t.hp<t.maxHp*SIPHON_LOW; let d=hit(pSiph()*pierceMul(SIPHON_PIERCE)*hexK(P)*shadowK()*faithSiph()); if(low) d*=2; deed('choir',1); SIPHONING=true; hurtFoe(t,d,'shad'); SIPHONING=false;   // pierces a quarter of armor; devours the weak
+    P.mana-=siphonCost(); const low=t.hp<t.maxHp*SIPHON_LOW; let d=hit(pSiph()*pierceMul(SIPHON_PIERCE)*hexK(P)*shadowK()*faithSiph()*inscHero());   /* the Hero inscription (game-collection.js) */ if(low) d*=2; deed('choir',1); SIPHONING=true; hurtFoe(t,d,'shad'); SIPHONING=false;   // pierces a quarter of armor; devours the weak
     if(hasFlag('chorus')) for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.5),'shad');
     const h=healAlly(P,Math.round(d*(hasFlag('lifedrain')?SIPHON_HEAL_LD:SIPHON_HEAL))); const got=gainSoul();
     log('Soul Siphon '+(low?'devours ':'drains ')+t.name+' for '+d+(h?', you recover '+h:'')+(got?' and harvest a Soul ('+S.run.souls+'/'+SOUL_MAX+')':'')+'.'); fxe('siphon',t);
@@ -2748,6 +2750,7 @@ function raiseChance(c){
   if(firstRaise()) return 100;
   let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+4*sk('mastery')+B_OSS*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*RAISE_LV-RK[c.rankI].pen;
   if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+nemRaise(c)+windRaise()+(hasInsc('many')?INSC_RAISE:0)+incRaise()+townRaise(c)+rgRaise(c)+twoBooks()+faithRaiseK(c)+ascRaise();
+  ch+=inscRaise();   /* the Raising inscription (game-collection.js) */
   { const k=custK('raise'); if(k!==1) ch*=k; }   /* custom difficulty (game-modes.js) */
   return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
 }
@@ -3769,7 +3772,7 @@ function quietRoom(kind){   // a rest or treasure room: no fight, then the doors
 function preRooms(r){ r.pre=null; for(const k of r.doors||[]) if(k==='fight'||k==='elite'||k==='nem'){ r.pre=r.pre||{}; r.pre[k]=buildRoom(r.room+1,k); } }
 function doorSight(di){   // 2: most of the gate's kinds Known (rows and levels too), 1: most Studied (names, elites and affixes), 0: nothing. Most: at least 2.
   const ms=DUNGEONS[di].mobs, need=Math.min(2,ms.length), n=id=>{ const at=MASTERY.findIndex(t=>t.id===id); return ms.filter(m=>MASTERY.indexOf(masteryOf(m[0]))>=at).length; };
-  return brewSight(di,n('known')>=need?2:n('studied')>=need?1:0);   /* Lantern (game-brew.js) */
+  return brewSight(di,collSight(n('known')>=need?2:n('studied')>=need?1:0));   /* the Bestiary milestone (game-collection.js) */   /* Lantern (game-brew.js) */
 }
 const DOOR_TIP={swarm:'At most '+SUMMON_CAP+' answer it in one fight',bonewall:"A shield holds at most 40% of a foe's HP",seedfall:'At most '+SUMMON_CAP+' sprout in one fight'};   // moves that are not telegraphed: what limits them
 function doorBoss(di){   // the boss door, once its master is Ledgered: the signature move and what answers it (the same answers as a charging boss: chargeInfo)
@@ -4651,7 +4654,7 @@ const mausN=()=>S&&S.memorial?Math.min(MAUS_MAX,S.memorial.filter(e=>e.maus).len
 const mausCost=()=>MAUS_COST[mausN()]||0;
 const canMaus=e=>!!e&&!e.maus&&S.mode==='town'&&mausN()<MAUS_MAX&&S.gold>=mausCost();
 function raiseMaus(i){ const e=(S.memorial||[])[i]; if(!canMaus(e)) return false; S.gold-=mausCost(); e.maus=1; tally('maus'); syncArmy(); sfx('raise'); return true; }
-const extraMul=(m,k)=>(1+(m?nameK(m.role)+mfStat(m)+(k==='atk'?0:specHp(m)):0))*(k==='atk'?bondMul(m)*ascReadK(m):(1+headBonus()+fallenK())*townHpK(m)*ascArmyHp())*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K+(rivalBook()?BOOK_K:0):1)*(k==='atk'?choirK()*nightK():1);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
+const extraMul=(m,k)=>(1+(m?nameK(m.role)+mfStat(m)+(k==='atk'?0:specHp(m)):0))*(k==='atk'?bondMul(m)*ascReadK(m):(1+headBonus()+fallenK()+inscArmy())*townHpK(m)*ascArmyHp())*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K+(rivalBook()?BOOK_K:0):1)*(k==='atk'?choirK()*nightK():1);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
 // ===== THE PANTHEON (R8 PR A) =====
 // From level 8 and 3 clears the Pantheon (the Town tab) takes an oath to one of four Old Gods or to none (the Profane path).
 // S.faith = {id, day, dev, dd, dday, vb, cv}: the god, the day sworn, devotion points, points earned on day dday (dd), the
@@ -4713,7 +4716,7 @@ function swear(id){ if(S.mode!=='town'||!FAITH[id]||faithOf()||!faithOpen()) ret
 function renounce(){ if(S.mode!=='town'||!faithOf()) return false; const c=renounceCost(); if(S.gold<c) return false; S.gold-=c; tally('renounced'); vitals(()=>{ delete S.faith; }); S.player.hp=Math.min(S.player.hp,pMax()); return true; }
 // ----- devotion: deeds, ranks, the vow
 function deed(g,pts){   // a deed your god likes: points (x the god's pace and the Temple), a rank-up notice, a passage at ranks 1 and 5
-  const id=faithOf(); if(!id||id!==g||!(pts>0)) return 0; const f=S.faith, r0=faithRank(), p=pts*DEED_K[id]*templeDev();
+  const id=faithOf(); if(!id||id!==g||!(pts>0)) return 0; const f=S.faith, r0=faithRank(), p=pts*DEED_K[id]*templeDev()*inscFaith();   /* the Faith inscription (game-collection.js) */
   if(f.dday!==S.day){ f.dday=S.day; f.dd=0; } f.dev=(f.dev||0)+p; f.dd+=p; tally('devPts',p);
   const r1=faithRank(); if(r1>r0){ vitals(()=>{}); tally('rankUps'); const b=BOONS[id][r1-1]; notify(FAITH[id].short.replace(/^the /,'The ')+' grants you rank '+r1+': '+b.t+'.','ok'); if(r1===1||r1===DEV_RANKS) unlockStory(godStory(id,r1),S.run&&S.mode==='battle'?S.run:null); if(r1===DEV_RANKS) tally('r5_'+id); }
   return p;
@@ -4905,7 +4908,7 @@ const BUILD={
 };
 const BUILD_MAX=5, BUILD_COST=[[1500,0],[5000,30],[14000,90],[30000,180],[60000,300]], SIEGE_OSS_REF=3;   // [gold, bone dust] for levels 1-5 (4 and 5 after the Throne of Ash: game-town2.js); the Ossuary's siege rise is tuned on 3 levels
 const bl=k=>(S&&S.siege&&S.siege.dmg===k)?0:Math.max(0,((S&&S.build&&S.build[k])||0)-(S&&S.unpaid&&S.unpaid[k]?1:0));   /* unpaid upkeep: the top level is off (game-dread.js) */   // a building damaged in a siege works as if unbuilt until repaired
-const buildCost=k=>BUILD[k]&&blRaw(k)<BUILD_MAX&&!(S&&S.siege&&S.siege.dmg===k)?BUILD_COST[Math.max(0,blRaw(k)-(BUILD[k].step||0))]:null;
+const buildCost=k=>BUILD[k]&&blRaw(k)<BUILD_MAX&&!(S&&S.siege&&S.siege.dmg===k)?(c=>inscOn('town')?[Math.round(c[0]*inscTown()),c[1]]:c)(BUILD_COST[Math.max(0,blRaw(k)-(BUILD[k].step||0))]):null;   /* the Town inscription (game-collection.js) */
 function build(k){
   if(!S||S.mode!=='town'||!BUILD[k]||!bOpen(k)||!buildReady(k)) return false; const c=buildCost(k); if(!c||S.gold<c[0]||(S.dust||0)<c[1]) return false;
   S.gold-=c[0]; S.dust=(S.dust||0)-c[1]; vitals(()=>{ S.build=S.build||{}; S.build[k]=blRaw(k)+1; }); tally('built'); dread(DREAD_BUILD); sfx('level'); siegeTick(); return true;
@@ -4990,7 +4993,7 @@ function honour(i){
 const HEAD_GOLD=3000, HEAD_GROW=1.5, HEAD_K=.005, HEAD_CAP=.06, HEAD_TOP=60;   /* HEAD_TOP: a sanity limit per stone (its next tier costs ~10^14 gold) */
 const headTiers=()=>S&&S.memorial?S.memorial.reduce((t,e)=>t+(e.hs|0),0):0;
 const headBonus=()=>HEAD_CAP*(1-Math.exp(-HEAD_K*headTiers()/HEAD_CAP));   // extraMul (syncMinion): max HP
-const headCost=e=>Math.round(HEAD_GOLD*Math.pow(HEAD_GROW,e.hs|0)*bellChoir());   /* the Choir's Bell Choir */
+const headCost=e=>collHead(Math.round(HEAD_GOLD*Math.pow(HEAD_GROW,e.hs|0)*bellChoir()));   /* the Memorial milestone (game-collection.js) */   /* the Choir's Bell Choir */
 const canHead=e=>!!e&&S.mode==='town'&&(e.hs|0)<HEAD_TOP&&S.gold>=headCost(e);
 function carveHead(i){ const e=(S.memorial||[])[i]; if(!canHead(e)) return false; const c=headCost(e); S.gold-=c; e.hs=(e.hs|0)+1; tally('headG',c); deed('choir',10); syncArmy(); sfx('carve'); return true; }
 function memorialFix(g){   // normalizeSave: keep well-formed entries only
@@ -5199,7 +5202,7 @@ const AWAKEN_RN=['','I','II','III','IV','V'];
 function uniqHeart(id){ const d=ITEM[id]; if(!d||!d.uq) return null; return 'b:'+(d.rival?DUNGEONS[5].boss[0]:d.tower?TW_BOSS[clamp(Math.round(d.floor/10)-1,0,TW_BOSS.length-1)]:DUNGEONS[d.set].boss[0]); }   // the trophy key of its boss's heart
 const awakenScale=d=>d.tower?1+d.floor/50:1+d.set*.2;
 function awakenCost(it){ const d=ITEM[it&&it.id]; if(!d||!d.uq||(it.aw|0)>=AWAKEN_MAX) return null; const n=it.aw|0, k=awakenScale(d);
-  return {g:Math.round(AWAKEN_GOLD*k*Math.pow(AWAKEN_GROW,n)/100)*100, d:Math.round(AWAKEN_DUST*k*(n+1)), h:n+1, key:uniqHeart(it.id)}; }
+  return {g:collAwaken(Math.round(AWAKEN_GOLD*k*Math.pow(AWAKEN_GROW,n)/100)*100), d:Math.round(AWAKEN_DUST*k*(n+1)), h:n+1, key:uniqHeart(it.id)}; }
 const awakenTotal=set=>{ let g=0; const it={id:'u'+set}; for(let n=0;n<AWAKEN_MAX;n++){ it.aw=n; g+=awakenCost(it).g; } return g; };   // the Codex's figure: all five ranks of a gate's unique
 const canAwaken=it=>{ const c=awakenCost(it); return !!c&&S.mode==='town'&&workOpen()&&S.gold>=c.g&&(S.dust||0)>=c.d&&(S.trophies[c.key]||0)>=c.h; };
 function awaken(u){
@@ -6070,7 +6073,7 @@ function brewCan(id){
   const P=granary(B); return Object.keys(P).every(r=>partCount(r,B.g)>=P[r]);   /* Ulm's Granary */
 }
 function brewIt(id){   // spends the parts (cheapest first) or spare hearts (lowest first) and the gold
-  if(!brewCan(id)) return false; const B=BREWS[id], free=freeBrew(); S.gold-=brewGold(id); if(free) S.freeBrew=S.day;
+  if(!brewCan(id)) return false; const B=BREWS[id], free=freeBrew(); S.gold-=brewGold(id); if(free){ if(hasSpec('apoth',5,'a')&&S.freeBrew!==S.day) S.freeBrew=S.day; else collBrewUse(); }
   const PT=B.hearts?null:granary(B); faithUsed(B.hearts||Object.values(PT).reduce((a,n)=>a+n,0));   /* Ulm's deed (game-pantheon.js) */
   if(B.hearts){ let need=B.hearts; for(const [k,n] of spareHearts()){ const t=Math.min(n,need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
   else for(const r of Object.keys(PT)){ let need=PT[r]; for(const k of partKeys(r,B.g)){ const t=Math.min(S.trophies[k],need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
@@ -6259,7 +6262,7 @@ const apoBrewK=()=>1-APO_BREW*bl('apoth');   // brewGold
 const apoBelt=()=>bl('apoth')>=3?1:0;   // beltMax
 const brewTwice=()=>hasSpec('apoth',3,'a');
 const censerK=()=>hasSpec('apoth',3,'b')?2:1;   // incRaise
-const freeBrew=()=>hasSpec('apoth',5,'a')&&S.freeBrew!==S.day;
+const freeBrew=()=>(hasSpec('apoth',5,'a')&&S.freeBrew!==S.day)||collBrew();   /* the Trophy milestone: one a week (game-collection.js) */
 const kitchenHeal=()=>hasSpec('apoth',5,'b');   // drink('hp')
 const warSquadN=()=>warSquad(bl('war'));   // squadMax
 const warOdds=()=>WAR_ODDS*bl('war')+(hasSpec('war',5,'a')?.05:0);   // raidOdds
@@ -6389,7 +6392,7 @@ function bellDefense(list,r){   // townSiegeWave, before the fight starts
   if(n>=5){ const P=S.player; P.shield=Math.max(P.shield||0,Math.round(pMax()*.1*k)); }
 }
 // ----- upkeep
-const upkeepOf=(k,lv)=>Math.max(0,(lv==null?blRaw(k):lv)-2)*UPKEEP*(topGate()+1);
+const upkeepOf=(k,lv)=>Math.round(Math.max(0,(lv==null?blRaw(k):lv)-2)*UPKEEP*(topGate()+1)*inscTown());   /* the Town inscription (game-collection.js) */
 const upkeepAll=()=>Object.keys(BUILD).reduce((a,k)=>a+(sg().dmg===k?0:upkeepOf(k)),0);
 function upkeepDawn(){   // closeDay: pay each building in order; one that cannot be paid loses its top level until a dawn pays it
   const was=S.unpaid||{}; S.unpaid={}; let paid=0; const left=[];
@@ -7710,7 +7713,7 @@ function valleyEv(ev,ch){   // resolveEvent for the valley's events: {m,c}, or n
   if(id==='hanged'&&ch==='leave'){ const p=faithOf()==='choir'?deed('choir',15/DEED_K.choir/templeDev()):0; return {m:p?'You leave them singing. The Choir hears its own (+15 devotion).':'You leave them singing. No god of yours is listening.',c:p?'ok':''}; }
   if(id==='patrol'&&ch==='spare'){ dread(-3); return {m:'You point the patrol back to the light. They will tell the town the dead let them live (dread -3).',c:'ok'}; }
   if(id==='patrol'&&ch==='raise'){ vlBody(r,null,true); vlBody(r,null,true); dread(3); tally('patrolRaised'); return {m:'The patrol joins the bodies on the floor. Two of them can be raised for free (dread +3).',c:'ok'}; }
-  if(id==='bonemerch'&&ch==='swap'){ const m=weakMinion(); if(!m) return null; returnGear(m); S.army=S.army.filter(x=>x!==m); const c=vlBody(r,null,true); c.lvl=Math.max(c.lvl,m.lvl); tally('swapped'); return {m:'The merchant takes '+m.nick+' away. In its place, '+c.name+' (Lv '+c.lvl+') waits to be raised for free.',c:''}; }
+  if(id==='bonemerch'&&ch==='swap'){ const m=weakMinion(); if(!m) return null; returnGear(m); S.army=S.army.filter(x=>x!==m); bondsClean(); const c=vlBody(r,null,true); c.lvl=Math.max(c.lvl,m.lvl); tally('swapped'); return {m:'The merchant takes '+m.nick+' away. In its place, '+c.name+' (Lv '+c.lvl+') waits to be raised for free.',c:''}; }
   if(id==='bell'&&ch==='ring'){ S.omenNext={day:S.day+1,id:pick(OMEN_NAT)}; return {m:'The bell tolls under the water. Tomorrow brings '+OMENS[S.omenNext.id].name+'.',c:'ok'}; }
   if(id==='bell'&&ch==='silence'){ S.omenNext={day:S.day+1,id:null}; return {m:'You muffle the bell with mud. Tomorrow\'s sky will be still.',c:''}; }
   if(id==='statue'&&ch==='read'){ if(findPage('statue',r)) return {m:'You read the worn words, and under the bowl lies a torn page.',c:'ok'}; const xp=chainXp(); return {m:'The words are a prayer for the dead. You learn something from them (+'+xp+' XP).',c:'ok'}; }
@@ -7894,10 +7897,10 @@ function siegeTwist(e){   // bossTwist: Absolution
 }
 const absolveDr=(e,d)=>e.twist==='absolve'&&S.run&&S.run.enemies.some(o=>o!==e&&o.hp>0&&o.base==='Templar Shieldwall')?Math.round(d*ABSOLVE_DR):d;   // bossTaken
 const siegeRoleOf=n=>{ if(SIEGE_BOSSES.includes(n)) return 'reaper'; const a=Object.keys(SIEGE_FOES).find(r=>SIEGE_FOES[r][0]===n); if(a) return a; const b=Object.values(SIEGE2_FOES).find(f=>f[0]===n); return b?b[1]:'vanguard'; };
-function stierFix(g,q){   // normalizeSave: tier and streak only when the save has them; tonight's wall while pending
+function stierFix(g,q){   // normalizeSave: tier and streak only when the save has them; tonight's wall
   if('tier' in q) g.tier=clamp(Math.floor(num(q.tier,1)),1,STIER_MAX);
   if('streak' in q) g.streak=clamp(Math.floor(num(q.streak,0)),0,STIER_UP-1);
-  if(g.pending&&ROAD_IDS.includes(q.road)&&q.road!=='grave') g.road=q.road;
+  if(ROAD_IDS.includes(q.road)&&q.road!=='grave') g.road=q.road;   // chosen in town the day before, or in the siege; siegeEnd clears it
   stierFix2(g,q);
 }
 
@@ -8133,6 +8136,115 @@ function plogStats(){   // what How I play shows: runs, deaths by cause, actions
   const unseen=R.filter(e=>e.death&&e.death.sh===0).length, dn=R.filter(e=>e.death).length;
   return {runs:R.length,clears:R.filter(e=>e.out==='clear').length,deaths,dn,unseen,rooms,apr:rooms?acts/rooms:0,bpr:rooms?bot/rooms:0,doors,picks,tab,ms:R.length?R.reduce((a,e)=>a+(e.ms|0),0)/R.length:0,
     botClr:gates.length?gates.reduce((a,e)=>a+(PLOG_BOT.clr[e.g]||90),0)/gates.length:0,gClr:gates.length?gates.filter(e=>e.out==='clear').length/gates.length*100:0,gn:gates.length};
+}
+// ===== R16 PR A: TITLES AND COLLECTION 2.0 =====
+// Families: every title belongs to one of ten families (FAM_OF, from its id; a new title falls back on its group). Inscribed
+// titles (S.insc): up to three earned titles written beside the worn one, slots at 40, 80 and 120 titles. Each gives its
+// family's small perk, not its rarity bonus, and one title a family (perks of a family never stack). Milestones (S.coll):
+// six collections with three steps each; the middle steps change a rule a little, the others give cosmetics (R16 PR B).
+// Hidden titles show a masked hint once you hold 100 titles (50 with the Pages milestone). All kept through New Game+.
+const INSC_AT=[40,80,120];
+const FAMS={
+  gate:   {name:'Gates',           perk:'+1% damage in that title\'s gate (in every gate for a title of no one gate)'},
+  army:   {name:'Army',            perk:'+1% army max HP'},
+  raise:  {name:'Raising',         perk:'+0.5% raise chance'},
+  hero:   {name:'Hero',            perk:'+1% Strike and Soul Siphon damage'},
+  endless:{name:'Tower and Rift',  perk:'+1% damage in the Hell Tower and the Rift'},
+  town:   {name:'Town',            perk:'Building costs and upkeep 2% lower'},
+  faith:  {name:'Faith',           perk:'+5% devotion gained'},
+  rival:  {name:'Rival and sieges',perk:'+2% damage against the rival and in sieges'},
+  story:  {name:'Story',           perk:'+2% XP from bosses'},
+  secrets:{name:'Secrets',         perk:'+1% chance of gear drops'}
+};
+const FAM_IDS=Object.keys(FAMS);
+const INSC_K={gate:.01,army:.01,raise:.5,hero:.01,endless:.01,town:.02,faith:.05,rival:.02,story:.02,secrets:.01};
+const FAM_LIST={
+  endless:'d_tower1 d_tower50 d_tower110 d_tower150 d_tuq r_5 r_15 r_30 r_six r_sigil3 r_weekly r_attuned x_rift25 x_rift50 x_riftfast b_ten i_climb',
+  army:'d_army d_armed1 d_armed3 d_evolve d_elder d_altar a_traits a_elders a_ancient a_eternal ar_charmed ar_hundred ar_witch ar_roles ar_order x_fuse10 x_ftr x_mlv50 s_venom s_poison a_raid1 a_raid25 x_long x_hunt x_clean x_rally',
+  raise:'d_raise1 d_raise50 d_raise200 a_raise500 a_boss e_strag ar_tennames',
+  hero:'d_lv10 d_lv25 d_lv50 e_lv75 d_death d_death10 p_25 p_100 s_cure k_spear k_blast k_chill k_reap k_master3 k_all f_crit f_crit1000 f_last f_flawless b_haul b_five b_runes b_sgn d_cancel d_cancel10 d_kill100 d_kill1000 d_kill5000 f_boss25 f_elite100',
+  town:'d_master d_trophy500 d_gold d_bag g_gold g_items g_reforge g_sold g_roll3 x_relics x_hoard s_works d_quest7',
+  faith:'f_hon f_vesh f_ulm f_choir f_dis f_godless f_turncoat f_weather x_omen1 x_omen25 x_omenall x_eclipse e_shrine',
+  rival:'r_stakes r_reclaim r_end r_spare r_clean s_unburnt s_road s_tiers s_pyre',
+  story:'d_ngp d_ngp3 as_3 as_6 as_10 as_all as_rw a_keeper a_hand a_both a_echo r_half e_day100 e_runs100 e_rooms1000 x_titles50 x_titles100 pk1 pk3 i_book e_pedlar e_coffer e_trap c_paid',
+  secrets:'d_uq d_study d_all x_mastered25 x_ledger10 nm_1 nm_5 nm_15 nm_old k_reader k_weak k_defuse k_gcbane'
+};
+const FAM_OF={}; for(const f in FAM_LIST) for(const id of FAM_LIST[f].split(' ')) FAM_OF[id]=f;
+const famOf=t=>FAM_OF[t.id]||(t.grp==='Hell Tower'?'endless':t.grp==='Gates'||t.grp==='Curses and events'&&/^c_/.test(t.id)?'gate':t.grp==='Curses and events'?'story':'hero');
+const titleGate=t=>{ const m=/^(?:g|m|nm|sb|b_ub|hd|dm)(\d)$/.exec(t.id); return m&&+m[1]<GATE_N?+m[1]:null; };
+let INSC_ON=true;   // the balance bot's off-switch ("off":["insc"])
+const inscSlots=n=>INSC_AT.filter(a=>(n==null?titlesGot():n)>=a).length;
+const inscList=()=>INSC_ON&&S&&Array.isArray(S.insc)?S.insc.filter(id=>TITLE[id]&&S.ti&&S.ti.got&&S.ti.got[id]).slice(0,inscSlots()):[];
+const inscFam=f=>inscList().find(id=>famOf(TITLE[id])===f)||null;
+const inscOn=f=>!!inscFam(f);
+function titleInscribe(id){   // write an earned title beside the worn one (again: erase it); one a family, in town
+  const t=TITLE[id]; if(!t||!S.ti||!S.ti.got||!S.ti.got[id]||S.mode==='battle') return false; S.insc=Array.isArray(S.insc)?S.insc.filter(x=>TITLE[x]):[];
+  if(S.insc.includes(id)){ vitals(()=>{ S.insc=S.insc.filter(x=>x!==id); }); if(!S.insc.length) delete S.insc; syncArmy(); return true; }
+  if(S.insc.length>=inscSlots()||S.insc.some(x=>famOf(TITLE[x])===famOf(t))) return false;
+  vitals(()=>{ S.insc.push(id); }); syncArmy(); tally('inscribed'); return true;
+}
+const inscWhy=id=>{ const t=TITLE[id], L=Array.isArray(S.insc)?S.insc:[]; if(!t||!(S.ti&&S.ti.got&&S.ti.got[id])) return 'not earned'; if(L.includes(id)) return ''; if(L.length>=inscSlots()) return inscSlots()<INSC_AT.length?'next slot at '+INSC_AT[inscSlots()]+' titles':'every slot is used'; const o=L.find(x=>TITLE[x]&&famOf(TITLE[x])===famOf(t)); return o?'one '+FAMS[famOf(t)].name+' title is inscribed: '+TITLE[o].name:''; };
+// the perks, read where each rule lives
+function inscDmgK(){   // hurtFoe: your side's damage
+  const r=S.run; if(!r||!INSC_ON) return 1; let k=1;
+  const g=inscFam('gate'); if(g&&!r.tw&&!r.rift&&!r.siege&&r.di!=null){ const gi=titleGate(TITLE[g]); if(gi==null||gi===r.di) k+=INSC_K.gate; }
+  if((r.tw||r.rift)&&inscOn('endless')) k+=INSC_K.endless;
+  if((r.siege||r.rg||r.rk||(r.enemies||[]).some(e=>e.rival))&&inscOn('rival')) k+=INSC_K.rival;
+  return k;
+}
+const inscArmy=()=>inscOn('army')?INSC_K.army:0;   // extraMul (army max HP)
+const inscRaise=()=>inscOn('raise')?INSC_K.raise:0;   // raiseChance
+const inscHero=()=>inscOn('hero')?1+INSC_K.hero:1;   // Strike and Soul Siphon
+const inscTown=()=>inscOn('town')?1-INSC_K.town:1;   // buildCost, upkeepOf
+const inscFaith=()=>inscOn('faith')?1+INSC_K.faith:1;   // deed
+const inscBossXp=e=>e&&e.boss&&inscOn('story')?1+INSC_K.story:1;   // a boss's XP
+const inscDrop=()=>inscOn('secrets')?1+INSC_K.secrets:1;   // rollDrops
+function inscFix(g){   // normalizeSave
+  if(!('insc' in g)) return; const got=(g.ti&&g.ti.got)||{}, out=[], fams={};
+  if(Array.isArray(g.insc)) for(const id of g.insc){ const t=TITLE[id]; if(!t||!got[id]||out.includes(id)||fams[famOf(t)]||out.length>=INSC_AT.length) continue; fams[famOf(t)]=1; out.push(id); }
+  if(out.length) g.insc=out; else delete g.insc;
+}
+// ----- milestones
+const MS_IDS=['ledger','uq','sets','tro','pages','mem'];
+const trophyKinds=()=>Object.keys(TROPHY).filter(k=>!k.startsWith('b:'));
+const setDone=i=>{ const own=new Set(S.inv.concat(Object.values(S.equip),...S.army.concat(benched()).map(m=>m.eq?Object.values(m.eq):[])).filter(Boolean).map(it=>it.id));
+  return Object.values(ITEM).filter(d=>d.set===i&&!d.tower&&!d.rival&&!d.uq).every(d=>own.has(d.id)); };
+const MILESTONES={
+  ledger:{name:'Bestiary Ledgered',unit:'kinds of foe Ledgered',steps:[10,25,50],get:()=>masteredN(['ledgered']),rew:['a cosmetic','+1 door sight in every gate','a cosmetic']},
+  uq:    {name:'Uniques found',unit:'unique items ever held',steps:[6,12,18],get:()=>((S.coll&&S.coll.u)||[]).length,rew:['a cosmetic','Awakening costs 10% less gold','a cosmetic']},
+  sets:  {name:'Sets completed',unit:'sets with all 7 pieces held at once',steps:[2,4,6],get:()=>SET_NAMES.filter((n,i)=>setDone(i)).length,rew:['a cosmetic','+1 bag row (+'+BAG_STEP+' slots)','a cosmetic']},
+  tro:   {name:'Trophy kinds held',unit:'kinds of trophy held at once',steps:[30,60,0],get:()=>trophyKinds().filter(k=>(S.trophies[k]|0)>0).length,rew:['a cosmetic','one free brew a week','a cosmetic']},
+  pages: {name:'Pages',unit:'torn pages found',steps:[10,20,0],get:()=>S.pages|0,rew:['a cosmetic','hidden title hints from 50 titles','a cosmetic']},
+  mem:   {name:'Memorial',unit:'names in the Memorial',steps:[50,100,200],get:()=>(S.memorial||[]).length,rew:['a cosmetic','headstones cost 10% less','a cosmetic']}
+};
+const msSteps=k=>{ const M=MILESTONES[k]; return M.steps.map(n=>n||(k==='tro'?trophyKinds().length:k==='pages'?LORE_PAGES.length:n)); };
+const msAt=k=>(S&&S.coll&&S.coll[k])|0;   // steps reached, kept for good
+const msOn=(k,step)=>msAt(k)>=step;
+function collCheck(){   // checkTitles: unique items ever held, then each milestone's steps (paid once, never lost)
+  const C=S.coll=S.coll&&typeof S.coll==='object'?S.coll:{}; let ch=false;
+  const uq=ownedUniques(); if(uq.length){ const u=C.u||[]; for(const id of uq) if(!u.includes(id)){ u.push(id); ch=true; } if(u.length) C.u=u; }
+  for(const k of MS_IDS){ const st=msSteps(k), v=MILESTONES[k].get(); let n=C[k]|0;
+    while(n<3&&v>=st[n]){ n++; ch=true; notify('Collection milestone: '+MILESTONES[k].name+' '+st[n-1]+'. '+MILESTONES[k].rew[n-1].charAt(0).toUpperCase()+MILESTONES[k].rew[n-1].slice(1)+'.','ok'); }
+    if(n) C[k]=n; }
+  if(!Object.keys(C).length) delete S.coll;
+  return ch;
+}
+const collSight=v=>msOn('ledger',2)?Math.min(2,v+1):v;   // doorSight
+const collAwaken=g=>msOn('uq',2)?Math.round(g*.9/100)*100:g;   // awakenCost
+const collBag=()=>msOn('sets',2)?BAG_STEP:0;   // bagMax
+const collHead=g=>msOn('mem',2)?Math.round(g*.9):g;   // headCost
+const collBrew=()=>msOn('tro',2)&&!(S.coll&&S.coll.bw===weekOf(S.day));   // freeBrew: once a week
+const collBrewUse=()=>{ if(S.coll) S.coll.bw=weekOf(S.day); };
+const HINT_AT=100, HINT_AT_PAGES=50;
+const hintsOn=()=>titlesGot()>=(msOn('pages',2)?HINT_AT_PAGES:HINT_AT);
+function titleHint(t){   // a hidden title's requirement, most words masked to their first letter
+  const s=VIEW&&VIEW.lang==='tr'&&typeof trText==='function'?trText(t.req):t.req; let i=0;
+  return s.replace(/[A-Za-zÀ-ÿĞğİıŞş']{4,}/g,w=>(i++%3===0?w:w[0]+'…'));
+}
+function collFix(g){   // normalizeSave
+  if(!('coll' in g)) return; const c=g.coll&&typeof g.coll==='object'?g.coll:{}, o={};
+  for(const k in c){ if(MS_IDS.includes(k)){ const n=Math.floor(num(c[k],0)); if(n>=1) o[k]=Math.min(3,n); } else if(k==='u'&&Array.isArray(c.u)){ const u=[...new Set(c.u.filter(id=>ITEM[id]&&ITEM[id].uq))]; if(u.length) o.u=u; } else if(k==='bw'&&isFinite(c.bw)&&c.bw>=0) o.bw=Math.floor(c.bw); }
+  if(Object.keys(o).length) g.coll=o; else delete g.coll;
 }
 //==UI==
 
@@ -13121,6 +13233,39 @@ TR_RX.unshift([/^(.+) \(a critical hit\)$/,"$1 (kritik vuruş)"],[/^(.+) \(a dam
  [/^Day (\d+) · Level (\d+) · (\d+) gates? cleared · Tower (\d+) · Ironman, (\d+) falls?$/,"Gün $1 · Seviye $2 · $3 kapı temizlendi · Kule $4 · Demir Adam, $5 düşüş"],
  [/^Day (\d+) · Level (\d+) · (\d+) gates? cleared · Tower (\d+)$/,"Gün $1 · Seviye $2 · $3 kapı temizlendi · Kule $4"],
  [/^(\d+) of (\d+) Codex pages$/,"$2 Kodeks sayfasından $1"]);
+
+// ----- R16 PR A: titles and collection 2.0
+[
+ ["Collection","Koleksiyon"],["Milestones","Kilometre taşları"],["Inscriptions","Yazıtlar"],["Families","Aileler"],["Inscribed titles","Yazılı unvanlar"],["Inscribed","Yazılı"],["Inscribe","Yaz"],["Erase","Sil"],["Hint","İpucu"],["Hidden titles","Gizli unvanlar"],["Complete","Tamam"],
+ ["Earned once, kept forever. The title you wear gives its bonus; inscribed titles give their family's perk","Bir kez kazanılır, sonsuza dek kalır. Taktığın unvan kendi bonusunu, yazılı unvanlar ailelerinin ayrıcalığını verir"],
+ ["Up to three earned titles written beside the one you wear (slots at #, #, # titles). Each gives its family's small perk, one title a family","Taktığın unvanın yanına yazılan en çok üç kazanılmış unvan (yuvalar #, #, # unvanda). Her biri ailesinin küçük ayrıcalığını verir, aile başına bir unvan"],
+ ["# slots free: choose Inscribe on an earned title below","# yuva boş: aşağıda kazanılmış bir unvanda Yaz'ı seç"],["# slot free: choose Inscribe on an earned title below","# yuva boş: aşağıda kazanılmış bir unvanda Yaz'ı seç"],
+ ["The first slot opens at # titles. You have #","İlk yuva # unvanda açılır. Sende # var"],
+ ["Gates","Kapılar"],["Army","Ordu"],["Raising","Diriltme"],["Hero","Kahraman"],["Tower and Rift","Kule ve Rift"],["Town","Kasaba"],["Faith","İnanç"],["Rival and sieges","Rakip ve kuşatmalar"],["Story","Hikâye"],["Secrets","Sırlar"],
+ ["#% damage in that title's gate (in every gate for a title of no one gate)","%# hasar, o unvanın kapısında (tek bir kapıya ait olmayan unvanda her kapıda)"],["#% army max HP","%# ordu azami canı"],["#% raise chance","%# diriltme şansı"],
+ ["#% Strike and Soul Siphon damage","%# Vuruş ve Ruh Emme hasarı"],["#% damage in the Hell Tower and the Rift","%# hasar, Hell Tower'da ve Rift'te"],["Building costs and upkeep #% lower","Bina maliyetleri ve bakım %# daha düşük"],
+ ["#% devotion gained","%# kazanılan bağlılık"],["#% damage against the rival and in sieges","%# hasar, rakibe karşı ve kuşatmalarda"],["#% XP from bosses","%# TP, patronlardan"],["#% chance of gear drops","%# teçhizat düşme şansı"],
+ ["Inscribed: +#% damage in that title's gate (in every gate for a title of no one gate)","Yazılıyken: o unvanın kapısında +%# hasar (tek bir kapıya ait olmayan unvanda her kapıda)"],["Inscribed: +#% army max HP","Yazılıyken: +%# ordu azami canı"],["Inscribed: +#% raise chance","Yazılıyken: +%# diriltme şansı"],
+ ["Inscribed: +#% Strike and Soul Siphon damage","Yazılıyken: +%# Vuruş ve Ruh Emme hasarı"],["Inscribed: +#% damage in the Hell Tower and the Rift","Yazılıyken: Hell Tower'da ve Rift'te +%# hasar"],["Inscribed: Building costs and upkeep #% lower","Yazılıyken: Bina maliyetleri ve bakım %# daha düşük"],
+ ["Inscribed: +#% devotion gained","Yazılıyken: +%# kazanılan bağlılık"],["Inscribed: +#% damage against the rival and in sieges","Yazılıyken: rakibe karşı ve kuşatmalarda +%# hasar"],["Inscribed: +#% XP from bosses","Yazılıyken: patronlardan +%# TP"],["Inscribed: +#% chance of gear drops","Yazılıyken: +%# teçhizat düşme şansı"],
+ ["What the Ledger has gathered","Defterin topladıkları"],
+ ["Each collection pays at three steps, once and for good, through every New Game+. The middle step eases a rule a little; the others give a cosmetic","Her koleksiyon üç basamakta bir kez ve kalıcı olarak öder, her Yeni Oyun+ boyunca. Ortadaki basamak bir kuralı biraz kolaylaştırır; diğerleri bir görünüm verir"],
+ ["Bestiary Ledgered","Deftere geçmiş canavarlar"],["kinds of foe Ledgered","Deftere geçmiş düşman türü"],["a cosmetic","bir görünüm"],["# door sight in every gate","# geçit görüşü, her kapıda"],
+ ["Uniques found","Bulunan eşsizler"],["unique items ever held","şimdiye dek tutulan eşsiz eşya"],["Awakening costs #% less gold","Uyanış %# daha az altına mal olur"],
+ ["Sets completed","Tamamlanan setler"],["sets with all # pieces held at once","# parçasının hepsi aynı anda tutulan setler"],["# bag row (+# slots)","# çanta sırası (+# yuva)"],
+ ["Trophy kinds held","Tutulan ganimet türleri"],["kinds of trophy held at once","aynı anda tutulan ganimet türü"],["one free brew a week","haftada bir bedava demleme"],
+ ["Pages","Sayfalar"],["torn pages found","bulunan yırtık sayfa"],["hidden title hints from # titles","# unvandan itibaren gizli unvan ipuçları"],["Memorial","Anıt"],["names in the Memorial","Anıttaki isimler"],["headstones cost #% less","mezar taşları %# daha ucuz"],
+ ["The Collection tab holds your titles, by family, and the milestones of what you have gathered. All of it stays through New Game+","Koleksiyon sekmesi unvanlarını ailelerine göre ve topladıklarının kilometre taşlarını tutar. Hepsi Yeni Oyun+ boyunca kalır"],
+ ["Up to three earned titles can be inscribed beside the one you wear: a slot opens at each of #, #, # titles. An inscribed title gives its family's perk, not its own bonus, and only one title of each family can be inscribed, so perks never stack. Inscribe and erase in town, as often as you like","Taktığın unvanın yanına en çok üç kazanılmış unvan yazılabilir: #, # ve # unvanın her birinde bir yuva açılır. Yazılı unvan kendi bonusunu değil ailesinin ayrıcalığını verir ve her aileden yalnızca bir unvan yazılabilir, bu yüzden ayrıcalıklar asla birikmez. Kasabada dilediğin kadar yaz ve sil"],
+ ["# titles. Inscribed: +#% damage in that title's gate (in every gate for a title of no one gate)","# unvan. Yazılıyken: o unvanın kapısında +%# hasar (tek bir kapıya ait olmayan unvanda her kapıda)"],
+ ["Six collections pay at three steps each, once and for good. The middle step eases a rule a little; the first and last give a cosmetic","Altı koleksiyon her biri üç basamakta bir kez ve kalıcı olarak öder. Ortadaki basamak bir kuralı biraz kolaylaştırır; ilki ve sonuncusu bir görünüm verir"],
+ ["Epic and rarer titles stay hidden until earned. Once you hold # titles (# with the Pages milestone), each hidden title shows a hint: its requirement with most words cut to their first letter","Destansı ve daha nadir unvanlar kazanılana dek gizli kalır. # unvana (Sayfalar kilometre taşıyla #) ulaşınca her gizli unvan bir ipucu gösterir: koşulu, sözcüklerin çoğu ilk harfine kısaltılmış olarak"],
+ ["Cannot inscribe: every slot is used","Yazılamaz: her yuva dolu"],["You wear no title, so no title bonus applies","Hiç unvan takmıyorsun, bu yüzden unvan bonusu yok"]
+].forEach(([k,v])=>{ TR_DICT.set(k,v); });
+TR_RX.unshift([/^(Gates|Army|Raising|Hero|Tower and Rift|Town|Faith|Rival and sieges|Story|Secrets) · (\d+)\/(\d+) · complete$/,"{t1} · $2/$3 · tamam"],[/^(Gates|Army|Raising|Hero|Tower and Rift|Town|Faith|Rival and sieges|Story|Secrets) · (\d+)\/(\d+)$/,"{t1} · $2/$3"],
+ [/^Inscribed titles · (\d+)\/(\d+)$/,"Yazılı unvanlar · $1/$2"],[/^(\d+) titles\. Inscribed: (.+)$/,"$1 unvan. Yazılıyken: {t2}"],[/^Cannot inscribe: (.+)\.?$/,"Yazılamaz: {t1}"],[/^next slot at (\d+) titles$/,"sonraki yuva $1 unvanda"],[/^every slot is used$/,"her yuva dolu"],
+ [/^one (.+) title is inscribed: (.+)$/,"bir {t1} unvanı yazılı: $2"],[/^Collection milestone: (.+?) (\d+)\. (.+?)\.?$/,"Koleksiyon kilometre taşı: {t1} $2. {t3}"],[/^Hint:$/,"İpucu:"]);
+TR_DICT.set("A cosmetic","Bir görünüm"); 
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -14242,7 +14387,7 @@ function statusHTML(){
   const rows=[['strength','Strength','Strike damage, crit chance, armor piercing, minion attack, Command',['atk','crit','pierce','matk']],['constitution','Constitution','Max HP, damage taken, healing received, minion HP, Command, Endurance',['hp','dr','heal','mhp']],['intelligence','Intelligence','Mana, Siphon, Ward, skill damage, minion attack, Command',['mana','siph','ward','skill','matk']],['will','Will','Mana, army slots, raise odds, minion bond',['mana','slot','raise','mpow']]];
   const canAlloc=P.pts>0&&S.mode!=='battle';
   return '<section class="win" aria-labelledby="h-status"><h2 class="win-h" id="h-status">Status</h2>'
-   +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(faithOf()?'<div class="faith-l '+faithOf()+'" title="Devotion rank '+faithRank()+' of '+DEV_RANKS+'">'+FAITH[faithOf()].name+' &middot; '+faithRank()+'</div>':'')+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+'</div></div></div>'
+   +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(faithOf()?'<div class="faith-l '+faithOf()+'" title="Devotion rank '+faithRank()+' of '+DEV_RANKS+'">'+FAITH[faithOf()].name+' &middot; '+faithRank()+'</div>':'')+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+(inscList().length?'<div class="ttl insc-l" title="Inscribed titles">'+inscList().map(id=>TITLE[id].name).join(' &middot; ')+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+'</div></div></div>'
    +'<div class="vials">'+vial('HP',P.hp,pMax(),'hp')+vial('Mana',P.mana,pMana(),'mp')+'</div>'+'<div class="xp-eng">'+meter('XP',P.xp,need(P.lvl),'xp')+'</div>'
    +((P.pts>0||P.sp>0)?'<div class="chips">'+(P.pts>0?'<span class="chip pts">'+P.pts+' unspent point'+(P.pts>1?'s':'')+'</span>':'')+(P.sp>0?'<span class="chip pts">'+P.sp+' skill point'+(P.sp>1?'s':'')+'</span>':'')+'</div>':'')
    +(remembered()?'<div class="chips"><span class="chip mem-buff" title="Honoured a fallen minion today">Remembered: +'+Math.round(MEM_HP*100)+'% minion max HP until dawn</span></div>':'')
@@ -14366,28 +14511,51 @@ function heatHTML(i){   // difficulty picker on a cleared gate's card
    +(nm?'<span class="nm-mark" title="Cleared on Nightmare '+nm+' time'+(nm>1?'s':'')+'">&#9760; Nightmare'+(nm>1?' x'+nm:'')+'</span>':'')
    +(cur?'<div class="heat-note">Foes x'+H.foe+' &middot; XP x'+H.xp+' &middot; gold x'+H.gold+' &middot; gear x'+H.drop+(gateMod(i)?' <b class="bad" title="Cursed and '+H.name+': the curse feeds on it: foes x'+DAMNED_FOE+', rewards x'+DAMNED+'."><i aria-hidden="true">&#9760;</i> Curse + '+H.name+': foes x'+DAMNED_FOE+' &middot; rewards x'+DAMNED+'</b>':'')+'</div>':'')+'</div>';
 }
-function titlesHTML(){
-  const T=Object.assign({got:{}},S.ti), n=titlesGot();   /* S.ti can exist before checkTitles first adds got */
+function titlesHTML(){   // the Collection: titles by family (with inscriptions) and milestones (game-collection.js)
+  const sub=ui.coll==='ms'?'ms':'tt';
+  let h='<div class="chips sub-nav coll-nav" role="tablist">'+[['tt','Titles'],['ms','Milestones']].map(([k,n])=>'<button class="btn small'+(sub===k?' primary':'')+'" role="tab" data-a="collsub" data-k="'+k+'" aria-selected="'+(sub===k)+'">'+n+'</button>').join('')+'</div>';
+  return h+(sub==='ms'?milestonesHTML():titleListHTML());
+}
+function inscHTML(){   // the three inscription slots
+  const n=titlesGot(), sl=inscSlots(n), L=inscList();
+  let h='<p class="group-h">Inscribed titles &middot; '+L.length+'/'+sl+'</p><p class="q-note">Up to three earned titles written beside the one you wear (slots at '+INSC_AT.join(', ')+' titles). Each gives its family\'s small perk, one title a family.</p>';
+  if(!sl) return h+'<p class="lede">The first slot opens at '+INSC_AT[0]+' titles. You have '+n+'.</p>';
+  h+='<div class="items">'+L.map(id=>{ const t=TITLE[id], f=famOf(t); return '<div class="tt-row on"><div><h4>'+t.name+' <span class="u-tag fam-'+f+'">'+FAMS[f].name+'</span></h4><div class="u-sub tbuff">'+FAMS[f].perk+'</div></div><button class="btn small" data-a="insc" data-k="'+id+'">Erase</button></div>'; }).join('')
+   +(L.length<sl?'<p class="u-sub">'+(sl-L.length)+' slot'+(sl-L.length>1?'s':'')+' free: choose Inscribe on an earned title below.</p>':'')+'</div>';
+  return h;
+}
+function titleListHTML(){
+  const T=Object.assign({got:{}},S.ti), n=titlesGot(), L=inscList();   /* S.ti can exist before checkTitles first adds got */
   let h='<section class="win" aria-labelledby="h-tt"><h2 class="win-h" id="h-tt">Titles &middot; '+n+'/'+TITLES.length+'</h2>'
    +'<p class="q-note tt-col" title="+1% gold from kills for every '+TCOL_STEP+' titles earned, up to +'+TCOL_MAX+'%">'+titleColTxt(n)+'</p>'
-   +'<p class="lede">Earned once, kept forever. Only the title you wear gives its bonus.</p>'
-   +(titleName()?'<p class="q-note ok">Wearing <b>'+titleName()+'</b>: '+(buffTxt(TITLE[T.sel].b)||'no bonus')+'.</p>':'<p class="q-note">You wear no title, so no title bonus applies.</p>');
-  const F=ui.ttf||'all', FL={all:'All',got:'Earned',locked:'Locked',close:'Close to earning'};
+   +'<p class="lede">Earned once, kept forever. The title you wear gives its bonus; inscribed titles give their family\'s perk.</p>'
+   +(titleName()?'<p class="q-note ok">Wearing <b>'+titleName()+'</b>: '+(buffTxt(TITLE[T.sel].b)||'no bonus')+'.</p>':'<p class="q-note">You wear no title, so no title bonus applies.</p>')+inscHTML();
+  const F=ui.ttf||'all', FL={all:'All',got:'Earned',locked:'Locked',close:'Close to earning'}, hint=hintsOn(), town=S.mode!=='battle';
   const keep=t=>{ const got=T.got[t.id]; if(F==='got') return got; if(F==='locked') return !got; if(F==='close'){ const p=!got&&!titleHidden(t)&&titleProg(t); return p&&p.v/p.n>=.5; } if(F[0]==='r') return t.r===+F.slice(1); return true; };
   h+='<div class="chips tt-filter" role="group" aria-label="Show titles">'+Object.keys(FL).map(k=>'<button class="btn small'+(F===k?' primary':'')+'" data-a="ttf" data-k="'+k+'" aria-pressed="'+(F===k)+'">'+FL[k]+'</button>').join('')
    +'<label class="tt-rsel"><span>Rarity</span><select data-a="ttf" aria-label="Show titles of one rarity"><option value="all"'+(F[0]==='r'?'':' selected')+'>Any</option>'+TIERS.map((n,r)=>'<option value="r'+r+'"'+(F==='r'+r?' selected':'')+'>'+n+'</option>').join('')+'</select></label></div>';
   let shown=0;
-  ['Gates','Hell Tower','Curses and events','Deeds'].forEach(g=>{
-    const all=TITLES.filter(t=>t.grp===g), list=all.filter(keep), have=all.filter(t=>T.got[t.id]).length;
+  FAM_IDS.forEach(f=>{
+    const all=TITLES.filter(t=>famOf(t)===f), list=all.filter(keep), have=all.filter(t=>T.got[t.id]).length;
     if(!list.length) return; shown+=list.length;
-    h+='<p class="group-h">'+g+' &middot; '+have+'/'+all.length+'</p><div class="items">'+list.map(t=>{
-      const got=T.got[t.id], on=T.sel===t.id, hid=titleHidden(t), rt='<span class="t-rar t'+t.r+'">'+TIERS[t.r]+'</span>';
-      if(hid) return '<div class="tt-row off hidden-t"><div><h4>??? '+rt+'</h4><div class="u-sub">A hidden '+TIERS[t.r].toLowerCase()+' title. Keep playing to discover it.</div></div><span class="u-tag">Hidden</span></div>';
-      return '<div class="tt-row'+(on?' on':'')+(got?'':' off')+(g==='Hell Tower'?' hellt':'')+'"><div><h4>'+t.name+' '+rt+'</h4><div class="u-sub">'+t.req+(got?' &middot; earned day '+got:'')+'</div>'+(buffTxt(t.b)?'<div class="u-sub tbuff">When worn: '+buffTxt(t.b)+'</div>':'')+'</div>'
-        +(got?'<button class="btn small'+(on?'':' primary')+'" data-a="wear" data-k="'+t.id+'">'+(on?'Remove':'Wear')+'</button>':(p=>p?'<span class="u-tag num tprog" title="Progress">'+p.v+'/'+p.n+'<i style="width:'+Math.round(p.v/p.n*100)+'%"></i></span>':'<span class="u-tag">Locked</span>')(titleProg(t)))+'</div>'; }).join('')+'</div>';
+    h+='<p class="group-h fam-h">'+FAMS[f].name+' &middot; '+have+'/'+all.length+(have===all.length?' &middot; complete':'')+'</p><div class="fam-bar" role="img" aria-label="'+have+' of '+all.length+'"><i style="width:'+Math.round(have/all.length*100)+'%"></i></div><p class="u-sub fam-perk">Inscribed: '+FAMS[f].perk+'.</p><div class="items">'+list.map(t=>{
+      const got=T.got[t.id], on=T.sel===t.id, ins=L.includes(t.id), hid=titleHidden(t), rt='<span class="t-rar t'+t.r+'">'+TIERS[t.r]+'</span>';
+      if(hid) return '<div class="tt-row off hidden-t"><div><h4>??? '+rt+'</h4><div class="u-sub">'+(hint?'Hint: <span class="t-hint">'+titleHint(t)+'</span>':'A hidden '+TIERS[t.r].toLowerCase()+' title. Keep playing to discover it.')+'</div></div><span class="u-tag">Hidden</span></div>';
+      const why=got?inscWhy(t.id):'';
+      return '<div class="tt-row'+(on||ins?' on':'')+(got?'':' off')+(f==='endless'?' hellt':'')+'"><div><h4>'+t.name+' '+rt+(ins?' <span class="u-tag">Inscribed</span>':'')+'</h4><div class="u-sub">'+t.req+(got?' &middot; earned day '+got:'')+'</div>'+(buffTxt(t.b)?'<div class="u-sub tbuff">When worn: '+buffTxt(t.b)+'</div>':'')+'</div>'
+        +(got?'<div class="btns" style="margin:0"><button class="btn small'+(on?'':' primary')+'" data-a="wear" data-k="'+t.id+'">'+(on?'Remove':'Wear')+'</button>'+(town&&(ins||(inscSlots(n)&&!why))?'<button class="btn small" data-a="insc" data-k="'+t.id+'">'+(ins?'Erase':'Inscribe')+'</button>':'')+'</div>'
+          :(p=>p?'<span class="u-tag num tprog" title="Progress">'+p.v+'/'+p.n+'<i style="width:'+Math.round(p.v/p.n*100)+'%"></i></span>':'<span class="u-tag">Locked</span>')(titleProg(t)))+'</div>'; }).join('')+'</div>';
   });
   if(!shown) h+='<p class="q-note">No titles match this filter yet.</p>';
   return h+'</section>';
+}
+function milestonesHTML(){   // six collections, three steps each
+  let h='<section class="win" aria-labelledby="h-ms"><h2 class="win-h" id="h-ms">Milestones</h2><h3 class="win-title">What the Ledger has gathered</h3><p class="lede">Each collection pays at three steps, once and for good, through every New Game+. The middle step eases a rule a little; the others give a cosmetic.</p><div class="items">';
+  for(const k of MS_IDS){ const M=MILESTONES[k], st=msSteps(k), v=M.get(), at=msAt(k), nx=st[at];
+    h+='<div class="tt-row'+(at>=3?' on':'')+'"><div><h4>'+M.name+' <span class="num dim">'+Math.min(v,st[2])+'/'+(nx||st[2])+'</span></h4><div class="u-sub">'+M.unit+'</div>'
+      +st.map((n,i)=>'<div class="u-sub ms-step'+(at>i?' ok':'')+'">'+(at>i?'&#10003; ':'')+'<span>'+n+'</span>: <span>'+M.rew[i]+'</span></div>').join('')
+      +'</div>'+(nx?'<span class="u-tag num tprog" title="Progress">'+Math.min(v,nx)+'/'+nx+'<i style="width:'+Math.round(Math.min(v,nx)/nx*100)+'%"></i></span>':'<span class="u-tag">Complete</span>')+'</div>'; }
+  return h+'</div></section>';
 }
 function towerHTML(){
   const P=S.player, T=S.tower, st=towerStarts(), locked=!towerOpen(), noWatch=S.watches<=0;
@@ -14829,7 +14997,7 @@ const chRulesText=d=>{ const t=[d.iron?'Ironman':'Normal']; if(!custNorm(d.c)) t
 // ----- the Codex: every rule and list in the game, read straight from the game's own tables so it never goes stale.
 // Enemies you have not met yet stay hidden, as in the bestiary.
 const CODEX=[['basics','Basics'],['raising','Raising'],['faith','Faith'],['omens','Omens'],['roles','Roles'],['traits','Traits'],['minions','Minion stats'],['army','Army'],['reserve','Reserve'],['fusion','Fusion'],['affixes','Elite affixes'],['bosses','Bosses'],['status','Status effects'],['types','Damage types'],['kits','Foe kits'],['nemeses','Nemeses'],['skills','Skills'],['orders','Orders'],
-  ['gates','Gates'],['tower','Hell Tower'],['gear','Gear'],['forge','Heartforge'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['trade','Commissions and black market'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['records','Records'],['modes','Modes'],['codes','Challenge codes'],['playlog','Play log'],['endings','Endings']];
+  ['gates','Gates'],['tower','Hell Tower'],['gear','Gear'],['forge','Heartforge'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['trade','Commissions and black market'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['collection','Collection'],['records','Records'],['modes','Modes'],['codes','Challenge codes'],['playlog','Play log'],['endings','Endings']];
 const CDX_ROLE={
   hexer:'Only raised from the hexer foes (one in each gate). It stands in the back row with low HP and attack, and each of its hits leaves a condition: a Hex by default, or its trait\'s wound (Rimeborn chills, Venomous poisons, Necrotic blights, Cinderborn burns). At most one hexer for every four army places brings its conditions; more fight plainly. As a foe it hexes your side.',
   vanguard:'When a foe picks a target, each vanguard counts 5 and everyone else (you included) counts 2, so vanguards draw most blows. They take Taunt orders and stand in front of a Sundering Blow.',
@@ -15116,6 +15284,12 @@ function codexSection(k){
   if(k==='chains') return cxChainsHTML();
   if(k==='bounties') return cxP('The board holds up to '+BOUNTY_N+' contracts. It starts full, and each dawn one new contract goes up while there is room; progress counts from then. Contracts never expire and leaving one costs nothing. Claim finished ones in town. Rewards are gold, Grave Salts, bone dust, or a piece of gear from your deepest open gate with bonus lines. Gold and bone dust grow with your level and your deepest open gate.')
     +cxList(Object.keys(BOUNTIES).map(b=>cxRow(BOUNTIES[b].t(BOUNTIES[b].n),BOUNTIES[b].ok?'Only offered once it makes sense for you.':'Can be offered any day.')));
+  if(k==='collection') return cxP('The Collection tab holds your titles, by family, and the milestones of what you have gathered. All of it stays through New Game+.')
+    +'<p class="group-h">Inscriptions</p>'+cxP('Up to three earned titles can be inscribed beside the one you wear: a slot opens at each of '+INSC_AT.join(', ')+' titles. An inscribed title gives its family\'s perk, not its own bonus, and only one title of each family can be inscribed, so perks never stack. Inscribe and erase in town, as often as you like.')
+    +'<p class="group-h">Families</p>'+cxList(FAM_IDS.map(f=>cxRow(FAMS[f].name,TITLES.filter(t=>famOf(t)===f).length+' titles. Inscribed: '+FAMS[f].perk+'.')))
+    +'<p class="group-h">Milestones</p>'+cxP('Six collections pay at three steps each, once and for good. The middle step eases a rule a little; the first and last give a cosmetic.')
+    +cxList(MS_IDS.map(m=>{ const M=MILESTONES[m], st=msSteps(m); return cxRow(M.name,'<span>'+M.unit+'</span><br>'+st.map((n,i)=>'<span>'+n+'</span>: <span>'+M.rew[i]+'</span>').join('<br>')); }))
+    +'<p class="group-h">Hidden titles</p>'+cxP('Epic and rarer titles stay hidden until earned. Once you hold '+HINT_AT+' titles ('+HINT_AT_PAGES+' with the Pages milestone), each hidden title shows a hint: its requirement with most words cut to their first letter.');
   if(k==='titles'){ const by=g=>TITLES.filter(t=>t.grp===g).length, rc=TIERS.map((n,i)=>TITLES.filter(t=>t.r===i).length+' '+n.toLowerCase()).join(', ');
     return cxP('Titles are earned once and kept forever, even through New Game+. Each gives a small bonus, but only the one you wear counts. There are '+TITLES.length+': '+['Gates','Hell Tower','Curses and events','Deeds'].map(g=>by(g)+' for '+(g==='Hell Tower'?g:g.toLowerCase())).join(', ')+'.')
       +'<p class="group-h">Rarity</p>'+cxP('Titles come in the same rarities as gear: '+rc+'. A rarer title gives a bigger bonus ('+TIERS.map((n,i)=>RARITY_MUL[i]>1?n+' x'+RARITY_MUL[i]:'').filter(Boolean).join(', ')+'). '+TIERS.slice(HIDDEN_FROM).join(', ').replace(/, ([^,]*)$/,' and $1')+' titles stay hidden as "???" until you earn them.')
@@ -15501,7 +15675,7 @@ function townHTML(){
   let h=notesHTML()+spendStrip();
   h+='<div class="tabs" role="tablist">'
     +[['gates','Gates']].concat(towerOpen()?[['tower','Hell Tower']]:[]).concat([['gear','Gear &middot; '+S.inv.length],['market','Market'],['army','Army &middot; '+S.army.length]]).concat(townOpen()?[['town','Town']]:[])
-    .concat([['skills','Skills'+(S.player.sp?' &middot; '+S.player.sp:'')],['titles','Titles &middot; '+Object.keys((S.ti&&S.ti.got)||{}).length],['ledger','Ledger']])
+    .concat([['skills','Skills'+(S.player.sp?' &middot; '+S.player.sp:'')],['titles','Collection &middot; '+Object.keys((S.ti&&S.ti.got)||{}).length],['ledger','Ledger']])
     .map((t,i)=>'<button class="tab'+(t[0]==='tower'?' hell':'')+'" role="tab" data-a="tab" data-k="'+t[0]+'" aria-keyshortcuts="'+(i+1)+'" aria-selected="'
         +(t[0]==='ledger'?LEDGER.some(x=>x[0]===ui.tab):(ui.tab||'gates')===t[0])+'">'+t[1]+(i<9?'<kbd aria-hidden="true">'+(i+1)+'</kbd>':'')+'</button>').join('')
    +'<button class="tab keyhint" data-a="keys" aria-keyshortcuts="?" aria-label="Keyboard shortcuts" title="Keyboard shortcuts">?</button></div>';
@@ -16304,7 +16478,7 @@ const ACTIONS={
     if(ui.confirm!=='lc'){ ui.confirm='lc'; return; } ui.confirm=null;
     if(importCode(ui.imp)){ ui.imp=''; ui.exp=''; ui.msg={m:'Save code loaded.',c:'ok'}; } else ui.msg={m:'That code is not a valid save.',c:'bad'};
   },
-  wear:k=>{ wearTitle(k); },
+  wear:k=>{ wearTitle(k); }, insc:k=>{ if(!titleInscribe(k)){ const w=inscWhy(k); if(w) ui.msg={m:'Cannot inscribe: '+w+'.',c:'bad'}; } }, collsub:k=>{ ui.coll=k==='ms'?'ms':'tt'; },
   cxclear:()=>{ ui.cxq=''; },
   cxq:()=>{},   /* the search box: typing is handled by the input listener; data-a only lets focus come back after a render */
   ttf:k=>{ ui.ttf=(k in {all:1,got:1,locked:1,close:1}||/^r[0-5]$/.test(k))?k:'all'; },

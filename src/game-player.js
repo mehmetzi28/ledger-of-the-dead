@@ -86,7 +86,7 @@ const canNGP=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]);
 const ownedUniques=()=>[...new Set(S.inv.concat(Object.values(S.equip)).filter(it=>it&&ITEM[it.id]&&ITEM[it.id].uq).map(it=>it.id))];
 function startNGP(carry,pacts,rule,carries){
   if(S.mode!=='town'||!canNGP()) return false; if(faithOf()==='dis') tally('godless');   /* Godless: a cycle finished Profane (game-pantheon.js) */
-  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts),ally:S.ally||null}; if(S.iron){ keep.iron=true; keep.ironDeaths=S.ironDeaths|0; } if(S.custom) keep.custom=S.custom; if(S.code) keep.code=S.code;   /* the mode carries into New Game+ (game-modes.js) */ ngpEnding(keep); ascStart(keep,rule,carries);   /* the ascension rule (game-asc.js) */   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
+  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts),ally:S.ally||null}; if(S.iron){ keep.iron=true; keep.ironDeaths=S.ironDeaths|0; } if(S.custom) keep.custom=S.custom; if(S.code) keep.code=S.code; if(S.insc) keep.insc=S.insc; if(S.coll) keep.coll=S.coll;   /* inscriptions and milestones (game-collection.js) */   /* the mode carries into New Game+ (game-modes.js) */ ngpEnding(keep); ascStart(keep,rule,carries);   /* the ascension rule (game-asc.js) */   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
   newGame(); Object.assign(S,keep); S.ti.clr={}; ngpEndingStart(); ascBegin();   // titles stay earned; New Game+ again needs another Throne of Ash clear
   S.watches=WATCHES-pactWatch(); S.notices=[]; if(carry&&own.includes(carry)){ const it=addItem(carry,null); if(it&&carryAw) it.aw=carryAw; }   /* an awakened unique keeps its ranks */ unlockStory('ngp');
   notify('New Game+ '+S.ngp+' begins. Foes have '+Math.round(NGP_FOE*S.ngp*100)+'% more HP and attack, and pay '+Math.round(NGP_REWARD*S.ngp*100)+'% more XP and gold.'+(carry&&own.includes(carry)?' '+ITEM[carry].name+' is in your bag.':''),'ok');
@@ -211,7 +211,7 @@ function normalizeSave(src){
   { const c=g.player.cmd; if(!hadCmd||!(obj(c)&&c.a>=0&&c.h>=0&&isFinite(c.a)&&isFinite(c.h))) g.player.cmd=cmdPow(Array.isArray(g.army)?g.army:[]); else g.player.cmd={a:Math.round(c.a),h:Math.round(c.h)}; }   // Command: an old or damaged save measures its army again
   const okB=b=>obj(b)&&BOUNTIES[b.id]&&typeof b.n==='number'&&typeof b.base==='number'&&obj(b.rw)&&typeof b.claimed==='boolean';
   g.bounty=(obj(g.bounty)&&typeof g.bounty.day==='number'&&Array.isArray(g.bounty.list)&&g.bounty.list.every(okB))?g.bounty:null;
-  memorialFix(g); nemFix(g); modesFix(g); codeFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
+  memorialFix(g); nemFix(g); modesFix(g); codeFix(g); inscFix(g); collFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
   return g;
 }
 function validSave(g){ return !!normalizeSave(g); }
@@ -496,7 +496,7 @@ const titleColB=n=>Math.min(TCOL_MAX,Math.floor((n==null?titlesGot():n)/TCOL_STE
 const titleColTxt=n=>{ const b=titleColB(n); return 'Collection: '+n+'/'+TITLES.length+' titles &middot; +'+b+'% gold from kills &middot; '+(b<TCOL_MAX?'next at '+(b+1)*TCOL_STEP:'full bonus'); };
 function wearTitle(id){   // wear or take off a title; HP and mana follow the change like gear
   const T=S.ti; if(S.mode==='battle'||!T||!T.got||!T.got[id]) return false;
-  const P=S.player; vitals(()=>{ T.sel=T.sel===id?null:id; }); P.hp=Math.min(P.hp,pMax()); P.mana=Math.min(P.mana,pMana()); return true;
+  const P=S.player; vitals(()=>{ T.sel=T.sel===id?null:id; }); P.hp=Math.min(P.hp,pMax()); P.mana=Math.min(P.mana,pMana()); syncArmy(); return true;
 }
 function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // deed counters for titles
 // Title rarity uses the item tier names and colours (Common to Unique). Rarer titles give bigger bonuses, and Epic and
@@ -522,6 +522,7 @@ function checkTitles(){
   if(S.army.some(m=>m.armed&&m.eq&&GEAR_SLOTS.every(sl=>m.eq[sl]))) T.fullGear=true;
   if(!T.hasUq&&(S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&ITEM[it.id].uq))) T.hasUq=true;
   recArmy();   // records for the highest minion level and the most gold held
+  collCheck();   /* collection milestones (game-collection.js) */
   const sel0=T.sel, valid=T.sel&&T.got[T.sel]&&TITLE[T.sel];
   let next=valid?T.sel:null; const won=[];
   for(const t of TITLES){
@@ -533,7 +534,7 @@ function checkTitles(){
   else if(won.length>1) notify(won.length+' titles earned: '+won.map(t=>t.name).join(', ')+'. See the Titles tab for what each one gives.','ok');   // one line, not a pile
   if(won.length&&typeof moment==='function') moment(won.length>1?won.length+' titles earned':'Title earned: '+won[0].name,'gold','title');
   // a title put on or taken off here changes stats like wearing it by hand: HP, mana and the army follow
-  if(next!==sel0){ const P=S.player; T.sel=sel0; vitals(()=>{ T.sel=next; }); P.hp=Math.min(P.hp,pMax()); P.mana=Math.min(P.mana,pMana()); }
+  if(next!==sel0){ const P=S.player; T.sel=sel0; vitals(()=>{ T.sel=next; }); P.hp=Math.min(P.hp,pMax()); P.mana=Math.min(P.mana,pMana()); syncArmy(); }   // a title's army bonus follows too
 }
 const titleName=()=>{ const t=S.ti&&S.ti.sel&&TITLE[S.ti.sel]; return t?t.name:''; };
 
