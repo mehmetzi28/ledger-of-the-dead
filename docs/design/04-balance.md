@@ -166,6 +166,8 @@ Gold at day 100 (before Awakening and headstones): ~33-39k average held, ~1.1M l
 7. **Bosses stacked before one soul per boss.** Armies ended as ten or more Pale Sovereigns and no vanguards.
 8. **The Recommended-level model drifts.** `gateRec` shifts the measured `REC_BASE` with the tuning; a test fails once
    the shift passes `REC_DRIFT` (2 levels), and then the gate must be re-measured.
+9. **Collection perks are small by design** (R16). Three inscriptions are worth under half a Tower floor (market bot:
+   Tower 83 with them, 82.6 without), and the 27 cosmetics change no rule at all, so the bot numbers are the same with them.
 
 ## 4.4 Known problems and open questions
 

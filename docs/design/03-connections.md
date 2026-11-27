@@ -74,7 +74,7 @@ flowchart LR
 | Curses | Calendar, cleared gates | Harder runs, more reward, titles, bounty | Ten curses (G24 closed by R13) |
 | Hell Tower | Level 10, 3 clears | 12 uniques, titles, story, abyss gold | Wardens reuse gate moves (G3) |
 | Rift | Level 40, Throne, sigils, the Memorial (events) | Legendaries, Riftborn gear, Rift Shards (attunement, secret hearts for the Heartforge), records, titles, story (the other half) | - |
-| Titles | Tallies, records, everything | One worn bonus, collection gold | 148 titles, small effect (G26) |
+| Titles | Tallies, records, everything | Worn bonus, inscriptions, milestones, cosmetics | Closed (G26, R16) |
 | Memorial | Shattered and raid-fallen minions | Honour buff, headstones, mausoleums | Strong emotional link |
 | Story and pages | Clears, milestones, page drops | Lore, rival stakes | Missing ending (G16) |
 | NG+ | Throne clear | A new cycle with carried knowledge and ascension rules that touch gates, doors, town, omens, market and army | One gate rewritten per cycle; no cycle curse yet (R13) |
@@ -192,8 +192,8 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
 - **G25. Hero builds are narrow.** (Closed by R11: every path has five skills and a signature at level 40, eight actives
   with two runes each, five ultimates, Constitution's Endurance; the Library's respec came with R5.) Still open: the
   Constitution build's Rift depth trails Intelligence (B2). (Skills, paths, stats.)
-- **G26. Titles are mostly a list.** 148 titles but only the worn one does anything, and its bonus is small; collection
-  pays only gold. (Titles, meta.)
+- ~~**G26. Titles are mostly a list.**~~ Closed by R16: inscriptions (three family perks beside the worn title),
+  milestones with rule perks, and 27 cosmetics from families, milestones and titles. (Titles, meta.)
 - ~~**G27. Balance is measured only by bots.**~~ Closed by R15 PR B: an opt-in local play log (Records, Export play log),
   a How I play page, and `run-balance.js {"log"}` replays a log against the bots at the same gates and levels. (Tooling.)
 

@@ -14,6 +14,7 @@ function townHTML(){
     .map((t,i)=>'<button class="tab'+(t[0]==='tower'?' hell':'')+'" role="tab" data-a="tab" data-k="'+t[0]+'" aria-keyshortcuts="'+(i+1)+'" aria-selected="'
         +(t[0]==='ledger'?LEDGER.some(x=>x[0]===ui.tab):(ui.tab||'gates')===t[0])+'">'+t[1]+(i<9?'<kbd aria-hidden="true">'+(i+1)+'</kbd>':'')+'</button>').join('')
    +'<button class="tab keyhint" data-a="keys" aria-keyshortcuts="?" aria-label="Keyboard shortcuts" title="Keyboard shortcuts">?</button></div>';
+  { const lg=LEDGER.some(x=>x[0]===ui.tab), cv=cosOf('cover'); for(const k of Object.keys(COS.cover)) document.body.classList.toggle('cv-'+k,lg&&cv===k); }   /* R16 PR B: the Ledger's cover (game-collection.js) */
   if(LEDGER.some(x=>x[0]===ui.tab)){ ui.ledger=ui.tab; h+='<div class="chips sub-nav" role="tablist">'+LEDGER.map(x=>'<button class="btn small'+(x[0]===ui.tab?' primary':'')+'" role="tab" data-a="tab" data-k="'+x[0]+'" aria-selected="'+(x[0]===ui.tab)+'">'+x[1]+'</button>').join('')+'</div>'; }
   if(ui.tab==='gear') return h+loadoutHTML()+bagHTML();
   if(ui.tab==='army') return h+armyTabHTML();
@@ -183,7 +184,7 @@ function battleHTML(){
    +'<div class="bat"><div class="bat-main">'
    +(st?'<div class="stage" aria-hidden="true" style="height:'+(FXS.h||300)+'px"></div>':'')
    +(st?stripHTML(foeH,r.enemies,'foe'):'<p class="group-h">'+foeH+'</p>'+rowsHTML(r.enemies,'row',e=>unitCard(e,'foe')))
-   +(st?stripHTML(sideH,[S.player].concat(S.army),'ally'):'<p class="group-h">'+sideH+'</p>'+rowsHTML([S.player].concat(S.army),'row minis side',u=>u.id==='p'?unitCard(u,'ally'):unitCard(u,'ally',true)))
+   +armyBannerHTML()+(st?stripHTML(sideH,[S.player].concat(S.army),'ally'):'<p class="group-h">'+sideH+'</p>'+rowsHTML([S.player].concat(S.army),'row minis side',u=>u.id==='p'?unitCard(u,'ally'):unitCard(u,'ally',true)))
    +'</div><div class="bat-cmd">'
    +'<div class="actbar">'+partyStrip()+'<div class="cgrp"><p class="rub">Actions</p><div class="btns acts-main"><button class="btn primary" data-a="act" data-k="strike">Strike +3 mana<kbd>1</kbd></button>'
    +'<button class="btn" data-a="act" data-k="siphon"'+(P.mana<siphonCost()?' disabled':'')+'>Soul Siphon '+manaCost(siphonCost())+'<kbd>2</kbd></button>'

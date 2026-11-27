@@ -3859,3 +3859,18 @@ TR_RX.unshift([/^(Gates|Army|Raising|Hero|Tower and Rift|Town|Faith|Rival and si
  [/^Inscribed titles · (\d+)\/(\d+)$/,"Yazılı unvanlar · $1/$2"],[/^(\d+) titles\. Inscribed: (.+)$/,"$1 unvan. Yazılıyken: {t2}"],[/^Cannot inscribe: (.+)\.?$/,"Yazılamaz: {t1}"],[/^next slot at (\d+) titles$/,"sonraki yuva $1 unvanda"],[/^every slot is used$/,"her yuva dolu"],
  [/^one (.+) title is inscribed: (.+)$/,"bir {t1} unvanı yazılı: $2"],[/^Collection milestone: (.+?) (\d+)\. (.+?)\.?$/,"Koleksiyon kilometre taşı: {t1} $2. {t3}"],[/^Hint:$/,"İpucu:"]);
 TR_DICT.set("A cosmetic","Bir görünüm"); 
+
+// ----- R16 PR B: cosmetics
+[
+ ["Cosmetics","Görünümler"],["Looks the Ledger lets you wear","Defterin giymene izin verdiği görünümler"],
+ ["Each look comes from a finished title family, a milestone or a deed. They change nothing but how things look","Her görünüm tamamlanmış bir unvan ailesinden, bir kilometre taşından ya da bir işten gelir. Görünüş dışında hiçbir şeyi değiştirmezler"],
+ ["Robes","Cüppeler"],["Staff heads","Asa başları"],["Army banners","Ordu sancakları"],["Night backdrops","Gece fonları"],["Ledger covers","Defter kapları"],
+ ["robe","cüppe"],["staff head","asa başı"],["banner","sancak"],["night backdrop","gece fonu"],["Ledger cover","Defter kabı"],
+ ["As the day finds it","Gün onu nasıl bulursa"],["Skull","Kafatası"],["Plain","Sade"],["The look you start with","Başladığın görünüm"],
+ ["Wear","Giy"],["Worn","Giyili"],["Take off","Çıkar"],["Yours:","Senin:"],["Locked:","Kilitli:"],["Locked","Kilitli"],["Its gate's battles are fought at night","Kapısının savaşları gece yapılır"],
+ ["Title families complete","Tamamlanan unvan aileleri"],
+ ["Twenty-seven looks, worn from the Cosmetics page of the Collection tab in town: robes and staff heads for the hero, a banner behind your army in a fight, a night backdrop for one gate's battles and a cover for the Ledger's pages. They change nothing but how things look. Each is yours once its family, milestone step or title is, and a finished family also puts its seal on the hero card","Kasabada Koleksiyon sekmesinin Görünümler sayfasından giyilen yirmi yedi görünüm: kahraman için cüppeler ve asa başları, dövüşte ordunun arkasında bir sancak, bir kapının savaşları için bir gece fonu ve Defterin sayfaları için bir kap. Görünüş dışında hiçbir şeyi değiştirmezler. Ailesi, kilometre taşı basamağı ya da unvanı senin olunca görünüm de senindir; tamamlanan bir aile ayrıca kahraman kartına mührünü basar"]
+].forEach(([k,v])=>{ TR_DICT.set(k,v); });
+TR_RX.unshift([/^Cosmetics · (\d+)\/(\d+)$/,"Görünümler · $1/$2"],[/^Earn every (.+) title$/,"Her {t1} unvanını kazan"],[/^Earn the title (.+)$/,"$1 unvanını kazan"],
+ [/^the (.+) (robe|staff head|banner|night backdrop|Ledger cover)$/,"$1 {t2}"],[/^(.+) family complete$/,"{t1} ailesi tamam"],[/^(.+) banner$/,"$1 sancağı"],
+ [/^(Bestiary Ledgered|Uniques found|Sets completed|Trophy kinds held|Pages|Memorial): (\d+) (.+)$/,"{t1}: $2 {t3}"]);

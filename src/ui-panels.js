@@ -235,7 +235,7 @@ function statusHTML(){
   const rows=[['strength','Strength','Strike damage, crit chance, armor piercing, minion attack, Command',['atk','crit','pierce','matk']],['constitution','Constitution','Max HP, damage taken, healing received, minion HP, Command, Endurance',['hp','dr','heal','mhp']],['intelligence','Intelligence','Mana, Siphon, Ward, skill damage, minion attack, Command',['mana','siph','ward','skill','matk']],['will','Will','Mana, army slots, raise odds, minion bond',['mana','slot','raise','mpow']]];
   const canAlloc=P.pts>0&&S.mode!=='battle';
   return '<section class="win" aria-labelledby="h-status"><h2 class="win-h" id="h-status">Status</h2>'
-   +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(faithOf()?'<div class="faith-l '+faithOf()+'" title="Devotion rank '+faithRank()+' of '+DEV_RANKS+'">'+FAITH[faithOf()].name+' &middot; '+faithRank()+'</div>':'')+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+(inscList().length?'<div class="ttl insc-l" title="Inscribed titles">'+inscList().map(id=>TITLE[id].name).join(' &middot; ')+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+'</div></div></div>'
+   +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(faithOf()?'<div class="faith-l '+faithOf()+'" title="Devotion rank '+faithRank()+' of '+DEV_RANKS+'">'+FAITH[faithOf()].name+' &middot; '+faithRank()+'</div>':'')+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+(inscList().length?'<div class="ttl insc-l" title="Inscribed titles">'+inscList().map(id=>TITLE[id].name).join(' &middot; ')+'</div>':'')+sealsHTML()+'<div class="num dim" style="font-size:12px">Level '+P.lvl+'</div></div></div>'
    +'<div class="vials">'+vial('HP',P.hp,pMax(),'hp')+vial('Mana',P.mana,pMana(),'mp')+'</div>'+'<div class="xp-eng">'+meter('XP',P.xp,need(P.lvl),'xp')+'</div>'
    +((P.pts>0||P.sp>0)?'<div class="chips">'+(P.pts>0?'<span class="chip pts">'+P.pts+' unspent point'+(P.pts>1?'s':'')+'</span>':'')+(P.sp>0?'<span class="chip pts">'+P.sp+' skill point'+(P.sp>1?'s':'')+'</span>':'')+'</div>':'')
    +(remembered()?'<div class="chips"><span class="chip mem-buff" title="Honoured a fallen minion today">Remembered: +'+Math.round(MEM_HP*100)+'% minion max HP until dawn</span></div>':'')
@@ -360,9 +360,9 @@ function heatHTML(i){   // difficulty picker on a cleared gate's card
    +(cur?'<div class="heat-note">Foes x'+H.foe+' &middot; XP x'+H.xp+' &middot; gold x'+H.gold+' &middot; gear x'+H.drop+(gateMod(i)?' <b class="bad" title="Cursed and '+H.name+': the curse feeds on it: foes x'+DAMNED_FOE+', rewards x'+DAMNED+'."><i aria-hidden="true">&#9760;</i> Curse + '+H.name+': foes x'+DAMNED_FOE+' &middot; rewards x'+DAMNED+'</b>':'')+'</div>':'')+'</div>';
 }
 function titlesHTML(){   // the Collection: titles by family (with inscriptions) and milestones (game-collection.js)
-  const sub=ui.coll==='ms'?'ms':'tt';
-  let h='<div class="chips sub-nav coll-nav" role="tablist">'+[['tt','Titles'],['ms','Milestones']].map(([k,n])=>'<button class="btn small'+(sub===k?' primary':'')+'" role="tab" data-a="collsub" data-k="'+k+'" aria-selected="'+(sub===k)+'">'+n+'</button>').join('')+'</div>';
-  return h+(sub==='ms'?milestonesHTML():titleListHTML());
+  const sub=ui.coll==='ms'||ui.coll==='cos'?ui.coll:'tt';
+  let h='<div class="chips sub-nav coll-nav" role="tablist">'+[['tt','Titles'],['ms','Milestones'],['cos','Cosmetics']].map(([k,n])=>'<button class="btn small'+(sub===k?' primary':'')+'" role="tab" data-a="collsub" data-k="'+k+'" aria-selected="'+(sub===k)+'">'+n+'</button>').join('')+'</div>';
+  return h+(sub==='ms'?milestonesHTML():sub==='cos'?wardrobeHTML():titleListHTML());
 }
 function inscHTML(){   // the three inscription slots
   const n=titlesGot(), sl=inscSlots(n), L=inscList();
@@ -842,3 +842,28 @@ function ngCodeHTML(){   // a challenge code: typed, pasted or made at random (g
    +(ui.ngcode?(d?'<p class="u-sub ok">Rules: '+chRulesText(d)+'.</p>':'<p class="u-sub bad">Not a valid code yet.</p>'):'')+'</div>';
 }
 const chRulesText=d=>{ const t=[d.iron?'Ironman':'Normal']; if(!custNorm(d.c)) t.push(CUSTOM_IDS.filter(k=>d.c[k]!==100).map(k=>CUSTOM_KEYS[k][3]+' '+(k==='siege'&&!d.c[k]?'off':d.c[k]+'%')).join(', ')+(custEasy(d.c)?' (Custom: no titles)':'')); return t.join(', '); };
+
+// R16 PR B: family seals on the hero card, army banners, the wardrobe (game-collection.js)
+const sealsHTML=()=>{ const F=FAM_IDS.filter(famDone); return F.length?'<div class="seals" title="Title families complete">'+F.map(f=>'<span class="seal fam-'+f+'" title="'+FAMS[f].name+' family complete">'+FAMS[f].name.charAt(0)+'</span>').join('')+'</div>':''; };
+function bannerSVG(id,w){ const B=COS.banner[id]; if(!B) return ''; return '<svg class="bn-svg" viewBox="0 0 40 72" width="'+(w||28)+'" aria-hidden="true"><path d="M2 3H38" stroke="#2a221a" stroke-width="3"/><path d="M5 4H35V54L28 47L20 58L12 47L5 54Z" fill="'+B.c+'"/><path d="M5 4H35V54L28 47L20 58L12 47L5 54Z" fill="none" stroke="'+B.t+'" stroke-width="1.4" opacity=".8"/>'
+  +'<circle cx="20" cy="22" r="7" fill="'+B.t+'" opacity=".85"/><path d="M16.5 21.5h2.5v2.5h-2.5zM21 21.5h2.5v2.5H21z" fill="'+B.c+'"/><path d="M17 29h6v4h-6z" fill="'+B.t+'" opacity=".85"/></svg>'; }
+const armyBannerHTML=()=>{ const b=cosOf('banner'); return b?'<div class="army-bn" aria-hidden="true" title="'+COS.banner[b].name+' banner">'+bannerSVG(b)+'</div>':''; };
+function cosPreview(kind,id){
+  if(kind==='robe') return ico('Necromancer',0,{robe:id});
+  if(kind==='staff') return ico('Necromancer',0,{staff:id});
+  if(kind==='banner') return '<span class="cos-pv">'+bannerSVG(id,26)+'</span>';
+  if(kind==='stage') return '<span class="cos-pv cos-night gs-g'+id.slice(1)+'"><i></i></span>';
+  return '<span class="cos-pv cos-cover" style="background:'+COS.cover[id].c+'"></span>';
+}
+function wardrobeHTML(){
+  const town=S.mode!=='battle';
+  let h='<section class="win" aria-labelledby="h-cos"><h2 class="win-h" id="h-cos">Cosmetics &middot; '+cosCount()+'/'+cosTotal()+'</h2><h3 class="win-title">Looks the Ledger lets you wear</h3><p class="lede">Each look comes from a finished title family, a milestone or a deed. They change nothing but how things look.</p>';
+  for(const k of COS_KIND_IDS){ const on=cosOf(k);
+    h+='<p class="group-h">'+COS_KINDS[k]+'</p><div class="items cos-list">';
+    h+='<div class="tt-row'+(on?'':' on')+'">'+(k==='robe'||k==='staff'?cosPreview(k,null):'<span class="cos-pv"></span>')+'<div><h4>'+(k==='stage'?'As the day finds it':k==='staff'?'Skull':'Plain')+'</h4><div class="u-sub">The look you start with.</div></div>'+(on&&town?'<button class="btn small" data-a="coswear" data-k="'+k+'|">Wear</button>':'<span class="u-tag">'+(on?'':'Worn')+'</span>')+'</div>';
+    for(const id of Object.keys(COS[k])){ const c=COS[k][id], own=cosOwned(k,id), w=on===id;
+      h+='<div class="tt-row'+(w?' on':'')+(own?'':' off')+'">'+cosPreview(k,id)+'<div><h4>'+c.name+'</h4><div class="u-sub">'+(own?'Yours':'Locked')+': <span>'+cosSrc(k,id)+'</span></div>'+(k==='stage'?'<div class="u-sub">Its gate\'s battles are fought at night.</div>':'')+'</div>'
+        +(own?(town?'<button class="btn small'+(w?'':' primary')+'" data-a="coswear" data-k="'+k+'|'+id+'">'+(w?'Take off':'Wear')+'</button>':''):'<span class="u-tag">Locked</span>')+'</div>'; }
+    h+='</div>'; }
+  return h+'</section>';
+}

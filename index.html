@@ -1234,6 +1234,17 @@ details.brief>summary .more-l,details.brief>summary .more-h{margin-left:0}detail
 .siege-waves{margin:4px 0 6px 18px;padding:0;font-size:12.5px;line-height:1.5}
 .siege-works .tt-row h4 .ok{font-weight:400}
 .siege-tier,.siege-peace{margin:4px 0}
+/* R16 PR B: cosmetics */
+.army-bn{float:right;margin:-4px 4px 0 0;opacity:.88;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
+.seals{display:flex;gap:3px;margin-top:3px}.seal{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;background:#5a1e18;color:#e8dcc0;font-size:9px;font-weight:700;box-shadow:inset 0 0 0 1px #c9a24a}
+.cos-list .tt-row{grid-template-columns:auto 1fr auto;align-items:center;gap:10px}.cos-list .ico{width:40px;height:40px}
+.cos-pv{display:inline-block;width:40px;height:40px;border-radius:4px;background:rgba(0,0,0,.25);text-align:center}.cos-pv svg{margin-top:2px}
+.cos-night{background-size:cover;position:relative;overflow:hidden}.cos-night i{position:absolute;inset:0;background:rgba(10,20,48,.5)}
+.cos-cover{box-shadow:inset 0 0 0 3px rgba(0,0,0,.35),inset 0 0 0 5px rgba(201,162,74,.35)}
+body.cv-leather .win{border-color:#6a4a2e;box-shadow:inset 0 0 0 2px rgba(106,74,46,.55)}
+body.cv-iron .win{border-color:#5a6068;box-shadow:inset 0 0 0 2px rgba(90,96,104,.6)}
+body.cv-vellum .win{border-color:#cbbd98;box-shadow:inset 0 0 0 2px rgba(203,189,152,.35)}
+body.cv-skin .win{border-color:#9a7a66;box-shadow:inset 0 0 0 2px rgba(154,122,102,.45)}
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
@@ -1815,7 +1826,7 @@ const canNGP=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]);
 const ownedUniques=()=>[...new Set(S.inv.concat(Object.values(S.equip)).filter(it=>it&&ITEM[it.id]&&ITEM[it.id].uq).map(it=>it.id))];
 function startNGP(carry,pacts,rule,carries){
   if(S.mode!=='town'||!canNGP()) return false; if(faithOf()==='dis') tally('godless');   /* Godless: a cycle finished Profane (game-pantheon.js) */
-  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts),ally:S.ally||null}; if(S.iron){ keep.iron=true; keep.ironDeaths=S.ironDeaths|0; } if(S.custom) keep.custom=S.custom; if(S.code) keep.code=S.code; if(S.insc) keep.insc=S.insc; if(S.coll) keep.coll=S.coll;   /* inscriptions and milestones (game-collection.js) */   /* the mode carries into New Game+ (game-modes.js) */ ngpEnding(keep); ascStart(keep,rule,carries);   /* the ascension rule (game-asc.js) */   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
+  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts),ally:S.ally||null}; if(S.iron){ keep.iron=true; keep.ironDeaths=S.ironDeaths|0; } if(S.custom) keep.custom=S.custom; if(S.code) keep.code=S.code; if(S.insc) keep.insc=S.insc; if(S.coll) keep.coll=S.coll; if(S.cos) keep.cos=S.cos;   /* inscriptions and milestones (game-collection.js) */   /* the mode carries into New Game+ (game-modes.js) */ ngpEnding(keep); ascStart(keep,rule,carries);   /* the ascension rule (game-asc.js) */   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
   newGame(); Object.assign(S,keep); S.ti.clr={}; ngpEndingStart(); ascBegin();   // titles stay earned; New Game+ again needs another Throne of Ash clear
   S.watches=WATCHES-pactWatch(); S.notices=[]; if(carry&&own.includes(carry)){ const it=addItem(carry,null); if(it&&carryAw) it.aw=carryAw; }   /* an awakened unique keeps its ranks */ unlockStory('ngp');
   notify('New Game+ '+S.ngp+' begins. Foes have '+Math.round(NGP_FOE*S.ngp*100)+'% more HP and attack, and pay '+Math.round(NGP_REWARD*S.ngp*100)+'% more XP and gold.'+(carry&&own.includes(carry)?' '+ITEM[carry].name+' is in your bag.':''),'ok');
@@ -1940,7 +1951,7 @@ function normalizeSave(src){
   { const c=g.player.cmd; if(!hadCmd||!(obj(c)&&c.a>=0&&c.h>=0&&isFinite(c.a)&&isFinite(c.h))) g.player.cmd=cmdPow(Array.isArray(g.army)?g.army:[]); else g.player.cmd={a:Math.round(c.a),h:Math.round(c.h)}; }   // Command: an old or damaged save measures its army again
   const okB=b=>obj(b)&&BOUNTIES[b.id]&&typeof b.n==='number'&&typeof b.base==='number'&&obj(b.rw)&&typeof b.claimed==='boolean';
   g.bounty=(obj(g.bounty)&&typeof g.bounty.day==='number'&&Array.isArray(g.bounty.list)&&g.bounty.list.every(okB))?g.bounty:null;
-  memorialFix(g); nemFix(g); modesFix(g); codeFix(g); inscFix(g); collFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
+  memorialFix(g); nemFix(g); modesFix(g); codeFix(g); inscFix(g); collFix(g); cosFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
   return g;
 }
 function validSave(g){ return !!normalizeSave(g); }
@@ -8246,6 +8257,70 @@ function collFix(g){   // normalizeSave
   for(const k in c){ if(MS_IDS.includes(k)){ const n=Math.floor(num(c[k],0)); if(n>=1) o[k]=Math.min(3,n); } else if(k==='u'&&Array.isArray(c.u)){ const u=[...new Set(c.u.filter(id=>ITEM[id]&&ITEM[id].uq))]; if(u.length) o.u=u; } else if(k==='bw'&&isFinite(c.bw)&&c.bw>=0) o.bw=Math.floor(c.bw); }
   if(Object.keys(o).length) g.coll=o; else delete g.coll;
 }
+// ===== R16 PR B: COSMETICS =====
+// Twenty-seven looks drawn by the game's own painter: robes (the hero's colour), staff heads, army banners (behind your side in
+// a fight), night backdrops for each gate's battles and Ledger covers (the frame of the Ledger tab's pages). Each comes from a
+// finished title family, a milestone step or a deed; ownership is read from those (all kept for good), so only the worn look is
+// saved: S.cos = {robe, staff, banner, stage, cover}. Purely cosmetic.
+const COS_KINDS={robe:'Robes',staff:'Staff heads',banner:'Army banners',stage:'Night backdrops',cover:'Ledger covers'};
+const COS_KIND_IDS=Object.keys(COS_KINDS);
+const COS={
+  robe:{
+    gravecloth:{name:'Gravecloth',c:'#5a5448',src:['ms','mem',1]},
+    ashen:     {name:'Ashen',c:'#6e6a64',src:['fam','gate']},
+    drowned:   {name:'Drowned',c:'#2f4a4a',src:['fam','raise']},
+    choir:     {name:'Choir-white',c:'#cfc8b4',src:['fam','faith']},
+    iron:      {name:'Iron',c:'#4e555c',src:['ms','uq',1]},
+    sovereign: {name:'Sovereign\'s',c:'#5a2e5e',src:['fam','story']},
+    abbey:     {name:'Abbey brown',c:'#5e4430',src:['ms','tro',1]},
+    rival:     {name:'Rival red',c:'#7a2a24',src:['fam','rival']}
+  },
+  staff:{
+    lantern:{name:'Lantern',src:['fam','hero']},
+    quill:  {name:'Quill',src:['ms','ledger',3]},
+    crown:  {name:'Crown',src:['ms','uq',3]}
+  },
+  banner:{
+    bone:   {name:'Bone',c:'#d8cfb4',t:'#6a6252',src:['ms','ledger',1]},
+    rat:    {name:'Rat',c:'#6a5a44',t:'#c9b98f',src:['ms','tro',3]},
+    ember:  {name:'Ember',c:'#8a3416',t:'#f0a040',src:['fam','endless']},
+    choir:  {name:'Choir',c:'#d6cdb2',t:'#8a7a4a',src:['title','f_choir']},
+    orchard:{name:'Orchard',c:'#4a5a26',t:'#c8c870',src:['fam','town']},
+    ash:    {name:'Ash',c:'#3a3632',t:'#e8dec6',src:['fam','army']}
+  },
+  stage:{
+    g0:{name:'Rat Warren by night',src:['ms','sets',1]},
+    g1:{name:'Sunken Crypt by night',src:['title','nm1']},
+    g2:{name:'Ashen Barrow by night',src:['title','nm2']},
+    g3:{name:'Hollow Cathedral by night',src:['title','nm3']},
+    g4:{name:'Iron Orchard by night',src:['title','nm4']},
+    g5:{name:'Throne of Ash by night',src:['ms','pages',3]}
+  },
+  cover:{
+    leather:{name:'Leather',c:'#6a4a2e',src:['fam','secrets']},
+    iron:   {name:'Iron',c:'#5a6068',src:['ms','sets',3]},
+    vellum: {name:'Vellum',c:'#cbbd98',src:['ms','pages',1]},
+    skin:   {name:'Skin',c:'#9a7a66',src:['ms','mem',3]}
+  }
+};
+const COS_ONE={robe:'robe',staff:'staff head',banner:'banner',stage:'night backdrop',cover:'Ledger cover'};
+const cosLabel=(kind,id)=>'the '+COS[kind][id].name.replace(/ by night$/,'')+' '+COS_ONE[kind];
+for(const k of COS_KIND_IDS) for(const id in COS[k]){ const [w,a,b]=COS[k][id].src; if(w==='ms') MILESTONES[a].rew[b-1]=cosLabel(k,id); }   // the milestones name their looks
+const famDone=f=>!!(S&&S.ti&&S.ti.got)&&TITLES.filter(t=>famOf(t)===f).every(t=>S.ti.got[t.id]);
+function cosOwned(kind,id){ const c=COS[kind]&&COS[kind][id]; if(!c) return false; const [w,a,b]=c.src;
+  return w==='fam'?famDone(a):w==='ms'?msOn(a,b):w==='title'?!!(S&&S.ti&&S.ti.got&&S.ti.got[a]):false; }
+function cosSrc(kind,id){ const [w,a,b]=COS[kind][id].src; return w==='fam'?'Earn every '+FAMS[a].name+' title':w==='ms'?MILESTONES[a].name+': '+msSteps(a)[b-1]+' '+MILESTONES[a].unit:'Earn the title '+TITLE[a].name; }
+const cosOf=kind=>{ const id=S&&S.cos&&S.cos[kind]; return id&&cosOwned(kind,id)?id:null; };
+function cosWear(kind,id){   // wear a look you own (again, or null: the plain look)
+  if(!COS[kind]) return false; if(id!=null&&!cosOwned(kind,id)) return false; S.cos=S.cos&&typeof S.cos==='object'?S.cos:{};
+  if(id==null||S.cos[kind]===id) delete S.cos[kind]; else S.cos[kind]=id; if(!Object.keys(S.cos).length) delete S.cos; return true; }
+const cosCount=()=>COS_KIND_IDS.reduce((n,k)=>n+Object.keys(COS[k]).filter(id=>cosOwned(k,id)).length,0);
+const cosTotal=()=>COS_KIND_IDS.reduce((n,k)=>n+Object.keys(COS[k]).length,0);
+function cosFix(g){   // normalizeSave: only known kinds and looks
+  if(!('cos' in g)) return; const c=g.cos&&typeof g.cos==='object'?g.cos:{}, o={};
+  for(const k in c) if(COS[k]&&typeof c[k]==='string'&&COS[k][c[k]]) o[k]=c[k];
+  if(Object.keys(o).length) g.cos=o; else delete g.cos;
+}
 //==UI==
 
 // ----- sound: tiny synthesized effects (Web Audio, no files). Off/on lives in Settings and is remembered per browser, not in the save.
@@ -8822,13 +8897,19 @@ function scAtmos(k){
   for(let i=0;i<3;i++) o+='<ellipse class="sc-fog'+(i%2?' d2':'')+'" cx="'+(300+i*500)+'" cy="'+(70+i*45)+'" rx="'+(420+r()*200).toFixed(0)+'" ry="34" fill="#000" opacity=".35" filter="url(#scB)"/>';
   return o+'<circle class="sc-pulse" cx="800" cy="440" r="320" fill="'+tint+'" opacity=".07" filter="url(#scB)"/><rect width="1600" height="900" fill="url(#atG)"/>';
 }
+function scNight(k){   // a gate by night: a deep blue grade, a moon and more stars, the fires burning brighter against it
+  const r=scRand(k.length*53+11);
+  return '<rect width="1600" height="900" fill="#0a1430" opacity=".42" style="mix-blend-mode:multiply"/>'+scStars(r,70,360)+scGlow(1240,130,150,'#c8d4ff',.18)+'<circle cx="1240" cy="130" r="44" fill="#dfe4f0" opacity=".7"/><circle cx="1226" cy="120" r="9" fill="#b8c0d4" opacity=".5"/>'
+    +scGlow(800,700,420,'#ffb060',.06)+scMist('mN',560,340,'#4a5a8a',.1);
+}
 function sceneKey(){ if(VIEW.nobg) return ''; if(S.mode==='town') return ui.tab==='tower'?'tower':'town'; if(S.mode==='siege'||(S.run&&S.run.siege)) return 'town'; const r=S.run; const b=liveBoss(); if(b&&ARENAS[b.base]) return 'b:'+b.base; if(!r) return ''; if(r.tw) return 'tower'; return r.rift?'rift':'g'+r.di; }
 function scene(){
   const el=document.getElementById('scene'); if(!el) return; const k=sceneKey();
   const boss=k.startsWith('b:'), build=boss?()=>scCalm(scLift(ARENAS[k.slice(2)](scRand(k.length*97+k.charCodeAt(2))),1.22)):()=>scLift(BACKDROPS[k]());
   document.body.classList.toggle('arena',boss);
-  const ck=k&&k+(VIEW.calm?'|calm':'');   // reduced motion builds a still copy, so switching it rebuilds the scene
-  if(el.dataset.k!==ck){ el.dataset.k=ck; el.innerHTML=k&&(boss?ARENAS[k.slice(2)]:BACKDROPS[k])?'<svg viewBox="0 0 '+SC_W+' '+SC_H+'" preserveAspectRatio="xMidYMax slice"><defs><filter id="scB" x="-30%" y="-200%" width="160%" height="500%"><feGaussianBlur stdDeviation="34"/></filter><filter id="scB2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter><radialGradient id="scV" cx="50%" cy="48%" r="75%"><stop offset=".58" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".62"/></radialGradient></defs>'+build()+scCalm(scAtmos(k))+'<rect width="1600" height="900" fill="url(#scV)"/></svg>':''; }
+  const night=!boss&&k&&typeof cosOf==='function'&&cosOf('stage')===k&&S.mode!=='town';   /* R16 PR B: this gate by night (game-collection.js) */
+  const ck=k&&k+(VIEW.calm?'|calm':'')+(night?'|night':'');   // reduced motion builds a still copy, so switching it rebuilds the scene
+  if(el.dataset.k!==ck){ el.dataset.k=ck; el.innerHTML=k&&(boss?ARENAS[k.slice(2)]:BACKDROPS[k])?'<svg viewBox="0 0 '+SC_W+' '+SC_H+'" preserveAspectRatio="xMidYMax slice"><defs><filter id="scB" x="-30%" y="-200%" width="160%" height="500%"><feGaussianBlur stdDeviation="34"/></filter><filter id="scB2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter><radialGradient id="scV" cx="50%" cy="48%" r="75%"><stop offset=".58" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".62"/></radialGradient></defs>'+build()+scCalm(scAtmos(k))+(night?scNight(k):'')+'<rect width="1600" height="900" fill="url(#scV)"/></svg>':''; }
   document.body.classList.toggle('towerscene',k==='tower'); document.body.classList.toggle('scened',!!k);   // a scene brings its own vignette
   el.classList.toggle('on',!!k);
 }
@@ -13266,6 +13347,21 @@ TR_RX.unshift([/^(Gates|Army|Raising|Hero|Tower and Rift|Town|Faith|Rival and si
  [/^Inscribed titles · (\d+)\/(\d+)$/,"Yazılı unvanlar · $1/$2"],[/^(\d+) titles\. Inscribed: (.+)$/,"$1 unvan. Yazılıyken: {t2}"],[/^Cannot inscribe: (.+)\.?$/,"Yazılamaz: {t1}"],[/^next slot at (\d+) titles$/,"sonraki yuva $1 unvanda"],[/^every slot is used$/,"her yuva dolu"],
  [/^one (.+) title is inscribed: (.+)$/,"bir {t1} unvanı yazılı: $2"],[/^Collection milestone: (.+?) (\d+)\. (.+?)\.?$/,"Koleksiyon kilometre taşı: {t1} $2. {t3}"],[/^Hint:$/,"İpucu:"]);
 TR_DICT.set("A cosmetic","Bir görünüm"); 
+
+// ----- R16 PR B: cosmetics
+[
+ ["Cosmetics","Görünümler"],["Looks the Ledger lets you wear","Defterin giymene izin verdiği görünümler"],
+ ["Each look comes from a finished title family, a milestone or a deed. They change nothing but how things look","Her görünüm tamamlanmış bir unvan ailesinden, bir kilometre taşından ya da bir işten gelir. Görünüş dışında hiçbir şeyi değiştirmezler"],
+ ["Robes","Cüppeler"],["Staff heads","Asa başları"],["Army banners","Ordu sancakları"],["Night backdrops","Gece fonları"],["Ledger covers","Defter kapları"],
+ ["robe","cüppe"],["staff head","asa başı"],["banner","sancak"],["night backdrop","gece fonu"],["Ledger cover","Defter kabı"],
+ ["As the day finds it","Gün onu nasıl bulursa"],["Skull","Kafatası"],["Plain","Sade"],["The look you start with","Başladığın görünüm"],
+ ["Wear","Giy"],["Worn","Giyili"],["Take off","Çıkar"],["Yours:","Senin:"],["Locked:","Kilitli:"],["Locked","Kilitli"],["Its gate's battles are fought at night","Kapısının savaşları gece yapılır"],
+ ["Title families complete","Tamamlanan unvan aileleri"],
+ ["Twenty-seven looks, worn from the Cosmetics page of the Collection tab in town: robes and staff heads for the hero, a banner behind your army in a fight, a night backdrop for one gate's battles and a cover for the Ledger's pages. They change nothing but how things look. Each is yours once its family, milestone step or title is, and a finished family also puts its seal on the hero card","Kasabada Koleksiyon sekmesinin Görünümler sayfasından giyilen yirmi yedi görünüm: kahraman için cüppeler ve asa başları, dövüşte ordunun arkasında bir sancak, bir kapının savaşları için bir gece fonu ve Defterin sayfaları için bir kap. Görünüş dışında hiçbir şeyi değiştirmezler. Ailesi, kilometre taşı basamağı ya da unvanı senin olunca görünüm de senindir; tamamlanan bir aile ayrıca kahraman kartına mührünü basar"]
+].forEach(([k,v])=>{ TR_DICT.set(k,v); });
+TR_RX.unshift([/^Cosmetics · (\d+)\/(\d+)$/,"Görünümler · $1/$2"],[/^Earn every (.+) title$/,"Her {t1} unvanını kazan"],[/^Earn the title (.+)$/,"$1 unvanını kazan"],
+ [/^the (.+) (robe|staff head|banner|night backdrop|Ledger cover)$/,"$1 {t2}"],[/^(.+) family complete$/,"{t1} ailesi tamam"],[/^(.+) banner$/,"$1 sancağı"],
+ [/^(Bestiary Ledgered|Uniques found|Sets completed|Trophy kinds held|Pages|Memorial): (\d+) (.+)$/,"{t1}: $2 {t3}"]);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -14045,7 +14141,16 @@ Object.assign(MAT,{'The Folded Knight':['metal','#5a5e6a'],'Mother of Gates':['s
  ['The Witchfinder General','Crownless Duelist',['cloth','#2e2620']],['The Saint of Pyres','Brass Saint',['metal','#a86a2e']],['The Grand Inquisitor','Cathedral Templar',['metal','#8a7a4a']]]
   .forEach(([n,from,m])=>{ IC[n]=IC[from]; MAT[n]=m; });   /* R14: the higher tiers of the living */
 const matOf=key=>MAT[key]||(()=>{ const i=SECRET.findIndex(B=>B.name===key); return i>=0?MAT[DUNGEONS[i].boss[0]]:null; })()||MAT._;
-function ico(key,rankI,o){ o=o||{}; const M=matOf(key); return '<span class="ico r'+rankI+(o.boss?' boss':'')+(o.secret?' secret':'')+(o.elite?' elite':'')+'" aria-hidden="true"><svg viewBox="0 0 64 64" class="mt-'+M[0]+'" style="color:'+M[1]+'"><g filter="url(#paint)">'+(IC[key]||IC._)+'</g></svg>'+(key!=='Necromancer'?roleBadge(o.role):'')+'</span>'; }
+// R16 PR B: the hero's robe colour and staff head (game-collection.js); o.robe / o.staff preview a look in the wardrobe
+const STAFF_SKULL=SKULL(53,10,.42,'bn',SOULC);
+const STAFF_HEAD={
+  lantern:P('M49 4H57V15H49Z','dk')+E(53,10,2,'#ffc864')+L('M49 4H57V15H49ZM53 4V15',.6)+P('M50 2H56V4H50Z','gd')+P('M51 15H55V17H51Z','gd'),
+  quill:P('M53 16C49 10 49 4 56 0C57 6 56 11 53 16Z','bn')+L('M53 16C54 10 55 5 56 0',.6)+L('M51 9L54 7M51 12L54 10M52 5L55 3',.45),
+  crown:P('M47 13L48 5L51 9L53 3L55 9L58 5L59 13Z','gd')+E(53,10,1.2,'#e85a5a')+L('M47 13H59',.7)
+};
+function heroArt(o){ const st=o.staff!==undefined?o.staff:(typeof cosOf==='function'?cosOf('staff'):null); const b=IC.Necromancer; return st&&STAFF_HEAD[st]?b.replace(STAFF_SKULL,STAFF_HEAD[st]):b; }
+const heroRobe=o=>{ const rb=o.robe!==undefined?o.robe:(typeof cosOf==='function'?cosOf('robe'):null); return rb&&COS.robe[rb]?COS.robe[rb].c:null; };
+function ico(key,rankI,o){ o=o||{}; const M=matOf(key), hero=key==='Necromancer', col=(hero&&heroRobe(o))||M[1]; return '<span class="ico r'+rankI+(o.boss?' boss':'')+(o.secret?' secret':'')+(o.elite?' elite':'')+'" aria-hidden="true"><svg viewBox="0 0 64 64" class="mt-'+M[0]+'" style="color:'+col+'"><g filter="url(#paint)">'+(hero?heroArt(o):(IC[key]||IC._))+'</g></svg>'+(key!=='Necromancer'?roleBadge(o.role):'')+'</span>'; }
 const app=document.getElementById('app');
 const ui={confirm:null};
 const pct=(v,m)=>Math.max(0,Math.min(100,m?v/m*100:0));
@@ -14387,7 +14492,7 @@ function statusHTML(){
   const rows=[['strength','Strength','Strike damage, crit chance, armor piercing, minion attack, Command',['atk','crit','pierce','matk']],['constitution','Constitution','Max HP, damage taken, healing received, minion HP, Command, Endurance',['hp','dr','heal','mhp']],['intelligence','Intelligence','Mana, Siphon, Ward, skill damage, minion attack, Command',['mana','siph','ward','skill','matk']],['will','Will','Mana, army slots, raise odds, minion bond',['mana','slot','raise','mpow']]];
   const canAlloc=P.pts>0&&S.mode!=='battle';
   return '<section class="win" aria-labelledby="h-status"><h2 class="win-h" id="h-status">Status</h2>'
-   +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(faithOf()?'<div class="faith-l '+faithOf()+'" title="Devotion rank '+faithRank()+' of '+DEV_RANKS+'">'+FAITH[faithOf()].name+' &middot; '+faithRank()+'</div>':'')+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+(inscList().length?'<div class="ttl insc-l" title="Inscribed titles">'+inscList().map(id=>TITLE[id].name).join(' &middot; ')+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+'</div></div></div>'
+   +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(faithOf()?'<div class="faith-l '+faithOf()+'" title="Devotion rank '+faithRank()+' of '+DEV_RANKS+'">'+FAITH[faithOf()].name+' &middot; '+faithRank()+'</div>':'')+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+(inscList().length?'<div class="ttl insc-l" title="Inscribed titles">'+inscList().map(id=>TITLE[id].name).join(' &middot; ')+'</div>':'')+sealsHTML()+'<div class="num dim" style="font-size:12px">Level '+P.lvl+'</div></div></div>'
    +'<div class="vials">'+vial('HP',P.hp,pMax(),'hp')+vial('Mana',P.mana,pMana(),'mp')+'</div>'+'<div class="xp-eng">'+meter('XP',P.xp,need(P.lvl),'xp')+'</div>'
    +((P.pts>0||P.sp>0)?'<div class="chips">'+(P.pts>0?'<span class="chip pts">'+P.pts+' unspent point'+(P.pts>1?'s':'')+'</span>':'')+(P.sp>0?'<span class="chip pts">'+P.sp+' skill point'+(P.sp>1?'s':'')+'</span>':'')+'</div>':'')
    +(remembered()?'<div class="chips"><span class="chip mem-buff" title="Honoured a fallen minion today">Remembered: +'+Math.round(MEM_HP*100)+'% minion max HP until dawn</span></div>':'')
@@ -14512,9 +14617,9 @@ function heatHTML(i){   // difficulty picker on a cleared gate's card
    +(cur?'<div class="heat-note">Foes x'+H.foe+' &middot; XP x'+H.xp+' &middot; gold x'+H.gold+' &middot; gear x'+H.drop+(gateMod(i)?' <b class="bad" title="Cursed and '+H.name+': the curse feeds on it: foes x'+DAMNED_FOE+', rewards x'+DAMNED+'."><i aria-hidden="true">&#9760;</i> Curse + '+H.name+': foes x'+DAMNED_FOE+' &middot; rewards x'+DAMNED+'</b>':'')+'</div>':'')+'</div>';
 }
 function titlesHTML(){   // the Collection: titles by family (with inscriptions) and milestones (game-collection.js)
-  const sub=ui.coll==='ms'?'ms':'tt';
-  let h='<div class="chips sub-nav coll-nav" role="tablist">'+[['tt','Titles'],['ms','Milestones']].map(([k,n])=>'<button class="btn small'+(sub===k?' primary':'')+'" role="tab" data-a="collsub" data-k="'+k+'" aria-selected="'+(sub===k)+'">'+n+'</button>').join('')+'</div>';
-  return h+(sub==='ms'?milestonesHTML():titleListHTML());
+  const sub=ui.coll==='ms'||ui.coll==='cos'?ui.coll:'tt';
+  let h='<div class="chips sub-nav coll-nav" role="tablist">'+[['tt','Titles'],['ms','Milestones'],['cos','Cosmetics']].map(([k,n])=>'<button class="btn small'+(sub===k?' primary':'')+'" role="tab" data-a="collsub" data-k="'+k+'" aria-selected="'+(sub===k)+'">'+n+'</button>').join('')+'</div>';
+  return h+(sub==='ms'?milestonesHTML():sub==='cos'?wardrobeHTML():titleListHTML());
 }
 function inscHTML(){   // the three inscription slots
   const n=titlesGot(), sl=inscSlots(n), L=inscList();
@@ -14994,6 +15099,31 @@ function ngCodeHTML(){   // a challenge code: typed, pasted or made at random (g
    +(ui.ngcode?(d?'<p class="u-sub ok">Rules: '+chRulesText(d)+'.</p>':'<p class="u-sub bad">Not a valid code yet.</p>'):'')+'</div>';
 }
 const chRulesText=d=>{ const t=[d.iron?'Ironman':'Normal']; if(!custNorm(d.c)) t.push(CUSTOM_IDS.filter(k=>d.c[k]!==100).map(k=>CUSTOM_KEYS[k][3]+' '+(k==='siege'&&!d.c[k]?'off':d.c[k]+'%')).join(', ')+(custEasy(d.c)?' (Custom: no titles)':'')); return t.join(', '); };
+
+// R16 PR B: family seals on the hero card, army banners, the wardrobe (game-collection.js)
+const sealsHTML=()=>{ const F=FAM_IDS.filter(famDone); return F.length?'<div class="seals" title="Title families complete">'+F.map(f=>'<span class="seal fam-'+f+'" title="'+FAMS[f].name+' family complete">'+FAMS[f].name.charAt(0)+'</span>').join('')+'</div>':''; };
+function bannerSVG(id,w){ const B=COS.banner[id]; if(!B) return ''; return '<svg class="bn-svg" viewBox="0 0 40 72" width="'+(w||28)+'" aria-hidden="true"><path d="M2 3H38" stroke="#2a221a" stroke-width="3"/><path d="M5 4H35V54L28 47L20 58L12 47L5 54Z" fill="'+B.c+'"/><path d="M5 4H35V54L28 47L20 58L12 47L5 54Z" fill="none" stroke="'+B.t+'" stroke-width="1.4" opacity=".8"/>'
+  +'<circle cx="20" cy="22" r="7" fill="'+B.t+'" opacity=".85"/><path d="M16.5 21.5h2.5v2.5h-2.5zM21 21.5h2.5v2.5H21z" fill="'+B.c+'"/><path d="M17 29h6v4h-6z" fill="'+B.t+'" opacity=".85"/></svg>'; }
+const armyBannerHTML=()=>{ const b=cosOf('banner'); return b?'<div class="army-bn" aria-hidden="true" title="'+COS.banner[b].name+' banner">'+bannerSVG(b)+'</div>':''; };
+function cosPreview(kind,id){
+  if(kind==='robe') return ico('Necromancer',0,{robe:id});
+  if(kind==='staff') return ico('Necromancer',0,{staff:id});
+  if(kind==='banner') return '<span class="cos-pv">'+bannerSVG(id,26)+'</span>';
+  if(kind==='stage') return '<span class="cos-pv cos-night gs-g'+id.slice(1)+'"><i></i></span>';
+  return '<span class="cos-pv cos-cover" style="background:'+COS.cover[id].c+'"></span>';
+}
+function wardrobeHTML(){
+  const town=S.mode!=='battle';
+  let h='<section class="win" aria-labelledby="h-cos"><h2 class="win-h" id="h-cos">Cosmetics &middot; '+cosCount()+'/'+cosTotal()+'</h2><h3 class="win-title">Looks the Ledger lets you wear</h3><p class="lede">Each look comes from a finished title family, a milestone or a deed. They change nothing but how things look.</p>';
+  for(const k of COS_KIND_IDS){ const on=cosOf(k);
+    h+='<p class="group-h">'+COS_KINDS[k]+'</p><div class="items cos-list">';
+    h+='<div class="tt-row'+(on?'':' on')+'">'+(k==='robe'||k==='staff'?cosPreview(k,null):'<span class="cos-pv"></span>')+'<div><h4>'+(k==='stage'?'As the day finds it':k==='staff'?'Skull':'Plain')+'</h4><div class="u-sub">The look you start with.</div></div>'+(on&&town?'<button class="btn small" data-a="coswear" data-k="'+k+'|">Wear</button>':'<span class="u-tag">'+(on?'':'Worn')+'</span>')+'</div>';
+    for(const id of Object.keys(COS[k])){ const c=COS[k][id], own=cosOwned(k,id), w=on===id;
+      h+='<div class="tt-row'+(w?' on':'')+(own?'':' off')+'">'+cosPreview(k,id)+'<div><h4>'+c.name+'</h4><div class="u-sub">'+(own?'Yours':'Locked')+': <span>'+cosSrc(k,id)+'</span></div>'+(k==='stage'?'<div class="u-sub">Its gate\'s battles are fought at night.</div>':'')+'</div>'
+        +(own?(town?'<button class="btn small'+(w?'':' primary')+'" data-a="coswear" data-k="'+k+'|'+id+'">'+(w?'Take off':'Wear')+'</button>':''):'<span class="u-tag">Locked</span>')+'</div>'; }
+    h+='</div>'; }
+  return h+'</section>';
+}
 // ----- the Codex: every rule and list in the game, read straight from the game's own tables so it never goes stale.
 // Enemies you have not met yet stay hidden, as in the bestiary.
 const CODEX=[['basics','Basics'],['raising','Raising'],['faith','Faith'],['omens','Omens'],['roles','Roles'],['traits','Traits'],['minions','Minion stats'],['army','Army'],['reserve','Reserve'],['fusion','Fusion'],['affixes','Elite affixes'],['bosses','Bosses'],['status','Status effects'],['types','Damage types'],['kits','Foe kits'],['nemeses','Nemeses'],['skills','Skills'],['orders','Orders'],
@@ -15289,6 +15419,8 @@ function codexSection(k){
     +'<p class="group-h">Families</p>'+cxList(FAM_IDS.map(f=>cxRow(FAMS[f].name,TITLES.filter(t=>famOf(t)===f).length+' titles. Inscribed: '+FAMS[f].perk+'.')))
     +'<p class="group-h">Milestones</p>'+cxP('Six collections pay at three steps each, once and for good. The middle step eases a rule a little; the first and last give a cosmetic.')
     +cxList(MS_IDS.map(m=>{ const M=MILESTONES[m], st=msSteps(m); return cxRow(M.name,'<span>'+M.unit+'</span><br>'+st.map((n,i)=>'<span>'+n+'</span>: <span>'+M.rew[i]+'</span>').join('<br>')); }))
+    +'<p class="group-h">Cosmetics</p>'+cxP('Twenty-seven looks, worn from the Cosmetics page of the Collection tab in town: robes and staff heads for the hero, a banner behind your army in a fight, a night backdrop for one gate\'s battles and a cover for the Ledger\'s pages. They change nothing but how things look. Each is yours once its family, milestone step or title is, and a finished family also puts its seal on the hero card.')
+      +COS_KIND_IDS.map(k=>'<p class="group-h">'+COS_KINDS[k]+'</p>'+cxList(Object.keys(COS[k]).map(id=>cxRow(COS[k][id].name,cosSrc(k,id))))).join('')
     +'<p class="group-h">Hidden titles</p>'+cxP('Epic and rarer titles stay hidden until earned. Once you hold '+HINT_AT+' titles ('+HINT_AT_PAGES+' with the Pages milestone), each hidden title shows a hint: its requirement with most words cut to their first letter.');
   if(k==='titles'){ const by=g=>TITLES.filter(t=>t.grp===g).length, rc=TIERS.map((n,i)=>TITLES.filter(t=>t.r===i).length+' '+n.toLowerCase()).join(', ');
     return cxP('Titles are earned once and kept forever, even through New Game+. Each gives a small bonus, but only the one you wear counts. There are '+TITLES.length+': '+['Gates','Hell Tower','Curses and events','Deeds'].map(g=>by(g)+' for '+(g==='Hell Tower'?g:g.toLowerCase())).join(', ')+'.')
@@ -15679,6 +15811,7 @@ function townHTML(){
     .map((t,i)=>'<button class="tab'+(t[0]==='tower'?' hell':'')+'" role="tab" data-a="tab" data-k="'+t[0]+'" aria-keyshortcuts="'+(i+1)+'" aria-selected="'
         +(t[0]==='ledger'?LEDGER.some(x=>x[0]===ui.tab):(ui.tab||'gates')===t[0])+'">'+t[1]+(i<9?'<kbd aria-hidden="true">'+(i+1)+'</kbd>':'')+'</button>').join('')
    +'<button class="tab keyhint" data-a="keys" aria-keyshortcuts="?" aria-label="Keyboard shortcuts" title="Keyboard shortcuts">?</button></div>';
+  { const lg=LEDGER.some(x=>x[0]===ui.tab), cv=cosOf('cover'); for(const k of Object.keys(COS.cover)) document.body.classList.toggle('cv-'+k,lg&&cv===k); }   /* R16 PR B: the Ledger's cover (game-collection.js) */
   if(LEDGER.some(x=>x[0]===ui.tab)){ ui.ledger=ui.tab; h+='<div class="chips sub-nav" role="tablist">'+LEDGER.map(x=>'<button class="btn small'+(x[0]===ui.tab?' primary':'')+'" role="tab" data-a="tab" data-k="'+x[0]+'" aria-selected="'+(x[0]===ui.tab)+'">'+x[1]+'</button>').join('')+'</div>'; }
   if(ui.tab==='gear') return h+loadoutHTML()+bagHTML();
   if(ui.tab==='army') return h+armyTabHTML();
@@ -15848,7 +15981,7 @@ function battleHTML(){
    +'<div class="bat"><div class="bat-main">'
    +(st?'<div class="stage" aria-hidden="true" style="height:'+(FXS.h||300)+'px"></div>':'')
    +(st?stripHTML(foeH,r.enemies,'foe'):'<p class="group-h">'+foeH+'</p>'+rowsHTML(r.enemies,'row',e=>unitCard(e,'foe')))
-   +(st?stripHTML(sideH,[S.player].concat(S.army),'ally'):'<p class="group-h">'+sideH+'</p>'+rowsHTML([S.player].concat(S.army),'row minis side',u=>u.id==='p'?unitCard(u,'ally'):unitCard(u,'ally',true)))
+   +armyBannerHTML()+(st?stripHTML(sideH,[S.player].concat(S.army),'ally'):'<p class="group-h">'+sideH+'</p>'+rowsHTML([S.player].concat(S.army),'row minis side',u=>u.id==='p'?unitCard(u,'ally'):unitCard(u,'ally',true)))
    +'</div><div class="bat-cmd">'
    +'<div class="actbar">'+partyStrip()+'<div class="cgrp"><p class="rub">Actions</p><div class="btns acts-main"><button class="btn primary" data-a="act" data-k="strike">Strike +3 mana<kbd>1</kbd></button>'
    +'<button class="btn" data-a="act" data-k="siphon"'+(P.mana<siphonCost()?' disabled':'')+'>Soul Siphon '+manaCost(siphonCost())+'<kbd>2</kbd></button>'
@@ -16478,7 +16611,7 @@ const ACTIONS={
     if(ui.confirm!=='lc'){ ui.confirm='lc'; return; } ui.confirm=null;
     if(importCode(ui.imp)){ ui.imp=''; ui.exp=''; ui.msg={m:'Save code loaded.',c:'ok'}; } else ui.msg={m:'That code is not a valid save.',c:'bad'};
   },
-  wear:k=>{ wearTitle(k); }, insc:k=>{ if(!titleInscribe(k)){ const w=inscWhy(k); if(w) ui.msg={m:'Cannot inscribe: '+w+'.',c:'bad'}; } }, collsub:k=>{ ui.coll=k==='ms'?'ms':'tt'; },
+  wear:k=>{ wearTitle(k); }, insc:k=>{ if(!titleInscribe(k)){ const w=inscWhy(k); if(w) ui.msg={m:'Cannot inscribe: '+w+'.',c:'bad'}; } }, collsub:k=>{ ui.coll=k==='ms'||k==='cos'?k:'tt'; }, coswear:k=>{ const [kind,id]=String(k).split('|'); cosWear(kind,id||null); },
   cxclear:()=>{ ui.cxq=''; },
   cxq:()=>{},   /* the search box: typing is handled by the input listener; data-a only lets focus come back after a render */
   ttf:k=>{ ui.ttf=(k in {all:1,got:1,locked:1,close:1}||/^r[0-5]$/.test(k))?k:'all'; },
