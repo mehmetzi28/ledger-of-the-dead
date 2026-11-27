@@ -68,10 +68,10 @@ function siteAct(id,k){   // walk there and take the choice; returns a line for 
 }
 function siteChoice(id,k,dry){   // the choice itself; dry: only say whether it can be done (null: no)
   const n=VALLEY_NODES[id], P=S.player, f=faithOf();
-  if(k==='pray'){ if(f!==n.g) return null; if(!dry) deed(n.g,DEV_SHRINE/DEED_K[n.g]); return 'You pray at '+n.name+'. '+FAITH[n.g].name+' hears you.'; }
-  if(k==='swear'){ if(f||!faithOpen()) return null; if(!dry&&!swear(n.g)) return null; return 'You swear your oath to '+FAITH[n.g].name+' at '+n.name+'.'; }
-  if(k==='convert'){ if(!f||f===n.g) return null; if(!dry&&!convert(n.g)) return null; return 'You kneel to '+FAITH[n.g].name+' at '+n.name+'. Half your devotion comes with you.'; }
-  if(k==='desecrate'){ if(f!=='dis'||n.g==='dis') return null; const g=Math.round((10+P.lvl*3)*(1+topGate())*ngpReward()); if(!dry){ S.gold+=g; deed('dis',10/DEED_K.dis); tally('desecrated'); } return 'You break '+n.name+' and take '+g+' gold from its offerings.'; }
+  if(k==='pray'){ if(f!==n.g) return null; if(!dry){ deed(n.g,DEV_SHRINE/DEED_K[n.g]); favHook('shrine'); } return 'You pray at '+n.name+'. '+FAITH[n.g].name+' hears you.'; }
+  if(k==='swear'){ if(f||!faithOpen()) return null; if(!dry){ if(!swear(n.g)) return null; favHook('shrine'); } return 'You swear your oath to '+FAITH[n.g].name+' at '+n.name+'.'; }
+  if(k==='convert'){ if(!f||f===n.g) return null; if(!dry){ if(!convert(n.g)) return null; favHook('shrine'); } return 'You kneel to '+FAITH[n.g].name+' at '+n.name+'. Half your devotion comes with you.'; }
+  if(k==='desecrate'){ if(f!=='dis'||n.g==='dis') return null; const g=Math.round((10+P.lvl*3)*(1+topGate())*ngpReward()); if(!dry){ S.gold+=g; deed('dis',10/DEED_K.dis); tally('desecrated'); stand('aldric',-VIL_DESECRATE,'a shrine broken'); } return 'You break '+n.name+' and take '+g+' gold from its offerings.'; }
   if(k==='pedlar'){ if(crossOffer(id)!=='pedlar') return null; const p=crossPot(id), c=Math.ceil(POTIONS[p].price()/2); if(S.gold<c||S.belt[p]>=beltMax()) return null; if(!dry){ S.gold-=c; S.belt[p]++; } return 'A pedlar at the crossroads sells you a '+POTIONS[p].name+' for '+c+' gold.'; }
   if(k==='bounty'){ if(crossOffer(id)!=='bounty') return null; const t=bountyKind(), g=BOUNTY_GOLD*priceK(); if(!t) return null; if(!dry){ S.trophies[t]-=BOUNTY_TRO; if(!S.trophies[t]) delete S.trophies[t]; S.gold+=g; tally('bountyCross'); } return 'A bounty-man pays '+g+' gold for '+BOUNTY_TRO+' trophies.'; }
   if(k==='raven'){ if(crossOffer(id)!=='stranger'||S.gold<RAVEN_GOLD) return null; if(!dry){ S.gold-=RAVEN_GOLD; mapSt().raven=1; tally('raven'); } return 'A stranger in grey sells you a raven. It will scout the roads at dawn and watch the nemeses for you.'; }
@@ -79,28 +79,30 @@ function siteChoice(id,k,dry){   // the choice itself; dry: only say whether it 
   if(k==='page'){ const t=hermitKind(); if(!t||nextPage()<0) return null; if(!dry){ S.trophies[t]-=HERMIT_TRO; if(!S.trophies[t]) delete S.trophies[t]; const i=S.pages|0; S.pages=i+1; tally('pages'); moment('Torn page '+(i+1)+'/'+LORE_PAGES.length,'gold'); return 'The hermit gives you a torn page of the Ledger ('+(i+1)+'/'+LORE_PAGES.length+'): "'+LORE_PAGES[i].t+'". Read it on the Lore page (Ledger tab).'; } return ''; }
   if(k==='lesson'){ const t=hermitKind(), l=lessonKind(); if(!t||!l) return null; if(!dry){ S.trophies[t]-=HERMIT_TRO; if(!S.trophies[t]) delete S.trophies[t]; S.kills[l]=KNOW_AT; tally('lessons'); } return 'The hermit tells you all he knows of '+l+'. You have studied its kind.'; }
   if(k==='cut'){ const b=gallowsBody(id); if(!b) return null; if(!dry){ const m=b.m; mapBody({name:m[0],base:m[0],role:m[1],rankI:b.g,lvl:siteLvl(b.g),hf:m[2]||1,af:m[3]||1,boss:false,elite:false,old:1},id); } return 'You cut down the hanged '+b.m[0]+'. Its body waits to be raised before dawn.'; }
-  if(k==='sing'){ if(!dry){ if(f==='choir') deed('choir',DEV_SHRINE/DEED_K.choir); else dread(-GALLOWS_DREAD); } return f==='choir'?'You sing for the hanged, and the Choir sings with you.':'You sing for the hanged. The living hear of it, and the town breathes easier.'; }
+  if(k==='sing'){ if(!dry){ if(f==='choir') deed('choir',DEV_SHRINE/DEED_K.choir); else dread(-GALLOWS_DREAD); favHook('shrine'); } return f==='choir'?'You sing for the hanged, and the Choir sings with you.':'You sing for the hanged. The living hear of it, and the town breathes easier.'; }
   if(k.startsWith('call:')){ const o=k.slice(5); if(!stoneOmens(id).includes(o)) return null; if(!dry){ S.omenNext={day:S.day+1,id:o,by:'stones'}; tally('stoneCalls'); } return 'You call '+OMENS[o].name+' at the Nine Stones. Tomorrow belongs to it.'; }
   if(k==='toll'){ const c=FORD_TOLL*priceK(); if(S.gold<c||(S.map&&S.map.ford===S.day)) return null; if(!dry){ S.gold-=c; mapSt().ford=S.day; tally('mapFord'); } return 'The ferryman will carry you: a step less on every longer walk today.'; }
-  if(k==='search'){ if(!dry){ const g=nearGate(id), m=pick(DUNGEONS[g].mobs.filter(x=>x[1]!=='hexer')); mapBody({name:m[0],base:m[0],role:m[1],rankI:g,lvl:siteLvl(g),hf:m[2]||1,af:m[3]||1,boss:false,elite:false,cd:'preserved'},id); tally('mapFord'); } return 'You pull a drowned body from the shallows, cold and whole (Preserved).'; }
+  if(k==='search'){ if(!dry){ const g=nearGate(id), m=pick(DUNGEONS[g].mobs.filter(x=>x[1]!=='hexer')); mapBody({name:m[0],base:m[0],role:m[1],rankI:g,lvl:siteLvl(g),hf:m[2]||1,af:m[3]||1,boss:false,elite:false,cd:'preserved'},id); tally('mapFord'); favHook('ford'); } return 'You pull a drowned body from the shallows, cold and whole (Preserved).'; }
   return null;
 }
 function mapBody(c,s){ const M=mapSt(); M.bodies=(M.bodies||[]).concat([{c,s}]).slice(-MAP_BODIES); M.dug=(M.dug||0)+1; }
 // ----- fights: the mine, the den, and the road
 function svFoe(name,role,hf,af,rk,lvl,elite){ const s=mobStats(rk,lvl,hf,af,false,!!elite); return {id:'e'+(++S.uid),name:(elite?pick(ELITE)+' ':'')+name,base:name,role,rankI:rk,lvl,hf,af,boss:false,elite:!!elite,maxHp:s.hp,hp:s.hp,atk:s.atk,dead:false}; }
-function svStart(id,enc){   // a site's fight (a watch, after the walk) or a road encounter's (no watch: it found you on the road)
+function svStart(id,enc,esc){   // a site's fight (a watch, after the walk), a road encounter's (no watch: it found you on the road) or a village's escort (esc: the village, R20; on the road, no watch)
   if(S.mode!=='town') return false;
-  if(enc){ const E=S.map&&S.map.enc; if(!E||!['patrol','elite'].includes(E.k)) return false; }
+  if(esc){ if(!VILLAGES[esc]||VILLAGES[esc].node!==id||!mapGo(id,1)) return false; tally('mapSites'); }   /* the cart's road: no watch, like the road's own fights */
+  else if(enc){ const E=S.map&&S.map.enc; if(!E||!['patrol','elite'].includes(E.k)) return false; }
   else { if(!SITE_FIGHT.includes(siteKind(id))||!siteReady(id)||!mapGo(id,1)) return false; S.watches--; siteState(id).rest=S.day+SITE_REST[siteKind(id)]; tally('mapSites'); tally('site_'+siteKind(id)); }
-  const sg=Math.max(0,Math.min(GATE_N-1,topGate())), k=enc?'enc':siteKind(id);
+  const sg=Math.max(0,Math.min(GATE_N-1,topGate())), k=esc?'escort':enc?'enc':siteKind(id);
   S.runs++; S.notices=[];
-  S.run={di:sg,sv:k,svId:enc?S.map.enc.s:id,svE:enc?S.map.enc.k:null,room:0,rooms:k==='mine'?2:1,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:null,heat:0};
+  S.run={di:sg,sv:k,svId:enc?S.map.enc.s:id,svE:enc?S.map.enc.k:null,svV:esc||null,room:0,rooms:k==='mine'?2:1,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:null,heat:0};
   if(enc) delete S.map.enc;
   S.mode='battle'; titheSouls();
-  log(k==='mine'?'You climb down into the Old Iron Mine. Something still digs in the dark.':k==='den'?'You crawl into the Wolf Den. The bones in the doorway are fresh.':S.run.svE==='patrol'?'A patrol of the living bars the road.':'Something from the gates walks the road, far from home.');
+  log(k==='escort'?'You walk beside the cart from '+VILLAGES[esc].name+'. Something follows it.':k==='mine'?'You climb down into the Old Iron Mine. Something still digs in the dark.':k==='den'?'You crawl into the Wolf Den. The bones in the doorway are fresh.':S.run.svE==='patrol'?'A patrol of the living bars the road.':'Something from the gates walks the road, far from home.');
   spawnRoom(); return true;
 }
 function svRoom(list,r,room){   // buildRoom for a site's fight
+  if(r.sv==='escort') return escortRoom(list,r);
   const sg=r.di, lv=RK[sg].lv+room+(r.sv==='den'?1:0);
   if(r.sv==='mine'){ const M=DUNGEONS[4].mobs.filter(m=>m[1]!=='hexer'), n=room===0?3:4; for(let i=0;i<n;i++){ const m=pick(M); list.push(svFoe(m[0],m[1],m[2],m[3],sg,lv,room===1&&i===0)); } }
   else if(r.sv==='den'){ const b=BEASTS; list.push(svFoe(b.bear[0],b.bear[1],b.bear[2],b.bear[3],sg,lv+1,true)); list.push(svFoe(b.wolf[0],b.wolf[1],b.wolf[2],b.wolf[3],sg,lv)); list.push(svFoe(b.wolf[0],b.wolf[1],b.wolf[2],b.wolf[3],sg,lv)); list.push(svFoe(b.crow[0],b.crow[1],b.crow[2],b.crow[3],sg,lv)); }
@@ -110,13 +112,14 @@ function svRoom(list,r,room){   // buildRoom for a site's fight
 }
 function svCleared(r){   // the last room of a site's fight: what it pays
   r.cleared=true; const M=mapSt();
-  if(r.sv==='mine'){ const o=1+(Math.random()<.5?1:0); M.ore=Math.min(ORE_HOLD,(M.ore|0)+o); tally('ore',o); r.events.push({m:'You carry '+o+' ore out of the mine ('+M.ore+' held). Each makes heart-forging '+Math.round(ORE_K*100)+'% cheaper.',c:'ok'}); }
-  else if(r.sv==='den'){ M.pelt=(M.pelt|0)+1; tally('denClears'); if(M.pelt>=DEN_PELTS){ M.pelt-=DEN_PELTS; const b=pick(BEAST_NAMES); S.charms=Array.isArray(S.charms)?S.charms:[]; S.charms.push({k:KIT_OF[b],src:b}); tally('charms'); r.events.push({m:'The pelts are cured into a charm: '+charmName({k:KIT_OF[b]})+' (in the Army tab\'s pouch).',c:'ok'}); }
+  if(r.sv==='mine'){ const o=1+(Math.random()<.5?1:0); M.ore=Math.min(ORE_HOLD,(M.ore|0)+o); tally('ore',o); favHook('mine'); r.events.push({m:'You carry '+o+' ore out of the mine ('+M.ore+' held). Each makes heart-forging '+Math.round(ORE_K*100)+'% cheaper.',c:'ok'}); }
+  else if(r.sv==='den'){ M.pelt=(M.pelt|0)+1; tally('denClears'); favHook('den'); if(M.pelt>=DEN_PELTS){ M.pelt-=DEN_PELTS; const b=pick(BEAST_NAMES); S.charms=Array.isArray(S.charms)?S.charms:[]; S.charms.push({k:KIT_OF[b],src:b}); tally('charms'); r.events.push({m:'The pelts are cured into a charm: '+charmName({k:KIT_OF[b]})+' (in the Army tab\'s pouch).',c:'ok'}); }
     else r.events.push({m:'You skin the den\'s beasts: '+M.pelt+'/'+DEN_PELTS+' pelts toward a charm.',c:'ok'}); }
+  else if(r.sv==='escort') escortWon(r);
   else { tally('encWon'); r.events.push({m:'The road is clear again.',c:'ok'}); }
   return Math.round(RK[r.di].clear*(r.sv==='enc'?.25:.5));
 }
-const svWhere=r=>r.sv==='enc'?'the road':r.sv==='mine'?'the Old Iron Mine':'the Wolf Den';
+const svWhere=r=>r.sv==='escort'?'the road to '+(VILLAGES[r.svV]||{name:'a village'}).name:r.sv==='enc'?'the road':r.sv==='mine'?'the Old Iron Mine':'the Wolf Den';
 // ----- road encounters
 function encRoll(d,path){   // mapGo: each step walked may meet something on the road (held until dawn)
   const M=mapSt(); if(!MAP_ON||M.enc||!(d>0)) return; const ch=ENC_CH+(typeof dreadBand==='function'&&dreadBand().id==='terror'?ENC_TERROR:0);
@@ -137,8 +140,8 @@ function encAct(k){   // returns a line, or null
   const g=encGold(E.k); let m=null;
   if(k==='bribe'){ S.gold-=g; m='You pay the patrol '+g+' gold and walk on.'; }
   if(k==='buy'){ S.gold-=g; const sg=Math.max(0,Math.min(GATE_N-1,topGate())); for(let i=0;i<CART_N;i++){ const x=pick(DUNGEONS[sg].mobs); mapBody({name:x[0],base:x[0],role:x[1],rankI:sg,lvl:siteLvl(sg),hf:x[2]||1,af:x[3]||1,boss:false,elite:false,fresh:1},E.s); } tally('cartBought'); m='The carter sells you '+CART_N+' bodies for '+g+' gold.'; }
-  if(k==='spare'){ dread(-PILGRIM_DREAD); tally('pilgrims'); m='You let the pilgrim go. Word of it reaches the town.'; }
-  if(k==='take'){ const F=SIEGE_FOES.mender; mapBody({name:F[0],base:F[0],role:'mender',rankI:Math.max(0,topGate()),lvl:Math.max(1,S.player.lvl-2),hf:F[1],af:F[2],boss:false,elite:false,fresh:1},E.s); dread(PILGRIM_DREAD); m='You take the pilgrim. The town hears of that too.'; }
+  if(k==='spare'){ dread(-PILGRIM_DREAD); tally('pilgrims'); stand('aldric',VIL_PILGRIM,'a pilgrim spared'); m='You let the pilgrim go. Word of it reaches the town.'; }
+  if(k==='take'){ const F=SIEGE_FOES.mender; mapBody({name:F[0],base:F[0],role:'mender',rankI:Math.max(0,topGate()),lvl:Math.max(1,S.player.lvl-2),hf:F[1],af:F[2],boss:false,elite:false,fresh:1},E.s); dread(PILGRIM_DREAD); stand('aldric',-VIL_TAKE,'a pilgrim taken'); m='You take the pilgrim. The town hears of that too.'; }
   if(k==='leave') m='You leave it on the road.';
   delete S.map.enc; if(m) notify(m,'info'); return m;
 }
@@ -158,7 +161,7 @@ function roadsDawn(){   // closeDay: the War Room's scouts and the raven each lo
 // ----- what the map shows of the other systems: nemeses (with the raven), squads in the field, tonight's siege road
 const mapNems=()=>ravenOn()?(S.nem||[]).filter(n=>DUNGEONS[n.g]).map(n=>({n,at:gateNode(n.g)})):[];
 const mapSquads=()=>(S.raids||[]).map(x=>({x,at:x.t&&x.t.k==='band'?'tw':DUNGEONS[x.di]?gateNode(x.di):null})).filter(o=>o.at&&VALLEY_NODES[o.at]);
-const MAP_SIEGE_FROM={north:[50,-2],river:[102,44],grave:[46,78],all:[0,70]};
+const MAP_SIEGE_FROM={north:[50,-2],river:[102,44],grave:[46,86],all:[0,70]};
 const mapSiegeRoad=()=>typeof siegeWarned==='function'&&siegeWarned()?siegeRoad():null;
 // ----- the save
 function roadsFix(q,o){   // mapFix: the PR B fields

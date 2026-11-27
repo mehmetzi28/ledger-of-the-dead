@@ -1,7 +1,7 @@
 // ----- the Codex: every rule and list in the game, read straight from the game's own tables so it never goes stale.
 // Enemies you have not met yet stay hidden, as in the bestiary.
 const CODEX=[['basics','Basics'],['raising','Raising'],['faith','Faith'],['omens','Omens'],['roles','Roles'],['traits','Traits'],['minions','Minion stats'],['army','Army'],['reserve','Reserve'],['fusion','Fusion'],['affixes','Elite affixes'],['bosses','Bosses'],['status','Status effects'],['types','Damage types'],['kits','Foe kits'],['nemeses','Nemeses'],['skills','Skills'],['orders','Orders'],
-  ['gates','Gates'],['valley','The valley'],['tower','Hell Tower'],['gear','Gear'],['forge','Heartforge'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['trade','Commissions and black market'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['collection','Collection'],['records','Records'],['modes','Modes'],['codes','Challenge codes'],['playlog','Play log'],['endings','Endings']];
+  ['gates','Gates'],['valley','The valley'],['villages','The villages'],['tower','Hell Tower'],['gear','Gear'],['forge','Heartforge'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['trade','Commissions and black market'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['collection','Collection'],['records','Records'],['modes','Modes'],['codes','Challenge codes'],['playlog','Play log'],['endings','Endings']];
 const CDX_ROLE={
   hexer:'Only raised from the hexer foes (one in each gate). It stands in the back row with low HP and attack, and each of its hits leaves a condition: a Hex by default, or its trait\'s wound (Rimeborn chills, Venomous poisons, Necrotic blights, Cinderborn burns). At most one hexer for every four army places brings its conditions; more fight plainly. As a foe it hexes your side.',
   vanguard:'When a foe picks a target, each vanguard counts 5 and everyone else (you included) counts 2, so vanguards draw most blows. They take Taunt orders and stand in front of a Sundering Blow.',
@@ -283,7 +283,8 @@ function codexSection(k){
     +cxList(REC_NUM.map(r=>cxRow(REC_NAME[r].charAt(0).toUpperCase()+REC_NAME[r].slice(1),CDX_REC[r]||'')).concat([cxRow('Fastest clears','The fewest turns from the first room to the fallen boss, for each gate, on any difficulty.'),
       cxRow('Fastest Rift dives','The fewest turns to clear a dive, for each band of '+RIFT_BAND+' depths. A dive at depth 12 counts for 10 and deeper.'),cxRow('Secret masters','The day you first slew each one.')]))
     +'<p class="group-h">History</p>'+cxP('The History page counts every run: runs, clears, falls, flights, rooms, kills, XP, gold, gear and the dead raised. Its lifetime analytics add your win rate, average turns per clear, favorite gate, bosses slain, Souls harvested and win streak. Each of the last '+HIST_N+' runs opens Details: the boss, your best minion, your level, damage dealt and taken, the biggest hit, the omen, the curse and the difficulty.');
-  if(k==='valley') return cxValleyHTML();   /* R19 (ui-map.js) */
+  if(k==='valley') return cxValleyHTML();
+  if(k==='villages') return cxVillagesHTML();   /* R20 (ui-map.js) */   /* R19 (ui-map.js) */
   if(k==='rival') return cxRivalHTML();
   if(k==='trials') return cxTrialsHTML();
   if(k==='bonds') return cxBondsHTML();

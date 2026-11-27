@@ -8,8 +8,8 @@ const all=()=>{ fresh(30); S.mode='town'; S.run=null; S.watches=WATCHES; clr({0:
 const at=id=>{ S.map.pos=id; S.map.st=0; S.watches=WATCHES; S.mode='town'; S.run=null; siteState(id).rest=0; };
 const win=()=>{ S.run.enemies.forEach(e=>{ e.hp=0; e.dead=true; }); roomWon(); };
 const dayFor=(id,o)=>{ for(let d=S.day;d<S.day+60;d++){ const d0=S.day; S.day=d; if(crossOffer(id)===o) return d; S.day=d0; } return null; };
-test('Roads: 27 places; every site kind has a glyph, a name, a rest and a card; the five shrines are the five gods',()=>{
-  eq(MAP_IDS.length,27); for(const id of MAP_IDS){ const n=VALLEY_NODES[id]; ok(MAP_GLYPH[n.k]&&KIND_NAME[n.k],'kind '+n.k); ok(isFinite(mapDist('T',id)),'reachable '+id); }
+test('Roads: 30 places; every site kind has a glyph, a name, a rest and a card; the five shrines are the five gods',()=>{
+  eq(MAP_IDS.length,30); for(const id of MAP_IDS){ const n=VALLEY_NODES[id]; ok(MAP_GLYPH[n.k]&&KIND_NAME[n.k],'kind '+n.k); ok(isFinite(mapDist('T',id)),'reachable '+id); }
   for(const k of SITE_KINDS) ok(MAP_IDS.some(id=>VALLEY_NODES[id].k===k),'a '+k);
   eq(MAP_IDS.filter(id=>VALLEY_NODES[id].k==='shrine').map(id=>VALLEY_NODES[id].g).sort().join(),GODS.slice().sort().join());
   for(const [a,b,n] of VALLEY_ROADS) ok(n>=1&&n<=3&&a!==b,a+'-'+b); eq(new Set(VALLEY_ROADS.map(([a,b])=>[a,b].sort().join())).size,VALLEY_ROADS.length,'no road twice');

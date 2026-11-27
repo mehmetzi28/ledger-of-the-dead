@@ -7,8 +7,9 @@ const MAP_GLYPH={town:'M-2.6 1.8V-.6L0-2.6L2.6-.6V1.8Z',gate:'M-2.2 2.4V-.8A2.2 
   shrine:'M-2 2.4H2V1.4H1.2V-1H-1.2V1.4H-2ZM0-1.4C-1-2.2 0-3.2 0-3.2S1-2.2 0-1.4Z',cross:'M-.4 2.6V-2.6H.4V2.6ZM-2.2-2.2H1.6L2.4-1.6L1.6-1H-2.2ZM2.2.2H-1.6L-2.4.8L-1.6 1.4H2.2Z',
   hermit:'M-2.4 2.4V0L0-2.4L2.4 0V2.4H.6V.8H-.6V2.4Z',mine:'M-2.6 2.4A2.6 2.6 0 0 1 2.6 2.4H1.2A1.2 1.2 0 0 0-1.2 2.4ZM-1.8-2.6L1.8-1.4L1.6-.9L-2-2.1Z',
   gallows:'M-1.8 2.6V-2.6H1.8V-1.8H-1V2.6ZM1.2-1.8H1.6V-.2H1.2Z',stones:'M-2.6 2.4V-.6L-1.8-1.4L-1 -.6V2.4ZM-.6 2.4V-2L0-2.8L.6-2V2.4ZM1 2.4V-1L1.8-1.8L2.6-1V2.4Z',
-  ford:'M-2.6-.8Q-1.3-1.8 0-.8T2.6-.8V0Q1.3-1 0 0T-2.6 0ZM-2.6 1.2Q-1.3.2 0 1.2T2.6 1.2V2Q1.3 1 0 2T-2.6 2Z',den:'M-2.4 2.4L-1.6-1.6L-.8.6L0-2.6L.8.6L1.6-1.6L2.4 2.4Z'};
-const KIND_NAME={town:'Your town',gate:'A gate',tower:'The Tower',grave:'An old graveyard',field:'A battlefield',shrine:'A ruined shrine',cross:'A crossroads',hermit:'A hermit\'s hut',mine:'An old mine',gallows:'A gallows',stones:'Standing stones',ford:'A ford',den:'A wolf den'};
+  ford:'M-2.6-.8Q-1.3-1.8 0-.8T2.6-.8V0Q1.3-1 0 0T-2.6 0ZM-2.6 1.2Q-1.3.2 0 1.2T2.6 1.2V2Q1.3 1 0 2T-2.6 2Z',den:'M-2.4 2.4L-1.6-1.6L-.8.6L0-2.6L.8.6L1.6-1.6L2.4 2.4Z',
+  village:'M-2.6 2.4V0L-1.4-1.2L-.2 0V2.4ZM.2 2.4V-.8L1.4-2.2L2.6-.8V2.4ZM1.1-2.9H1.7V-2H1.1Z'};
+const KIND_NAME={town:'Your town',gate:'A gate',tower:'The Tower',grave:'An old graveyard',field:'A battlefield',shrine:'A ruined shrine',cross:'A crossroads',hermit:'A hermit\'s hut',mine:'An old mine',gallows:'A gallows',stones:'Standing stones',ford:'A ford',den:'A wolf den',village:'A village of the living'};
 const stepTxt=n=>n+' step'+(n===1?'':'s');
 function tripNote(id){   // what the walk costs: "2 steps", "2 steps: spends a watch", or nothing where you stand
   if(!MAP_ON) return ''; const d=tripSteps(id); if(!d) return ''; if(d===Infinity) return 'off the known roads';
@@ -21,9 +22,9 @@ function mapPlanHTML(){   // today's watches and steps as pips
 }
 function mapSVG(){
   const pos=mapPos(), sel=ui.vsel&&VALLEY_NODES[ui.vsel]?ui.vsel:pos, N=VALLEY_NODES, seen=id=>mapSeen(id);
-  let h='<svg class="vmap" viewBox="0 0 100 76" role="img" aria-label="Map of the valley"><defs><radialGradient id="vlm" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#3a3024"/><stop offset="1" stop-color="#17120d"/></radialGradient>'
-    +'<filter id="vsm"><feGaussianBlur stdDeviation="1.4"/></filter></defs><rect width="100" height="76" rx="2" fill="url(#vlm)"/>'
-    +'<path class="v-river" d="M100 44C88 46 80 52 70 56S52 66 30 76" fill="none" stroke="#2e3a36" stroke-width="2.4" opacity=".7"/>'
+  let h='<svg class="vmap" viewBox="0 0 100 84" role="img" aria-label="Map of the valley"><defs><radialGradient id="vlm" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#3a3024"/><stop offset="1" stop-color="#17120d"/></radialGradient>'
+    +'<filter id="vsm"><feGaussianBlur stdDeviation="1.4"/></filter></defs><rect width="100" height="84" rx="2" fill="url(#vlm)"/>'
+    +'<path class="v-river" d="M100 44C88 46 80 52 70 56S52 68 24 84" fill="none" stroke="#2e3a36" stroke-width="2.4" opacity=".7"/>'
     +'<path class="v-hills" d="M0 14C10 8 18 12 26 7S44 4 50 2M62 4C70 8 82 5 100 10" fill="none" stroke="#4a3d2c" stroke-width="1.2" opacity=".8"/>';
   for(const [p,q,n] of VALLEY_ROADS){ const a=N[p], b=N[q], both=seen(p)&&seen(q); if(!seen(p)&&!seen(q)) continue;
     h+='<line class="v-road'+(both?'':' faint')+'" x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'"/>'+(both?'<text class="v-steps" x="'+((a.x+b.x)/2)+'" y="'+((a.y+b.y)/2-.8)+'">'+n+'</text>':''); }
@@ -58,6 +59,14 @@ function siteCardHTML(id){   // a site of PR B: its text and its choices
   if(!rdy) return h; const O=siteOpts(id); if(!O.length) return h;
   return h+'<div class="btns v-opts">'+O.map(o=>{ const why=o.why||(far?'Too far for the watches left today':''); return '<button class="btn small'+(o.k==='fight'?' primary':'')+'" data-a="vpick" data-k="'+id+'|'+o.k+'"'+(why?' disabled title="'+why.replace(/\.$/,'')+'"':'')+'>'+o.t+(note?' &middot; '+stepTxt(tripSteps(id)):'')+'</button>'; }).join('')+'</div>';
 }
+function villageCardHTML(id){   // R20: a village of the living: standing, people, this week's favor, the stall and the tribute
+  const v=vilNode(id), V=VILLAGES[v], x=vil(v), b=vilBand(v), f=vilFav(v), note=tripNote(id), far=!mapCan(id,1)&&id!==mapPos(), pct=Math.round((vilSt(v)+100)/2);
+  let h='<p>'+V.who+'</p><div class="v-stand"><span>Standing <b>'+(x.st>0?'+':'')+x.st+'</b> &middot; '+b.name+'</span><span class="bar"><i style="width:'+pct+'%"></i></span></div>'
+    +'<p class="u-sub">'+x.pop+' souls: '+V.people+'. Prices '+(vilPriceK(v)<1?Math.round((1-vilPriceK(v))*100)+'% lower':vilPriceK(v)>1?Math.round((vilPriceK(v)-1)*100)+'% higher':'as usual')+'.'+(S.vil&&S.vil.salt?' Grain-salt held: '+S.vil.salt+'.':'')+'</p>';
+  if(vilShut(v)) h+='<p class="q-note bad">They bar their doors to you. No trade, no favors, until they fear you less.</p>';
+  else h+='<p class="group-h">This week\'s favor &middot; '+FAVOR_NAME[f.k]+(f.done?' &middot; done':'')+'</p><p class="'+(f.done?'u-sub':'')+'">'+FAVOR_TEXT[f.k]+'</p>'+(f.done?'':'<p class="u-sub">Pays standing +'+VIL_FAV+' and their thanks.</p>');
+  return h+'<div class="btns v-opts">'+vilOpts(v).map(o=>{ const why=o.why||(far?'Too far for the watches left today':''); return '<button class="btn small'+(o.k==='escort'?' primary':'')+'" data-a="vvil" data-k="'+id+'|'+o.k+'"'+(why?' disabled title="'+why.replace(/\.$/,'')+'"':'')+'>'+o.t+(note?' &middot; '+stepTxt(tripSteps(id)):'')+'</button>'; }).join('')+'</div>';
+}
 function scoutCardHTML(id){ const why=scoutWhy(id);
   return '<div class="v-card"><h3>An unknown place</h3><p class="u-sub">A road leads there from a place you know.</p><div class="btns"><button class="btn primary" data-a="vscout" data-k="'+id+'"'+(why?' disabled title="'+why.replace(/\.$/,'')+'"':'')+'>Scout it &middot; '+stepTxt(SCOUT_STEPS)+'</button></div></div>'; }
 function encCardHTML(){ const E=S.map&&S.map.enc; if(!E) return '';
@@ -71,7 +80,8 @@ function nodeCardHTML(id){
   if(n.k==='tower') h+='<div class="btns"><button class="btn primary" data-a="tab" data-k="tower">Climb from the Tower tab</button></div>';
   if(n.k==='town') h+='<p class="q-note">Buildings, the market and your army wait here whatever road you stand on. The Ledger pulls you home at dawn.</p>';
   if(isSite(id)) h+=siteCardHTML(id);
-  if(n.k==='grave'||n.k==='field') h+='<p>'+siteText(id)+'</p>'+(siteReady(id)?'<div class="btns"><button class="btn primary" data-a="vsite" data-k="'+id+'"'+away+'>'+(n.k==='grave'?'Dig':'Walk the field')+(note?' &middot; '+stepTxt(tripSteps(id)):'')+'</button></div>':'');
+  if(n.k==='village') h+=villageCardHTML(id);
+  if(n.k==='grave'||n.k==='field') h+='<p>'+siteText(id)+'</p>'+(siteReady(id)?'<div class="btns"><button class="btn primary" data-a="vsite" data-k="'+id+'"'+away+'>'+(n.k==='grave'?'Dig':'Walk the field')+(note?' &middot; '+stepTxt(tripSteps(id)):'')+'</button>'+(buryOpen(id)?'<button class="btn small" data-a="vbury" data-k="'+id+'"'+away+'>Bury the dead (Saint Aldric\'s favor)</button>':'')+'</div>':'');
   return h+'</div>';
 }
 function dugHTML(){   // the bodies dug today, raised in town before dawn
@@ -111,4 +121,20 @@ function cxValleyHTML(){   // the Codex page: travel, fog and the sites, read fr
      cxRow('The War Room','At level 2 its scouts find one unknown place each dawn.'),
      cxRow('The raven','Bought from the stranger at the Crossroads, or nesting in the Library at level 3. It finds one unknown place each dawn and shows where the nemeses walk.'),
      cxRow('Also on the map','Your squads in the field, and on a siege\'s eve the road the living will come by.')]);
+}
+function cxVillagesHTML(){   // R20: the villages of the living, read from the tables
+  const T=VIL_TRIB, b=VIL_BANDS;
+  return cxP('Three villages of the living stand in the valley, known from the start. Each has a standing with you, from -100 (hatred) to +100 (allegiance), starting at '+VIL_ST0+', and remembers what you do. Walk to one from the Valley map: the walk must leave you a watch, and trade and tribute keep it.')
+   +'<p class="group-h">Villages</p>'+cxList(VIL_IDS.map(v=>{ const V=VILLAGES[v]; return cxRow(V.name,V.who+' Sells: '+V.goods.map(g=>GOOD_TEXT[g]).join(' · ')+'. Buries its dead at '+VALLEY_NODES[V.gy].name+'.'); }))
+   +'<p class="group-h">Standing</p>'+cxList([cxRow('Bands',b.map(x=>x.name+' from '+x.min).join(', ')+'.'),
+     cxRow('Favors','A favor done: +'+VIL_FAV+'.'),cxRow('Trade','Each purchase: +'+VIL_TRADE+'. Prices move with standing, up to 25% lower at +100 and 25% higher at -100.'),
+     cxRow('Tribute',T+' gold a level for +'+VIL_TRIB_ST+', once a day for each village.'),
+     cxRow('Sieges','Every village hears of it: a siege won +'+VIL_SIEGE_WON+', a siege lost -'+VIL_SIEGE_LOST+'.'),
+     cxRow('Their dead','Raising a body dug from the graveyard a village buries its dead in: -'+VIL_GRAVE+' with that village.'),
+     cxRow('The town\'s dread','Each dawn in Terror: -'+VIL_BAND+' with every village. In Calm: +'+VIL_BAND+'.'),
+     cxRow('The road','Sparing a pilgrim: +'+VIL_PILGRIM+' with Saint Aldric\'s; taking one: -'+VIL_TAKE+'. Desecrating a shrine: -'+VIL_DESECRATE+'.'),
+     cxRow('Shut doors','At '+VIL_SHUT+' and below a village will not trade, take tribute or ask favors.')])
+   +'<p class="group-h">Favors</p>'+cxP('Each village asks one favor a week. Do it, and it pays standing +'+VIL_FAV+' and its thanks: grain-salt and a Healing Draught from Miller\'s Ford; ore and gold from Greyhollow; a blessing from Saint Aldric\'s (menders heal '+Math.round(VIL_BLESS*100)+'% more for '+VIL_BLESS_DAYS+' days).')
+   +cxList(Object.keys(FAVOR_TEXT).map(k=>cxRow(FAVOR_NAME[k],FAVOR_TEXT[k]+'<br>Asked by '+VIL_IDS.filter(v=>VILLAGES[v].favors.includes(k)).map(v=>VILLAGES[v].name).join(', ')+'.')))
+   +'<p class="group-h">Grain-salt</p>'+cxP('Bought at Miller\'s Ford (you carry at most '+VIL_SALT_MAX+'). At dawn each sack keeps one dug body from crumbling for another day.');
 }

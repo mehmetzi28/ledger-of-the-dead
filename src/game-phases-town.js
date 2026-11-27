@@ -484,7 +484,7 @@ function siegeWon(r){   // the last wave falls: pay, and the raise screen for it
   S.gold+=g; S.dust=(S.dust||0)+d; tally('sieges'); tally('siegeWins'); sg().pending=false; sg().next=0;   /* settled: a reload from the raise screen does not fight it again */
   const id=pickNorm(tableFor(di,'reaper',true,false).filter(x=>!ITEM[x.id].uq&&(ROLL_LINES[ITEM[x.id].tier]||[0])[0]>0)), it=addItem(id,rollItem(id,true));   /* a tier that can carry a bonus line */
   if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name);
-  r.siegePay={g,d,item:it?ITEM[id].name:null}; townSiegeWon(r); stierMove(true);   /* after the dread falls: the Purge's peace sets it (game-siege2.js) */ if(r.rivalSiege) rivalSiegeWon(r);   /* the Embalmery keeps a body */
+  r.siegePay={g,d,item:it?ITEM[id].name:null}; townSiegeWon(r); standAll(VIL_SIEGE_WON,'a siege won');   /* the villages hear of it (game-villages.js) */ stierMove(true);   /* after the dread falls: the Purge's peace sets it (game-siege2.js) */ if(r.rivalSiege) rivalSiegeWon(r);   /* the Embalmery keeps a body */
   r.events.push({m:'The living break and run. The town will remember this night. +'+g+' gold, +'+d+' bone dust'+(it?' and '+withArticle(ITEM[id].name)+' from the dead':'')+'.',c:'ok'});
   if(sg().guard&&BUILD[sg().guard]) r.events.push({m:'The '+BUILD[sg().guard].name+' stood under your guard all night.',c:'ok'});
   moment('The necropolis holds','gold'); return Math.round(RK[di].clear*SIEGE_XP);
@@ -496,7 +496,7 @@ function siegeLost(fled){   // fell or fled: the town pays. Nothing is deleted; 
     m=why+'They fired the '+BUILD[k].name+': its effects are lost until you repair it in town for '+repairCost()+' gold.'+(gd?' The '+BUILD[gd].name+' you guarded was spared.':''); }
   else { const f=Math.round(Math.min(S.gold*SIEGE_FINE,siegeGoldPay()*SIEGE_FINE_MAX/SIEGE_GOLD)); S.gold-=f;
     m=why+(g.dmg?'With the '+BUILD[g.dmg].name+' still in ruins they took what they could carry instead: ':'With the '+BUILD[gd].name+' under guard they took what they could carry instead: ')+f+' gold.'; }
-  tally('sieges'); tally('siegeLosses'); stierMove(false); dread(DREAD_SIEGE_LOST); g.pending=false; g.next=0; if(r){ r.siegeLoss=m; r.lost=true; if(r.rivalSiege) rivalSiegeLost(r); } return m;
+  tally('sieges'); tally('siegeLosses'); standAll(-VIL_SIEGE_LOST,'a siege lost'); stierMove(false); dread(DREAD_SIEGE_LOST); g.pending=false; g.next=0; if(r){ r.siegeLoss=m; r.lost=true; if(r.rivalSiege) rivalSiegeLost(r); } return m;
 }
 function siegeOverflow(){ const n=S.army.filter(m=>!m.thrall&&!m.wall).length-slots();   /* only those at home: raiders' places sort themselves out at dawn */ if(n<=0) return; const out=S.army.filter(m=>!m.thrall&&!m.wall).slice(-n); S.army=S.army.filter(m=>!out.includes(m)); const w=homeLine(out.map(placeMinion)); if(w) notify(('The Crypt burned: '+w).trim(),'bad'); }
 function siegeEnd(){   // back from the walls (won, fell or fled): thralls crumble, the record is written, then dawn

@@ -102,3 +102,35 @@ Friendly by default (do favors that fit the day); `"villages":"raid"` probe raid
 
 - **The raid path is just better**: its costs (siege tier, dread, trade loss) are measured; tune the bodies taken.
 - **Moral weight in a game about necromancy**: the choice is the point; the text never lectures; both paths have endings.
+
+## As built
+
+### PR A: villages, standing, the stall, tribute and favors
+- **The villages** (`src/game-villages.js`, cards in `src/ui-map.js`): three nodes on the Valley map (Miller's Ford
+  south by the river, Greyhollow by the mine, Saint Aldric's on the old road north-east), known from the start, with 11
+  new roads. The vellum grew to 100x84. No Town tab cards: the map holds them.
+- **Standing** (`stand`, `vilBand`): -100..100 from -20, bands Hatred, Fear, Wary, Friendly, Allegiance. Prices move by
+  standing/400 (25% either way at the ends); at -60 and below the stall, tribute and favors shut.
+- **The stall**: grain-salt (a new good: at dawn each sack keeps one dug body from crumbling), a Healing Draught at 70%,
+  ore, an iron charm (a kit of the Iron Orchard's, Friendly and once a week), a relic (devotion; not for the Profane) and
+  incense (dread -3). Each purchase +1. **Tribute**: 25 gold a level for +5, once a day per village.
+- **Favors**: one a week per village from `dayHash` of the week. Miller's Ford: the den, a cart, the ford. Greyhollow:
+  the mine, a cart, a worker (a dug body). Saint Aldric's: bury a battlefield, keep a shrine, a cart. The den, the mine,
+  the ford's search and the shrine choices do them where they happen (`favHook`). The **escort** is a road fight (a run
+  flagged `r.sv='escort'`): no watch, like the road's encounters (first built with a watch; the bot runs showed it was
+  charged twice and the favor cost too much). A favor is +10 (the spec's 10-25, at the low end so the friendly bot
+  lands near the spec's day-100 standing) and pays grain-salt and a draught, ore and gold, or a week's blessing (menders
+  heal 5% more, through `healK`).
+- **Hooks**: sieges won +3 and lost -5 (every village), a body raised from a village's graveyard -3, Terror -1 and Calm
+  +1 a dawn, a pilgrim spared +3 or taken -5 and a shrine desecrated -5 (Saint Aldric's). Population is shown and saved;
+  raids use it in PR B.
+- **Save**: `S.vil={mill:{st,pop,fav:{w,k,done},td,cw},grey,aldric,salt,bless}`, cleaned by `vilFix`; an old save stays
+  without it until a village is looked at.
+- **Titles**: Friend of the Ford, Greyhollow's Debt, Saint's Keeper (each at +60). Empty Valley, Neither Feared nor
+  Loved and The Knight's Oath wait for PR B.
+- **Codex** page "The villages", a tip, Turkish for every string (village names stay English).
+- **Bot**: friendly; one favor a week at most, from day 10, only within two steps of where it stands; a weekly tribute
+  to the nearest village with the lowest standing; incense when the town is afraid. `"off":["villages"]`.
+- **Measured**: see 04-balance (market unchanged; full 91%, Tower 84.8, sieges 91%, about 2 levels lower at day 100
+  than with the villages off).
+- **Tests**: `tests/groups/98-villages.js` (13 tests); 972 in all.
