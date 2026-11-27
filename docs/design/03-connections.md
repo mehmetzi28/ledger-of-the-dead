@@ -206,9 +206,10 @@ link between existing ones)
   sources (sieges feed the fields); and in PR B five shrines, a crossroads, a hermit, an iron mine and a wolf den (two
   site fights), gallows, standing stones and a ford, road encounters, scouting from the War Room and a raven familiar.
 - **G29. The living are faceless.** They exist only as siege waves; there is no one to trade with, help or prey on, so
-  dread and raising have no moral or economic face. (Villages, dread, raising.) R20. **Half closed by R20 PR A**:
-  three villages with standing, a stall, tribute and a weekly favor, moved by sieges, dread, graveyards, pilgrims and
-  shrines. Raiding them, allegiance rewards and the knight companion follow in PR B.
+  dread and raising have no moral or economic face. (Villages, dread, raising.) R20. **Closed by R20**: three
+  villages with standing, a stall, tribute and a weekly favor, moved by sieges, dread, graveyards, pilgrims and shrines
+  (PR A); raids that take their people as bodies and can empty them for good, allegiance rewards, a living knight
+  companion and mobs from the villages that hate you (PR B).
 - **G30. Power has no personal cost.** The hero's body and kit never change with what they do; the Ledger's corruption
   of its keeper is only lore. (Hero, faith, story.) R21.
 - **G31. Minions can be shaped but never designed.** Every minion is a foe that rose; spare bodies and trophies have no

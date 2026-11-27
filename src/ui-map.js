@@ -60,13 +60,21 @@ function siteCardHTML(id){   // a site of PR B: its text and its choices
   return h+'<div class="btns v-opts">'+O.map(o=>{ const why=o.why||(far?'Too far for the watches left today':''); return '<button class="btn small'+(o.k==='fight'?' primary':'')+'" data-a="vpick" data-k="'+id+'|'+o.k+'"'+(why?' disabled title="'+why.replace(/\.$/,'')+'"':'')+'>'+o.t+(note?' &middot; '+stepTxt(tripSteps(id)):'')+'</button>'; }).join('')+'</div>';
 }
 function villageCardHTML(id){   // R20: a village of the living: standing, people, this week's favor, the stall and the tribute
-  const v=vilNode(id), V=VILLAGES[v], x=vil(v), b=vilBand(v), f=vilFav(v), note=tripNote(id), far=!mapCan(id,1)&&id!==mapPos(), pct=Math.round((vilSt(v)+100)/2);
+  const v=vilNode(id), V=VILLAGES[v], x=vil(v), b=vilBand(v), note=tripNote(id), far=!mapCan(id,1)&&id!==mapPos(), pct=Math.round((vilSt(v)+100)/2);
+  if(vilGone(v)) return '<p class="q-note bad">Abandoned. No one is left in '+V.name+'; its graveyard at '+VALLEY_NODES[V.gy].name+' lies open and deep.</p>';
+  const f=vilFav(v);
   let h='<p>'+V.who+'</p><div class="v-stand"><span>Standing <b>'+(x.st>0?'+':'')+x.st+'</b> &middot; '+b.name+'</span><span class="bar"><i style="width:'+pct+'%"></i></span></div>'
     +'<p class="u-sub">'+x.pop+' souls: '+V.people+'. Prices '+(vilPriceK(v)<1?Math.round((1-vilPriceK(v))*100)+'% lower':vilPriceK(v)>1?Math.round((vilPriceK(v)-1)*100)+'% higher':'as usual')+'.'+(S.vil&&S.vil.salt?' Grain-salt held: '+S.vil.salt+'.':'')+'</p>';
   if(vilShut(v)) h+='<p class="q-note bad">They bar their doors to you. No trade, no favors, until they fear you less.</p>';
   else h+='<p class="group-h">This week\'s favor &middot; '+FAVOR_NAME[f.k]+(f.done?' &middot; done':'')+'</p><p class="'+(f.done?'u-sub':'')+'">'+FAVOR_TEXT[f.k]+'</p>'+(f.done?'':'<p class="u-sub">Pays standing +'+VIL_FAV+' and their thanks.</p>');
-  return h+'<div class="btns v-opts">'+vilOpts(v).map(o=>{ const why=o.why||(far?'Too far for the watches left today':''); return '<button class="btn small'+(o.k==='escort'?' primary':'')+'" data-a="vvil" data-k="'+id+'|'+o.k+'"'+(why?' disabled title="'+why.replace(/\.$/,'')+'"':'')+'>'+o.t+(note?' &middot; '+stepTxt(tripSteps(id)):'')+'</button>'; }).join('')+'</div>';
+  h+='<p class="group-h">Allegiance</p><ul class="v-ally">'+allyLines(v).map(([n,t])=>'<li class="'+(vilAlly(v,n)?'ok':'u-sub')+'">At '+(n>0?'+':'')+n+': '+t+'</li>').join('')+'</ul>';
+  if(v==='aldric'&&knightOn()) h+='<p class="ok">'+KNIGHT_NICK+' rides with you in every gate and on the walls.</p>';
+  return h+'<div class="btns v-opts">'+vilOpts(v).map(o=>{ const why=o.why||(far?'Too far for the watches left today':''), tip=o.k==='raid'&&!why?' title="'+raidCost(v)+'"':''; return '<button class="btn small'+(o.k==='escort'?' primary':o.k==='raid'?' danger':'')+'"'+tip+' data-a="vvil" data-k="'+id+'|'+o.k+'"'+(why?' disabled title="'+why.replace(/\.$/,'')+'"':'')+'>'+o.t+(note?' &middot; '+stepTxt(tripSteps(id)):'')+'</button>'; }).join('')+'</div>';
 }
+const allyLines=v=>v==='mill'?[[VIL_ALLY,'its militia hold the first wave of a siege, once a week'],[VIL_KNIGHT_AT,'its salt keeps the Embalmery\'s bodies '+VIL_EMB+' days longer']]
+  :v==='grey'?[[VIL_ALLY,VIL_ALLY_ORE+' lumps of ore each week'],[VIL_KNIGHT_AT,'its forge-master reforges heart-forged lines at their best']]
+  :[[VIL_ALLY,'the blessing stays: menders heal '+Math.round(VIL_BLESS*100)+'% more'],[VIL_KNIGHT_AT,'its knight rides with you'],[VIL_SHUT,'below this, a mob joins every siege']];
+const raidCost=v=>'Standing -'+VIL_RAID_ST+' here and -'+VIL_RAID_ALL+' with the others, dread +'+VIL_RAID_DREAD+', and the Inquisition comes sooner';
 function scoutCardHTML(id){ const why=scoutWhy(id);
   return '<div class="v-card"><h3>An unknown place</h3><p class="u-sub">A road leads there from a place you know.</p><div class="btns"><button class="btn primary" data-a="vscout" data-k="'+id+'"'+(why?' disabled title="'+why.replace(/\.$/,'')+'"':'')+'>Scout it &middot; '+stepTxt(SCOUT_STEPS)+'</button></div></div>'; }
 function encCardHTML(){ const E=S.map&&S.map.enc; if(!E) return '';
@@ -136,5 +144,7 @@ function cxVillagesHTML(){   // R20: the villages of the living, read from the t
      cxRow('Shut doors','At '+VIL_SHUT+' and below a village will not trade, take tribute or ask favors.')])
    +'<p class="group-h">Favors</p>'+cxP('Each village asks one favor a week. Do it, and it pays standing +'+VIL_FAV+' and its thanks: grain-salt and a Healing Draught from Miller\'s Ford; ore and gold from Greyhollow; a blessing from Saint Aldric\'s (menders heal '+Math.round(VIL_BLESS*100)+'% more for '+VIL_BLESS_DAYS+' days).')
    +cxList(Object.keys(FAVOR_TEXT).map(k=>cxRow(FAVOR_NAME[k],FAVOR_TEXT[k]+'<br>Asked by '+VIL_IDS.filter(v=>VILLAGES[v].favors.includes(k)).map(v=>VILLAGES[v].name).join(', ')+'.')))
+   +'<p class="group-h">Allegiance</p>'+cxList(VIL_IDS.map(v=>cxRow(VILLAGES[v].name,allyLines(v).filter(([n])=>n>0).map(([n,t])=>'At +'+n+': '+t).join(' · '))).concat([cxRow('Hatred','At '+VIL_SHUT+' and below a village sends a mob of '+VIL_MOB+' with the first wave of every siege.'),cxRow(KNIGHT_NICK,'The knight of Saint Aldric\'s joins at +'+VIL_KNIGHT_AT+' and rides with you in every gate run and siege while the village holds you in allegiance (+'+VIL_ALLY+'). He is living: never raised, never evolved, and as strong as the village\'s standing.')]))
+   +'<p class="group-h">Raiding</p>'+cxP('The dark path: walk there and spend a watch on a fight with the militia and the village\'s best. Win, and you take '+VIL_RAID_N[0]+' to '+VIL_RAID_N[1]+' of its people as bodies to raise before dawn ('+VIL_IDS.map(v=>CORPSE_CONDS[VIL_PEOPLE[v].cd].name+' from '+VILLAGES[v].name).join(', ')+'; each +'+CORPSE_CONDS.pious.raise+'% to raise, with a trait), gold and its goods. '+raidCost('mill')+'. Each raid empties the village by '+VIL_RAID_POP[0]+' to '+VIL_RAID_POP[1]+' souls; with none left it is abandoned for good, and its graveyard digs '+VIL_GY_BIG+' times as deep.')
    +'<p class="group-h">Grain-salt</p>'+cxP('Bought at Miller\'s Ford (you carry at most '+VIL_SALT_MAX+'). At dawn each sack keeps one dug body from crumbling for another day.');
 }

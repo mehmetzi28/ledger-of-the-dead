@@ -136,6 +136,7 @@ const siegeRoleOf=n=>{ if(SIEGE_BOSSES.includes(n)) return 'reaper'; const a=Obj
 function stierFix(g,q){   // normalizeSave: tier and streak only when the save has them; tonight's wall
   if('tier' in q) g.tier=clamp(Math.floor(num(q.tier,1)),1,STIER_MAX);
   if('streak' in q) g.streak=clamp(Math.floor(num(q.streak,0)),0,STIER_UP-1);
+  if(q.rd===1||q.rd===2) g.rd=q.rd;   /* a raid's tier, for the next siege only (game-villages.js) */
   if(ROAD_IDS.includes(q.road)&&q.road!=='grave') g.road=q.road;   // chosen in town the day before, or in the siege; siegeEnd clears it
   stierFix2(g,q);
 }

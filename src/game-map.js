@@ -71,7 +71,7 @@ function nearGate(id){ let best=0, bd=Infinity; for(let i=0;i<GATE_N;i++){ const
 const siteLvl=g=>Math.max(1,Math.min(S.player.lvl,tierRec(g,0)));
 function siteBodies(id){   // what the site gives: old bodies of the nearest gate, or the fallen of the last siege
   const n=VALLEY_NODES[id], out=[];
-  if(n.k==='grave'){ const g=nearGate(id), N=MAP_GY_N[0]+Math.floor(Math.random()*(MAP_GY_N[1]-MAP_GY_N[0]+1));
+  if(n.k==='grave'){ const g=nearGate(id), N=(MAP_GY_N[0]+Math.floor(Math.random()*(MAP_GY_N[1]-MAP_GY_N[0]+1)))*vilGyK(id);   /* an abandoned village's graveyard digs deeper (game-villages.js) */
     for(let i=0;i<N;i++){ const m=pick(DUNGEONS[g].mobs); out.push({name:m[0],base:m[0],role:m[1],rankI:g,lvl:siteLvl(g),hf:m[2]||1,af:m[3]||1,boss:false,elite:false,old:1}); } }
   if(n.k==='field'){ const g=Math.max(0,Math.min(GATE_N-1,topGate())), N=MAP_BF_N[0]+Math.floor(Math.random()*(MAP_BF_N[1]-MAP_BF_N[0]+1)), roles=['vanguard','striker','mender','vanguard','striker'];
     for(let i=0;i<N;i++){ const r=roles[i%roles.length], f=SIEGE_FOES[r]; out.push({name:f[0],base:f[0],role:r,rankI:g,lvl:Math.max(1,S.player.lvl-2),hf:f[1],af:f[2],boss:false,elite:false,fresh:1}); } }

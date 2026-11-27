@@ -21,7 +21,7 @@ test('Villages: standing is clamped to -100..100, falls into five bands, and a n
 });
 test('Villages: prices move with standing; at -60 and below they will not trade, take tribute or ask favors',()=>{
   all(); vil('mill').st=0; const p0=vilPrice('mill',VIL_SALT); vil('mill').st=100; ok(vilPrice('mill',VIL_SALT)<p0,'cheaper for friends'); vil('mill').st=-50; ok(vilPrice('mill',VIL_SALT)>p0,'dearer for the feared');
-  vil('mill').st=VIL_SHUT; ok(vilShut('mill')); ok(vilOpts('mill').every(o=>o.why),'everything shut'); at('vm'); eq(vilAct('vm','tribute'),null); eq(vilAct('vm','salt'),null);
+  vil('mill').st=VIL_SHUT; ok(vilShut('mill')); ok(vilOpts('mill').every(o=>o.why||o.k==='raid'),'everything shut but a raid'); at('vm'); eq(vilAct('vm','tribute'),null); eq(vilAct('vm','salt'),null);
   ui.tab='gates'; ui.gsub='valley'; ui.vsel='vm'; ok(renderAll('shut').includes('bar their doors'));
 });
 test('Villages: the stall sells salt, a draught, ore, an iron charm (friends, once a week), a relic and incense; each purchase +1',()=>{
@@ -85,5 +85,56 @@ test('Villages: Turkish, the Codex page, the titles and the tip',()=>{
   const h=cxVillagesHTML(); for(const v of VIL_IDS) ok(h.includes(VILLAGES[v].name.replace(/'/g,'\''))); ok(h.includes('Favors'));
   ok(['vl_mill','vl_grey','vl_aldric'].every(id=>TITLE[id])); vil('mill').st=VIL_ALLY; ok(TITLE.vl_mill.ok()); ok(!TITLE.vl_grey.ok());
   ok(TIPS.some(t=>t.id==='villages')); eq(TIP_META.villages[1],'villages');
+});
+// ----- PR B: raids, abandonment, allegiance, the knight, the mobs
+const raid=v=>{ S.map.pos='T'; S.map.st=0; S.watches=WATCHES; S.mode='town'; S.run=null; S.map.bodies=[]; return vilAct(VILLAGES[v].node,'raid'); };
+test('Villages: a raid walks there, spends a watch and fights the militia and the village\'s best (Saint Aldric\'s knight unless he rides with you)',()=>{
+  all(); const w0=WATCHES-Math.floor(tripSteps('vm')/MAP_STEP)-1; eq(raid('mill'),''); eq(S.mode,'battle'); eq(S.run.sv,'raid'); eq(S.run.svV,'mill'); eq(S.watches,w0,'a watch'); eq(S.run.enemies.length,4); ok(S.run.enemies[0].elite,'the best'); eq(svWhere(S.run),'Miller\'s Ford');
+  all(); eq(raid('aldric'),''); eq(S.run.enemies[0].base,KNIGHT[0],'the knight defends'); all(); S.vil.knight=1; S.vil.aldric.st=100; eq(raid('aldric'),''); ok(S.run.enemies.every(e=>e.base!==KNIGHT[0]),'not when he rides with you');
+  all(); S.map.pos='T'; S.watches=1; ok(!raidStart('vm'),'not on the last watch');
+});
+test('Villages: a won raid takes its people as bodies (+15, a trait), gold and goods; standing, the dread and the Inquisition pay for it',()=>{
+  all(); S.dread=40; S.siege=S.siege||{}; const g=sg(); g.next=S.day+6; g.pending=false; g.tier=1; g.streak=1; const gold=S.gold, pop=vil('grey').pop; S.map.ore=0;
+  eq(raid('grey'),''); S.run.enemies.forEach(e=>{ e.hp=0; e.dead=true; }); roomWon(); ok(S.run.cleared);
+  const B=S.map.bodies; ok(B.length>=VIL_RAID_N[0]&&B.length<=VIL_RAID_N[1],'bodies'); ok(B.every(b=>b.c.cd==='hardened'&&['Miner','Foreman'].includes(b.c.name)),'Greyhollow\'s people'); eq(condRaise(B[0].c),CORPSE_CONDS.hardened.raise);
+  ok(S.gold>gold); eq(S.map.ore,2); ok(vil('grey').pop<=pop-VIL_RAID_POP[0]&&vil('grey').pop>=pop-VIL_RAID_POP[1]);
+  eq(vilSt('grey'),VIL_ST0-VIL_RAID_ST); eq(vilSt('mill'),VIL_ST0-VIL_RAID_ALL); eq(vilSt('aldric'),VIL_ST0-VIL_RAID_ALL); eq(dreadOf(),40+VIL_RAID_DREAD);
+  eq(g.next,S.day+6-VIL_RAID_SOONER,'sooner'); eq(g.tier,1,'no tier: the bots lost their early sieges with it'); eq(g.rd,1); { const a=normalizeSave(JSON.parse(JSON.stringify(S))); eq(a.siege.rd,1,'saved'); } eq(raidInquisition(),'','once until that siege'); raidTierBack(); ok(!g.rd); ok(S.run.events.some(e=>/Inquisition hears/.test(e.m)));
+  S.mode='town'; S.run=null; const c=Object.assign({},B[0].c), m=null; ok(CORPSE_CONDS.hardened.trait==='thick'&&TRAITS.thick,'its trait is real');
+});
+test('Villages: emptied of people a village is abandoned for good; its graveyard digs twice as deep; all three empty is Empty Valley',()=>{
+  all(); vil('mill').pop=10; eq(raid('mill'),''); S.run.enemies.forEach(e=>{ e.hp=0; e.dead=true; }); roomWon(); ok(vilGone('mill')); eq(vil('mill').pop,0); ok(S.story.vil_mill3,'its last passage');
+  S.mode='town'; S.run=null; eq(vilOpts('mill').filter(o=>!o.why).length,0,'nothing to do'); ok(!vilOpts('mill').some(o=>o.k==='raid'),'no raid'); eq(stand('mill',10),0,'standing is gone with them'); ok(!favOpen('mill','den'));
+  ui.tab='gates'; ui.gsub='valley'; ui.vsel='vm'; ok(renderAll('gone').includes('Abandoned'));
+  eq(vilGyK(VILLAGES.mill.gy),VIL_GY_BIG); eq(vilGyK('gy2'),1); ok(!TITLE.vl_empty.ok()); VIL_IDS.forEach(v=>{ vil(v).gone=1; vil(v).pop=0; }); ok(TITLE.vl_empty.ok());
+});
+test('Villages: Miller\'s Ford in allegiance holds a siege\'s first wave once a week; at +100 its salt keeps the Embalmery\'s bodies longer',()=>{
+  all(); const r=S.run={siege:1,room:0,log:[],events:[]}; ok(!vilAid(r),'not yet'); vil('mill').st=VIL_ALLY; ok(vilAid(r)); eq(r.room,1); const r2=S.run={siege:1,room:0,log:[],events:[]}; ok(!vilAid(r2),'once a week'); S.day+=7; ok(vilAid(r2)); S.run=null;
+  const e0=embDays(1); vil('mill').st=100; eq(embDays(1),e0+VIL_EMB);
+});
+test('Villages: Greyhollow in allegiance delivers ore each week; at +100 its forge-master reforges at the best roll',()=>{
+  all(); vil('grey').st=VIL_ALLY; S.map.ore=0; S.day=8; vilDawn(); eq(S.map.ore,VIL_ALLY_ORE); S.day=9; vilDawn(); eq(S.map.ore,VIL_ALLY_ORE,'once a week');
+  ok(!vilForge()); vil('grey').st=100; ok(vilForge());
+});
+test('Villages: Saint Aldric\'s blessing stays in allegiance; at +100 its knight swears, rides in every gate run and siege, and leaves when trust falls',()=>{
+  all(); const m={spec:null}; vil('aldric').st=VIL_ALLY; eq(healK(m),1+VIL_BLESS,'blessed');
+  S.notices=[]; vil('aldric').st=95; stand('aldric',10); ok(S.vil.knight,'sworn'); ok(TITLE.vl_knight.ok()); ok(S.notices.some(n=>/swears to ride with you/.test(n.m)));
+  S.mode='town'; S.run=null; S.watches=WATCHES; S.map.pos='g0'; const n0=S.army.length; startRun(0); ok(S.army.some(x=>x.knight&&x.thrall),'he rides'); eq(armyUsed(),S.army.filter(x=>!x.thrall&&!x.wall).length+raidHeld(false),'holds no slot');
+  const k=S.army.find(x=>x.knight); eq(k.nick,KNIGHT_NICK); ok(k.maxHp>0&&k.atk>0); const g=normalizeSave(JSON.parse(JSON.stringify(S))); ok(!g.army.some(x=>x.knight),'never saved past the fight');
+  returnTown(); ok(!S.army.some(x=>x.knight),'home again'); eq(S.army.length,n0);
+  const r=S.run={siege:1,room:0,log:[],events:[]}; ok(knightJoin(r)); ok(!knightJoin(r),'once'); knightLeave(); S.run=null;
+  stand('aldric',-50); ok(!S.vil.knight,'he rides home'); ok(!knightJoin({}),'gone');
+});
+test('Villages: a village at -60 or worse sends a mob with the first wave of each siege',()=>{
+  all(); S.run={log:[],events:[]}; const t={id:'etest',name:'Militia Spearman',base:'Militia Spearman',role:'vanguard',boss:false,hp:10,maxHp:10,atk:2}; let L=[t]; vilMobs(L,{room:0}); eq(L.length,1,'no hatred, no mob');
+  vil('grey').st=-70; vil('mill').st=-90; L=[t]; vilMobs(L,{room:0}); eq(L.length,1+2*VIL_MOB); eq(new Set(L.map(e=>e.id)).size,L.length,'new ids'); L=[t]; vilMobs(L,{room:1}); eq(L.length,1,'the first wave only');
+  vil('mill').gone=1; L=[t]; vilMobs(L,{room:0}); eq(L.length,1+VIL_MOB,'the empty send no one'); S.run=null;
+});
+test('Villages: nine passages (first dealings, allegiance, abandonment), the save keeps PR B\'s state, Turkish and the Codex',()=>{
+  all(); eq(STORY.filter(x=>x.id.startsWith('vil_')).length,9); at('vm'); ok(vilAct('vm','salt')); ok(S.story.vil_mill1,'first dealings'); vil('grey').st=55; stand('grey',10); ok(S.story.vil_grey2,'allegiance');
+  vil('mill').aid=3; vil('aldric').st=100; S.vil.knight=1; vil('grey').gone=1; vil('grey').pop=0; const a=JSON.parse(JSON.stringify(S)); normalizeSave(a); ok(canon(a.vil)===canon(S.vil),'round trip');
+  const b={vil:{mill:{st:10,pop:0},aldric:{st:100,gone:1},knight:1}}; vilFix(b); ok(b.vil.mill.gone,'no people, gone'); ok(!b.vil.knight,'no knight from an empty village');
+  for(const s of ['Raid the village: a fight, a watch','Farmhand','Empty Valley','The Knight\'s Oath','Ser Aldwin of Saint Aldric\'s rides at your side.','At +60: its knight rides with you']) ok(tr(s)!==s||s.startsWith('Ser'),'tr '+s);
+  const h=cxVillagesHTML(); ok(h.includes('Raiding')&&h.includes('Allegiance')&&h.includes(KNIGHT_NICK));
 });
 })();

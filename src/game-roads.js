@@ -103,6 +103,7 @@ function svStart(id,enc,esc){   // a site's fight (a watch, after the walk), a r
 }
 function svRoom(list,r,room){   // buildRoom for a site's fight
   if(r.sv==='escort') return escortRoom(list,r);
+  if(r.sv==='raid') return raidRoom(list,r);   /* R20 PR B (game-villages.js) */
   const sg=r.di, lv=RK[sg].lv+room+(r.sv==='den'?1:0);
   if(r.sv==='mine'){ const M=DUNGEONS[4].mobs.filter(m=>m[1]!=='hexer'), n=room===0?3:4; for(let i=0;i<n;i++){ const m=pick(M); list.push(svFoe(m[0],m[1],m[2],m[3],sg,lv,room===1&&i===0)); } }
   else if(r.sv==='den'){ const b=BEASTS; list.push(svFoe(b.bear[0],b.bear[1],b.bear[2],b.bear[3],sg,lv+1,true)); list.push(svFoe(b.wolf[0],b.wolf[1],b.wolf[2],b.wolf[3],sg,lv)); list.push(svFoe(b.wolf[0],b.wolf[1],b.wolf[2],b.wolf[3],sg,lv)); list.push(svFoe(b.crow[0],b.crow[1],b.crow[2],b.crow[3],sg,lv)); }
@@ -111,7 +112,7 @@ function svRoom(list,r,room){   // buildRoom for a site's fight
   return list;
 }
 function svCleared(r){   // the last room of a site's fight: what it pays
-  r.cleared=true; const M=mapSt();
+  r.cleared=true; const M=mapSt(); if(r.sv==='raid') return raidWon(r);
   if(r.sv==='mine'){ const o=1+(Math.random()<.5?1:0); M.ore=Math.min(ORE_HOLD,(M.ore|0)+o); tally('ore',o); favHook('mine'); r.events.push({m:'You carry '+o+' ore out of the mine ('+M.ore+' held). Each makes heart-forging '+Math.round(ORE_K*100)+'% cheaper.',c:'ok'}); }
   else if(r.sv==='den'){ M.pelt=(M.pelt|0)+1; tally('denClears'); favHook('den'); if(M.pelt>=DEN_PELTS){ M.pelt-=DEN_PELTS; const b=pick(BEAST_NAMES); S.charms=Array.isArray(S.charms)?S.charms:[]; S.charms.push({k:KIT_OF[b],src:b}); tally('charms'); r.events.push({m:'The pelts are cured into a charm: '+charmName({k:KIT_OF[b]})+' (in the Army tab\'s pouch).',c:'ok'}); }
     else r.events.push({m:'You skin the den\'s beasts: '+M.pelt+'/'+DEN_PELTS+' pelts toward a charm.',c:'ok'}); }
@@ -119,7 +120,7 @@ function svCleared(r){   // the last room of a site's fight: what it pays
   else { tally('encWon'); r.events.push({m:'The road is clear again.',c:'ok'}); }
   return Math.round(RK[r.di].clear*(r.sv==='enc'?.25:.5));
 }
-const svWhere=r=>r.sv==='escort'?'the road to '+(VILLAGES[r.svV]||{name:'a village'}).name:r.sv==='enc'?'the road':r.sv==='mine'?'the Old Iron Mine':'the Wolf Den';
+const svWhere=r=>r.sv==='raid'?(VILLAGES[r.svV]||{name:'a village'}).name:r.sv==='escort'?'the road to '+(VILLAGES[r.svV]||{name:'a village'}).name:r.sv==='enc'?'the road':r.sv==='mine'?'the Old Iron Mine':'the Wolf Den';
 // ----- road encounters
 function encRoll(d,path){   // mapGo: each step walked may meet something on the road (held until dawn)
   const M=mapSt(); if(!MAP_ON||M.enc||!(d>0)) return; const ch=ENC_CH+(typeof dreadBand==='function'&&dreadBand().id==='terror'?ENC_TERROR:0);
