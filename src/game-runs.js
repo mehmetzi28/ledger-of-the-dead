@@ -40,6 +40,7 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
     if(r.rg) rgRoom(list,di,room,lvl); else if(r.rk) reckRoom(list,di,lvl);   /* the rival's own gate and the duel (game-rival-arc.js) */
     else if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(r.rift&&guardAt(r.rift)?makeGuardian(di,lvl,r.rift):!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true));   /* a Rift guardian every fifth depth (game-rift.js) */ const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
     else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
+    if(kind==='nem') nemRoom(list,di,lvl);   /* the sigil door (game-nemesis.js) */
     heatRoom(list,di); ledgerRoom(list,di); rwRoom(list,di); ascKits(list); ascRoom(list); brewRoom(r); foeScale(list,foeAtkMul(di)); if(r.trial) trialPow(list,di); bulwark(list); riftScale(list); if(boss&&r.rift) sigNamed(list);
     heatScale(list);
     if(!boss&&kind==='elite') for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*ELITE_ROOM); e.atk=Math.max(1,Math.round(e.atk*ELITE_ROOM)); }
@@ -88,7 +89,7 @@ function hurtFoe(e,d,ty){ if(abbeyMiss(e)) return; ty=MARGIN||(DTYPE[ty]?ty:'phy
   d=bossTaken(e,kitTaken(e,d));   /* Heartwood (game-boss-kits.js) */   /* Bulwark stance, a Banner-bearer beside it (game-kits.js) */
   if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e,0,0); return; } }   // Bone Wall shield soaks damage first
   if(e.hp>0&&d>=e.hp){ e.cd=deathCond(e,d); e.kb=d; }   /* kb: the killing blow (Morrow's scorch) */   // the killing blow decides the body's condition
-  recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e,d,0); kitHurt(e); bossHurt(e,d,ty); { const r=S.run; r.dd=(r.dd||0)+d; if(d>(r.mh||0)) r.mh=d; } }   /* damage dealt and the biggest hit this run, for the History */
+  recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e,d,0); kitHurt(e); nemHurt(e); bossHurt(e,d,ty); { const r=S.run; r.dd=(r.dd||0)+d; if(d>(r.mh||0)) r.mh=d; } }   /* damage dealt and the biggest hit this run, for the History */
 function hurtAlly(a,d,ty){
   if(S.run&&S.run.widen) d=Math.round(d*widenK());   /* the Tear Itself (game-rift.js) */
   if(a.id==='p'&&S.run&&S.run.conf) d=Math.round(d*BK_CONFESS);   /* the Iron Inquisitor's Confession, until you ward */
@@ -149,7 +150,7 @@ function checkDeaths(){
     if(e.elite) tally('elites');
     studyFoe(e.base,ascStudy(e));
     r.pending+=killXp(e); if(!e.stash) r.loot.push(...rollDrops(e)); killLoot(e,r);   // a stolen body drops no gear: the body is the reward
-    killPowers(); capKill(e); faithKill(e,r); runeDrop(e,r);   /* skill runes (game-builds.js) */
+    killPowers(); capKill(e); faithKill(e,r); runeDrop(e,r); nemSlain(e,r);   /* a nemesis avenged (game-nemesis.js) */   /* skill runes (game-builds.js) */
     if(!e.rival&&!e.guard&&sigBody()){ const c=corpseOf(e);   /* guardians and Loud Grave leave no body (game-rift.js) */ if(e.stash) rivalReclaim(e,c); r.corpses.push(c); longNameRise(e,r); }   /* The Long Name (game-builds.js) */   // the rival leaves no body: they retreat
     if(e.boss) bossSpeaks(e,'bye');
     log(e.rival?e.name+' is beaten.':e.name+' falls.'); sfx('kill'); fxe('death',e);
@@ -274,7 +275,7 @@ function act(kind){
     if(tg.id==='p'&&hasFlag('thorns')&&e.hp>0) hurtFoe(e,Math.max(1,Math.round(d*.2*(1-foeArmor()))));
     if(tg.id==='p'&&hasMod('calcify','b')&&e.hp>0) hurtFoe(e,Math.max(1,Math.round(d*BARBS*(1-foeArmor()))));   // Barbed Hide
     if(tg.id!=='p'&&markV(tg,'spiked')&&e.hp>0) hurtFoe(e,Math.max(1,Math.round(d*markV(tg,'spiked')*(1-foeArmor()))));   // the Spiked mark
-    if(tg.hp<=0&&tg.id!=='p') log(tg.nick+' is down.','bad');
+    if(tg.hp<=0&&tg.id!=='p'){ log(tg.nick+' is down.','bad'); nemDown(e,tg); }   /* a nemesis is born of this (game-nemesis.js) */
     if(P.hp<=0&&playerFalls()) return;
   }
   hasteStrikes(); requiemStrikes(); if(P.hp<=0&&playerFalls()) return;   /* Requiem (game-builds.js) */
@@ -339,7 +340,7 @@ function defeat(){
   const r=S.run; if(r.siege){ r.pending=0; r.loot=[]; S.mode='defeat'; S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); }); siegeLost(false); return; }   // a lost siege costs no XP; the town pays instead
   S.ti=S.ti||{}; S.ti.deaths=(S.ti.deaths||0)+1; r.pending=0; r.gold=0; r.troph={}; r.bdust=0; S.mode='defeat'; if(!r.wk) S.player.xp=Math.max(0,S.player.xp-Math.round(need(S.player.lvl)*DIFF.deathXp));   /* the weekly dive pays no XP and costs none (game-rift.js) */
   S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); });
-  if(rivalStanding(r)) rivalLost(r); if(reckStanding(r)) reckLost(r);
+  if(rivalStanding(r)) rivalLost(r); if(reckStanding(r)) reckLost(r); nemBirth(r);   /* a foe that downed a Greater minion may live on (game-nemesis.js) */
   if(r.blow) r.felled=r.blow;
   if(r.wk) notify('The weekly dive ends at depth '+(r.wkD||0)+'. It costs you no XP.','bad'); else notify('You were dragged out of '+(r.tw?'the Hell Tower on floor '+r.tw:'the '+DUNGEONS[r.di].name)+'. That room\'s spoils are lost, and you lose '+Math.round(DIFF.deathXp*100)+'% of a level in XP.','bad');
 }
@@ -378,7 +379,7 @@ function descend(kind){   // go on: through one of the doors in the gates (the f
   if(r.doors){ if(kind==null) kind=r.doors[0]; if(!r.doors.includes(kind)) return false; } else kind='fight';
   P.hp=Math.min(pMax(),P.hp+Math.round(pMax()*DIFF.heal)); P.mana=Math.min(pMana(),P.mana+Math.round(pMana()*DIFF.mana)); P.shield=0;
   S.army.forEach(m=>m.hp=Math.min(m.maxHp,m.hp+Math.round(m.maxHp*DIFF.mheal)));
-  r.cd={}; r.frenzy=0; r.silence=0; r.event=null; allies().forEach(clearAll); if(r.tw) r.tw++; r.room++; if(r.wk) weekStep(r); r.roomKind=kind; r.doors=null; if(kind==='elite') tally('archs');
+  r.cd={}; r.frenzy=0; r.silence=0; r.event=null; allies().forEach(clearAll); if(r.tw) r.tw++; r.room++; if(r.wk) weekStep(r); r.roomKind=kind; r.doors=null; if(kind==='elite') tally('archs'); if(kind==='nem') r.nemU=1;
   if(kind==='rest'||kind==='treasure'||kind==='script'){ quietRoom(kind); return true; }
   S.mode='battle'; spawnRoom(); return true;
 }
@@ -392,7 +393,7 @@ function returnTown(){
   save();
 }
 function flee(){ if(S.mode!=='battle') return; if(S.run.siege){ S.run.fled=true; S.run.pending=0; S.run.loot=[]; S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); }); siegeLost(true); S.mode='defeat'; return; }   /* fleeing a siege counts as a defeat */
-  S.run.fled=true; if(rivalStanding(S.run)) rivalLost(S.run); if(reckStanding(S.run)) reckLost(S.run); notify('You fled the gate and left the room\'s spoils behind.','bad'); returnTown(); }
+  S.run.fled=true; nemBirth(S.run); if(rivalStanding(S.run)) rivalLost(S.run); if(reckStanding(S.run)) reckLost(S.run); notify('You fled the gate and left the room\'s spoils behind.','bad'); returnTown(); }
 
 
 // ----- items: bag and equipment
@@ -427,7 +428,7 @@ function raiseChance(c){
   if(soulBound(c)) return 0;
   if(firstRaise()) return 100;
   let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+4*sk('mastery')+B_OSS*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*RAISE_LV-RK[c.rankI].pen;
-  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+(hasInsc('many')?INSC_RAISE:0)+incRaise()+townRaise(c)+rgRaise(c)+twoBooks()+faithRaiseK(c)+ascRaise();
+  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+nemRaise(c)+(hasInsc('many')?INSC_RAISE:0)+incRaise()+townRaise(c)+rgRaise(c)+twoBooks()+faithRaiseK(c)+ascRaise();
   return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
 }
 const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*ascRaiseCost()*(hasFlag('cheapraise')?.5:1)*(hasMod('mastery','b')?.75:1)*(1-.06*sk('thrift')));
@@ -460,7 +461,7 @@ function tryRaise(id,salt,bench){   // bench: raise to the Reserve, only when th
     if(hasFlag('bindsouls')) m.lvl=Math.min(S.player.lvl+2,m.lvl+2);
     if(hasMod('mastery','a')) m.lvl=Math.max(m.lvl,Math.min(S.player.lvl+2,m.lvl+GRAVECALLER));   // Gravecaller
     { const ml=masteryLv(c.base); if(ml) m.lvl=Math.max(m.lvl,Math.min(S.player.lvl+2,m.lvl+ml)); }   // a Ledgered kind rises higher, never past your level + 2
-    m.lvl0=m.lvl; m.stage=0; m.traits=[c.cd&&CORPSE_CONDS[c.cd]?CORPSE_CONDS[c.cd].trait:rollTrait([])]; if(c.boss) m.traits.push(rollTrait(m.traits)); if(c.cd&&CORPSE_CONDS[c.cd]) m.cd=c.cd; if(c.recl){ m.recl=1; tally('reclaimed'); }   // bosses rise with two traits; how the body died replaces the random one
+    m.lvl0=m.lvl; m.stage=0; m.traits=[nemTrait(c)||(c.cd&&CORPSE_CONDS[c.cd]?CORPSE_CONDS[c.cd].trait:rollTrait([]))]; if(c.avg) tally('avengedRaised'); if(c.boss) m.traits.push(rollTrait(m.traits)); if(c.cd&&CORPSE_CONDS[c.cd]) m.cd=c.cd; if(c.recl){ m.recl=1; tally('reclaimed'); }   // bosses rise with two traits; how the body died replaces the random one
     if(c.aff&&c.aff.length){ const t=AFFIX[pick(c.aff)].trait; if(!m.traits.includes(t)) m.traits.push(t); }   // an elite keeps one of its affixes
     { const ct=carryTrait(m); if(ct) r.events.push({m:m.nick+' rises with the trait you carried: '+TRAITS[ct].name+'.',c:'ok'}); }   /* a carried trait (game-asc.js) */
     if(rollCommand(m)) tally('commanders');

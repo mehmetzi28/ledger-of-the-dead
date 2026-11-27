@@ -713,7 +713,7 @@ body.calm .moment{animation:none}
 .door:hover,.door:focus-visible{border-color:var(--gold);background:#24201c}
 .dl{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:4px;padding-top:6px;border-top:1px solid var(--line-2)}.dl .dlh,.dl .dlb{color:var(--bone);font-weight:600}.door .df{color:var(--bone)}.df small{margin-left:4px;color:var(--mute)}.door .df.el{color:#ee8f6f}
 @media (max-width:540px){.df small{display:none}}
-.door.d-elite b{color:#ee8f6f}.door.d-rest b{color:var(--ok)}.door.d-treasure b{color:var(--gold)}.door.d-boss b{color:#ff9a78}
+.door.d-elite b{color:#ee8f6f}.door.d-rest b{color:var(--ok)}.door.d-treasure b{color:var(--gold)}.door.d-boss b{color:#ff9a78}.door.d-nem b{color:#d77ad0}
 .setl{font:400 12px/1.4 var(--font-body);color:var(--mute)}.setl .on{color:var(--ok)}
 .cmds{align-items:center}.cmd-l{font:500 13px/1.2 var(--font-body);color:var(--mute);margin-right:4px}
 .log li.story,.note.story span{font:400 16px/1.5 var(--font-lore);color:var(--gold)}
@@ -912,7 +912,8 @@ body.compact .unit.mini .ico{width:34px;height:34px}body.compact .unit.mini .ico
 .mem-row .ico{filter:grayscale(.85) brightness(.7)}.mem-row .rk{opacity:.7}.mem-row b{color:var(--ward);font-weight:600}
 .mem-t{min-width:0;overflow-wrap:anywhere}.mem-tr{opacity:.8}
 .mem-hon b{color:var(--bone)}.chip.mem-buff{border-color:var(--brass);color:var(--gold)}
-.mem-b{display:flex;flex-direction:column;align-items:flex-end;gap:4px}.mem-b:empty{display:none}.mem-hs{color:var(--bone)}
+.mem-b{display:flex;flex-direction:column;align-items:flex-end;gap:4px}.mem-b:empty{display:none}.mem-hs{color:var(--bone)}.mem-av{color:#d77ad0}
+.nem-strip{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}.nem-strip .rub{margin-right:4px}.nem-c{display:inline-flex;flex-direction:column;padding:4px 8px;border:1px solid #6b3b68;border-radius:6px;background:rgba(120,50,110,.12);max-width:100%}.nem-c.arch{border-color:#d77ad0}.nem-c small{color:var(--dim,#9a8f80);font-size:.8em}
 @media (max-width:520px){.mem-row{grid-template-columns:auto auto minmax(0,1fr)}.mem-row>.btn,.mem-row>.mem-b{grid-column:1/-1;justify-self:start}.mem-b{flex-direction:row;flex-wrap:wrap}}
 /* Loadouts: three named setups on the Gear tab */
 .lo-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
@@ -1933,7 +1934,7 @@ function normalizeSave(src){
   { const c=g.player.cmd; if(!hadCmd||!(obj(c)&&c.a>=0&&c.h>=0&&isFinite(c.a)&&isFinite(c.h))) g.player.cmd=cmdPow(Array.isArray(g.army)?g.army:[]); else g.player.cmd={a:Math.round(c.a),h:Math.round(c.h)}; }   // Command: an old or damaged save measures its army again
   const okB=b=>obj(b)&&BOUNTIES[b.id]&&typeof b.n==='number'&&typeof b.base==='number'&&obj(b.rw)&&typeof b.claimed==='boolean';
   g.bounty=(obj(g.bounty)&&typeof g.bounty.day==='number'&&Array.isArray(g.bounty.list)&&g.bounty.list.every(okB))?g.bounty:null;
-  memorialFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
+  memorialFix(g); nemFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
   return g;
 }
 function validSave(g){ return !!normalizeSave(g); }
@@ -2119,6 +2120,10 @@ const roll3=()=>S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&!
  ['ar_witch','Deeds','Witch-Keeper','Raise a hexer to Eternal.',()=>S.army.concat(S.reserve||[]).some(m=>m.role==='hexer'&&(m.stage||0)>=STAGE_MAX),{mpow:5}],
  ['ar_roles','Deeds','Every Role','Field all five roles at Elder or above at once.',()=>Object.keys(ROLES).every(r=>S.army.some(m=>m.role===r&&(m.stage||0)>=2)),{mpow:6}],
  ['ar_order','Deeds','By My Order','Use 500 Elder actives.',()=>T_('actives')>=500,{mpow:5}],
+ ['nm_1','Deeds','Avenger I','Kill a nemesis.',()=>T_('nemSlain')>=1,{mpow:2}],
+ ['nm_5','Deeds','Avenger II','Kill 5 nemeses.',()=>T_('nemSlain')>=5,{mpow:4}],
+ ['nm_15','Deeds','Avenger III','Kill 15 nemeses.',()=>T_('nemSlain')>=15,{mpow:6}],
+ ['nm_old','Deeds','Old Grudge','Kill a nemesis that has lived four weeks.',()=>T_('nemOld')>=1,{mpow:4}],
  ['r_six','Deeds','Six Guardians','Fell all six guardians of the Rift.',()=>GUARDIANS.every((g,i)=>!!(S.rift&&S.rift.gk&&S.rift.gk[i])),{dmgp:3,hpp:3}],
  ['r_sigil3','Deeds','Fully Sigiled','Clear depth 20 of the Rift or deeper with three sigils.',()=>T_('sig3_20')>=1,{mpow:4}],
  ['r_weekly','Deeds','Weekly Diver','Set 10 weekly dive bests.',()=>T_('weekBests')>=10,{xpp:3}],
@@ -2211,7 +2216,7 @@ function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // d
 // rarer ones stay hidden ("???") until earned. Rarity follows how hard a title is: bot runs measured the reachable ones,
 // and deeds the bots skip (events, forging) were judged by hand.
 const TITLE_RARITY={hd1:1,hd2:2,nm0:3,nm1:3,nm2:3,nm3:4,nm4:4,nm5:5,dm3:5,sb0:5,sb1:5,sb2:5,sb3:5,sb4:5,sb5:5,g0:0,g1:0,d_raise1:0,d_kill100:0,d_death:0,d_armed1:0,d_lv10:0,d_study:0,s_venom:0,f_crit:0,d_tower1:0,d_quest7:0,d_army:0,g2:1,t10:1,t20:1,d_raise50:1,d_cancel:1,d_evolve:1,d_uq:1,d_gold:1,m0:1,m1:1,c_drought:1,c_fury:1,c_bulwark:1,c_horde:1,c_volatile:1,p_25:1,k_spear:1,k_blast:1,k_chill:1,g_items:1,g_sold:1,f_flawless:1,f_last:1,a_boss:1,e_strag:1,e_pedlar:1,e_trap:1,d_death10:1,g3:2,g4:2,t30:2,t40:2,t50:2,d_kill1000:2,d_lv25:2,d_raise200:2,d_tower50:2,d_cancel10:2,d_trophy500:2,d_altar:2,d_elder:2,m2:2,m3:2,d_armed3:2,d_master:2,d_bag:2,c_25:2,e_shrine:2,e_coffer:2,s_poison:2,s_cure:2,k_reap:2,k_master3:2,k_all:2,f_boss25:2,f_elite100:2,g_gold:2,g_roll3:2,a_traits:2,a_elders:2,e_day100:2,e_runs100:2,g_reforge:2,g5:3,t60:3,t70:3,m4:3,m5:3,tw75:3,d_lv50:3,p_100:3,f_crit1000:3,e_rooms1000:3,twruns:3,d_ngp:3,d_tower110:3,t80:4,t90:4,t100:4,d_kill5000:4,d_all:4,d_tower150:4,a_raise500:4,e_lv75:4,tw200:5,d_ngp3:5,d_tuq:5,a_ancient:3,a_eternal:4,a_raid1:1,a_raid25:3,r_5:3,r_15:4,r_30:5};
-Object.assign(TITLE_RARITY,{x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,as_3:3,as_6:4,as_10:5,as_all:5,as_rw:4,b_haul:2,b_five:3,b_runes:4,b_sgn:3,ar_charmed:4,ar_hundred:2,ar_tennames:5,ar_witch:4,ar_roles:4,ar_order:3,r_six:4,r_sigil3:4,r_weekly:3,r_attuned:3,r_half:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
+Object.assign(TITLE_RARITY,{nm_1:2,nm_5:3,nm_15:4,nm_old:4,x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,as_3:3,as_6:4,as_10:5,as_all:5,as_rw:4,b_haul:2,b_five:3,b_runes:4,b_sgn:3,ar_charmed:4,ar_hundred:2,ar_tennames:5,ar_witch:4,ar_roles:4,ar_order:3,r_six:4,r_sigil3:4,r_weekly:3,r_attuned:3,r_half:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
 const RARITY_MUL=[1,1,1.25,1.5,2,3], HIDDEN_FROM=3;
 TITLES.forEach(t=>{ t.r=TITLE_RARITY[t.id]!=null?TITLE_RARITY[t.id]:1; const m=RARITY_MUL[t.r]; for(const k in t.b) t.b[k]=Math.max(t.b[k],Math.round(t.b[k]*m)); });
 const titleHidden=t=>t.r>=HIDDEN_FROM&&!(S&&S.ti&&S.ti.got&&S.ti.got[t.id]);
@@ -2279,7 +2284,7 @@ function endDay(){   // nightfall: tonight's raids march, then a siege if one is
 function closeDay(){
   const P=S.player;
   if(!S.quest.claimed&&questDone()) claimQuest();   // an unfinished quest simply lapses
-  const hon=remembered(); S.day++; S.watches=WATCHES-pactWatch(); if(hon) syncArmy();   /* the Remembered buff ends at dawn */
+  const hon=remembered(); S.day++; nemDawn(); S.watches=WATCHES-pactWatch(); if(hon) syncArmy();   /* the Remembered buff ends at dawn; nemDawn: nemeses grow each week (game-nemesis.js) */
   S.quest={kills:0,rooms:0,clears:0,claimed:false};
   const rr=resolveRaids(); placeWaiting(); bondsDawn(); yardDawn(); embDawn(); upkeepDawn(); dreadDawn(); faithDawn(); godDreadDawn(); omenDusk();   /* upkeep and the town's dread (game-dread.js) */   /* the Charnel Yard, the Embalmery (game-town2.js) */
   P.hp=pMax(); P.mana=pMana(); P.shield=0;
@@ -2331,6 +2336,7 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
     if(r.rg) rgRoom(list,di,room,lvl); else if(r.rk) reckRoom(list,di,lvl);   /* the rival's own gate and the duel (game-rival-arc.js) */
     else if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(r.rift&&guardAt(r.rift)?makeGuardian(di,lvl,r.rift):!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true));   /* a Rift guardian every fifth depth (game-rift.js) */ const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
     else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
+    if(kind==='nem') nemRoom(list,di,lvl);   /* the sigil door (game-nemesis.js) */
     heatRoom(list,di); ledgerRoom(list,di); rwRoom(list,di); ascKits(list); ascRoom(list); brewRoom(r); foeScale(list,foeAtkMul(di)); if(r.trial) trialPow(list,di); bulwark(list); riftScale(list); if(boss&&r.rift) sigNamed(list);
     heatScale(list);
     if(!boss&&kind==='elite') for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*ELITE_ROOM); e.atk=Math.max(1,Math.round(e.atk*ELITE_ROOM)); }
@@ -2379,7 +2385,7 @@ function hurtFoe(e,d,ty){ if(abbeyMiss(e)) return; ty=MARGIN||(DTYPE[ty]?ty:'phy
   d=bossTaken(e,kitTaken(e,d));   /* Heartwood (game-boss-kits.js) */   /* Bulwark stance, a Banner-bearer beside it (game-kits.js) */
   if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e,0,0); return; } }   // Bone Wall shield soaks damage first
   if(e.hp>0&&d>=e.hp){ e.cd=deathCond(e,d); e.kb=d; }   /* kb: the killing blow (Morrow's scorch) */   // the killing blow decides the body's condition
-  recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e,d,0); kitHurt(e); bossHurt(e,d,ty); { const r=S.run; r.dd=(r.dd||0)+d; if(d>(r.mh||0)) r.mh=d; } }   /* damage dealt and the biggest hit this run, for the History */
+  recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e,d,0); kitHurt(e); nemHurt(e); bossHurt(e,d,ty); { const r=S.run; r.dd=(r.dd||0)+d; if(d>(r.mh||0)) r.mh=d; } }   /* damage dealt and the biggest hit this run, for the History */
 function hurtAlly(a,d,ty){
   if(S.run&&S.run.widen) d=Math.round(d*widenK());   /* the Tear Itself (game-rift.js) */
   if(a.id==='p'&&S.run&&S.run.conf) d=Math.round(d*BK_CONFESS);   /* the Iron Inquisitor's Confession, until you ward */
@@ -2440,7 +2446,7 @@ function checkDeaths(){
     if(e.elite) tally('elites');
     studyFoe(e.base,ascStudy(e));
     r.pending+=killXp(e); if(!e.stash) r.loot.push(...rollDrops(e)); killLoot(e,r);   // a stolen body drops no gear: the body is the reward
-    killPowers(); capKill(e); faithKill(e,r); runeDrop(e,r);   /* skill runes (game-builds.js) */
+    killPowers(); capKill(e); faithKill(e,r); runeDrop(e,r); nemSlain(e,r);   /* a nemesis avenged (game-nemesis.js) */   /* skill runes (game-builds.js) */
     if(!e.rival&&!e.guard&&sigBody()){ const c=corpseOf(e);   /* guardians and Loud Grave leave no body (game-rift.js) */ if(e.stash) rivalReclaim(e,c); r.corpses.push(c); longNameRise(e,r); }   /* The Long Name (game-builds.js) */   // the rival leaves no body: they retreat
     if(e.boss) bossSpeaks(e,'bye');
     log(e.rival?e.name+' is beaten.':e.name+' falls.'); sfx('kill'); fxe('death',e);
@@ -2565,7 +2571,7 @@ function act(kind){
     if(tg.id==='p'&&hasFlag('thorns')&&e.hp>0) hurtFoe(e,Math.max(1,Math.round(d*.2*(1-foeArmor()))));
     if(tg.id==='p'&&hasMod('calcify','b')&&e.hp>0) hurtFoe(e,Math.max(1,Math.round(d*BARBS*(1-foeArmor()))));   // Barbed Hide
     if(tg.id!=='p'&&markV(tg,'spiked')&&e.hp>0) hurtFoe(e,Math.max(1,Math.round(d*markV(tg,'spiked')*(1-foeArmor()))));   // the Spiked mark
-    if(tg.hp<=0&&tg.id!=='p') log(tg.nick+' is down.','bad');
+    if(tg.hp<=0&&tg.id!=='p'){ log(tg.nick+' is down.','bad'); nemDown(e,tg); }   /* a nemesis is born of this (game-nemesis.js) */
     if(P.hp<=0&&playerFalls()) return;
   }
   hasteStrikes(); requiemStrikes(); if(P.hp<=0&&playerFalls()) return;   /* Requiem (game-builds.js) */
@@ -2630,7 +2636,7 @@ function defeat(){
   const r=S.run; if(r.siege){ r.pending=0; r.loot=[]; S.mode='defeat'; S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); }); siegeLost(false); return; }   // a lost siege costs no XP; the town pays instead
   S.ti=S.ti||{}; S.ti.deaths=(S.ti.deaths||0)+1; r.pending=0; r.gold=0; r.troph={}; r.bdust=0; S.mode='defeat'; if(!r.wk) S.player.xp=Math.max(0,S.player.xp-Math.round(need(S.player.lvl)*DIFF.deathXp));   /* the weekly dive pays no XP and costs none (game-rift.js) */
   S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); });
-  if(rivalStanding(r)) rivalLost(r); if(reckStanding(r)) reckLost(r);
+  if(rivalStanding(r)) rivalLost(r); if(reckStanding(r)) reckLost(r); nemBirth(r);   /* a foe that downed a Greater minion may live on (game-nemesis.js) */
   if(r.blow) r.felled=r.blow;
   if(r.wk) notify('The weekly dive ends at depth '+(r.wkD||0)+'. It costs you no XP.','bad'); else notify('You were dragged out of '+(r.tw?'the Hell Tower on floor '+r.tw:'the '+DUNGEONS[r.di].name)+'. That room\'s spoils are lost, and you lose '+Math.round(DIFF.deathXp*100)+'% of a level in XP.','bad');
 }
@@ -2669,7 +2675,7 @@ function descend(kind){   // go on: through one of the doors in the gates (the f
   if(r.doors){ if(kind==null) kind=r.doors[0]; if(!r.doors.includes(kind)) return false; } else kind='fight';
   P.hp=Math.min(pMax(),P.hp+Math.round(pMax()*DIFF.heal)); P.mana=Math.min(pMana(),P.mana+Math.round(pMana()*DIFF.mana)); P.shield=0;
   S.army.forEach(m=>m.hp=Math.min(m.maxHp,m.hp+Math.round(m.maxHp*DIFF.mheal)));
-  r.cd={}; r.frenzy=0; r.silence=0; r.event=null; allies().forEach(clearAll); if(r.tw) r.tw++; r.room++; if(r.wk) weekStep(r); r.roomKind=kind; r.doors=null; if(kind==='elite') tally('archs');
+  r.cd={}; r.frenzy=0; r.silence=0; r.event=null; allies().forEach(clearAll); if(r.tw) r.tw++; r.room++; if(r.wk) weekStep(r); r.roomKind=kind; r.doors=null; if(kind==='elite') tally('archs'); if(kind==='nem') r.nemU=1;
   if(kind==='rest'||kind==='treasure'||kind==='script'){ quietRoom(kind); return true; }
   S.mode='battle'; spawnRoom(); return true;
 }
@@ -2683,7 +2689,7 @@ function returnTown(){
   save();
 }
 function flee(){ if(S.mode!=='battle') return; if(S.run.siege){ S.run.fled=true; S.run.pending=0; S.run.loot=[]; S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); }); siegeLost(true); S.mode='defeat'; return; }   /* fleeing a siege counts as a defeat */
-  S.run.fled=true; if(rivalStanding(S.run)) rivalLost(S.run); if(reckStanding(S.run)) reckLost(S.run); notify('You fled the gate and left the room\'s spoils behind.','bad'); returnTown(); }
+  S.run.fled=true; nemBirth(S.run); if(rivalStanding(S.run)) rivalLost(S.run); if(reckStanding(S.run)) reckLost(S.run); notify('You fled the gate and left the room\'s spoils behind.','bad'); returnTown(); }
 
 
 // ----- items: bag and equipment
@@ -2718,7 +2724,7 @@ function raiseChance(c){
   if(soulBound(c)) return 0;
   if(firstRaise()) return 100;
   let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+4*sk('mastery')+B_OSS*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*RAISE_LV-RK[c.rankI].pen;
-  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+(hasInsc('many')?INSC_RAISE:0)+incRaise()+townRaise(c)+rgRaise(c)+twoBooks()+faithRaiseK(c)+ascRaise();
+  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+nemRaise(c)+(hasInsc('many')?INSC_RAISE:0)+incRaise()+townRaise(c)+rgRaise(c)+twoBooks()+faithRaiseK(c)+ascRaise();
   return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
 }
 const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*ascRaiseCost()*(hasFlag('cheapraise')?.5:1)*(hasMod('mastery','b')?.75:1)*(1-.06*sk('thrift')));
@@ -2751,7 +2757,7 @@ function tryRaise(id,salt,bench){   // bench: raise to the Reserve, only when th
     if(hasFlag('bindsouls')) m.lvl=Math.min(S.player.lvl+2,m.lvl+2);
     if(hasMod('mastery','a')) m.lvl=Math.max(m.lvl,Math.min(S.player.lvl+2,m.lvl+GRAVECALLER));   // Gravecaller
     { const ml=masteryLv(c.base); if(ml) m.lvl=Math.max(m.lvl,Math.min(S.player.lvl+2,m.lvl+ml)); }   // a Ledgered kind rises higher, never past your level + 2
-    m.lvl0=m.lvl; m.stage=0; m.traits=[c.cd&&CORPSE_CONDS[c.cd]?CORPSE_CONDS[c.cd].trait:rollTrait([])]; if(c.boss) m.traits.push(rollTrait(m.traits)); if(c.cd&&CORPSE_CONDS[c.cd]) m.cd=c.cd; if(c.recl){ m.recl=1; tally('reclaimed'); }   // bosses rise with two traits; how the body died replaces the random one
+    m.lvl0=m.lvl; m.stage=0; m.traits=[nemTrait(c)||(c.cd&&CORPSE_CONDS[c.cd]?CORPSE_CONDS[c.cd].trait:rollTrait([]))]; if(c.avg) tally('avengedRaised'); if(c.boss) m.traits.push(rollTrait(m.traits)); if(c.cd&&CORPSE_CONDS[c.cd]) m.cd=c.cd; if(c.recl){ m.recl=1; tally('reclaimed'); }   // bosses rise with two traits; how the body died replaces the random one
     if(c.aff&&c.aff.length){ const t=AFFIX[pick(c.aff)].trait; if(!m.traits.includes(t)) m.traits.push(t); }   // an elite keeps one of its affixes
     { const ct=carryTrait(m); if(ct) r.events.push({m:m.nick+' rises with the trait you carried: '+TRAITS[ct].name+'.',c:'ok'}); }   /* a carried trait (game-asc.js) */
     if(rollCommand(m)) tally('commanders');
@@ -3532,7 +3538,7 @@ const STRAGGLER_BONUS=25;
 const FAITH_EVENT=.25, SHRINE_OTHER=.3;   // SHRINE_OTHER: of those, another god's shrine (conversion)
    // a sworn necromancer meets a shrine true to the oath in a quarter of events
 function rollEvent(){ if(S.run&&S.run.rift&&Math.random()<RIFT_EV){ const re=riftEvent(); if(re) return re; }   /* the Rift's own events (game-rift.js) */ { const cd=chainDue(); if(cd) return {id:cd}; } const fe=Object.keys(EVENTS).find(k=>EVENTS[k].faith&&EVENTS[k].faith===faithOf()), id=fe&&Math.random()<FAITH_EVENT?(Math.random()<SHRINE_OTHER?'godshrine':fe):pick(Object.keys(EVENTS).filter(k=>!EVENTS[k].faith&&!EVENTS[k].rift&&chainOk(k))), ev={id:id!=='pedlar'&&dreadBand().id==='calm'&&Math.random()<1/Object.keys(EVENTS).filter(k=>!EVENTS[k].rift).length?'pedlar':id};   /* Calm: pedlars twice as common (game-dread.js) */ if(ev.id==='godshrine') ev.g=pick(GODS.filter(g=>g!==faithOf())); if(ev.id==='pedlar'){ ev.pot=pick(Object.keys(POTIONS)); ev.price=Math.ceil(POTIONS[ev.pot].price()/2); } return ev; }
-function corpseOf(e){ const c={id:'c'+e.id,armed:isArmed(e.base),name:e.name,base:e.base,role:e.role,rankI:e.rankI,lvl:e.lvl,hf:e.hf,af:e.af,tw:e.tw,boss:e.boss,elite:e.elite,tried:false,result:null,minion:null}; if(e.aff&&e.aff.length) c.aff=e.aff.slice(); if(e.dots&&e.dots.blight) c.bl=e.dots.blight.d; if(e.cd&&e.hp<=0) c.cd=e.cd; return c; }   // bl: it died Blighted (Spreading Rot); cd: how it died (CORPSE_CONDS)
+function corpseOf(e){ const c={id:'c'+e.id,armed:isArmed(e.base),name:e.name,base:e.base,role:e.role,rankI:e.rankI,lvl:e.lvl,hf:e.hf,af:e.af,tw:e.tw,boss:e.boss,elite:e.elite,tried:false,result:null,minion:null}; if(e.aff&&e.aff.length) c.aff=e.aff.slice(); if(e.dots&&e.dots.blight) c.bl=e.dots.blight.d; if(e.cd&&e.hp<=0) c.cd=e.cd; if(e.avg) c.avg=e.avg; return c; }   // bl: it died Blighted (Spreading Rot); cd: how it died (CORPSE_CONDS)
 // Corpse conditions: how a foe died marks its body. First match in this order; raise: % added before the clamp; trait: what it rises with
 // in place of the random trait (a boss still rolls its second one, an elite still keeps an affix).
 const CORPSE_CONDS={
@@ -3709,6 +3715,7 @@ const DOORS={
   elite:   {name:'A bloodied arch', desc:'Stronger foes (+25% HP and attack). Twice the gear drops and 50% more gold.', s:'Foes +25% · gear x2 · gold +50%'},
   rest:    {name:'A quiet ossuary', desc:'No fight. Rest to recover 40% of your HP and mana, and your army 40%.', s:'Rest · +40% HP, mana, army'},
   treasure:{name:'A sealed vault',  desc:'No fight. Gold and a piece of gear.', s:'Gold + gear'},
+  nem:     {name:'A sigil-marked door', desc:'Your nemesis waits behind it, always seen: an elite that has downed your dead. Kill it to avenge them.', s:'Your nemesis waits'},
   boss:    {name:'The boss chamber',desc:'The master of this gate.'}
 };
 function rollDoors(r){
@@ -3716,7 +3723,7 @@ function rollDoors(r){
   if(r.room+1>=r.rooms-1) return ['boss'];
   let pool=['elite','elite','elite','rest','rest','treasure']; const out=['fight'], n=Math.random()<.4?2:1;   // weighted: elite 3, rest 2, treasure 1
   while(out.length<1+n&&pool.length){ const k=pick(pool); out.push(k); pool=pool.filter(x=>x!==k); }
-  return brewDoors(r,ascDoors(r,out));   /* Open Door (game-brew.js); Elite Doors (game-asc.js) */
+  return nemDoor(r,brewDoors(r,ascDoors(r,out)));   /* the nemesis's sigil door (game-nemesis.js) */   /* Open Door (game-brew.js); Elite Doors (game-asc.js) */
 }
 const roomKind=()=>(S.run&&!S.run.tw&&S.run.roomKind)||null;
 function quietRoom(kind){   // a rest or treasure room: no fight, then the doors again
@@ -3731,7 +3738,7 @@ function quietRoom(kind){   // a rest or treasure room: no fight, then the doors
 }
 // The Ledger reads the doors: the room behind a fight or elite door is rolled with the doors (r.pre, kept in the save), so a door
 // can show what waits behind it. How much it shows depends on how well you know this gate's dead (doorSight) and its master (doorBoss).
-function preRooms(r){ r.pre=null; for(const k of r.doors||[]) if(k==='fight'||k==='elite'){ r.pre=r.pre||{}; r.pre[k]=buildRoom(r.room+1,k); } }
+function preRooms(r){ r.pre=null; for(const k of r.doors||[]) if(k==='fight'||k==='elite'||k==='nem'){ r.pre=r.pre||{}; r.pre[k]=buildRoom(r.room+1,k); } }
 function doorSight(di){   // 2: most of the gate's kinds Known (rows and levels too), 1: most Studied (names, elites and affixes), 0: nothing. Most: at least 2.
   const ms=DUNGEONS[di].mobs, need=Math.min(2,ms.length), n=id=>{ const at=MASTERY.findIndex(t=>t.id===id); return ms.filter(m=>MASTERY.indexOf(masteryOf(m[0]))>=at).length; };
   return brewSight(di,n('known')>=need?2:n('studied')>=need?1:0);   /* Lantern (game-brew.js) */
@@ -4962,7 +4969,7 @@ function memorialFix(g){   // normalizeSave: keep well-formed entries only
   const ok=e=>e&&typeof e==='object'&&typeof e.nick==='string'&&typeof e.name==='string';
   g.memorial=Array.isArray(g.memorial)?g.memorial.filter(ok).slice(0,MEM_MAX).map(e=>{ const o={nick:cleanNick(e.nick)||'Nameless',kind:cleanText(typeof e.kind==='string'?e.kind:e.name),name:cleanText(e.name),rk:clamp(Math.floor(num(e.rk,0)),0,RANKS.length-1),
     lvl:Math.max(1,Math.floor(num(e.lvl,1))),st:clamp(Math.floor(num(e.st,0)),0,STAGE_MAX),tr:Array.isArray(e.tr)?e.tr.filter(t=>TRAITS[t]):[],role:ROLES[e.role]?e.role:'striker',day:Math.max(1,Math.floor(num(e.day,1)))};
-    if(num(e.kl,0)>0) o.kl=Math.floor(e.kl);   /* kills (game-army.js) */ if(e.boss) o.boss=1; if(e.elite) o.elite=1; for(const k of ['g','raid']) if(RK[e[k]]) o[k]=e[k]; for(const k of ['f','rd']) if(num(e[k],0)>0) o[k]=Math.floor(e[k]); if(typeof e.bd==='string'&&cleanNick(e.bd)) o.bd=cleanNick(e.bd); if(e.maus) o.maus=1; if(num(e.hs,0)>=1) o.hs=Math.min(HEAD_TOP,Math.floor(e.hs)); return o; }):[];
+    if(num(e.kl,0)>0) o.kl=Math.floor(e.kl);   /* kills (game-army.js) */ if(e.boss) o.boss=1; if(e.elite) o.elite=1; for(const k of ['g','raid']) if(RK[e[k]]) o[k]=e[k]; for(const k of ['f','rd']) if(num(e[k],0)>0) o[k]=Math.floor(e[k]); if(typeof e.bd==='string'&&cleanNick(e.bd)) o.bd=cleanNick(e.bd); if(e.maus) o.maus=1; if(num(e.hs,0)>=1) o.hs=Math.min(HEAD_TOP,Math.floor(e.hs)); if(num(e.av,0)>0) o.av=Math.floor(e.av);   /* avenged (game-nemesis.js) */ return keepOrder(e,o); }):[];
   g.honor=g.honor&&typeof g.honor==='object'&&typeof g.honor.day==='number'?{day:g.honor.day,nick:cleanNick(g.honor.nick)||'Nameless'}:null;
 }
 
@@ -7516,6 +7523,93 @@ function useActive(uid){   // act('ma:uid'): true, or 'free' when Execute Order 
 const holdOn=a=>{ const h=S.run&&S.run.hold; return !!h&&h.uid===a.uid&&h.t===S.run.turn; };
 function holdPool(alive){ const h=S.run&&S.run.hold; if(!h||h.t!==S.run.turn) return null; const m=alive.find(a=>a.uid===h.uid&&a.hp>0); return m?[m]:null; }   // tauntPool
 function specFix(m){ if('spec' in m&&!(SPECS[m.spec]&&SPECS[m.spec].role===m.role&&(m.stage||0)>=SPEC_AT)) delete m.spec; }   // armyFix
+// ===== R13 PR A: NEMESES =====
+// A foe that downs one of your Greater (or older) minions and is still standing when the room ends (you fell or fled) may
+// become a nemesis: a name, +1 level for every minion it has downed and every week it lives, the trait of its best victim,
+// a second kit at two victims, and at three it is an arch-nemesis (a second wind at half HP). At most NEM_MAX live at once.
+// Each haunts its gate behind a sigil door that is always read. Killing one pays trophies, the boss table's roll, and an
+// Avenged body that keeps the stolen trait; the victims' headstones say so. No Math.random here: births roll on dayHash.
+const NEM_CH=.35, NEM_STAGE=.1, NEM_MAX=3, NEM_KIT2=2, NEM_ARCH=3, NEM_ARCH_HEAL=.2, NEM_TRO=4, NEM_RAISE=15, NEM_OLD=28, NEM_DOOR_LV=5, NEM_VMAX=8;
+const NEM_NAMES=[   // one list a gate: proper nouns, never translated
+  ['Gutter-Tooth','Old Gnaw','Vat-Belly','Sludgetail','Whisker-Knife','Mother Mange','Rind'],
+  ['Weeping Hob','Silt-Eye','Drowned Ned','Grey Lantern','Cold Hollis','Brine-Hand','Moss-Coat'],
+  ['Cinder Jack','Ashmouth','The Smouldering Maid','Soot-Fingers','Burnt Abel','Pyre-Wick','Old Ember'],
+  ['Hollow Gregor','The Off-Key','Brother Lament','Psalm-Breaker','Dirge','Sister Toll','Black Antiphon'],
+  ['Rust-Bough','Iron Tom','Graft','The Pruner','Knotwood','Bitter Pip','Sap-Drinker'],
+  ['The Pale Herald','Ash-Crowned','Lord Fester','Cinder Countess','The Unkind','Throne-Rot','Gallows Prince'],
+  ['The Erasure','Blot','Margin-Walker','Ink-Drowned','The Unwritten Clerk','Palimpsest','Smudge']
+];
+const NEM_VERB=['gnawed down','drowned','burned','silenced','cut down','unmade','erased'];   // "Gutter-Tooth, who gnawed down Ash"
+const nemOn=r=>!!r&&!r.tw&&!r.siege&&!r.trial&&!r.wk&&!r.rift&&!r.rg&&!r.rk&&!!DUNGEONS[r.di];   // ordinary gate runs only
+const nemById=id=>(S.nem||[]).find(n=>n.id===id)||null;
+const nemAt=di=>(S.nem||[]).filter(n=>n.g===di).sort((a,b)=>nemUp(b)-nemUp(a))[0]||null;   // the strongest one haunting a gate
+const nemUp=n=>(n.k|0)+(n.wk|0);   // levels above its room
+const nemTitle=n=>n.name+', who '+(NEM_VERB[n.g]||NEM_VERB[0])+' '+((n.v&&n.v[0]&&n.v[0].n)||'one of yours');
+const nemFoeOk=e=>!!e&&!e.boss&&!e.rival&&!e.secret&&!e.echo&&!e.guard&&!e.risen&&!e.living&&!e.stash;
+function nemDown(e,tg){   // a foe downed a minion (the foes' turn in act)
+  const r=S.run; if(!nemOn(r)||!tg||tg.id==='p'||tg.thrall||!nemFoeOk(e)) return;
+  if(e.nem){ const n=nemById(e.nem); if(!n) return; n.k=(n.k|0)+1; n.v.push({n:tg.nick,d:S.day}); if(n.v.length>NEM_VMAX) n.v.splice(1,1);   // the first victim names it for good
+    if(n.k>=NEM_ARCH&&!n.arch){ n.arch=1; e.arch=1; tally('nemArch'); notify(n.name+' has downed '+n.k+' of your dead. It is an arch-nemesis now.','bad'); }
+    log(n.name+' adds '+tg.nick+' to its tally.','bad'); return; }
+  if((tg.stage||0)>=1){ e.nv=e.nv||[]; e.nv.push({n:tg.nick,s:tg.stage|0,t:topTrait(tg)||''}); }
+}
+function nemBirth(r){   // the room ended with foes standing (defeat, flight): a foe that downed a Greater minion may live on with a name
+  if(!nemOn(r)) return;
+  for(const e of r.enemies){ if(!(e.hp>0)||!e.nv||!e.nv.length||e.nem||!nemFoeOk(e)) continue;
+    const st=Math.max(...e.nv.map(v=>v.s)), ch=NEM_CH+NEM_STAGE*Math.max(0,st-1), roll=dayHash(S.day,S.runs,parseInt(String(e.id).slice(1),10)||0,1301)%1000/1000;
+    const v=e.nv; delete e.nv; if(roll<ch) nemMake(e,r,v); }
+}
+function nemMake(e,r,vs){
+  const di=r.di, L=NEM_NAMES[di]||NEM_NAMES[0], used=(S.nem||[]).map(n=>n.name), i0=dayHash(S.day,S.runs,di,7)%L.length;
+  let name=L[i0]; for(let j=0;j<L.length;j++){ const x=L[(i0+j)%L.length]; if(!used.includes(x)){ name=x; break; } }
+  const best=vs.slice().sort((a,b)=>b.s-a.s)[0], n={id:++S.uid,name,g:di,base:e.base,role:e.role,k:vs.length,v:vs.map(x=>({n:x.n,d:S.day})),tr:TRAITS[best.t]?best.t:'',born:S.day,wk:0};
+  if(n.k>=NEM_ARCH) n.arch=1;
+  S.nem=S.nem||[];
+  if(S.nem.length>=NEM_MAX){ const w=S.nem.slice().sort((a,b)=>nemUp(a)-nemUp(b))[0]; S.nem=S.nem.filter(x=>x!==w); notify(w.name+' is forgotten: a new grudge takes its place.',''); }
+  S.nem.push(n); tally('nemBorn');
+  notify(best.n+' fell to '+withArticle(e.base)+'. It lives, and the Ledger gives it a name: '+nemTitle(n)+'. It waits in the '+DUNGEONS[di].name+'.','bad');
+  moment('A nemesis: '+n.name,'bad');
+}
+function nemDawn(){   // the first dawn of each week: every nemesis grows a level and taunts you (closeDay)
+  if(!S.nem||!S.nem.length||(S.day-1)%7!==0) return;
+  for(const n of S.nem){ n.wk=(n.wk|0)+1; notify(n.name+' still walks the '+DUNGEONS[n.g].name+' with '+n.v[0].n+'\'s name on its tally. It grows stronger (Lv +'+nemUp(n)+').','bad'); }
+}
+function nemDoor(r,out){   // rollDoors: the sigil door, once a run, in a gate a nemesis haunts
+  if(!nemOn(r)||r.nemU||!nemAt(r.di)||out.includes('boss')||out.includes('script')||out.includes('nem')) return out;
+  return out.concat(['nem']);
+}
+function nemKit2(n,di){ const own=KIT_OF[n.base], ks=[...new Set(DUNGEONS[di].mobs.map(m=>KIT_OF[m[0]]).filter(k=>k&&k!==own))]; return ks.length?ks[n.id%ks.length]:null; }
+function nemFoe(n,di,lvl){
+  const row=DUNGEONS[di].mobs.find(m=>m[0]===n.base)||DUNGEONS[di].mobs[0], lv=lvl+nemUp(n), s=mobStats(di,lv,row[2],row[3],false,true);
+  const e={id:'e'+(++S.uid),name:n.name,base:row[0],role:row[1],rankI:di,lvl:lv,hf:row[2],af:row[3],boss:false,elite:true,maxHp:s.hp,hp:s.hp,atk:s.atk,dead:false,nem:n.id};
+  if(n.tr&&TRAITS[n.tr]) e.traits=[n.tr]; if((n.k|0)>=NEM_KIT2){ const k2=nemKit2(n,di); if(k2) e.kit2=k2; } if(n.arch) e.arch=1;
+  return e;
+}
+function nemRoom(list,di,lvl){ const n=nemAt(di); if(!n) return; const e=nemFoe(n,di,lvl); if(list.length) list[0]=e; else list.push(e); }   // buildRoom, kind 'nem'
+function nemHurt(e){   // hurtFoe: an arch-nemesis eats its stolen trait for a second wind, once, at half HP
+  if(!e.arch||e.archU||!(e.hp>0)||e.hp>=e.maxHp*.5) return;
+  e.archU=1; const h=Math.round(e.maxHp*NEM_ARCH_HEAL); e.hp=Math.min(e.maxHp,e.hp+h); mark(e,0,h); if(e.traits) e.traits=[];
+  log(e.name+' devours what it stole from your dead and rises again (+'+h+' HP).','bad');
+}
+function nemSlain(e,r){   // checkDeaths, after the kill's loot: trophies, the boss table's roll, the Avenged body and the headstones
+  if(!e.nem) return; const n=nemById(e.nem); if(!n) return;
+  S.nem=S.nem.filter(x=>x!==n); tally('nemSlain'); if(S.day-n.born>=NEM_OLD) tally('nemOld');
+  const key=trophyKey(e); if(TROPHY[key]){ r.troph=r.troph||{}; r.troph[key]=(r.troph[key]||0)+NEM_TRO; }
+  r.loot.push(pickRow(tableFor(e.rankI,e.role,true,false)));
+  e.avg=n.tr||'+';   // corpseOf: the body rises Avenged, with the stolen trait
+  for(const v of n.v){ const h=(S.memorial||[]).find(x=>x.nick===v.n&&!x.av); if(h) h.av=S.day; }
+  log(n.name+' falls. '+n.v.map(v=>v.n).join(', ')+(n.v.length>1?' are':' is')+' avenged.','story'); moment(n.name+' is avenged','gold');
+}
+const nemRaise=c=>c&&c.avg?NEM_RAISE:0;   // raiseChance
+const nemTrait=c=>c&&c.avg&&TRAITS[c.avg]?c.avg:null;   // the raise: the stolen trait comes home in place of the condition's or a random one
+function nemFix(g){   // normalizeSave: S.nem only when the save has it
+  if(!('nem' in g)) return;
+  const ok=n=>n&&typeof n==='object'&&typeof n.name==='string'&&DUNGEONS[n.g]&&typeof n.base==='string'&&DUNGEONS[n.g].mobs.some(m=>m[0]===n.base)&&Array.isArray(n.v)&&n.v.length;
+  g.nem=Array.isArray(g.nem)?g.nem.filter(ok).slice(0,NEM_MAX).map(n=>{ const o={id:Math.floor(num(n.id,0)),name:cleanText(n.name).slice(0,40)||'Nameless',g:n.g,base:n.base,role:ROLES[n.role]?n.role:'striker',k:Math.max(1,Math.floor(num(n.k,1))),
+    v:n.v.filter(v=>v&&typeof v.n==='string').slice(0,NEM_VMAX).map(v=>({n:cleanNick(v.n)||'Nameless',d:Math.max(1,Math.floor(num(v.d,1)))})),tr:TRAITS[n.tr]?n.tr:'',born:Math.max(1,Math.floor(num(n.born,1))),wk:Math.max(0,Math.floor(num(n.wk,0)))};
+    if(n.arch) o.arch=1; return keepOrder(n,o); }).filter(n=>n.v.length):[];
+}
+function keepOrder(src,o){ const out={}; for(const k of Object.keys(src)) if(k in o) out[k]=o[k]; for(const k of Object.keys(o)) if(!(k in out)) out[k]=o[k]; return out; }   // a repaired object keeps the save's key order
 //==UI==
 
 // ----- sound: tiny synthesized effects (Web Audio, no files). Off/on lives in Settings and is remembered per browser, not in the save.
@@ -12269,6 +12363,26 @@ TR_RX.unshift([/^Active: (.+)$/,"Eylem: {t1}"],[/^(.+): (Hold the Line|Execute O
 TR_RX.unshift([/^(.+), and (.+?) avenges (\d+)$/,"{t1}, $2 $3 öç alıyor"],[/^(.+) and cuts (.+?) for (\d+)$/,"{t1}, ayrıca $2 hedefini $3 kesiyor"],[/^(.+) and tears (\d+) shield off$/,"{t1}, $2 kalkan sökülüyor"],
  [/^(.+) and drains (\d+) HP$/,"{t1}, $2 can emiyor"],[/^(.+) and scorches the rest for (\d+)$/,"{t1}, diğerlerini $2 kavuruyor"],[/^(.+) and drains (.+?) for (\d+)$/,"{t1}, $2 hedefinden $3 emiyor"],
  [/^(.+), and again for (\d+)$/,"{t1}, ve yeniden $2"],[/^(.+), (\d+) thrown back$/,"{t1}, $2 geri fırlatıldı"],[/^(.+) and marks it$/,"{t1}, işaretlendi"],[/^(.+ and (?:chills|burns|poisons|blights) it) and hexes it$/,"{t1}, ayrıca büyülendi"]);
+// ----- R13 PR A: nemeses
+[
+ ["Nemeses","Baş Düşmanlar"],["Arch-nemesis","Ezeli düşman"],["Alive now","Şu an yaşayanlar"],["New","Yeni"],["What it carries","Ne taşır"],["Where it waits","Nerede bekler"],["Avenged","Öcü alındı"],
+ ["A foe that downs one of your Greater or older minions and is still standing when the room ends (you fell or fled) may live on as a nemesis: #%, and #% more for each stage of its victim past Greater. The Ledger gives it a name and the name of its first victim","Büyük ya da daha yaşlı hizmetkârlarından birini düşüren ve oda bittiğinde (düştüğünde ya da kaçtığında) hâlâ ayakta olan bir düşman baş düşman olarak yaşamaya devam edebilir: %#, kurbanının Büyük'ün ötesindeki her aşaması için %# daha. Defter ona bir ad ve ilk kurbanının adını verir"],
+ ["One level above its room for every minion it has downed and every week it lives. The best trait of its victims (the victim keeps it). A second kit from its gate once it has downed #","Düşürdüğü her hizmetkâr ve yaşadığı her hafta için odasının bir seviye üstünde. Kurbanlarının en iyi özelliği (kurban da onu korur). # hizmetkâr düşürünce kapısından ikinci bir hüner"],
+ ["In its own gate, behind a sigil-marked door that shows up once a run. The door is always read, whatever you know of the gate. At most # nemeses live at once; a new one pushes out the weakest","Kendi kapısında, her akında bir kez beliren mühürlü bir kapının ardında. Kapıyı neyi bilirsen bil her zaman okursun. Aynı anda en çok # baş düşman yaşar; yenisi en zayıfı iter"],
+ ["Once it has downed # of yours. At half HP it eats the trait it stole and heals #%, once","Senden # hizmetkâr düşürünce. Yarı canda çaldığı özelliği yer ve bir kez %# iyileşir"],
+ ["Killing it pays # more trophies and one roll on its gate boss's table. Its body rises Avenged: +#% to raise, and it brings the stolen trait home. Its victims' headstones in the Memorial say when","Onu öldürmek # ganimet daha ve kapı patronunun tablosundan bir zar kazandırır. Bedeni Öcü Alınmış olarak kalkar: diriltmeye +%#, ve çalınan özelliği eve getirir. Kurbanlarının Anıt'taki mezar taşları ne zaman olduğunu yazar"],
+ ["A sigil-marked door","Mühürlü bir kapı"],["Your nemesis waits behind it, always seen: an elite that has downed your dead. Kill it to avenge them","Baş düşmanın ardında bekler, her zaman görünür: ölülerini düşürmüş bir seçkin. Öçlerini almak için onu öldür"],["Your nemesis waits","Baş düşmanın bekliyor"],
+ ["Avenger I","Öç Alan I"],["Avenger II","Öç Alan II"],["Avenger III","Öç Alan III"],["Old Grudge","Eski Kin"],["Kill a nemesis","Bir baş düşman öldür"],["Kill # nemeses","# baş düşman öldür"],["Kill a nemesis that has lived four weeks","Dört hafta yaşamış bir baş düşman öldür"],
+ ["Victims #","Kurban #"],["# weeks","# hafta"],["# week","# hafta"],["Avenged on day #","#. gün öcü alındı"],
+ ["gnawed down","kemiren"],["drowned","boğan"],["burned","yakan"],["silenced","susturan"],["cut down","biçen"],["unmade","yok eden"],["erased","silen"]
+].forEach(([k,v])=>TR_DICT.set(k,v));
+TR_RX.unshift([/^([^.,]+), who (gnawed down|drowned|burned|silenced|cut down|unmade|erased) ([^.]+?)$/,"$3 adlı ölünü {t2} $1"],
+ [/^([^.]+?) fell to (?:an? |the )?([^.]+?)\.?$/,"$1, $2 karşısında düştü"],[/^It lives, and the Ledger gives it a name: ([^.]+?)\.?$/,"O yaşıyor ve Defter ona bir ad veriyor: {t1}"],[/^It waits in the ([^.]+?)\.?$/,"$1 içinde bekliyor"],
+ [/^([^.]+) (?:are|is) avenged\.?$/,"$1 için öç alındı"],[/^Downed: ([^.]+?)\.?$/,"Düşürdükleri: $1"],[/^Stole ([^.]+?)\.?$/,"Çaldığı: {t1}"],[/^([^.]+), Lv \+(\d+)$/,"$1, Sv +$2"],
+ [/^A nemesis: (.+)$/,"Bir baş düşman: $1"],[/^([^.]+) is forgotten: a new grudge takes its place\.?$/,"$1 unutuldu: yerini yeni bir kin alıyor"],
+ [/^([^.]+) has downed (\d+) of your dead\. It is an arch-nemesis now\.?$/,"$1 ölülerinden $2 tanesini düşürdü. Artık ezeli düşmanın"],[/^([^.]+) adds (.+) to its tally\.?$/,"$1, $2 adını hesabına ekliyor"],
+ [/^([^.]+) still walks the (.+) with (.+)'s name on its tally\. It grows stronger \(Lv \+(\d+)\)\.?$/,"$1 hâlâ $2 içinde dolaşıyor, hesabında $3 adı var. Güçleniyor (Sv +$4)"],
+ [/^([^.]+) devours what it stole from your dead and rises again \(\+(\d+) HP\)\.?$/,"$1 ölülerinden çaldığını yutuyor ve yeniden kalkıyor (+$2 can)"],[/^([^.]+) is avenged$/,"$1 için öç alındı"]);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -13843,7 +13957,7 @@ function memorialHTML(){   // the fallen, newest first, in a muted hand; honouri
   h+='<div class="mem-list">'+list.map((e,i)=>{ const c=honourCost(e);
     return '<div class="mem-row">'+ico(e.kind,e.rk,{boss:e.boss,elite:e.elite,role:e.role})+'<span class="rk r'+e.rk+'">'+RANKS[e.rk]+'</span><div class="mem-t"><b>'+e.nick+'</b> <span class="dim">'+theName(mName({name:e.name,stage:e.st}))+'</span>'
      +'<div class="u-sub"><span>'+memWhere(e)+'</span> &middot; <span>Day '+e.day+'</span> &middot; <span>Lv '+e.lvl+'</span>'+(e.kl?' &middot; <span>Kills '+e.kl+'</span>':'')+'</div>'
-     +(e.tr.length?'<div class="u-sub mem-tr">'+e.tr.map(t=>TRAITS[t].name).join(', ')+'</div>':'')+(e.bd?'<div class="u-sub mem-bd">Bonded to '+cleanText(e.bd)+'</div>':'')+(e.maus?'<div class="u-sub mem-maus">Rests in a mausoleum</div>':'')+(e.hs?'<div class="u-sub mem-hs">Headstone, tier '+e.hs+'</div>':'')+'</div>'+(town?'<div class="mem-b">':'')+mausBtn(e,i)
+     +(e.tr.length?'<div class="u-sub mem-tr">'+e.tr.map(t=>TRAITS[t].name).join(', ')+'</div>':'')+(e.bd?'<div class="u-sub mem-bd">Bonded to '+cleanText(e.bd)+'</div>':'')+(e.maus?'<div class="u-sub mem-maus">Rests in a mausoleum</div>':'')+(e.hs?'<div class="u-sub mem-hs">Headstone, tier '+e.hs+'</div>':'')+(e.av?'<div class="u-sub mem-av">Avenged on day '+e.av+'</div>':'')+'</div>'+(town?'<div class="mem-b">':'')+mausBtn(e,i)
      +(town&&(e.hs|0)<HEAD_TOP?'<button class="btn small" data-a="head" data-k="'+i+'"'+(S.gold<headCost(e)?' disabled title="Not enough gold"':'')+'>'+(e.hs?'Raise headstone':'Carve a headstone')+' &middot; '+headCost(e)+' gold</button>':'')
      +(town&&e.st>=1&&!remembered()?'<button class="btn small" data-a="honour" data-k="'+i+'"'+(S.gold<c?' disabled title="Not enough gold"':'')+'>Honour &middot; '+c+' gold</button>':'')+(town?'</div>':'')+'</div>'; }).join('')+'</div>';
   if(M.length>MEM_SHOW) h+='<div class="btns"><button class="linkbtn" data-a="memall">'+(ui.memAll?'Show the newest '+MEM_SHOW:'Show all '+M.length)+'</button></div>';
@@ -13923,7 +14037,7 @@ function bmHTML(bagFull){
 }
 // ----- the Codex: every rule and list in the game, read straight from the game's own tables so it never goes stale.
 // Enemies you have not met yet stay hidden, as in the bestiary.
-const CODEX=[['basics','Basics'],['raising','Raising'],['faith','Faith'],['omens','Omens'],['roles','Roles'],['traits','Traits'],['minions','Minion stats'],['army','Army'],['reserve','Reserve'],['fusion','Fusion'],['affixes','Elite affixes'],['bosses','Bosses'],['status','Status effects'],['types','Damage types'],['kits','Foe kits'],['skills','Skills'],['orders','Orders'],
+const CODEX=[['basics','Basics'],['raising','Raising'],['faith','Faith'],['omens','Omens'],['roles','Roles'],['traits','Traits'],['minions','Minion stats'],['army','Army'],['reserve','Reserve'],['fusion','Fusion'],['affixes','Elite affixes'],['bosses','Bosses'],['status','Status effects'],['types','Damage types'],['kits','Foe kits'],['nemeses','Nemeses'],['skills','Skills'],['orders','Orders'],
   ['gates','Gates'],['tower','Hell Tower'],['gear','Gear'],['forge','Heartforge'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['trade','Commissions and black market'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['records','Records'],['endings','Endings']];
 const CDX_ROLE={
   hexer:'Only raised from the hexer foes (one in each gate). It stands in the back row with low HP and attack, and each of its hits leaves a condition: a Hex by default, or its trait\'s wound (Rimeborn chills, Venomous poisons, Necrotic blights, Cinderborn burns). At most one hexer for every four army places brings its conditions; more fight plainly. As a foe it hexes your side.',
@@ -14041,6 +14155,12 @@ function codexSection(k){
       +cxList(Object.keys(SPECS).map(k=>cxRow(SPECS[k].name,SPECS[k].desc,ROLES[SPECS[k].role].label)))
       +'<p class="group-h">Kills and names</p>'+cxP('Every minion counts its kills, and the Memorial keeps the count. At '+NAME_AT+' kills its name is written into the Ledger: +'+Math.round(NAME_K*100)+'% HP and attack for every minion of its role, for good, even after it falls ('+NAME_MAX+' names at most).')
       +'<p class="group-h">Sweep</p>'+cxP('A gate you have cleared on Normal at least '+SWEEP_CLEARS+' times can be swept from its card on a Normal, uncursed day once you stand '+SWEEP_LV+' levels above its advice. A sweep costs one watch and wins every room at once: kill XP at '+Math.round(SWEEP_XP*100)+'%, gold, trophies, gear, bestiary kills and quest progress as usual; nothing is raised, and there are no events, doors or records. A secret master or the rival stops the sweep at the boss room, and you fight it.'); }
+  if(k==='nemeses') return cxP('A foe that downs one of your Greater or older minions and is still standing when the room ends (you fell or fled) may live on as a nemesis: '+Math.round(NEM_CH*100)+'%, and '+Math.round(NEM_STAGE*100)+'% more for each stage of its victim past Greater. The Ledger gives it a name and the name of its first victim.')
+      +cxList([cxRow('What it carries','One level above its room for every minion it has downed and every week it lives. The best trait of its victims (the victim keeps it). A second kit from its gate once it has downed '+NEM_KIT2+'.'),
+        cxRow('Where it waits','In its own gate, behind a sigil-marked door that shows up once a run. The door is always read, whatever you know of the gate. At most '+NEM_MAX+' nemeses live at once; a new one pushes out the weakest.'),
+        cxRow('Arch-nemesis','Once it has downed '+NEM_ARCH+' of yours. At half HP it eats the trait it stole and heals '+Math.round(NEM_ARCH_HEAL*100)+'%, once.'),
+        cxRow('Avenged','Killing it pays '+NEM_TRO+' more trophies and one roll on its gate boss\'s table. Its body rises Avenged: +'+NEM_RAISE+'% to raise, and it brings the stolen trait home. Its victims\' headstones in the Memorial say when.')])
+      +((S.nem||[]).length?'<p class="group-h">Alive now</p>'+cxList(S.nem.map(n=>cxRow(n.name,nemTitle(n)+'. '+DUNGEONS[n.g].name+', Lv +'+nemUp(n)+'.',n.arch?'Arch-nemesis':''))):'');
   if(k==='types'){ const pc=v=>Math.round(Math.abs(v)*100)+'%', prof=(res,hits)=>{ const w=DT_IDS.filter(t=>res[t]<0), r=DT_IDS.filter(t=>res[t]>0); return (w.length?'Weak to '+w.map(t=>DTYPE[t].name+' (+'+pc(res[t])+')').join(', ')+'. ':'')+(r.length?'Resists '+r.map(t=>DTYPE[t].name+' (-'+pc(res[t])+')').join(', ')+'. ':'')+'Strikers deal '+DTYPE[hits].name+'.'; };
     return cxP('Every hit has one of five damage types: Physical, Shadow, Frost, Fire and Rot. Where foes stand decides what they are weak to and what they resist. A weakness adds to the damage, a resistance takes from it, once, after armor and before any shield. Armor and resistance are separate: piercing beats armor, the right type beats resistance.')
       +'<p class="group-h">Your damage</p>'+cxList([cxRow(DTYPE.phys.name,'Strike, Echo, Hellfire, Cleave, Bone Spear and its Splinter, Thorns, Barbed Hide, the Spiked and Volley marks, bleeding, and every minion hit without a typed trait.'),
@@ -14591,7 +14711,7 @@ function townHTML(){
   if(sub==='trial') return h+trialHTML()+armyBriefHTML();
   if(S.lastPage&&S.mode==='town'&&((!S.ending&&!ui.lpLater)||ui.lpJust)) return h+lastPageHTML();   /* the last page (game-abbey.js): the Ledger itself, not a popup */
   h+=lastPageBanner();
-  h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'+gateArmyHTML()
+  h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'+gateArmyHTML()+nemStripHTML()
    +((n=>n<FIRST_STEPS.length&&!(S.tips&&S.tips.off)?'<p class="q-note guide-link"><button class="linkbtn" data-a="tab" data-k="help">How to play &middot; first steps '+n+'/'+FIRST_STEPS.length+'</button></p>':'')(stepsDone()))   /* for a new player; gone once every step is done or tips are switched off */
    +(omen()?'<div class="omen-line" title="It touches every gate and the Tower until dawn."><b>Omen today: '+OMENS[omen()].name+'.</b> '+OMENS[omen()].desc+'</div>':'')+(forecast()?'<div class="omen-line dim">Tomorrow: '+(forecast().id?OMENS[forecast().id].name:'no omen')+' (foreseen by '+FAITH[faithOf()].short+').</div>':'')+rivalWarnHTML()+arcGateHTML()
    +prepHTML()+'<div class="gates">'+DUNGEONS.map((d,i)=>gateHTML(i)).join('')+'</div>'
@@ -15040,12 +15160,18 @@ function raiseHTML(){
    +armyHTML();
 }
 function doorLore(k){   // what the Ledger reads behind a door (doorSight, doorBoss in game-gate-rules.js); on phones the details move to the tooltips
-  const r=S.run, sight=doorSight(r.di), L=r.pre&&r.pre[k];
+  const r=S.run, sight=k==='nem'?2:doorSight(r.di), L=r.pre&&r.pre[k];   /* a nemesis's door is always read */
   if(k==='boss'){ const b=doorBoss(r.di); return b?'<span class="dl"><span class="dlb">'+b.name+'</span><span>'+b.tip+'</span></span>':''; }
   if(!sight||!L) return '';
   return '<span class="dl"><span class="dlh">Behind it</span>'+L.map(e=>{ const af=(e.aff||[]).map(a=>AFFIX[a].name).concat(kitOf(e)&&knowLv(e)>=1?[KITS[kitOf(e)].name]:[]), row=rowOf(e)==='f'?'Front':'Back';
     const tip=(e.elite?['Elite']:[]).concat(af).concat(sight>1?[row+' row','Lv '+e.lvl]:[]).join(' · ');
     return '<span class="df'+(e.elite?' el':'')+'"'+(tip?' title="'+tip+'"':'')+'>'+e.name+(af.length?'<small>'+af.join(', ')+'</small>':'')+(sight>1?'<small>'+row+'</small><small>Lv '+e.lvl+'</small>':'')+'</span>'; }).join('')+'</span>';
+}
+function nemStripHTML(){   // the Gates tab: the nemeses alive (game-nemesis.js)
+  const L=S.nem||[]; if(!L.length) return '';
+  return '<div class="nem-strip" role="list" aria-label="Nemeses"><span class="rub">Nemeses</span>'+L.map(n=>{ const w=Math.floor((S.day-n.born)/7);
+    return '<span class="nem-c'+(n.arch?' arch':'')+'" role="listitem" title="'+nemTitle(n)+'. Downed: '+n.v.map(v=>v.n).join(', ')+'.'+(n.tr?' Stole '+TRAITS[n.tr].name+'.':'')+'"><b>'+n.name+'</b>'+(n.arch?' <small>Arch-nemesis</small>':'')
+      +'<small>'+DUNGEONS[n.g].name+' &middot; Lv +'+nemUp(n)+' &middot; Victims '+n.k+' &middot; '+(w?w+(w>1?' weeks':' week'):'New')+'</small></span>'; }).join('')+'</div>';
 }
 function doorsHTML(){
   const r=S.run;

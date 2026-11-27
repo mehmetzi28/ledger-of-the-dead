@@ -159,7 +159,7 @@ function memorialFix(g){   // normalizeSave: keep well-formed entries only
   const ok=e=>e&&typeof e==='object'&&typeof e.nick==='string'&&typeof e.name==='string';
   g.memorial=Array.isArray(g.memorial)?g.memorial.filter(ok).slice(0,MEM_MAX).map(e=>{ const o={nick:cleanNick(e.nick)||'Nameless',kind:cleanText(typeof e.kind==='string'?e.kind:e.name),name:cleanText(e.name),rk:clamp(Math.floor(num(e.rk,0)),0,RANKS.length-1),
     lvl:Math.max(1,Math.floor(num(e.lvl,1))),st:clamp(Math.floor(num(e.st,0)),0,STAGE_MAX),tr:Array.isArray(e.tr)?e.tr.filter(t=>TRAITS[t]):[],role:ROLES[e.role]?e.role:'striker',day:Math.max(1,Math.floor(num(e.day,1)))};
-    if(num(e.kl,0)>0) o.kl=Math.floor(e.kl);   /* kills (game-army.js) */ if(e.boss) o.boss=1; if(e.elite) o.elite=1; for(const k of ['g','raid']) if(RK[e[k]]) o[k]=e[k]; for(const k of ['f','rd']) if(num(e[k],0)>0) o[k]=Math.floor(e[k]); if(typeof e.bd==='string'&&cleanNick(e.bd)) o.bd=cleanNick(e.bd); if(e.maus) o.maus=1; if(num(e.hs,0)>=1) o.hs=Math.min(HEAD_TOP,Math.floor(e.hs)); return o; }):[];
+    if(num(e.kl,0)>0) o.kl=Math.floor(e.kl);   /* kills (game-army.js) */ if(e.boss) o.boss=1; if(e.elite) o.elite=1; for(const k of ['g','raid']) if(RK[e[k]]) o[k]=e[k]; for(const k of ['f','rd']) if(num(e[k],0)>0) o[k]=Math.floor(e[k]); if(typeof e.bd==='string'&&cleanNick(e.bd)) o.bd=cleanNick(e.bd); if(e.maus) o.maus=1; if(num(e.hs,0)>=1) o.hs=Math.min(HEAD_TOP,Math.floor(e.hs)); if(num(e.av,0)>0) o.av=Math.floor(e.av);   /* avenged (game-nemesis.js) */ return keepOrder(e,o); }):[];
   g.honor=g.honor&&typeof g.honor==='object'&&typeof g.honor.day==='number'?{day:g.honor.day,nick:cleanNick(g.honor.nick)||'Nameless'}:null;
 }
 

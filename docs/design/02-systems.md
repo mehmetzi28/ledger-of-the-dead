@@ -282,6 +282,11 @@ army places brings conditions (`hexCap`). Marks *Augur* (+1 turn) and *Malefic* 
 an active on the battle bar (`ACTIVES`: Hold the Line, Execute Order, Last Rites, Collect, Doom) that costs your action,
 once a room (twice from Eternal, x1.5 from Ancient). A charm carries its echo at 75% (`CHARM_K`).
 
+**Nemeses** (R13, `game-nemesis.js`). A foe that downs a Greater or older minion and still stands when you fall or flee may
+live on (35%, +10% a victim stage past Greater): a name, +1 level a victim and a week, its best victim's trait, a second kit
+at 2 victims, a second wind at 3 (arch-nemesis). At most 3; each waits behind a sigil door in its gate, always read. Killed,
+it pays trophies and a boss-table roll, and its body rises Avenged (+15%, with the stolen trait).
+
 **Kills and names** (R12). Each minion counts its kills (`m.kills`, kept on its headstone); at 100 its name is written
 into the Ledger (`S.nameLines`, at most 10): +1% HP and attack for every minion of its role, for good.
 
