@@ -352,6 +352,7 @@ function towerTable(f,role,boss,elite){
   }
   return tcache[key]=rows;
 }
+const SGN_LV=40, SGN_COST=22, SGN_WARD=.15, SGN_DRAIN=.08, SGN_DRAIN_BOSS=.04, SGN_BLOOM=.6, RUNE_DUST=20, RUNE_WARDEN=10, RUNE_GUARD=15, RUNE_LEECH=.1, RUNE_OVER=.2, RUNE_CHAIN=.5, RUNE_SPREAD=.5, RUNE_AVAL=.6, RUNE_GLACIER=.6, RUNE_DEEP=.25;   // R11 PR B: signatures and runes (game-builds.js)
 // R11 hero builds (game-builds.js): Hoarfrost Lance, Pestilence, Endurance, Requiem, The Long Name, Long Haul
 const LANCE_BASE=1.1, LANCE_STEP=.3, LANCE_BOSS=40, LANCE_SHATTER=1.5, PEST_STEP=.05, PEST_MAX=3, CON_ENDURE=.003, CON_ENDURE_CAP=.25, ENDURE_FROM=5,
   REQUIEM_MUL=.6, LNAME_TURNS=3, LONG_HAUL=15;
@@ -429,7 +430,7 @@ const TOWER_RES={frost:-.25,fire:.5}, TOWER_HITS='fire', SIEGE_RES={shad:-.25}, 
 const RES_CAP=.5, FOE_RES_MAX=.9, IRON_PHYS=.15, STORM_SHAD=1.1;   // RES_CAP: your own resistance to one type; Iron Rain: foes resist physical; Soul Storm: your shadow damage
 const riftRes=n=>{ const w=DT_IDS[(n*7+2)%5], r=DT_IDS[(n*3+(n>>2)+4)%5]; const o={}; o[w]=-.25; if(r!==w) o[r]=.25; else o[DT_IDS[(DT_IDS.indexOf(w)+2)%5]]=.25; return o; };   // one weakness and one resistance per depth, the same every time
 function placeRes(r){ r=r||S.run; if(!r) return {}; return r.siege?SIEGE_RES:r.tw?TOWER_RES:r.rift?sigRes(riftRes(r.rift)):GATE_RES[r.di]||{}; }   /* Typed Dark */
-function foeRes(e,ty){ if(e&&e.imm===ty) return 1; let v=(placeRes()[ty]||0)+(e&&e.res&&e.res[ty]||0)+(e&&KIND_RES[e.base]&&KIND_RES[e.base][ty]||0); if(ty==='phys'&&omen()==='ironrain') v+=IRON_PHYS; return Math.min(FOE_RES_MAX,v); }
+function foeRes(e,ty){ if(e&&e.imm===ty) return 1; let v=-(e&&e.resD||0)+(placeRes()[ty]||0)+(e&&e.res&&e.res[ty]||0)+(e&&KIND_RES[e.base]&&KIND_RES[e.base][ty]||0); if(ty==='phys'&&omen()==='ironrain') v+=IRON_PHYS; return Math.min(FOE_RES_MAX,v); }
 const typeDmg=ty=>{ const k=DTYPE[ty]&&DTYPE[ty].dmg; return (k?1+G(k)/100:1)*(ty==='shad'&&omen()==='soulstorm'?STORM_SHAD:1); };   // your damage of one type: gear lines (you and your army), Soul Storm
 const TRAIT_RES={rimeborn:['frost',.25],cinderborn:['fire',.25],necrotic:['rot',.25],venom:['rot',.25]};   // a minion risen with a typed trait shrugs off its own element
 function allyRes(a,ty){ if(!ty||ty==='phys') return 0; if(a.id==='p'){ const k=DTYPE[ty].res; return k?Math.min(RES_CAP,G(k)/100):0; } let v=0; for(const t in TRAIT_RES) if(TRAIT_RES[t][0]===ty&&hasTrait(a,t)) v=Math.max(v,TRAIT_RES[t][1]); return v; }

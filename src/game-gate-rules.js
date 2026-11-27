@@ -360,6 +360,7 @@ const shadowK=()=>omen()==='eclipse'?ECLIPSE_SHADOW:1;   // Black Eclipse: Soul 
 const foeCrit=()=>.25-(omen()==='eclipse'?ECLIPSE_CRIT:0)+sigCrit();   /* Thin Veil (game-rift.js) */   // an enemy striker's crit chance
 function roomStart(list){   // a fresh room or floor: Soul Storm, the Swift affix and trait, and Ossified
   cmdSync();   /* Command: measured as the room begins */
+  if(S.run){ S.run.sgnU=0; S.run.reapRs=0; }   /* the signature and Second Harvest: once a room (game-builds.js) */
   foeRise(list);
   for(const m of S.army){ delete m.sx; if(m.hp>0&&hasTrait(m,'swift')) addSt(m,'hasted',2); }   // sx: Stitched used this room
   echoRoom(); kitSeen(list); delete S.run.mk;

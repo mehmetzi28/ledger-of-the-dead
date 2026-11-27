@@ -246,6 +246,7 @@ function statusHTML(){
    +'<div class="derived"><div>'+sgl('atk')+'<b>'+pAtk()+'</b></div><div>'+sgl('siph')+'<b>'+pSiph()+'</b></div><div>'+sgl('slot')+'<b>'+slots()+'</b></div></div>'
    +(cmdAtk()||cmdSiph()||cmdHp()?'<p class="cmd-line u-sub" title="Command: your hero draws on the power of your three strongest minions">Command: +'+cmdAtk()+' Strike, +'+cmdSiph()+' Siphon, +'+cmdHp()+' max HP</p>':'')
    +(A('constitution')>0?'<p class="u-sub" title="Endurance: Constitution in long fights (game-builds.js)">Endurance: +'+(Math.round(CON_ENDURE*A('constitution')/10*1000)/10)+'% damage a turn after turn '+ENDURE_FROM+', up to +'+Math.round(CON_ENDURE_CAP*100)+'%</p>':'')
+   +buildLineHTML()
    +'</section>';
 }
 function questHTML(){
@@ -496,15 +497,30 @@ function skillsHTML(){
       const btn=rk>=SK_MAX?'<span class="u-tag ok">Mastered</span>'
         :lockedLv?'<button class="btn small" disabled>Reach Lv '+req+'</button>'
         :'<button class="btn small primary" data-a="learn" data-k="'+s.id+'"'+(P.sp<=0?' disabled':'')+'>'+(rk?'Rank up':'Learn')+'</button>';
-      return '<div class="tt-row'+(rk?' on':'')+(!rk&&lockedLv?' off':'')+'"><div><h4>'+s.name+' <span class="u-tag">'+rk+'/'+SK_MAX+'</span></h4><div class="u-sub">'+meta+'</div>'+body+modH+'</div>'+btn+'</div>';
+      return '<div class="tt-row'+(rk?' on':'')+(!rk&&lockedLv?' off':'')+'"><div><h4>'+s.name+' <span class="u-tag">'+rk+'/'+SK_MAX+'</span></h4><div class="u-sub">'+meta+'</div>'+body+modH+runeRowHTML(s)+'</div>'+btn+'</div>';
     }).join('')+'</div>';
   });
   h+=capHTML();   // mastery paths and capstones (src/ui-progression.js)
+  h+=sgnHTML();   /* the signature (game-builds.js) */
   h+='<p class="group-h">Ultimate'+(P.lvl<ULT_LV?' &middot; opens at level '+ULT_LV:'')+'</p>'+brief('ult','Soul Siphon harvests a Soul, and every elite or boss that falls gives one. With '+SOUL_MAX+' Souls, unleash your ultimate in battle (key R). Choose one here; you can switch for free in town.','q-note')+'<div class="items">'
    +Object.keys(ULTS).map(id=>{ const U=ULTS[id], on=P.ult===id; return '<div class="tt-row'+(on?' on':'')+(P.lvl<ULT_LV?' off':'')+'"><div><h4>'+U.name+'</h4><div class="u-sub">'+U.desc+'</div></div>'
      +(on?'<span class="u-tag ok">Chosen</span>':'<button class="btn small primary" data-a="ult" data-k="'+id+'"'+(P.lvl<ULT_LV?' disabled':'')+'>Choose</button>')+'</div>'; }).join('')+'</div>';
   if(spent) h+='<div class="btns"><button class="btn small warn" data-a="skreset">'+(ui.confirm==='skreset'?'Press again to forget all skills':'Forget all skills ('+spent+' back)')+'</button></div>';
   return h+'</section>';
+}
+function buildLineHTML(){   // the build summary on the Status panel: leaning path, signature, slotted runes (game-builds.js)
+  const P=S.player, k=Object.keys(PATHS), best=Math.max(...k.map(pathPts)); if(best<=0) return ''; const p=k.filter(x=>pathPts(x)===best), lean=p.includes(P.capPath)?P.capPath:p[0], sp=sgnPath();
+  const rn=Object.values(P.runes||{}).filter(id=>RUNES[id]).map(id=>RUNES[id].name);
+  return '<p class="u-sub"><span>Build: '+PATHS[lean].name+' ('+best+' points)</span>'+(sp?' &middot; <span>Signature: '+SGN[sp].name+'</span>':'')+(rn.length?' &middot; <span>Runes:</span> '+rn.map(n=>'<span>'+n+'</span>').join(', '):'')+'</p>'; }
+function sgnHTML(){   // the signature card on the Skills tab (game-builds.js)
+  const P=S.player, p=sgnPath(); let h='<p class="group-h">Signature'+(P.lvl<SGN_LV?' &middot; opens at level '+SGN_LV:'')+'</p>';
+  if(!p) return h+'<p class="q-note">'+(P.lvl<SGN_LV?'At level '+SGN_LV+' the path with the most skill points (at least '+CAP_MIN+') gives its signature: one active, '+SGN_COST+' mana, once a room.':'Spend at least '+CAP_MIN+' points in one path to gain its signature.')+'</p>';
+  return h+'<div class="tt-row on"><div><h4>'+SGN[p].name+' <span class="u-tag">'+PATHS[p].name+'</span></h4><div class="u-sub">'+SGN_COST+' mana &middot; once a room &middot; key T</div><div>'+SGN[p].desc()+'</div></div></div>';
+}
+function runeRowHTML(s){   // the rune slot on an active skill's card (game-builds.js)
+  if(s.type!=='active'||!sk(s.id)) return ''; const own=RUNE_IDS.filter(id=>RUNES[id].sk===s.id&&runeOwned(id)), cur=S.player.runes&&S.player.runes[s.id];
+  if(!own.length) return '<div class="u-sub dim rune-row">Rune: none found yet ('+RUNE_IDS.filter(id=>RUNES[id].sk===s.id).map(id=>RUNES[id].name).join(' or ')+')</div>';
+  return '<div class="rune-row chips"><span class="u-sub">Rune:</span>'+own.map(id=>'<button class="btn small'+(cur===id?' primary':'')+'" data-a="rune" data-k="'+s.id+'|'+id+'" aria-pressed="'+(cur===id)+'" title="'+RUNES[id].desc+'"'+(S.mode!=='town'?' disabled':'')+'>'+RUNES[id].name+'</button>').join('')+'</div>';
 }
 function ascPickHTML(){   // the next level's rules (one; two in the Keeper's Cycle; none in the Quiet Valley), kept for every later cycle, and the carries (game-asc.js)
   const off=ascOffer(), N=ascPicks(), pk=ascPickList(), kept=ascRules();

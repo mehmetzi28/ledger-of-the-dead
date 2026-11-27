@@ -109,6 +109,9 @@ Frenzy, Reap, Hoarfrost Lance) with mana costs and cooldowns that reset each roo
 on a foe tick harder per wound). Five ultimates (Death's Toll, Unholy Resurrection, Soul Prison, Requiem, The Long Name).
 **Endurance** (R11, `game-builds.js`): past turn 5, Constitution adds damage every turn, up to +25%. At rank 3 each skill offers one of two
 upgrades (`SKILL_MODS`, `game-faith-story.js`), each adding a mechanic, not more of the same number.
+**Signatures and runes** (R11 PR B, `game-builds.js`): from level 40 the path with the most points gives a signature
+(Ossuary Gate, Exsanguinate, White Silence, Bloom of Ruin), 22 mana, once a room, a free action (key T). 16 skill runes,
+one slot per active, change how it works; Tower wardens, secret masters and Rift guardians drop them; swapped free in town.
 
 **Mastery paths and capstones** (`game-progression.js`). Skills belong to four paths: Bone, Blood, Frost and Rot,
 five skills each. From level 30 the path with the most points (at least 10) grants its first capstone, from level 50 the

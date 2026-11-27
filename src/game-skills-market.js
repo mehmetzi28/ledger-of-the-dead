@@ -43,34 +43,39 @@ function useSkill(id,t){
   const s=SKILL[id], rk=sk(id), r=S.run, P=S.player;
   const mg=marginReady(), fl=rbFirst(r); P.mana-=fl?0:skCost(s); marginSkill(r,t,mg); hfSkill(); r.naveU=1; r.lastSk=id; sigMirror(r); r.cd=r.cd||{}; r.cd[id]=fl>1?0:s.cd+1-(id==='blast'?faithBlastCd():0);   /* First Light (game-rift.js) */ tally('sk_'+id);   // +1: the end-of-turn tick runs this same turn
   if(id==='spear'){ const fb=frozenChilled(t), d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(hasMod('spear','a')?1:.5)*skMul()*(fb?FROSTBREAK:1)); hurtFoe(t,d,'phys'); log('Bone Spear impales '+t.name+' for '+d+'.'); fxe('spear',t); if(fb&&t.hp>0) frostbreak(t);
+    if(hasRune('spear','a')&&!(t.hp>0)){ P.mana=Math.min(pMana(),P.mana+Math.round(skCost(s)/2)); log('Marrow: the kill gives back '+Math.round(skCost(s)/2)+' mana.','ok'); } if(hasRune('spear','b')&&t.hp>0) addSt(t,'sundered',2);   /* runes (game-builds.js) */
     if(hasMod('spear','b')){ const o=liveFoes().filter(x=>x!==t); if(o.length){ const o2=pick(o), d2=Math.round(d*.5); hurtFoe(o2,d2,'phys'); log('A splinter tears into '+o2.name+' for '+d2+'.'); } } }
   else if(id==='blast'){ const c=freeCorpse(); c.tried=true; c.result='exploded'; const base=pSiph()*(.6+.2*rk)*pierceMul(1)*(hasMod('blast','a')?1.3:1)*skMul()*shadowK(); let tot=0;
     const rot=Math.max(c.bl||0,...liveFoes().map(o=>o.dots&&o.dots.blight?o.dots.blight.d:0)), spread=[];   // Spreading Rot: a blighted body, or blight already in the room
-    for(const o of liveFoes()){ const d=hit(base); hurtFoe(o,d,'rot'); fxe('burst',o); tot+=d; if(rot&&o.hp>0&&!(o.dots&&o.dots.blight)){ addDot(o,'blight',rot,2); if(o.dots&&o.dots.blight) spread.push(o); } if(hasMod('blast','a')) addSt(o,'sundered',2); if(hasMod('blast','b')){ addDot(o,'poison',pSiph()*.15,3); addDot(o,'blight',pSiph()*.1,3); } } log('The body of '+c.name+' bursts apart, dealing '+tot+' damage across the room.');
+    for(const o of liveFoes()){ const d=hit(base); hurtFoe(o,d,'rot'); fxe('burst',o); tot+=d; if(hasRune('blast','b')&&o.hp>0) addDot(o,'bleed',pSiph()*.15,2); if(rot&&o.hp>0&&!(o.dots&&o.dots.blight)){ addDot(o,'blight',rot,2); if(o.dots&&o.dots.blight) spread.push(o); } if(hasMod('blast','a')) addSt(o,'sundered',2); if(hasMod('blast','b')){ addDot(o,'poison',pSiph()*.15,3); addDot(o,'blight',pSiph()*.1,3); } } log('The body of '+c.name+' bursts apart, dealing '+tot+' damage across the room.');
+    if(hasRune('blast','a')){ const c2=freeCorpse(); if(c2){ c2.tried=true; c2.result='exploded'; let t2=0; for(const o of liveFoes()){ const d=hit(base*RUNE_CHAIN); hurtFoe(o,d,'rot'); t2+=d; } log('Chain: a second body bursts for '+t2+' in all.','ok'); } }   /* runes (game-builds.js) */
     deed('ulm',2); if(spread.length) combo('rot',spread,'Spreading Rot: the blight spreads to '+spread.length+' foe'+(spread.length>1?'s':'')+'.'); }
   else if(id==='mend'){
     let tot=0;
     const cured=allies().some(a=>a.dots);
     let up=null; if(hasMod('mend','a')){ up=S.army.filter(m=>m.hp<=0).sort((a,b)=>mPower(b)-mPower(a))[0]||null; if(up){ up.hp=Math.max(1,Math.round(up.maxHp*MEND_REVIVE)); mark(up,0,up.hp); log('Deep Mending pulls '+up.nick+' back up at '+up.hp+' HP.','ok'); } }   // Deep Mending: one downed minion stands again
-    for(const m of S.army) if(m.hp>0&&m!==up) tot+=healAlly(m,Math.round(m.maxHp*(.15+.08*rk)));
+    for(const m of S.army) if(m.hp>0&&m!==up){ const hv=Math.round(m.maxHp*(.15+.08*rk)), over=hv-(m.maxHp-m.hp); tot+=healAlly(m,hv); if(over>0&&hasRune('mend','b')) m.mw=Math.min(Math.round(m.maxHp*RUNE_OVER),(m.mw||0)+over); }   /* Overgrowth (game-builds.js) */
     if(hasMod('mend','b')) tot+=healAlly(P,Math.round(pMax()*.15));
     if(cured) tally('cures');
-    allies().forEach(clearDots);
+    allies().forEach(clearDots); if(hasRune('mend','a')) allies().forEach(a=>{ delete a.st; });   /* Stitchwork */
     fxe('mend',P);
     if(pactOn('bitter')&&S.run){ const fs=liveFoes(); fs.forEach(o=>{ const h=Math.min(o.maxHp-o.hp,Math.round(o.maxHp*PACT_MEND*blightK(o))); if(h>0){ o.hp+=h; mark(o,0,h); } }); if(fs.length) log('Bitter Blood: the foes drink from your mending too.','bad'); }   /* the Pact of Bitter Blood */
     log('Dark Mending knits your army back together for '+tot+' HP'+(cured?' and cures every wound and burn':'')+'.','ok');
   }
   else if(id==='curse'){ const turns=hasMod('curse','a')?5:3, bonus=.15+.1*rk;
     if(hasMod('curse','b')){ for(const o of liveFoes()){ o.curse={mul:1+bonus*.8,t:turns}; mark(o,0,0); } log('Every foe is cursed and takes '+Math.round(bonus*80)+'% more damage.'); }
-    else { t.curse={mul:1+bonus,t:turns}; mark(t,0,0); log(t.name+' is cursed and takes '+Math.round(bonus*100)+'% more damage.'); }
+    else { t.curse={mul:1+bonus,t:turns}; mark(t,0,0); log(t.name+' is cursed and takes '+Math.round(bonus*100)+'% more damage.'); if(hasRune('curse','a')){ const n=foeNbrs(t).find(o=>!o.curse); if(n){ n.curse={mul:1+bonus*RUNE_SPREAD,t:turns}; mark(n,0,0); log('Spread: '+n.name+' is cursed too.'); } } }
+    if(hasRune('curse','b')){ t.resD=RUNE_DEEP; log('Deep Curse: '+t.name+'\'s resistances crumble.'); }   /* runes (game-builds.js) */
     if(rk>=3) for(const o of (hasMod('curse','b')?liveFoes():[t])) addSt(o,'hexed',2); }   // rank 3: the curse also hexes
   else if(id==='chill'){ const d=hit(pSiph()*.5*dmgMul()*skMul()*shadowK()); hurtFoe(t,d,'frost'); fxe('ward',t); const held=!t.boss||Math.random()*100<40+10*rk+(hasMod('chill','a')?20:0);
     if(rk>=2&&t.hp>0) addSt(t,'chilled',2);   // rank 2: Chilled, resisted or not
-    if(held&&t.hp>0){ t.stun=(rk>=3?2:1)+faithFrozen(t); tally('frozen'); log('Grave Chill hits '+t.name+' for '+d+' and freezes it solid.'); } else log('Grave Chill hits '+t.name+' for '+d+', but it shakes off the frost.'); }
-  else if(id==='frenzy'){ r.frenzy=hasMod('frenzy','a')?5:3; r.frenzyMul=1+(.2+.15*rk); if(hasMod('frenzy','b')) for(const m of S.army) if(m.hp>0) healAlly(m,Math.round(m.maxHp*.15)); if(rk>=3) for(const m of S.army) if(m.hp>0) addSt(m,'hasted',2); log('Unholy Frenzy: your army surges with '+Math.round((r.frenzyMul-1)*100)+'% more damage.','ok'); }
+    if(hasRune('chill','a')) for(const o of liveFoes()) if(o!==t){ hurtFoe(o,Math.round(d*RUNE_AVAL),'frost'); }   /* Avalanche */
+    if(held&&t.hp>0){ t.stun=(rk>=3?2:1)+faithFrozen(t)+(hasRune('chill','b')&&!t.boss?1:0); tally('frozen'); log('Grave Chill hits '+t.name+' for '+d+' and freezes it solid.'); } else log('Grave Chill hits '+t.name+' for '+d+', but it shakes off the frost.'); }
+  else if(id==='frenzy'){ r.frenzy=(hasMod('frenzy','a')?5:3)+(hasRune('frenzy','b')?1:0); if(hasRune('frenzy','b')) P.hp=Math.max(1,P.hp-Math.round(P.hp*.1));   /* Last Frenzy */ r.frenzyMul=1+(.2+.15*rk); if(hasMod('frenzy','b')) for(const m of S.army) if(m.hp>0) healAlly(m,Math.round(m.maxHp*.15)); if(rk>=3) for(const m of S.army) if(m.hp>0) addSt(m,'hasted',2); log('Unholy Frenzy: your army surges with '+Math.round((r.frenzyMul-1)*100)+'% more damage.','ok'); }
   else if(id==='reap'){ const low=t.hp<t.maxHp*reapLow(); let d=hit(pSiph()*(1.2+.3*rk)*pierceMul(1)*skMul()*shadowK()); if(low) d*=2; else if(hasMod('reap','a')) d=Math.round(d*MOON_HIGH); const fb=frozenChilled(t); if(fb) d=Math.round(d*FROSTBREAK); KILL='reap'; hurtFoe(t,d,'shad'); KILL=null; fxe('strike',t,{crit:1});
     if(hasMod('reap','b')){ healAlly(P,Math.round(d*SOUL_REAP_HEAL)); if(t.hp<=0) P.mana=Math.min(pMana(),P.mana+SOUL_REAP_MANA); }   // Soul Reap
-    log('You reap '+t.name+' for '+d+(low?' (harvest)':'')+'.'); if(fb&&t.hp>0) frostbreak(t); }
+    log('You reap '+t.name+' for '+d+(low?' (harvest)':'')+'.'); if(fb&&t.hp>0) frostbreak(t);
+    if(!(t.hp>0)){ if(hasRune('reap','a')&&!r.reapRs){ r.reapRs=1; r.cd.reap=0; log('Second Harvest: Reap is ready again.','ok'); } if(hasRune('reap','b')&&gainSoul()) log('Soul Harvest: a Soul ('+r.souls+'/'+ultCost()+').','ok'); } }   /* runes (game-builds.js) */
   else if(id==='lance') useLance(t,rk);   /* Hoarfrost Lance (game-builds.js) */
   MARGIN=null; return true;
 }

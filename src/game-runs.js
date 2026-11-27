@@ -148,7 +148,7 @@ function checkDeaths(){
     if(e.elite) tally('elites');
     studyFoe(e.base,ascStudy(e));
     r.pending+=killXp(e); if(!e.stash) r.loot.push(...rollDrops(e)); killLoot(e,r);   // a stolen body drops no gear: the body is the reward
-    killPowers(); capKill(e); faithKill(e,r);
+    killPowers(); capKill(e); faithKill(e,r); runeDrop(e,r);   /* skill runes (game-builds.js) */
     if(!e.rival&&!e.guard&&sigBody()){ const c=corpseOf(e);   /* guardians and Loud Grave leave no body (game-rift.js) */ if(e.stash) rivalReclaim(e,c); r.corpses.push(c); longNameRise(e,r); }   /* The Long Name (game-builds.js) */   // the rival leaves no body: they retreat
     if(e.boss) bossSpeaks(e,'bye');
     log(e.rival?e.name+' is beaten.':e.name+' falls.'); sfx('kill'); fxe('death',e);
@@ -232,7 +232,7 @@ function act(kind){
     let tg=minionTarget(m); if(!tg) break;
     const breach=m.role==='reaper'&&r.execute&&hasSt(tg,'sundered')&&foeArmor()>0;   // Breach: Execute ignores a Sundered foe's armor
     let d=hit(m.atk*(breach?pierceMul(1):dmgMul())*(r.frenzy>0?r.frenzyMul:1)*(m.role==='reaper'&&r.execute&&tg.hp<tg.maxHp*.4?2:1)*(hasTrait(m,'wrathful')&&m.hp<m.maxHp/2?1.4:1)*hexK(m)*rowK(m)*(tg.hp<tg.maxHp*BUTCHER_LOW?1+markV(m,'butcher'):1)*breakK(m,tg)*echoDmg(m,tg)); const cc=mCritCh(m), crit=(m.role==='striker'&&r.focus)||(cc>0&&Math.random()<cc); if(crit){ d=Math.round(d*1.8); tally('crits'); }
-    const mt=minionType(m); KILL=m.role==='reaper'&&r.execute?'exec':null; hurtFoe(tg,d,mt); KILL=null; fxe('mhit',tg,{by:fxKey(m)});
+    const mt=minionType(m); KILL=m.role==='reaper'&&r.execute?'exec':null; hurtFoe(tg,d,mt); KILL=null; runeLeech(m,d); fxe('mhit',tg,{by:fxKey(m)});
     if(crit&&r.focus&&tg.charging&&tg.hp>0) breakCharge(tg,m.nick+'\'s focused strike breaks '+theName(tg.name)+'\'s focus.');
     let extra=minionOnHit(m,tg)+echoHit(m,tg)+kitReflect(tg,m,d);
     if(m.role==='reaper'&&m.hp>0){ const o=liveFoes().filter(x=>x!==tg&&reachable(x)); if(o.length){ const o2=pick(o); const d2=Math.round(d*.5); hurtFoe(o2,d2,mt); extra+=' and cleaves '+o2.name+' for '+d2; } }
