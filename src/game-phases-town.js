@@ -15,7 +15,7 @@ function checkPhase(){
   for(const e of liveFoes()) if(e.boss&&e.abil&&!e.phase2&&!e.hunger&&(e.tw||e.rival||e.rankI>=1||runHeat()>=2)&&e.hp<=e.maxHp*phaseAt()&&!hibernates(e)){   /* Vesh's Hibernation (game-pantheon.js) */   // the Rat King, a new player's first boss, keeps one phase
     e.phase2=true; e.fast=(e.fast||0)+1; e.alt=true; e.abilT=Math.min(e.abilT,2); if(e.reck) reckLastPage(e);   /* The Last Page (game-rival-arc.js) */   // Sundering Blow comes first (a boss with a move set has a twist instead)
     const l=PHASE_LINES[e.base]; log(e.name+(l?': "'+l+'"':' rises in fury.'),'boss'); const tw=bossTwist(e);
-    log(tw?e.name+' enters its second phase: '+tw.name+'. '+tw.desc+' It moves faster and warns before every move.':e.name+' enters its second phase. It moves faster, warns before every move, and adds Sundering Blow.','bad'); sfx('phase'); tally('phases'); moment(e.name+' enters its second phase','bad');
+    log(tw?e.name+' enters its second phase: '+tw.name+'. '+tw.desc+' It moves faster and warns before every move.':e.name+' enters its second phase. It moves faster, warns before every move, and adds Sundering Blow.','bad'); sfx('phase'); fxe('phase',e); tally('phases'); moment(e.name+' enters its second phase','bad');
   }
 }
 function breakCharge(e,why){ const mv=e.move||e.abil; e.charging=false; e.move=null; delete e.edictT; delete e.blockT; if(e.kit&&mv!=='sunder') nextMove(e); e.abilT=BOSS_ABIL[mv].every; log(why+' '+BOSS_ABIL[mv].name+' is lost.','ok'); tally('cancels'); moment(BOSS_ABIL[mv].name+' broken','ok'); }

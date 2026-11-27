@@ -85,6 +85,7 @@ function kitIntentOk(e,it){   // a planned kit action still possible
 }
 function kitAct(e,it){   // a foe spends its turn on its kit; true if it did
   const r=S.run; if(abbeyKitAct(e,it)) return true;
+  { const K={shield:'shield',mark:'marker',cleanse:'purify',call:'call',burrow:'burrow'}[it.k], t=it.k==='shield'||it.k==='cleanse'?r.enemies.find(o=>o.id===it.t):it.k==='mark'?allies().find(a=>fxKey(a)===it.t):e; if(K&&t) fxe('kit',t,{k:K}); }   /* R17: the kit's moment on the stage (fx-cues.js) */
   if(it.k==='shield'){ const f=r.enemies.find(o=>o.id===it.t); if(!f||!(f.hp>0)) return true; const add=Math.round(e.maxHp*KIT_SHIELD); f.shield=Math.min(Math.round(f.maxHp*KIT_SHIELD_CAP),(f.shield||0)+add); fxe('ward',f); log(e.name+' raises a shield over '+(f===e?'itself':f.name)+'.','bad'); return true; }
   if(it.k==='mark'){ const tg=allies().find(a=>a.hp>0&&fxKey(a)===it.t); if(tg){ r.mk={t:it.t,turn:r.turn+1}; log(e.name+' marks '+nameOf(tg)+': next turn every foe that can reach it strikes it.','bad'); } return true; }
   if(it.k==='cleanse'){ const f=r.enemies.find(o=>o.id===it.t); if(f&&f.hp>0){ delete f.dots; delete f.st; log(e.name+' cleanses '+(f===e?'itself':f.name)+' of every wound and condition.','bad'); } return true; }
@@ -107,7 +108,7 @@ function kitOnHit(e,tg){   // what a kit's hit leaves behind (foeOnHit): the log
   if(hasKit(e,'thief')&&tg.id==='p'){ const P=S.player, m=Math.min(P.mana,Math.round(pMana()*KIT_THIEF)); if(m>0){ P.mana-=m; x+=', '+m+' mana stolen'; } }
   return x;
 }
-function kitHurt(e){ if(hasKit(e,'skirm')&&e.hp>0&&e.hp<e.maxHp*KIT_SKIRM&&!e.back){ e.back=1; log(e.name+' steps back out of reach.','bad'); } }   // hurtFoe, after the damage
+function kitHurt(e){ if(hasKit(e,'skirm')&&e.hp>0&&e.hp<e.maxHp*KIT_SKIRM&&!e.back){ e.back=1; fxe('kit',e,{k:'skirm'}); log(e.name+' steps back out of reach.','bad'); } }   // hurtFoe, after the damage
 function kitReflect(e,m,d){   // Thorned: your melee minion's hit bites back
   if(!hasKit(e,'thorns')||!MELEE[m.role]||!(m.hp>0)) return ''; const t=Math.max(1,Math.round(d*KIT_THORN)); hurtAlly(m,t,'phys'); return ', and the thorns bite back for '+t;
 }
@@ -129,7 +130,7 @@ function kitChip(e){
   const K=kitOf(e); if(!K||!(e.hp>0)) return '';
   const lv=knowLv(e); if(lv<1) return ' &middot; <span class="kit unk" title="It has a kit you have not learned. Study its kind to read it.">Kit ?</span>'+kit2Chip(e);
   const st=lv>=2?kitState(e):'', tip=KITS[K].rule+(lv>=4?' Answer: '+KITS[K].ans:'');
-  return ' &middot; <span class="kit" title="'+tip+'">'+KITS[K].name+'</span>'+(st?' <span class="kit-st">'+st+'</span>':'')+kit2Chip(e);
+  return ' &middot; <span class="kit" title="'+tip+'">'+(typeof kitGlyph==='function'?kitGlyph(K):'')+KITS[K].name+'</span>'+(st?' <span class="kit-st">'+st+'</span>':'')+kit2Chip(e);
 }
 const kit2Chip=e=>e.kit2&&KITS[e.kit2]?' &middot; <span class="kit kit2" title="Kits Plus: '+KITS[e.kit2].rule+'">+ '+KITS[e.kit2].name+'</span>':'';   /* Kits Plus (game-asc.js): the rule's kit shows from the start */
 // ----- the Undone: a body killed by damage it was weak to rises Undone, with an echo of its kind's kit (60% strength).

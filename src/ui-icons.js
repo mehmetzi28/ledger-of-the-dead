@@ -752,7 +752,8 @@ const STAFF_HEAD={
 };
 function heroArt(o){ const st=o.staff!==undefined?o.staff:(typeof cosOf==='function'?cosOf('staff'):null); const b=IC.Necromancer; return st&&STAFF_HEAD[st]?b.replace(STAFF_SKULL,STAFF_HEAD[st]):b; }
 const heroRobe=o=>{ const rb=o.robe!==undefined?o.robe:(typeof cosOf==='function'?cosOf('robe'):null); return rb&&COS.robe[rb]?COS.robe[rb].c:null; };
-function ico(key,rankI,o){ o=o||{}; const M=matOf(key), hero=key==='Necromancer', col=(hero&&heroRobe(o))||M[1]; return '<span class="ico r'+rankI+(o.boss?' boss':'')+(o.secret?' secret':'')+(o.elite?' elite':'')+'" aria-hidden="true"><svg viewBox="0 0 64 64" class="mt-'+M[0]+'" style="color:'+col+'"><g filter="url(#paint)">'+(hero?heroArt(o):(IC[key]||IC._))+'</g></svg>'+(key!=='Necromancer'?roleBadge(o.role):'')+'</span>'; }
+function ico(key,rankI,o){ o=o||{}; const M=matOf(key), hero=key==='Necromancer', col=(hero&&heroRobe(o))||M[1], E=!hero&&o.stage?evoLook(o):null;   /* R17: evolution looks (fx-cues.js) */
+  return '<span class="ico r'+rankI+(o.boss?' boss':'')+(o.secret?' secret':'')+(o.elite?' elite':'')+(E?E.cls:'')+'" aria-hidden="true"><svg viewBox="0 0 64 64" class="mt-'+M[0]+'" style="color:'+col+(E?';'+E.style:'')+'">'+(E?E.pre:'')+'<g filter="url(#paint)">'+(hero?heroArt(o):(IC[key]||IC._))+'</g>'+(E?E.post:'')+'</svg>'+(key!=='Necromancer'?roleBadge(o.role):'')+'</span>'; }
 const app=document.getElementById('app');
 const ui={confirm:null};
 const pct=(v,m)=>Math.max(0,Math.min(100,m?v/m*100:0));

@@ -3874,3 +3874,11 @@ TR_DICT.set("A cosmetic","Bir görünüm");
 TR_RX.unshift([/^Cosmetics · (\d+)\/(\d+)$/,"Görünümler · $1/$2"],[/^Earn every (.+) title$/,"Her {t1} unvanını kazan"],[/^Earn the title (.+)$/,"$1 unvanını kazan"],
  [/^the (.+) (robe|staff head|banner|night backdrop|Ledger cover)$/,"$1 {t2}"],[/^(.+) family complete$/,"{t1} ailesi tamam"],[/^(.+) banner$/,"$1 sancağı"],
  [/^(Bestiary Ledgered|Uniques found|Sets completed|Trophy kinds held|Pages|Memorial): (\d+) (.+)$/,"{t1}: $2 {t3}"]);
+
+// ----- R17 PR A: what the fight shows
+[
+ ["Weak","Zayıf"],["Each evolution stage also shows on the minion: Greater a darker outline, Elder a glow in its role's colour, Ancient a tenth larger with motes about it, Eternal a halo","Her evrim basamağı minyonda da görünür: Greater daha koyu bir dış hat, Elder rolünün renginde bir parıltı, Ancient onda bir daha büyük ve çevresinde zerreler, Eternal bir hale"],["Resisted","Dirençli"],["Threatened","Tehdit altında"],["Second phase","İkinci evre"],
+ ["In a fight each hit shows its type: its number takes the type's colour and glyph, a hit on a weakness reads Weak and cracks, a resisted one reads Resisted. On the battle stage frost throws shards, fire embers, rot a mist and shadow ink","Dövüşte her vuruş türünü gösterir: sayısı türün rengini ve simgesini alır, zayıflığa isabet eden vuruş Zayıf yazar ve çatlar, direnilen vuruş Dirençli yazar. Savaş sahnesinde ayaz kıymıklar, ateş kıvılcımlar, çürüme bir sis, gölge mürekkep saçar"],
+ ["While a move gathers (Charging), the units it will land on are marked Threatened, and on the battle stage the boss draws back for the blow and a red ring marks the ground under them","Bir hamle toplanırken (Yükleniyor) ineceği birimler Tehdit altında olarak işaretlenir; savaş sahnesinde patron darbe için geri çekilir ve altlarındaki zemini kırmızı bir halka işaretler"]
+].forEach(([k,v])=>{ TR_DICT.set(k,v); });
+TR_RX.unshift([/^Gathering against it: (.+)$/,"Ona karşı toplanan: $1"],[/^(.+) · Second phase$/,"$1 · İkinci evre"]);
