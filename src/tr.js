@@ -3517,3 +3517,42 @@ TR_RX.unshift([/^(Marrow|Sundering Spear|Stitchwork|Overgrowth|Chain|Bone Shrapn
 TR_RX.unshift([/^Build: (.+) \((\d+) points?\)$/,"Yapı: {t1} ($2 puan)"],[/^Signature: (.+)$/,"İmza: {t1}"]);
 [["Runes:","Rünler:"]].forEach(([k,v])=>TR_DICT.set(k,v));
 [["It does not use your turn","Turunu harcamaz"]].forEach(([k,v])=>TR_DICT.set(k,v));
+// ----- R12 PR A: charms, gear-bearer powers, kills and name lines (game-army.js)
+[["Keeps an echo of its kind's kit, at #% strength","Türünün hünerinin bir yankısını %# güçle taşır"],
+ ["Its first blow each fight deals #% more","Her dövüşteki ilk darbesi %# daha fazla vurur"],["Each of its hits gives you # mana","Her vuruşu sana # mana verir"],
+ ["When it falls it bursts for #% of its max HP as fire on every foe","Düştüğünde azami canının %#'i kadar ateşle her düşmana patlar"],["Its hits tear half of a foe's shield away","Vuruşları düşmanın kalkanının yarısını söker"],
+ ["Below #% HP it takes #% less damage","Canı %#'un altındayken %# daha az hasar alır"],["Every third hit hexes the target for # turns","Her üçüncü vuruşu hedefi # tur lanetler"],
+ ["At the end of each turn it sheds one condition","Her turun sonunda bir durumdan kurtulur"],["Takes #% less damage on the first turn of each fight","Her dövüşün ilk turunda %# daha az hasar alır"],
+ ["The minion keeps an echo of its kind's kit at #% strength; a charm carries the same echo (see Charms)","Hizmetkâr türünün hünerinin bir yankısını %# güçle taşır; bir tılsım da aynı yankıyı taşır (bkz. Tılsımlar)"],
+ ["Charms","Tılsımlar"],["Charm","Tılsım"],["Gear-bearer powers","Teçhizat taşıyıcı güçleri"],["Kills and names","Öldürmeler ve adlar"],
+ ["In town, # trophies of one kind you know (Known in the bestiary) and # gold a gate tier make a charm: it carries that kind's echo on any minion, one charm each","Kasabada, tanıdığın bir türün (bestiyerde Bilinen) # ganimeti ve kapı kademesi başına # altın bir tılsım yapar: o türün yankısını herhangi bir hizmetkâra taşır, her birine bir tılsım"],
+ ["Charms move freely in town and come back to the pouch when a minion leaves or shatters; fusion keeps the stronger one","Tılsımlar kasabada serbestçe yer değiştirir ve bir hizmetkâr ayrıldığında ya da parçalandığında keseye döner; birleştirme güçlü olanı tutar"],
+ ["A charm of a Ledgered kind is half again as strong","Deftere Geçmiş bir türün tılsımı yarı yarıya daha güçlüdür"],
+ ["A unique worn by a gear-bearer gives it its own version of the unique's power, at about #%","Bir teçhizat taşıyıcının giydiği eşsiz eşya, ona o eşyanın gücünün kendi sürümünü yaklaşık %# oranında verir"],
+ ["Powers that mean nothing on a minion give +#% HP and attack instead","Bir hizmetkârda anlamı olmayan güçler bunun yerine +%# can ve saldırı verir"],
+ ["It never shatters","Asla parçalanmaz"],["#% of its hits strike twice","Vuruşlarının %#'u iki kez vurur"],["Once a run, a killing blow leaves it at #% HP","Seferde bir kez, öldürücü bir darbe onu %# canla bırakır"],
+ ["Heals for #% of the damage it deals","Verdiği hasarın %#'i kadar iyileşir"],["Each of its kills restores # mana to you","Her öldürmesi sana # mana kazandırır"],["+#% HP and attack","+%# can ve saldırı"],["#% HP and attack","%# can ve saldırı"],
+ ["Deals #% more to foes under #% HP","Canı %#'in altındaki düşmanlara %# daha fazla vurur"],["Foes that hit it take #% back","Ona vuran düşmanlar %#'ini geri alır"],
+ ["Each of its kills restores # mana to you and heals it #%","Her öldürmesi sana # mana kazandırır ve onu %# iyileştirir"],["Takes #% less damage","%# daha az hasar alır"],
+ ["Its hits drain another foe for #%","Vuruşları başka bir düşmandan %# emer"],["Its hits also strike another foe for #%","Vuruşları başka bir düşmana da %# vurur"],
+ ["Starts each fight with a ward of #% of its max HP","Her dövüşe azami canının %#'i kadar bir siperle başlar"],["Heals #% of its max HP at the end of each turn","Her turun sonunda azami canının %#'ini iyileştirir"],
+ ["Deals #% more damage","%# daha fazla hasar verir"],["Its hits scorch every other foe for #%","Vuruşları diğer her düşmanı %# kavurur"],["Twice a run, a killing blow leaves it at #% HP","Seferde iki kez, öldürücü bir darbe onu %# canla bırakır"],
+ ["Every minion counts its kills, and the Memorial keeps the count","Her hizmetkâr öldürmelerini sayar ve Anıt bu sayıyı saklar"],
+ ["At # kills its name is written into the Ledger: +#% HP and attack for every minion of its role, for good, even after it falls (# names at most)","# öldürmede adı Deftere yazılır: rolündeki her hizmetkâra kalıcı olarak +%# can ve saldırı, o düştükten sonra bile (en çok # ad)"],
+ ["No charm","Tılsım yok"],["Give a charm","Tılsım ver"],["Change charm","Tılsımı değiştir"],["Take it off","Çıkar"],["named in the Ledger","Deftere adı yazıldı"],
+ ["A charm is made from # trophies of one kind you know and some gold","Bir tılsım, tanıdığın bir türün # ganimetinden ve biraz altından yapılır"],
+ ["It carries that kind's kit as an echo, like an Undone body, on any minion you give it to","O türün hünerini, Çözülmüş bir beden gibi, verdiğin herhangi bir hizmetkârda yankı olarak taşır"],
+ ["One charm a minion; move them freely in town","Hizmetkâr başına bir tılsım; kasabada serbestçe değiştir"],
+ ["Know a kind in the bestiary (and keep its trophies) to make its charm","Tılsımını yapmak için bestiyerde bir türü tanı (ve ganimetlerini sakla)"],
+ ["No charm comes from it","Ondan tılsım çıkmaz"],["Show fewer","Daha az göster"],["Names in the Ledger","Defterdeki adlar"],
+ ["A minion that takes # lives has its name written into the Ledger: +#% HP and attack for every minion of its role, for good (# names at most)","# can alan bir hizmetkârın adı Deftere yazılır: rolündeki her hizmetkâra kalıcı olarak +%# can ve saldırı (en çok # ad)"],
+ ["x#: its kind is Ledgered","x#: türü Deftere Geçmiş"],
+ ["Charmed","Tılsımlı"],["Make a charm of each of the sixteen kits","On altı hünerin her birinden bir tılsım yap"],["Hundred Kills","Yüz Öldürme"],["Have a minion take # lives","Bir hizmetkâra # can aldır"],
+ ["Ten Names","On Ad"],["Write ten names into the Ledger","Deftere on ad yaz"],["Ambusher echo","Pusucu yankısı"],["Mana thief echo","Mana hırsızı yankısı"],["Bomber echo","Bombacı yankısı"]
+].forEach(([k,v])=>TR_DICT.set(k,v));
+TR_RX.unshift([/^(.+) charm$/,"{t1} tılsımı"],[/^(.+) echo$/,"{t1} yankısı"],[/^Needs (\d+) trophies \((\d+)\)\.?$/,"$1 ganimet gerekir ($2)"],[/^Needs (\d+) gold\.?$/,"$1 altın gerekir"],
+ [/^Know the kind first \((\d+) kills\)\.?$/,"Önce türü tanı ($1 öldürme)"],[/^Kills (\d+)$/,"Öldürme $1"],[/^Kills (\d+) \(named in the Ledger\)$/,"Öldürme $1 (Deftere adı yazıldı)"],[/^Make · (\d+) gold$/,"Yap · $1 altın"],
+ [/^Charms · (\d+) in the pouch, (\d+) worn$/,"Tılsımlar · kesede $1, takılı $2"],[/^Names in the Ledger · (\d+)\/(\d+)$/,"Defterdeki adlar · $1/$2"],[/^(\d+)\/(\d+) trophies$/,"$1/$2 ganimet"],[/^from (.+)$/,"kaynağı: {t1}"],
+ [/^(.+) has taken (\d+) lives: its name is written into the Ledger\. Every (.+) of yours is a little stronger\.?$/,"$1 $2 can aldı: adı Deftere yazıldı. Her {t3} biraz daha güçlü."],[/^The Ledger writes (.+)'s name\.?$/,"Defter $1 adını yazıyor."],
+ [/^(.+) bursts as it falls: (\d+) fire on every foe\.?$/,"$1 düşerken patlıyor: her düşmana $2 ateş."],[/^(.+) is called back up at (\d+) HP by a gravecaller's echo\.?$/,"$1 bir mezarçağıran yankısıyla $2 canla geri kaldırılıyor."],
+ [/^(.+) refuses to fall and stands at (\d+) HP\.?$/,"$1 düşmeyi reddediyor ve $2 canla ayakta."],[/^Show all (\d+)$/,"Tümünü göster ($1)"]);

@@ -136,3 +136,58 @@ beats the hero's best action; specs by a fixed table.
 
 - **The Hexer crowds the back row**: the formation cap.
 - **Too many buttons in battle**: actives live on portraits, not the command bar; only Elders have them.
+
+## As built (PR A)
+
+- **Code**: `src/game-army.js` (new, after game-builds.js); the echo table in `src/game-kits.js`.
+- **Charms**: 6 trophies of one kind that is Known in the bestiary, plus 60 gold per gate tier (Tower kinds count as tier 5),
+  make a charm (`{k: kit, src: kind}`). Changed from the spec's table: a charm carries its kind's **echo**, the same table the
+  Undone use (`echoV(m, kit)`: 1 for an Undone or a charm, x1.5 for a charm of a Ledgered kind). That gives one system and
+  one set of numbers, and it meant the eight kits that only gave the Undone a flat +10% (`ECHO_PLAIN`) now have real echoes:
+  - **Ambusher**: first blow each room +30%.
+  - **Mana thief**: 1 mana a hit.
+  - **Bomber**: bursts for 30% of its max HP as fire on falling.
+  - **Sapper**: its hits tear half a foe's shield.
+  - **Skirmisher**: 30% less damage under 30% HP.
+  - **Hexer**: every third hit hexes, with no Math.random.
+  - **Purifier**: sheds one condition each turn.
+  - **Burrower**: 50% less damage on turn 1.
+
+  Other charm rules:
+  - One charm per minion; swapping is free in town (the Army tab's charm picker).
+  - `returnGear` sends a charm back to the pouch whenever its minion leaves (release, shatter, raid loss, sale).
+  - Fusion keeps the stronger charm (`charmFuse`).
+  - The Army tab has a Charms panel (pouch and bench).
+- **Gear-bearer powers** (`MINION_FLAG`): a unique on a gear-bearer gives the minion its own version at about 40%:
+  - **Bone Bank**: never shatters.
+  - **Echo**: every tenth hit strikes twice.
+  - **Undying / Deathless**: 1 / 2 saves a run, at 12% / 20% HP.
+  - **Lifedrain**: heals for 32% of its damage.
+  - **Soul Harvest / Censer**: kills restore 2 / 4 mana to you.
+  - **Headsman**: +20% damage to foes under 35% HP.
+  - **Thorns**: reflects 8% of each hit.
+  - **Swarmguard**: takes 10% less damage.
+  - **Chorus, Wide Arc, Hellfire**: splash a drain, a cut and a scorch onto other foes.
+  - **Infernal**: a 10% ward each room.
+  - **Halo**: heals 1.6% a turn.
+  - **Ruin**: +10% damage.
+  - Cheap Dead, Bind Souls, Ledger-Chain and the rival's three uniques give +8% HP and attack instead.
+- **Kills and names**: `m.kills` counts the blows that kill (the hitter at the death check). The Memorial headstone keeps the
+  count (`kl`). At 100 kills the minion's name goes into the Ledger (`S.nameLines`, at most 10): +1% HP and attack, for good,
+  for every minion of its role (`nameK` in `extraMul`).
+- **Titles**: *Charmed* (a charm of all 16 kits), *Hundred Kills*, *Ten Names*. 201 titles. *Witch-Keeper*, *Every Role*
+  and *By My Order* come with PR B.
+- **Bot**:
+  - Gives gear-bearers the best spare piece, uniques first (`"off":["mgear"]`).
+  - Makes charms (Banner, Shield, Call, Stance, Pack first) while it keeps 3x the cost, and gives guard charms to
+    vanguards (`"off":["charms"]`).
+- **Tests**: `tests/groups/98-army.js` (5 tests). 864 tests.
+- **Balance** (market, seeds 7700/9100):
+  - Gates 90/90%, Tower 82.6/83.9, Rift 17.5/18.9 (R11: 89/90%, Tower 77.9/79.3, Rift 17.1/18).
+  - Turning features off (seed 7700):
+    - Both charms and gear powers off: 89%, Tower 79.7.
+    - Charms off: Tower 79.3.
+    - Gear powers off: Tower 81.7.
+    - So charms are worth about 3 Tower floors and gear-bearer powers about 1. Gates moved 1 point.
+  - Full (7700): 91%, Tower 86.4, Rift 26 (R11: 90%, Tower 85.5, Rift 21.2). The full bot's extra gold buys more charms; left for the R12 PR B retune, once actives and specs land.
+  - Fuzz 12/12.

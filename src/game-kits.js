@@ -132,35 +132,58 @@ function kitChip(e){
 }
 const kit2Chip=e=>e.kit2&&KITS[e.kit2]?' &middot; <span class="kit kit2" title="Kits Plus: '+KITS[e.kit2].rule+'">+ '+KITS[e.kit2].name+'</span>':'';   /* Kits Plus (game-asc.js): the rule's kit shows from the start */
 // ----- the Undone: a body killed by damage it was weak to rises Undone, with an echo of its kind's kit (60% strength).
-// The echo is read off the minion's kind (m.kind), so fusion and saves need nothing of their own.
-const ECHO={shield:.09,pack:.06,stance:.3,thorns:.09,frenzy:.09,banner:.06,marker:.15,call:.25}, ECHO_PLAIN=.1, ECHO_PACK_MAX=3;
-const echoOf=m=>m&&m.id!=='p'&&hasTrait(m,'undone')?(KIT_OF[m.kind]||null):null;
-const echoK=m=>{ const k=echoOf(m); return k&&ECHO[k]!=null?k:null; };
-function echoDmg(m,tg){   // an Undone minion's echo on its own blows, and every Banner echo standing beside it
-  const r=S.run; let k=1; const e=echoOf(m);
-  if(e&&ECHO[e]==null) k*=1+ECHO_PLAIN;
-  if(e==='pack') k*=1+ECHO.pack*Math.min(ECHO_PACK_MAX,S.army.filter(o=>o!==m&&o.hp>0&&o.rankI===m.rankI).length);
-  if(e==='frenzy') k*=1+ECHO.frenzy*r.enemies.filter(o=>o.dead).length;
-  if(S.army.some(o=>o!==m&&o.hp>0&&echoOf(o)==='banner')) k*=1+ECHO.banner;
-  if(tg&&tg.mkd>=r.turn) k*=1+ECHO.marker;
+// The echo is read off the minion's kind (m.kind), so fusion and saves need nothing of their own. R12: a charm (game-army.js)
+// carries the same echo from a crafted kind, at echo strength (x1.5 when that kind is Ledgered); every kit has its echo.
+const ECHO={shield:.09,pack:.06,stance:.3,thorns:.09,frenzy:.09,banner:.06,marker:.15,call:.25,
+  ambush:.3,thief:1,bomb:.3,sapper:.5,skirm:.3,hexer:3,purify:1,burrow:.5}, ECHO_PACK_MAX=3, ECHO_SKIRM_AT=.3;
+const echoV=(m,k)=>{ if(!m||m.id==='p') return 0; let v=hasTrait(m,'undone')&&KIT_OF[m.kind]===k?1:0; if(m.charm&&m.charm.k===k) v=Math.max(v,charmV(m.charm)); return v; };   // 0: no such echo
+const echoKits=m=>{ if(!m||m.id==='p') return []; const o=[]; if(hasTrait(m,'undone')&&KIT_OF[m.kind]) o.push(KIT_OF[m.kind]); if(m.charm&&KITS[m.charm.k]&&!o.includes(m.charm.k)) o.push(m.charm.k); return o; };
+const echoOf=m=>echoKits(m)[0]||null;
+const echoK=m=>echoOf(m);
+function echoDmg(m,tg){   // an echo on its own blows, and every Banner echo standing beside it
+  const r=S.run; let k=1, v;
+  if((v=echoV(m,'pack'))) k*=1+ECHO.pack*v*Math.min(ECHO_PACK_MAX,S.army.filter(o=>o!==m&&o.hp>0&&o.rankI===m.rankI).length);
+  if((v=echoV(m,'frenzy'))) k*=1+ECHO.frenzy*v*r.enemies.filter(o=>o.dead).length;
+  if((v=echoV(m,'ambush'))&&!m.amU){ m.amU=1; k*=1+ECHO.ambush*v; }   // its first blow each room
+  { const b=Math.max(0,...S.army.filter(o=>o!==m&&o.hp>0).map(o=>echoV(o,'banner'))); if(b) k*=1+ECHO.banner*b; }
+  if(tg&&tg.mkd>=r.turn) k*=1+ECHO.marker*(tg.mkv||1);
   return k;
 }
-function echoHit(m,tg){ if(echoOf(m)==='marker'&&!m.mkU&&tg.hp>0){ m.mkU=1; tg.mkd=S.run.turn+1; return ' and marks it'; } return ''; }   // first hit each room
-function echoDr(a,d){ return echoOf(a)==='stance'&&S.run&&S.run.turn%2===0?Math.max(1,Math.round(d*(1-ECHO.stance))):d; }   // allyDr
-function echoThorns(e,tg,d){ if(echoOf(tg)!=='thorns'||!(e.hp>0)||!(MELEE[e.role]||e.boss)) return ''; const t=Math.max(1,Math.round(d*ECHO.thorns)); hurtFoe(e,t,'phys'); return ', '+t+' bitten back'; }
-function echoCall(a){   // the first minion of yours to fall each room gets up, if an Undone gravecaller stands
-  const r=S.run; if(!r||a.id==='p'||a.hp>0||r.gcR===r.room||!S.army.some(o=>o!==a&&o.hp>0&&echoOf(o)==='call')) return false;
-  r.gcR=r.room; a.hp=Math.max(1,Math.round(a.maxHp*ECHO.call)); log(a.nick+' is called back up at '+a.hp+' HP by an Undone gravecaller.','ok'); return true;
+function echoHit(m,tg){   // what an echo leaves on a blow: the log's tail
+  let x='', v;
+  if((v=echoV(m,'marker'))&&!m.mkU&&tg.hp>0){ m.mkU=1; tg.mkd=S.run.turn+1; tg.mkv=v; x+=' and marks it'; }   // first hit each room
+  if((v=echoV(m,'thief'))){ const g=Math.round(ECHO.thief*v); S.player.mana=Math.min(pMana(),S.player.mana+g); }
+  if((v=echoV(m,'sapper'))&&tg.shield>0){ const s=Math.round(tg.shield*Math.min(1,ECHO.sapper*v)); tg.shield-=s; if(s) x+=' and tears '+s+' shield off'; }
+  if((v=echoV(m,'hexer'))&&tg.hp>0){ m.hxN=(m.hxN||0)+1; if(m.hxN>=Math.max(1,Math.round(ECHO.hexer/v))){ m.hxN=0; if(addSt(tg,'hexed',2)) x+=' and hexes it'; } }   // every third blow (every second at x1.5)
+  return x;
 }
-function echoTurn(){   // end of each turn: Undone shieldbearers ward your most hurt minion on even turns
-  const r=S.run; if(r.turn%2!==0) return;
-  for(const m of S.army){ if(!(m.hp>0)||echoOf(m)!=='shield') continue; const t=S.army.filter(o=>o.hp>0).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0]; if(!t) continue;
-    t.mw=Math.min(Math.round(t.maxHp*.3),(t.mw||0)+Math.round(m.maxHp*ECHO.shield)); }
+function echoDr(a,d){ let v;   // allyDr
+  if((v=echoV(a,'stance'))&&S.run&&S.run.turn%2===0) d=Math.max(1,Math.round(d*(1-Math.min(.6,ECHO.stance*v))));
+  if((v=echoV(a,'skirm'))&&a.hp<a.maxHp*ECHO_SKIRM_AT) d=Math.max(1,Math.round(d*(1-Math.min(.6,ECHO.skirm*v))));
+  if((v=echoV(a,'burrow'))&&S.run&&S.run.turn===1) d=Math.max(1,Math.round(d*(1-Math.min(.75,ECHO.burrow*v))));
+  return d; }
+function echoThorns(e,tg,d){ const v=echoV(tg,'thorns'); if(!v||!(e.hp>0)||!(MELEE[e.role]||e.boss)) return ''; const t=Math.max(1,Math.round(d*ECHO.thorns*v)); hurtFoe(e,t,'phys'); return ', '+t+' bitten back'; }
+function echoCall(a){   // the first minion of yours to fall each room gets up, if a gravecaller echo stands
+  const r=S.run; if(!r||a.id==='p'||a.hp>0||r.gcR===r.room) return false; const v=Math.max(0,...S.army.filter(o=>o!==a&&o.hp>0).map(o=>echoV(o,'call'))); if(!v) return false;
+  r.gcR=r.room; a.hp=Math.max(1,Math.round(a.maxHp*ECHO.call*v)); log(a.nick+' is called back up at '+a.hp+' HP by a gravecaller\'s echo.','ok'); return true;
 }
-function echoRoom(){ for(const m of S.army) delete m.mkU; }   // roomStart
-const echoTxt=k=>!k?'':ECHO[k]==null?'+10% damage.':({shield:'Every second turn it wards your most hurt minion for 9% of its own max HP.',pack:'+6% damage for every other minion of its gate in your army, up to +18%.',
+function echoBomb(a){   // a Bomber echo bursts as it falls: fire on every foe (hurtAlly, when a minion goes down)
+  const v=echoV(a,'bomb'); if(!v||!S.run||S.mode!=='battle') return; const d=Math.max(1,Math.round(a.maxHp*ECHO.bomb*v)); for(const o of liveFoes()) hurtFoe(o,d,'fire'); log(a.nick+' bursts as it falls: '+d+' fire on every foe.','ok');
+}
+function echoTurn(){   // end of each turn: shieldbearer echoes ward your most hurt minion on even turns; purifier echoes shed a condition
+  const r=S.run;
+  for(const m of S.army){ if(!(m.hp>0)) continue; const v=echoV(m,'purify'); if(v&&m.st){ const k=Object.keys(m.st).find(x=>m.st[x]>0); if(k) delete m.st[k]; } }
+  if(r.turn%2!==0) return;
+  for(const m of S.army){ const v=echoV(m,'shield'); if(!(m.hp>0)||!v) continue; const t=S.army.filter(o=>o.hp>0).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0]; if(!t) continue;
+    t.mw=Math.min(Math.round(t.maxHp*.3),(t.mw||0)+Math.round(m.maxHp*ECHO.shield*v)); }
+}
+function echoRoom(){ for(const m of S.army){ delete m.mkU; delete m.amU; } mfRoom(); }   // roomStart (gear-bearer powers: game-army.js)
+const echoTxt=k=>!k?'':({shield:'Every second turn it wards your most hurt minion for 9% of its own max HP.',pack:'+6% damage for every other minion of its gate in your army, up to +18%.',
   stance:'Takes 30% less damage every other turn.',thorns:'Reflects 9% of melee damage it takes.',frenzy:'+9% damage for every foe fallen this fight.',banner:'Your other minions deal 6% more while it stands.',
-  marker:'Its first hit each fight marks the target: your minions deal 15% more to it for 2 turns.',call:'Once a room, the first of your minions to fall gets up at 25% HP.'})[k];
+  marker:'Its first hit each fight marks the target: your minions deal 15% more to it for 2 turns.',call:'Once a room, the first of your minions to fall gets up at 25% HP.',
+  ambush:'Its first blow each fight deals 30% more.',thief:'Each of its hits gives you 1 mana.',bomb:'When it falls it bursts for 30% of its max HP as fire on every foe.',
+  sapper:'Its hits tear half of a foe\'s shield away.',skirm:'Below 30% HP it takes 30% less damage.',hexer:'Every third hit hexes the target for 2 turns.',
+  purify:'At the end of each turn it sheds one condition.',burrow:'Takes 50% less damage on the first turn of each fight.'})[k];
 
 // ===== SWEEP =====
 // An outgrown gate, cleared on Normal at least SWEEP_CLEARS times, can be swept from its card on a Normal, uncursed day when you

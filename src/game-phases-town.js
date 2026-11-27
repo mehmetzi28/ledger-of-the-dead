@@ -132,7 +132,7 @@ function sortReserve(k){ if(!ARMY_SORTS[k]||S.mode!=='town'||!S.reserve) return 
 const MEM_MAX=200, MEM_HP=.05, MEM_COST=.6;
 function memorialize(m,at){
   if(!m||m.thrall) return null;
-  const e=Object.assign({nick:m.nick,kind:m.kind||m.name,name:m.name,rk:m.rankI|0,lvl:m.lvl,st:m.stage||0,tr:(m.traits||[]).slice(),role:m.role,day:S.day},m.boss?{boss:1}:{},m.elite?{elite:1}:{},at||{});
+  const e=Object.assign({nick:m.nick,kind:m.kind||m.name,name:m.name,rk:m.rankI|0,lvl:m.lvl,st:m.stage||0,tr:(m.traits||[]).slice(),role:m.role,day:S.day},m.kills?{kl:m.kills}:{},m.boss?{boss:1}:{},m.elite?{elite:1}:{},at||{});
   { const bd=bondFall(m,at); if(bd) e.bd=bd; }
   faithLost(m); S.memorial=[e].concat(S.memorial||[]); while(S.memorial.length>MEM_MAX){ const j=S.memorial.map(x=>!x.maus&&!x.hs).lastIndexOf(true); S.memorial.splice(j<0?MEM_MAX:j,1); }   /* a mausoleum's or headstone's name is never dropped */
   notify(m.nick+' '+theName(mName(m)).replace(/^The /,'the ')+' is written into the Memorial.','');
@@ -159,7 +159,7 @@ function memorialFix(g){   // normalizeSave: keep well-formed entries only
   const ok=e=>e&&typeof e==='object'&&typeof e.nick==='string'&&typeof e.name==='string';
   g.memorial=Array.isArray(g.memorial)?g.memorial.filter(ok).slice(0,MEM_MAX).map(e=>{ const o={nick:cleanNick(e.nick)||'Nameless',kind:cleanText(typeof e.kind==='string'?e.kind:e.name),name:cleanText(e.name),rk:clamp(Math.floor(num(e.rk,0)),0,RANKS.length-1),
     lvl:Math.max(1,Math.floor(num(e.lvl,1))),st:clamp(Math.floor(num(e.st,0)),0,STAGE_MAX),tr:Array.isArray(e.tr)?e.tr.filter(t=>TRAITS[t]):[],role:ROLES[e.role]?e.role:'striker',day:Math.max(1,Math.floor(num(e.day,1)))};
-    if(e.boss) o.boss=1; if(e.elite) o.elite=1; for(const k of ['g','raid']) if(RK[e[k]]) o[k]=e[k]; for(const k of ['f','rd']) if(num(e[k],0)>0) o[k]=Math.floor(e[k]); if(typeof e.bd==='string'&&cleanNick(e.bd)) o.bd=cleanNick(e.bd); if(e.maus) o.maus=1; if(num(e.hs,0)>=1) o.hs=Math.min(HEAD_TOP,Math.floor(e.hs)); return o; }):[];
+    if(num(e.kl,0)>0) o.kl=Math.floor(e.kl);   /* kills (game-army.js) */ if(e.boss) o.boss=1; if(e.elite) o.elite=1; for(const k of ['g','raid']) if(RK[e[k]]) o[k]=e[k]; for(const k of ['f','rd']) if(num(e[k],0)>0) o[k]=Math.floor(e[k]); if(typeof e.bd==='string'&&cleanNick(e.bd)) o.bd=cleanNick(e.bd); if(e.maus) o.maus=1; if(num(e.hs,0)>=1) o.hs=Math.min(HEAD_TOP,Math.floor(e.hs)); return o; }):[];
   g.honor=g.honor&&typeof g.honor==='object'&&typeof g.honor.day==='number'?{day:g.honor.day,nick:cleanNick(g.honor.nick)||'Nameless'}:null;
 }
 
@@ -305,7 +305,7 @@ function fuse(ua,ub){
   const a=findMinion(ua), b=findMinion(ub); if(!canFuse(a,b)) return null;   // army or Reserve
   const c=fuseCost(a,b); if(S.gold<c) return null;
   const [k,x]=fuseOrder(a,b), f=fuseTraits(k,x);
-  S.gold-=c; returnGear(x);
+  S.gold-=c; charmFuse(k,x); returnGear(x);
   k.traits=f.tr; S.ti=S.ti||{}; const got=S.ti.compounds=S.ti.compounds||[]; for(const t of f.made) if(!got.includes(t)) got.push(t); k.stage=Math.max(k.stage||0,x.stage||0); k.lvl=Math.min(S.player.lvl+2,Math.max(k.lvl,x.lvl)+FUSE_LV); k.xp=0; k.fused=(k.fused||0)+(x.fused||0)+1;
   S.army=S.army.filter(m=>m!==x); if(S.reserve) S.reserve=S.reserve.filter(m=>m!==x); bondsClean(); checkEvolve(k); syncMinion(k); k.hp=k.maxHp; tally('fused'); recBest('ftr',k.traits.length); recArmy(); sfx('raise'); return k;
 }

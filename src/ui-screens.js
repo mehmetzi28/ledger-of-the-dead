@@ -96,7 +96,7 @@ function unitCard(u,side,mini){
   const tag=isP?'Necromancer':ROLES[u.role].label+(isArmed(u.base||u.name)?' &middot; Armed':'')+(u.boss?' &middot; Boss':'')
     +(u.elite?' &middot; Elite':'')+(u.abil&&!isP&&!u.kit?' &middot; <span title="'+BOSS_ABIL[u.abil].desc+'">'+BOSS_ABIL[u.abil].name+'</span>':'')+(u.kit&&!isP?bossRotChip(u):'')
     +(u.phase2&&!isP?' &middot; <span class="phase-t">Second phase</span>':'')
-    +(u.aff&&!isP?u.aff.map(a=>' &middot; <span class="aff" title="'+AFFIX[a].desc+'">'+AFFIX[a].name+'</span>').join(''):'')+(side==='foe'&&!isP?kitChip(u):echoOf(u)?' &middot; <span class="kit" title="'+echoTxt(echoK(u))+'">Echo: '+KITS[echoOf(u)].name+'</span>':'')
+    +(u.aff&&!isP?u.aff.map(a=>' &middot; <span class="aff" title="'+AFFIX[a].desc+'">'+AFFIX[a].name+'</span>').join(''):'')+(side==='foe'&&!isP?kitChip(u):echoKits(u).length?echoKits(u).map(k=>' &middot; <span class="kit" title="'+echoTxt(k)+'">Echo: '+KITS[k].name+'</span>').join(''):'')
     +(u.scd&&CORPSE_CONDS[u.scd]?' &middot; <span class="stash-t" title="A body the rival stole. '+CORPSE_CONDS[u.scd].when+'">'+CORPSE_CONDS[u.scd].name+'</span>':'');
   const rk=isP?'':'<span class="rk r'+u.rankI+'">'+RANKS[u.rankI]+'</span>';
   const fx=(f.d?'<span class="fx neg">-'+f.d+'</span>':f.h?'<span class="fx pos">+'+f.h+'</span>':'')+(f.c?'<span class="fx cmb">'+f.c+'</span>':'');   // c: a status combo fired on it
@@ -111,7 +111,7 @@ function unitCard(u,side,mini){
   if(mini){   // a minion in battle: icon, name, level, attack, HP; the rest lives on the Army tab
     const m='<div class="u-head">'+ico(u.base||u.kind||u.name,u.rankI,u)+'<div class="u-id"><div class="u-name">'+nick(u)+'</div><div class="u-sub num">'+(dead?'<span class="down-t">'+downTip(u)+'</span>':'Lv '+u.lvl+' &middot; ATK '+u.atk+(u.wall?' &middot; Wall':''))+'</div>'+dots+'</div></div>'
       +'<div class="bar"><i class="fill hp" style="width:'+pct(u.hp,max)+'%"></i></div><div class="num u-hp">'+Math.max(0,u.hp)+'/'+max+'</div>';
-    return '<div class="unit ally mini'+(dead?' dead':'')+(u.elite?' elite':'')+(f.d?' hit':'')+'" data-u="'+fxKey(u)+'" title="'+mName(u)+', '+ROLES[u.role].label+(u.wall?', on the wall':'')+(echoOf(u)?', Echo: '+KITS[echoOf(u)].name:'')+'">'+fx+m+'</div>'; }
+    return '<div class="unit ally mini'+(dead?' dead':'')+(u.elite?' elite':'')+(f.d?' hit':'')+'" data-u="'+fxKey(u)+'" title="'+mName(u)+', '+ROLES[u.role].label+(u.wall?', on the wall':'')+(echoKits(u).length?', Echo: '+echoKits(u).map(k=>KITS[k].name).join(', '):'')+'">'+fx+m+'</div>'; }
   const cls='unit '+side+(dead?' dead':'')+(sel?' sel':'')+(ch?' charging':'')+(u.elite?' elite':'')+(f.d?' hit':'');
   return side==='foe'&&!dead?'<button class="'+cls+'" data-a="target" data-k="'+u.id+'" data-u="'+u.id+'" aria-pressed="'+sel+'">'+inner+'</button>':'<div class="'+cls+'" data-u="'+fxKey(u)+'">'+inner+'</div>';
 }
@@ -228,7 +228,7 @@ function minionCard(m,canRelease,where){
   return '<div class="minion"><div><div class="u-head">'+ico(m.kind||m.name,m.rankI,m)+'<div class="u-id"><div class="u-top"><span class="rk r'+m.rankI+'">'+RANKS[m.rankI]+'</span><span class="u-tag">'+ROLES[m.role].label+(m.armed?' &middot; Armed':'')+(m.boss?' &middot; Boss':'')+(m.elite?' &middot; Elite':'')+' &middot; '+(rowOf(m)==='f'?'Front row':'Back row')+(m.wall?' &middot; On the wall':'')+'</span></div>'
    +(ui.rename===m.uid&&canRelease?'<div class="rn-row"><input id="rn" class="rn-in" maxlength="'+NICK_MAX+'" value="'+cleanNick(ui.rn==null?m.nick:ui.rn)+'" aria-label="New name for '+m.nick+'"><button class="btn small primary" data-a="rename" data-k="'+m.uid+'">Save</button><button class="btn small" data-a="renamex">Cancel</button></div>'
      :'<div class="u-name" style="'+(m.elite?'color:var(--gold)':'')+'">'+m.nick+' <span class="dim" style="font-size:15px">'+theName(mName(m))+'</span></div>')
-   +traitChips(m)
+   +traitChips(m)+armyLineHTML(m,canRelease)   /* charm, kills, gear-bearer powers (game-army.js) */
    +'<div class="m-links"><button class="linkbtn" data-a="mdet" data-k="'+m.uid+'" aria-expanded="'+(ui.mdet===m.uid)+'">'+(ui.mdet===m.uid?'Hide details':'Details')+'</button>'+rowBtn(m,'linkbtn',f=>f?'Move to back':'Move to front')+(canRelease&&S.mode!=='battle'&&ui.rename!==m.uid?'<button class="linkbtn" data-a="renameo" data-k="'+m.uid+'">Rename</button>':'')+'</div>'
    +(ui.mdet===m.uid?minionDetail(m):'')+'</div></div>'
    +'<div class="bars"><div class="meter"><div class="m-top"><span>'+sgl('hp','HP')+'</span><span class="num">'+m.hp+'/'+m.maxHp+'</span></div><div class="bar"><i class="fill hp" style="width:'+pct(m.hp,m.maxHp)+'%"></i></div></div>'
@@ -376,7 +376,7 @@ function armyView(list){
   return L;
 }
 const avBtn=(a,k,t,on)=>'<button class="btn small'+(on?' primary':'')+'" data-a="'+a+'" data-k="'+k+'" aria-pressed="'+on+'">'+t+'</button>';
-function armyTabHTML(){ return armySumHTML()+markPickHTML()+bondsArmyHTML()+armyRaidHTML()+armyFilterHTML()+armyHTML(armyView)+quickGearHTML()+evoHTML(); }
+function armyTabHTML(){ return armySumHTML()+charmsHTML()+markPickHTML()+bondsArmyHTML()+armyRaidHTML()+armyFilterHTML()+armyHTML(armyView)+quickGearHTML()+evoHTML(); }
 function armySumHTML(){
   const A=S.army, R=S.reserve||[], sum=(L,f)=>L.reduce((a,m)=>a+f(m),0), n=r=>A.filter(m=>m.role===r).length;
   const st=(l,v,t)=>'<div class="as-st"'+(t?' title="'+t+'"':'')+'><span class="u-tag">'+l+'</span><b class="num">'+v+'</b></div>';
@@ -589,3 +589,34 @@ function siegeChoiceHTML(){   // the intro screen's two choices: the guarded bui
   return (gb.length?'<p class="group-h">Guard a building</p><p class="u-sub" title="If the walls fall, the living cannot burn the building you guard; they fire another, or take gold if none is left.">Spared if the walls fall</p><div class="chips">'+gb.map(k=>chip('sguard',k,BUILD[k].name+' &middot; Lv '+blRaw(k),g.guard===k)).join('')+'</div>':'')
    +(pool.length?'<p class="group-h">On the wall &middot; '+w.length+'/'+SIEGE_WALL+'</p><p class="u-sub" title="Up to '+SIEGE_WALL+' minions from the Reserve fight this siege in your front row, then go back to the Reserve.">Reserve minions in your front row, tonight only</p><div class="chips">'+pool.map(m=>chip('swall',m.uid,m.nick+' &middot; Lv '+m.lvl,w.includes(m.uid),!w.includes(m.uid)&&w.length>=SIEGE_WALL)).join('')+'</div>':'');
 }
+
+// ===== R12 PR A: charms, kill counts, gear-bearer powers and name lines on the Army tab (game-army.js) =====
+function armyLineHTML(m,can){   // under a minion's traits: its charm (a picker in town), its kills, its gear-bearer powers
+  const town=S.mode==='town'&&can, P=Array.isArray(S.charms)?S.charms:[], fl=mfFlags(m);
+  let h='<div class="u-sub m-charm">';
+  h+=m.charm?'<span class="kit" title="'+echoTxt(m.charm.k)+(charmV(m.charm)>1?' (x1.5: its kind is Ledgered)':'')+'">'+charmName(m.charm)+' <span class="dim">from '+cleanText(m.charm.src)+'</span></span>':'<span class="dim">No charm</span>';
+  if(town&&(P.length||m.charm)) h+=' <select class="ch-sel" data-a="charm" aria-label="Charm for '+m.nick+'"><option value="">'+(m.charm?'Change charm':'Give a charm')+'</option>'
+    +P.map((c,i)=>'<option value="'+m.uid+'|'+i+'">'+charmName(c)+' ('+cleanText(c.src)+')</option>').join('')+(m.charm?'<option value="'+m.uid+'|x">Take it off</option>':'')+'</select>';
+  if(m.kills) h+=' &middot; <span>Kills '+m.kills+(m.nl?' (named in the Ledger)':'')+'</span>';
+  h+='</div>';
+  if(fl.length) h+='<div class="u-sub m-mf">'+fl.map(f=>'<span class="kit" title="'+MINION_FLAG[f]+'">'+FLAGS[f].split(':')[0]+'</span>: '+MINION_FLAG[f]).join('<br>')+'</div>';
+  return h;
+}
+function charmsHTML(){   // the charm pouch and the bench where they are made (town only)
+  if(S.mode!=='town') return ''; const P=Array.isArray(S.charms)?S.charms:[], worn=S.army.concat(S.reserve||[]).filter(m=>m.charm).length;
+  const kinds=charmKinds().filter(n=>charmKnown(n)||((S.trophies||{})[charmKey(n)]||0)>0).sort((a,b)=>(craftWhy(a)?1:0)-(craftWhy(b)?1:0)||charmTier(a)-charmTier(b));
+  let h='<section class="win" aria-labelledby="h-charm"><h2 class="win-h" id="h-charm">Charms &middot; '+P.length+' in the pouch, '+worn+' worn</h2>'
+   +brief('charms','A charm is made from '+CHARM_TROPHIES+' trophies of one kind you know and some gold. It carries that kind\'s kit as an echo, like an Undone body, on any minion you give it to. One charm a minion; move them freely in town. A charm of a Ledgered kind is half again as strong.','q-note');
+  if(P.length) h+='<p class="u-sub">'+P.map(c=>'<span class="kit" title="'+echoTxt(c.k)+'">'+charmName(c)+'</span> <span class="dim">('+cleanText(c.src)+')</span>').join(', ')+'</p>';
+  if(!kinds.length) return h+'<p class="q-note">Know a kind in the bestiary (and keep its trophies) to make its charm.</p></section>';
+  h+='<div class="ch-list">'+kinds.slice(0,ui.chAll?999:8).map(n=>{ const w=craftWhy(n), k=KIT_OF[n];
+    return '<div class="mrow"><span class="mr-name"><b>'+KITS[k].name+' charm</b> <span class="dim">'+n+' &middot; '+((S.trophies||{})[charmKey(n)]||0)+'/'+CHARM_TROPHIES+' trophies</span></span><span class="u-sub">'+echoTxt(k)+'</span>'
+     +'<span class="mr-acts"><button class="btn small" data-a="craftc" data-k="'+n+'"'+(w?' disabled title="'+w+'"':'')+'>Make &middot; '+charmCost(n)+' gold</button></span></div>'; }).join('')+'</div>';
+  if(kinds.length>8) h+='<div class="btns"><button class="linkbtn" data-a="chall">'+(ui.chAll?'Show fewer':'Show all '+kinds.length)+'</button></div>';
+  return h+'</section>';
+}
+function nameLinesHTML(){   // the Memorial: names written into the Ledger at NAME_AT kills
+  const L=Array.isArray(S.nameLines)?S.nameLines:[]; if(!L.length) return '<p class="q-note">A minion that takes '+NAME_AT+' lives has its name written into the Ledger: +'+Math.round(NAME_K*100)+'% HP and attack for every minion of its role, for good ('+NAME_MAX+' names at most).</p>';
+  return '<p class="group-h">Names in the Ledger &middot; '+L.length+'/'+NAME_MAX+'</p><p class="u-sub">'+L.map(l=>'<b>'+cleanText(l.name)+'</b> <span class="dim">('+ROLES[l.role].label+', day '+l.day+')</span>').join(', ')+'</p>';
+}
+

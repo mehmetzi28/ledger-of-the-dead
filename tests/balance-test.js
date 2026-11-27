@@ -123,6 +123,15 @@
       for(const it of S.inv){ const d=ITEM[it.id]; if(d.slot===sl&&isc(it)>bs){ best=it; bs=isc(it); } }
       if(best) equip(best.u);
     }
+    if(B.skills&&!B.off.mgear&&S.mode==='town') for(const m of S.army.concat(S.reserve||[])) if(m.armed) for(const sl of GEAR_SLOTS){ const cur=m.eq&&m.eq[sl]; let best=null, bs=cur?itemScore(ITEM[cur.id])+(ITEM[cur.id].flag?50:0):-1;   /* R12: gear-bearers take the best spare piece (a unique first); "off":["mgear"] */
+      for(const it of S.inv){ const d=ITEM[it.id]; const sc=itemScore(d)+(d.flag?50:0); if(d.slot===sl&&sc>bs){ best=it; bs=sc; } } if(best) giveGear(m.uid,best.u); }
+    if(B.skills&&!B.off.charms&&typeof craftCharm==='function'&&S.mode==='town'){   /* R12: make charms (best kits first) and give them out, front row the guards; "off":["charms"] */
+      const want=['banner','shield','call','stance','pack','frenzy','marker','ambush','thief','skirm','burrow','thorns','hexer','bomb','purify','sapper'], need=S.army.filter(m=>!m.charm).length;
+      for(let g=0;g<need;g++){ const n=charmKinds().filter(x=>!craftWhy(x)).sort((a,b)=>want.indexOf(KIT_OF[a])-want.indexOf(KIT_OF[b])||charmV({k:KIT_OF[b],src:b})-charmV({k:KIT_OF[a],src:a}))[0]; if(!n||S.gold<charmCost(n)*3) break; craftCharm(n); }
+      const DEF=['shield','stance','skirm','burrow','thorns','call'];
+      for(const m of S.army.filter(x=>!x.charm)){ const P=S.charms||[]; if(!P.length) break; const front=m.role==='vanguard';
+        let i=P.findIndex(c=>front===DEF.includes(c.k)); if(i<0) i=0; giveCharm(m.uid,i); }
+    }
     if(B.full&&!B.off.riftborn&&typeof attune==='function'&&S.mode==='town') for(const sl of GEAR_SLOTS){ const it=S.equip[sl]; if(it&&it.rb) while(attune(it.u)); }   // attune what it wears
     if(B.full){   // the new economy: claim bounties, salvage the better spares for dust, build, enchant what you wear
       if(B.full&&typeof wagerOpen==='function'&&wagerOpen()&&rivalToday()&&!arc().wg){ const c=(S.reserve||[]).filter(canStake).sort((a,b)=>cval(a)-cval(b))[0]; if(c) wager(c.uid); }   // R7: stake the weakest Reserve body they would take
