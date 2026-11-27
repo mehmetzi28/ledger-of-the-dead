@@ -154,7 +154,7 @@ const ACTIONS={
     if(ui.confirm!=='lc'){ ui.confirm='lc'; return; } ui.confirm=null;
     if(importCode(ui.imp)){ ui.imp=''; ui.exp=''; ui.msg={m:'Save code loaded.',c:'ok'}; } else ui.msg={m:'That code is not a valid save.',c:'bad'};
   },
-  wear:k=>{ wearTitle(k); },
+  wear:k=>{ wearTitle(k); }, insc:k=>{ if(!titleInscribe(k)){ const w=inscWhy(k); if(w) ui.msg={m:'Cannot inscribe: '+w+'.',c:'bad'}; } }, collsub:k=>{ ui.coll=k==='ms'?'ms':'tt'; },
   cxclear:()=>{ ui.cxq=''; },
   cxq:()=>{},   /* the search box: typing is handled by the input listener; data-a only lets focus come back after a render */
   ttf:k=>{ ui.ttf=(k in {all:1,got:1,locked:1,close:1}||/^r[0-5]$/.test(k))?k:'all'; },

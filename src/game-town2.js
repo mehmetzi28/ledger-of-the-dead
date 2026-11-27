@@ -66,7 +66,7 @@ const apoBrewK=()=>1-APO_BREW*bl('apoth');   // brewGold
 const apoBelt=()=>bl('apoth')>=3?1:0;   // beltMax
 const brewTwice=()=>hasSpec('apoth',3,'a');
 const censerK=()=>hasSpec('apoth',3,'b')?2:1;   // incRaise
-const freeBrew=()=>hasSpec('apoth',5,'a')&&S.freeBrew!==S.day;
+const freeBrew=()=>(hasSpec('apoth',5,'a')&&S.freeBrew!==S.day)||collBrew();   /* the Trophy milestone: one a week (game-collection.js) */
 const kitchenHeal=()=>hasSpec('apoth',5,'b');   // drink('hp')
 const warSquadN=()=>warSquad(bl('war'));   // squadMax
 const warOdds=()=>WAR_ODDS*bl('war')+(hasSpec('war',5,'a')?.05:0);   // raidOdds

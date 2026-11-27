@@ -47,7 +47,7 @@ function brewCan(id){
   const P=granary(B); return Object.keys(P).every(r=>partCount(r,B.g)>=P[r]);   /* Ulm's Granary */
 }
 function brewIt(id){   // spends the parts (cheapest first) or spare hearts (lowest first) and the gold
-  if(!brewCan(id)) return false; const B=BREWS[id], free=freeBrew(); S.gold-=brewGold(id); if(free) S.freeBrew=S.day;
+  if(!brewCan(id)) return false; const B=BREWS[id], free=freeBrew(); S.gold-=brewGold(id); if(free){ if(hasSpec('apoth',5,'a')&&S.freeBrew!==S.day) S.freeBrew=S.day; else collBrewUse(); }
   const PT=B.hearts?null:granary(B); faithUsed(B.hearts||Object.values(PT).reduce((a,n)=>a+n,0));   /* Ulm's deed (game-pantheon.js) */
   if(B.hearts){ let need=B.hearts; for(const [k,n] of spareHearts()){ const t=Math.min(n,need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }
   else for(const r of Object.keys(PT)){ let need=PT[r]; for(const k of partKeys(r,B.g)){ const t=Math.min(S.trophies[k],need); S.trophies[k]-=t; need-=t; if(!S.trophies[k]) delete S.trophies[k]; if(!need) break; } }

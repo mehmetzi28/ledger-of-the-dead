@@ -133,10 +133,10 @@ function siegeTwist(e){   // bossTwist: Absolution
 }
 const absolveDr=(e,d)=>e.twist==='absolve'&&S.run&&S.run.enemies.some(o=>o!==e&&o.hp>0&&o.base==='Templar Shieldwall')?Math.round(d*ABSOLVE_DR):d;   // bossTaken
 const siegeRoleOf=n=>{ if(SIEGE_BOSSES.includes(n)) return 'reaper'; const a=Object.keys(SIEGE_FOES).find(r=>SIEGE_FOES[r][0]===n); if(a) return a; const b=Object.values(SIEGE2_FOES).find(f=>f[0]===n); return b?b[1]:'vanguard'; };
-function stierFix(g,q){   // normalizeSave: tier and streak only when the save has them; tonight's wall while pending
+function stierFix(g,q){   // normalizeSave: tier and streak only when the save has them; tonight's wall
   if('tier' in q) g.tier=clamp(Math.floor(num(q.tier,1)),1,STIER_MAX);
   if('streak' in q) g.streak=clamp(Math.floor(num(q.streak,0)),0,STIER_UP-1);
-  if(g.pending&&ROAD_IDS.includes(q.road)&&q.road!=='grave') g.road=q.road;
+  if(ROAD_IDS.includes(q.road)&&q.road!=='grave') g.road=q.road;   // chosen in town the day before, or in the siege; siegeEnd clears it
   stierFix2(g,q);
 }
 

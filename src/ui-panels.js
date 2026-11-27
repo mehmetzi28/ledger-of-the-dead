@@ -235,7 +235,7 @@ function statusHTML(){
   const rows=[['strength','Strength','Strike damage, crit chance, armor piercing, minion attack, Command',['atk','crit','pierce','matk']],['constitution','Constitution','Max HP, damage taken, healing received, minion HP, Command, Endurance',['hp','dr','heal','mhp']],['intelligence','Intelligence','Mana, Siphon, Ward, skill damage, minion attack, Command',['mana','siph','ward','skill','matk']],['will','Will','Mana, army slots, raise odds, minion bond',['mana','slot','raise','mpow']]];
   const canAlloc=P.pts>0&&S.mode!=='battle';
   return '<section class="win" aria-labelledby="h-status"><h2 class="win-h" id="h-status">Status</h2>'
-   +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(faithOf()?'<div class="faith-l '+faithOf()+'" title="Devotion rank '+faithRank()+' of '+DEV_RANKS+'">'+FAITH[faithOf()].name+' &middot; '+faithRank()+'</div>':'')+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+'</div></div></div>'
+   +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(faithOf()?'<div class="faith-l '+faithOf()+'" title="Devotion rank '+faithRank()+' of '+DEV_RANKS+'">'+FAITH[faithOf()].name+' &middot; '+faithRank()+'</div>':'')+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+(inscList().length?'<div class="ttl insc-l" title="Inscribed titles">'+inscList().map(id=>TITLE[id].name).join(' &middot; ')+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+'</div></div></div>'
    +'<div class="vials">'+vial('HP',P.hp,pMax(),'hp')+vial('Mana',P.mana,pMana(),'mp')+'</div>'+'<div class="xp-eng">'+meter('XP',P.xp,need(P.lvl),'xp')+'</div>'
    +((P.pts>0||P.sp>0)?'<div class="chips">'+(P.pts>0?'<span class="chip pts">'+P.pts+' unspent point'+(P.pts>1?'s':'')+'</span>':'')+(P.sp>0?'<span class="chip pts">'+P.sp+' skill point'+(P.sp>1?'s':'')+'</span>':'')+'</div>':'')
    +(remembered()?'<div class="chips"><span class="chip mem-buff" title="Honoured a fallen minion today">Remembered: +'+Math.round(MEM_HP*100)+'% minion max HP until dawn</span></div>':'')
@@ -359,28 +359,51 @@ function heatHTML(i){   // difficulty picker on a cleared gate's card
    +(nm?'<span class="nm-mark" title="Cleared on Nightmare '+nm+' time'+(nm>1?'s':'')+'">&#9760; Nightmare'+(nm>1?' x'+nm:'')+'</span>':'')
    +(cur?'<div class="heat-note">Foes x'+H.foe+' &middot; XP x'+H.xp+' &middot; gold x'+H.gold+' &middot; gear x'+H.drop+(gateMod(i)?' <b class="bad" title="Cursed and '+H.name+': the curse feeds on it: foes x'+DAMNED_FOE+', rewards x'+DAMNED+'."><i aria-hidden="true">&#9760;</i> Curse + '+H.name+': foes x'+DAMNED_FOE+' &middot; rewards x'+DAMNED+'</b>':'')+'</div>':'')+'</div>';
 }
-function titlesHTML(){
-  const T=Object.assign({got:{}},S.ti), n=titlesGot();   /* S.ti can exist before checkTitles first adds got */
+function titlesHTML(){   // the Collection: titles by family (with inscriptions) and milestones (game-collection.js)
+  const sub=ui.coll==='ms'?'ms':'tt';
+  let h='<div class="chips sub-nav coll-nav" role="tablist">'+[['tt','Titles'],['ms','Milestones']].map(([k,n])=>'<button class="btn small'+(sub===k?' primary':'')+'" role="tab" data-a="collsub" data-k="'+k+'" aria-selected="'+(sub===k)+'">'+n+'</button>').join('')+'</div>';
+  return h+(sub==='ms'?milestonesHTML():titleListHTML());
+}
+function inscHTML(){   // the three inscription slots
+  const n=titlesGot(), sl=inscSlots(n), L=inscList();
+  let h='<p class="group-h">Inscribed titles &middot; '+L.length+'/'+sl+'</p><p class="q-note">Up to three earned titles written beside the one you wear (slots at '+INSC_AT.join(', ')+' titles). Each gives its family\'s small perk, one title a family.</p>';
+  if(!sl) return h+'<p class="lede">The first slot opens at '+INSC_AT[0]+' titles. You have '+n+'.</p>';
+  h+='<div class="items">'+L.map(id=>{ const t=TITLE[id], f=famOf(t); return '<div class="tt-row on"><div><h4>'+t.name+' <span class="u-tag fam-'+f+'">'+FAMS[f].name+'</span></h4><div class="u-sub tbuff">'+FAMS[f].perk+'</div></div><button class="btn small" data-a="insc" data-k="'+id+'">Erase</button></div>'; }).join('')
+   +(L.length<sl?'<p class="u-sub">'+(sl-L.length)+' slot'+(sl-L.length>1?'s':'')+' free: choose Inscribe on an earned title below.</p>':'')+'</div>';
+  return h;
+}
+function titleListHTML(){
+  const T=Object.assign({got:{}},S.ti), n=titlesGot(), L=inscList();   /* S.ti can exist before checkTitles first adds got */
   let h='<section class="win" aria-labelledby="h-tt"><h2 class="win-h" id="h-tt">Titles &middot; '+n+'/'+TITLES.length+'</h2>'
    +'<p class="q-note tt-col" title="+1% gold from kills for every '+TCOL_STEP+' titles earned, up to +'+TCOL_MAX+'%">'+titleColTxt(n)+'</p>'
-   +'<p class="lede">Earned once, kept forever. Only the title you wear gives its bonus.</p>'
-   +(titleName()?'<p class="q-note ok">Wearing <b>'+titleName()+'</b>: '+(buffTxt(TITLE[T.sel].b)||'no bonus')+'.</p>':'<p class="q-note">You wear no title, so no title bonus applies.</p>');
-  const F=ui.ttf||'all', FL={all:'All',got:'Earned',locked:'Locked',close:'Close to earning'};
+   +'<p class="lede">Earned once, kept forever. The title you wear gives its bonus; inscribed titles give their family\'s perk.</p>'
+   +(titleName()?'<p class="q-note ok">Wearing <b>'+titleName()+'</b>: '+(buffTxt(TITLE[T.sel].b)||'no bonus')+'.</p>':'<p class="q-note">You wear no title, so no title bonus applies.</p>')+inscHTML();
+  const F=ui.ttf||'all', FL={all:'All',got:'Earned',locked:'Locked',close:'Close to earning'}, hint=hintsOn(), town=S.mode!=='battle';
   const keep=t=>{ const got=T.got[t.id]; if(F==='got') return got; if(F==='locked') return !got; if(F==='close'){ const p=!got&&!titleHidden(t)&&titleProg(t); return p&&p.v/p.n>=.5; } if(F[0]==='r') return t.r===+F.slice(1); return true; };
   h+='<div class="chips tt-filter" role="group" aria-label="Show titles">'+Object.keys(FL).map(k=>'<button class="btn small'+(F===k?' primary':'')+'" data-a="ttf" data-k="'+k+'" aria-pressed="'+(F===k)+'">'+FL[k]+'</button>').join('')
    +'<label class="tt-rsel"><span>Rarity</span><select data-a="ttf" aria-label="Show titles of one rarity"><option value="all"'+(F[0]==='r'?'':' selected')+'>Any</option>'+TIERS.map((n,r)=>'<option value="r'+r+'"'+(F==='r'+r?' selected':'')+'>'+n+'</option>').join('')+'</select></label></div>';
   let shown=0;
-  ['Gates','Hell Tower','Curses and events','Deeds'].forEach(g=>{
-    const all=TITLES.filter(t=>t.grp===g), list=all.filter(keep), have=all.filter(t=>T.got[t.id]).length;
+  FAM_IDS.forEach(f=>{
+    const all=TITLES.filter(t=>famOf(t)===f), list=all.filter(keep), have=all.filter(t=>T.got[t.id]).length;
     if(!list.length) return; shown+=list.length;
-    h+='<p class="group-h">'+g+' &middot; '+have+'/'+all.length+'</p><div class="items">'+list.map(t=>{
-      const got=T.got[t.id], on=T.sel===t.id, hid=titleHidden(t), rt='<span class="t-rar t'+t.r+'">'+TIERS[t.r]+'</span>';
-      if(hid) return '<div class="tt-row off hidden-t"><div><h4>??? '+rt+'</h4><div class="u-sub">A hidden '+TIERS[t.r].toLowerCase()+' title. Keep playing to discover it.</div></div><span class="u-tag">Hidden</span></div>';
-      return '<div class="tt-row'+(on?' on':'')+(got?'':' off')+(g==='Hell Tower'?' hellt':'')+'"><div><h4>'+t.name+' '+rt+'</h4><div class="u-sub">'+t.req+(got?' &middot; earned day '+got:'')+'</div>'+(buffTxt(t.b)?'<div class="u-sub tbuff">When worn: '+buffTxt(t.b)+'</div>':'')+'</div>'
-        +(got?'<button class="btn small'+(on?'':' primary')+'" data-a="wear" data-k="'+t.id+'">'+(on?'Remove':'Wear')+'</button>':(p=>p?'<span class="u-tag num tprog" title="Progress">'+p.v+'/'+p.n+'<i style="width:'+Math.round(p.v/p.n*100)+'%"></i></span>':'<span class="u-tag">Locked</span>')(titleProg(t)))+'</div>'; }).join('')+'</div>';
+    h+='<p class="group-h fam-h">'+FAMS[f].name+' &middot; '+have+'/'+all.length+(have===all.length?' &middot; complete':'')+'</p><div class="fam-bar" role="img" aria-label="'+have+' of '+all.length+'"><i style="width:'+Math.round(have/all.length*100)+'%"></i></div><p class="u-sub fam-perk">Inscribed: '+FAMS[f].perk+'.</p><div class="items">'+list.map(t=>{
+      const got=T.got[t.id], on=T.sel===t.id, ins=L.includes(t.id), hid=titleHidden(t), rt='<span class="t-rar t'+t.r+'">'+TIERS[t.r]+'</span>';
+      if(hid) return '<div class="tt-row off hidden-t"><div><h4>??? '+rt+'</h4><div class="u-sub">'+(hint?'Hint: <span class="t-hint">'+titleHint(t)+'</span>':'A hidden '+TIERS[t.r].toLowerCase()+' title. Keep playing to discover it.')+'</div></div><span class="u-tag">Hidden</span></div>';
+      const why=got?inscWhy(t.id):'';
+      return '<div class="tt-row'+(on||ins?' on':'')+(got?'':' off')+(f==='endless'?' hellt':'')+'"><div><h4>'+t.name+' '+rt+(ins?' <span class="u-tag">Inscribed</span>':'')+'</h4><div class="u-sub">'+t.req+(got?' &middot; earned day '+got:'')+'</div>'+(buffTxt(t.b)?'<div class="u-sub tbuff">When worn: '+buffTxt(t.b)+'</div>':'')+'</div>'
+        +(got?'<div class="btns" style="margin:0"><button class="btn small'+(on?'':' primary')+'" data-a="wear" data-k="'+t.id+'">'+(on?'Remove':'Wear')+'</button>'+(town&&(ins||(inscSlots(n)&&!why))?'<button class="btn small" data-a="insc" data-k="'+t.id+'">'+(ins?'Erase':'Inscribe')+'</button>':'')+'</div>'
+          :(p=>p?'<span class="u-tag num tprog" title="Progress">'+p.v+'/'+p.n+'<i style="width:'+Math.round(p.v/p.n*100)+'%"></i></span>':'<span class="u-tag">Locked</span>')(titleProg(t)))+'</div>'; }).join('')+'</div>';
   });
   if(!shown) h+='<p class="q-note">No titles match this filter yet.</p>';
   return h+'</section>';
+}
+function milestonesHTML(){   // six collections, three steps each
+  let h='<section class="win" aria-labelledby="h-ms"><h2 class="win-h" id="h-ms">Milestones</h2><h3 class="win-title">What the Ledger has gathered</h3><p class="lede">Each collection pays at three steps, once and for good, through every New Game+. The middle step eases a rule a little; the others give a cosmetic.</p><div class="items">';
+  for(const k of MS_IDS){ const M=MILESTONES[k], st=msSteps(k), v=M.get(), at=msAt(k), nx=st[at];
+    h+='<div class="tt-row'+(at>=3?' on':'')+'"><div><h4>'+M.name+' <span class="num dim">'+Math.min(v,st[2])+'/'+(nx||st[2])+'</span></h4><div class="u-sub">'+M.unit+'</div>'
+      +st.map((n,i)=>'<div class="u-sub ms-step'+(at>i?' ok':'')+'">'+(at>i?'&#10003; ':'')+'<span>'+n+'</span>: <span>'+M.rew[i]+'</span></div>').join('')
+      +'</div>'+(nx?'<span class="u-tag num tprog" title="Progress">'+Math.min(v,nx)+'/'+nx+'<i style="width:'+Math.round(Math.min(v,nx)/nx*100)+'%"></i></span>':'<span class="u-tag">Complete</span>')+'</div>'; }
+  return h+'</div></section>';
 }
 function towerHTML(){
   const P=S.player, T=S.tower, st=towerStarts(), locked=!towerOpen(), noWatch=S.watches<=0;

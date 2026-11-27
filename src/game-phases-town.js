@@ -67,7 +67,7 @@ const BUILD={
 };
 const BUILD_MAX=5, BUILD_COST=[[1500,0],[5000,30],[14000,90],[30000,180],[60000,300]], SIEGE_OSS_REF=3;   // [gold, bone dust] for levels 1-5 (4 and 5 after the Throne of Ash: game-town2.js); the Ossuary's siege rise is tuned on 3 levels
 const bl=k=>(S&&S.siege&&S.siege.dmg===k)?0:Math.max(0,((S&&S.build&&S.build[k])||0)-(S&&S.unpaid&&S.unpaid[k]?1:0));   /* unpaid upkeep: the top level is off (game-dread.js) */   // a building damaged in a siege works as if unbuilt until repaired
-const buildCost=k=>BUILD[k]&&blRaw(k)<BUILD_MAX&&!(S&&S.siege&&S.siege.dmg===k)?BUILD_COST[Math.max(0,blRaw(k)-(BUILD[k].step||0))]:null;
+const buildCost=k=>BUILD[k]&&blRaw(k)<BUILD_MAX&&!(S&&S.siege&&S.siege.dmg===k)?(c=>inscOn('town')?[Math.round(c[0]*inscTown()),c[1]]:c)(BUILD_COST[Math.max(0,blRaw(k)-(BUILD[k].step||0))]):null;   /* the Town inscription (game-collection.js) */
 function build(k){
   if(!S||S.mode!=='town'||!BUILD[k]||!bOpen(k)||!buildReady(k)) return false; const c=buildCost(k); if(!c||S.gold<c[0]||(S.dust||0)<c[1]) return false;
   S.gold-=c[0]; S.dust=(S.dust||0)-c[1]; vitals(()=>{ S.build=S.build||{}; S.build[k]=blRaw(k)+1; }); tally('built'); dread(DREAD_BUILD); sfx('level'); siegeTick(); return true;
@@ -152,7 +152,7 @@ function honour(i){
 const HEAD_GOLD=3000, HEAD_GROW=1.5, HEAD_K=.005, HEAD_CAP=.06, HEAD_TOP=60;   /* HEAD_TOP: a sanity limit per stone (its next tier costs ~10^14 gold) */
 const headTiers=()=>S&&S.memorial?S.memorial.reduce((t,e)=>t+(e.hs|0),0):0;
 const headBonus=()=>HEAD_CAP*(1-Math.exp(-HEAD_K*headTiers()/HEAD_CAP));   // extraMul (syncMinion): max HP
-const headCost=e=>Math.round(HEAD_GOLD*Math.pow(HEAD_GROW,e.hs|0)*bellChoir());   /* the Choir's Bell Choir */
+const headCost=e=>collHead(Math.round(HEAD_GOLD*Math.pow(HEAD_GROW,e.hs|0)*bellChoir()));   /* the Memorial milestone (game-collection.js) */   /* the Choir's Bell Choir */
 const canHead=e=>!!e&&S.mode==='town'&&(e.hs|0)<HEAD_TOP&&S.gold>=headCost(e);
 function carveHead(i){ const e=(S.memorial||[])[i]; if(!canHead(e)) return false; const c=headCost(e); S.gold-=c; e.hs=(e.hs|0)+1; tally('headG',c); deed('choir',10); syncArmy(); sfx('carve'); return true; }
 function memorialFix(g){   // normalizeSave: keep well-formed entries only
@@ -361,7 +361,7 @@ const AWAKEN_RN=['','I','II','III','IV','V'];
 function uniqHeart(id){ const d=ITEM[id]; if(!d||!d.uq) return null; return 'b:'+(d.rival?DUNGEONS[5].boss[0]:d.tower?TW_BOSS[clamp(Math.round(d.floor/10)-1,0,TW_BOSS.length-1)]:DUNGEONS[d.set].boss[0]); }   // the trophy key of its boss's heart
 const awakenScale=d=>d.tower?1+d.floor/50:1+d.set*.2;
 function awakenCost(it){ const d=ITEM[it&&it.id]; if(!d||!d.uq||(it.aw|0)>=AWAKEN_MAX) return null; const n=it.aw|0, k=awakenScale(d);
-  return {g:Math.round(AWAKEN_GOLD*k*Math.pow(AWAKEN_GROW,n)/100)*100, d:Math.round(AWAKEN_DUST*k*(n+1)), h:n+1, key:uniqHeart(it.id)}; }
+  return {g:collAwaken(Math.round(AWAKEN_GOLD*k*Math.pow(AWAKEN_GROW,n)/100)*100), d:Math.round(AWAKEN_DUST*k*(n+1)), h:n+1, key:uniqHeart(it.id)}; }
 const awakenTotal=set=>{ let g=0; const it={id:'u'+set}; for(let n=0;n<AWAKEN_MAX;n++){ it.aw=n; g+=awakenCost(it).g; } return g; };   // the Codex's figure: all five ranks of a gate's unique
 const canAwaken=it=>{ const c=awakenCost(it); return !!c&&S.mode==='town'&&workOpen()&&S.gold>=c.g&&(S.dust||0)>=c.d&&(S.trophies[c.key]||0)>=c.h; };
 function awaken(u){

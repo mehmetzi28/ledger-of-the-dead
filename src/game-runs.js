@@ -88,6 +88,7 @@ function hurtFoe(e,d,ty){ if(abbeyMiss(e)) return; ty=MARGIN||(DTYPE[ty]?ty:'phy
   if(e.doom>0&&d>0){ d=Math.round(d*(e.doomK||1)); e.doom--; }   /* Doom, a hexer's active (game-army.js) */
   { const k=(1-foeRes(e,ty))*typeDmg(ty)*oilK(e,ty)*archiveK(e)*rallyK()*widenK()*rbDescent(); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
   e.lt=ty;   /* the type of the last hit it took (a weakness kill) */
+  { const ik=inscDmgK(); if(ik!==1) d=Math.round(d*ik); }   /* the Gates, Tower and Rift, and Rival inscriptions (game-collection.js) */
   d=bossTaken(e,kitTaken(e,d));   /* Heartwood (game-boss-kits.js) */   /* Bulwark stance, a Banner-bearer beside it (game-kits.js) */
   if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e,0,0); return; } }   // Bone Wall shield soaks damage first
   if(e.hp>0&&d>=e.hp){ e.cd=deathCond(e,d); e.kb=d; }   /* kb: the killing blow (Morrow's scorch) */   // the killing blow decides the body's condition
@@ -152,7 +153,7 @@ function checkDeaths(){
     if(e.boss){ tally('bosses'); r.bossK=e.name; }   /* the History notes the boss that fell */
     if(e.elite) tally('elites');
     studyFoe(e.base,ascStudy(e));
-    r.pending+=killXp(e); if(!e.stash) r.loot.push(...rollDrops(e)); killLoot(e,r);   // a stolen body drops no gear: the body is the reward
+    r.pending+=Math.round(killXp(e)*inscBossXp(e));   /* the Story inscription (game-collection.js) */ if(!e.stash) r.loot.push(...rollDrops(e)); killLoot(e,r);   // a stolen body drops no gear: the body is the reward
     killPowers(); capKill(e); faithKill(e,r); runeDrop(e,r); nemSlain(e,r);   /* a nemesis avenged (game-nemesis.js) */   /* skill runes (game-builds.js) */
     if(!e.rival&&!e.guard&&sigBody()){ const c=corpseOf(e);   /* guardians and Loud Grave leave no body (game-rift.js) */ if(e.stash) rivalReclaim(e,c); r.corpses.push(c); longNameRise(e,r); }   /* The Long Name (game-builds.js) */   // the rival leaves no body: they retreat
     if(e.boss) bossSpeaks(e,'bye');
@@ -197,7 +198,7 @@ function act(kind){
   const r=S.run, P=S.player; r.fx={};
   const t=currentTarget(); if(!t) return; HITTER=P;
   if(kind==='strike'){
-    let d=hit(pAtk()*pierceMul(strPen())*(1+.1*sk('edge'))*hexK(P)), crit=Math.random()<critChance(); if(crit){ d=Math.round(d*1.8); tally('crits'); } if(hasFlag('execute')&&t.hp<t.maxHp*.35) d=Math.round(d*1.5);
+    let d=hit(pAtk()*pierceMul(strPen())*(1+.1*sk('edge'))*hexK(P)*inscHero()), crit=Math.random()<critChance(); if(crit){ d=Math.round(d*1.8); tally('crits'); } if(hasFlag('execute')&&t.hp<t.maxHp*.35) d=Math.round(d*1.5);
     const fb=frozenChilled(t); if(fb) d=Math.round(d*FROSTBREAK);
     hurtFoe(t,d); P.mana=Math.min(pMana(),P.mana+3); if(hasMod('edge','b')){ healAlly(P,Math.round(d*.1)); addDot(t,'bleed',d*BLOODLET,2); } if(crit&&hasMod('edge','a')) addSt(t,'sundered',2);   // Bloodletting, Rending
     log('You strike '+t.name+' for '+d+(crit?' (crit)':'')+'. +3 mana.'); fxe('strike',t,crit?{crit:1}:null); if(fb&&t.hp>0) frostbreak(t);
@@ -206,7 +207,7 @@ function act(kind){
     else if(hasFlag('cleave')){ const o=liveFoes().filter(x=>x!==t); if(o.length) hurtFoe(pick(o),Math.round(d*.6)); }
   }else if(kind==='siphon'){
     if(P.mana<siphonCost()) return;
-    P.mana-=siphonCost(); const low=t.hp<t.maxHp*SIPHON_LOW; let d=hit(pSiph()*pierceMul(SIPHON_PIERCE)*hexK(P)*shadowK()*faithSiph()); if(low) d*=2; deed('choir',1); SIPHONING=true; hurtFoe(t,d,'shad'); SIPHONING=false;   // pierces a quarter of armor; devours the weak
+    P.mana-=siphonCost(); const low=t.hp<t.maxHp*SIPHON_LOW; let d=hit(pSiph()*pierceMul(SIPHON_PIERCE)*hexK(P)*shadowK()*faithSiph()*inscHero());   /* the Hero inscription (game-collection.js) */ if(low) d*=2; deed('choir',1); SIPHONING=true; hurtFoe(t,d,'shad'); SIPHONING=false;   // pierces a quarter of armor; devours the weak
     if(hasFlag('chorus')) for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.5),'shad');
     const h=healAlly(P,Math.round(d*(hasFlag('lifedrain')?SIPHON_HEAL_LD:SIPHON_HEAL))); const got=gainSoul();
     log('Soul Siphon '+(low?'devours ':'drains ')+t.name+' for '+d+(h?', you recover '+h:'')+(got?' and harvest a Soul ('+S.run.souls+'/'+SOUL_MAX+')':'')+'.'); fxe('siphon',t);
@@ -435,6 +436,7 @@ function raiseChance(c){
   if(firstRaise()) return 100;
   let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+4*sk('mastery')+B_OSS*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*RAISE_LV-RK[c.rankI].pen;
   if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+nemRaise(c)+windRaise()+(hasInsc('many')?INSC_RAISE:0)+incRaise()+townRaise(c)+rgRaise(c)+twoBooks()+faithRaiseK(c)+ascRaise();
+  ch+=inscRaise();   /* the Raising inscription (game-collection.js) */
   { const k=custK('raise'); if(k!==1) ch*=k; }   /* custom difficulty (game-modes.js) */
   return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
 }

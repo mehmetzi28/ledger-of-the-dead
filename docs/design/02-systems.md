@@ -530,6 +530,13 @@ the browser keeps a list of challenges played (`lotd-codes`). The play log (`lot
 cap) records runs, rooms, doors, events, orders, skills, the fatal blow (whether its intent showed, HP before), town spending
 and time per tab; the Ledger's How I play page reads it and Records exports it as JSON for the bot replay.
 
+**Collection** (R16, `src/game-collection.js`). Every title has one of ten families (Gates, Army, Raising, Hero, Tower and
+Rift, Town, Faith, Rival and sieges, Story, Secrets). Up to three earned titles are inscribed (`S.insc`; slots at 40, 80
+and 120 titles), one a family, each giving its family's ~1% perk. Six milestones (`S.coll`: Bestiary Ledgered, Uniques
+found, Sets completed, Trophy kinds, Pages, Memorial) pay at three steps; the middle step eases a rule (door sight, Awakening
+-10%, a bag row, a free weekly brew, early title hints, headstones -10%). Hidden titles show a masked hint from 100 titles.
+The Titles tab is now Collection.
+
 **The Rival** (`RIVAL_*`). After 4 distinct clears a rival keeper (one of six names) appears. Every 2-6 days they steal
 the best body of the role your army leans on; about every two weeks (warned a day ahead) they wait in a cleared gate's
 boss room with 2-4 followers, fielding the bodies they stole. They grow 10% per win of yours. Beat them: a legendary,

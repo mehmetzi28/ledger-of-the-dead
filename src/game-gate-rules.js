@@ -490,7 +490,7 @@ function quietRoom(kind){   // a rest or treasure room: no fight, then the doors
 function preRooms(r){ r.pre=null; for(const k of r.doors||[]) if(k==='fight'||k==='elite'||k==='nem'){ r.pre=r.pre||{}; r.pre[k]=buildRoom(r.room+1,k); } }
 function doorSight(di){   // 2: most of the gate's kinds Known (rows and levels too), 1: most Studied (names, elites and affixes), 0: nothing. Most: at least 2.
   const ms=DUNGEONS[di].mobs, need=Math.min(2,ms.length), n=id=>{ const at=MASTERY.findIndex(t=>t.id===id); return ms.filter(m=>MASTERY.indexOf(masteryOf(m[0]))>=at).length; };
-  return brewSight(di,n('known')>=need?2:n('studied')>=need?1:0);   /* Lantern (game-brew.js) */
+  return brewSight(di,collSight(n('known')>=need?2:n('studied')>=need?1:0));   /* the Bestiary milestone (game-collection.js) */   /* Lantern (game-brew.js) */
 }
 const DOOR_TIP={swarm:'At most '+SUMMON_CAP+' answer it in one fight',bonewall:"A shield holds at most 40% of a foe's HP",seedfall:'At most '+SUMMON_CAP+' sprout in one fight'};   // moves that are not telegraphed: what limits them
 function doorBoss(di){   // the boss door, once its master is Ledgered: the signature move and what answers it (the same answers as a charging boss: chargeInfo)

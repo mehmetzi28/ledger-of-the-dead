@@ -10,7 +10,7 @@ function townHTML(){
   let h=notesHTML()+spendStrip();
   h+='<div class="tabs" role="tablist">'
     +[['gates','Gates']].concat(towerOpen()?[['tower','Hell Tower']]:[]).concat([['gear','Gear &middot; '+S.inv.length],['market','Market'],['army','Army &middot; '+S.army.length]]).concat(townOpen()?[['town','Town']]:[])
-    .concat([['skills','Skills'+(S.player.sp?' &middot; '+S.player.sp:'')],['titles','Titles &middot; '+Object.keys((S.ti&&S.ti.got)||{}).length],['ledger','Ledger']])
+    .concat([['skills','Skills'+(S.player.sp?' &middot; '+S.player.sp:'')],['titles','Collection &middot; '+Object.keys((S.ti&&S.ti.got)||{}).length],['ledger','Ledger']])
     .map((t,i)=>'<button class="tab'+(t[0]==='tower'?' hell':'')+'" role="tab" data-a="tab" data-k="'+t[0]+'" aria-keyshortcuts="'+(i+1)+'" aria-selected="'
         +(t[0]==='ledger'?LEDGER.some(x=>x[0]===ui.tab):(ui.tab||'gates')===t[0])+'">'+t[1]+(i<9?'<kbd aria-hidden="true">'+(i+1)+'</kbd>':'')+'</button>').join('')
    +'<button class="tab keyhint" data-a="keys" aria-keyshortcuts="?" aria-label="Keyboard shortcuts" title="Keyboard shortcuts">?</button></div>';

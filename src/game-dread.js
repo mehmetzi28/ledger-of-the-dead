@@ -52,7 +52,7 @@ function bellDefense(list,r){   // townSiegeWave, before the fight starts
   if(n>=5){ const P=S.player; P.shield=Math.max(P.shield||0,Math.round(pMax()*.1*k)); }
 }
 // ----- upkeep
-const upkeepOf=(k,lv)=>Math.max(0,(lv==null?blRaw(k):lv)-2)*UPKEEP*(topGate()+1);
+const upkeepOf=(k,lv)=>Math.round(Math.max(0,(lv==null?blRaw(k):lv)-2)*UPKEEP*(topGate()+1)*inscTown());   /* the Town inscription (game-collection.js) */
 const upkeepAll=()=>Object.keys(BUILD).reduce((a,k)=>a+(sg().dmg===k?0:upkeepOf(k)),0);
 function upkeepDawn(){   // closeDay: pay each building in order; one that cannot be paid loses its top level until a dawn pays it
   const was=S.unpaid||{}; S.unpaid={}; let paid=0; const left=[];

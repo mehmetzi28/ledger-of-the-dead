@@ -194,7 +194,7 @@ function pickNorm(rows){ const tot=rows.reduce((a,r)=>a+r.p,0); let x=Math.rando
 const ownsItem=id=>!!S&&(S.inv.some(it=>it.id===id)||GEAR_SLOTS.some(sl=>S.equip[sl]&&S.equip[sl].id===id)||S.army.concat(S.reserve||[],S.waiting||[],...(S.raids||[]).map(x=>x.units)).some(m=>m.eq&&GEAR_SLOTS.some(sl=>m.eq[sl]&&m.eq[sl].id===id)));
 function rollDrops(e){
   const out=[], rows=e.tw?towerTable(e.tw,e.role,e.boss,e.elite):tableFor(e.rankI,e.role,e.boss,e.elite,SIG[e.base],e.hx);
-  const more=ascDrop()*(S.run&&S.run.siege?SIEGE_DROP:1)*((!e.tw&&runMod())?MOD_DROP:1)*(roomKind()==='elite'?ELITE_DROP:1)*heatK('drop')*(S.run&&S.run.rift?Math.min(RIFT_DROP_MAX,1+RIFT_DROP*S.run.rift)*riftRew():1)*(omen()==='ironrain'?IRON_DROP:1)*(hasMod('robber','b')?KEEN_DROP:1)*pactDrop();   // Iron Rain, Keen Eye and New Game+ pacts
+  const more=ascDrop()*(S.run&&S.run.siege?SIEGE_DROP:1)*((!e.tw&&runMod())?MOD_DROP:1)*(roomKind()==='elite'?ELITE_DROP:1)*heatK('drop')*(S.run&&S.run.rift?Math.min(RIFT_DROP_MAX,1+RIFT_DROP*S.run.rift)*riftRew():1)*(omen()==='ironrain'?IRON_DROP:1)*inscDrop()*(hasMod('robber','b')?KEEN_DROP:1)*pactDrop();   // Iron Rain, Keen Eye and New Game+ pacts
   for(const c of dropChances(e.boss,e.elite)) if(Math.random()<c*more){ let id=pickRow(rows);
     if(ITEM[id].uq&&(ownsItem(id)||out.includes(id))) id=pickNorm(rows.filter(r=>!ITEM[r.id].uq));   // a unique you already carry becomes ordinary gear instead
     out.push(id); }
@@ -202,7 +202,7 @@ function rollDrops(e){
   return out;
 }
 const BAG_MAX=30, BAG_STEP=5, BAG_COST=[250,600,1500,3500];   // bag upgrades: +5 slots each, bought at the market
-const bagMax=()=>BAG_MAX+BAG_STEP*((S&&S.bagLv)||0);
+const bagMax=()=>BAG_MAX+BAG_STEP*((S&&S.bagLv)||0)+(S?collBag():0);   /* the Sets milestone (game-collection.js) */
 const KNOW_AT=25;   // kills of one enemy type needed to study its drop table in the bestiary
 // Bestiary mastery: a ladder on S.kills only (no save fields; New Game+ keeps the bestiary, so mastery carries over).
 // at = kills for an ordinary foe, bossAt = for gate bosses, Tower wardens and secret masters (null: not a rung for them).

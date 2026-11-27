@@ -90,3 +90,42 @@ should be under a point (`"off":["insc"]`): collection is flavor, not power.
 - **Inscriptions become mandatory power**: perks are ~1% and capped by family.
 - **Sprite palette work is larger than it looks**: robes and staffs reuse the sprite recolor path; backdrops tint the
   existing stage.
+
+## As built (PR A: families, inscriptions, milestones, hints)
+
+- **Code**: `src/game-collection.js` (new, after game-playlog.js).
+- **Families** (`famOf`): ten families from an explicit id list (`FAM_LIST`). A title not in the list falls back on its
+  group, so new titles always have a family. Gate titles know their gate (`titleGate`).
+- **Inscriptions** (`S.insc`, `titleInscribe`): slots at 40, 80 and 120 titles, earned titles only, one per family, in town.
+  Erasing frees the slot. Perks: Gates +1% damage in that gate (every gate for titles of no single gate, through `hurtFoe`),
+  Army +1% max HP (`extraMul`), Raising +0.5 raise chance, Hero +1% Strike and Soul Siphon, Tower and Rift +1% damage there,
+  Town -2% building costs and upkeep, Faith +5% devotion (`deed`), Rival and sieges +2% damage, Story +2% boss XP, Secrets
+  +1% gear drop chance. The hero card lists the inscribed titles.
+- **Milestones** (`S.coll`, `collCheck` from `checkTitles`; steps are kept for good):
+  - Bestiary Ledgered 10/25/50. The middle step gives +1 door sight in every gate (capped at 2). The doc's Codex weakness
+    filter was dropped, because Ledgered kinds already give full sight.
+  - Uniques ever held 6/12/18 (`S.coll.u`): Awakening -10% gold.
+  - Sets with all 7 pieces held at once 2/4/6: +1 bag row.
+  - Trophy kinds held at once 30/60/all: one free brew a week.
+  - Pages 10/20/all: hidden title hints from 50 titles. This replaces the doc's "a passage".
+  - Memorial 50/100/200: headstones -10%.
+  - The first and last steps name a cosmetic, which PR B adds.
+- **Hidden titles**: from 100 titles (50 with the Pages step), a hidden title's requirement shows with most words cut to their
+  first letter (`titleHint`).
+- **UI**: the Titles tab is now **Collection**, with two views:
+  - Titles grouped by family, with progress bars, each family's perk, and Inscribe and Erase buttons.
+  - Milestones.
+  - The Codex has a new Collection page.
+- **Bot**: the bot now earns titles and milestones at dawn (`checkTitles`; until now only the UI ran it), and still wears no
+  title. It inscribes Army, Tower and Rift, Hero, Rival, then a gate-free Gates title. `"off":["insc"]` turns this off.
+- **Measured** (market bot, seed 7700, 40 bots):
+  - With inscriptions: 95% clears, Tower 83, Rift 22.4. Without (`off insc`): 94%, Tower 82.6, Rift 20.
+  - Inscriptions are worth under half a Tower floor. The Rift gain (~2 depths) sits within the Rift's usual spread.
+  - Bots hold 82-90 titles by day 100, so two slots are open.
+  - Full bot (seed 9100): 94% clears, Tower 86.5, sieges held 92%.
+- **Fixed on the way**: the fuzzer's new paths turned up three older bugs.
+  - A siege wall chosen in town the day before was lost on reload (R14).
+  - The bone merchant's trade left the traded minion's partner bonded to nobody (R13).
+  - The thrall invariants did not allow the Long Name's thralls or the Ossuary's two-a-wave on the Graveyard.
+  - A title worn automatically now updates the army's stats.
+- **Tests**: `tests/groups/98-collection.js` (6 tests).
