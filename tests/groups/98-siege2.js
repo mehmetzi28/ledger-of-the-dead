@@ -71,4 +71,31 @@ test('Sieges 2.0 on screen: the intro shows the tier and the walls, the Town tab
     .forEach(s=>ok(tr(s)!==s,'Turkish: '+s));
   ok(SIEGE_NAMES.every(n=>IC[n]&&MAT[n]),'icons'); ok(SIEGE_BOSSES.every(n=>bossKind(n)),'bosses for mastery');
 });
+test('Siege works: built once in town, each serves every siege: caltrops, oil, palisade, catapult and the Ward stones',()=>{
+  const g=town(40,{crypt:1,forge:1}); S.gold=0; S.dust=0; ok(!buildWork('caltrops'),'gold first'); S.gold=1e5; S.dust=500;
+  WORK_IDS.forEach(k=>ok(buildWork(k),k)); ok(!buildWork('oil'),'once'); eq(S.gold,1e5-WORK_IDS.reduce((a,k)=>a+WORKS[k].g,0)); eq(S.dust,500-WORK_IDS.reduce((a,k)=>a+WORKS[k].d,0)); eq(Object.keys(g.works).length,5);
+  const c=normalizeSave(JSON.parse(JSON.stringify(S))); eq(JSON.stringify(c.siege.works),JSON.stringify(g.works),'saved');
+  const v=mkMinion({lvl:40,role:'vanguard'}); night(1); beginSiege(); const r=S.run;
+  ok(r.enemies.every(e=>e.dots&&e.dots.bleed),'caltrops'); ok(r.enemies.filter(e=>rowOf(e)==='f').every(e=>e.hp<e.maxHp),'oil on the front row'); ok(v.mw>=Math.round(v.maxHp*PALISADE_K)-1,'the palisade');
+  fix(.99); r.enemies.forEach(e=>{ e.hp=0; }); checkDeaths(); roomWon(); ok(r.enemies.every(e=>e.hp<=e.maxHp*(1-CATAPULT_K)+1),'the catapult');
+  const b=r.enemies[0]; const P=S.player, h=P.hp; ok(wardStone(b,'decree'),'the stones break a Decree'); ok(!wardStone(b,'decree'),'once a wave'); ok(!wardStone(b,'purge'),'not every move'); r.wsU=0; fireAbility(b,'decree'); eq(P.hp,h,'a broken Decree does nothing');
+  r.enemies.forEach(e=>{ e.hp=0; }); checkDeaths(); roomWon(); eq(r.wsU,0,'the stones are whole again next wave');
+  returnTown(); ui.tab='town'; const hh=renderAll('works'); ok(/Siege works/.test(hh)&&/Corpse catapult/.test(hh)&&/built/.test(hh)); invariants('works');
+});
+test('The Inquisition: a passage at each new tier, then the Purge; breaking it brings the peace and a heart, losing it drops the tier',()=>{
+  let g=town(40); for(let i=0;i<8;i++) stierMove(true); eq(g.tier,5); eq(g.arc,4,'four passages'); ok(S.notices.some(n=>/The last crusade/.test(n.m)),'the arc'); eq(g.pd,1,'the Purge is due'); eq(T_('stier5'),1);
+  S.dread=5; eq(siegeTier(),5,'the Purge ignores the dread'); mkMinion({lvl:40}); night(5); eq(siegeRoad(),'all','every wall'); ok(!siegeRoadPick('north'),'no wall to choose'); ok(!/data-a="sroad"/.test(renderAll('purge intro')),'no wall chips');
+  beginSiege(); let r=S.run; ok(r.purge); eq(r.rooms,5); eq(r.enemies.length,4,'one more foe at every wall'); while(r.room<r.rooms-1) killWave(); eq(r.enemies.find(e=>e.boss).base,'The Grand Inquisitor'); killWave(); eq(S.mode,'raise');
+  ok(!g.pd); eq(g.tier,PURGE_RESET); eq(g.purge.won,1); ok(g.peace.until>S.day+PEACE_DAYS-1); eq(S.trophies['b:The Inquisition'],1,'his heart'); ok(hfInfo('The Inquisition'),'the Forge works it'); eq(T_('purgeWon'),1);
+  returnTown(); ok(dreadOf()<=PEACE_DREAD+1,'Calm (one dawn of drift)'); ok(siegePeace()); S.day+=5; siegeTick(); eq(g.next,0,'no siege in the peace'); ui.tab='town'; ok(/The Inquisition's peace/.test(renderAll('peace')));
+  S.day=g.peace.until; siegeTick(); ok(g.next>S.day,'the sieges return'); const c=normalizeSave(JSON.parse(JSON.stringify(S))); eq(JSON.stringify(c.siege.purge),JSON.stringify(g.purge)); eq(c.siege.peace.until,g.peace.until);
+  g=town(40); g.tier=4; stierMove(true); stierMove(true); eq(g.pd,1); mkMinion({lvl:40}); night(5); beginSiege(); S.run.enemies.forEach(e=>{ e.hp=1e9; e.maxHp=1e9; }); S.army.forEach(m=>{ m.hp=0; }); siegeLost(false); siegeEnd(); ok(!g.pd,'lost'); eq(g.tier,PURGE_RESET); ok(!g.peace,'no peace');
+  invariants('purge');
+});
+test('Sieges 2.0, part two on screen: the planning card once warned, the titles, the Codex and Turkish',()=>{
+  const g=town(40); g.tier=3; S.day=g.next-1; ui.tab='town'; const h=renderAll('plan'); ok(/siege-plan/.test(h)&&/Tier 3: Inquisition/.test(h)&&/Exorcist \(Sapper\)/.test(h)&&/The Witchfinder General/.test(h),'the waves with kits'); ok(siegeRoadPick('north'),'the wall can be picked the day before'); eq(sg().road,'north');
+  ['s_unburnt','s_road','s_tiers','s_pyre','s_works'].forEach(id=>ok(TITLE[id],id)); g.arc=4; S.mode='town'; const cx=cdx('sieges'); ok(/Siege works/.test(cx)&&/The last crusade/.test(cx));
+  [].concat(WORK_IDS.map(k=>WORKS[k].name),WORK_IDS.map(k=>WORKS[k].desc),SIEGE_ARC.map(a=>a.name),SIEGE_ARC.map(a=>a.m),[ROADS.all.desc],['s_unburnt','s_road','s_tiers','s_pyre','s_works'].map(id=>TITLE[id].name),['s_unburnt','s_road','s_tiers','s_pyre','s_works'].map(id=>TITLE[id].req))
+    .forEach(s=>ok(tr(s)!==s,'Turkish: '+s));
+});
 })();

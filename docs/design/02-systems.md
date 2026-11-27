@@ -512,7 +512,10 @@ row raise the tier, a loss lowers it, Calm fights one lower and Terror one highe
 Shieldwall, Flagellant, Relic Bearer, Exorcist, Pyre Priest, Hound Master and War Hounds), waves (3, 3, 4, 4, 5), a boss
 (the Captain, then the Witchfinder General, the Saint of Pyres, the Grand Inquisitor) and pay (x1 to x2). Tier 4+ burns
 the strongest unguarded perk for the night. On the night you pick a wall: North road (+1 foe, Bell Tower defenses x2,
-+25%), River gate (one fewer, all elites, the boss a turn late, +15%) or Graveyard (the Ossuary raises two).
++25%), River gate (one fewer, all elites, the boss a turn late, +15%) or Graveyard (the Ossuary raises two). Five siege works
+(caltrops, oil, palisade, catapult, Ward stones) are built once in town. Each new tier reads a passage of the
+Inquisition's arc; reaching tier 5 brings the Purge (every wall, tier 5 whatever the dread). Break it: 20 days of peace,
+Calm, the Grand Inquisitor's heart, tier 3 again. Lose it: tier 3.
 
 **The Rival** (`RIVAL_*`). After 4 distinct clears a rival keeper (one of six names) appears. Every 2-6 days they steal
 the best body of the role your army leans on; about every two weeks (warned a day ahead) they wait in a cleared gate's

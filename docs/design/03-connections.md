@@ -66,7 +66,7 @@ flowchart LR
 | Town buildings | Gold, dust, clears, sieges, raids, oath | Slots, Reserve growth, raise %, mana, study, kept bodies, potions, brewing, raids, devotion, siege perks | Eleven buildings to level 5 with forty specializations (R5 PR A) |
 | Bounties | Tallies of any activity | Gold, salts, dust, gear | Good glue: reads many systems |
 | Expeditions (R6) | Commander minions, squad roles, damage types, bonds, curses, the Tower, the bestiary (mastery), banners | Gold, gear, trophies, hearts, bone dust, minion XP, the Embalmery, dread, Memorial, titles | Three steps a night and a dawn choice (G17 closed); Rally ties the Commander to every fight (G8 closed) |
-| Sieges | Town levels, calendar, dread band, Bell Tower defenses, Reserve wall, guard choice, wall choice | Gold, dust, gear, building damage, dread, siege tier | Five tiers and walls (R14 PR A) |
+| Sieges | Town levels, calendar, dread band, Bell Tower defenses, Reserve wall, guard choice, wall choice | Gold, dust, gear, building damage, dread, siege tier | Closed by R14 (tiers, walls, works, the Purge) |
 | Rival | Calendar, your army's main role, your bodies, sieges, the Reserve | Legendary, gold, page loss or fine, Reclaimed bodies, wagers, story | A five-chapter arc with an ending (R7): their gate, the Reckoning, the rival's book or an ally in NG+ |
 | Trials | Throne clear, curses, tiers, seed | Gold, dust, hearts, records | Good: pays the Awakening economy |
 | Faith (the pantheon) | Kills, healing, raises, trophies, Siphon, headstones, the Memorial, shrines | Boons by rank, vows, conversion, titles, story, omen forecast/call/ward, Temple chapels, dread, sieges, commissions | |
@@ -181,8 +181,8 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
 - **G22. The Rift only scales.** Closed by R9: sigils to choose before a dive, guardians every fifth depth, Rift Shards
   (PR A); Riftborn gear with rift powers and attunement, the weekly seeded dive, Rift events and the other half's four
   pages (PR B). (Rift, gear, records.)
-- **G23. Sieges never change.** One roster, three waves, the same Captain; the Inquisition has no story that escalates
-  with your wins and losses. (Sieges, story, town.) R14 PR A adds tiers, walls and tier bosses; the story arc is PR B.
+- ~~**G23. Sieges never change.**~~ Closed by R14: five tiers with their own living and bosses, walls, siege works, and
+  the Inquisition's arc that ends in the Purge and a peace. (Sieges, story, town.)
 - ~~**G24. Curses and events repeat.**~~ Closed by R13: ten curses, twenty events (ten in R13, touching dread, faith,
   omens, traits, the Reserve, commissions and the rival), six chains (three tied to their gates, three steps each) and
   nemeses that remember your dead. (Curses, events, Trials, nemeses.)

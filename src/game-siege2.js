@@ -59,17 +59,18 @@ Object.assign(PHASE_LINES,{'The Grand Inquisitor':'Templars, to me! I absolve yo
 // ----- the tier
 const stierRaw=()=>{ const t=sg().tier; return Number.isInteger(t)&&t>=1&&t<=STIER_MAX?t:1; };
 const stierShift=()=>{ const b=dreadBand().id; return b==='calm'?-1:b==='terror'?1:0; };
-const siegeTier=()=>!STIERS_ON?1:clamp(stierRaw()+stierShift(),1,STIER_MAX);   // the tier tonight's siege is fought at
+const siegeTier=()=>!STIERS_ON?1:sg().pd?STIER_MAX:clamp(stierRaw()+stierShift(),1,STIER_MAX);   /* the Purge: tier 5 whatever the dread */   // the tier tonight's siege is fought at
 const runTier=()=>S.run&&S.run.siege&&S.run.tier?S.run.tier:1;
 const siegeRooms=t=>{ t=t||siegeTier(); return t<=1?SIEGE_WAVES:STIER_WAVES[t-1].length; };
 const siegeBossName=t=>SIEGE_BOSSES[STIER_BOSS[(t||runTier())-1]]||SIEGE_BOSS;
-const siegeRoad=()=>{ const r=S.run; if(r&&r.siege&&ROADS[r.road]) return r.road; return ROADS[sg().road]?sg().road:'grave'; };
-function siegeRoadPick(k){ if(S.mode!=='siege'||!ROADS[k]) return false; if(k==='grave') delete sg().road; else sg().road=k; return true; }   // the intro screen
+const siegeRoad=()=>{ const r=S.run; if(r&&r.siege&&ROADS[r.road]) return r.road; if(STIERS_ON&&sg().pd) return 'all'; return ROADS[sg().road]&&sg().road!=='all'?sg().road:'grave'; };
+function siegeRoadPick(k){ if(!(S.mode==='siege'||(S.mode==='town'&&siegeWarned()))||!ROAD_IDS.includes(k)||siegeRoad()==='all') return false; if(k==='grave') delete sg().road; else sg().road=k; return true; }   // the intro screen
 const siegePay2=()=>{ const r=S.run&&S.run.siege?S.run:null; return STIER_PAY[(r?r.tier||1:siegeTier())-1]*ROADS[siegeRoad()].pay; };   // siegeGoldPay (the wall: tonight's pick, or the Graveyard)
 function stierMove(won){   // siegeWon / siegeLost: the tier climbs after two held in a row, falls after a loss
-  if(!STIERS_ON) return; const g=sg(), t=stierRaw();
+  if(!STIERS_ON) return; const g=sg(), t=stierRaw(), r=S.run&&S.run.siege?S.run:null; siegeDeeds(r,won);
+  if(r&&r.purge){ purgeEnd(won); return; }
   if(won){ const s=(g.streak|0)+1; if(s>=STIER_UP&&t<STIER_MAX){ g.tier=t+1; g.streak=0; tally('stierUp'); if(g.tier>(T_('stierTop')|0)) S.ti.stierTop=g.tier;
-      notify('The Inquisition takes your measure: the next sieges come at tier '+g.tier+', '+STIERS[g.tier-1].name+'. '+STIERS[g.tier-1].rule,'bad'); }
+      notify('The Inquisition takes your measure: the next sieges come at tier '+g.tier+', '+STIERS[g.tier-1].name+'. '+STIERS[g.tier-1].rule,'bad'); stierAfter(g,t); }
     else g.streak=s; return; }
   if(g.streak) g.streak=0; if(t>1){ g.tier=t-1; notify('The living think you broken: sieges fall back to tier '+g.tier+', '+STIERS[g.tier-1].name+'.','ok'); }
 }
@@ -89,7 +90,7 @@ function siegeFoe2(tok,lvl,di,t){   // one of the living from a wave token
 }
 function siegeWaveList(r,lvl,di){   // spawnSiege: the wave for this tier and wall
   const t=r.tier||1, W=t<=1?SIEGE_WAVE:STIER_WAVES[t-1], toks=(W[r.room]||W[W.length-1]).slice(), road=r.road;
-  if(road==='north'&&toks.length<5) toks.push('vanguard');
+  if((road==='north'||road==='all')&&toks.length<5) toks.push('vanguard');
   if(road==='river'&&toks.length>2) toks.pop();
   const list=toks.map(k=>siegeFoe2(road==='river'&&k!=='boss'&&!k.endsWith('*')&&k!=='reaper'?k+'*':k,lvl,di,t));
   const K=STIER_K[t-1]; if(K!==1) for(const e of list){ e.maxHp=e.hp=Math.max(1,Math.round(e.maxHp*K)); e.atk=Math.max(1,Math.round(e.atk*K)); }
@@ -97,6 +98,7 @@ function siegeWaveList(r,lvl,di){   // spawnSiege: the wave for this tier and wa
   return list;
 }
 function siegeBegin2(r){   // beginSiege: tonight's tier, wall and burnt perk
+  if(STIERS_ON&&sg().pd){ r.purge=1; log('The Purge: the Grand Inquisitor comes at every wall at once.','bad'); }
   r.tier=siegeTier(); r.road=siegeRoad(); r.rooms=siegeRooms(r.tier); const b=siegeBurnPick(r.tier); if(b) r.burnt=b;
   if(r.tier>1) log('Tier '+r.tier+': '+STIERS[r.tier-1].name+'. '+STIERS[r.tier-1].rule,'bad');
   if(r.road!=='grave') log('You hold the '+ROADS[r.road].name+'. '+ROADS[r.road].desc,'ok');
@@ -134,5 +136,74 @@ const siegeRoleOf=n=>{ if(SIEGE_BOSSES.includes(n)) return 'reaper'; const a=Obj
 function stierFix(g,q){   // normalizeSave: tier and streak only when the save has them; tonight's wall while pending
   if('tier' in q) g.tier=clamp(Math.floor(num(q.tier,1)),1,STIER_MAX);
   if('streak' in q) g.streak=clamp(Math.floor(num(q.streak,0)),0,STIER_UP-1);
-  if(g.pending&&ROADS[q.road]&&q.road!=='grave') g.road=q.road;
+  if(g.pending&&ROAD_IDS.includes(q.road)&&q.road!=='grave') g.road=q.road;
+  stierFix2(g,q);
+}
+
+// ===== R14 PR B: SIEGE WORKS, THE INQUISITION'S ARC, THE PURGE AND THE PEACE =====
+// Siege works are built once in town (gold and bone dust) and serve every siege after (S.siege.works = {k:1}). The arc: a
+// passage the first time the tier reaches 2, 3, 4 and 5 (S.siege.arc, the last read). Reaching tier 5 makes the next siege
+// The Purge (S.siege.pd): tier 5 whatever the dread, every wall at once (no choice, one more foe a wave, no wall pay). Win it:
+// the Inquisition sues for peace (S.siege.peace = {until}: no siege for PEACE_DAYS), the town falls Calm, the Grand Inquisitor's
+// heart ('b:The Inquisition', forged at the Forge), and the tier restarts at 3. Lose it: the tier falls to 3, and the Purge
+// comes again on reaching tier 5. S.siege.purge = {won, day}: the Purges won and the last day.
+const PEACE_DAYS=20, PEACE_DREAD=10, PURGE_RESET=3, CATAPULT_K=.08, PALISADE_K=.15, OIL_K=.15, CALTROP_K=.04, WARD_BLOCK=['decree','hymn','verse','nothing'];
+const WORKS={
+  caltrops:{name:'Caltrop field',  g:800, d:0, desc:'Every attacker in the first wave bleeds for 4% of its max HP a turn for 3 turns.'},
+  oil:     {name:'Oil cauldron',   g:1500,d:10,desc:'The first wave\'s front row is scalded for 15% of its max HP as fire.'},
+  palisade:{name:'Bone palisade',  g:2000,d:20,desc:'At the start of every wave your front-row minions gain a Bone Shield worth 15% of their max HP.'},
+  catapult:{name:'Corpse catapult',g:3000,d:30,desc:'From the second wave, a fallen attacker is flung back over the wall: every attacker takes 8% of its max HP.'},
+  wards:   {name:'Ward stones',    g:5000,d:50,desc:'Once a wave, a Royal Decree, Hymn of Silence, Verse of Binding or Decree of Nothing breaks on the stones.'}
+};
+const WORK_IDS=Object.keys(WORKS);
+ROADS.all={name:'Every wall',pay:1,desc:'The Purge comes at every wall at once: one more foe in every wave, and no wall to choose.'};
+const SIEGE_ARC=[
+  {t:2,name:'Templars on the road',m:'Steel on the hill road at dawn: Templars, riding under the Church\'s white banner. The militia step aside for them. Someone in the town has written to the Inquisition, and the Inquisition has written back.'},
+  {t:3,name:'An Inquisitor\'s letter',m:'A letter nailed to your gate, sealed in red wax: "To the keeper of the book. You are named. Your dead are named. The Witchfinder General comes to read your names aloud, and burn them one by one."'},
+  {t:4,name:'The pyres in the valley',m:'The valley smells of smoke. They are burning the old graveyards before you can reach them, and singing as they do it. A Saint walks at the head of the crusade, and the fire does not touch her.'},
+  {t:5,name:'The last crusade',m:'Every bell in the valley rings at once. The Grand Inquisitor has come himself, with every Templar the Church could spare. This is not a siege. It is a Purge, and it means to end at your door.'}
+];
+const worksOwn=k=>!!(sg().works&&sg().works[k]);
+const workCan=k=>!!WORKS[k]&&S.mode==='town'&&siegeOpen()&&!worksOwn(k)&&S.gold>=WORKS[k].g&&(S.dust||0)>=WORKS[k].d;
+function buildWork(k){ if(!workCan(k)) return false; const W=WORKS[k]; S.gold-=W.g; S.dust=(S.dust||0)-W.d; const g=sg(); g.works=Object.assign({},g.works||{},{[k]:1}); tally('works'); sfx('level'); return true; }
+const siegePeace=()=>!!S&&!!sg().peace&&S.day<sg().peace.until;
+const purgeDue=()=>!!S&&!!sg().pd;
+function worksWave(list,r){   // townSiegeWave: the works, then the Ward stones reset for the wave
+  const front=e=>rowOf(e)==='f';
+  if(r.room===0&&worksOwn('caltrops')) list.forEach(e=>addDot(e,'bleed',Math.max(1,Math.round(e.maxHp*CALTROP_K)),3));
+  if(r.room===0&&worksOwn('oil')) list.filter(front).forEach(e=>{ e.hp=Math.max(1,e.hp-Math.round(e.maxHp*OIL_K*(1-foeRes(e,'fire')))); });
+  if(worksOwn('palisade')) S.army.filter(m=>m.hp>0&&rowOf(m)==='f').forEach(m=>{ m.mw=Math.max(m.mw||0,Math.round(m.maxHp*PALISADE_K)); });
+  if(r.room>0&&worksOwn('catapult')&&r.fallen&&r.fallen.length){ const c=r.fallen.pop(); list.forEach(e=>{ e.hp=Math.max(1,e.hp-Math.round(e.maxHp*CATAPULT_K)); }); log('The Corpse catapult flings '+withArticle(c.base||c.name)+' back over the wall.','ok'); }
+  r.wsU=0;
+}
+function wardStone(e,mv){   // fireAbility: the Ward stones break one move a wave
+  const r=S.run; if(!r||!r.siege||!worksOwn('wards')||r.wsU||!WARD_BLOCK.includes(mv)) return false;
+  r.wsU=1; log(e.name+'\'s '+BOSS_ABIL[mv].name+' breaks on the Ward stones.','ok'); tally('wardStones'); return true;
+}
+function siegeArc(t){   // the tier reached t: its passage, once
+  const g=sg(), a=SIEGE_ARC.find(x=>x.t===t); if(!a||(g.arc|0)>=t-1) return; g.arc=t-1; notify('From the Ledger, "'+a.name+'": '+a.m,'story'); moment(a.name,'bad');
+}
+function purgeEnd(won){   // siegeWon / siegeLost on the Purge
+  const g=sg(); delete g.pd; g.streak=0;
+  if(!won){ g.tier=PURGE_RESET; notify('The Purge broke your walls. The Inquisition withdraws to lick its wounds, and the sieges fall back to tier '+PURGE_RESET+'. It will come again.','bad'); return; }
+  const p=g.purge||{}; g.purge={won:(p.won|0)+1,day:S.day}; g.peace={until:S.day+1+PEACE_DAYS}; g.tier=PURGE_RESET; g.next=0; tally('purgeWon');
+  if(dreadOn()) dread(PEACE_DREAD-dreadOf()); S.trophies['b:The Inquisition']=(S.trophies['b:The Inquisition']||0)+1;
+  notify('The Grand Inquisitor is dead and his Templars are scattered. The Inquisition sues for peace: no siege for '+PEACE_DAYS+' days, and the town is calm. His heart is yours; the Forge can work it.','gold'); moment('The Purge is broken','gold');
+}
+function stierAfter(g,t0){   // stierMove, once the tier has climbed: the arc, tier 5 and the Purge
+  if(g.tier>t0){ siegeArc(g.tier); if(g.tier===STIER_MAX){ tally('stier5'); if(!g.pd){ g.pd=1; notify('The Inquisition has had enough. The next siege is the Purge: the Grand Inquisitor, five waves, every wall at once.','bad'); } } }
+}
+function siegeDeeds(r,won){   // stierMove: tallies for the titles
+  if(!won||!r) return; if(r.road==='north') tally('roadNorth'); if((r.tier|0)>=4&&!S.army.some(m=>!m.thrall&&m.hp<=0)) tally('pyreProof');
+}
+const hfInfoX=boss=>boss==='The Inquisition'?{boss,set:5,m:TM[5],gold:20000,dust:80,n:3}:null;   // hfInfo0
+HF_LINES['The Inquisition']=['fres','will','constitution','hp','ward','atk'];
+TROPHY['b:The Inquisition']={name:'Heart of the Grand Inquisitor',value:TROPHY_VAL[5]*40,ico:'The Grand Inquisitor',rankI:5,gate:5};
+function stierFix2(g,q){   // normalizeSave: works, arc, the Purge and the peace, each only when the save has it
+  const obj=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
+  if(obj(q.works)){ const w={}; for(const k of WORK_IDS) if(q.works[k]) w[k]=1; g.works=w; }
+  if('arc' in q) g.arc=clamp(Math.floor(num(q.arc,0)),0,SIEGE_ARC.length);
+  if(q.pd) g.pd=1;
+  if(obj(q.peace)) g.peace={until:Math.max(0,Math.floor(num(q.peace.until,0)))};
+  if(obj(q.purge)) g.purge={won:Math.max(0,Math.floor(num(q.purge.won,0))),day:Math.max(0,Math.floor(num(q.purge.day,0)))};
 }

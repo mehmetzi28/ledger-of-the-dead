@@ -153,6 +153,7 @@
         if(typeof repairBuilding==='function'&&S.siege&&S.siege.dmg) repairBuilding();   // a building burned in a siege: repair it first
         if(townOpen()) for(const k of ['crypt','ossuary','altar','forge']){ const c=buildCost(k); if(!B.off[k]&&c&&S.gold-c[0]>=reserve) build(k); }
         if(townOpen()&&!B.off.town2&&typeof townPolicy==='function') townPolicy(B,reserve);   // the R5 buildings and specializations ("off":["town2"])
+        if(typeof buildWork==='function'&&!B.off.siegetiers) for(const k of ['caltrops','palisade']) if(WORKS[k]&&S.gold-WORKS[k].g>=reserve) buildWork(k);   // R14: the caltrops and the palisade
         if(!B.off.enchant) for(const sl of GEAR_SLOTS){ const it=S.equip[sl]; if(it&&!ITEM[it.id].uq) while((it.ro||[]).length<lineMax(it)&&enchant(it.u,-1)); }
         if(!B.off.awaken&&typeof awaken==='function') for(let g=0;g<25;g++){   // awakening: the cheapest rank of a worn unique while 10000 gold stays in hand ("off":["awaken"])
           const c=GEAR_SLOTS.map(sl=>S.equip[sl]).filter(it=>it&&canAwaken(it)).sort((a,b)=>awakenCost(a).g-awakenCost(b).g)[0];
@@ -265,7 +266,7 @@
     if(P.mana>=8+res&&pSiph()>=pAtk()) return 'siphon';
     return 'strike';
   }
-  const CURC={}, STC={t:{},d60:[],d100:[]}, RZ={t:0,ok:0}, SWC={n:0,stop:0}, HFC={n:0,g:0}, BRC={n:0,g:0,comm:0,commG:0,bm:0};
+  const CURC={}, STC={t:{},d60:[],d100:[],pn:0,pw:0}, RZ={t:0,ok:0}, SWC={n:0,stop:0}, HFC={n:0,g:0}, BRC={n:0,g:0,comm:0,commG:0,bm:0};
   const useRes=B=>B&&B.full&&!B.off.reserve&&typeof reserveOpen==='function'&&reserveOpen();   // the Reserve, switchable with "off":["reserve"]
   function raisePhase(B){
     const r=S.run, P=S.player;
@@ -384,14 +385,14 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
   function fightSiege(B){   // a siege is fought like rooms: the same decisions, raise the last wave's bodies, then dawn
     if(typeof siegeWallPick==='function'&&S.mode==='siege'){ siegeGuard(guardDefault()); wallPool().sort((x,y)=>y.lvl-x.lvl||y.atk-x.atk).slice(0,SIEGE_WALL).forEach(m=>siegeWallPick(m.uid)); }   // guard the highest-level building, send the 2 strongest from the Reserve
     if(typeof siegeRoadPick==='function'&&S.mode==='siege') siegeRoadPick(B.siege||(bl('ossuary')>=3||siegeTier()<2?'grave':'river'));   /* R14: the Graveyard at tier 1 or with the Ossuary at 3+, else the River gate; "siege":"north" probes a wall */
-    if(!beginSiege()) return; let guard=0; const st=S.run.tier||1, w0=T_('siegeWins');
+    if(!beginSiege()) return; let guard=0; const st=S.run.tier||1, w0=T_('siegeWins'), pg=!!S.run.purge;
     while(guard++<2000){
       if(S.mode==='battle'){ act(decide(B)); continue; }
       if(S.mode==='raise'){ raisePhase(B); returnTown(); break; }
       if(S.mode==='defeat'){ returnTown(); break; }
       break; }
     if(S.mode!=='town') returnTown();
-    const z=STC.t[st]=STC.t[st]||{n:0,w:0}; z.n++; if(T_('siegeWins')>w0) z.w++;
+    const z=STC.t[st]=STC.t[st]||{n:0,w:0}; z.n++; if(T_('siegeWins')>w0) z.w++; if(pg){ STC.pn++; if(T_('siegeWins')>w0) STC.pw++; }
   }
   function playTrial(B,out){   // the week's Trial ('full'; "off":["trials"] skips it): four rooms straight through, no raising; records the score
     const p=trialPlan(), lvl=S.player.lvl; if(!startTrial()) return; let guard=0;
@@ -503,7 +504,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
       tiers:HEAT.slice(0,3).map((H,h)=>{ const g=tr.filter(x=>x.done&&x.t===h); return g.length?H.name+' '+g.length+': score median '+med(g.map(x=>x.s))+' (turns '+med(g.map(x=>x.tt))+', downed '+avg(g.map(x=>x.downs))+')'+(g[0].par!=null?', par beaten '+pc(g.filter(x=>x.s<=x.par).length,g.length):''):null; }).filter(Boolean),
       hearts:avg(res.map(r=>(r.trials||[]).reduce((a,x)=>a+(x.hearts||0),0)))}:null;   // the weekly Trial ('full'): attempts, completions, score by difficulty, and hearts won per bot
     const ad=res.map(r=>r.abbeyDay).filter(x=>x!=null), abbey={open:ad.length+'/'+res.length,inSim:res.filter(r=>r.abbeyDay!=null&&!r.abbeyEnd).length,probed:res.filter(r=>r.abbeyProbe).length,day:avg(res.filter(r=>r.abbeyDay!=null&&!r.abbeyEnd).map(r=>r.abbeyDay))};   /* abbeyDay: the day the seventh gate opened (after the final climb counts as days+1) */
-    return {abbey,trials,gold,events,gates,heat,byLvl,tiers,sec,lore,raids,sieges,rival,rift,passives:avg(res.map(r=>r.passives||0)),stiers:(z=>{ STC.t={}; STC.d60=[]; STC.d100=[]; return z; })(Object.keys(STC.t).length?{held:Object.keys(STC.t).sort().map(t=>'t'+t+' '+Math.round(STC.t[t].w/STC.t[t].n*100)+'% of '+STC.t[t].n).join(', '),d60:STC.d60.length?(STC.d60.reduce((a,b)=>a+b,0)/STC.d60.length).toFixed(1):'-',d100:STC.d100.length?(STC.d100.reduce((a,b)=>a+b,0)/STC.d100.length).toFixed(1):'-'}:null),curses:(z=>{ for(const k in CURC) delete CURC[k]; return z; })(Object.keys(CURC).sort().map(k=>k+' '+Math.round(CURC[k].c/CURC[k].n*100)+'% of '+CURC[k].n).join(', ')),nem:{born:avg(res.map(r=>r.nem?r.nem.born:0)),slain:avg(res.map(r=>r.nem?r.nem.slain:0)),arch:avg(res.map(r=>r.nem?r.nem.arch:0)),alive:avg(res.map(r=>r.nem?r.nem.alive:0))},raise:(z=>(RZ.t=RZ.ok=0,z))(RZ.t?pc(RZ.ok,RZ.t)+' of '+RZ.t:null),sweeps:(z=>(SWC.n=SWC.stop=0,z))(SWC.n?{n:SWC.n,perBot:+(SWC.n/res.length).toFixed(1),stopped:SWC.stop}:null),runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
+    return {abbey,trials,gold,events,gates,heat,byLvl,tiers,sec,lore,raids,sieges,rival,rift,passives:avg(res.map(r=>r.passives||0)),stiers:(z=>{ STC.t={}; STC.d60=[]; STC.d100=[]; STC.pn=STC.pw=0; return z; })(Object.keys(STC.t).length?{purge:STC.pw+' of '+STC.pn,held:Object.keys(STC.t).sort().map(t=>'t'+t+' '+Math.round(STC.t[t].w/STC.t[t].n*100)+'% of '+STC.t[t].n).join(', '),d60:STC.d60.length?(STC.d60.reduce((a,b)=>a+b,0)/STC.d60.length).toFixed(1):'-',d100:STC.d100.length?(STC.d100.reduce((a,b)=>a+b,0)/STC.d100.length).toFixed(1):'-'}:null),curses:(z=>{ for(const k in CURC) delete CURC[k]; return z; })(Object.keys(CURC).sort().map(k=>k+' '+Math.round(CURC[k].c/CURC[k].n*100)+'% of '+CURC[k].n).join(', ')),nem:{born:avg(res.map(r=>r.nem?r.nem.born:0)),slain:avg(res.map(r=>r.nem?r.nem.slain:0)),arch:avg(res.map(r=>r.nem?r.nem.arch:0)),alive:avg(res.map(r=>r.nem?r.nem.alive:0))},raise:(z=>(RZ.t=RZ.ok=0,z))(RZ.t?pc(RZ.ok,RZ.t)+' of '+RZ.t:null),sweeps:(z=>(SWC.n=SWC.stop=0,z))(SWC.n?{n:SWC.n,perBot:+(SWC.n/res.length).toFixed(1),stopped:SWC.stop}:null),runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
   }
 
   function run(opts){
