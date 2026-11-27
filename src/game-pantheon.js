@@ -170,7 +170,7 @@ function granary(B){ if(!B||!B.parts||!chapel('ulm')) return B&&B.parts; const p
 const bellChoir=()=>chapel('choir')?BELL_CHOIR:1;   // headCost
 const profDecay=()=>PROFANE_DECAY*(chapel('dis')?.5:1);   // faithDawn
 // the town's dread and the siege
-const dreadRest=()=>DREAD_REST+(faithOf()==='dis'?PROFANE_DREAD:0);   // dreadDawn drifts toward it
+const dreadRest=()=>(ascDreadRest()||DREAD_REST)+(faithOf()==='dis'?PROFANE_DREAD:0);   /* Cold Town (game-asc.js) */   // dreadDawn drifts toward it
 function godDreadDawn(){ if(faithOf()==='hon'&&dreadOn()&&dreadOf()>0) dread(-MORROW_DREAD); }   // Morrow: the town breathes easier
 const godPayK=()=>faithOf()==='choir'?CHOIR_PAY:1;   // siegePayK
 const godCommK=()=>faithOf()==='ulm'?ULM_COMM:1;   // commPay

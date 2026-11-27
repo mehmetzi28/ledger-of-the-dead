@@ -78,7 +78,7 @@ const SECRET=[
 ];
 const SECRET_CHANCE=.01, SECRET_HEAT=.01, SECRET_PITY=.0005,   /* about 41 boss rooms of one gate between masters on Normal (bots met one every ~19 at 2%/0.25%) */ SB_LV=1, SB_HP=3.5, SB_ATK=1.7, SB_GROW=.12, SB_REWARD=4;   // SB_GROW: extra HP (not attack: bigger hits only one-shot you) per level you stand above your hardest gate's Recommended level
 // The roll for a cleared gate's boss room. Each boss room without the secret master makes the next a little likelier (S.sbPity), so it stays rare but never out of reach.
-const secretChance=di=>SECRET_CHANCE+SECRET_HEAT*runHeat()+SECRET_PITY*((S.sbPity&&S.sbPity[di])||0);
+const secretChance=di=>(SECRET_CHANCE+SECRET_HEAT*runHeat()+SECRET_PITY*((S.sbPity&&S.sbPity[di])||0))*ascSecret();   /* Wandering Masters (game-asc.js) */
 function secretRoll(di){
   if(!SECRET[di]||!(S.ti&&S.ti.clr&&S.ti.clr[di])) return false;   /* Vane Abbey hides no master */
   S.sbPity=S.sbPity||{}; const hit=Math.random()<secretChance(di);
@@ -189,7 +189,7 @@ function pickNorm(rows){ const tot=rows.reduce((a,r)=>a+r.p,0); let x=Math.rando
 const ownsItem=id=>!!S&&(S.inv.some(it=>it.id===id)||GEAR_SLOTS.some(sl=>S.equip[sl]&&S.equip[sl].id===id)||S.army.concat(S.reserve||[],S.waiting||[],...(S.raids||[]).map(x=>x.units)).some(m=>m.eq&&GEAR_SLOTS.some(sl=>m.eq[sl]&&m.eq[sl].id===id)));
 function rollDrops(e){
   const out=[], rows=e.tw?towerTable(e.tw,e.role,e.boss,e.elite):tableFor(e.rankI,e.role,e.boss,e.elite,SIG[e.base],e.hx);
-  const more=(S.run&&S.run.siege?SIEGE_DROP:1)*((!e.tw&&runMod())?MOD_DROP:1)*(roomKind()==='elite'?ELITE_DROP:1)*heatK('drop')*(S.run&&S.run.rift?Math.min(RIFT_DROP_MAX,1+RIFT_DROP*S.run.rift)*riftRew():1)*(omen()==='ironrain'?IRON_DROP:1)*(hasMod('robber','b')?KEEN_DROP:1)*pactDrop();   // Iron Rain, Keen Eye and New Game+ pacts
+  const more=ascDrop()*(S.run&&S.run.siege?SIEGE_DROP:1)*((!e.tw&&runMod())?MOD_DROP:1)*(roomKind()==='elite'?ELITE_DROP:1)*heatK('drop')*(S.run&&S.run.rift?Math.min(RIFT_DROP_MAX,1+RIFT_DROP*S.run.rift)*riftRew():1)*(omen()==='ironrain'?IRON_DROP:1)*(hasMod('robber','b')?KEEN_DROP:1)*pactDrop();   // Iron Rain, Keen Eye and New Game+ pacts
   for(const c of dropChances(e.boss,e.elite)) if(Math.random()<c*more){ let id=pickRow(rows);
     if(ITEM[id].uq&&(ownsItem(id)||out.includes(id))) id=pickNorm(rows.filter(r=>!ITEM[r.id].uq));   // a unique you already carry becomes ordinary gear instead
     out.push(id); }
@@ -408,7 +408,7 @@ const gateRec=di=>Math.max(1,Math.round(REC_BASE[di]+recShift(di)));
 const REC_TIER=[1,.2,.18,.13], REC_TIER_F=[1,1.8,2.5,3.6];
 const tierRaw=(di,h,f)=>REC_BASE[di]+recShift(di)+(REC_TIER[h]||1)*(recShift(di,f)-recShift(di));
 const tierRec=(di,h)=>{ let r=gateRec(di); for(let t=1;t<=(h||0)&&t<HEAT.length;t++) r=Math.max(r+1,Math.round(tierRaw(di,t,HEAT[t].foe))); return r; };   // each tier at least a level above the one below
-const NGP_FOE=.3, NGP_REWARD=.25, ngpFoe=()=>(1+NGP_FOE*((S&&S.ngp)||0))*ngpQuiet(), ngpReward=()=>(1+NGP_REWARD*((S&&S.ngp)||0))*pactReward();   // New Game+: tougher foes, richer rewards
+const NGP_FOE=.15, NGP_REWARD=.25, ngpFoe=()=>(1+NGP_FOE*((S&&S.ngp)||0))*ngpQuiet(), ngpReward=()=>(1+NGP_REWARD*((S&&S.ngp)||0))*pactReward()*ascReward();   /* R10: +15% foes a level (was +30%); the ascension rules carry the rest (game-asc.js) */   // New Game+: tougher foes, richer rewards
 function foeScale(list,a){ const n=ngpFoe(); for(const e of list){ if(n!==1){ e.maxHp=e.hp=Math.round(e.maxHp*n); } if(a*n!==1) e.atk=Math.max(1,Math.round(e.atk*a*n)); } }
 const foeArmor=()=>{ if(!S.run) return 0; const a=S.run.tw?TW.armor:DIFF.armor[S.run.trial?TRIAL_GATE:S.run.di]*(S.run.siege?siegeArmorK():1); return sigArmor(omen()==='ironrain'?1-(1-a)/IRON_ARMOR:a); };   /* Iron Sky (game-rift.js) */   // Iron Rain: foes 25% tougher to hurt
 // ===== DAMAGE TYPES =====

@@ -59,7 +59,7 @@ function hfInfo0(boss){
 const hfKey=boss=>'b:'+boss;
 const hfLinesFor=(boss,slot)=>(HF_LINES[boss]||[]).filter(k=>!ROLL_SLOT[k]||ROLL_SLOT[k].includes(slot));
 const hfLineVal=(I,k,q)=>Math.max(1,Math.round(ROLL_KEYS[k]*I.m*HF_VAL*(q==null?1:q)));
-const hfCost=boss=>{ const I=hfInfo(boss); return I?{g:Math.round(I.gold),d:I.dust}:null; };
+const hfCost=boss=>{ const I=hfInfo(boss); return I?{g:Math.round(I.gold*ascHf()),d:I.dust}:null; };   /* Iron Market (game-asc.js) */
 const hfHearts=()=>Object.keys(S.trophies||{}).filter(k=>k.startsWith('b:')&&S.trophies[k]>0&&hfInfo(k.slice(2)));
 const hfGuard=boss=>(S.trophies[hfKey(boss)]||0)-1<heartsKept(hfKey(boss));   // forging would dip into hearts a held unique still needs to awaken
 function hfCan(boss,slot,lines){

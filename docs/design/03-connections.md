@@ -77,7 +77,7 @@ flowchart LR
 | Titles | Tallies, records, everything | One worn bonus, collection gold | 148 titles, small effect (G26) |
 | Memorial | Shattered and raid-fallen minions | Honour buff, headstones, mausoleums | Strong emotional link |
 | Story and pages | Clears, milestones, page drops | Lore, rival stakes | Missing ending (G16) |
-| NG+ | Throne clear | A new cycle with carried knowledge | Same content (G21) |
+| NG+ | Throne clear | A new cycle with carried knowledge and ascension rules that touch gates, doors, town, omens, market and army | Same valley; rules but no rewrites yet (G21) |
 
 ## 3.3 Strong links to keep
 
@@ -173,8 +173,9 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
 - **G20. Omens are weather, not choices.** Nothing forecasts, calls or wards off an omen, and the town never reacts to
   one. (Omens, faith, town, calendar.)
 - **G21. New Game+ is the same content harder.** (Part closed by R3: the Quiet Valley and the Keeper's Cycle, Ledger
-  inscriptions and Ledger-form bosses.) Pacts are multipliers; there is no new content, foe or story per
-  cycle beyond three passages. (NG+, story, content.)
+  inscriptions and Ledger-form bosses.) Part closed by R10 PR A: 13 ascension rules, picked one per cycle
+  and kept, reach gates, doors, the town's dread, sieges, omens, the market, forging and the army. Open: pacts are still
+  multipliers, and no gate is rewritten per cycle. (NG+, story, content.)
 - **G22. The Rift only scales.** Closed by R9: sigils to choose before a dive, guardians every fifth depth, Rift Shards
   (PR A); Riftborn gear with rift powers and attunement, the weekly seeded dive, Rift events and the other half's four
   pages (PR B). (Rift, gear, records.)

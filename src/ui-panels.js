@@ -501,17 +501,23 @@ function skillsHTML(){
   if(spent) h+='<div class="btns"><button class="btn small warn" data-a="skreset">'+(ui.confirm==='skreset'?'Press again to forget all skills':'Forget all skills ('+spent+' back)')+'</button></div>';
   return h+'</section>';
 }
+function ascPickHTML(){   // the next level's rule: one of three, kept for every later cycle (game-asc.js)
+  const off=ascOffer(), pk=off.includes(ui.ascPick)?ui.ascPick:null, kept=ascRules();
+  let h='<p class="q-note">'+(kept.length?'Rules the valley remembers: '+kept.map(k=>'<b title="'+ASC_RULES[k].desc+' '+ASC_RULES[k].rew+'">'+ASC_RULES[k].name+'</b>').join(', ')+'. ':'')+(off.length?'Pick a rule for ascension level '+((S.ngp||0)+1)+' (optional): it stays for every later cycle.':'Every rule is already yours.')+'</p>';
+  if(off.length) h+='<div class="items">'+off.map(k=>{ const R=ASC_RULES[k], on=pk===k; return '<div class="item'+(on?' on':'')+'"><div class="i-body"><div class="i-top"><span class="i-name">'+R.name+'</span></div><div class="i-stats">'+R.desc+'</div><div class="i-hf">'+R.rew+'</div></div><div class="i-acts"><button class="btn small'+(on?' primary':'')+'" data-a="ascpick" data-k="'+k+'" aria-pressed="'+on+'">'+(on?'Chosen':'Choose')+'</button></div></div>'; }).join('')+'</div>';
+  return h;
+}
 function ngpHTML(){
   const n=(S.ngp||0)+1;
   let h='<p class="group-h">New Game+'+(S.ngp?' &middot; you are in New Game+ '+S.ngp:'')+'</p>';
   if(!canNGP()) return h+'<p class="q-note">Clear the Throne of Ash to unlock New Game+ '+n+'. You start again at level 1 with your titles, your bestiary and one unique, against foes with '+Math.round(NGP_FOE*n*100)+'% more HP and attack that pay '+Math.round(NGP_REWARD*n*100)+'% more XP and gold.</p>';
   const own=ownedUniques(), sel=own.includes(ui.ngpPick)?ui.ngpPick:null;
-  h+='<div class="danger-zone"><p class="q-note" style="margin-top:0">Begin New Game+ '+n+': level 1, day 1, a fresh army, bag and gold. You keep your titles and bestiary, and one unique. Foes get '+Math.round(NGP_FOE*n*100)+'% more HP and attack and pay '+Math.round(NGP_REWARD*n*100)+'% more XP and gold.</p>';
+  h+='<div class="danger-zone"><p class="q-note" style="margin-top:0">Begin New Game+ '+n+': level 1, day 1, a fresh army, bag and gold. You keep your titles and bestiary, and one unique. Foes get '+Math.round(NGP_FOE*n*100)+'% more HP and attack and pay '+Math.round(NGP_REWARD*n*100)+'% more XP and gold, and you pick a rule for ascension level '+n+'.</p>';
   h+=own.length?'<p class="q-note">Choose the unique to carry:</p><div class="chips">'+own.map(id=>'<button class="btn small'+(sel===id?' primary':'')+'" data-a="ngppick" data-k="'+id+'" aria-pressed="'+(sel===id)+'">'+ITEM[id].name+'</button>').join('')+'</div>'
     :'<p class="q-note">You hold no unique to carry.</p>';
   if(S.ending) h+='<p class="q-note"><b>'+ENDINGS[S.ending.k].cycle+'.</b> '+ENDINGS[S.ending.k].ngp+'</p>';   /* the ending you chose (game-abbey.js) */
   if((S.inscriptions||[]).length) h+='<p class="q-note">Ledger inscriptions you carry: '+S.inscriptions.map(id=>INSCRIPTIONS[id].name).join(', ')+'.</p>';
-  h+=pactPickHTML();   // New Game+ pacts (src/ui-progression.js)
+  h+=ascPickHTML()+pactPickHTML();   // the ascension rule (game-asc.js), New Game+ pacts (src/ui-progression.js)
   return h+'<div class="btns"><button class="btn small warn" data-a="ngp">'+(ui.confirm==='ngp'?'Press again: this replaces your current game':'Begin New Game+ '+n+(sel?' with '+ITEM[sel].name:''))+'</button></div></div>';
 }
 function tipHTML(){
@@ -628,6 +634,7 @@ function recordsHTML(){
   const row=(t,v)=>'<div class="tt-row"><div><h4>'+t+'</h4></div><div class="rec-v">'+v+'</div></div>';
   let h='<section class="win" aria-labelledby="h-rec"><h2 class="win-h" id="h-rec">Records</h2><h3 class="win-title">Your best, kept through every New Game+</h3>'
    +'<div class="items">'+row('Deepest Tower floor',Rc.floor?'<b>'+Rc.floor.v+'</b>'+(Rc.floor.v>100?' <span class="dim">(Abyss)</span>':'')+' <span class="dim">&middot; day '+Rc.floor.day+'</span>':'<span class="dim">not yet</span>')
+   +row('Ascension',S.ngp?'Level '+S.ngp+(ascRules().length?' &middot; '+ascRules().map(k=>ASC_RULES[k].name).join(', '):''):'<span class="dim">not yet</span>')
    +row('Endings',(S.endHist||[]).length?S.endHist.map(e=>'<b>'+ENDINGS[e.k].name+'</b> <span class="dim">&middot; cycle '+(e.cycle+1)+', day '+e.day+'</span>').join('<br>'):'<span class="dim">not yet</span>')
    +row('Biggest single hit',on(Rc.hit))+row('Most foes slain in one run',on(Rc.kills))+row('Most gold from one run',on(Rc.gold))
    +row('Souls spent on ultimates','<b>'+n(T_('ults')*SOUL_MAX)+'</b> <span class="dim">&middot; '+n(T_('ults'))+' ultimate'+(T_('ults')===1?'':'s')+'</span>')

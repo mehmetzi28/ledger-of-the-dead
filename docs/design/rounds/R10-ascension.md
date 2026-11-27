@@ -109,3 +109,28 @@ Pick rules by the probe's measured cost (cheapest first); carry the best trait. 
 
 - **Old NG+ saves get easier**: shown once, and the loader gives one free rule pick at the next cycle start.
 - **Rules that hit one build**: three are offered, so a player can avoid a rule their build hates.
+
+## As built (PR A)
+
+- **Code**: `src/game-asc.js` (new, built right after game-rift.js). `ASC_RULES` holds 13 rules; `ASC_*` holds their
+  numbers. A rule acts only through `ascOn(k)`, which needs `S.ngp>0`, so a first cycle and every bot run never see one.
+- **Levels**: the ascension level is the NG+ cycle (`S.ngp`). Flat growth per cycle went from +30% to +15% (`NGP_FOE`);
+  `ngpReward` is multiplied by `ascReward` (No Retreat +15%, Black Omens +10%).
+- **Pick**: the New Game+ page draws three rules not yet chosen (`ascOffer`, from `dayHash`, fixed for the level, so
+  reopening the page never rerolls). The pick is optional; the chosen rule joins `S.asc.rules` for every later cycle.
+- **Rules built** (13 of 15 in the spec, plus two new): Two Faces, Elite Doors, Hungry Ledger, No Retreat, Cold Town,
+  Thin Tether, Black Omens, Wandering Masters, Deep Scars (replaces Old Wounds: shatter -10 points instead of Memorial
+  honours), Iron Market, The Book Hungers, and the new Crowded Gates (one more foe per gate room, gear drops +20%) and
+  Blood Price (potions x2 price, +25% effect).
+- **Hooks**: buildRoom (extra foe, boss phase two), killLoot (boss and master hearts), rollDoors, the drop chance,
+  raiseCost/raiseChance, canRetry, dreadRest, siegeGoldPay, the tether cap, extraMul (Thin Tether +10% army HP, the read
+  minion -20% damage), secretChance and makeSecret HP, shatterOdds/bind HP, the shop stock, hfCost, potion price and heal,
+  dayOmen, startRun (`ascRead` picks the read minion; minionXp doubles its share).
+- **Not built yet** (PR B): Kits Plus, Early Rival, Short Year, Fewer Souls; valley rewrites; pacts as rules; carry
+  choices; the endings tie-in; the *Rewritten* title.
+- **Titles** (4): Ascendant III / VI / X and Every Rule (all 13). Total 193.
+- **Save**: `S.asc={rules:[]}`; `ascFix` drops unknown and repeated rules. Old NG+ saves keep their cycle count with no
+  rules and get +15% per cycle instead of +30% (easier; no note shown).
+- **Tests**: `tests/groups/98-ascension.js` (offer never repeats a chosen rule and is stable; rules stack across cycles;
+  rules are off in cycle 0; hooks apply; a save round-trips). 846 tests.
+- **Balance**: rules only exist in NG+, which the bots never start; market and full runs are unchanged (see 04).

@@ -83,9 +83,9 @@ function guardBlow(tg,d){   // the vanguard that takes this blow on you instead,
 const TETHER=.5;
 const TETHER_TXT='While a minion of yours stands in the front row, no single foe blow takes more than '+Math.round(TETHER*100)+'% of your max HP: the sturdiest front-row minion takes the rest. Bleeding, burns and other damage over time are not blows.';
 const tetherFront=()=>S.run?frontOf(S.army).sort((a,b)=>b.hp-a.hp)[0]||null:null;
-const tetherCap=d=>{ if(!S.run||!tetherFront()) return d; const cap=Math.max(1,Math.round(pMax()*TETHER)); return Math.min(d,cap); };   // what a blow of d (after your ward) can take from you
+const tetherCap=d=>{ if(!S.run||!tetherFront()) return d; const cap=Math.max(1,Math.round(pMax()*ascTether())); return Math.min(d,cap); };   // what a blow of d (after your ward) can take from you
 function tetherBlow(d){   // hurtAlly, on you, during a foe blow: returns what still lands on you
-  const t=tetherFront(), cap=Math.max(1,Math.round(pMax()*TETHER)); if(!t||d<=cap) return d;
+  const t=tetherFront(), cap=Math.max(1,Math.round(pMax()*ascTether()));   /* Thin Tether (game-asc.js) */ if(!t||d<=cap) return d;
   const took=hurtAlly(t,d-cap); tally('tethered'); log('Soul Tether: '+t.nick+' takes '+took+' of the blow for you.','ok'); fxe('hurt',t,{});
   return cap;
 }
@@ -349,4 +349,4 @@ const mausN=()=>S&&S.memorial?Math.min(MAUS_MAX,S.memorial.filter(e=>e.maus).len
 const mausCost=()=>MAUS_COST[mausN()]||0;
 const canMaus=e=>!!e&&!e.maus&&S.mode==='town'&&mausN()<MAUS_MAX&&S.gold>=mausCost();
 function raiseMaus(i){ const e=(S.memorial||[])[i]; if(!canMaus(e)) return false; S.gold-=mausCost(); e.maus=1; tally('maus'); syncArmy(); sfx('raise'); return true; }
-const extraMul=(m,k)=>(k==='atk'?bondMul(m):(1+headBonus()+fallenK())*townHpK(m))*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K+(rivalBook()?BOOK_K:0):1)*(k==='atk'?choirK()*nightK():1);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
+const extraMul=(m,k)=>(k==='atk'?bondMul(m)*ascReadK(m):(1+headBonus()+fallenK())*townHpK(m)*ascArmyHp())*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K+(rivalBook()?BOOK_K:0):1)*(k==='atk'?choirK()*nightK():1);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)

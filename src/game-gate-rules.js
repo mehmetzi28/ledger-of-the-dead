@@ -370,7 +370,7 @@ function roomStart(list){   // a fresh room or floor: Soul Storm, the Swift affi
   progRoom();
 }
 function foeRise(list){ progFoes(list); for(const e of list){ godOmenRise(e); if(omen()==='soulstorm') e.atk=Math.max(1,Math.round(e.atk*STORM_ATK)); if(hasAff(e,'swift')) addSt(e,'hasted',3); } }   // also for foes called in mid-fight
-function dayOmen(){ if(!S.omen||S.omen.day!==S.day){ const f=S.omenNext; S.omen=f&&f.day===S.day?{day:S.day,id:f.id}:{day:S.day,id:anyClear()&&Math.random()<OMEN_CHANCE?pick(OMEN_NAT):null}; if(f&&f.day<=S.day) delete S.omenNext; } return S.omen; }   // a forecast (S.omenNext) is kept
+function dayOmen(){ if(!S.omen||S.omen.day!==S.day){ const f=S.omenNext; const ao=f&&f.day===S.day?undefined:ascOmen(); S.omen=f&&f.day===S.day?{day:S.day,id:f.id}:ao!==undefined?{day:S.day,id:anyClear()?ao:null}:{day:S.day,id:anyClear()&&Math.random()<OMEN_CHANCE?pick(OMEN_NAT):null};   /* Black Omens (game-asc.js) */ if(f&&f.day<=S.day) delete S.omenNext; } return S.omen; }   // a forecast (S.omenNext) is kept
 const omen=()=>(S&&S.player&&!(S.run&&(S.run.siege||S.run.trial)))?dayOmen().id:null;   // omens do not reach a siege or a Trial
 const eliteBase=()=>.1*(omen()==='bloodmoon'?2:1), eliteChance=()=>eliteBase()*(runHeat()>=1?HARD_ELITE:1);   // Hard and up: twice the elites
 const gateMod=di=>{ const m=dayMod(); return m.gi===di?m.id:null; };
@@ -465,7 +465,7 @@ function rollDoors(r){
   if(r.room+1>=r.rooms-1) return ['boss'];
   let pool=['elite','elite','elite','rest','rest','treasure']; const out=['fight'], n=Math.random()<.4?2:1;   // weighted: elite 3, rest 2, treasure 1
   while(out.length<1+n&&pool.length){ const k=pick(pool); out.push(k); pool=pool.filter(x=>x!==k); }
-  return brewDoors(r,out);   /* Open Door (game-brew.js) */
+  return brewDoors(r,ascDoors(r,out));   /* Open Door (game-brew.js); Elite Doors (game-asc.js) */
 }
 const roomKind=()=>(S.run&&!S.run.tw&&S.run.roomKind)||null;
 function quietRoom(kind){   // a rest or treasure room: no fight, then the doors again

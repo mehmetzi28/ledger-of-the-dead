@@ -201,6 +201,7 @@ Gold at day 100 (before Awakening and headstones): ~33-39k average held, ~1.1M l
 | `AWAKEN_*`, `TEMPER_*`, `HEAD_*`, `MAUS_*` | `game-phases-town.js`, `game-faith-story.js` | Late gold sinks |
 | `COMPOUNDS`, `MARK`, `CORPSE_CONDS` | `game-skills-market.js`, `game-gate-rules.js` | Army depth |
 | Capstone and pact constants | `game-progression.js` | Paths and New Game+ |
+| `NGP_FOE`, `ASC_*` | `game-data.js`, `game-asc.js` | Foe growth per ascension level (+15%) and each rule's cost and reward |
 
 ## 4.6 How to measure
 
