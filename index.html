@@ -1623,6 +1623,7 @@ function towerTable(f,role,boss,elite){
   }
   return tcache[key]=rows;
 }
+const SGN_LV=40, SGN_COST=22, SGN_WARD=.15, SGN_DRAIN=.08, SGN_DRAIN_BOSS=.04, SGN_BLOOM=.6, RUNE_DUST=20, RUNE_WARDEN=10, RUNE_GUARD=15, RUNE_LEECH=.1, RUNE_OVER=.2, RUNE_CHAIN=.5, RUNE_SPREAD=.5, RUNE_AVAL=.6, RUNE_GLACIER=.6, RUNE_DEEP=.25;   // R11 PR B: signatures and runes (game-builds.js)
 // R11 hero builds (game-builds.js): Hoarfrost Lance, Pestilence, Endurance, Requiem, The Long Name, Long Haul
 const LANCE_BASE=1.1, LANCE_STEP=.3, LANCE_BOSS=40, LANCE_SHATTER=1.5, PEST_STEP=.05, PEST_MAX=3, CON_ENDURE=.003, CON_ENDURE_CAP=.25, ENDURE_FROM=5,
   REQUIEM_MUL=.6, LNAME_TURNS=3, LONG_HAUL=15;
@@ -1700,7 +1701,7 @@ const TOWER_RES={frost:-.25,fire:.5}, TOWER_HITS='fire', SIEGE_RES={shad:-.25}, 
 const RES_CAP=.5, FOE_RES_MAX=.9, IRON_PHYS=.15, STORM_SHAD=1.1;   // RES_CAP: your own resistance to one type; Iron Rain: foes resist physical; Soul Storm: your shadow damage
 const riftRes=n=>{ const w=DT_IDS[(n*7+2)%5], r=DT_IDS[(n*3+(n>>2)+4)%5]; const o={}; o[w]=-.25; if(r!==w) o[r]=.25; else o[DT_IDS[(DT_IDS.indexOf(w)+2)%5]]=.25; return o; };   // one weakness and one resistance per depth, the same every time
 function placeRes(r){ r=r||S.run; if(!r) return {}; return r.siege?SIEGE_RES:r.tw?TOWER_RES:r.rift?sigRes(riftRes(r.rift)):GATE_RES[r.di]||{}; }   /* Typed Dark */
-function foeRes(e,ty){ if(e&&e.imm===ty) return 1; let v=(placeRes()[ty]||0)+(e&&e.res&&e.res[ty]||0)+(e&&KIND_RES[e.base]&&KIND_RES[e.base][ty]||0); if(ty==='phys'&&omen()==='ironrain') v+=IRON_PHYS; return Math.min(FOE_RES_MAX,v); }
+function foeRes(e,ty){ if(e&&e.imm===ty) return 1; let v=-(e&&e.resD||0)+(placeRes()[ty]||0)+(e&&e.res&&e.res[ty]||0)+(e&&KIND_RES[e.base]&&KIND_RES[e.base][ty]||0); if(ty==='phys'&&omen()==='ironrain') v+=IRON_PHYS; return Math.min(FOE_RES_MAX,v); }
 const typeDmg=ty=>{ const k=DTYPE[ty]&&DTYPE[ty].dmg; return (k?1+G(k)/100:1)*(ty==='shad'&&omen()==='soulstorm'?STORM_SHAD:1); };   // your damage of one type: gear lines (you and your army), Soul Storm
 const TRAIT_RES={rimeborn:['frost',.25],cinderborn:['fire',.25],necrotic:['rot',.25],venom:['rot',.25]};   // a minion risen with a typed trait shrugs off its own element
 function allyRes(a,ty){ if(!ty||ty==='phys') return 0; if(a.id==='p'){ const k=DTYPE[ty].res; return k?Math.min(RES_CAP,G(k)/100):0; } let v=0; for(const t in TRAIT_RES) if(TRAIT_RES[t][0]===ty&&hasTrait(a,t)) v=Math.max(v,TRAIT_RES[t][1]); return v; }
@@ -1892,7 +1893,7 @@ function normalizeSave(src){
     if('sel' in T&&T.sel!==null&&typeof T.sel!=='string') delete T.sel;
     if('compounds' in T) T.compounds=Array.isArray(T.compounds)?T.compounds.filter((c,i,a)=>COMPOUND[c]&&a.indexOf(c)===i):[]; }
   g.tips=obj(g.tips)?g.tips:{}; g.ngp=Math.max(0,Math.floor(num(g.ngp,0)));
-  g.pacts=g.ngp?cleanPacts(g.pacts):[]; ascFix(g); if(!PATHS[P.capPath]) delete P.capPath;   // New Game+ pacts and the chosen capstone path (src/game-progression.js)
+  g.pacts=g.ngp?cleanPacts(g.pacts):[]; ascFix(g); runesFix(g); if(!PATHS[P.capPath]) delete P.capPath;   // New Game+ pacts and the chosen capstone path (src/game-progression.js)
   g.firstRaise=('firstRaise' in g)?(g.firstRaise?1:0):(g.army.length||g.raids.length||g.reserve.length||(obj(g.ti)&&g.ti.raised)||g.runs||(Array.isArray(g.hist)&&g.hist.length)||(obj(g.life)&&g.life.runs)||g.day>1||P.lvl>1||g.ngp?0:1);   // saves from before the sure first raise: any army, history or progress counts as having raised already
   g.bagLv=clamp(Math.floor(num(g.bagLv,0)),0,BAG_COST.length); g.salts=clamp(Math.floor(num(g.salts,0)),0,SALT_MAX);
   g.shop=(obj(g.shop)&&typeof g.shop.day==='number'&&Array.isArray(g.shop.stock)&&g.shop.stock.every(s=>s&&ITEM[s.id]))?g.shop:null;
@@ -2105,6 +2106,8 @@ const roll3=()=>S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&!
  ['as_rw','Deeds','Rewritten','Clear six gates the Ledger wrote over (one a cycle).',()=>T_('rewritten')>=6,{dmgp:3,goldp:3}],
  ['b_haul','Deeds','Long Haul','Win a fight that lasts '+LONG_HAUL+' turns or more.',()=>T_('longHaul')>=1,{hpp:3}],
  ['b_five','Deeds','Five by Five','Rank every skill of one path to 3.',()=>fiveByFive(),{dmgp:3,xpp:2}],
+ ['b_runes','Deeds','Runesmith','Find all 16 skill runes.',()=>Array.isArray(S.runes)&&S.runes.length>=16,{dmgp:3,manap:3}],
+ ['b_sgn','Deeds','Signature','Cast your signature 100 times.',()=>T_('sgnCast')>=100,{dmgp:3}],
  ['r_six','Deeds','Six Guardians','Fell all six guardians of the Rift.',()=>GUARDIANS.every((g,i)=>!!(S.rift&&S.rift.gk&&S.rift.gk[i])),{dmgp:3,hpp:3}],
  ['r_sigil3','Deeds','Fully Sigiled','Clear depth 20 of the Rift or deeper with three sigils.',()=>T_('sig3_20')>=1,{mpow:4}],
  ['r_weekly','Deeds','Weekly Diver','Set 10 weekly dive bests.',()=>T_('weekBests')>=10,{xpp:3}],
@@ -2197,7 +2200,7 @@ function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // d
 // rarer ones stay hidden ("???") until earned. Rarity follows how hard a title is: bot runs measured the reachable ones,
 // and deeds the bots skip (events, forging) were judged by hand.
 const TITLE_RARITY={hd1:1,hd2:2,nm0:3,nm1:3,nm2:3,nm3:4,nm4:4,nm5:5,dm3:5,sb0:5,sb1:5,sb2:5,sb3:5,sb4:5,sb5:5,g0:0,g1:0,d_raise1:0,d_kill100:0,d_death:0,d_armed1:0,d_lv10:0,d_study:0,s_venom:0,f_crit:0,d_tower1:0,d_quest7:0,d_army:0,g2:1,t10:1,t20:1,d_raise50:1,d_cancel:1,d_evolve:1,d_uq:1,d_gold:1,m0:1,m1:1,c_drought:1,c_fury:1,c_bulwark:1,c_horde:1,c_volatile:1,p_25:1,k_spear:1,k_blast:1,k_chill:1,g_items:1,g_sold:1,f_flawless:1,f_last:1,a_boss:1,e_strag:1,e_pedlar:1,e_trap:1,d_death10:1,g3:2,g4:2,t30:2,t40:2,t50:2,d_kill1000:2,d_lv25:2,d_raise200:2,d_tower50:2,d_cancel10:2,d_trophy500:2,d_altar:2,d_elder:2,m2:2,m3:2,d_armed3:2,d_master:2,d_bag:2,c_25:2,e_shrine:2,e_coffer:2,s_poison:2,s_cure:2,k_reap:2,k_master3:2,k_all:2,f_boss25:2,f_elite100:2,g_gold:2,g_roll3:2,a_traits:2,a_elders:2,e_day100:2,e_runs100:2,g_reforge:2,g5:3,t60:3,t70:3,m4:3,m5:3,tw75:3,d_lv50:3,p_100:3,f_crit1000:3,e_rooms1000:3,twruns:3,d_ngp:3,d_tower110:3,t80:4,t90:4,t100:4,d_kill5000:4,d_all:4,d_tower150:4,a_raise500:4,e_lv75:4,tw200:5,d_ngp3:5,d_tuq:5,a_ancient:3,a_eternal:4,a_raid1:1,a_raid25:3,r_5:3,r_15:4,r_30:5};
-Object.assign(TITLE_RARITY,{x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,as_3:3,as_6:4,as_10:5,as_all:5,as_rw:4,b_haul:2,b_five:3,r_six:4,r_sigil3:4,r_weekly:3,r_attuned:3,r_half:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
+Object.assign(TITLE_RARITY,{x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,as_3:3,as_6:4,as_10:5,as_all:5,as_rw:4,b_haul:2,b_five:3,b_runes:4,b_sgn:3,r_six:4,r_sigil3:4,r_weekly:3,r_attuned:3,r_half:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
 const RARITY_MUL=[1,1,1.25,1.5,2,3], HIDDEN_FROM=3;
 TITLES.forEach(t=>{ t.r=TITLE_RARITY[t.id]!=null?TITLE_RARITY[t.id]:1; const m=RARITY_MUL[t.r]; for(const k in t.b) t.b[k]=Math.max(t.b[k],Math.round(t.b[k]*m)); });
 const titleHidden=t=>t.r>=HIDDEN_FROM&&!(S&&S.ti&&S.ti.got&&S.ti.got[t.id]);
@@ -2425,7 +2428,7 @@ function checkDeaths(){
     if(e.elite) tally('elites');
     studyFoe(e.base,ascStudy(e));
     r.pending+=killXp(e); if(!e.stash) r.loot.push(...rollDrops(e)); killLoot(e,r);   // a stolen body drops no gear: the body is the reward
-    killPowers(); capKill(e); faithKill(e,r);
+    killPowers(); capKill(e); faithKill(e,r); runeDrop(e,r);   /* skill runes (game-builds.js) */
     if(!e.rival&&!e.guard&&sigBody()){ const c=corpseOf(e);   /* guardians and Loud Grave leave no body (game-rift.js) */ if(e.stash) rivalReclaim(e,c); r.corpses.push(c); longNameRise(e,r); }   /* The Long Name (game-builds.js) */   // the rival leaves no body: they retreat
     if(e.boss) bossSpeaks(e,'bye');
     log(e.rival?e.name+' is beaten.':e.name+' falls.'); sfx('kill'); fxe('death',e);
@@ -2509,7 +2512,7 @@ function act(kind){
     let tg=minionTarget(m); if(!tg) break;
     const breach=m.role==='reaper'&&r.execute&&hasSt(tg,'sundered')&&foeArmor()>0;   // Breach: Execute ignores a Sundered foe's armor
     let d=hit(m.atk*(breach?pierceMul(1):dmgMul())*(r.frenzy>0?r.frenzyMul:1)*(m.role==='reaper'&&r.execute&&tg.hp<tg.maxHp*.4?2:1)*(hasTrait(m,'wrathful')&&m.hp<m.maxHp/2?1.4:1)*hexK(m)*rowK(m)*(tg.hp<tg.maxHp*BUTCHER_LOW?1+markV(m,'butcher'):1)*breakK(m,tg)*echoDmg(m,tg)); const cc=mCritCh(m), crit=(m.role==='striker'&&r.focus)||(cc>0&&Math.random()<cc); if(crit){ d=Math.round(d*1.8); tally('crits'); }
-    const mt=minionType(m); KILL=m.role==='reaper'&&r.execute?'exec':null; hurtFoe(tg,d,mt); KILL=null; fxe('mhit',tg,{by:fxKey(m)});
+    const mt=minionType(m); KILL=m.role==='reaper'&&r.execute?'exec':null; hurtFoe(tg,d,mt); KILL=null; runeLeech(m,d); fxe('mhit',tg,{by:fxKey(m)});
     if(crit&&r.focus&&tg.charging&&tg.hp>0) breakCharge(tg,m.nick+'\'s focused strike breaks '+theName(tg.name)+'\'s focus.');
     let extra=minionOnHit(m,tg)+echoHit(m,tg)+kitReflect(tg,m,d);
     if(m.role==='reaper'&&m.hp>0){ const o=liveFoes().filter(x=>x!==tg&&reachable(x)); if(o.length){ const o2=pick(o); const d2=Math.round(d*.5); hurtFoe(o2,d2,mt); extra+=' and cleaves '+o2.name+' for '+d2; } }
@@ -2813,34 +2816,39 @@ function useSkill(id,t){
   const s=SKILL[id], rk=sk(id), r=S.run, P=S.player;
   const mg=marginReady(), fl=rbFirst(r); P.mana-=fl?0:skCost(s); marginSkill(r,t,mg); hfSkill(); r.naveU=1; r.lastSk=id; sigMirror(r); r.cd=r.cd||{}; r.cd[id]=fl>1?0:s.cd+1-(id==='blast'?faithBlastCd():0);   /* First Light (game-rift.js) */ tally('sk_'+id);   // +1: the end-of-turn tick runs this same turn
   if(id==='spear'){ const fb=frozenChilled(t), d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(hasMod('spear','a')?1:.5)*skMul()*(fb?FROSTBREAK:1)); hurtFoe(t,d,'phys'); log('Bone Spear impales '+t.name+' for '+d+'.'); fxe('spear',t); if(fb&&t.hp>0) frostbreak(t);
+    if(hasRune('spear','a')&&!(t.hp>0)){ P.mana=Math.min(pMana(),P.mana+Math.round(skCost(s)/2)); log('Marrow: the kill gives back '+Math.round(skCost(s)/2)+' mana.','ok'); } if(hasRune('spear','b')&&t.hp>0) addSt(t,'sundered',2);   /* runes (game-builds.js) */
     if(hasMod('spear','b')){ const o=liveFoes().filter(x=>x!==t); if(o.length){ const o2=pick(o), d2=Math.round(d*.5); hurtFoe(o2,d2,'phys'); log('A splinter tears into '+o2.name+' for '+d2+'.'); } } }
   else if(id==='blast'){ const c=freeCorpse(); c.tried=true; c.result='exploded'; const base=pSiph()*(.6+.2*rk)*pierceMul(1)*(hasMod('blast','a')?1.3:1)*skMul()*shadowK(); let tot=0;
     const rot=Math.max(c.bl||0,...liveFoes().map(o=>o.dots&&o.dots.blight?o.dots.blight.d:0)), spread=[];   // Spreading Rot: a blighted body, or blight already in the room
-    for(const o of liveFoes()){ const d=hit(base); hurtFoe(o,d,'rot'); fxe('burst',o); tot+=d; if(rot&&o.hp>0&&!(o.dots&&o.dots.blight)){ addDot(o,'blight',rot,2); if(o.dots&&o.dots.blight) spread.push(o); } if(hasMod('blast','a')) addSt(o,'sundered',2); if(hasMod('blast','b')){ addDot(o,'poison',pSiph()*.15,3); addDot(o,'blight',pSiph()*.1,3); } } log('The body of '+c.name+' bursts apart, dealing '+tot+' damage across the room.');
+    for(const o of liveFoes()){ const d=hit(base); hurtFoe(o,d,'rot'); fxe('burst',o); tot+=d; if(hasRune('blast','b')&&o.hp>0) addDot(o,'bleed',pSiph()*.15,2); if(rot&&o.hp>0&&!(o.dots&&o.dots.blight)){ addDot(o,'blight',rot,2); if(o.dots&&o.dots.blight) spread.push(o); } if(hasMod('blast','a')) addSt(o,'sundered',2); if(hasMod('blast','b')){ addDot(o,'poison',pSiph()*.15,3); addDot(o,'blight',pSiph()*.1,3); } } log('The body of '+c.name+' bursts apart, dealing '+tot+' damage across the room.');
+    if(hasRune('blast','a')){ const c2=freeCorpse(); if(c2){ c2.tried=true; c2.result='exploded'; let t2=0; for(const o of liveFoes()){ const d=hit(base*RUNE_CHAIN); hurtFoe(o,d,'rot'); t2+=d; } log('Chain: a second body bursts for '+t2+' in all.','ok'); } }   /* runes (game-builds.js) */
     deed('ulm',2); if(spread.length) combo('rot',spread,'Spreading Rot: the blight spreads to '+spread.length+' foe'+(spread.length>1?'s':'')+'.'); }
   else if(id==='mend'){
     let tot=0;
     const cured=allies().some(a=>a.dots);
     let up=null; if(hasMod('mend','a')){ up=S.army.filter(m=>m.hp<=0).sort((a,b)=>mPower(b)-mPower(a))[0]||null; if(up){ up.hp=Math.max(1,Math.round(up.maxHp*MEND_REVIVE)); mark(up,0,up.hp); log('Deep Mending pulls '+up.nick+' back up at '+up.hp+' HP.','ok'); } }   // Deep Mending: one downed minion stands again
-    for(const m of S.army) if(m.hp>0&&m!==up) tot+=healAlly(m,Math.round(m.maxHp*(.15+.08*rk)));
+    for(const m of S.army) if(m.hp>0&&m!==up){ const hv=Math.round(m.maxHp*(.15+.08*rk)), over=hv-(m.maxHp-m.hp); tot+=healAlly(m,hv); if(over>0&&hasRune('mend','b')) m.mw=Math.min(Math.round(m.maxHp*RUNE_OVER),(m.mw||0)+over); }   /* Overgrowth (game-builds.js) */
     if(hasMod('mend','b')) tot+=healAlly(P,Math.round(pMax()*.15));
     if(cured) tally('cures');
-    allies().forEach(clearDots);
+    allies().forEach(clearDots); if(hasRune('mend','a')) allies().forEach(a=>{ delete a.st; });   /* Stitchwork */
     fxe('mend',P);
     if(pactOn('bitter')&&S.run){ const fs=liveFoes(); fs.forEach(o=>{ const h=Math.min(o.maxHp-o.hp,Math.round(o.maxHp*PACT_MEND*blightK(o))); if(h>0){ o.hp+=h; mark(o,0,h); } }); if(fs.length) log('Bitter Blood: the foes drink from your mending too.','bad'); }   /* the Pact of Bitter Blood */
     log('Dark Mending knits your army back together for '+tot+' HP'+(cured?' and cures every wound and burn':'')+'.','ok');
   }
   else if(id==='curse'){ const turns=hasMod('curse','a')?5:3, bonus=.15+.1*rk;
     if(hasMod('curse','b')){ for(const o of liveFoes()){ o.curse={mul:1+bonus*.8,t:turns}; mark(o,0,0); } log('Every foe is cursed and takes '+Math.round(bonus*80)+'% more damage.'); }
-    else { t.curse={mul:1+bonus,t:turns}; mark(t,0,0); log(t.name+' is cursed and takes '+Math.round(bonus*100)+'% more damage.'); }
+    else { t.curse={mul:1+bonus,t:turns}; mark(t,0,0); log(t.name+' is cursed and takes '+Math.round(bonus*100)+'% more damage.'); if(hasRune('curse','a')){ const n=foeNbrs(t).find(o=>!o.curse); if(n){ n.curse={mul:1+bonus*RUNE_SPREAD,t:turns}; mark(n,0,0); log('Spread: '+n.name+' is cursed too.'); } } }
+    if(hasRune('curse','b')){ t.resD=RUNE_DEEP; log('Deep Curse: '+t.name+'\'s resistances crumble.'); }   /* runes (game-builds.js) */
     if(rk>=3) for(const o of (hasMod('curse','b')?liveFoes():[t])) addSt(o,'hexed',2); }   // rank 3: the curse also hexes
   else if(id==='chill'){ const d=hit(pSiph()*.5*dmgMul()*skMul()*shadowK()); hurtFoe(t,d,'frost'); fxe('ward',t); const held=!t.boss||Math.random()*100<40+10*rk+(hasMod('chill','a')?20:0);
     if(rk>=2&&t.hp>0) addSt(t,'chilled',2);   // rank 2: Chilled, resisted or not
-    if(held&&t.hp>0){ t.stun=(rk>=3?2:1)+faithFrozen(t); tally('frozen'); log('Grave Chill hits '+t.name+' for '+d+' and freezes it solid.'); } else log('Grave Chill hits '+t.name+' for '+d+', but it shakes off the frost.'); }
-  else if(id==='frenzy'){ r.frenzy=hasMod('frenzy','a')?5:3; r.frenzyMul=1+(.2+.15*rk); if(hasMod('frenzy','b')) for(const m of S.army) if(m.hp>0) healAlly(m,Math.round(m.maxHp*.15)); if(rk>=3) for(const m of S.army) if(m.hp>0) addSt(m,'hasted',2); log('Unholy Frenzy: your army surges with '+Math.round((r.frenzyMul-1)*100)+'% more damage.','ok'); }
+    if(hasRune('chill','a')) for(const o of liveFoes()) if(o!==t){ hurtFoe(o,Math.round(d*RUNE_AVAL),'frost'); }   /* Avalanche */
+    if(held&&t.hp>0){ t.stun=(rk>=3?2:1)+faithFrozen(t)+(hasRune('chill','b')&&!t.boss?1:0); tally('frozen'); log('Grave Chill hits '+t.name+' for '+d+' and freezes it solid.'); } else log('Grave Chill hits '+t.name+' for '+d+', but it shakes off the frost.'); }
+  else if(id==='frenzy'){ r.frenzy=(hasMod('frenzy','a')?5:3)+(hasRune('frenzy','b')?1:0); if(hasRune('frenzy','b')) P.hp=Math.max(1,P.hp-Math.round(P.hp*.1));   /* Last Frenzy */ r.frenzyMul=1+(.2+.15*rk); if(hasMod('frenzy','b')) for(const m of S.army) if(m.hp>0) healAlly(m,Math.round(m.maxHp*.15)); if(rk>=3) for(const m of S.army) if(m.hp>0) addSt(m,'hasted',2); log('Unholy Frenzy: your army surges with '+Math.round((r.frenzyMul-1)*100)+'% more damage.','ok'); }
   else if(id==='reap'){ const low=t.hp<t.maxHp*reapLow(); let d=hit(pSiph()*(1.2+.3*rk)*pierceMul(1)*skMul()*shadowK()); if(low) d*=2; else if(hasMod('reap','a')) d=Math.round(d*MOON_HIGH); const fb=frozenChilled(t); if(fb) d=Math.round(d*FROSTBREAK); KILL='reap'; hurtFoe(t,d,'shad'); KILL=null; fxe('strike',t,{crit:1});
     if(hasMod('reap','b')){ healAlly(P,Math.round(d*SOUL_REAP_HEAL)); if(t.hp<=0) P.mana=Math.min(pMana(),P.mana+SOUL_REAP_MANA); }   // Soul Reap
-    log('You reap '+t.name+' for '+d+(low?' (harvest)':'')+'.'); if(fb&&t.hp>0) frostbreak(t); }
+    log('You reap '+t.name+' for '+d+(low?' (harvest)':'')+'.'); if(fb&&t.hp>0) frostbreak(t);
+    if(!(t.hp>0)){ if(hasRune('reap','a')&&!r.reapRs){ r.reapRs=1; r.cd.reap=0; log('Second Harvest: Reap is ready again.','ok'); } if(hasRune('reap','b')&&gainSoul()) log('Soul Harvest: a Soul ('+r.souls+'/'+ultCost()+').','ok'); } }   /* runes (game-builds.js) */
   else if(id==='lance') useLance(t,rk);   /* Hoarfrost Lance (game-builds.js) */
   MARGIN=null; return true;
 }
@@ -3585,6 +3593,7 @@ const shadowK=()=>omen()==='eclipse'?ECLIPSE_SHADOW:1;   // Black Eclipse: Soul 
 const foeCrit=()=>.25-(omen()==='eclipse'?ECLIPSE_CRIT:0)+sigCrit();   /* Thin Veil (game-rift.js) */   // an enemy striker's crit chance
 function roomStart(list){   // a fresh room or floor: Soul Storm, the Swift affix and trait, and Ossified
   cmdSync();   /* Command: measured as the room begins */
+  if(S.run){ S.run.sgnU=0; S.run.reapRs=0; }   /* the signature and Second Harvest: once a room (game-builds.js) */
   foeRise(list);
   for(const m of S.army){ delete m.sx; if(m.hp>0&&hasTrait(m,'swift')) addSt(m,'hasted',2); }   // sx: Stitched used this room
   echoRoom(); kitSeen(list); delete S.run.mk;
@@ -5506,7 +5515,7 @@ function progFoes(list){ for(const e of list){ if(pactOn('hides')) e.maxHp=e.hp=
 function progTick(){   // end of each turn (from skillTick): Deep Winter and the Knitting Flesh pact
   const r=S.run; if(!r||!r.enemies) return;
   if(capOn('frost2')) for(const e of liveFoes()) if(e.froze!=null&&e.froze===r.turn-1&&e.capW!==e.froze){ e.capW=e.froze;
-    const d=Math.min(e.hp-1,hit(pSiph()*CAP_WINTER*pierceMul(1))); if(d>0) hurtFoe(e,d,'frost'); addSt(e,'chilled',2); }
+    const d=Math.min(e.hp-1,hit(pSiph()*CAP_WINTER*pierceMul(1))); if(d>0){ hurtFoe(e,d,'frost'); if(!(e.hp>0)) e.hp=1; }   /* never the killing blow: weakness and curses can push it past hp-1, and no death check runs here */ addSt(e,'chilled',2); }
   if(pactOn('regen')) for(const e of liveFoes()) if(e.hp<e.maxHp){ const h=Math.min(e.maxHp-e.hp,Math.round(e.maxHp*PACT_REGEN*blightK(e))); if(h>0){ e.hp+=h; mark(e,0,h); } }
 }
 
@@ -7204,6 +7213,8 @@ function useLance(t,rk){
   let spread=null; if(hasMod('lance','b')&&nb.length){ spread=nb.find(o=>!o.boss)||null; if(spread){ spread.stun=Math.max(spread.stun||0,1); tally('frozen'); } }
   log('Hoarfrost Lance strikes '+t.name+' for '+d+(fz&&hasMod('lance','a')?' (shatterpoint)':'')+'.'); log(held?t.name+' freezes solid.':t.name+' shakes off the frost.');
   if(nb.length) log('The cold chills '+nb.length+' foe'+(nb.length>1?'s':'')+' beside it.'); if(spread) log(spread.name+' freezes too.');
+  if(hasRune('lance','a')){ const o=liveFoes().filter(x=>x!==t).pop(); if(o){ const d2=Math.round(d*RUNE_GLACIER); hurtFoe(o,d2,'frost'); log('Glacier: the lance runs on into '+o.name+' for '+d2+'.'); } }
+  if(hasRune('lance','b')&&fz&&!(t.hp>0)){ S.run.cd.lance=0; log('Cold Snap: the lance is ready again.','ok'); }
 }
 // ----- Pestilence (Rot, passive): each wound on a foe makes the ticks on it harder
 const pestN=u=>Math.min(PEST_MAX,Object.keys((u&&u.dots)||{}).length);
@@ -7231,6 +7242,67 @@ function longNameRise(e,r){   // checkDeaths: The Long Name raises the fallen as
 const lnClear=()=>{ if(S&&S.army) S.army=S.army.filter(m=>!m.ln); };   // roomWon and returnTown: the Long Name's thralls go back to the dust
 // ----- titles: a fight of LONG_HAUL turns won; a path at five skills of rank 3
 const fiveByFive=()=>Object.keys(PATHS).some(p=>PATHS[p].skills.length>=5&&PATHS[p].skills.every(id=>sk(id)>=SK_MAX));
+// ===== R11 PR B: signature actives and skill runes =====
+// From level SGN_LV the path with the most skill points (ties as capstones: the path chosen on the Skills tab) offers its
+// signature: one active, SGN_COST mana, once per room, and it does not use your turn (like a Rally). Forget the skills and lean another way to change it.
+const SGN={
+  bone:{name:'Ossuary Gate',desc:()=>'Every minion gains a ward of '+capPct(SGN_WARD)+' of its max HP.'},
+  blood:{name:'Exsanguinate',desc:()=>'Drain '+capPct(SGN_DRAIN)+' of every foe\'s current HP ('+capPct(SGN_DRAIN_BOSS)+' from bosses), ignoring armor, and mend your army for the total, the most hurt first.'},
+  frost:{name:'White Silence',desc:()=>'Freeze every foe that is not a boss for a turn. A boss is Chilled for 2 turns instead, and any move it was charging breaks.'},
+  rot:{name:'Bloom of Ruin',desc:()=>'Every poisoned or blighted foe bursts for '+capPct(SGN_BLOOM)+' of your Siphon as rot, and every foe is Blighted for a turn.'}
+};
+function sgnPath(){ const P=S&&S.player; if(!P||!P.skills||P.lvl<SGN_LV) return null; const k=Object.keys(PATHS), best=Math.max(...k.map(pathPts)); if(best<CAP_MIN) return null; const t=k.filter(p=>pathPts(p)===best); return t.includes(P.capPath)?P.capPath:t[0]; }
+const canSgn=()=>S.mode==='battle'&&!!S.run&&!!sgnPath()&&!S.run.sgnU&&S.player.mana>=SGN_COST&&!(S.run.silence>0)&&liveFoes().length>0;
+function useSgn(){
+  if(!canSgn()) return false; const r=S.run, P=S.player, p=sgnPath(); P.mana-=SGN_COST; r.sgnU=1; tally('sgnCast'); tally('sgn_'+p);
+  if(p==='bone'){ for(const m of S.army) if(m.hp>0){ m.mw=Math.max(m.mw||0,Math.round(m.maxHp*SGN_WARD)); mark(m,0,0); } fxe('ward',P); log('Ossuary Gate: a wall of bone rises around every one of your dead.','ok'); }
+  else if(p==='blood'){ let tot=0; for(const o of liveFoes()){ const d=Math.max(1,Math.round(o.hp*(o.boss?SGN_DRAIN_BOSS:SGN_DRAIN))); hurtFoe(o,d,'shad'); tot+=d; }
+    let left=tot; for(const a of allies().filter(u=>u.hp>0).sort((x,y)=>x.hp/(x.id==='p'?pMax():x.maxHp)-y.hp/(y.id==='p'?pMax():y.maxHp))){ if(left<=0) break; const need=(a.id==='p'?pMax():a.maxHp)-a.hp; if(need<=0) continue; const h=healAlly(a,Math.min(need,left)); left-=Math.max(h,1); }
+    fxe('mend',P); log('Exsanguinate drains '+tot+' HP from your foes into your side.','ok'); }
+  else if(p==='frost'){ for(const o of liveFoes()){ if(o.boss) addSt(o,'chilled',2); else o.stun=Math.max(o.stun||0,1); if(o.charging) breakCharge(o,'White Silence breaks '+o.name+'\'s focus.'); mark(o,0,0); } tally('frozen'); log('White Silence: the foes stand frozen in it.','ok'); }
+  else { const hit0=liveFoes().filter(o=>o.dots&&(o.dots.poison||o.dots.blight)); let tot=0; for(const o of hit0){ const d=hit(pSiph()*SGN_BLOOM*pierceMul(1)*skMul()); hurtFoe(o,d,'rot'); fxe('burst',o); tot+=d; }
+    for(const o of liveFoes()) addDot(o,'blight',Math.max(1,Math.round(pSiph()*.1)),1); log('Bloom of Ruin: '+hit0.length+' foe'+(hit0.length===1?'':'s')+' burst for '+tot+' in all, and the rot spreads.','ok'); }
+  checkDeaths(); if(!liveFoes().length) roomWon(); return true;   /* a free action: a room it ends is won here */
+}
+// ----- runes: one per active skill (S.player.runes[skill]), kept in a pouch (S.runes); swapped for free in town
+const RUNES={
+  spear_a:{sk:'spear',name:'Marrow',desc:'A kill with Bone Spear refunds half its mana.'},
+  spear_b:{sk:'spear',name:'Sundering Spear',desc:'Bone Spear Sunders its target for 2 turns.'},
+  mend_a:{sk:'mend',name:'Stitchwork',desc:'Dark Mending also clears every condition on your side.'},
+  mend_b:{sk:'mend',name:'Overgrowth',desc:'Healing past a minion\'s max HP becomes a ward, up to 20% of it.'},
+  blast_a:{sk:'blast',name:'Chain',desc:'A second body bursts too, at half strength.'},
+  blast_b:{sk:'blast',name:'Bone Shrapnel',desc:'Corpse Explosion makes every foe it hits bleed.'},
+  curse_a:{sk:'curse',name:'Spread',desc:'Curse of Frailty also curses the foe beside it, at half strength.'},
+  curse_b:{sk:'curse',name:'Deep Curse',desc:'The cursed foe\'s resistances drop by 25 points for the room.'},
+  chill_a:{sk:'chill',name:'Avalanche',desc:'Grave Chill also hits every other foe for 60% of its damage.'},
+  chill_b:{sk:'chill',name:'Permafrost',desc:'Grave Chill freezes a foe that is not a boss one turn longer.'},
+  frenzy_a:{sk:'frenzy',name:'Blood Frenzy',desc:'While the frenzy lasts, your minions heal for 10% of the damage they deal.'},
+  frenzy_b:{sk:'frenzy',name:'Last Frenzy',desc:'Unholy Frenzy lasts a turn longer and costs 10% of your current HP.'},
+  reap_a:{sk:'reap',name:'Second Harvest',desc:'A kill with Reap resets its cooldown, once a room.'},
+  reap_b:{sk:'reap',name:'Soul Harvest',desc:'A kill with Reap harvests a Soul.'},
+  lance_a:{sk:'lance',name:'Glacier',desc:'Hoarfrost Lance pierces on into one more foe for 60%.'},
+  lance_b:{sk:'lance',name:'Cold Snap',desc:'A kill on a frozen foe with the lance resets its cooldown.'}
+};
+const RUNE_IDS=Object.keys(RUNES);
+const hasRune=(skid,c)=>!!S&&!!S.player&&!!S.player.runes&&S.player.runes[skid]===skid+'_'+c&&!(S.run&&S.run.sweep)&&sk(skid)>0;
+const runeOwned=id=>!!S&&Array.isArray(S.runes)&&S.runes.includes(id);
+function slotRune(skid,id){ if(S.mode!=='town'||!SKILL[skid]||SKILL[skid].type!=='active') return false; S.player.runes=S.player.runes||{};
+  if(id==null||S.player.runes[skid]===id){ delete S.player.runes[skid]; return true; } if(!RUNES[id]||RUNES[id].sk!==skid||!runeOwned(id)) return false; S.player.runes[skid]=id; return true; }
+function gainRune(id,r,why){ if(!RUNES[id]) return; S.runes=Array.isArray(S.runes)?S.runes:[];
+  if(S.runes.includes(id)){ S.dust=(S.dust||0)+RUNE_DUST; if(r&&r.events) r.events.push({m:'A rune you already hold ('+RUNES[id].name+') crumbles into '+RUNE_DUST+' bone dust.',c:''}); return; }
+  S.runes.push(id); tally('runes'); const t='A skill rune: '+RUNES[id].name+' for '+SKILL[RUNES[id].sk].name+(why?', '+why:'')+'.'; if(r&&r.events) r.events.push({m:t,c:'ok'}); if(r&&r.log) log(t,'story'); }
+function runeDrop(e,r){   // checkDeaths: Tower wardens (their two runes on the first kill, then 10%), secret masters (one each), Rift guardians (15%)
+  if(e.tw&&e.boss&&!e.secret){ const i=Math.max(0,TW_BOSS.indexOf(e.base)), two=[RUNE_IDS[(2*i)%RUNE_IDS.length],RUNE_IDS[(2*i+1)%RUNE_IDS.length]];
+    if(!T_('rnw_'+i)){ tally('rnw_'+i); two.forEach(id=>gainRune(id,r,'left by '+e.name)); } else if(dayHash(S.uid,S.runs,r.room,e.tw,409)%100<RUNE_WARDEN) gainRune(two[dayHash(S.uid,e.tw,410)%2],r,'left by '+e.name); }
+  else if(e.secret){ const i=SECRET.findIndex(s=>s.name===e.base||s.name===e.name); gainRune(RUNE_IDS[((i<0?0:i)*5+3)%RUNE_IDS.length],r,'left by '+e.name); }
+  else if(e.guard&&dayHash(S.uid,S.runs,r.room,r.rift||0,411)%100<RUNE_GUARD) gainRune(RUNE_IDS[dayHash(S.uid,S.runs,412)%RUNE_IDS.length],r,'left by '+e.name);
+}
+function runeLeech(m,d){ const r=S.run; if(d>0&&r&&r.frenzy>0&&hasRune('frenzy','a')&&m.hp>0) healAlly(m,Math.round(d*RUNE_LEECH)); }   // Blood Frenzy (the minion phase)
+function runesFix(g){   // normalizeSave: only what the save has (a new game has neither, and a round trip must not add them)
+  if('runes' in g) g.runes=Array.isArray(g.runes)?[...new Set(g.runes.filter(id=>RUNES[id]))]:[];
+  const P=g.player, R=P&&P.runes; if(!P||!('runes' in P)) return;
+  const o={}; if(R&&typeof R==='object'&&!Array.isArray(R)) for(const k in R) if(RUNES[R[k]]&&RUNES[R[k]].sk===k&&(g.runes||[]).includes(R[k])) o[k]=R[k]; P.runes=o;
+}
 //==UI==
 
 // ----- sound: tiny synthesized effects (Web Audio, no files). Off/on lives in Settings and is remembered per browser, not in the save.
@@ -11875,6 +11947,40 @@ TR_RX.unshift(
 [["Max HP, damage taken, healing received, minion HP, Command, Endurance","Azami can, alınan hasar, alınan iyileştirme, minyon canı, Komuta, Dayanıklılık"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
 TR_RX.unshift([/^Endurance: \+([\d.]+)% damage a turn after turn (\d+), up to \+(\d+)%$/,"Dayanıklılık: $2. turdan sonra her tur +%$1 hasar, en çok +%$3"]);
 [["Past turn # of a fight, you and your army deal #% more damage per # Constitution for every further turn, up to +#%","Bir dövüşün #. turundan sonra sen ve ordun her ek tur için her # Bünye başına %# daha fazla hasar verirsiniz, en çok +%#"],["Gates rarely last that long; the Tower, the Rift, secret masters and sieges do","Kapılar nadiren bu kadar sürer; Kule, Yarık, gizli efendiler ve kuşatmalar sürer"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+// R11 PR B: signatures and runes
+[["Signatures","İmzalar"],["Signature","İmza"],["Runes","Rünler"],["Runesmith","Rün Ustası"],["Rune","Rün"],["Yours","Senin"],["Found","Bulundu"],
+ ["Ossuary Gate","Kemikhane Kapısı"],["Exsanguinate","Kan Emme"],["White Silence","Beyaz Sessizlik"],["Bloom of Ruin","Yıkım Çiçeği"],
+ ["Every minion gains a ward of #% of its max HP","Her minyon azami canının %#'i kadar bir kalkan kazanır"],["Drain #% of every foe's current HP (#% from bosses), ignoring armor, and mend your army for the total, the most hurt first","Her düşmanın mevcut canının %#'ini (patronlardan %#) zırhı yok sayarak emer ve toplamla ordunu, en yaralıdan başlayarak onarırsın"],
+ ["Freeze every foe that is not a boss for a turn","Patron olmayan her düşmanı bir tur dondur"],["A boss is Chilled for # turns instead, and any move it was charging breaks","Bir patron bunun yerine # tur Üşür ve hazırladığı hamle bozulur"],["Every poisoned or blighted foe bursts for #% of your Siphon as rot, and every foe is Blighted for a turn","Zehirli ya da çürümüş her düşman Emişinin %#'i kadar çürüme hasarıyla patlar ve her düşman bir tur Çürür"],
+ ["Marrow","İlik"],["Sundering Spear","Parçalayan Mızrak"],["Stitchwork","Dikiş İşi"],["Overgrowth","Aşırı Büyüme"],["Chain","Zincir"],["Bone Shrapnel","Kemik Şarapneli"],["Spread","Yayılma"],["Deep Curse","Derin Lanet"],["Avalanche","Çığ"],["Permafrost","Donmuş Toprak"],["Blood Frenzy","Kan Çılgınlığı"],["Last Frenzy","Son Çılgınlık"],["Second Harvest","İkinci Hasat"],["Soul Harvest","Ruh Hasadı"],["Glacier","Buzul"],["Cold Snap","Ayaz Çıtırtısı"],
+ ["A kill with Bone Spear refunds half its mana","Kemik Mızrağı ile öldürmek manasının yarısını geri verir"],["Bone Spear Sunders its target for # turns","Kemik Mızrağı hedefini # tur Parçalar"],["Dark Mending also clears every condition on your side","Karanlık Onarım tarafındaki her durumu da temizler"],["Healing past a minion's max HP becomes a ward, up to #% of it","Bir minyonun azami canını aşan iyileştirme, onun %#'ine kadar kalkana dönüşür"],
+ ["A second body bursts too, at half strength","İkinci bir beden de yarı güçle patlar"],["Corpse Explosion makes every foe it hits bleed","Ceset Patlaması vurduğu her düşmanı kanatır"],["Curse of Frailty also curses the foe beside it, at half strength","Kırılganlık Laneti yanındaki düşmanı da yarı güçle lanetler"],["The cursed foe's resistances drop by # points for the room","Lanetli düşmanın dirençleri oda boyunca # puan düşer"],
+ ["Grave Chill also hits every other foe for #% of its damage","Mezar Ayazı diğer her düşmana da hasarının %#'i kadar vurur"],["Grave Chill freezes a foe that is not a boss one turn longer","Mezar Ayazı patron olmayan bir düşmanı bir tur daha uzun dondurur"],["While the frenzy lasts, your minions heal for #% of the damage they deal","Çılgınlık sürdükçe minyonların verdikleri hasarın %#'i kadar iyileşir"],["Unholy Frenzy lasts a turn longer and costs #% of your current HP","Kutsal Olmayan Çılgınlık bir tur daha uzun sürer ve mevcut canının %#'ine mal olur"],
+ ["A kill with Reap resets its cooldown, once a room","Biçme ile öldürmek, odada bir kez, bekleme süresini sıfırlar"],["A kill with Reap harvests a Soul","Biçme ile öldürmek bir Ruh toplar"],["Hoarfrost Lance pierces on into one more foe for #%","Kırağı Mızrağı bir düşmana daha %# ile saplanır"],["A kill on a frozen foe with the lance resets its cooldown","Mızrakla donmuş bir düşmanı öldürmek bekleme süresini sıfırlar"],
+ ["Find all # skill runes","# beceri rününün hepsini bul"],["Cast your signature # times","İmzanı # kez kullan"],
+ ["From level #, the path with the most skill points (at least #; a tie goes to the path you chose) gives its signature: one more active, # mana, once a room, and it does not use your turn (key T)","#. seviyeden itibaren en çok beceri puanı olan yol (en az #; eşitlikte seçtiğin yol) imzasını verir: bir aktif daha, # mana, odada bir kez ve turunu harcamaz (T tuşu)"],["Forget your skills and lean another way to change it","Değiştirmek için becerilerini unut ve başka yöne yönel"],
+ ["A rune slots into an active skill and changes how it works; each active has two","Bir rün aktif bir beceriye takılır ve nasıl çalıştığını değiştirir; her aktifin iki rünü vardır"],["Tower wardens leave their two runes the first time they fall (#% after), each secret master one, Rift guardians #% of the time","Kule muhafızları ilk düştüklerinde iki rünlerini bırakır (sonra %#), her gizli efendi bir, Yarık bekçileri %# oranında"],["A rune you already hold crumbles into # bone dust","Zaten sahip olduğun bir rün # kemik tozuna ufalanır"],["Swap them for free in town on the Skills tab","Kasabada Beceriler sekmesinde ücretsiz değiştir"],
+ ["At level # the path with the most skill points (at least #) gives its signature: one active, # mana, once a room","#. seviyede en çok beceri puanı olan yol (en az #) imzasını verir: bir aktif, # mana, odada bir kez"],["Spend at least # points in one path to gain its signature","İmzasını kazanmak için bir yola en az # puan harca"],["once a room","odada bir kez"],["key T","T tuşu"],["opens at level #","#. seviyede açılır"]
+].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+TR_RX.unshift(
+ [/^Rune: none found yet \((.+) or (.+)\)$/,"Rün: henüz bulunmadı ({t1} ya da {t2})"],
+ [/^(Ossuary Gate|Exsanguinate|White Silence|Bloom of Ruin) \((Bone|Blood|Frost|Rot)\)$/,"{t1} ({t2})"],
+ [/^A skill rune: (.+?) for (.+?)(, left by (.+?))?\.?$/,"Bir beceri rünü: {t2} için {t1}$3"],[/^, left by (.+)$/,", bırakan: {t1}"],
+ [/^A rune you already hold \((.+?)\) crumbles into (\d+) bone dust\.?$/,"Zaten sahip olduğun bir rün ({t1}) $2 kemik tozuna ufalanıyor"],
+ [/^Ossuary Gate: a wall of bone rises around every one of your dead\.?$/,"Kemikhane Kapısı: ölülerinin her birinin çevresinde bir kemik duvar yükseliyor"],
+ [/^Exsanguinate drains (\d+) HP from your foes into your side\.?$/,"Kan Emme düşmanlarından $1 can çekip tarafına aktarıyor"],
+ [/^White Silence: the foes stand frozen in it\.?$/,"Beyaz Sessizlik: düşmanlar onun içinde donmuş duruyor"],
+ [/^White Silence breaks (.+?)'s focus\.?$/,"Beyaz Sessizlik {t1} odağını bozuyor"],
+ [/^Bloom of Ruin: (\d+) foes? bursts? for (\d+) in all, and the rot spreads\.?$/,"Yıkım Çiçeği: $1 düşman toplam $2 ile patlıyor ve çürüme yayılıyor"],
+ [/^Marrow: the kill gives back (\d+) mana\.?$/,"İlik: öldürmek $1 mana geri veriyor"],[/^Chain: a second body bursts for (\d+) in all\.?$/,"Zincir: ikinci bir beden toplam $1 ile patlıyor"],
+ [/^Spread: (.+?) is cursed too\.?$/,"Yayılma: {t1} de lanetlendi"],[/^Deep Curse: (.+?)'s resistances crumble\.?$/,"Derin Lanet: {t1} dirençleri ufalanıyor"],
+ [/^Second Harvest: Reap is ready again\.?$/,"İkinci Hasat: Biçme yeniden hazır"],[/^Soul Harvest: a Soul \((\d+)\/(\d+)\)\.?$/,"Ruh Hasadı: bir Ruh ($1/$2)"],
+ [/^Glacier: the lance runs on into (.+?) for (\d+)\.?$/,"Buzul: mızrak {t1} hedefine $2 ile saplanıyor"],[/^Cold Snap: the lance is ready again\.?$/,"Ayaz Çıtırtısı: mızrak yeniden hazır"]
+);
+TR_RX.unshift([/^(Marrow|Sundering Spear|Stitchwork|Overgrowth|Chain|Bone Shrapnel|Spread|Deep Curse|Avalanche|Permafrost|Blood Frenzy|Last Frenzy|Second Harvest|Soul Harvest|Glacier|Cold Snap) \((.+)\)$/,"{t1} ({t2})"]);
+TR_RX.unshift([/^Build: (.+) \((\d+) points?\)$/,"Yapı: {t1} ($2 puan)"],[/^Signature: (.+)$/,"İmza: {t1}"]);
+[["Runes:","Rünler:"]].forEach(([k,v])=>TR_DICT.set(k,v));
+[["It does not use your turn","Turunu harcamaz"]].forEach(([k,v])=>TR_DICT.set(k,v));
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -12998,6 +13104,7 @@ function statusHTML(){
    +'<div class="derived"><div>'+sgl('atk')+'<b>'+pAtk()+'</b></div><div>'+sgl('siph')+'<b>'+pSiph()+'</b></div><div>'+sgl('slot')+'<b>'+slots()+'</b></div></div>'
    +(cmdAtk()||cmdSiph()||cmdHp()?'<p class="cmd-line u-sub" title="Command: your hero draws on the power of your three strongest minions">Command: +'+cmdAtk()+' Strike, +'+cmdSiph()+' Siphon, +'+cmdHp()+' max HP</p>':'')
    +(A('constitution')>0?'<p class="u-sub" title="Endurance: Constitution in long fights (game-builds.js)">Endurance: +'+(Math.round(CON_ENDURE*A('constitution')/10*1000)/10)+'% damage a turn after turn '+ENDURE_FROM+', up to +'+Math.round(CON_ENDURE_CAP*100)+'%</p>':'')
+   +buildLineHTML()
    +'</section>';
 }
 function questHTML(){
@@ -13248,15 +13355,30 @@ function skillsHTML(){
       const btn=rk>=SK_MAX?'<span class="u-tag ok">Mastered</span>'
         :lockedLv?'<button class="btn small" disabled>Reach Lv '+req+'</button>'
         :'<button class="btn small primary" data-a="learn" data-k="'+s.id+'"'+(P.sp<=0?' disabled':'')+'>'+(rk?'Rank up':'Learn')+'</button>';
-      return '<div class="tt-row'+(rk?' on':'')+(!rk&&lockedLv?' off':'')+'"><div><h4>'+s.name+' <span class="u-tag">'+rk+'/'+SK_MAX+'</span></h4><div class="u-sub">'+meta+'</div>'+body+modH+'</div>'+btn+'</div>';
+      return '<div class="tt-row'+(rk?' on':'')+(!rk&&lockedLv?' off':'')+'"><div><h4>'+s.name+' <span class="u-tag">'+rk+'/'+SK_MAX+'</span></h4><div class="u-sub">'+meta+'</div>'+body+modH+runeRowHTML(s)+'</div>'+btn+'</div>';
     }).join('')+'</div>';
   });
   h+=capHTML();   // mastery paths and capstones (src/ui-progression.js)
+  h+=sgnHTML();   /* the signature (game-builds.js) */
   h+='<p class="group-h">Ultimate'+(P.lvl<ULT_LV?' &middot; opens at level '+ULT_LV:'')+'</p>'+brief('ult','Soul Siphon harvests a Soul, and every elite or boss that falls gives one. With '+SOUL_MAX+' Souls, unleash your ultimate in battle (key R). Choose one here; you can switch for free in town.','q-note')+'<div class="items">'
    +Object.keys(ULTS).map(id=>{ const U=ULTS[id], on=P.ult===id; return '<div class="tt-row'+(on?' on':'')+(P.lvl<ULT_LV?' off':'')+'"><div><h4>'+U.name+'</h4><div class="u-sub">'+U.desc+'</div></div>'
      +(on?'<span class="u-tag ok">Chosen</span>':'<button class="btn small primary" data-a="ult" data-k="'+id+'"'+(P.lvl<ULT_LV?' disabled':'')+'>Choose</button>')+'</div>'; }).join('')+'</div>';
   if(spent) h+='<div class="btns"><button class="btn small warn" data-a="skreset">'+(ui.confirm==='skreset'?'Press again to forget all skills':'Forget all skills ('+spent+' back)')+'</button></div>';
   return h+'</section>';
+}
+function buildLineHTML(){   // the build summary on the Status panel: leaning path, signature, slotted runes (game-builds.js)
+  const P=S.player, k=Object.keys(PATHS), best=Math.max(...k.map(pathPts)); if(best<=0) return ''; const p=k.filter(x=>pathPts(x)===best), lean=p.includes(P.capPath)?P.capPath:p[0], sp=sgnPath();
+  const rn=Object.values(P.runes||{}).filter(id=>RUNES[id]).map(id=>RUNES[id].name);
+  return '<p class="u-sub"><span>Build: '+PATHS[lean].name+' ('+best+' points)</span>'+(sp?' &middot; <span>Signature: '+SGN[sp].name+'</span>':'')+(rn.length?' &middot; <span>Runes:</span> '+rn.map(n=>'<span>'+n+'</span>').join(', '):'')+'</p>'; }
+function sgnHTML(){   // the signature card on the Skills tab (game-builds.js)
+  const P=S.player, p=sgnPath(); let h='<p class="group-h">Signature'+(P.lvl<SGN_LV?' &middot; opens at level '+SGN_LV:'')+'</p>';
+  if(!p) return h+'<p class="q-note">'+(P.lvl<SGN_LV?'At level '+SGN_LV+' the path with the most skill points (at least '+CAP_MIN+') gives its signature: one active, '+SGN_COST+' mana, once a room.':'Spend at least '+CAP_MIN+' points in one path to gain its signature.')+'</p>';
+  return h+'<div class="tt-row on"><div><h4>'+SGN[p].name+' <span class="u-tag">'+PATHS[p].name+'</span></h4><div class="u-sub">'+SGN_COST+' mana &middot; once a room &middot; key T</div><div>'+SGN[p].desc()+'</div></div></div>';
+}
+function runeRowHTML(s){   // the rune slot on an active skill's card (game-builds.js)
+  if(s.type!=='active'||!sk(s.id)) return ''; const own=RUNE_IDS.filter(id=>RUNES[id].sk===s.id&&runeOwned(id)), cur=S.player.runes&&S.player.runes[s.id];
+  if(!own.length) return '<div class="u-sub dim rune-row">Rune: none found yet ('+RUNE_IDS.filter(id=>RUNES[id].sk===s.id).map(id=>RUNES[id].name).join(' or ')+')</div>';
+  return '<div class="rune-row chips"><span class="u-sub">Rune:</span>'+own.map(id=>'<button class="btn small'+(cur===id?' primary':'')+'" data-a="rune" data-k="'+s.id+'|'+id+'" aria-pressed="'+(cur===id)+'" title="'+RUNES[id].desc+'"'+(S.mode!=='town'?' disabled':'')+'>'+RUNES[id].name+'</button>').join('')+'</div>';
 }
 function ascPickHTML(){   // the next level's rules (one; two in the Keeper's Cycle; none in the Quiet Valley), kept for every later cycle, and the carries (game-asc.js)
   const off=ascOffer(), N=ascPicks(), pk=ascPickList(), kept=ascRules();
@@ -13643,6 +13765,8 @@ function codexSection(k){
   if(k==='skills') return cxP('One skill point per level. Each skill has '+SK_MAX+' ranks, and each rank needs '+SK_STEP+' more levels than the last. Active skills cost mana and have cooldowns that reset every room. At rank '+SK_MAX+' you choose one of two upgrades. Forgetting your skills in town refunds every point.')
     +cxList(SKILLS.map(s=>{ const M=SKILL_MODS[s.id]; return cxRow(s.name,[1,2,3].map(r=>'<b>Rank '+r+' (Lv '+skReq(s,r)+'):</b> '+s.desc(r)).join('<br>')+(M?'<br><b>Upgrades:</b> '+M.a[0]+' ('+M.a[1]+') or '+M.b[0]+' ('+M.b[1]+')':''),s.type==='active'?'Active &middot; '+s.cost+' mana &middot; cooldown '+s.cd:'Passive'); }))
     +'<p class="group-h">Soul Siphon and Souls</p>'+cxP('Soul Siphon (key 2, '+siphonCost()+' mana) pierces '+pct(SIPHON_PIERCE)+' of foe armor, drains twice as hard from a foe below '+pct(SIPHON_LOW)+' HP, heals you for '+pct(SIPHON_HEAL)+' of what it drains ('+pct(SIPHON_HEAL_LD)+' with Lifedrain), and harvests a Soul. Every elite or boss that falls also gives a Soul. You hold up to '+SOUL_MAX+', and they last for the whole run.')
+    +'<p class="group-h">Signatures</p>'+cxP('From level '+SGN_LV+', the path with the most skill points (at least '+CAP_MIN+'; a tie goes to the path you chose) gives its signature: one more active, '+SGN_COST+' mana, once a room, and it does not use your turn (key T). Forget your skills and lean another way to change it.')+cxList(Object.keys(SGN).map(p=>cxRow(SGN[p].name+' ('+PATHS[p].name+')',SGN[p].desc(),sgnPath()===p?'Yours':'')))
+    +'<p class="group-h">Runes</p>'+cxP('A rune slots into an active skill and changes how it works; each active has two. Tower wardens leave their two runes the first time they fall ('+RUNE_WARDEN+'% after), each secret master one, Rift guardians '+RUNE_GUARD+'% of the time. A rune you already hold crumbles into '+RUNE_DUST+' bone dust. Swap them for free in town on the Skills tab.')+cxList(RUNE_IDS.map(id=>cxRow(RUNES[id].name+' ('+SKILL[RUNES[id].sk].name+')',RUNES[id].desc,runeOwned(id)?'Found':'')))
     +'<p class="group-h">Ultimates</p>'+cxP('From level '+ULT_LV+', choose one ultimate on the Skills tab (switch for free in town). With '+SOUL_MAX+' Souls, unleash it in battle with R; it uses your turn and all your Souls.')
     +cxList(Object.keys(ULTS).map(id=>cxRow(ULTS[id].name,ULTS[id].desc,S.player.ult===id?'Chosen':'')));
   if(k==='orders') return cxP('Once per room, each kind of minion in your army can be given one order. Orders are free and do not use your turn.')+cxP('Every foe card shows what that foe will do on its turn: whom it attacks, whom it mends, or the move a boss is about to use. It does exactly that, unless its target falls first, Taunt pulls it onto a vanguard, or you freeze it, which costs it the action.')+cxList(Object.keys(CMDS).map(r=>cxRow(CMDS[r].name,CMDS[r].desc,ROLES[r].label+'s')).concat([cxRow(GUARD.name,GUARD.desc+' Unlike Taunt, it covers boss moves, but only the one blow, and the vanguard must stand in the front row.','Vanguards')]));
@@ -14244,11 +14368,12 @@ function unitCard(u,side,mini){
   return side==='foe'&&!dead?'<button class="'+cls+'" data-a="target" data-k="'+u.id+'" data-u="'+u.id+'" aria-pressed="'+sel+'">'+inner+'</button>':'<div class="'+cls+'" data-u="'+fxKey(u)+'">'+inner+'</div>';
 }
 const ORDER_KEYS={z:'vanguard',x:'striker',c:'mender',v:'reaper'}, ORDER_KEY=Object.fromEntries(Object.entries(ORDER_KEYS).map(([k,r])=>[r,k.toUpperCase()]));
+function sgnBtnHTML(){ const p=sgnPath(); if(!p||!S.run) return ''; return '<button class="btn sgn'+(canSgn()?' primary':'')+'" data-a="sgn" title="'+SGN[p].desc()+' It does not use your turn."'+(canSgn()?'':' disabled')+'>'+SGN[p].name+' '+manaCost(SGN_COST)+(S.run.sgnU?' &middot; used':'')+'<kbd>T</kbd></button>'; }   /* the signature (game-builds.js) */
 function ultHTML(){   // Souls and the ultimate, from level 20
   const P=S.player; if(P.lvl<ULT_LV) return '';
   const n=S.run.souls||0, U=ULTS[P.ult]; let pips=''; for(let i=0;i<ultCost();i++) pips+='<i class="soul'+(i<n?' on':'')+'"></i>';
   return '<div class="btns ult-row"><span class="souls" aria-label="'+n+' of '+ultCost()+' Souls">Souls '+pips+'</span>'
-   +(U?'<button class="btn ult'+(canUlt()?' primary':'')+'" data-a="act" data-k="ult" title="'+U.desc+'"'+(canUlt()?'':' disabled')+'>'+U.name+'<kbd>R</kbd></button>':'<span class="u-sub">Choose an ultimate on the Skills tab.</span>')+'</div>';
+   +(U?'<button class="btn ult'+(canUlt()?' primary':'')+'" data-a="act" data-k="ult" title="'+U.desc+'"'+(canUlt()?'':' disabled')+'>'+U.name+'<kbd>R</kbd></button>':'<span class="u-sub">Choose an ultimate on the Skills tab.</span>')+sgnBtnHTML()+'</div>';
 }
 const ANS_M='<span class="ans-m" aria-hidden="true" title="Answers the charge"></span>', ANS_S='<span class="sr-only">, answers the charge</span>';
 function chargeAns(){ const c=S.run&&S.mode==='battle'&&S.run.enemies.map(chargeInfo).find(Boolean); return c?c.ans:[]; }   // answer keys for the pending charge (none when nothing charges)
@@ -14757,6 +14882,7 @@ const ACTIONS={
   discard:k=>{ if(ui.confirm==='d'+k){ discard(+k); ui.confirm=null; } else ui.confirm='d'+k; },
   alloc:k=>alloc(k), learn:k=>learnSkill(k),
   ngppick:k=>{ ui.ngpPick=ui.ngpPick===k?null:k; },
+  rune:k=>{ const [a,b]=String(k).split('|'); slotRune(a,b); },   // a skill rune (game-builds.js)
   ascpick:k=>{ const a=ascPickList(), i=a.indexOf(k); if(i>=0) a.splice(i,1); else { if(a.length>=ascPicks()) a.shift(); a.push(k); } ui.ascPick=a; ui.confirm=null; },   // the ascension rules (game-asc.js)
   carrypick:k=>{ const a=carryPickList(), i=a.indexOf(k); if(i>=0) a.splice(i,1); else { if(a.length>=carryN()) a.shift(); a.push(k); } ui.carry=a; ui.confirm=null; },   // the carries (game-asc.js)
   ngppact:k=>togglePact(k), cappath:k=>choosePath(k),   // src/ui-progression.js, src/game-progression.js
@@ -14799,7 +14925,7 @@ const ACTIONS={
   mark:k=>{ const a=k.split('|'); chooseMark(+a[0],a[1]); },
   tores:k=>{ toReserve(+k); }, toarmy:k=>{ toArmy(+k); }, swapo:k=>{ ui.swap=ui.swap===+k?null:+k; }, swap:k=>{ const a=k.split('|'); if(swapReserve(+a[0],+a[1])) ui.swap=null; },
   rsort:k=>{ sortReserve(k); }, gatearmy:k=>{ fromGate(+k,'army'); }, gateres:k=>{ fromGate(+k,'reserve'); },
-  event:k=>{ resolveEvent(k); }, door:k=>{ descend(k); }, cmd:k=>{ command(k); }, rally:k=>{ rally(k); }, wager:k=>{ if(!wager(k==='none'?null:+k)) ui.msg={m:'They will not take that one.',c:'bad'}; },
+  event:k=>{ resolveEvent(k); }, door:k=>{ descend(k); }, cmd:k=>{ command(k); }, rally:k=>{ rally(k); }, sgn:()=>{ useSgn(); }, wager:k=>{ if(!wager(k==='none'?null:+k)) ui.msg={m:'They will not take that one.',c:'bad'}; },
   rgate:()=>{ startRivalGate(); }, reck:()=>{ startReckoning(); }, rend:k=>{ arcEnd(k); }, atrade:k=>{ if(!allyTrade(+k)) ui.msg={m:'They will not take that one.',c:'bad'}; },   /* the rival's end (game-rival-arc.js) */
   skmod:k=>{ const a=k.split('|'); chooseMod(a[0],a[1]); },
   build:k=>{ const c=buildCost(k); ui.msg=build(k)?{mk:1,m:BUILD[k].name+' raised to level '+bl(k)+' for '+c[0]+' gold'+(c[1]?' and '+c[1]+' bone dust':'')+'.',c:'ok'}:null; },
@@ -14949,7 +15075,7 @@ document.addEventListener('keydown',e=>{
   if(e.key===']'||e.key==='['){ const f=liveFoes(); if(f.length>1){ e.preventDefault(); const i=f.findIndex(x=>x.id===S.run.target); setTarget(f[(i+(e.key==='['?f.length-1:1))%f.length].id); settled(); } return; }   // Tab stays with the browser, so keyboard players can still move between buttons
   if(e.key.toLowerCase()==='g'){ e.preventDefault(); if(canGuard()){ act('guard'); settled(); } return; }   // G: Guard (uses the turn)
   const ord=ORDER_KEYS[e.key.toLowerCase()]; if(ord){ e.preventDefault(); if(command(ord)) settled(); return; }
-  let k={'1':'strike','2':'siphon','3':'ward'}[e.key]; if(!k&&e.key.toLowerCase()==='r'&&canUlt()) k='ult';
+  let k={'1':'strike','2':'siphon','3':'ward'}[e.key]; if(!k&&e.key.toLowerCase()==='r'&&canUlt()) k='ult'; if(!k&&e.key.toLowerCase()==='t'){ e.preventDefault(); if(useSgn()) settled(); return; }   /* the signature does not use the turn */
   if(!k&&/^[4-9]$/.test(e.key)){ const s=activeSkills()[+e.key-4]; if(s) k='sk:'+s.id; }
   if(!k){ const pk=DRINK_IDS.find(x=>drinkDef(x).key.toLowerCase()===e.key.toLowerCase()); if(pk) k='pot:'+pk; }
   if(k){ e.preventDefault(); act(k); settled(); }

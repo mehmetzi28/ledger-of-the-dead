@@ -133,3 +133,39 @@ Build probes per path; slot the rune the measurement prefers; cast the signature
   (83.6), Rift 23.9 (20.7), sieges 82%, rival 52%. Ultimates (market 7700): Death's Toll 88% T78.9 R15.4, Unholy
   Resurrection 88% T79.5 R14.7, Soul Prison 89% T79.9 R16.6, Requiem 89% T79 R16.1, The Long Name 88% T78.8 R15.4: all
   within a point. Fuzz 12/12.
+
+## As built (PR B)
+
+- **Code**: `src/game-builds.js` (signatures, runes); constants `SGN_*`, `RUNE_*` in game-data.js.
+- **Signatures** (`SGN`, `sgnPath`, `useSgn`): from level 40 the path with the most skill points (at least 10; a tie goes to
+  the path chosen on the Skills tab) gives its signature, 22 mana, once a room. Changed from the spec: **it does not use
+  your turn** (like a Rally). As a turn-taking active the bot lost ~4 Rift depths (13.4 vs 17.6 with it off) because a
+  crowd-room turn spent on a ward or a drain is worth less than a skill; as a free action it is a pure choice of when.
+  *Ossuary Gate*: every minion gets a ward of 15% of its max HP. *Exsanguinate*: drains 8% of every foe's current HP (4%
+  from bosses), armor ignored, and heals your side for the total, the most hurt first. *White Silence*: freezes every foe that
+  is not a boss; a boss is Chilled 2 turns and its charging move breaks (freezing bosses too was worth +5 Rift depths). *Bloom of Ruin*: every poisoned or blighted foe bursts for 60% of Siphon as rot,
+  and every foe is Blighted for a turn. A room the signature ends is won at once. Button in the battle bar, key T.
+- **Runes** (`RUNES`, 16, `S.runes` pouch, `S.player.runes` slots): one per active, swapped free in town on the Skills tab.
+  Changes from the spec table: Splinter was already Bone Spear's rank-3 upgrade, so Spear's pair is *Marrow* (a kill
+  refunds half the mana) and *Sundering Spear* (Sunders 2 turns); *Stitchwork* clears every condition; *Overgrowth* wards
+  up to 20% of max HP; *Chain* bursts a second body at 50%; *Deep Curse* drops every resistance 25 points for the room
+  (`e.resD`, in `foeRes`); *Avalanche* hits every other foe at 60%; *Glacier* pierces one more foe at 60%; *Soul Reap* is
+  *Soul Harvest*. Runes do nothing in a Sweep. Drops: a Tower warden leaves its two runes the first time it falls, then
+  10% (rolled by `dayHash`, never `Math.random`); each secret master leaves one; a Rift guardian 15%. A rune you hold
+  already crumbles into 20 bone dust.
+- **UI**: the signature card and a rune row on each active skill card (Skills tab), the build line on the Status panel
+  (path and points, signature, slotted runes), Codex sections *Signatures* and *Runes*, all in Turkish.
+- **Titles**: *Runesmith* (all 16 runes), *Signature* (100 casts). 198 titles.
+- **Fix**: Deep Winter (the Frost capstone) could kill a foe through weakness or a curse in the end-of-turn tick, which runs
+  no death check, leaving a 0 HP foe the battle never ended on (found by the frost-lean probe); it now stops at 1 HP.
+- **Bot**: slots its preferred rune (`"runes":"a"|"b"`, else the other), casts the signature on a boss room, three or
+  more foes, or (Blood) an army under half HP; `"lean":"bone"|"blood"|"frost"|"rot"` learns that path's skills first and
+  follows it; `"off":["runes","sig"]`.
+- **Tests**: 4 more in `98-builds.js` (signatures, rune drops and slots, each rune's change, UI/Codex/titles/Turkish).
+  859 tests.
+- **Balance** (seeds 7700/9100): market 89/90%, Tower 77.9/79.3, Rift 17.1/18 (PR A 15.4/15.9; with the signature off
+  17.2, so the free action costs nothing and the rise is noise plus runes); full (7700) 90%, Tower 85.5, Rift 21.2.
+  Runes b instead of a: 89%, Tower 78.2, Rift 18.2 (a: 77.9 / 17.1), within the 2-point target. Path leans (market 7700,
+  signature on): Bone 90% T78.5 R17.9, Blood 90% T78.3 R17.7, Rot 89% T79 R18.3, Frost 90% T81 R21.8 (9100: T79.6 R20.1).
+  Gates within a point; Frost leads the Rift by ~3 depths through White Silence (Frost with the signature off: R17.8),
+  left as the control path's edge. Fuzz 12/12.

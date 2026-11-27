@@ -106,12 +106,14 @@
     if(B.skills){
       let again=true;
       while(again&&P.sp>0){ again=false;
-        for(let rank=1;rank<=SK_MAX&&!again;rank++) for(const id of SKILL_ORDER){
+        for(let rank=1;rank<=SK_MAX&&!again;rank++) for(const id of (B.lean&&PATHS[B.lean]?[...PATHS[B.lean].skills,...SKILL_ORDER.filter(x=>!PATHS[B.lean].skills.includes(x))]:SKILL_ORDER)){   // opts.lean: that path's skills first, and it is followed (R11 signature probes)
           if(sk(id)===rank-1&&P.lvl>=skReq(SKILL[id],rank)){ const sp=P.sp; learnSkill(id); if(P.sp<sp){ again=true; break; } } } }   // stop if learning fails (e.g. not in town)
     }
+    if(B.skills&&B.lean&&PATHS[B.lean]&&P.capPath!==B.lean) choosePath(B.lean);
     if(B.skills&&(B.mods||B.mod)) for(const id in SKILL_MODS) if(sk(id)>=SK_MAX&&!skMod(id)){   // opts.mods: 'a' or 'b' picks that upgrade on every skill at rank 3; opts.mod 'skill:c' forces one skill's choice (alone, or over opts.mods)
       const f=B.mod&&B.mod.split(':'), c=f&&f[0]===id?f[1]:B.mods; if(c==='a'||c==='b') chooseMod(id,c); }
-    if(B.skills&&S.player.lvl>=ULT_LV&&S.player.ult!==(B.ult||'toll')) chooseUlt(B.ult||'toll');   // ultimates open at level 20
+    if(B.skills&&S.player.lvl>=ULT_LV&&S.player.ult!==(B.ult||'toll')) chooseUlt(B.ult||'toll');
+    if(B.skills&&!B.off.runes&&typeof slotRune==='function') for(const s of SKILLS) if(s.type==='active'&&sk(s.id)){ const want=[s.id+'_'+(B.runes||'a'),s.id+'_'+((B.runes||'a')==='a'?'b':'a')].find(runeOwned); if(want&&!(S.player.runes&&S.player.runes[s.id]===want)) slotRune(s.id,want); }   /* R11: slot the preferred rune ('runes':'a'|'b'), else the other; "off":["runes"] */   // ultimates open at level 20
     if(B.faith&&(typeof faithOpen==='function'?faithOpen():S.player.lvl>=FAITH_LV)&&!faithOf()) swear(B.faith);   // opts.faith: 'hon' or 'dis'
     if(B.full&&!B.off.calls&&typeof forecast==='function'&&forecast()) botOmens();   // R8: call the god's best omen when devotion past rank 5 (or the Temple) pays for it; ward Soul Storm; "off":["calls"]
     if(typeof markPend==='function'&&!(B.off&&B.off.marks)) for(const m of raidPool()) while(markPend(m)&&chooseMark(m.uid,markOpts(m)[0]));   // evolution marks: mark A at Elder, empowered at Eternal; "off":["marks"] takes none
@@ -200,6 +202,7 @@
     const its=liveFoes().filter(e=>!(e.stun>0)&&e.it&&e.it.k==='atk'&&e.it.t==='p');
     if(its.some(e=>hasKit(e,'sapper'))) return false; if(its.some(e=>e.it.amb||e.it.sf)) return true; return want; };
   function decide(B){
+    if(B.skills&&!B.off.sig&&typeof canSgn==='function'&&canSgn()){ const sp=sgnPath(), fo=liveFoes(), live=S.army.filter(m=>m.hp>0); if(fo.some(e=>e.boss)||fo.length>=3||(sp==='blood'&&live.length&&live.reduce((a,m)=>a+m.hp/m.maxHp,0)/live.length<.5)){ useSgn(); if(S.mode!=='battle') return 'none'; } }   /* R11: the signature (a free action) on a boss or a crowd; "off":["sig"] */
     const P=S.player, t=chooseTarget(B), max=pMax(), res=Math.min(15,Math.round(pMana()*.2)), foes=liveFoes();
     if(B.full&&!(B.off&&B.off.rally)&&typeof canRally==='function'&&canRally()){ const aff=S.army.filter(m=>m.hp>0&&(Object.keys(m.st||{}).length||Object.keys(m.dots||{}).length)).length; rally(aff>=2?'cleanse':'dmg'); }   // R6: a Commander's free Rally, once a room
     const charging=foes.find(e=>e.charging);   // a boss is winding up a telegraphed move: freeze it, or ward against the hit
@@ -492,7 +495,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
         if(keep.siegeOpen) siegeOpen=(opts.off||[]).includes('siege')?()=>false:keep.siegeOpen;   // "off":["siege"]: the living never come
         if(keep.rivalOpen) rivalOpen=(!full||(opts.off||[]).includes('rival'))?()=>false:keep.rivalOpen;   // the rival plays only in 'full'; "off":["rival"] switches it off there
         if(keep.rivalArcOn) rivalArcOn=(opts.off||[]).includes('rivalarc')?()=>false:keep.rivalArcOn;   // "off":["rivalarc"]: the rival stays in chapter 1
-        const res=[]; for(let b=0;b<opts.bots;b++) res.push(simBot(opts.seed+b,{skills,market,full,push:opts.push,dread:opts.dread,faith:opts.faith||(full?(typeof GODS!=='undefined'?GODS[b%GODS.length]:(b%2?'dis':'hon')):null),ult:opts.ult,heat:opts.heat!=null?opts.heat:(full?1:0),tiers:opts.tiers,stats:opts.stats,mods:opts.mods,mod:opts.mod,rival:opts.rival,ngp:opts.ngp,asc:opts.asc,pacts:opts.pacts,off:Object.fromEntries((opts.off||[]).map(k=>[k,1]))},opts.days));
+        const res=[]; for(let b=0;b<opts.bots;b++) res.push(simBot(opts.seed+b,{skills,market,full,push:opts.push,dread:opts.dread,faith:opts.faith||(full?(typeof GODS!=='undefined'?GODS[b%GODS.length]:(b%2?'dis':'hon')):null),ult:opts.ult,heat:opts.heat!=null?opts.heat:(full?1:0),tiers:opts.tiers,stats:opts.stats,mods:opts.mods,mod:opts.mod,rival:opts.rival,runes:opts.runes,lean:opts.lean,ngp:opts.ngp,asc:opts.asc,pacts:opts.pacts,off:Object.fromEntries((opts.off||[]).map(k=>[k,1]))},opts.days));
         out[name]=summarize(res,opts.days);
       }
     } finally {

@@ -187,9 +187,9 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
 
 **Hero and meta**
 
-- **G25. Hero builds are narrow.** (Part closed by R11 PR A: every path has five skills, eight actives, five ultimates,
-  Constitution's Endurance; the Library's respec came with R5.) Open: no signature or runes yet; builds still look alike
-  beyond numbers. (Skills, paths, stats.)
+- **G25. Hero builds are narrow.** (Closed by R11: every path has five skills and a signature at level 40, eight actives
+  with two runes each, five ultimates, Constitution's Endurance; the Library's respec came with R5.) Still open: the
+  Constitution build's Rift depth trails Intelligence (B2). (Skills, paths, stats.)
 - **G26. Titles are mostly a list.** 148 titles but only the worn one does anything, and its bonus is small; collection
   pays only gold. (Titles, meta.)
 - **G27. Balance is measured only by bots.** No record of how a human plays (deaths, time per run, what they ignore)

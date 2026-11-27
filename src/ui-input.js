@@ -39,6 +39,7 @@ const ACTIONS={
   discard:k=>{ if(ui.confirm==='d'+k){ discard(+k); ui.confirm=null; } else ui.confirm='d'+k; },
   alloc:k=>alloc(k), learn:k=>learnSkill(k),
   ngppick:k=>{ ui.ngpPick=ui.ngpPick===k?null:k; },
+  rune:k=>{ const [a,b]=String(k).split('|'); slotRune(a,b); },   // a skill rune (game-builds.js)
   ascpick:k=>{ const a=ascPickList(), i=a.indexOf(k); if(i>=0) a.splice(i,1); else { if(a.length>=ascPicks()) a.shift(); a.push(k); } ui.ascPick=a; ui.confirm=null; },   // the ascension rules (game-asc.js)
   carrypick:k=>{ const a=carryPickList(), i=a.indexOf(k); if(i>=0) a.splice(i,1); else { if(a.length>=carryN()) a.shift(); a.push(k); } ui.carry=a; ui.confirm=null; },   // the carries (game-asc.js)
   ngppact:k=>togglePact(k), cappath:k=>choosePath(k),   // src/ui-progression.js, src/game-progression.js
@@ -81,7 +82,7 @@ const ACTIONS={
   mark:k=>{ const a=k.split('|'); chooseMark(+a[0],a[1]); },
   tores:k=>{ toReserve(+k); }, toarmy:k=>{ toArmy(+k); }, swapo:k=>{ ui.swap=ui.swap===+k?null:+k; }, swap:k=>{ const a=k.split('|'); if(swapReserve(+a[0],+a[1])) ui.swap=null; },
   rsort:k=>{ sortReserve(k); }, gatearmy:k=>{ fromGate(+k,'army'); }, gateres:k=>{ fromGate(+k,'reserve'); },
-  event:k=>{ resolveEvent(k); }, door:k=>{ descend(k); }, cmd:k=>{ command(k); }, rally:k=>{ rally(k); }, wager:k=>{ if(!wager(k==='none'?null:+k)) ui.msg={m:'They will not take that one.',c:'bad'}; },
+  event:k=>{ resolveEvent(k); }, door:k=>{ descend(k); }, cmd:k=>{ command(k); }, rally:k=>{ rally(k); }, sgn:()=>{ useSgn(); }, wager:k=>{ if(!wager(k==='none'?null:+k)) ui.msg={m:'They will not take that one.',c:'bad'}; },
   rgate:()=>{ startRivalGate(); }, reck:()=>{ startReckoning(); }, rend:k=>{ arcEnd(k); }, atrade:k=>{ if(!allyTrade(+k)) ui.msg={m:'They will not take that one.',c:'bad'}; },   /* the rival's end (game-rival-arc.js) */
   skmod:k=>{ const a=k.split('|'); chooseMod(a[0],a[1]); },
   build:k=>{ const c=buildCost(k); ui.msg=build(k)?{mk:1,m:BUILD[k].name+' raised to level '+bl(k)+' for '+c[0]+' gold'+(c[1]?' and '+c[1]+' bone dust':'')+'.',c:'ok'}:null; },
@@ -231,7 +232,7 @@ document.addEventListener('keydown',e=>{
   if(e.key===']'||e.key==='['){ const f=liveFoes(); if(f.length>1){ e.preventDefault(); const i=f.findIndex(x=>x.id===S.run.target); setTarget(f[(i+(e.key==='['?f.length-1:1))%f.length].id); settled(); } return; }   // Tab stays with the browser, so keyboard players can still move between buttons
   if(e.key.toLowerCase()==='g'){ e.preventDefault(); if(canGuard()){ act('guard'); settled(); } return; }   // G: Guard (uses the turn)
   const ord=ORDER_KEYS[e.key.toLowerCase()]; if(ord){ e.preventDefault(); if(command(ord)) settled(); return; }
-  let k={'1':'strike','2':'siphon','3':'ward'}[e.key]; if(!k&&e.key.toLowerCase()==='r'&&canUlt()) k='ult';
+  let k={'1':'strike','2':'siphon','3':'ward'}[e.key]; if(!k&&e.key.toLowerCase()==='r'&&canUlt()) k='ult'; if(!k&&e.key.toLowerCase()==='t'){ e.preventDefault(); if(useSgn()) settled(); return; }   /* the signature does not use the turn */
   if(!k&&/^[4-9]$/.test(e.key)){ const s=activeSkills()[+e.key-4]; if(s) k='sk:'+s.id; }
   if(!k){ const pk=DRINK_IDS.find(x=>drinkDef(x).key.toLowerCase()===e.key.toLowerCase()); if(pk) k='pot:'+pk; }
   if(k){ e.preventDefault(); act(k); settled(); }
