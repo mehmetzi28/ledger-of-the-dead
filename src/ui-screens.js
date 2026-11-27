@@ -663,3 +663,16 @@ function siegeWorksHTML(){   // the siege works: built once, used in every siege
   return '<p class="group-h">Siege works</p><div class="siege-works">'+WORK_IDS.map(k=>{ const W=WORKS[k], own=worksOwn(k);
     return '<div class="tt-row"><div><h4>'+W.name+(own?' &middot; <span class="ok">built</span>':'')+'</h4><div class="u-sub">'+W.desc+'</div></div>'+(own?'':'<button class="btn small" data-a="swork" data-k="'+k+'"'+(workCan(k)?'':' disabled')+'>Build &middot; '+gold(W.g)+(W.d?' &middot; '+W.d+' dust':'')+'</button>')+'</div>'; }).join('')+'</div>';
 }
+
+// ----- R17 PR B: the title screen. The drowned chapel at night, the Ledger on its lectern, and the save as its pages: go on
+// with this game, open a slot, or begin again. Shown once when the page opens (Settings can turn it off); any page closes it.
+function titleHTML(){
+  const P=S.player, live=S.day>1||P.lvl>1||(S.ti&&S.ti.clr&&Object.keys(S.ti.clr).length), cl=Object.keys((S.ti&&S.ti.clr)||{}).length;
+  let pages='<button class="ts-page primary" data-a="titlego"><b>'+(live?'Go on':'Open the Ledger')+'</b><span>'+(live?'Day '+S.day+' &middot; Level '+P.lvl+' &middot; '+cl+' '+(cl===1?'gate':'gates')+' cleared'+(modeLabel(S)?' &middot; '+modeLabel(S):''):'A new book, a first page')+'</span></button>';
+  for(let i=1;i<=SLOTS_N;i++){ const g=slotRead(i), d=g&&g.data; if(!d) continue;
+    pages+='<button class="ts-page" data-a="titleslot" data-k="'+i+'"><b>'+(ui.confirm==='sl'+i?'Press again to open slot '+i:'Slot '+i)+'</b><span>Day '+d.day+' &middot; Level '+d.player.lvl+(modeLabel(d)?' &middot; '+modeLabel(d):'')+'</span></button>'; }
+  if(live) pages+='<button class="ts-page" data-a="titlenew"><b>A new book</b><span>Begin again (Settings, New game)</span></button>';
+  return '<section class="title-screen" aria-labelledby="h-ts">'+(VIEW.nobg?'':'<div class="ts-art" aria-hidden="true"><svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice">'+scTitle()+'</svg></div>')
+   +'<div class="ts-body"><div class="ts-head"><h2 class="ts-name" id="h-ts">Ledger of the Dead</h2><p class="ts-sub">The chapel drowned. The book did not.</p></div><div class="ts-low"><div class="ts-pages">'+pages+'</div>'
+   +'<p class="ts-foot">Press Enter to go on.</p></div></div></section>';
+}

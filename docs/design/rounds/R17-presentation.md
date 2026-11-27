@@ -137,3 +137,48 @@ effect entry; every boss move has a stage cue (a table test like `83-boss-kits`)
 - **Measured**: no rule changed. Bots match R16 exactly (market 95% clears, Tower 83; full 94%, Tower 86.5).
 - **Tests**: `tests/groups/98-stage.js` (6 tests). Every type, kit, boss move and stage has its cue, and every
   telegraphed move names targets.
+
+### PR B: music, the title screen and the epilogues
+- **Music engine** (`scenes.js`, replacing the single pad-and-melody player).
+  - `THEMES` holds a theme for each of the seven gates, the Tower, the Rift and the four town dread bands. Each theme
+    has a root, a mode, a tempo, a lead voice (`VOICES`: pluck, bell, brass, choir, metal, march, a single voice, a music
+    box), a pad (`PADS`: drone, brass, organ, strings), a noise bed (water, crackle, hiss, scratch) and a motif of 4-7
+    scale steps.
+  - The gates as the spec's table asks:
+    - the Rat Warren: quick and minor, plucked
+    - the Sunken Crypt: slow Dorian with a bell and lapping water
+    - the Ashen Barrow: driving Phrygian brass and crackle
+    - the Hollow Cathedral: an Aeolian choir over an organ
+    - the Iron Orchard: whole-tone metal
+    - the Throne of Ash: a harmonic-minor march over strings
+    - Vane Abbey: a Locrian single voice and silence
+  - `musicTick` plays each phrase as the motif, then an answer that leans on it, then a wandering line with rests.
+    Percussion comes on the bar (on the beat for the march).
+  - Bosses keep their own `BOSS_THEME` root, mode and tempo. A gate's boss plays its gate's motif and lead, and a boss of
+    no gate gets a motif drawn from its name. The second phase is 25% faster, a whole tone higher, with more drums.
+  - The town follows dread: calm Ionian music box, uneasy Dorian, afraid Aeolian, terror a Phrygian drone with hiss.
+    A siege plays terror.
+  - The Tower rises a semitone and 2 bpm every 10 floors, using your best floor on the Tower tab. The Rift moves to a
+    new key every phrase.
+  - Crossfades take 1.5 s. The music has its own volume (Settings, minus and plus in 10% steps, kept per browser), and
+    touching it turns the music on. It is still off by default until you turn it on or touch the volume.
+  - The engine draws on its own seeded dice (`scRand` keyed by the scene), never `Math.random`, so it is the same each
+    time and can never move the game's numbers.
+- **Title screen** (`titleHTML`, `scTitle`): the drowned chapel at night, its windows lit, the nave half under black
+  water, the Ledger glowing on a lectern. Its pages:
+  - Go on (this game's day, level and gates cleared), or Open the Ledger on a new save.
+  - Each filled slot, opened with two presses.
+  - A new book, which opens Settings' New game.
+
+  It shows once when the page opens. Enter or Escape closes it, and Settings can turn it off (`VIEW.notitle`).
+- **Epilogues** (`scEpilogue`), painted at the top of the chosen ending's last page:
+  - Close the book: dawn over a quiet valley, six dark gates, the book shut on a grave under a cross.
+  - Keep writing: night, the road running between burning gates, the Ledger open and glowing.
+
+  Hidden when backgrounds are off.
+- **Left out**: the debug frame-time probe; stage idle animations by role. Every fighter already breathes on the stage,
+  and the role glow now marks evolved minions. The valley map stays for R20.
+- **Measured**: no rule changed. The bots match R16 and PR A exactly. Every theme renders through a real
+  `OfflineAudioContext` with no errors and no NaN.
+- **Tests**: `tests/groups/98-music-title.js` (7 tests, with a stand-in AudioContext). The music tests in groups 35 and
+  50 were updated to the new scene keys.

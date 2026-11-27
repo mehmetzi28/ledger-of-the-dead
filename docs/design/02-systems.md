@@ -601,7 +601,13 @@ the Hunger (2.7).
   executions get a 60 ms hit-stop and a nudge, a phase change a slow beat and a banner (not in the quiet view: reduced
   motion, Light effects or a phone). Evolution stages show on the icon (outline, role glow, larger with motes, halo);
   unique, heartforged, Riftborn and Awakened items have frames; stage numbers stack and drift; a changed intent pulses.
-- **Sound and music** (`scenes.js`): synthesized Web Audio effects and per-place themes; no audio files.
+- **Sound and music** (`scenes.js`): synthesized Web Audio effects and, since R17 PR B, a small music engine (`THEMES`,
+  `musicGraph`, `musicTick`): each gate has its own mode, tempo, lead voice, pad and noise bed and a motif its boss reuses;
+  the town follows its dread band (calm music box to terror drone), the Tower rises a semitone every 10 floors, the Rift
+  shifts key each phrase, a boss's second phase plays faster and higher with more drums. 1.5 s crossfades, its own volume,
+  its own seeded dice (never the game's). No audio files.
+- **Title screen and epilogues** (R17 PR B): the drowned chapel at night with the Ledger on its lectern; its pages go on,
+  open a slot or begin a new book (Settings can turn it off). Each ending's last page is painted (`scEpilogue`).
 - **Tabs**: Gates (with Tower, Rift, Trial and War table views), Army, Gear, Market, Skills, Town, Codex, the Ledger
   (Bestiary, Titles, Lore, Records, History, Memorial), Help, Settings. Keyboard shortcuts for every action (`?` lists them).
 - **Language**: English in the page, Turkish laid over it after each render (`tr.js`, ~2,450 lines of `TR_DICT` and
