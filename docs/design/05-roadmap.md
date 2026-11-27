@@ -40,7 +40,7 @@ substantial feature or rework; small fixes ride along inside one. Rounds name th
 | R19 | The valley map: roads, sites and travel | Shipped (#44, PR B) | G28 | | XL | [spec](rounds/R19-the-valley-map.md) |
 | R20 | Villages of the living: trade, tribute and fear | Shipped (#46, PR B) | G29 | R5 | L | [spec](rounds/R20-villages-of-the-living.md) |
 | R21 | The phylactery: corruption and the hero's transformation | Shipped (#49, PR B) | G30 | | L | [spec](rounds/R21-the-phylactery.md) |
-| R22 | The bone workshop: constructs built from parts | P4 | G31 | R4 helps | L | [spec](rounds/R22-the-bone-workshop.md) |
+| R22 | The bone workshop: constructs built from parts | PR A shipped (#50); PR B next | G31 | R4 helps | L | [spec](rounds/R22-the-bone-workshop.md) |
 | R23 | Bloodlines and the grave garden | P4 | G32 | R5 | L | [spec](rounds/R23-bloodlines-and-the-grave-garden.md) |
 | R24 | Apprentices: a school of the Ledger | P4 | G33 | R5 | L | [spec](rounds/R24-apprentices.md) |
 | R25 | Seasons and weather | P4 | G34 | | L | [spec](rounds/R25-seasons-and-weather.md) |

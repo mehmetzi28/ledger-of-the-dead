@@ -92,3 +92,32 @@ is available.
 
 - **Constructs replace raising**: capped at two-three, and they cost the late-game currencies raising doesn't.
 - **UI depth**: the preview card shows the final minion card, so the player sees the result, not the math.
+
+## As built
+
+### PR A: the Workshop, parts, constructs, breaking and repair
+- **The building** (`src/game-workshop.js`, `BUILD.workshop`, opens at the Crypt L2): keeps 1/2/3 constructs at L1/2/5
+  (broken ones count), repairs half price at L2, +10% max HP at L4; siege perk +10% max HP on the wall. Specializations:
+  L3 *Bonesmith* (4 trophies a part) / *Flesh Sculptor* (two parts a body); L5 *Masterwork* (a second head) / *Living
+  Steel* (repairs free and at once; changed from "never break in sieges", which a broken construct already survives).
+- **Parts** (`S.parts={kind:n}`): `sewPart` (6 trophies of one kind, a gate or Tower kind) and `cutPart` (a non-boss
+  body kept in the Embalmery). Parts are kinds, not named items: the slot decides what a kind gives.
+- **Constructs** (`m.cons={fr,ar,hd,co,h2?}` on an ordinary minion record, `buildCons`, `consApply`): frame = role, HP
+  factor and tier (its gate); arms = attack factor and damage type (`consType` in minionType: a striker's arms hit with
+  their gate's type); head = the kind's kit as a full echo (`consEchoK`/`consKits` in echoV/echoKits) **and** the role's
+  trait (Stalwart, Vicious, Warded, Wrathful, Hexing; every kind has a kit, so "a trait when it has no kit" never fired);
+  core (`coreOpts`, `consK` in extraMul) = a spare boss heart (+15% HP and attack, +25% a secret master's; the spec's
+  "signature at 30%" is left for later), a Soul core (40 dust: a Soul once a room on a kill, `consKill`), a Rift core
+  (3 shards: +10% attack, +25% in the Rift). Parts below the frame's gate cost 5% a step of the four-part average.
+  Cost 1,000 gold and 10 dust a tier, and a watch (`consWhy` says what is missing). A construct levels and evolves;
+  `canFuse`, the Grave Market, wagers, the rival's thefts, the ally trade, the Hunger, commissions and the bone
+  merchant's swap all pass it by.
+- **Breaking** (`consBreak`, in the shatter roll, Ironman's loss and the fever pit): to `S.broken` with `m.broken=day`;
+  `repairCons` after a day for 300 gold and 5 dust a tier. `replacePart` (500 gold a tier, the old part lost; a core is
+  paid again). `consFix` cleans the save (only fields present).
+- **UI**: the bench in the Workshop's card on the Town tab (`wsHTML`): sew and cut buttons, the slots, the part or core
+  picker, the preview card (the minion it would be, HP, attack, type, head, core, cost and why not), the constructs with
+  Repair and Replace a part; the Codex's Constructs section on the Kits page; a village shape; the tip. ~90 Turkish strings.
+- **Titles**: First Stitch, Patchwork Army, Heart of a King, Every Gate in One (Eternal Machine comes with PR B).
+- **Bots**: see 04-balance; `"off":["constructs"]`.
+- **Tests**: `tests/groups/98-workshop.js` (8 tests); 1007 in all.

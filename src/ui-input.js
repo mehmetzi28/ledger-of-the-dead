@@ -75,6 +75,15 @@ const ACTIONS={
   gcall:k=>{ const o=callGodOmen(k||null); ui.msg=o?{mk:1,m:'Your god calls tomorrow\'s omen: '+OMENS[o].name+'.',c:'ok'}:null; },
   gward:()=>{ const o=wardOmen(); ui.msg=o?{mk:1,m:'You ward off tomorrow\'s '+OMENS[o].name+'.',c:'ok'}:null; },
   form:k=>{ if(takeForm(k)) ui.msg={mk:1,m:'You take the form of the '+FORMS[k].name+'.',c:'ok'}; },
+  wsslot:k=>{ wsSt().s=k; },
+  wspick:k=>{ const W=wsSt(), s=W.s||'fr';
+    if(W.r!=null){ const m=consAll().find(x=>x.uid===W.r); if(m&&replacePart(m.uid,s,k)) ui.msg={mk:1,m:m.nick+' takes the new part.',c:'ok'}; else ui.msg={mk:1,m:'That part cannot go in now.',c:'bad'}; return; }
+    W[s]=W[s]===k?'':k; const i=CONS_SLOTS.indexOf(s); if(W[s]&&i>=0&&i<3&&!W[CONS_SLOTS[i+1]]) W.s=CONS_SLOTS[i+1]; },
+  wssew:k=>{ if(sewPart(k)) ui.msg={mk:1,m:'The trophies are sewn into a part: '+k+'.',c:'ok'}; },
+  wscut:k=>{ const x=(S.embalm||[])[+k], n=x&&x.c&&x.c.base; if(cutPart(+k)) ui.msg={mk:1,m:'The kept body is cut into parts: '+n+'.',c:'ok'}; },
+  wsbuild:()=>{ const W=wsSt(), m=buildCons({fr:W.fr,ar:W.ar,hd:W.hd,co:W.co||'',h2:W.h2||undefined}); if(m){ ui.ws={s:'fr'}; ui.msg={mk:1,m:m.nick+' stands up in the Workshop.',c:'ok'}; } },
+  wsfix:k=>{ const m=(S.broken||[]).find(x=>x.uid===+k); if(repairCons(+k)) ui.msg={mk:1,m:m.nick+' is mended.',c:'ok'}; else ui.msg={mk:1,m:'Not now: the gold, the dust or a place for it is missing.',c:'bad'}; },
+  wsrep:k=>{ const W=wsSt(); if(k===''||W.r===+k) delete W.r; else { W.r=+k; W.s='hd'; } },
   phylbind:k=>{ if(phylBind(k)) ui.msg={mk:1,m:'Your soul is bound into '+VESSELS[k].name+'.',c:'ok'}; },
   phylshatter:()=>{ if(ui.confirm!=='shatter'){ ui.confirm='shatter'; return; } ui.confirm=null; ui.msg=phylShatter()?{mk:1,m:'The phylactery is shattered. You are mortal again.',c:'ok'}:null; },
   hunger:k=>{ const m=hungerAnswer(k==='feed'); ui.msg=m?{mk:1,m,c:k==='feed'?'bad':'ok'}:null; },

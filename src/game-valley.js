@@ -58,7 +58,7 @@ const VEV={
 Object.assign(EVENTS,VEV);
 const VEV_IDS=Object.keys(VEV), FEVER_LOSS=.3, SAINT_KEEP=.75;
 const evOk=k=>!EVENTS[k].when||!!EVENTS[k].when();   // rollEvent
-const weakMinion=()=>S.army.filter(m=>!m.thrall&&!m.boss&&!m.recl).sort((a,b)=>a.lvl-b.lvl||(a.stage||0)-(b.stage||0))[0]||null;
+const weakMinion=()=>S.army.filter(m=>!m.thrall&&!m.boss&&!m.recl&&!m.cons).sort((a,b)=>a.lvl-b.lvl||(a.stage||0)-(b.stage||0))[0]||null;
 function vlBody(r,base,free){ const lvl=RK[r.di].lv+Math.floor(r.room/2); const e=makeEnemy(r.di,lvl,false); if(base){ const row=DUNGEONS[r.di].mobs.find(x=>x[0]===base); if(row){ const s=mobStats(r.di,lvl,row[2],row[3],false,false); Object.assign(e,{name:row[0],base:row[0],role:row[1],hf:row[2],af:row[3],elite:false,maxHp:s.hp,hp:s.hp,atk:s.atk}); } } const c=corpseOf(e); if(free) c.free=true; r.corpses.push(c); return c; }
 function valleyEv(ev,ch){   // resolveEvent for the valley's events: {m,c}, or null for a choice that cannot be taken
   const E=EVENTS[ev.id], r=S.run, P=S.player; if(E.opts.every(o=>o[0]!==ch)||(E.off&&E.off(ch))) return null;
@@ -76,7 +76,7 @@ function valleyEv(ev,ch){   // resolveEvent for the valley's events: {m,c}, or n
   if(id==='statue'&&ch==='tears'){ if(S.belt.mp<beltMax()){ S.belt.mp++; return {m:'You bottle the black tears: a mana draught for your belt.',c:'ok'}; } const g=gold(.5); return {m:'Your belt is full. You sell the tears to the next dead man you meet: '+g+' gold.',c:'ok'}; }
   if(id==='thief'&&ch==='duel'){ const d=chainHp(.2); tally('thiefDuels'); if(findPage('statue',r)) return {m:'You cut the agent down for '+d+' HP of your own and take back the stolen page.',c:'ok'}; const g=gold(1.2); return {m:'You cut the agent down for '+d+' HP of your own. The page burns, but their purse does not: '+g+' gold.',c:'ok'}; }
   if(id==='fever'&&ch==='throw'){ const m=weakMinion(); if(!m) return null; tally('fever');
-    if(Math.random()<FEVER_LOSS){ returnGear(m); S.army=S.army.filter(x=>x!==m); memorialize(m,{g:r.di}); return {m:m.nick+' sinks into the fever pit and does not come back.',c:'bad'}; }
+    if(Math.random()<FEVER_LOSS){ if(consBreak(m,null)) return {m:m.nick+' comes apart in the fever pit. The Workshop can mend it.',c:'bad'}; returnGear(m); S.army=S.army.filter(x=>x!==m); memorialize(m,{g:r.di}); return {m:m.nick+' sinks into the fever pit and does not come back.',c:'bad'}; }
     const old=m.traits.length?m.traits[m.traits.length-1]:null, nt=rollTrait(m.traits.filter(t=>t!==old)); if(old) m.traits[m.traits.length-1]=nt; else m.traits.push(nt); syncMinion(m);
     return {m:m.nick+' crawls out of the pit changed: '+(old?TRAITS[old].name+' is gone, ':'')+TRAITS[nt].name+' instead.',c:'ok'}; }
   if(id==='wagon'&&ch==='cargo'){ const row=DUNGEONS[r.di].mobs[0], key=row[0]; r.troph=r.troph||{}; r.troph[key]=(r.troph[key]||0)+3; return {m:'You take the cargo: 3 '+key+' trophies.',c:'ok'}; }

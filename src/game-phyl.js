@@ -82,7 +82,7 @@ function phylWave(list,r){   // townSiegeWave: 50+ one more foe each wave; named
   if(P.named) list.filter(e=>e.boss).forEach(e=>{ e.maxHp=e.hp=Math.round(e.maxHp*NAMED_BOSS); e.atk=Math.round(e.atk*NAMED_BOSS); });
 }
 function hungerOpen(){ const P=S.player; return PHYL_ON&&P.hunP===S.day&&S.mode==='town'; }
-const hungerVictim=()=>(S.reserve||[]).filter(m=>!m.lk&&!m.thrall).sort((a,b)=>mPower(a)-mPower(b))[0]||null;
+const hungerVictim=()=>(S.reserve||[]).filter(m=>!m.lk&&!m.thrall&&!m.cons).sort((a,b)=>mPower(a)-mPower(b))[0]||null;
 function hungerAnswer(feed){   // feed: give the Ledger a Reserve minion (+5% damage today); refuse: -5% max HP today
   if(!hungerOpen()) return null; const P=S.player; let m;
   if(feed){ const v=hungerVictim(); if(!v) return null; returnGear(v); S.reserve=S.reserve.filter(x=>x.uid!==v.uid); bondsClean(); P.hun={d:S.day,k:'dmg'}; tally('fedHunger'); m='The Ledger takes '+v.nick+'. The page where the name was is warm. Your dead strike 5% harder today.'; }

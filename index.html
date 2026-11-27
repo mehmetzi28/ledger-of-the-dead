@@ -1323,6 +1323,7 @@ body.cv-skin .win{border-color:#9a7a66;box-shadow:inset 0 0 0 2px rgba(154,122,1
 .ph-form,.ph-fcard{border:1px solid rgba(154,99,184,.35);border-radius:6px;padding:6px 8px;margin:6px 0}
 .ph-form p,.ph-fcard p{margin:2px 0}
 .ph-fcard.dim{opacity:.6}
+.ws-card{border:1px solid rgba(190,170,140,.25);border-radius:6px;padding:8px 10px;margin:6px 0;background:rgba(120,100,70,.08)}
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
@@ -1807,7 +1808,7 @@ const TRAIT_RES={rimeborn:['frost',.25],cinderborn:['fire',.25],necrotic:['rot',
 function allyRes(a,ty){ if(!ty||ty==='phys') return 0; if(a.id==='p'){ const k=DTYPE[ty].res; return k?Math.min(RES_CAP,G(k)/100):0; } let v=0; for(const t in TRAIT_RES) if(TRAIT_RES[t][0]===ty&&hasTrait(a,t)) v=Math.max(v,TRAIT_RES[t][1]); return v; }
 const DOT_TYPE={poison:'rot',blight:'rot',burn:'fire',bleed:'phys'};
 const foeHitType=e=>hasAff(e,'frosty')?'frost':hasAff(e,'burning')?'fire':e.role!=='striker'?'phys':S.run&&S.run.siege?SIEGE_HITS:S.run&&S.run.tw?TOWER_HITS:GATE_HITS[S.run?S.run.di:0]||'phys';
-function minionType(m){ { const o=oilType(); if(o) return o; }   /* a weapon oil (game-brew.js) */ if(hasTrait(m,'shatterwrought')) return m.swt?'fire':'frost'; if(hasTrait(m,'rimeborn')) return 'frost'; if(hasTrait(m,'cinderborn')) return 'fire'; if(hasTrait(m,'venom')||hasTrait(m,'necrotic')) return 'rot'; if(hasTrait(m,'bloodfiend')) return 'shad'; return 'phys'; }   // compounds count as both halves (hasTrait)
+function minionType(m){ { const o=oilType(); if(o) return o; } { const c=consType(m); if(c) return c; }   /* a construct's arms (game-workshop.js) */   /* a weapon oil (game-brew.js) */ if(hasTrait(m,'shatterwrought')) return m.swt?'fire':'frost'; if(hasTrait(m,'rimeborn')) return 'frost'; if(hasTrait(m,'cinderborn')) return 'fire'; if(hasTrait(m,'venom')||hasTrait(m,'necrotic')) return 'rot'; if(hasTrait(m,'bloodfiend')) return 'shad'; return 'phys'; }   // compounds count as both halves (hasTrait)
 const resWord=v=>v<=-.5?'very weak':v<0?'weak':v>=.5?'resists strongly':'resists';
 let S = null;
 const rnd = (a,b)=>a+Math.random()*(b-a);
@@ -1879,7 +1880,7 @@ function syncMinion(m){
   if(m.maxHp!=null && nh>m.maxHp) m.hp+=nh-m.maxHp;
   m.maxHp=nh; m.atk=na; m.hp=Math.min(m.hp,m.maxHp);
 }
-const syncArmy = ()=>{ S.army.forEach(syncMinion); (S.reserve||[]).forEach(syncMinion); (S.waiting||[]).forEach(syncMinion); };   // benched and waiting minions keep up with Will and gear too
+const syncArmy = ()=>{ S.army.forEach(syncMinion); (S.reserve||[]).forEach(syncMinion); (S.waiting||[]).forEach(syncMinion); (S.broken||[]).forEach(syncMinion); };   // benched and waiting minions keep up with Will and gear too
 
 const MOMENTS=[];   // banners for big moments; render() shows them once, then clears them
 function moment(t,c,k){ MOMENTS.push(k?{t,c:c||'ok',k}:{t,c:c||'ok'}); if(MOMENTS.length>3) MOMENTS.shift(); }   // k: 'lvl' or 'title', drawn as the big framed banner
@@ -2029,7 +2030,7 @@ function normalizeSave(src){
   { const c=g.player.cmd; if(!hadCmd||!(obj(c)&&c.a>=0&&c.h>=0&&isFinite(c.a)&&isFinite(c.h))) g.player.cmd=cmdPow(Array.isArray(g.army)?g.army:[]); else g.player.cmd={a:Math.round(c.a),h:Math.round(c.h)}; }   // Command: an old or damaged save measures its army again
   const okB=b=>obj(b)&&BOUNTIES[b.id]&&typeof b.n==='number'&&typeof b.base==='number'&&obj(b.rw)&&typeof b.claimed==='boolean';
   g.bounty=(obj(g.bounty)&&typeof g.bounty.day==='number'&&Array.isArray(g.bounty.list)&&g.bounty.list.every(okB))?g.bounty:null;
-  memorialFix(g); nemFix(g); modesFix(g); codeFix(g); inscFix(g); collFix(g); cosFix(g); lostFix(g); mapFix(g); vilFix(g); phylFix(P); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
+  memorialFix(g); nemFix(g); modesFix(g); codeFix(g); inscFix(g); collFix(g); cosFix(g); lostFix(g); mapFix(g); vilFix(g); phylFix(P); consFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
   return g;
 }
 function validSave(g){ return !!normalizeSave(g); }
@@ -2724,7 +2725,7 @@ function roomWon(){
     if(m.hp<=0) r.downs=(r.downs||0)+1;   /* downed this room: a Trial's score counts them */
     if(m.hp>0){ if(minionXp(m,Math.round(share*ascReadXp(r,m)))) r.events.push({m:m.nick+' reaches level '+m.lvl+'.',c:'ok'}); continue; }
     const ch=r.wk?0:shatterOdds(m);   /* nothing shatters in the weekly dive (game-rift.js) */
-    if(Math.random()*100<ch&&!secondHand(m,r)){ r.lostN=(r.lostN||0)+1; returnGear(m); S.army=S.army.filter(x=>x!==m); downs.push({m:m.nick+', '+theName(mName(m))+', shattered and is gone ('+ch+'% chance).',c:'bad'}); memorialize(m,r.tw?{f:r.tw}:r.rift?{rd:r.rift}:{g:r.di}); }
+    if(Math.random()*100<ch&&!secondHand(m,r)&&!consBreak(m,r)){ r.lostN=(r.lostN||0)+1; returnGear(m); S.army=S.army.filter(x=>x!==m); downs.push({m:m.nick+', '+theName(mName(m))+', shattered and is gone ('+ch+'% chance).',c:'bad'}); memorialize(m,r.tw?{f:r.tw}:r.rift?{rd:r.rift}:{g:r.di}); }
     else{ m.hp=Math.ceil(m.maxHp*ascBind()); bound.push(m); }
   }
   if(bound.length){ const ch=Math.max(...bound.map(shatterOdds)); downs.push({m:'Downed but bound back together at '+Math.round(ascBind()*100)+'% HP: '+bound.map(m=>m.nick).join(', ')+'. '+(ch?'The chance to shatter was '+ch+'%.':'None of them could shatter.'),c:'down'}); }
@@ -4062,8 +4063,8 @@ const kit2Chip=e=>e.kit2&&KITS[e.kit2]?' &middot; <span class="kit kit2" title="
 // carries the same echo from a crafted kind, at echo strength (x1.5 when that kind is Ledgered); every kit has its echo.
 const ECHO={shield:.09,pack:.06,stance:.3,thorns:.09,frenzy:.09,banner:.06,marker:.15,call:.25,
   ambush:.3,thief:1,bomb:.3,sapper:.5,skirm:.3,hexer:3,purify:1,burrow:.5}, ECHO_PACK_MAX=3, ECHO_SKIRM_AT=.3;
-const echoV=(m,k)=>{ if(!m||m.id==='p') return 0; let v=hasTrait(m,'undone')&&KIT_OF[m.kind]===k?1:0; if(m.charm&&m.charm.k===k) v=Math.max(v,charmV(m.charm)); return v; };   // 0: no such echo
-const echoKits=m=>{ if(!m||m.id==='p') return []; const o=[]; if(hasTrait(m,'undone')&&KIT_OF[m.kind]) o.push(KIT_OF[m.kind]); if(m.charm&&KITS[m.charm.k]&&!o.includes(m.charm.k)) o.push(m.charm.k); return o; };
+const echoV=(m,k)=>{ if(!m||m.id==='p') return 0; let v=hasTrait(m,'undone')&&KIT_OF[m.kind]===k?1:0; if(m.charm&&m.charm.k===k) v=Math.max(v,charmV(m.charm)); if(consEchoK(m,k)) v=Math.max(v,1); return v; };   /* a construct's head (game-workshop.js) */   // 0: no such echo
+const echoKits=m=>{ if(!m||m.id==='p') return []; const o=[]; if(hasTrait(m,'undone')&&KIT_OF[m.kind]) o.push(KIT_OF[m.kind]); if(m.charm&&KITS[m.charm.k]&&!o.includes(m.charm.k)) o.push(m.charm.k); for(const k of consKits(m)) if(!o.includes(k)) o.push(k); return o; };
 const echoOf=m=>echoKits(m)[0]||null;
 const echoK=m=>echoOf(m);
 function echoDmg(m,tg){   // an echo on its own blows, and every Banner echo standing beside it
@@ -4775,7 +4776,7 @@ const mausN=()=>S&&S.memorial?Math.min(MAUS_MAX,S.memorial.filter(e=>e.maus).len
 const mausCost=()=>MAUS_COST[mausN()]||0;
 const canMaus=e=>!!e&&!e.maus&&S.mode==='town'&&mausN()<MAUS_MAX&&S.gold>=mausCost();
 function raiseMaus(i){ const e=(S.memorial||[])[i]; if(!canMaus(e)) return false; S.gold-=mausCost(); e.maus=1; tally('maus'); syncArmy(); sfx('raise'); return true; }
-const extraMul=(m,k)=>(1+(m?nameK(m.role)+mfStat(m)+(k==='atk'?0:specHp(m)):0))*(k==='atk'?bondMul(m)*ascReadK(m):(1+headBonus()+fallenK()+inscArmy())*townHpK(m)*ascArmyHp())*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K+(rivalBook()?BOOK_K:0):1)*(k==='atk'?choirK()*nightK()*formArmyK():1);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
+const extraMul=(m,k)=>(1+(m?nameK(m.role)+mfStat(m)+(k==='atk'?0:specHp(m)):0))*(k==='atk'?bondMul(m)*ascReadK(m):(1+headBonus()+fallenK()+inscArmy())*townHpK(m)*ascArmyHp())*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K+(rivalBook()?BOOK_K:0):1)*(k==='atk'?choirK()*nightK()*formArmyK():1)*consK(m,k);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
 // ===== THE PANTHEON (R8 PR A) =====
 // From level 8 and 3 clears the Pantheon (the Town tab) takes an oath to one of five Old Gods or to none (the Profane path).
 // S.faith = {id, day, dev, dd, dday, vb, cv}: the god, the day sworn, devotion points, points earned on day dday (dd), the
@@ -5253,7 +5254,7 @@ function useUlt(t){
 // higher evolution stage and takes the other's traits (up to three). A minion can take at most two fusions in all. The other's gear goes back to your bag.
 const FUSE_LV=1, FUSE_TRAITS=3, FUSE_MAX=2, FUSE_GOLD=60;   // FUSE_GOLD: gold per level of the two minions together
 const fuseCost=(a,b)=>Math.round((a.lvl+b.lvl)*FUSE_GOLD);
-const canFuse=(a,b)=>!!a&&!!b&&a!==b&&a.role===b.role&&(a.fused||0)+(b.fused||0)<FUSE_MAX;   // a minion takes at most two fusions in all
+const canFuse=(a,b)=>!!a&&!!b&&a!==b&&!a.cons&&!b.cons&&a.role===b.role&&(a.fused||0)+(b.fused||0)<FUSE_MAX;   // a minion takes at most two fusions in all
 const fuseOrder=(a,b)=>b.lvl>a.lvl||(b.lvl===a.lvl&&(b.stage||0)>(a.stage||0))?[b,a]:[a,b];   // [survivor, consumed]
 function fuseTraits(k,x){   // the survivor's traits, then the other's it lacks; recipe pairs become their compound; then the cap
   const all=(k.traits||[]).slice(); for(const t of x.traits||[]) if(!all.includes(t)&&(t!=='commander'||canLead(k))) all.push(t);   // only an elite or boss keeps Commander
@@ -6266,7 +6267,7 @@ function commPay0(c){
   return {g:COMM_MIN_GOLD*c.st+100*S.player.lvl,d:20};
 }
 const commItem=c=>c.k==='hf'?S.inv.find(it=>it.hf&&!it.lk&&ITEM[it.id].slot===c.slot):null;
-const commMinion=c=>c.k==='min'?S.army.filter(m=>m.role===c.role&&(m.stage||0)>=c.st&&!m.lk&&!m.wall&&!m.thrall).sort((a,b)=>a.lvl-b.lvl)[0]:null;
+const commMinion=c=>c.k==='min'?S.army.filter(m=>m.role===c.role&&(m.stage||0)>=c.st&&!m.lk&&!m.wall&&!m.thrall&&!m.cons).sort((a,b)=>a.lvl-b.lvl)[0]:null;
 function commCan(i){ const c=commissions()[i]; if(!c||c.done||S.mode!=='town') return false;
   if(c.k==='tro') return trosOf(c.role,c.g).reduce((a,k)=>a+S.trophies[k],0)>=c.n;
   if(c.k==='hf') return !!commItem(c); return !!commMinion(c); }
@@ -6420,7 +6421,7 @@ function yardDawn(){
     while(gain>0&&m.lvl<c&&m.lvl<S.player.lvl+2){ const step=Math.min(gain,Math.max(1,mneed(m.lvl)-m.xp)); gain-=step; ups+=minionXp(m,step); } }
   if(ups) tally('yardUps',ups); return ups;
 }
-function yardSell(uid){ if(S.mode!=='town'||!hasSpec('yard',5,'b')) return 0; const m=(S.reserve||[]).find(x=>x.uid===uid); if(!m||m.lk) return 0; const g=yardPrice(m); returnGear(m); S.reserve=S.reserve.filter(x=>x!==m); bondsClean(); S.gold+=g; tally('yardSold'); sfx('coin'); return g; }
+function yardSell(uid){ if(S.mode!=='town'||!hasSpec('yard',5,'b')) return 0; const m=(S.reserve||[]).find(x=>x.uid===uid); if(!m||m.lk||m.cons) return 0; const g=yardPrice(m); returnGear(m); S.reserve=S.reserve.filter(x=>x!==m); bondsClean(); S.gold+=g; tally('yardSold'); sfx('coin'); return g; }
 const yardPrice=m=>YARD_SELL*m.lvl*(1+(m.stage||0))*(m.boss?3:m.elite?1.5:1);
 // ----- the Library: a stat respec
 const respecCost=()=>!T_('respecs')?{g:0,d:0}:{g:RESPEC_GOLD*S.player.lvl,d:RESPEC_DUST};
@@ -6791,7 +6792,7 @@ function arcTick(r){   // dawn, after a challenge and after a siege: the next ch
 const wagerOpen=()=>!!S&&rivalArcOn()&&rivalOpen()&&arc().ch>=2&&rivalWarned()&&S.mode==='town'&&(rv().stash||[]).length>0;
 function theirStake(m){   // the stash body they put up against m: the closest at m's tier or above; never above their best
   if(!m) return null; const L=(rv().stash||[]).filter(b=>b.rankI>=m.rankI).sort((x,y)=>x.rankI-y.rankI||(x.elite-y.elite)||(y.day-x.day)); return L[0]||null; }
-const canStake=m=>!!m&&(S.reserve||[]).includes(m)&&!m.lk&&!m.boss&&!m.tw&&!!gateMob(m.kind||m.name)&&!!theirStake(m);
+const canStake=m=>!!m&&(S.reserve||[]).includes(m)&&!m.lk&&!m.boss&&!m.tw&&!m.cons&&!!gateMob(m.kind||m.name)&&!!theirStake(m);
 function wager(uid){   // stake a Reserve minion for today's (or tomorrow's) challenge; null withdraws it
   if(!wagerOpen()) return false; const a=arc();
   if(uid==null){ a.wg=null; return true; }
@@ -6832,7 +6833,7 @@ function rivalSiegeWon(r){   // siegeWon: two stolen bodies come back, and the n
 }
 function rivalSiegeLost(r){   // siegeLost: they take one of your Reserve as well
   const a=arc(), g=rv(); a.rs=3; tally('rivalSiegeLosses');
-  const m=(S.reserve||[]).filter(x=>!x.lk&&!x.boss&&!x.tw&&gateMob(x.kind||x.name)).sort((x,y)=>x.lvl-y.lvl)[0];
+  const m=(S.reserve||[]).filter(x=>!x.lk&&!x.boss&&!x.tw&&!x.cons&&gateMob(x.kind||x.name)).sort((x,y)=>x.lvl-y.lvl)[0];
   if(m){ minionBody(m); notify(g.name+' carries '+m.nick+' away from your Reserve in the smoke.','bad'); }
   arcTick(r);
 }
@@ -6906,7 +6907,7 @@ function reckLastPage(e){   // checkPhase: The Last Page, they burn their own fo
 function reckDown(e,r){ arc().pick=1; tally('reckWins'); r.reckWon=1; moment(e.name+' kneels','gold'); log(e.name+' kneels in the torn pages. Their fate is yours to write.','story'); }
 function reckCleared(r){ r.cleared=true; r.events.push({m:rv().name+' kneels. Choose their fate on the Gates tab: end them, or spare them.',c:'ok'}); return Math.round(RK[r.di].clear); }
 function reckLost(r){   // fell or fled with the rival standing: one more body, and the duel again in a week
-  const a=arc(), g=rv(); a.rd=S.day+ARC_DUEL_WAIT; tally('reckLosses'); const m=(S.reserve||[]).filter(x=>!x.lk&&!x.boss&&!x.tw&&gateMob(x.kind||x.name)).sort((x,y)=>x.lvl-y.lvl)[0];
+  const a=arc(), g=rv(); a.rd=S.day+ARC_DUEL_WAIT; tally('reckLosses'); const m=(S.reserve||[]).filter(x=>!x.lk&&!x.boss&&!x.tw&&!x.cons&&gateMob(x.kind||x.name)).sort((x,y)=>x.lvl-y.lvl)[0];
   notify(g.name+' stands over you in the torn pages.'+(m?' They take '+m.nick+' from your Reserve.':'')+' They will wait for you again in '+ARC_DUEL_WAIT+' days.','bad'); if(m) minionBody(m);
 }
 const reckStanding=r=>!!(r&&r.rk&&r.enemies.some(e=>e.reck&&e.hp>0));
@@ -6923,7 +6924,7 @@ function arcEnd(k){   // after the duel: 'end' or 'spare'
 // ----- The ally (New Game+ after sparing): a weekly body trade, and the first siege of each cycle's first wave
 const allyOn=()=>!!S&&!!S.ally&&(S.ngp||0)>S.ally.ngp;
 function allyOffer(){ if(!allyOn()||S.ally.week===trialWeek()||!S.ally.stash.length) return null; return S.ally.stash[dayHash(trialWeek(),S.ngp||0,61)%S.ally.stash.length]; }
-const allyCan=m=>{ const b=allyOffer(); return !!b&&!!m&&(S.reserve||[]).includes(m)&&!m.lk&&!m.boss&&!m.tw&&!!gateMob(m.kind||m.name)&&m.rankI===b.rankI; };
+const allyCan=m=>{ const b=allyOffer(); return !!b&&!!m&&(S.reserve||[]).includes(m)&&!m.lk&&!m.boss&&!m.tw&&!m.cons&&!!gateMob(m.kind||m.name)&&m.rankI===b.rankI; };
 function allyTrade(uid){ if(S.mode!=='town') return false; const m=(S.reserve||[]).find(x=>x.uid===uid), b=allyOffer(); if(!allyCan(m)) return false;
   S.ally.stash=S.ally.stash.filter(x=>x!==b); const mb=minionBody(m); rv().stash=rv().stash.filter(x=>x!==mb); delete mb.mine; S.ally.stash.push(mb); S.ally=allyFix(S.ally);
   const p=bodyMinion(b); S.ally.week=trialWeek(); tally('allyTrades'); notify(S.ally.name+' takes '+m.nick+' and gives you '+p.m.nick+', once '+withArticle(b.base)+'.','ok'); return true; }
@@ -7583,7 +7584,7 @@ function mfSave(a){   // a killing blow on a gear-bearer with Undying or Deathle
 // Ledger (S.nameLines, at most NAME_MAX): +NAME_K to its role's HP and attack for your whole army, kept when it falls.
 const NAME_AT=100, NAME_MAX=10, NAME_K=.01;
 function minionKill(m,e){   // checkDeaths: the minion whose blow (or wound) took the foe
-  if(!m||m.id==='p'||m.uid==null||!S.army.includes(m)) return; m.kills=(m.kills||0)+1; tally('mKills'); mfKill(m); specKill(m);
+  if(!m||m.id==='p'||m.uid==null||!S.army.includes(m)) return; m.kills=(m.kills||0)+1; tally('mKills'); mfKill(m); specKill(m); consKill(m);
   if(m.kills>=NAME_AT&&!m.nl){ S.nameLines=Array.isArray(S.nameLines)?S.nameLines:[]; if(S.nameLines.length<NAME_MAX){ m.nl=1; S.nameLines.push({name:m.nick,role:m.role,day:S.day}); syncArmy(); tally('nameLines');
     notify(m.nick+' has taken '+NAME_AT+' lives: its name is written into the Ledger. Every '+ROLES[m.role].label.toLowerCase()+' of yours is a little stronger.','ok'); if(S.run) log('The Ledger writes '+m.nick+'\'s name.','story'); } }
 }
@@ -7825,7 +7826,7 @@ const VEV={
 Object.assign(EVENTS,VEV);
 const VEV_IDS=Object.keys(VEV), FEVER_LOSS=.3, SAINT_KEEP=.75;
 const evOk=k=>!EVENTS[k].when||!!EVENTS[k].when();   // rollEvent
-const weakMinion=()=>S.army.filter(m=>!m.thrall&&!m.boss&&!m.recl).sort((a,b)=>a.lvl-b.lvl||(a.stage||0)-(b.stage||0))[0]||null;
+const weakMinion=()=>S.army.filter(m=>!m.thrall&&!m.boss&&!m.recl&&!m.cons).sort((a,b)=>a.lvl-b.lvl||(a.stage||0)-(b.stage||0))[0]||null;
 function vlBody(r,base,free){ const lvl=RK[r.di].lv+Math.floor(r.room/2); const e=makeEnemy(r.di,lvl,false); if(base){ const row=DUNGEONS[r.di].mobs.find(x=>x[0]===base); if(row){ const s=mobStats(r.di,lvl,row[2],row[3],false,false); Object.assign(e,{name:row[0],base:row[0],role:row[1],hf:row[2],af:row[3],elite:false,maxHp:s.hp,hp:s.hp,atk:s.atk}); } } const c=corpseOf(e); if(free) c.free=true; r.corpses.push(c); return c; }
 function valleyEv(ev,ch){   // resolveEvent for the valley's events: {m,c}, or null for a choice that cannot be taken
   const E=EVENTS[ev.id], r=S.run, P=S.player; if(E.opts.every(o=>o[0]!==ch)||(E.off&&E.off(ch))) return null;
@@ -7843,7 +7844,7 @@ function valleyEv(ev,ch){   // resolveEvent for the valley's events: {m,c}, or n
   if(id==='statue'&&ch==='tears'){ if(S.belt.mp<beltMax()){ S.belt.mp++; return {m:'You bottle the black tears: a mana draught for your belt.',c:'ok'}; } const g=gold(.5); return {m:'Your belt is full. You sell the tears to the next dead man you meet: '+g+' gold.',c:'ok'}; }
   if(id==='thief'&&ch==='duel'){ const d=chainHp(.2); tally('thiefDuels'); if(findPage('statue',r)) return {m:'You cut the agent down for '+d+' HP of your own and take back the stolen page.',c:'ok'}; const g=gold(1.2); return {m:'You cut the agent down for '+d+' HP of your own. The page burns, but their purse does not: '+g+' gold.',c:'ok'}; }
   if(id==='fever'&&ch==='throw'){ const m=weakMinion(); if(!m) return null; tally('fever');
-    if(Math.random()<FEVER_LOSS){ returnGear(m); S.army=S.army.filter(x=>x!==m); memorialize(m,{g:r.di}); return {m:m.nick+' sinks into the fever pit and does not come back.',c:'bad'}; }
+    if(Math.random()<FEVER_LOSS){ if(consBreak(m,null)) return {m:m.nick+' comes apart in the fever pit. The Workshop can mend it.',c:'bad'}; returnGear(m); S.army=S.army.filter(x=>x!==m); memorialize(m,{g:r.di}); return {m:m.nick+' sinks into the fever pit and does not come back.',c:'bad'}; }
     const old=m.traits.length?m.traits[m.traits.length-1]:null, nt=rollTrait(m.traits.filter(t=>t!==old)); if(old) m.traits[m.traits.length-1]=nt; else m.traits.push(nt); syncMinion(m);
     return {m:m.nick+' crawls out of the pit changed: '+(old?TRAITS[old].name+' is gone, ':'')+TRAITS[nt].name+' instead.',c:'ok'}; }
   if(id==='wagon'&&ch==='cargo'){ const row=DUNGEONS[r.di].mobs[0], key=row[0]; r.troph=r.troph||{}; r.troph[key]=(r.troph[key]||0)+3; return {m:'You take the cargo: 3 '+key+' trophies.',c:'ok'}; }
@@ -8138,8 +8139,8 @@ function ironFall(r){   // defeat, before the downed get back up: the whole run'
   let tn=0; for(const k in r.trTot||{}){ const n=Math.min(S.trophies[k]||0,r.trTot[k]); if(n>0){ S.trophies[k]-=n; tn+=n; if(!S.trophies[k]) delete S.trophies[k]; } } if(tn) lost.push(tn+' trophies');
   const items=(r.spoils||[]).map(u=>S.inv.find(it=>it.u===u)).filter(Boolean); if(items.length){ S.inv=S.inv.filter(it=>!items.includes(it)); lost.push(items.length+' piece'+(items.length>1?'s':'')+' of gear'); }
   const down=S.army.filter(m=>m.hp<=0&&!m.thrall&&!m.wall);
-  if(down.length){ const m=down[Math.floor(Math.random()*down.length)]; returnGear(m); S.army=S.army.filter(x=>x!==m); memorialize(m,r.tw?{f:r.tw}:r.rift?{rd:r.rift}:{g:r.di}); lost.push(m.nick+', who shattered');
-    log(m.nick+' shatters as you fall. Ironman takes one of the fallen.','bad'); }
+  if(down.length){ const m=down[Math.floor(Math.random()*down.length)]; if(consBreak(m,r)) lost.push(m.nick+', who broke'); else { returnGear(m); S.army=S.army.filter(x=>x!==m); memorialize(m,r.tw?{f:r.tw}:r.rift?{rd:r.rift}:{g:r.di}); lost.push(m.nick+', who shattered');
+    log(m.nick+' shatters as you fall. Ironman takes one of the fallen.','bad'); } }
   r.ironLost=lost; if(lost.length) notify('Ironman: the fall costs '+lost.join(', ')+'.','bad');
 }
 function modesFix(g){   // normalizeSave: the fields only when the save has them
@@ -8911,7 +8912,7 @@ function phylWave(list,r){   // townSiegeWave: 50+ one more foe each wave; named
   if(P.named) list.filter(e=>e.boss).forEach(e=>{ e.maxHp=e.hp=Math.round(e.maxHp*NAMED_BOSS); e.atk=Math.round(e.atk*NAMED_BOSS); });
 }
 function hungerOpen(){ const P=S.player; return PHYL_ON&&P.hunP===S.day&&S.mode==='town'; }
-const hungerVictim=()=>(S.reserve||[]).filter(m=>!m.lk&&!m.thrall).sort((a,b)=>mPower(a)-mPower(b))[0]||null;
+const hungerVictim=()=>(S.reserve||[]).filter(m=>!m.lk&&!m.thrall&&!m.cons).sort((a,b)=>mPower(a)-mPower(b))[0]||null;
 function hungerAnswer(feed){   // feed: give the Ledger a Reserve minion (+5% damage today); refuse: -5% max HP today
   if(!hungerOpen()) return null; const P=S.player; let m;
   if(feed){ const v=hungerVictim(); if(!v) return null; returnGear(v); S.reserve=S.reserve.filter(x=>x.uid!==v.uid); bondsClean(); P.hun={d:S.day,k:'dmg'}; tally('fedHunger'); m='The Ledger takes '+v.nick+'. The page where the name was is warm. Your dead strike 5% harder today.'; }
@@ -9077,6 +9078,147 @@ function phylEnding(k){   // endingVariant: Close the book with a clean hand, or
 }
 const FORM_TINT={lich:0xa8c4ff,blood:0xff9a8e,colossus:0xeadfc4,saint:0xffe2a0,herald:0xbfe08c};
 const formTint=()=>FORM_TINT[formOf()]||0xffffff;   // fx.js: the hero's sprite
+// ===== R22 PR A: the Bone Workshop, constructs built from parts =====
+// A new building (opens at the Crypt level 2). Parts are cut from bodies kept in the Embalmery (one part a body, two with
+// the Flesh Sculptor) or sewn from trophies (CONS_TROPHIES of one kind, 4 with the Bonesmith) into the parts pouch
+// S.parts = {kind: n}. A construct takes four slots: a frame (its role and HP factor; its gate sets the tier), arms (its
+// attack factor and damage type), a head (the kind's kit as a full echo, and its role's trait)
+// and a core (a boss heart: +15% HP and attack, +25% from a secret master's; a Soul core: a Soul once a room when it
+// kills; a Rift core: +10% damage, +25% in the Rift). It is an ordinary minion record with m.cons={fr,ar,hd,co,h2?}; it
+// levels and evolves like any other, it can never be fused, and it never shatters: it breaks (S.broken, m.broken = the
+// day) and is repaired in town after a day for gold and dust. Up to consCap() constructs owned at once.
+let CONS_ON=true;   // the bots' off-switch ("off":["constructs"])
+const CONS_TROPHIES=6, CONS_TROPHIES_SMITH=4, CONS_GOLD=1000, CONS_DUST=10, CONS_REPAIR_G=300, CONS_REPAIR_D=5, CONS_REPLACE=500,
+  CONS_LOW=.05, CONS_HEART=.15, CONS_HEART_SB=.25, CONS_SOUL_DUST=40, CONS_SHARD=3, CONS_SHARD_K=.1, CONS_SHARD_RIFT=.25, CONS_L4=.1, CONS_SIEGE=.1,
+  CONS_HEAD_TRAIT={vanguard:'stalwart',striker:'vicious',mender:'warded',reaper:'wrathful',hexer:'hexing'};
+const CONS_SLOTS=['fr','ar','hd','co'];
+const CONS_SLOT_NAME={fr:'Frame',ar:'Arms',hd:'Head',co:'Core',h2:'Second head'};
+Object.assign(BUILD,{workshop:{name:'Bone Workshop',open:()=>blRaw('crypt')>=2,desc:'Sew constructs from parts: bodies from the Embalmery or trophies. Level 1 keeps one construct, level 2 two (and repairs cost half), level 4 gives them +'+b100(CONS_L4)+'% max HP, level 5 three.',now:n=>consCapOf(n)+' construct'+(consCapOf(n)>1?'s':'')+(n>=2?', repairs half price':'')+(n>=4?', +'+b100(CONS_L4)+'% HP':'')}});
+SPEC.workshop={3:[['Bonesmith','A part takes '+CONS_TROPHIES_SMITH+' trophies instead of '+CONS_TROPHIES+'.'],['Flesh Sculptor','Each body gives two parts.']],5:[['Masterwork','A construct may take a second head.'],['Living Steel','Repairs cost nothing and need no day to set.']]};
+SIEGE_PERK.workshop={t:()=>'constructs on the wall have +'+b100(CONS_SIEGE)+'% max HP',d:'Constructs have +'+b100(CONS_SIEGE)+'% max HP in a siege.'};
+// ----- kinds, parts, cores
+function kindInfo(name){   // a part's source: a gate foe (or a Tower foe, as gate 4)
+  for(let g=0;g<DUNGEONS.length;g++){ const m=DUNGEONS[g].mobs.find(x=>x[0]===name); if(m) return {name,role:m[1],hf:m[2]||1,af:m[3]||1,g}; }
+  const t=TW_MOBS.find(x=>x[0]===name); return t?{name,role:t[1],hf:t[2]||1,af:t[3]||1,g:4,tw:1}:null;
+}
+const consOpen=()=>CONS_ON&&bl('workshop')>=1;
+const consCapOf=n=>n>=5?3:n>=2?2:n>=1?1:0;
+const consCap=()=>consCapOf(bl('workshop'));
+const consAll=()=>S.army.concat(S.reserve||[],S.broken||[]).filter(m=>m.cons);
+const consN=()=>consAll().length;
+const partsOf=k=>(S.parts&&S.parts[k])|0;
+const partTrophies=()=>hasSpec('workshop',3,'a')?CONS_TROPHIES_SMITH:CONS_TROPHIES;
+const partKinds=()=>Object.keys(S.parts||{}).filter(k=>partsOf(k)>0&&kindInfo(k));
+const armsType=I=>I.role==='striker'?GATE_HITS[I.g]||'phys':'phys';
+function addPart(k,n){ S.parts=S.parts&&typeof S.parts==='object'?S.parts:{}; S.parts[k]=partsOf(k)+n; }
+function usePart(k){ if(partsOf(k)<1) return false; S.parts[k]--; if(!S.parts[k]) delete S.parts[k]; return true; }
+function sewPart(name){   // trophies into a part
+  const I=kindInfo(name), key=I&&(I.tw?'t:':'')+name, need=partTrophies(); if(!consOpen()||S.mode!=='town'||!I||((S.trophies||{})[key]|0)<need) return false;
+  S.trophies[key]-=need; if(!S.trophies[key]) delete S.trophies[key]; addPart(name,1); tally('partsSewn'); return true;
+}
+function cutPart(i){   // an Embalmery body into a part (two with the Flesh Sculptor)
+  const L=S.embalm||[], x=L[i], I=x&&x.c&&kindInfo(x.c.base); if(!consOpen()||S.mode!=='town'||!I||x.c.boss) return false;
+  L.splice(i,1); addPart(I.name,hasSpec('workshop',3,'b')?2:1); tally('partsCut'); return true;
+}
+const sewable=()=>Object.keys(S.trophies||{}).map(k=>k.replace(/^t:/,'')).filter((n,i,a)=>a.indexOf(n)===i&&kindInfo(n)&&((S.trophies||{})[(kindInfo(n).tw?'t:':'')+n]|0)>=partTrophies());
+function coreOpts(){   // every core you could put in now: [key, name, gate or null]
+  const o=[]; for(const [k,n] of (typeof spareHearts==='function'?spareHearts():[])) if(n>0&&TROPHY[k]) o.push([k.replace(/^b:/,'heart:'),TROPHY[k].name,TROPHY[k].rankI|0]);
+  if((S.dust||0)>=CONS_SOUL_DUST) o.push(['soul','Soul core',null]);
+  if(riftShards()>=CONS_SHARD) o.push(['shard','Rift core',null]);
+  return o;
+}
+const coreName=c=>!c?'':c==='soul'?'Soul core':c==='shard'?'Rift core':c.startsWith('heart:')?(TROPHY['b:'+c.slice(6)]?TROPHY['b:'+c.slice(6)].name:'A heart'):'';
+const coreGate=(c,fg)=>c&&c.startsWith('heart:')&&TROPHY['b:'+c.slice(6)]?TROPHY['b:'+c.slice(6)].rankI|0:fg;
+const coreSecret=c=>!!c&&c.startsWith('heart:')&&SECRET.some(B=>B.name===c.slice(6));
+function payCore(c){
+  if(c==='soul'){ if((S.dust||0)<CONS_SOUL_DUST) return false; S.dust-=CONS_SOUL_DUST; return true; }
+  if(c==='shard'){ if(riftShards()<CONS_SHARD) return false; S.rift.shards-=CONS_SHARD; return true; }
+  if(c&&c.startsWith('heart:')){ const k='b:'+c.slice(6), sp=(spareHearts().find(x=>x[0]===k)||[])[1]|0; if(sp<1) return false; S.trophies[k]--; if(!S.trophies[k]) delete S.trophies[k]; return true; }
+  return false;
+}
+// ----- the construct's numbers
+function consTier(c){ const f=kindInfo(c.fr), a=kindInfo(c.ar), h=kindInfo(c.hd); if(!f||!a||!h) return null; const fg=f.g; return {t:fg,avg:(fg+a.g+h.g+coreGate(c.co,fg))/4}; }
+function consApply(m){   // the record's role, factors and head trait from its parts
+  const c=m.cons, f=kindInfo(c.fr), a=kindInfo(c.ar), h=kindInfo(c.hd), T=consTier(c); if(!f||!a||!h||!T) return m;
+  const k=1-CONS_LOW*Math.max(0,T.t-T.avg);
+  m.role=f.role; m.rankI=T.t; m.kind=f.name; m.name='Construct of '+f.name; m.hf=Math.round(f.hf*k*100)/100; m.af=Math.round(a.af*k*100)/100; m.boss=false; m.elite=false;
+  const want=[headTrait(c.hd)].concat(c.h2?[headTrait(c.h2)]:[]).filter(Boolean); m.traits=(m.traits||[]).filter(t=>!m.ht||!m.ht.includes(t)); for(const t of want) if(!m.traits.includes(t)) m.traits.unshift(t); m.ht=want;
+  return m;
+}
+const headTrait=k=>{ const I=kindInfo(k); return I?CONS_HEAD_TRAIT[I.role]||null:null; };   // the head's role trait (its kit comes as a full echo too)
+const consEchoK=(m,k)=>!!(m&&m.cons&&((KIT_OF[m.cons.hd]===k)||(m.cons.h2&&KIT_OF[m.cons.h2]===k)));   // echoV
+const consKits=m=>m&&m.cons?[m.cons.hd,m.cons.h2].filter(x=>x&&KIT_OF[x]).map(x=>KIT_OF[x]):[];   // echoKits
+function consK(m,k){   // extraMul: the core, the Workshop's level 4, the wall
+  if(!m||!m.cons||!CONS_ON) return 1; const c=m.cons.co; let v=1;
+  if(c&&c.startsWith('heart:')) v*=1+(coreSecret(c)?CONS_HEART_SB:CONS_HEART);
+  if(k==='atk'&&c==='shard') v*=1+(S.run&&S.run.rift?CONS_SHARD_RIFT:CONS_SHARD_K);
+  if(k!=='atk'&&bl('workshop')>=4) v*=1+CONS_L4;
+  if(k!=='atk'&&S.run&&S.run.siege) v*=1+CONS_SIEGE;
+  return v;
+}
+const consType=m=>m&&m.cons&&CONS_ON?(I=>I?armsType(I):null)(kindInfo(m.cons.ar)):null;   // minionType
+function consKill(m){ if(!m||!m.cons||m.cons.co!=='soul'||!S.run||S.run.siege) return; S.run.csl=S.run.csl||{}; if(S.run.csl[m.uid]===S.run.room) return; S.run.csl[m.uid]=S.run.room; if(gainSoul()) log(m.nick+'\'s Soul core takes a Soul from the kill.','ok'); }   // minionKill
+// ----- building, breaking, repairing, replacing
+const consCost=c=>{ const T=consTier(c); return T?{g:Math.round(CONS_GOLD*(T.t+1)*(inscOn('town')?inscTown():1)),d:CONS_DUST*(T.t+1)}:null; };
+function consWhy(c){   // why this design cannot be built now, or ''
+  if(!consOpen()) return 'Build the Bone Workshop first.'; if(S.mode!=='town') return 'Only in town.';
+  if(!c||!c.fr||!c.ar||!c.hd||!c.co) return 'Fill all four slots.'; if(consN()>=consCap()) return 'The Workshop keeps '+consCap()+' construct'+(consCap()>1?'s':'')+' at once.';
+  const need={}; for(const k of [c.fr,c.ar,c.hd].concat(c.h2?[c.h2]:[])) need[k]=(need[k]||0)+1; for(const k in need) if(partsOf(k)<need[k]) return 'Not enough parts of '+k+'.';
+  if(c.h2&&!hasSpec('workshop',5,'a')) return 'A second head needs the Masterwork.';
+  if(!coreOpts().some(o=>o[0]===c.co)) return 'That core is not at hand.';
+  const p=consCost(c); if(S.gold<p.g) return 'Needs '+p.g+' gold.'; if((S.dust||0)<p.d+(c.co==='soul'?CONS_SOUL_DUST:0)) return 'Needs '+(p.d+(c.co==='soul'?CONS_SOUL_DUST:0))+' bone dust.';
+  if(armyUsed()>=slots()&&!reserveRoom()) return 'Your army and the Reserve are full.';
+  if(S.watches<1) return 'It takes a watch.';
+  return '';
+}
+function consPreview(c){   // the minion it would be (not added anywhere)
+  const m={uid:-1,armed:false,eq:null,nick:'Construct',lvl:Math.max(1,S.player.lvl-2),xp:0,stage:0,traits:[],hp:1,maxHp:null,atk:0,cons:Object.assign({},c)};
+  consApply(m); m.lvl0=m.lvl; syncMinion(m); m.hp=m.maxHp; return m;
+}
+function buildCons(c){
+  if(consWhy(c)) return null; const p=consCost(c);
+  for(const k of [c.fr,c.ar,c.hd].concat(c.h2?[c.h2]:[])) usePart(k); payCore(c.co); S.gold-=p.g; S.dust-=p.d; S.watches--;
+  const m={uid:++S.uid,armed:false,eq:null,nick:freeNick(),lvl:Math.max(1,S.player.lvl-2),xp:0,stage:0,traits:[],hp:1,maxHp:null,atk:0,cons:{fr:c.fr,ar:c.ar,hd:c.hd,co:c.co}};
+  if(c.h2) m.cons.h2=c.h2; consApply(m); m.lvl0=m.lvl; syncMinion(m); m.hp=m.maxHp;
+  if(armyUsed()<slots()) S.army.push(m); else (S.reserve=S.reserve||[]).push(m);
+  tally('constructs'); S.ti=S.ti||{}; if(c.co.startsWith('heart:')) tally('heartCores'); if(new Set([c.fr,c.ar,c.hd].map(k=>kindInfo(k).g).concat([coreGate(c.co,-1)]).filter(g=>g>=0)).size>=4) tally('gatesInOne');
+  if(consN()>=3) tally('patchwork'); sfx('raise'); moment(m.nick+' is sewn together','ok');
+  notify(m.nick+', a construct of '+c.fr+', stands up in the Workshop.','ok'); if(S.watches<=0) endDay(); return m;
+}
+function consBreak(m,r){   // the shatter roll, Ironman's loss, a fever: a construct breaks instead (true: handled)
+  if(!m||!m.cons) return false; S.army=S.army.filter(x=>x!==m); if(S.reserve) S.reserve=S.reserve.filter(x=>x!==m); bondsClean();
+  m.hp=0; m.broken=S.day; (S.broken=Array.isArray(S.broken)?S.broken:[]).push(m); tally('consBroken');
+  if(r&&r.events) r.events.push({m:m.nick+' breaks apart. The Workshop can mend it.',c:'bad'}); return true;
+}
+const consRepairCost=m=>{ if(hasSpec('workshop',5,'b')) return {g:0,d:0}; const t=(m.rankI|0)+1, h=bl('workshop')>=2?.5:1; return {g:Math.round(CONS_REPAIR_G*t*h),d:Math.round(CONS_REPAIR_D*t*h)}; };
+const consRepairReady=m=>!!m&&m.broken!=null&&(hasSpec('workshop',5,'b')||m.broken<S.day);
+function repairCons(uid){
+  const m=(S.broken||[]).find(x=>x.uid===uid); if(!m||S.mode!=='town'||!consRepairReady(m)) return false; const c=consRepairCost(m); if(S.gold<c.g||(S.dust||0)<c.d) return false;
+  const toArmy=armyUsed()<slots(); if(!toArmy&&!reserveRoom()) return false;
+  S.gold-=c.g; S.dust=(S.dust||0)-c.d; S.broken=S.broken.filter(x=>x!==m); delete m.broken; syncMinion(m); m.hp=m.maxHp; if(toArmy) S.army.push(m); else S.reserve.push(m); tally('repairs'); return true;
+}
+function replacePart(uid,slot,k){   // a new part in one slot; the old one is lost
+  const m=S.army.concat(S.reserve||[]).find(x=>x.uid===uid); if(!m||!m.cons||S.mode!=='town'||!['fr','ar','hd','co','h2'].includes(slot)) return false;
+  if(slot==='h2'&&!hasSpec('workshop',5,'a')) return false;
+  const T=consTier(m.cons), g=CONS_REPLACE*((T?T.t:0)+1); if(S.gold<g) return false;
+  if(slot==='co'){ if(!coreOpts().some(o=>o[0]===k)||!payCore(k)) return false; } else { if(!kindInfo(k)||!usePart(k)) return false; }
+  S.gold-=g; m.cons[slot]=k; consApply(m); syncMinion(m); m.hp=Math.min(m.hp,m.maxHp); tally('partsReplaced'); return true;
+}
+function consFix(g){   // normalizeSave
+  const ok=m=>{ if(!m||!m.cons) return; const c=m.cons; if(typeof c!=='object'||!kindInfo(c.fr)||!kindInfo(c.ar)||!kindInfo(c.hd)||typeof c.co!=='string'){ delete m.cons; delete m.ht; return; }
+    m.cons={fr:c.fr,ar:c.ar,hd:c.hd,co:c.co}; if(c.h2&&kindInfo(c.h2)) m.cons.h2=c.h2; if(!Array.isArray(m.ht)) delete m.ht; };
+  if('parts' in g){ const o={}; if(g.parts&&typeof g.parts==='object') for(const k in g.parts){ const n=Math.floor(+g.parts[k]); if(kindInfo(k)&&n>0) o[k]=n; } g.parts=o; }
+  g.army.concat(g.reserve||[],g.waiting||[]).forEach(m=>{ ok(m); delete m.broken; });
+  if('broken' in g){ g.broken=(Array.isArray(g.broken)?g.broken:[]).filter(m=>m&&typeof m==='object'&&m.cons&&isFinite(m.lvl)&&ROLES[m.role]); g.broken.forEach(m=>{ ok(m); if(!isFinite(m.broken)) m.broken=0; if(!Array.isArray(m.traits)) m.traits=[]; }); g.broken=g.broken.filter(m=>m.cons); }
+}
+// ----- titles, tip
+[['ws_first','First Stitch','Build your first construct.',()=>T_('constructs')>=1,{mpow:3},2],
+ ['ws_patch','Patchwork Army','Own three constructs at once.',()=>T_('patchwork')>=1,{mpow:5},4],
+ ['ws_heart','Heart of a King','Build a construct around a boss heart.',()=>T_('heartCores')>=1,{dmgp:3},3],
+ ['ws_gates','Every Gate in One','Build a construct from parts of four different gates.',()=>T_('gatesInOne')>=1,{mpow:4},4]
+].forEach(([id,name,req,ok,b,r])=>{ for(const k in b) b[k]=Math.max(b[k],Math.round(b[k]*RARITY_MUL[r])); TITLE_RARITY[id]=r; const t={id,grp:'Deeds',name,req,ok,b,r}; TITLES.push(t); TITLE[id]=t; });
+TIPS.push({id:'workshop',t:'The Bone Workshop',m:'With the Crypt at level 2 you can build the Bone Workshop. It sews constructs from parts: bodies kept in the Embalmery, or trophies of one kind. A construct never shatters; it breaks, and the Workshop mends it.',when:()=>S.mode==='town'&&CONS_ON&&blRaw('crypt')>=2&&!blRaw('workshop')});
+TIP_META.workshop=['sys','town'];
 // ===== R16 PR A: TITLES AND COLLECTION 2.0 =====
 // Families: every title belongs to one of ten families (FAM_OF, from its id; a new title falls back on its group). Inscribed
 // titles (S.insc): up to three earned titles written beside the worn one, slots at 40, 80 and 120 titles. Each gives its
@@ -9981,6 +10123,7 @@ const VB_SHAPE={
   altar:{d:'M12 86V78H88V86ZM20 78V70H80V78ZM28 70V58H72V70ZM43 58V30L50 20L57 30V58ZM32 58V47H36V58ZM64 58V47H68V58Z',lit:'M48 34L50 30L52 34L50 48Z',dim:'M28 64H72M20 74H80'},
   yard:{d:'M6 86V62H10V56H14V62H24V56H28V62H38V56H42V62H58V56H62V62H72V56H76V62H86V56H90V62H94V86Z',lit:'M44 86V70A6 6 0 0 1 56 70V86Z',dim:'M10 70H40M60 70H90M18 62V86M82 62V86'},
   library:{d:'M10 86V44L50 24L90 44V86ZM20 44V40H80V44Z',lit:'M26 76V58H36V76ZM45 76V58H55V76ZM64 76V58H74V76Z',dim:'M14 48H86M14 80H86'},
+  workshop:{d:'M10 86V48L30 34L50 48L70 34L90 48V86ZM74 37V18H82V43Z',lit:'M38 86V64H62V86Z',dim:'M18 56H34M18 62H34M18 68H34M26 52V74M66 56H82M66 62H82M66 68H82M74 52V74'},
   embalm:{d:'M16 86V50L30 36H70L84 50V86ZM46 36V22H54V36ZM40 28H60V32H40Z',lit:'M42 86V66A8 8 0 0 1 58 66V86Z',dim:'M20 54H80M26 60V82M74 60V82'},
   bell:{d:'M34 86V34H30L50 6L70 34H66V86ZM26 86V80H74V86Z',lit:'M44 52A6 8 0 0 1 56 52V60H44Z',dim:'M38 40H62M38 68H62'},
   apoth:{d:'M10 86V48L36 34L62 48V86ZM66 86V58H70V46H80V58H84V86Z',lit:'M20 80V60H30V80ZM42 80V60H52V80ZM70 80V66H80V80Z',dim:'M14 52H58M72 50H78'},
@@ -14941,6 +15084,53 @@ TR_RX.unshift([/^You take the form of the (Lich|Blood Lord|Bone Colossus|Choir S
  [/^The plague leaves (.+?) for (.+)$/,"Veba $1 adlı düşmandan $2 adlı düşmana geçiyor"]);
 [["Sieges bring one more foe each wave; the villages cool a step a day; the Grand Inquisitor knows your name","Kuşatmalar her dalgada bir düşman fazla getirir; köyler her gün bir adım soğur; Büyük Engizitör adını biliyor"]].forEach(([k,v])=>TR_DICT.set(k,v));
 TR_RX.unshift([/^Second stage, ([^:]+): (.+)$/,"İkinci aşama, {t1}: {t2}"]);
+// R22 PR A: the Bone Workshop
+[["Bone Workshop","Kemik Atölyesi"],["The Bone Workshop","Kemik Atölyesi"],["Constructs","Yapıtlar"],["Construct","Yapıt"],["The bench","Tezgâh"],
+ ["Sew constructs from parts: bodies from the Embalmery or trophies. Level 1 keeps one construct, level 2 two (and repairs cost half), level 4 gives them +10% max HP, level 5 three.","Parçalardan yapıt dik: Mumyahane'deki bedenlerden ya da ganimetlerden. Seviye 1 bir yapıt tutar, seviye 2 iki (ve onarımlar yarı fiyata), seviye 4 onlara +%10 azami Can verir, seviye 5 üç."],
+ ["1 construct","1 yapıt"],["2 constructs","2 yapıt"],["repairs half price","onarımlar yarı fiyata"],["10% HP","%10 Can"],
+ ["Bonesmith","Kemikdemirci"],["A part takes 4 trophies instead of 6.","Bir parça 6 yerine 4 ganimet ister."],["Flesh Sculptor","Et Heykeltıraşı"],["Each body gives two parts.","Her beden iki parça verir."],
+ ["Masterwork","Başyapıt"],["A construct may take a second head.","Bir yapıt ikinci bir kafa takabilir."],["Living Steel","Canlı Çelik"],["Repairs cost nothing and need no day to set.","Onarımlar bedelsizdir ve beklemek için gün gerekmez."],
+ ["constructs on the wall have +10% max HP","surdaki yapıtların azami Canı +%10"],["Constructs have +10% max HP in a siege.","Yapıtların kuşatmada azami Canı +%10 olur."],
+ ["With the Crypt at level 2 you can build the Bone Workshop. It sews constructs from parts: bodies kept in the Embalmery, or trophies of one kind. A construct never shatters; it breaks, and the Workshop mends it.","Kripta seviye 2'deyken Kemik Atölyesi'ni kurabilirsin. Parçalardan yapıt diker: Mumyahane'de saklanan bedenlerden ya da tek bir türün ganimetlerinden. Bir yapıt asla parçalanmaz; kırılır ve Atölye onu onarır."],
+ ["First Stitch","İlk Dikiş"],["Build your first construct.","İlk yapıtını kur."],["Patchwork Army","Yamalı Ordu"],["Own three constructs at once.","Aynı anda üç yapıtın olsun."],
+ ["Heart of a King","Bir Kralın Kalbi"],["Build a construct around a boss heart.","Bir boss kalbinin etrafında bir yapıt kur."],["Every Gate in One","Tek Bedende Bütün Kapılar"],["Build a construct from parts of four different gates.","Dört farklı kapının parçalarından bir yapıt kur."],
+ ["Frame","Gövde"],["Arms","Kollar"],["Head","Kafa"],["Core","Çekirdek"],["Second head","İkinci kafa"],["empty","boş"],["Soul core","Ruh çekirdeği"],["Rift core","Yarık çekirdeği"],["A heart","Bir kalp"],
+ ["You keep 0 of 1 constructs.","1 yapıttan 0 tanesi sende."],
+ ["No parts yet. Sew them from trophies or cut them from kept bodies.","Henüz parça yok. Ganimetlerden dik ya da saklanan bedenlerden kes."],
+ ["No core at hand. A core is a spare boss heart, 40 bone dust or 3 Rift shards.","Elde çekirdek yok. Çekirdek, artan bir boss kalbi, 40 kemik tozu ya da 3 Yarık kırığıdır."],
+ ["Build the Bone Workshop first.","Önce Kemik Atölyesi'ni kur."],["Only in town.","Yalnızca kasabada."],["Fill all four slots.","Dört yuvanın hepsini doldur."],["The Workshop keeps 1 construct at once.","Atölye aynı anda 1 yapıt tutar."],["The Workshop keeps 2 constructs at once.","Atölye aynı anda 2 yapıt tutar."],
+ ["A second head needs the Masterwork.","İkinci bir kafa Başyapıt ister."],["That core is not at hand.","O çekirdek elde yok."],["Needs 50 bone dust.","50 kemik tozu gerekir."],["It takes a watch.","Bir nöbet ister."],["Your army and the Reserve are full.","Ordun ve Yedek dolu."],
+ ["Sew a part from 6 trophies:","6 ganimetten bir parça dik:"],["Cut a kept body into a part:","Saklanan bir bedeni bir parçaya kes:"],["Cut a kept body into two parts:","Saklanan bir bedeni iki parçaya kes:"],
+ ["The trophies are sewn into a part","Ganimetler bir parçaya dikiliyor"],["The kept body is cut into parts","Saklanan beden parçalara kesiliyor"],["3 shards","3 kırık"],["a watch","bir nöbet"],["Build","Kur"],
+ ["The Workshop can mend it","Atölye onu onarabilir"],["Done","Tamam"],["Replace a part","Bir parçayı değiştir"],["That part cannot go in now.","O parça şimdi takılamaz."],["Broken","Kırık"],["it can be mended tomorrow","yarın onarılabilir"],["free","bedelsiz"],
+ ["The old part is lost. Pick the slot, then the new part.","Eski parça kaybolur. Önce yuvayı, sonra yeni parçayı seç."],
+ ["Not now: the gold, the dust or a place for it is missing.","Şimdi olmaz: altın, toz ya da ona bir yer eksik."],["mismatched parts","uyumsuz parçalar"],
+ ["The Bone Workshop (Crypt level 2) sews a construct from four slots. The frame gives its role and HP, and its gate sets the tier. The arms give its attack (a striker's arms strike with its gate's damage). The head gives its kind's kit as a full echo and a trait for its role: a vanguard's Stalwart, a striker's Vicious, a mender's Warded, a reaper's Wrathful, a hexer's Hexing. The core is a spare boss heart (+15% HP and attack, +25% from a secret master), a Soul core (40 bone dust: a Soul once a room when it kills) or a Rift core (3 shards: +10% attack, +25% in the Rift). Parts below the frame's gate cost 5% a step.",
+  "Kemik Atölyesi (Kripta seviye 2) bir yapıtı dört yuvadan diker. Gövde rolünü ve Canını verir, kapısı da kademesini belirler. Kollar saldırısını verir (bir vurucunun kolları kendi kapısının hasarıyla vurur). Kafa, türünün hünerini tam yankı olarak ve rolüne göre bir özellik verir: öncüye Sağlam, vurucuya Gaddar, şifacıya Korunaklı, biçiciye Gazaplı, lanetçiye Büyücü. Çekirdek artan bir boss kalbi (+%15 Can ve saldırı, gizli bir efendininki +%25), bir Ruh çekirdeği (40 kemik tozu: öldürdüğünde odada bir kez bir Ruh) ya da bir Yarık çekirdeğidir (3 kırık: +%10 saldırı, Yarık'ta +%25). Gövdenin kapısından aşağıdaki parçalar her adımda %5 kaybettirir."],
+ ["Parts are sewn from 6 trophies of one kind, or cut from a body kept in the Embalmery. Building costs 2000 gold and 10 bone dust a tier, and a watch. A construct levels and evolves like any minion but can never be fused. It never shatters: it breaks, and after a day the Workshop repairs it for 300 gold and 5 dust a tier. A part can be replaced in town for 500 gold a tier; the old part is lost.",
+  "Parçalar tek bir türün 6 ganimetinden dikilir ya da Mumyahane'de saklanan bir bedenden kesilir. Kurmak kademe başına 2000 altın ve 10 kemik tozu, bir de bir nöbet tutar. Bir yapıt her minyon gibi seviye atlar ve evrimleşir ama asla birleştirilemez. Asla parçalanmaz: kırılır ve bir gün sonra Atölye onu kademe başına 300 altın ve 5 tozla onarır. Bir parça kasabada kademe başına 500 altına değiştirilebilir; eski parça kaybolur."],
+ ["You keep 1 of 3 constructs.","3 yapıttan 1 tanesi sende."]
+].forEach(([k,v])=>TR_DICT.set(k.replace(/\d+(?:[.,]\d+)?/g,'#').replace(/^[\s·.,:;+\-−–]+|[\s·.,:;!?\-–]+$/g,''),v.replace(/\d+(?:[.,]\d+)?/g,'#').replace(/^[\s·.,:;+\-−–]+|[\s·.,:;!?\-–]+$/g,'')));
+TR_RX.unshift([/^Not enough parts of (.+?)\.?$/,"$1 parçası yetmiyor."],
+ [/^(.+) ×(\d+)$/,"$1 ×$2"],
+ [/^(.+) \((Vanguard|Striker|Mender|Reaper|Hexer)\)$/,"$1 ({t2})"],
+ [/^Construct of (.+)$/,"$1 Yapıtı"],
+ [/^HP (\d+)$/,"Can $1"],[/^attack (\d+)$/,"saldırı $1"],
+ [/^(Physical|Shadow|Frost|Fire|Rot) blows$/,"{t1} vuruşlar"],
+ [/^(.+) \(a full echo\)$/,"{t1} (tam yankı)"],
+ [/^mismatched parts: -(\d+)%$/,"uyumsuz parçalar: -%$1"],
+ [/^(.+), a construct of (.+), stands up in the Workshop\.?$/,"$1, bir $2 yapıtı, Atölye'de ayağa kalkıyor."],
+ [/^(.+) stands up in the Workshop\.?$/,"$1 Atölye'de ayağa kalkıyor."],
+ [/^(.+) is sewn together$/,"$1 dikilip birleşti"],
+ [/^(.+) breaks apart$/,"$1 dağılıyor"],
+ [/^(.+) is mended\.?$/,"$1 onarıldı."],
+ [/^(.+) takes the new part\.?$/,"$1 yeni parçayı takıyor."],
+ [/^(.+)'s Soul core takes a Soul from the kill\.?$/,"$1 adlı minyonun Ruh çekirdeği öldürmeden bir Ruh alıyor."],
+ [/^Replacing a part of ([^.]+)$/,"$1 adlı minyonun bir parçası değişiyor"],
+ [/^Constructs (\d+)\/(\d+)$/,"Yapıtlar $1/$2"],
+ [/^You keep (\d+) of (\d+) constructs\.?$/,"$2 yapıttan $1 tanesi sende."],
+ [/^(\d+) constructs$/,"$1 yapıt"],
+ [/^The Workshop keeps (\d+) constructs? at once\.?$/,"Atölye aynı anda $1 yapıt tutar."]);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -16882,6 +17072,7 @@ function codexSection(k){
       +'<p class="group-h">The Undone</p>'+cxP('A foe killed by damage of a type it was weak to leaves an Undone body (+'+CORPSE_CONDS.undone.raise+'% to raise). The minion keeps an echo of its kind\'s kit at 60% strength; a charm carries it at '+Math.round(CHARM_K*100)+'% of that (see Charms).')
       +cxList(Object.keys(ECHO).map(K=>cxRow(KITS[K].name+' echo',echoTxt(K))))
       +'<p class="group-h">Charms</p>'+cxP('In town, '+CHARM_TROPHIES+' trophies of one kind you know (Known in the bestiary) and '+CHARM_GOLD+' gold a gate tier make a charm: it carries that kind\'s echo on any minion at '+Math.round(CHARM_K*100)+'% of an Undone body\'s, one charm each. Charms move freely in town and come back to the pouch when a minion leaves or shatters; fusion keeps the stronger one. A charm of a Ledgered kind is half again as strong.')
+      +consCxHTML()
       +'<p class="group-h">Gear-bearer powers</p>'+cxP('A unique worn by a gear-bearer gives it its own version of the unique\'s power, at about '+Math.round(MF_K*100)+'%. Powers that mean nothing on a minion give +'+Math.round(MF_STAT*100)+'% HP and attack instead.')
       +cxList(Object.keys(MINION_FLAG).map(f=>cxRow(FLAGS[f].split(':')[0],MINION_FLAG[f])))
       +'<p class="group-h">Elder actives</p>'+cxP('From Elder each minion has an active for its role, used from the battle bar as an order: it costs your action, once a room (twice from Eternal; Ancient makes it half again as strong).')
@@ -17302,9 +17493,48 @@ function bldExtra(k){
   if(k==='library'&&bl('library')>=2){ const c=respecCost(), rd=respecReady(), conf=ui.confirm==='respec';
     h+='<div class="btns"><button class="btn small'+(conf?' warn':'')+'" data-a="respec"'+(rd&&S.gold>=c.g&&(S.dust||0)>=c.d?'':' disabled')+'>'+(conf?'Confirm: every stat point comes back':'Respec your stats &middot; '+(c.g?gold(c.g)+' + '+dust(c.d):'free the first time'))+'</button>'+(rd?'':'<span class="u-sub">Once every '+RESPEC_DAYS+' days.</span>')+'</div>'; }
   if(k==='embalm'){ const L=S.embalm||[]; h+='<p class="u-sub">Kept bodies '+L.length+'/'+embHold()+'. Each run keeps '+embCap()+'.</p>'+L.map((x,i)=>'<div class="b-row"><span>'+x.c.name+' &middot; Lv '+x.c.lvl+'</span><span class="u-sub">spoils in '+Math.max(0,embDays(bl('embalm'))-(S.day-x.day))+' days</span><button class="btn small primary" data-a="embraise" data-k="'+i+'"'+(armyUsed()<slots()?'':' disabled title="Your army is full"')+'>Raise &middot; '+raiseChanceEmb(x.c)+'%</button></div>').join(''); }
-  if(k==='yard'&&hasSpec('yard',5,'b')&&(S.reserve||[]).length) h+='<p class="u-sub">Grave Market: sell a Reserve minion.</p><div class="btns">'+S.reserve.filter(m=>!m.lk).map(m=>'<button class="btn small" data-a="yardsell" data-k="'+m.uid+'">'+m.nick+' &middot; '+gold(Math.round(yardPrice(m)))+'</button>').join('')+'</div>';
+  if(k==='workshop') h+=wsHTML();
+  if(k==='yard'&&hasSpec('yard',5,'b')&&(S.reserve||[]).length) h+='<p class="u-sub">Grave Market: sell a Reserve minion.</p><div class="btns">'+S.reserve.filter(m=>!m.lk&&!m.cons).map(m=>'<button class="btn small" data-a="yardsell" data-k="'+m.uid+'">'+m.nick+' &middot; '+gold(Math.round(yardPrice(m)))+'</button>').join('')+'</div>';
   if(k==='temple'&&phylOn()){ const conf=ui.confirm==='shatter'; h+='<p class="u-sub ph-sh">The priests can break the vessel that holds your soul: corruption goes to 0, and Death\'s Door is gone.</p><div class="btns"><button class="btn small'+(conf?' warn':'')+'" data-a="phylshatter"'+(S.gold>=PHYL_SHATTER?'':' disabled title="Not enough gold"')+'>'+(conf?'Confirm: shatter the phylactery':'Shatter the phylactery &middot; '+gold(PHYL_SHATTER))+'</button></div>'; }
   if(k==='temple'&&bl('temple')>=5) h+='<div class="btns"><button class="btn small" data-a="callomen"'+(omenReady()?'':' disabled')+'>Call a new omen'+(omenReady()?'':' &middot; once a week')+'</button></div>';
+  return h;
+}
+// ===== R22 PR A: the Bone Workshop's bench (game-workshop.js) =====
+function consCxHTML(){
+  return '<p class="group-h">Constructs</p>'+cxP('The Bone Workshop (Crypt level 2) sews a construct from four slots. The frame gives its role and HP, and its gate sets the tier. The arms give its attack (a striker\'s arms strike with its gate\'s damage). The head gives its kind\'s kit as a full echo and a trait for its role: a vanguard\'s Stalwart, a striker\'s Vicious, a mender\'s Warded, a reaper\'s Wrathful, a hexer\'s Hexing. The core is a spare boss heart (+'+b100(CONS_HEART)+'% HP and attack, +'+b100(CONS_HEART_SB)+'% from a secret master), a Soul core ('+CONS_SOUL_DUST+' bone dust: a Soul once a room when it kills) or a Rift core ('+CONS_SHARD+' shards: +'+b100(CONS_SHARD_K)+'% attack, +'+b100(CONS_SHARD_RIFT)+'% in the Rift). Parts below the frame\'s gate cost '+b100(CONS_LOW)+'% a step.')
+   +cxP('Parts are sewn from '+CONS_TROPHIES+' trophies of one kind, or cut from a body kept in the Embalmery. Building costs '+CONS_GOLD+' gold and '+CONS_DUST+' bone dust a tier, and a watch. A construct levels and evolves like any minion but can never be fused. It never shatters: it breaks, and after a day the Workshop repairs it for '+CONS_REPAIR_G+' gold and '+CONS_REPAIR_D+' dust a tier. A part can be replaced in town for '+CONS_REPLACE+' gold a tier; the old part is lost.')
+   +(consOpen()?cxP('You keep '+consN()+' of '+consCap()+' constructs.'):'');
+}
+function wsSt(){ ui.ws=ui.ws&&typeof ui.ws==='object'?ui.ws:{s:'fr'}; return ui.ws; }
+function wsPickHTML(){   // what can go in the slot picked now: parts, or cores
+  const W=wsSt(), s=W.s||'fr', rep=W.r!=null;
+  if(s==='co'){ const o=coreOpts(); return o.length?o.map(([k,n])=>'<button class="btn small'+(W.co===k&&!rep?' primary':'')+'" data-a="wspick" data-k="'+k+'">'+(k==='soul'?'Soul core &middot; '+dust(CONS_SOUL_DUST):k==='shard'?'Rift core &middot; '+CONS_SHARD+' shards':n)+'</button>').join(''):'<span class="u-sub">No core at hand. A core is a spare boss heart, '+CONS_SOUL_DUST+' bone dust or '+CONS_SHARD+' Rift shards.</span>'; }
+  const K=partKinds(); return K.length?K.map(k=>{ const I=kindInfo(k); return '<button class="btn small'+(W[s]===k&&!rep?' primary':'')+'" data-a="wspick" data-k="'+k+'" title="'+ROLES[I.role].label+' &middot; '+DUNGEONS[Math.min(I.g,DUNGEONS.length-1)].name+'">'+k+' &times;'+partsOf(k)+'</button>'; }).join(''):'<span class="u-sub">No parts yet. Sew them from trophies or cut them from kept bodies.</span>';
+}
+function wsPreviewHTML(c){
+  const m=consPreview(c), p=consCost(c), kits=consKits(m).map(k=>KITS[k]?KITS[k].name:k), why=consWhy(c), T=consTier(c);
+  return '<div class="ws-card"><b>'+m.name+'</b> <span class="u-sub">'+ROLES[m.role].label+' &middot; Lv '+m.lvl+'</span>'
+   +'<div class="u-sub">HP '+m.maxHp+' &middot; attack '+m.atk+' &middot; '+DTYPE[consType(m)||'phys'].name+' blows'+(T&&T.t>T.avg?' &middot; mismatched parts: -'+Math.round(CONS_LOW*(T.t-T.avg)*100)+'%':'')+'</div>'
+   +(kits.length||(m.ht&&m.ht.length)?'<div class="u-sub">Head: '+kits.map(k=>k+' (a full echo)').concat((m.ht||[]).map(t=>TRAITS[t]?TRAITS[t].name:t)).join(', ')+'</div>':'')
+   +(c.co?'<div class="u-sub">Core: '+coreName(c.co)+'</div>':'')
+   +'<div class="btns"><button class="btn small primary" data-a="wsbuild"'+(why?' disabled title="'+why+'"':'')+'>Build &middot; '+gold(p.g)+' + '+dust(p.d)+' &middot; a watch</button>'+(why?'<span class="u-sub">'+why+'</span>':'')+'</div></div>';
+}
+function wsHTML(){
+  if(!consOpen()) return ''; const W=wsSt(), slots=CONS_SLOTS.concat(hasSpec('workshop',5,'a')?['h2']:[]), rep=W.r!=null&&consAll().find(m=>m.uid===W.r&&!m.broken);
+  if(W.r!=null&&!rep) delete W.r;
+  let h='<p class="group-h">The bench</p>';
+  const sw=sewable(), body=(S.embalm||[]).map((x,i)=>[x,i]).filter(([x])=>x.c&&!x.c.boss&&kindInfo(x.c.base));
+  if(sw.length) h+='<p class="u-sub">Sew a part from '+partTrophies()+' trophies:</p><div class="btns">'+sw.map(n=>'<button class="btn small" data-a="wssew" data-k="'+n+'">'+n+'</button>').join('')+'</div>';
+  if(body.length) h+='<p class="u-sub">Cut a kept body into '+(hasSpec('workshop',3,'b')?'two parts':'a part')+':</p><div class="btns">'+body.map(([x,i])=>'<button class="btn small" data-a="wscut" data-k="'+i+'">'+x.c.name+'</button>').join('')+'</div>';
+  if(rep){ const T=consTier(rep.cons), g=CONS_REPLACE*((T?T.t:0)+1); h+='<p class="q-note">Replacing a part of '+rep.nick+'. The old part is lost. Pick the slot, then the new part. Cost: '+gold(g)+'</p>'; }
+  h+='<div class="btns">'+slots.map(s=>{ const v=rep?rep.cons[s]:W[s]; return '<button class="btn small'+(W.s===s?' primary':'')+'" data-a="wsslot" data-k="'+s+'">'+CONS_SLOT_NAME[s]+': '+(v?(s==='co'?coreName(v):s==='fr'?v+' ('+ROLES[kindInfo(v).role].label+')':v):'empty')+'</button>'; }).join('')+(rep?'<button class="btn small" data-a="wsrep" data-k="">Done</button>':'')+'</div>';
+  h+='<div class="btns">'+wsPickHTML()+'</div>';
+  if(!rep&&W.fr&&W.ar&&W.hd) h+=wsPreviewHTML({fr:W.fr,ar:W.ar,hd:W.hd,co:W.co||'',h2:W.h2});
+  const own=consAll();
+  if(own.length) h+='<p class="group-h">Constructs '+own.filter(m=>!m.broken).length+'/'+consCap()+'</p>'+own.map(m=>{ const c=m.broken!=null?consRepairCost(m):null, rd=m.broken!=null&&consRepairReady(m);
+    return '<div class="b-row"><span>'+m.nick+' &middot; '+m.name+' &middot; Lv '+m.lvl+'</span>'
+     +(m.broken!=null?'<button class="btn small" data-a="wsfix" data-k="'+m.uid+'"'+(rd&&S.gold>=c.g&&(S.dust||0)>=c.d?'':' disabled')+'>'+(rd?'Repair'+(c.g?' &middot; '+gold(c.g)+' + '+dust(c.d):' &middot; free'):'Broken: it can be mended tomorrow')+'</button>'
+      :'<button class="btn small" data-a="wsrep" data-k="'+m.uid+'">Replace a part</button>')+'<span class="u-sub">'+[m.cons.fr,m.cons.ar,m.cons.hd].concat(m.cons.h2?[m.cons.h2]:[]).join(' / ')+' &middot; '+coreName(m.cons.co)+'</span></div>'; }).join('');
   return h;
 }
 function raiseChanceEmb(c){ EMB_RAISING=true; try{ return raiseChance(Object.assign({},c,hasSpec('embalm',5,'b')?{lvl:Math.min(S.player.lvl+2,c.lvl+3)}:{})); } finally{ EMB_RAISING=false; } }
@@ -18372,6 +18602,15 @@ const ACTIONS={
   gcall:k=>{ const o=callGodOmen(k||null); ui.msg=o?{mk:1,m:'Your god calls tomorrow\'s omen: '+OMENS[o].name+'.',c:'ok'}:null; },
   gward:()=>{ const o=wardOmen(); ui.msg=o?{mk:1,m:'You ward off tomorrow\'s '+OMENS[o].name+'.',c:'ok'}:null; },
   form:k=>{ if(takeForm(k)) ui.msg={mk:1,m:'You take the form of the '+FORMS[k].name+'.',c:'ok'}; },
+  wsslot:k=>{ wsSt().s=k; },
+  wspick:k=>{ const W=wsSt(), s=W.s||'fr';
+    if(W.r!=null){ const m=consAll().find(x=>x.uid===W.r); if(m&&replacePart(m.uid,s,k)) ui.msg={mk:1,m:m.nick+' takes the new part.',c:'ok'}; else ui.msg={mk:1,m:'That part cannot go in now.',c:'bad'}; return; }
+    W[s]=W[s]===k?'':k; const i=CONS_SLOTS.indexOf(s); if(W[s]&&i>=0&&i<3&&!W[CONS_SLOTS[i+1]]) W.s=CONS_SLOTS[i+1]; },
+  wssew:k=>{ if(sewPart(k)) ui.msg={mk:1,m:'The trophies are sewn into a part: '+k+'.',c:'ok'}; },
+  wscut:k=>{ const x=(S.embalm||[])[+k], n=x&&x.c&&x.c.base; if(cutPart(+k)) ui.msg={mk:1,m:'The kept body is cut into parts: '+n+'.',c:'ok'}; },
+  wsbuild:()=>{ const W=wsSt(), m=buildCons({fr:W.fr,ar:W.ar,hd:W.hd,co:W.co||'',h2:W.h2||undefined}); if(m){ ui.ws={s:'fr'}; ui.msg={mk:1,m:m.nick+' stands up in the Workshop.',c:'ok'}; } },
+  wsfix:k=>{ const m=(S.broken||[]).find(x=>x.uid===+k); if(repairCons(+k)) ui.msg={mk:1,m:m.nick+' is mended.',c:'ok'}; else ui.msg={mk:1,m:'Not now: the gold, the dust or a place for it is missing.',c:'bad'}; },
+  wsrep:k=>{ const W=wsSt(); if(k===''||W.r===+k) delete W.r; else { W.r=+k; W.s='hd'; } },
   phylbind:k=>{ if(phylBind(k)) ui.msg={mk:1,m:'Your soul is bound into '+VESSELS[k].name+'.',c:'ok'}; },
   phylshatter:()=>{ if(ui.confirm!=='shatter'){ ui.confirm='shatter'; return; } ui.confirm=null; ui.msg=phylShatter()?{mk:1,m:'The phylactery is shattered. You are mortal again.',c:'ok'}:null; },
   hunger:k=>{ const m=hungerAnswer(k==='feed'); ui.msg=m?{mk:1,m,c:k==='feed'?'bad':'ok'}:null; },

@@ -75,7 +75,7 @@ function mfSave(a){   // a killing blow on a gear-bearer with Undying or Deathle
 // Ledger (S.nameLines, at most NAME_MAX): +NAME_K to its role's HP and attack for your whole army, kept when it falls.
 const NAME_AT=100, NAME_MAX=10, NAME_K=.01;
 function minionKill(m,e){   // checkDeaths: the minion whose blow (or wound) took the foe
-  if(!m||m.id==='p'||m.uid==null||!S.army.includes(m)) return; m.kills=(m.kills||0)+1; tally('mKills'); mfKill(m); specKill(m);
+  if(!m||m.id==='p'||m.uid==null||!S.army.includes(m)) return; m.kills=(m.kills||0)+1; tally('mKills'); mfKill(m); specKill(m); consKill(m);
   if(m.kills>=NAME_AT&&!m.nl){ S.nameLines=Array.isArray(S.nameLines)?S.nameLines:[]; if(S.nameLines.length<NAME_MAX){ m.nl=1; S.nameLines.push({name:m.nick,role:m.role,day:S.day}); syncArmy(); tally('nameLines');
     notify(m.nick+' has taken '+NAME_AT+' lives: its name is written into the Ledger. Every '+ROLES[m.role].label.toLowerCase()+' of yours is a little stronger.','ok'); if(S.run) log('The Ledger writes '+m.nick+'\'s name.','story'); } }
 }

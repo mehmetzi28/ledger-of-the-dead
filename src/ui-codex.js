@@ -110,6 +110,7 @@ function codexSection(k){
       +'<p class="group-h">The Undone</p>'+cxP('A foe killed by damage of a type it was weak to leaves an Undone body (+'+CORPSE_CONDS.undone.raise+'% to raise). The minion keeps an echo of its kind\'s kit at 60% strength; a charm carries it at '+Math.round(CHARM_K*100)+'% of that (see Charms).')
       +cxList(Object.keys(ECHO).map(K=>cxRow(KITS[K].name+' echo',echoTxt(K))))
       +'<p class="group-h">Charms</p>'+cxP('In town, '+CHARM_TROPHIES+' trophies of one kind you know (Known in the bestiary) and '+CHARM_GOLD+' gold a gate tier make a charm: it carries that kind\'s echo on any minion at '+Math.round(CHARM_K*100)+'% of an Undone body\'s, one charm each. Charms move freely in town and come back to the pouch when a minion leaves or shatters; fusion keeps the stronger one. A charm of a Ledgered kind is half again as strong.')
+      +consCxHTML()
       +'<p class="group-h">Gear-bearer powers</p>'+cxP('A unique worn by a gear-bearer gives it its own version of the unique\'s power, at about '+Math.round(MF_K*100)+'%. Powers that mean nothing on a minion give +'+Math.round(MF_STAT*100)+'% HP and attack instead.')
       +cxList(Object.keys(MINION_FLAG).map(f=>cxRow(FLAGS[f].split(':')[0],MINION_FLAG[f])))
       +'<p class="group-h">Elder actives</p>'+cxP('From Elder each minion has an active for its role, used from the battle bar as an order: it costs your action, once a room (twice from Eternal; Ancient makes it half again as strong).')
@@ -530,9 +531,48 @@ function bldExtra(k){
   if(k==='library'&&bl('library')>=2){ const c=respecCost(), rd=respecReady(), conf=ui.confirm==='respec';
     h+='<div class="btns"><button class="btn small'+(conf?' warn':'')+'" data-a="respec"'+(rd&&S.gold>=c.g&&(S.dust||0)>=c.d?'':' disabled')+'>'+(conf?'Confirm: every stat point comes back':'Respec your stats &middot; '+(c.g?gold(c.g)+' + '+dust(c.d):'free the first time'))+'</button>'+(rd?'':'<span class="u-sub">Once every '+RESPEC_DAYS+' days.</span>')+'</div>'; }
   if(k==='embalm'){ const L=S.embalm||[]; h+='<p class="u-sub">Kept bodies '+L.length+'/'+embHold()+'. Each run keeps '+embCap()+'.</p>'+L.map((x,i)=>'<div class="b-row"><span>'+x.c.name+' &middot; Lv '+x.c.lvl+'</span><span class="u-sub">spoils in '+Math.max(0,embDays(bl('embalm'))-(S.day-x.day))+' days</span><button class="btn small primary" data-a="embraise" data-k="'+i+'"'+(armyUsed()<slots()?'':' disabled title="Your army is full"')+'>Raise &middot; '+raiseChanceEmb(x.c)+'%</button></div>').join(''); }
-  if(k==='yard'&&hasSpec('yard',5,'b')&&(S.reserve||[]).length) h+='<p class="u-sub">Grave Market: sell a Reserve minion.</p><div class="btns">'+S.reserve.filter(m=>!m.lk).map(m=>'<button class="btn small" data-a="yardsell" data-k="'+m.uid+'">'+m.nick+' &middot; '+gold(Math.round(yardPrice(m)))+'</button>').join('')+'</div>';
+  if(k==='workshop') h+=wsHTML();
+  if(k==='yard'&&hasSpec('yard',5,'b')&&(S.reserve||[]).length) h+='<p class="u-sub">Grave Market: sell a Reserve minion.</p><div class="btns">'+S.reserve.filter(m=>!m.lk&&!m.cons).map(m=>'<button class="btn small" data-a="yardsell" data-k="'+m.uid+'">'+m.nick+' &middot; '+gold(Math.round(yardPrice(m)))+'</button>').join('')+'</div>';
   if(k==='temple'&&phylOn()){ const conf=ui.confirm==='shatter'; h+='<p class="u-sub ph-sh">The priests can break the vessel that holds your soul: corruption goes to 0, and Death\'s Door is gone.</p><div class="btns"><button class="btn small'+(conf?' warn':'')+'" data-a="phylshatter"'+(S.gold>=PHYL_SHATTER?'':' disabled title="Not enough gold"')+'>'+(conf?'Confirm: shatter the phylactery':'Shatter the phylactery &middot; '+gold(PHYL_SHATTER))+'</button></div>'; }
   if(k==='temple'&&bl('temple')>=5) h+='<div class="btns"><button class="btn small" data-a="callomen"'+(omenReady()?'':' disabled')+'>Call a new omen'+(omenReady()?'':' &middot; once a week')+'</button></div>';
+  return h;
+}
+// ===== R22 PR A: the Bone Workshop's bench (game-workshop.js) =====
+function consCxHTML(){
+  return '<p class="group-h">Constructs</p>'+cxP('The Bone Workshop (Crypt level 2) sews a construct from four slots. The frame gives its role and HP, and its gate sets the tier. The arms give its attack (a striker\'s arms strike with its gate\'s damage). The head gives its kind\'s kit as a full echo and a trait for its role: a vanguard\'s Stalwart, a striker\'s Vicious, a mender\'s Warded, a reaper\'s Wrathful, a hexer\'s Hexing. The core is a spare boss heart (+'+b100(CONS_HEART)+'% HP and attack, +'+b100(CONS_HEART_SB)+'% from a secret master), a Soul core ('+CONS_SOUL_DUST+' bone dust: a Soul once a room when it kills) or a Rift core ('+CONS_SHARD+' shards: +'+b100(CONS_SHARD_K)+'% attack, +'+b100(CONS_SHARD_RIFT)+'% in the Rift). Parts below the frame\'s gate cost '+b100(CONS_LOW)+'% a step.')
+   +cxP('Parts are sewn from '+CONS_TROPHIES+' trophies of one kind, or cut from a body kept in the Embalmery. Building costs '+CONS_GOLD+' gold and '+CONS_DUST+' bone dust a tier, and a watch. A construct levels and evolves like any minion but can never be fused. It never shatters: it breaks, and after a day the Workshop repairs it for '+CONS_REPAIR_G+' gold and '+CONS_REPAIR_D+' dust a tier. A part can be replaced in town for '+CONS_REPLACE+' gold a tier; the old part is lost.')
+   +(consOpen()?cxP('You keep '+consN()+' of '+consCap()+' constructs.'):'');
+}
+function wsSt(){ ui.ws=ui.ws&&typeof ui.ws==='object'?ui.ws:{s:'fr'}; return ui.ws; }
+function wsPickHTML(){   // what can go in the slot picked now: parts, or cores
+  const W=wsSt(), s=W.s||'fr', rep=W.r!=null;
+  if(s==='co'){ const o=coreOpts(); return o.length?o.map(([k,n])=>'<button class="btn small'+(W.co===k&&!rep?' primary':'')+'" data-a="wspick" data-k="'+k+'">'+(k==='soul'?'Soul core &middot; '+dust(CONS_SOUL_DUST):k==='shard'?'Rift core &middot; '+CONS_SHARD+' shards':n)+'</button>').join(''):'<span class="u-sub">No core at hand. A core is a spare boss heart, '+CONS_SOUL_DUST+' bone dust or '+CONS_SHARD+' Rift shards.</span>'; }
+  const K=partKinds(); return K.length?K.map(k=>{ const I=kindInfo(k); return '<button class="btn small'+(W[s]===k&&!rep?' primary':'')+'" data-a="wspick" data-k="'+k+'" title="'+ROLES[I.role].label+' &middot; '+DUNGEONS[Math.min(I.g,DUNGEONS.length-1)].name+'">'+k+' &times;'+partsOf(k)+'</button>'; }).join(''):'<span class="u-sub">No parts yet. Sew them from trophies or cut them from kept bodies.</span>';
+}
+function wsPreviewHTML(c){
+  const m=consPreview(c), p=consCost(c), kits=consKits(m).map(k=>KITS[k]?KITS[k].name:k), why=consWhy(c), T=consTier(c);
+  return '<div class="ws-card"><b>'+m.name+'</b> <span class="u-sub">'+ROLES[m.role].label+' &middot; Lv '+m.lvl+'</span>'
+   +'<div class="u-sub">HP '+m.maxHp+' &middot; attack '+m.atk+' &middot; '+DTYPE[consType(m)||'phys'].name+' blows'+(T&&T.t>T.avg?' &middot; mismatched parts: -'+Math.round(CONS_LOW*(T.t-T.avg)*100)+'%':'')+'</div>'
+   +(kits.length||(m.ht&&m.ht.length)?'<div class="u-sub">Head: '+kits.map(k=>k+' (a full echo)').concat((m.ht||[]).map(t=>TRAITS[t]?TRAITS[t].name:t)).join(', ')+'</div>':'')
+   +(c.co?'<div class="u-sub">Core: '+coreName(c.co)+'</div>':'')
+   +'<div class="btns"><button class="btn small primary" data-a="wsbuild"'+(why?' disabled title="'+why+'"':'')+'>Build &middot; '+gold(p.g)+' + '+dust(p.d)+' &middot; a watch</button>'+(why?'<span class="u-sub">'+why+'</span>':'')+'</div></div>';
+}
+function wsHTML(){
+  if(!consOpen()) return ''; const W=wsSt(), slots=CONS_SLOTS.concat(hasSpec('workshop',5,'a')?['h2']:[]), rep=W.r!=null&&consAll().find(m=>m.uid===W.r&&!m.broken);
+  if(W.r!=null&&!rep) delete W.r;
+  let h='<p class="group-h">The bench</p>';
+  const sw=sewable(), body=(S.embalm||[]).map((x,i)=>[x,i]).filter(([x])=>x.c&&!x.c.boss&&kindInfo(x.c.base));
+  if(sw.length) h+='<p class="u-sub">Sew a part from '+partTrophies()+' trophies:</p><div class="btns">'+sw.map(n=>'<button class="btn small" data-a="wssew" data-k="'+n+'">'+n+'</button>').join('')+'</div>';
+  if(body.length) h+='<p class="u-sub">Cut a kept body into '+(hasSpec('workshop',3,'b')?'two parts':'a part')+':</p><div class="btns">'+body.map(([x,i])=>'<button class="btn small" data-a="wscut" data-k="'+i+'">'+x.c.name+'</button>').join('')+'</div>';
+  if(rep){ const T=consTier(rep.cons), g=CONS_REPLACE*((T?T.t:0)+1); h+='<p class="q-note">Replacing a part of '+rep.nick+'. The old part is lost. Pick the slot, then the new part. Cost: '+gold(g)+'</p>'; }
+  h+='<div class="btns">'+slots.map(s=>{ const v=rep?rep.cons[s]:W[s]; return '<button class="btn small'+(W.s===s?' primary':'')+'" data-a="wsslot" data-k="'+s+'">'+CONS_SLOT_NAME[s]+': '+(v?(s==='co'?coreName(v):s==='fr'?v+' ('+ROLES[kindInfo(v).role].label+')':v):'empty')+'</button>'; }).join('')+(rep?'<button class="btn small" data-a="wsrep" data-k="">Done</button>':'')+'</div>';
+  h+='<div class="btns">'+wsPickHTML()+'</div>';
+  if(!rep&&W.fr&&W.ar&&W.hd) h+=wsPreviewHTML({fr:W.fr,ar:W.ar,hd:W.hd,co:W.co||'',h2:W.h2});
+  const own=consAll();
+  if(own.length) h+='<p class="group-h">Constructs '+own.filter(m=>!m.broken).length+'/'+consCap()+'</p>'+own.map(m=>{ const c=m.broken!=null?consRepairCost(m):null, rd=m.broken!=null&&consRepairReady(m);
+    return '<div class="b-row"><span>'+m.nick+' &middot; '+m.name+' &middot; Lv '+m.lvl+'</span>'
+     +(m.broken!=null?'<button class="btn small" data-a="wsfix" data-k="'+m.uid+'"'+(rd&&S.gold>=c.g&&(S.dust||0)>=c.d?'':' disabled')+'>'+(rd?'Repair'+(c.g?' &middot; '+gold(c.g)+' + '+dust(c.d):' &middot; free'):'Broken: it can be mended tomorrow')+'</button>'
+      :'<button class="btn small" data-a="wsrep" data-k="'+m.uid+'">Replace a part</button>')+'<span class="u-sub">'+[m.cons.fr,m.cons.ar,m.cons.hd].concat(m.cons.h2?[m.cons.h2]:[]).join(' / ')+' &middot; '+coreName(m.cons.co)+'</span></div>'; }).join('');
   return h;
 }
 function raiseChanceEmb(c){ EMB_RAISING=true; try{ return raiseChance(Object.assign({},c,hasSpec('embalm',5,'b')?{lvl:Math.min(S.player.lvl+2,c.lvl+3)}:{})); } finally{ EMB_RAISING=false; } }

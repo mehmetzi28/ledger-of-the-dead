@@ -101,7 +101,7 @@ function yardDawn(){
     while(gain>0&&m.lvl<c&&m.lvl<S.player.lvl+2){ const step=Math.min(gain,Math.max(1,mneed(m.lvl)-m.xp)); gain-=step; ups+=minionXp(m,step); } }
   if(ups) tally('yardUps',ups); return ups;
 }
-function yardSell(uid){ if(S.mode!=='town'||!hasSpec('yard',5,'b')) return 0; const m=(S.reserve||[]).find(x=>x.uid===uid); if(!m||m.lk) return 0; const g=yardPrice(m); returnGear(m); S.reserve=S.reserve.filter(x=>x!==m); bondsClean(); S.gold+=g; tally('yardSold'); sfx('coin'); return g; }
+function yardSell(uid){ if(S.mode!=='town'||!hasSpec('yard',5,'b')) return 0; const m=(S.reserve||[]).find(x=>x.uid===uid); if(!m||m.lk||m.cons) return 0; const g=yardPrice(m); returnGear(m); S.reserve=S.reserve.filter(x=>x!==m); bondsClean(); S.gold+=g; tally('yardSold'); sfx('coin'); return g; }
 const yardPrice=m=>YARD_SELL*m.lvl*(1+(m.stage||0))*(m.boss?3:m.elite?1.5:1);
 // ----- the Library: a stat respec
 const respecCost=()=>!T_('respecs')?{g:0,d:0}:{g:RESPEC_GOLD*S.player.lvl,d:RESPEC_DUST};

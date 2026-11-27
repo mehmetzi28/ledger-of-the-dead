@@ -41,8 +41,8 @@ function ironFall(r){   // defeat, before the downed get back up: the whole run'
   let tn=0; for(const k in r.trTot||{}){ const n=Math.min(S.trophies[k]||0,r.trTot[k]); if(n>0){ S.trophies[k]-=n; tn+=n; if(!S.trophies[k]) delete S.trophies[k]; } } if(tn) lost.push(tn+' trophies');
   const items=(r.spoils||[]).map(u=>S.inv.find(it=>it.u===u)).filter(Boolean); if(items.length){ S.inv=S.inv.filter(it=>!items.includes(it)); lost.push(items.length+' piece'+(items.length>1?'s':'')+' of gear'); }
   const down=S.army.filter(m=>m.hp<=0&&!m.thrall&&!m.wall);
-  if(down.length){ const m=down[Math.floor(Math.random()*down.length)]; returnGear(m); S.army=S.army.filter(x=>x!==m); memorialize(m,r.tw?{f:r.tw}:r.rift?{rd:r.rift}:{g:r.di}); lost.push(m.nick+', who shattered');
-    log(m.nick+' shatters as you fall. Ironman takes one of the fallen.','bad'); }
+  if(down.length){ const m=down[Math.floor(Math.random()*down.length)]; if(consBreak(m,r)) lost.push(m.nick+', who broke'); else { returnGear(m); S.army=S.army.filter(x=>x!==m); memorialize(m,r.tw?{f:r.tw}:r.rift?{rd:r.rift}:{g:r.di}); lost.push(m.nick+', who shattered');
+    log(m.nick+' shatters as you fall. Ironman takes one of the fallen.','bad'); } }
   r.ironLost=lost; if(lost.length) notify('Ironman: the fall costs '+lost.join(', ')+'.','bad');
 }
 function modesFix(g){   // normalizeSave: the fields only when the save has them
