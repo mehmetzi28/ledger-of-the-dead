@@ -522,6 +522,14 @@ run's banked gold, trophies and gear and shatters one fallen minion; three Iron 
 foe HP, foe attack, raise, gold, siege frequency in 10% steps; Story and Hardened presets). Easing anything makes the save
 Custom: no titles.
 
+**Challenge codes and the play log** (R15 PR B, `src/game-playlog.js`). A challenge code (`seed-rules` in base 36 with
+a check letter; rules are Ironman and the custom settings) starts a game in a shared valley: the dawn, the day's curse, the
+market stock, Tower floors, and the rooms, doors and events of each gate draw from their own seeded streams keyed by day,
+gate, room and door (`chSeeded`), so nothing the player does elsewhere shifts them. Fights are not seeded. `S.code = {c, s}`;
+the browser keeps a list of challenges played (`lotd-codes`). The play log (`lotd-log`, opt-in, never in the save, ~2 MB
+cap) records runs, rooms, doors, events, orders, skills, the fatal blow (whether its intent showed, HP before), town spending
+and time per tab; the Ledger's How I play page reads it and Records exports it as JSON for the bot replay.
+
 **The Rival** (`RIVAL_*`). After 4 distinct clears a rival keeper (one of six names) appears. Every 2-6 days they steal
 the best body of the role your army leans on; about every two weeks (warned a day ahead) they wait in a cleared gate's
 boss room with 2-4 followers, fielding the bodies they stole. They grow 10% per win of yours. Beat them: a legendary,

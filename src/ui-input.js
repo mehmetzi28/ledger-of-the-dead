@@ -169,12 +169,15 @@ const ACTIONS={
   lplater:()=>{ ui.lpLater=1; ui.lpJust=0; }, lpopen:()=>{ ui.lpLater=0; ui.lpJust=S.ending?1:0; }, lpseen:()=>{ ui.lpJust=0; },
   cross:k=>{ if(ui.confirm==='x'+k){ scriptCross(+k); ui.confirm=null; } else ui.confirm='x'+k; },   /* the Scriptorium (game-abbey.js): a second press confirms */
   ngmode:k=>{ if(NG_MODES[k]){ ui.ng=Object.assign(ngPick(),{mode:k}); ui.confirm='new'; } }, ngstep:k=>{ const [id,d]=String(k).split('|'), n=ngPick(); if(CUSTOM_KEYS[id]){ let v=n.c[id]+(+d)*CUSTOM_KEYS[id][2]; if(id==='siege'&&v>0&&v<50) v=+d<0?0:50; n.c=custClamp(Object.assign({},n.c,{[id]:v}));   /* siege frequency: off, then 50% and up */ n.mode='custom'; ui.ng=n; ui.confirm='new'; } },
-  newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; const n=ngPick(); newGameMode(n.mode,n.c); ui.ng=null; OPEN_HELP.on=false; ui.tab='gates'; ui.gsub='open'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
+  ngcode:k=>{ const n=ngPick(); ui.ngcode=chRandom(k==='iron',n.mode==='custom'||CUSTOM_PRESETS[n.mode]?n.c:null); ui.ng={mode:'code'}; ui.confirm='new'; },
+  plogon:()=>{ plogSet(true); plogTabTime(ui.tab); ui.msg={m:'The play log is on. It stays in this browser.',c:'ok'}; }, plogoff:()=>{ plogTabTime(null); plogSet(false); ui.msg={m:'The play log is off. What it holds is kept until you clear it.',c:''}; },
+  plogexp:()=>{ ui.msg=plogDownload()?{m:'Play log downloaded.',c:'ok'}:{m:'This browser would not create the file.',c:'bad'}; }, plogclr:()=>{ if(ui.confirm!=='plc'){ ui.confirm='plc'; return; } ui.confirm=null; plogClear(); ui.msg={m:'The play log is cleared.',c:''}; },
+  newgame:()=>{ if(ui.confirm==='new'){ const n=ngPick(); if(n.mode==='code'){ if(!chDecode(ui.ngcode)){ ui.msg={m:'That challenge code is not valid. Check each letter.',c:'bad'}; return; } ui.confirm=null; newChallenge(ui.ngcode); ui.ngcode=''; } else { ui.confirm=null; newGameMode(n.mode,n.c); } ui.ng=null; OPEN_HELP.on=false; ui.tab='gates'; ui.gsub='open'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
 };
 function settled(){ sgTipHide(); if(S&&S.mode==='town') cmdSync(); checkTitles(); try{ loreCheck(); }catch(e){} render(); }   // after an action: award titles and lore passages, then draw
 // the vow warning (game-pantheon.js): the first press says what breaks; the next one goes ahead (ui.vowOk for the rest of the day)
 function vowAsk(k){ if(!vowWarn(k)||ui.vowOk===k+S.day) return false; ui.vowOk=k+S.day; ui.msg={m:k==='raise'?'Raising another body breaks your vow to Morrow (no more than '+MORROW_RAISE+' in a run). Press again to raise anyway.':'Selling a trophy breaks your vow to Ulm. Press again to sell anyway.',c:'bad'}; return true; }
-const CONFIRM_ACTS=['ngmode','ngstep','ascpick','carrypick','release','respec','cross','ending','hforge','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
+const CONFIRM_ACTS=['ngmode','ngstep','ascpick','carrypick','release','respec','cross','ending','hforge','newgame','ngcode','plogclr','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
 document.addEventListener('click',e=>{
   MUSIC.armed=true;
   const b=e.target.closest('[data-a]'); if(!b||b.disabled) return;
@@ -183,7 +186,7 @@ document.addEventListener('click',e=>{
   ACTIONS[a]&&ACTIONS[a](b.dataset.k); settled();
 });
 document.addEventListener('toggle',e=>{ const d=e.target; if(d&&d.dataset&&d.dataset.det){ ui.det=ui.det||{}; ui.det[d.dataset.det]=d.open; } },true);   // a folded Details stays open across renders
-document.addEventListener('input',e=>{ if(e.target&&e.target.id==='cxq'){ ui.cxq=e.target.value.slice(0,40); settled(); return; } if(e.target&&e.target.id==='imp') ui.imp=e.target.value; if(e.target&&e.target.id==='rn') ui.rn=e.target.value; if(e.target&&e.target.id==='lrn') ui.lrn=e.target.value; });
+document.addEventListener('input',e=>{ if(e.target&&e.target.id==='cxq'){ ui.cxq=e.target.value.slice(0,40); settled(); return; } if(e.target&&e.target.id==='imp') ui.imp=e.target.value; if(e.target&&e.target.id==='ngcode') ui.ngcode=e.target.value.slice(0,20); if(e.target&&e.target.id==='rn') ui.rn=e.target.value; if(e.target&&e.target.id==='lrn') ui.lrn=e.target.value; });
 document.addEventListener('change',e=>{   // a dropdown with data-a works like a button whose data-k is the chosen value
   const sl=e.target&&e.target.tagName==='SELECT'&&e.target.dataset&&e.target.dataset.a; if(sl&&ACTIONS[sl]){ ACTIONS[sl](e.target.value); settled(); return; }
   // a save file was picked: read it, then ask before loading
@@ -266,3 +269,5 @@ document.addEventListener('keydown',e=>{
 })();
 
 applyView(); loadGame(); if(OPEN_HELP.on){ ui.tab='gates'; OPEN_HELP.on=false; } settled();
+plogWrap(ACTIONS);   /* the play log listens to tabs, Codex pages, orders, events and town spending (game-playlog.js) */
+try{ window.addEventListener('pagehide',()=>{ plogTabTime(PLOG_TAB&&PLOG_TAB.k); plogFlush(); }); }catch(e){}

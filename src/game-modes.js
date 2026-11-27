@@ -17,7 +17,8 @@ const NG_MODES={
   normal:{name:'Normal', desc:'The game as it is meant: every rule as written.'},
   iron:  {name:'Ironman',desc:'One life for the run: no Instant Retry and no save slots. A lost room costs the whole run\'s spoils and one minion that fell in it shatters. Cannot be turned off.'},
   story:CUSTOM_PRESETS.story, hardened:CUSTOM_PRESETS.hardened,
-  custom:{name:'Custom', desc:'Set foe HP and attack, raise chance, gold and siege frequency yourself. Easing any of them marks the save Custom: no titles.'}
+  custom:{name:'Custom', desc:'Set foe HP and attack, raise chance, gold and siege frequency yourself. Easing any of them marks the save Custom: no titles.'},
+  code:  {name:'Challenge code', desc:'The same valley as everyone who plays this code: the same dawns, curses, market stock and rooms, day by day. The code carries its own rules.'}
 };
 const IRON_TITLES=['i_keeper','i_book','i_climb'];
 const custOf=()=>S&&S.custom&&typeof S.custom==='object'?S.custom:null;

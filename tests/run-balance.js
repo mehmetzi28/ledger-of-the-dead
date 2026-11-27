@@ -4,9 +4,16 @@
 //   node tests/run-balance.js '{"byLvl":true}'                 also prints each gate's clear rate by hero level on entry (Normal runs)
 //   node tests/run-balance.js '{"tiers":{"gates":[1,2],"near":8}}'  every 2nd dawn (tiers.every) each listed gate is also fought once per
 //        difficulty (tiers.heats, default Hard/Brutal/Nightmare) from a copy of the bot, within `near` levels of tierRec; prints clear % by level
+//   node tests/run-balance.js '{"log":"play-log.json"}'        R15: replays a play log (Records, Export play log) against the bots at
+//        the same gates, difficulties and levels (tests/replay-log.js); the market bot unless "modes" says otherwise
 const ctx=require('./load-game')(['balance-test.js']);
 const opts=Object.assign({bots:40,days:100,seed:7700,modes:['market']},process.argv[2]?JSON.parse(process.argv[2]):{});
+let LOG=null;
+if(opts.log){ const REPLAY=require('./replay-log'); LOG=JSON.parse(require('fs').readFileSync(opts.log,'utf8')); if(!REPLAY.valid(LOG)){ console.error(opts.log+' is not a play log (Records, Export play log).'); process.exit(1); } opts.raw=true;
+  require('vm').runInContext('var BOT_DOORS={}; (function(){ const d0=descend; descend=function(kind){ const r=S.run; if(r&&r.doors&&r.doors.length>1){ const k=kind==null?r.doors[0]:kind; if(r.doors.includes(k)) BOT_DOORS[k]=(BOT_DOORS[k]|0)+1; } return d0.apply(this,arguments); }; })();',ctx); }
 const out=ctx.LOTD_BALANCE.run(opts);
+if(LOG){ const REPLAY=require('./replay-log'), m=opts.modes[opts.modes.length-1], names=require('vm').runInContext("DUNGEONS.map((D,i)=>RANKS[i]+' '+D.name)",ctx);
+  console.log('\n'+REPLAY.lines(REPLAY.compare(LOG,(out[m]&&out[m].raw)||[],ctx.BOT_DOORS,names)).join('\n')); }
 for(const m of ['noSkills','skills','market','full']){
   const r=out[m]; if(!r) continue;
   console.log('\n== '+m+'  runs '+r.runs+'  clears '+r.clearRate+'  deaths '+r.deathRate+'  tower '+r.towerBest+'  levels '+JSON.stringify(r.level));

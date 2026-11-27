@@ -176,7 +176,7 @@ Gold at day 100 (before Awakening and headstones): ~33-39k average held, ~1.1M l
 | B3 | Late gold surplus | Economy round: income curve and open-ended sinks that connect systems | R4 |
 | B4 | The `full` bot's Rift depth (~13) is far below `market` (~31) because it spends days elsewhere | Measure the Rift with a dedicated probe, not the 100-day average | R9 |
 | B5 | Trial scores floor out for over-leveled players | Trials now use Throne strength and a fair level per tier; Trial foes carry kits since R1 PR B. Revisit with boss kits | R1, R2 |
-| B6 | Balance has never been checked by a human | Local play log export | R15 |
+| B6 | Balance has never been checked by a human | The tool exists (R15 PR B): play log export and `run-balance.js {"log":...}`. No human log has been reviewed yet; add a row to the log below for each one | R15 |
 | ~~B7~~ | Daily quest is a free stat point a day (~100 points over a game) | Closed by R5 PR B: daily orders, only a Hunt pays the point | R5 (ride-along) |
 | B8 | Hero could carry rooms alone, then fell far behind the army late | Closed by Command (PR #5): the hero draws on the army's power | R0 shipped |
 
@@ -240,3 +240,11 @@ LOTD_HTML=/path/to/tuned/index.html node tests/run-balance.js   # test a tuned c
 - A mid-line `//` comment silently swallows the code after it on a one-line statement: use `/* */` (the lint catches it).
 - Write every new measurement next to the constant it justified, and add the headline numbers to 4.2.
 - When a round adds a system, teach the `full` bot to use it and add an `"off"` switch, so its worth can be measured.
+
+## Play logs reviewed (R15)
+
+Each human play log (Records, Export play log) replayed with `node tests/run-balance.js '{"log":"file.json"}'` gets a row.
+
+| Date | Log | Runs | Human / bot clear at matched levels | Notes |
+|---|---|---|---|---|
+| 2026-11-27 | `tests/fixtures/play-log.json` (a scripted careless player, not a human: strikes only, no skills or gear) | 72 | 14% / 93% | Format check only. It shows what the replay reports: deaths the bot avoided, doors, never-opened tabs |

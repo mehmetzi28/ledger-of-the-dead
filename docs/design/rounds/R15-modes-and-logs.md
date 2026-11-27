@@ -112,3 +112,26 @@ log.
 - **Measured** (market bot, seed 7700, 40 bots): Normal clears 95% of rooms (Tower 84, level 53.9 on day 100). Ironman
   clears 85% (Tower 77.4, level 50.8): losing whole runs' spoils and a minion per fall slows the climb, as intended,
   without changing a rule. Story clears 99% (Tower 88.2, Rift 41 deepest against 21).
+
+## As built (PR B: challenge codes, the play log, the bot replay)
+
+- **Code**: `src/game-playlog.js` (new, after game-modes.js); `tests/replay-log.js`; fixture `tests/fixtures/play-log.json`.
+- **Challenge codes** (`S.code = {c, s}`): `seed-rules` in base 36 plus a check letter (`chEncode`, `chDecode`); rules are
+  Ironman and the five custom settings. The doc's starting difficulty, pacts and ascension rules are not in a code: difficulty
+  is chosen per gate, and pacts and ascension come only with New Game+. Seeded systems (`chSeeded`, each its own stream keyed
+  by system, day and place, through `trialRng`): the dawn (`closeDay`), the day's cursed gate (`dayMod`), the market stock
+  (`shopStock`), gate and Rift rooms by day, gate, room and door (`buildRoom`), doors and events between rooms, Tower floors
+  and the first day. Fights are not seeded. The code carries into New Game+. The browser keeps the last 20 challenges played
+  (`lotd-codes`) with day, level, gates, Tower and Ironman falls; Records lists them.
+- **Play log** (`lotd-log`, opt-in, never in the save, pruned past ~2 MB, written at most every 30 s, at run end, dawn and
+  page hide): runs (gate, difficulty, level, rooms, outcome, active minutes, actions), rooms (door taken, doors offered,
+  actions, skills, orders, event choice, won), the fatal blow (foe, move, intent shown, HP before, unused answers), town
+  spending by day (buy, build, craft) and time per tab, and the tabs and Codex pages seen. Records: on/off, Export play log
+  (JSON), Clear. The Ledger's **How I play** page: runs, minutes a run, gate clears and actions a fight against the market
+  bot's table (`PLOG_BOT`), deaths by cause, doors chosen, time by tab, never opened.
+- **Bot replay**: `node tests/run-balance.js '{"log":"play-log.json"}'` runs the bots, then matches each logged gate run with
+  bot runs at the same gate, difficulty and level (within 2): clear rates per gate, actions a room, the deaths the bot avoided
+  (it clears 75%+ there), doors chosen, systems never opened. Matching is by place and level, not the same seed: a bot cannot
+  stand in the human's army.
+- **Tests**: `tests/groups/98-playlog.js` (6 tests).
+- **Measured**: the market bot (seed 7700) is identical to PR A (95% clears, Tower 84): normal games draw from Math.random as before and the log is off by default. Fuzz 12/12 clean.

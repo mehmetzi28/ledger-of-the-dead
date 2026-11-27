@@ -194,8 +194,8 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
   Constitution build's Rift depth trails Intelligence (B2). (Skills, paths, stats.)
 - **G26. Titles are mostly a list.** 148 titles but only the worn one does anything, and its bonus is small; collection
   pays only gold. (Titles, meta.)
-- **G27. Balance is measured only by bots.** No record of how a human plays (deaths, time per run, what they ignore)
-  that a playtester could send back. (Tooling.)
+- ~~**G27. Balance is measured only by bots.**~~ Closed by R15 PR B: an opt-in local play log (Records, Export play log),
+  a How I play page, and `run-balance.js {"log"}` replays a log against the bots at the same gates and levels. (Tooling.)
 
 **Missing systems** (found 2026-11-26 when the roadmap was deepened; each is a whole system the game lacks, not a weak
 link between existing ones)
