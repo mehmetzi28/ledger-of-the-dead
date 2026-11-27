@@ -121,6 +121,7 @@ function faithFix(g){   // normalizeSave: an old two-oath faith becomes Morrow o
   const n=(v,d)=>typeof v==='number'&&isFinite(v)?v:d, day=Math.floor(n(g.day,1));
   let dev=n(o.dev,null); if(dev==null){ const d=day-o.day; dev=d>=25?4*DEV_STEP:d>=10?2*DEV_STEP:0; }
   g.faith={id:o.id,day:Math.floor(o.day),dev:clamp(dev,0,DEV_STEP*DEV_RANKS*4),dd:Math.max(0,n(o.dd,0)),dday:Math.floor(n(o.dday,day)),vb:Math.max(0,Math.floor(n(o.vb,0))),cv:Math.max(0,Math.floor(n(o.cv,0)))};
+  Object.keys(o).forEach(k=>{ if((k==='pc'||k==='cd')&&typeof o[k]==='number'&&isFinite(o[k])) g.faith[k]=Math.floor(o[k]); });   /* the Profane's free call and the call cooldown day survive a save */
 }
 // ----- story: a passage per god at ranks 1 and 5 (Morrow's and the Profane's rank-5 passages are the old blessings)
 STORY.push(
