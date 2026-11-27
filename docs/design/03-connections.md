@@ -187,8 +187,9 @@ Each gap names the systems involved and why it matters. The roadmap's rounds ref
 
 **Hero and meta**
 
-- **G25. Hero builds are narrow.** No stat respec; seven actives; Frost and Rot paths have four skills to Bone and
-  Blood's five; three ultimates. (Skills, paths, stats.)
+- **G25. Hero builds are narrow.** (Part closed by R11 PR A: every path has five skills, eight actives, five ultimates,
+  Constitution's Endurance; the Library's respec came with R5.) Open: no signature or runes yet; builds still look alike
+  beyond numbers. (Skills, paths, stats.)
 - **G26. Titles are mostly a list.** 148 titles but only the worn one does anything, and its bonus is small; collection
   pays only gold. (Titles, meta.)
 - **G27. Balance is measured only by bots.** No record of how a human plays (deaths, time per run, what they ignore)

@@ -103,13 +103,15 @@ together is capped at 75% (`DR_CAP`). Leveling needs `64 x lvl^1.85` XP.
 heals 35% of damage, harvests a Soul), Bone Ward (6 mana, a shield up to 60% of max HP). Potions (belt of 3 each):
 Healing Draught 35% HP and cures, Mana Tonic 40% mana; drinking costs the turn.
 
-**Skills** (`game-skills-market.js`: `SKILLS`). 18 skills, 3 ranks each (rank n needs level `lv + 5(n-1)`), one point per
-level, free reset in town. 7 actives (Bone Spear, Dark Mending, Corpse Explosion, Curse of Frailty, Grave Chill, Unholy
-Frenzy, Reap) with mana costs and cooldowns that reset each room; 11 passives. At rank 3 each skill offers one of two
+**Skills** (`game-skills-market.js`: `SKILLS`). 20 skills, 3 ranks each (rank n needs level `lv + 5(n-1)`), one point per
+level, free reset in town. 8 actives (Bone Spear, Dark Mending, Corpse Explosion, Curse of Frailty, Grave Chill, Unholy
+Frenzy, Reap, Hoarfrost Lance) with mana costs and cooldowns that reset each room; 12 passives (Pestilence, R11, makes wounds
+on a foe tick harder per wound). Five ultimates (Death's Toll, Unholy Resurrection, Soul Prison, Requiem, The Long Name).
+**Endurance** (R11, `game-builds.js`): past turn 5, Constitution adds damage every turn, up to +25%. At rank 3 each skill offers one of two
 upgrades (`SKILL_MODS`, `game-faith-story.js`), each adding a mechanic, not more of the same number.
 
-**Mastery paths and capstones** (`game-progression.js`). Skills belong to four paths: Bone (5 skills), Blood (5),
-Frost (4), Rot (4). From level 30 the path with the most points (at least 10) grants its first capstone, from level 50 the
+**Mastery paths and capstones** (`game-progression.js`). Skills belong to four paths: Bone, Blood, Frost and Rot,
+five skills each. From level 30 the path with the most points (at least 10) grants its first capstone, from level 50 the
 second: Ossuary Ward / Barbed Ossuary, Blood Tithe / Sanguine Covenant, Rime / Deep Winter, Festering / Plague Bloom.
 
 **Souls and ultimates** (`game-phases-town.js`: `ULTS`). Siphon, elite kills and boss kills harvest Souls (max 5, per

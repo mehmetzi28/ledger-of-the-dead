@@ -103,3 +103,33 @@ Build probes per path; slot the rune the measurement prefers; cast the signature
 
 - **Power creep at 40+**: signatures are once per room; the late retune absorbs them (`DIFF.foeAtk` for B/A/S).
 - **Rune hunting as a grind**: wardens drop their runes on first kill; the rest is a bonus.
+
+## As built (PR A)
+
+- **Code**: `src/game-builds.js` (new, after game-asc.js); its constants (`LANCE_*`, `PEST_*`, `CON_ENDURE*`, `ENDURE_FROM`,
+  `REQUIEM_MUL`, `LNAME_TURNS`, `LONG_HAUL`) sit in game-data.js because skills, ultimates and titles read them as they load.
+- **Hoarfrost Lance** (Frost, active, level 24, 16 mana, cooldown 4): 140/170/200% of Siphon as frost, freezes the target a
+  turn (bosses hold 50/60/70% of the time, like Grave Chill), and Chills the foes beside it for a turn. *Shatterpoint*: x1.5
+  on a frozen target. *Rime Spread*: also freezes one non-boss neighbor.
+- **Pestilence** (Rot, passive, level 24): named so to avoid the Plaguebearer trait. Each wound on a foe (any damage over
+  time, up to 3) makes the wounds on it tick 5/10/15% harder. *Contagion*: a foe dying with two or more wounds passes one to
+  another foe. *Virulence* (renamed from Festering, which is the Rot capstone): wound ticks can crit at Strike's crit chance.
+- Every path now holds five skills (`PATHS`); capstones unchanged.
+- **Requiem** (ultimate): at the end of the turn, after the haste strikes, every standing minion acts again at 60%.
+  **The Long Name**: for 3 turns every non-boss foe that falls rises at once as a thrall (`m.ln`, holds no slot) that fights
+  for the room; `lnClear` removes them when the room is won or you go home. Both take Heavy Souls' +25%.
+- **Endurance** (`endureK`, in `pierceMul`): past turn 5, you and your army deal +0.3% damage per 10 Constitution per further
+  turn, up to +25% (`CON_ENDURE` .003: the spec's .001 assumed 200 Constitution; the bots hold ~25-60). Shown on the Status
+  panel and in the Codex. Measured: no change for the bots at .003, .006 or .01 (Will+Constitution market, seed 7700: 93-94%,
+  Tower 78.9, Rift 14-16), because their Tower and Rift losses are not long fights. The Rift gap stays open: Will+Con Rift
+  15, Will+Str 17.3, Will+Int 26.6; Tower 78.5 / 83 / 82.3 (within the 5-floor target).
+- **Respec**: the Library's stat respec (R5) already covers it; nothing new.
+- **Titles** (2 of 4; *Runesmith* and *Signature* come with PR B): *Long Haul* (win a fight of 15+ turns), *Five by Five*
+  (rank every skill of one path to 3). 196 titles.
+- **Bot**: learns Hoarfrost Lance after Reap and Pestilence last; casts the lance on a boss or two or more foes; `"ult"`
+  accepts `requiem` (a boss or 3+ minions standing) and `longname` (3+ non-boss foes).
+- **Tests**: `tests/groups/98-builds.js` (5 tests). 855 tests.
+- **Balance** (seeds 7700/9100): market 88/89% (was 89/90), Tower 78.9/79.3, Rift 15.4/15.9; full (7700) 90%, Tower 85.8
+  (83.6), Rift 23.9 (20.7), sieges 82%, rival 52%. Ultimates (market 7700): Death's Toll 88% T78.9 R15.4, Unholy
+  Resurrection 88% T79.5 R14.7, Soul Prison 89% T79.9 R16.6, Requiem 89% T79 R16.1, The Long Name 88% T78.8 R15.4: all
+  within a point. Fuzz 12/12.

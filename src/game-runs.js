@@ -142,14 +142,14 @@ function checkDeaths(){
     if(!(e.hp<=0)||e.dead) continue;
     if(e.echo){ echoFades(e); continue; }   /* the Hunger's echoes leave nothing (game-abbey.js) */
     if(e.risen){ e.dead=true; kitDeath(e); bossFoeDies(e); r.corpses.push(corpseOf(e)); log(e.name+' falls again.'); fxe('death',e); continue; }   /* called back by a Gravecaller: its reward was paid the first time */
-    e.dead=true; r.kills++; S.quest.kills++; kitDeath(e); bossFoeDies(e);
+    e.dead=true; r.kills++; S.quest.kills++; kitDeath(e); bossFoeDies(e); pestDeath(e);   /* Contagion (game-builds.js) */
     if(e.boss||e.elite) gainSoul();
     if(e.boss){ tally('bosses'); r.bossK=e.name; }   /* the History notes the boss that fell */
     if(e.elite) tally('elites');
     studyFoe(e.base,ascStudy(e));
     r.pending+=killXp(e); if(!e.stash) r.loot.push(...rollDrops(e)); killLoot(e,r);   // a stolen body drops no gear: the body is the reward
     killPowers(); capKill(e); faithKill(e,r);
-    if(!e.rival&&!e.guard&&sigBody()){ const c=corpseOf(e);   /* guardians and Loud Grave leave no body (game-rift.js) */ if(e.stash) rivalReclaim(e,c); r.corpses.push(c); }   // the rival leaves no body: they retreat
+    if(!e.rival&&!e.guard&&sigBody()){ const c=corpseOf(e);   /* guardians and Loud Grave leave no body (game-rift.js) */ if(e.stash) rivalReclaim(e,c); r.corpses.push(c); longNameRise(e,r); }   /* The Long Name (game-builds.js) */   // the rival leaves no body: they retreat
     if(e.boss) bossSpeaks(e,'bye');
     log(e.rival?e.name+' is beaten.':e.name+' falls.'); sfx('kill'); fxe('death',e);
     const page=e.secret?'secret':e.boss?(e.tw?'warden':'boss'):e.elite?'elite':null;   // who may carry a torn page
@@ -275,7 +275,7 @@ function act(kind){
     if(tg.hp<=0&&tg.id!=='p') log(tg.nick+' is down.','bad');
     if(P.hp<=0&&playerFalls()) return;
   }
-  hasteStrikes(); if(P.hp<=0&&playerFalls()) return;
+  hasteStrikes(); requiemStrikes(); if(P.hp<=0&&playerFalls()) return;   /* Requiem (game-builds.js) */
   checkDeaths(); if(!liveFoes().length){ roomWon(); return; }
   tickDots(); if(P.hp<=0&&playerFalls()) return;
   if(P.hp<hpBefore){ sfx('hurt'); if(hpBefore-P.hp>=pMax()*.2) ui.shake=true; }   // a heavy turn shakes the screen
@@ -300,7 +300,7 @@ function gateCleared(r){   // the boss room of a gate is won: story, clear talli
   return Math.round(RK[di].clear*fk);
 }
 function roomWon(){
-  const r=S.run, P=S.player; r.events=[]; r.focus=false; r.execute=false; bondsRoom();   /* Focus and Execute end with the room even if no minion phase came */
+  const r=S.run, P=S.player; r.events=[]; r.focus=false; r.execute=false; bondsRoom(); lnClear(); if(r.turn>=LONG_HAUL&&!r.sweep) tally('longHaul');   /* The Long Name's thralls go; Long Haul (game-builds.js) */   /* Focus and Execute end with the room even if no minion phase came */
   let xp=r.wk?0:r.pending; r.pending=0; const dn0=r.downs||0;   /* the weekly dive pays only its own rewards (game-rift.js) */
   const last=r.room===r.rooms-1;
   const share=Math.round(xp*.5), downs=[], bound=[];   /* the downed come first on the screen after the fight: who is gone, who got back up */
@@ -382,7 +382,7 @@ function descend(kind){   // go on: through one of the doors in the gates (the f
 function returnTown(){
   if(S.run&&S.run.siege){ siegeEnd(); save(); return; }   // back from the walls: then dawn
   const P=S.player;
-  if(S.run){ weekEnd(S.run); recordRun(S,S.run,runResult(S.run)); recRun(S.run); }   /* the weekly dive's depth (game-rift.js) */
+  lnClear(); if(S.run){ weekEnd(S.run); recordRun(S,S.run,runResult(S.run)); recRun(S.run); }   /* the weekly dive's depth (game-rift.js) */
   S.army.forEach(m=>m.hp=m.maxHp); cmdSync(); P.hp=pMax(); P.mana=pMana(); P.shield=0; allies().forEach(clearAll);
   const rd=S.run&&S.run.read; S.run=null; S.mode='town'; if(rd) syncArmy();   /* the Book Hungers lets go (game-asc.js) */
   if(S.watches<=0) endDay();

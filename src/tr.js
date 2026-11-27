@@ -3464,3 +3464,22 @@ TR_RX.unshift(
  [/^This Riftborn piece crosses at depth (\d+) \(now (\d+)\)\.?$/,"Bu Yarık doğumlu parça $1 derinlikte geçer (şimdi $2)"],
  [/^This heartforged piece crosses with its lines at (\d+)%\.?$/,"Bu kalpte dövülmüş parça satırları %$1 olarak geçer"]
 );
+// R11 PR A: Hoarfrost Lance, Pestilence, Requiem, The Long Name, Endurance, titles
+[["Hoarfrost Lance","Kırağı Mızrağı"],["Pestilence","Veba"],["Requiem","Ağıt"],["The Long Name","Uzun Ad"],["Shatterpoint","Kırılma Noktası"],["Rime Spread","Kırağı Yayılımı"],["Contagion","Bulaşma"],["Virulence","Virülans"],["Long Haul","Uzun Soluk"],["Five by Five","Beşe Beş"],["Endurance","Dayanıklılık"],
+ ["A frozen target takes the lance at x#","Donmuş bir hedef mızrağı x# alır"],["Also freezes one foe beside it (not a boss)","Yanındaki bir düşmanı da dondurur (patron değil)"],["A foe that dies with two or more wounds passes one to another foe","İki ya da daha fazla yarayla ölen bir düşman birini başka bir düşmana geçirir"],["The wounds on your foes can crit, at your Strike's crit chance","Düşmanlarındaki yaralar Vuruşunun kritik şansıyla kritik vurabilir"],
+ ["Deal #% of your Siphon as frost to your target and freeze it for a turn (bosses resist #% of the time)","Hedefine Emişinin %#'i kadar ayaz hasarı ver ve onu bir tur dondur (patronlar %# oranında direnir)"],["The foes beside it are Chilled for a turn","Yanındaki düşmanlar bir tur Üşür"],
+ ["Each wound on a foe (poison, blight, bleed, burn; up to #) makes the wounds on it tick #% harder","Bir düşmandaki her yara (zehir, çürüme, kanama, yanık; en çok #) üzerindeki yaraların %# daha sert işlemesini sağlar"],
+ ["At the end of this turn every standing minion acts again, at #% damage","Bu turun sonunda ayakta kalan her minyon %# hasarla yeniden hareket eder"],["For # turns, every foe that falls (bosses excepted) rises at once as a thrall that fights for you this room","# tur boyunca düşen her düşman (patronlar hariç) hemen bu oda için senin için dövüşen bir köle olarak kalkar"],
+ ["Win a fight that lasts # turns or more","# tur ya da daha uzun süren bir dövüşü kazan"],["Rank every skill of one path to #","Bir yoldaki her beceriyi #. dereceye çıkar"],
+ ["Requiem: the Ledger sings your dead a second verse","Ağıt: Defter ölülerine ikinci bir dize söylüyor"],["Every minion will act again this turn","Her minyon bu tur yeniden hareket edecek"]
+].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+TR_RX.unshift(
+ [/^Hoarfrost Lance strikes (.+?) for (\d+)( \(shatterpoint\))?\.?$/,"Kırağı Mızrağı {t1} hedefine $2 vuruyor$3"],[/^(.+?) freezes solid\.?$/,"{t1} kaskatı donuyor"],[/^(.+?) shakes off the frost\.?$/,"{t1} ayazı silkeliyor"],[/^The cold chills (\d+) foes? beside it\.?$/,"Soğuk yanındaki $1 düşmanı üşütüyor"],[/^(.+?) freezes too\.?$/,"{t1} da donuyor"],
+ [/^Contagion: (.+?)'s (\w+) passes to (.+?)\.?$/,"Bulaşma: {t1} üzerindeki $2 {t3} hedefine geçiyor"],
+ [/^Requiem: (.+?) strikes (.+?) again for (\d+)\.?$/,"Ağıt: $1, {t2} hedefine yeniden $3 vuruyor"],
+ [/^The Long Name: (.+?) rises at once to fight for you this room\.?$/,"Uzun Ad: {t1} bu oda için senin için dövüşmek üzere hemen kalkıyor"],
+ [/^The Long Name: you speak it, and for (\d+) turns whatever falls here will answer\.?$/,"Uzun Ad: onu söylüyorsun ve $1 tur boyunca burada düşen her şey cevap verecek"]
+);
+[["Max HP, damage taken, healing received, minion HP, Command, Endurance","Azami can, alınan hasar, alınan iyileştirme, minyon canı, Komuta, Dayanıklılık"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+TR_RX.unshift([/^Endurance: \+([\d.]+)% damage a turn after turn (\d+), up to \+(\d+)%$/,"Dayanıklılık: $2. turdan sonra her tur +%$1 hasar, en çok +%$3"]);
+[["Past turn # of a fight, you and your army deal #% more damage per # Constitution for every further turn, up to +#%","Bir dövüşün #. turundan sonra sen ve ordun her ek tur için her # Bünye başına %# daha fazla hasar verirsiniz, en çok +%#"],["Gates rarely last that long; the Tower, the Rift, secret masters and sieges do","Kapılar nadiren bu kadar sürer; Kule, Yarık, gizli efendiler ve kuşatmalar sürer"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });

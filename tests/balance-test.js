@@ -59,7 +59,7 @@
 //   The full bot now swears faith by default (Honored on even bots, Dishonored on odd) and climbs to Hard on cleared gates
 //   (opts.heat:1); pass faith/heat to override, heat:0 for the old behaviour. Every run also reports secret masters met/slain.
 //   opts.ngp (1+) starts every bot at that New Game+ ascension level, with opts.asc (rule ids) and opts.pacts (pact ids): an Ascension probe.
-//   opts.faith ('hon'|'dis') swears an oath once the shrine opens (3 gates cleared, level 8); opts.ult ('toll'|'rise'|'prison') picks the ultimate; opts.heat (1-3) lets
+//   opts.faith ('hon'|'dis') swears an oath once the shrine opens (3 gates cleared, level 8); opts.ult ('toll'|'rise'|'prison'|'requiem'|'longname') picks the ultimate; opts.heat (1-3) lets
 //   the bot climb a cleared gate's difficulty up to that level, stepping down after a death there. Measured (full, seed 7700):
 //   both faiths +1-2 points of clears (Honored and Dishonored within a point of each other); the three ultimates within ~2 Tower
 //   floors after Death's Toll went to 400%; Hard clears ~82% (Normal 85%), Brutal ~63%, Nightmare ~41% with ~54% deaths, and
@@ -84,7 +84,7 @@
 // Your real save is not touched: saving is switched off while the test runs and the game is restored afterwards.
 (function(){
   const STAT_ORDER=['intelligence','constitution','will','intelligence','constitution','strength'];
-  const SKILL_ORDER=['spear','bonearmor','mend','blast','soulwell','curse','gravepact','chill','frenzy','edge','mastery','reap','robber','scholar','calcify','sanguine','thrift','deathless'];   // the small passives last: actives come first
+  const SKILL_ORDER=['spear','bonearmor','mend','blast','soulwell','curse','gravepact','chill','frenzy','edge','mastery','reap','lance','robber','scholar','calcify','sanguine','thrift','deathless','pest'];   /* R11: Hoarfrost Lance among the actives, Pestilence last */   // the small passives last: actives come first
   const itemScore=d=>d.tier*10+(d.uq?25:0)+(d.rival?6.5:d.set||0);   // the rival's book: worn over the gate and Tower uniques
   function botOmens(){
     const id=faithOf(), f=forecast(), spare=faithRank()>=DEV_RANKS&&faithDev()-CALL_COST>=DEV_RANKS*DEV_STEP;
@@ -219,7 +219,9 @@
     if(B.skills&&canUlt()){ const u=P.ult, down=S.army.filter(m=>m.hp<=0).length;
       if(u==='toll'&&foes.length>=2) return 'ult';
       if(u==='rise'&&(down>=2||P.hp<max*.4||(down>=1&&t.boss))) return 'ult';
-      if(u==='prison'&&(t.boss||foes.length>=3||charging)) return 'ult'; }
+      if(u==='prison'&&(t.boss||foes.length>=3||charging)) return 'ult';
+      if(u==='requiem'&&(t.boss||S.army.filter(m=>m.hp>0).length>=3)) return 'ult';
+      if(u==='longname'&&foes.filter(e=>!e.boss).length>=3) return 'ult'; }
     if(B.full&&!B.off.brew&&S.belt.iron&&charging&&charging.charging&&!(S.run.iron>=S.run.turn)) return 'pot:iron';   /* an Iron Draught under a telegraphed blow */
     if(B.full&&!B.off.brew&&S.belt.blood&&S.army.filter(m=>m.hp>0).length>=2&&S.army.filter(m=>m.hp>0).reduce((a,m)=>a+m.hp/m.maxHp,0)/S.army.filter(m=>m.hp>0).length<.45) return 'pot:blood';
     if(B.market&&P.hp<max*.3&&S.belt.hp) return 'pot:hp';
@@ -231,6 +233,7 @@
       if(ok('blast')&&foes.length>=2&&!(faithOf&&faithOf()==='vesh'&&foes.some(f=>f.dots&&f.dots.blight))) return 'sk:blast';   // Vesh: no Spreading Rot
       if(ok('mend')&&live.length&&live.reduce((a,m)=>a+m.hp/m.maxHp,0)/live.length<.55) return 'sk:mend';
       if(ok('chill')&&(t.boss||foes.length>=3)) return 'sk:chill';
+      if(SKILL.lance&&ok('lance')&&(t.boss||foes.length>=2)&&!(t.stun>0)) return 'sk:lance';
       if(ok('frenzy')&&live.length>=2) return 'sk:frenzy';
       if(ok('curse')&&t.hp>pSiph()*3) return 'sk:curse';
       if(ok('spear')&&t.hp>pAtk()) return 'sk:spear';

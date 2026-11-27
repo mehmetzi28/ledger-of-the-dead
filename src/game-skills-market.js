@@ -20,7 +20,9 @@ const SKILLS=[
  {id:'sanguine',name:'Sanguine Rites',type:'passive',lv:17,desc:r=>'+'+(8*r)+'% healing received.'},
  {id:'reap',name:'Reap',type:'active',lv:18,cost:18,cd:4,desc:r=>'Deal '+(120+30*r)+'% of your Siphon to your target, ignoring armor, doubled if it is below 35% HP.'},
  {id:'thrift',name:'Corpse Thrift',type:'passive',lv:20,desc:r=>'Raising costs '+(6*r)+'% less mana.'},
- {id:'deathless',name:'Deathless Will',type:'passive',lv:22,desc:r=>'+'+(5*r)+'% max mana.'}
+ {id:'deathless',name:'Deathless Will',type:'passive',lv:22,desc:r=>'+'+(5*r)+'% max mana.'},
+ {id:'lance',name:'Hoarfrost Lance',type:'active',lv:24,cost:16,cd:4,desc:r=>'Deal '+Math.round((LANCE_BASE+LANCE_STEP*r)*100)+'% of your Siphon as frost to your target and freeze it for a turn (bosses resist '+(100-LANCE_BOSS-10*r)+'% of the time). The foes beside it are Chilled for a turn.'},   /* R11 (game-builds.js) */
+ {id:'pest',name:'Pestilence',type:'passive',lv:24,desc:r=>'Each wound on a foe (poison, blight, bleed, burn; up to '+PEST_MAX+') makes the wounds on it tick '+Math.round(PEST_STEP*r*100)+'% harder.'}
 ];
 const SKILL={}; SKILLS.forEach(s=>SKILL[s.id]=s);
 const skReq=(s,rank)=>s.lv+(rank-1)*SK_STEP;
@@ -69,6 +71,7 @@ function useSkill(id,t){
   else if(id==='reap'){ const low=t.hp<t.maxHp*reapLow(); let d=hit(pSiph()*(1.2+.3*rk)*pierceMul(1)*skMul()*shadowK()); if(low) d*=2; else if(hasMod('reap','a')) d=Math.round(d*MOON_HIGH); const fb=frozenChilled(t); if(fb) d=Math.round(d*FROSTBREAK); KILL='reap'; hurtFoe(t,d,'shad'); KILL=null; fxe('strike',t,{crit:1});
     if(hasMod('reap','b')){ healAlly(P,Math.round(d*SOUL_REAP_HEAL)); if(t.hp<=0) P.mana=Math.min(pMana(),P.mana+SOUL_REAP_MANA); }   // Soul Reap
     log('You reap '+t.name+' for '+d+(low?' (harvest)':'')+'.'); if(fb&&t.hp>0) frostbreak(t); }
+  else if(id==='lance') useLance(t,rk);   /* Hoarfrost Lance (game-builds.js) */
   MARGIN=null; return true;
 }
 function skillTick(){
