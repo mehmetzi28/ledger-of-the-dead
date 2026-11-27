@@ -130,7 +130,7 @@ function ultHTML(){   // Souls and the ultimate, from level 20
   const P=S.player; if(P.lvl<ULT_LV) return '';
   const n=S.run.souls||0, U=ULTS[P.ult]; let pips=''; for(let i=0;i<ultCost();i++) pips+='<i class="soul'+(i<n?' on':'')+'"></i>';
   return '<div class="btns ult-row"><span class="souls" aria-label="'+n+' of '+ultCost()+' Souls">Souls '+pips+'</span>'
-   +(U?'<button class="btn ult'+(canUlt()?' primary':'')+'" data-a="act" data-k="ult" title="'+U.desc+'"'+(canUlt()?'':' disabled')+'>'+U.name+'<kbd>R</kbd></button>':'<span class="u-sub">Choose an ultimate on the Skills tab.</span>')+sgnBtnHTML()+maBtnsHTML()+'</div>';
+   +(U?'<button class="btn ult'+(canUlt()?' primary':'')+'" data-a="act" data-k="ult" title="'+U.desc+'"'+(canUlt()?'':' disabled')+'>'+U.name+'<kbd>R</kbd></button>':'<span class="u-sub">Choose an ultimate on the Skills tab.</span>')+sgnBtnHTML()+apoBtnHTML()+maBtnsHTML()+'</div>';
 }
 const ANS_M='<span class="ans-m" aria-hidden="true" title="Answers the charge"></span>', ANS_S='<span class="sr-only">, answers the charge</span>';
 function chargeAns(){ const c=S.run&&S.mode==='battle'&&S.run.enemies.map(chargeInfo).find(Boolean); return c?c.ans:[]; }   // answer keys for the pending charge (none when nothing charges)

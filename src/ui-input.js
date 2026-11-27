@@ -74,6 +74,7 @@ const ACTIONS={
   standwatch:()=>{ standWatch(); },
   gcall:k=>{ const o=callGodOmen(k||null); ui.msg=o?{mk:1,m:'Your god calls tomorrow\'s omen: '+OMENS[o].name+'.',c:'ok'}:null; },
   gward:()=>{ const o=wardOmen(); ui.msg=o?{mk:1,m:'You ward off tomorrow\'s '+OMENS[o].name+'.',c:'ok'}:null; },
+  form:k=>{ if(takeForm(k)) ui.msg={mk:1,m:'You take the form of the '+FORMS[k].name+'.',c:'ok'}; },
   phylbind:k=>{ if(phylBind(k)) ui.msg={mk:1,m:'Your soul is bound into '+VESSELS[k].name+'.',c:'ok'}; },
   phylshatter:()=>{ if(ui.confirm!=='shatter'){ ui.confirm='shatter'; return; } ui.confirm=null; ui.msg=phylShatter()?{mk:1,m:'The phylactery is shattered. You are mortal again.',c:'ok'}:null; },
   hunger:k=>{ const m=hungerAnswer(k==='feed'); ui.msg=m?{mk:1,m,c:k==='feed'?'bad':'ok'}:null; },

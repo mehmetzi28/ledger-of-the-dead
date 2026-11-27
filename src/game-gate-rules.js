@@ -112,7 +112,7 @@ function foeTarget(alive){ const w=alive.map(a=>a.role==='vanguard'?5:2); let ro
 // standing front row they reach only it. Strikers, menders and bosses reach anyone; Taunt, your Strike and skills, cleaves and splash ignore rows.
 // Your vanguards and reapers moved to the back row strike over the line for BACK_MELEE of their damage: safety costs reach.
 const MELEE={vanguard:1,reaper:1}, BACK_MELEE=.5;
-const rowOf0=u=>u.id==='p'?'b':u.id!=null?((u.boss||u.rival||MELEE[u.role])&&!kitBack(u)?'f':'b'):(u.wall?'f':u.row==='f'||u.row==='b'?u.row:MELEE[u.role]?'f':'b');
+const rowOf0=u=>u.id==='p'?(formFront()?'f':'b'):u.id!=null?((u.boss||u.rival||MELEE[u.role])&&!kitBack(u)?'f':'b'):(u.wall?'f':u.row==='f'||u.row==='b'?u.row:MELEE[u.role]?'f':'b');
 const rowOf=u=>{ const w=rowOf0(u); return guardFold(u)?(w==='f'?'b':'f'):w; };   /* the Folded Knight's Fold (game-rift.js) */
 const rowK=m=>MELEE[m.role]&&rowOf(m)==='b'?BACK_MELEE:1;   // a minion's damage factor from its row
 const frontOf=L=>L.filter(u=>u.hp>0&&rowOf(u)==='f');
@@ -364,7 +364,7 @@ const ECLIPSE_SHADOW=1.2, ECLIPSE_CRIT=.1, ECLIPSE_MISS=.1, HARVEST_TRO=.25, HAR
 const shadowK=()=>omen()==='eclipse'?ECLIPSE_SHADOW:1;   // Black Eclipse: Soul Siphon, the Siphon skills (Corpse Explosion, Grave Chill, Reap) and blight
 const foeCrit=()=>.25-(omen()==='eclipse'?ECLIPSE_CRIT:0)+sigCrit()+mistCrit();   /* Thin Veil (game-rift.js) */   // an enemy striker's crit chance
 function roomStart(list){   // a fresh room or floor: Soul Storm, the Swift affix and trait, and Ossified
-  cmdSync();   /* Command: measured as the room begins */
+  cmdSync(); formRoom(list);   /* the forms (game-phyl.js) */   /* Command: measured as the room begins */
   if(S.run){ S.run.sgnU=0; S.run.reapRs=0; }   /* the signature and Second Harvest: once a room (game-builds.js) */
   foeRise(list);
   for(const m of S.army){ delete m.sx; if(m.hp>0&&hasTrait(m,'swift')) addSt(m,'hasted',2); }   // sx: Stitched used this room

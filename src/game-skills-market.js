@@ -41,7 +41,7 @@ function canUse(id){
 function useSkill(id,t){
   if(!canUse(id)) return false;
   const s=SKILL[id], rk=sk(id), r=S.run, P=S.player;
-  const mg=marginReady(), fl=rbFirst(r); P.mana-=fl?0:skCost(s); marginSkill(r,t,mg); hfSkill(); r.naveU=1; r.lastSk=id; sigMirror(r); r.cd=r.cd||{}; r.cd[id]=fl>1?0:s.cd+1-(id==='blast'?faithBlastCd():0);   /* First Light (game-rift.js) */ tally('sk_'+id); corrSkill(id);   // +1: the end-of-turn tick runs this same turn
+  const mg=marginReady(), fl=rbFirst(r); P.mana-=fl?0:skCost(s); marginSkill(r,t,mg); hfSkill(); r.naveU=1; r.lastSk=id; sigMirror(r); r.cd=r.cd||{}; r.cd[id]=fl>1?0:s.cd+1-(id==='blast'?faithBlastCd():0);   /* First Light (game-rift.js) */ tally('sk_'+id); corrSkill(id); if(id==='blast') formBlast();   // +1: the end-of-turn tick runs this same turn
   if(id==='spear'){ const fb=frozenChilled(t), d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(hasMod('spear','a')?1:.5)*skMul()*(fb?FROSTBREAK:1)); hurtFoe(t,d,'phys'); log('Bone Spear impales '+t.name+' for '+d+'.'); fxe('spear',t); if(fb&&t.hp>0) frostbreak(t);
     if(hasRune('spear','a')&&!(t.hp>0)){ P.mana=Math.min(pMana(),P.mana+Math.round(skCost(s)/2)); log('Marrow: the kill gives back '+Math.round(skCost(s)/2)+' mana.','ok'); } if(hasRune('spear','b')&&t.hp>0) addSt(t,'sundered',2);   /* runes (game-builds.js) */
     if(hasMod('spear','b')){ const o=liveFoes().filter(x=>x!==t); if(o.length){ const o2=pick(o), d2=Math.round(d*.5); hurtFoe(o2,d2,'phys'); log('A splinter tears into '+o2.name+' for '+d2+'.'); } } }
@@ -302,7 +302,7 @@ const MARK={
 };
 const MARK_IDS=Object.keys(MARK);
 const roleMarks=r=>MARK_IDS.filter(k=>MARK[k].role===r);
-const markLv=(m,k)=>m&&Array.isArray(m.marks)?m.marks.filter(x=>x===k).length:0;
+const markLv=(m,k)=>formMark(m&&Array.isArray(m.marks)?m.marks.filter(x=>x===k).length:0);   /* the Choir Saint (game-phyl.js) */
 const markV=(m,k)=>markLv(m,k)*MARK[k].v;   // 0 without the mark
 const markDue=m=>m&&!m.thrall?MARK_AT.filter(s=>(m.stage||0)>=s).length:0;
 const markPend=m=>Math.max(0,markDue(m)-((m&&m.marks)||[]).length);

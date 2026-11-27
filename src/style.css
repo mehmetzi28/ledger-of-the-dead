@@ -1309,3 +1309,6 @@ body.cv-skin .win{border-color:#9a7a66;box-shadow:inset 0 0 0 2px rgba(154,122,1
 .ink-stain{color:#9a63b8;flex:none;filter:drop-shadow(0 0 2px rgba(154,99,184,.45))}
 .ph-v{color:var(--gold,#c9a14a)}
 .ph-hunger,.ph-bind{margin:6px 0}
+.ph-form,.ph-fcard{border:1px solid rgba(154,99,184,.35);border-radius:6px;padding:6px 8px;margin:6px 0}
+.ph-form p,.ph-fcard p{margin:2px 0}
+.ph-fcard.dim{opacity:.6}
