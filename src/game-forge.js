@@ -74,7 +74,7 @@ function heartforge(boss,slot,lines,force){   // returns the item, or null; forc
   const it=addItem(pick(pool).id,lines.map(l=>[l,hfLineVal(I,l)])); it.hf=boss; if(I.pw) it.pw=I.pw;
   tally('heartforged'); tally('hfGold',og); sfx('level'); return it;
 }
-function hfReroll(it){ const I=hfInfo(it.hf); if(!I||!it.ro) return; it.ro=it.ro.map(([k])=>[k,hfLineVal(I,k,rnd(HF_RE[0],HF_RE[1]))]); }   // reforge: values only
+function hfReroll(it){ const I=hfInfo(it.hf); if(!I||!it.ro) return; it.ro=it.ro.map(([k])=>[k,hfLineVal(I,k,vilForge()?HF_RE[1]:rnd(HF_RE[0],HF_RE[1]))]); }   // reforge: values only
 function hfSwap(u,i,k){   // a second heart of the same boss: swap one line for another of its list
   const it=findItem(u); if(!it||!it.hf||S.mode!=='town') return false; const I=hfInfo(it.hf), key=hfKey(it.hf);
   if(!I||!it.ro||!it.ro[i]||(S.trophies[key]||0)<1||!hfLinesFor(it.hf,ITEM[it.id].slot).includes(k)||it.ro.some(r=>r[0]===k)) return false;

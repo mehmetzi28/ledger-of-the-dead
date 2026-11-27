@@ -467,7 +467,7 @@ function beginSiege(){
   if(S.mode!=='siege') return false; const di=siegeGate();
   S.run={siege:1,di,room:0,rooms:SIEGE_WAVES,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:null,heat:0,fallen:[]}; siegeBegin2(S.run);   /* tier, wall, burnt perk (game-siege2.js) */
   const g=sg(), w=wallPool().filter(m=>(g.wall||[]).includes(m.uid)).slice(0,SIEGE_WALL); S.reserve=(S.reserve||[]).filter(m=>!w.includes(m)); w.forEach(m=>{ m.wall=true; S.army.push(m); });
-  S.mode='battle'; syncArmy(); S.army.forEach(m=>{ m.hp=m.maxHp; }); titheSouls(); allyAid(S.run);   /* the spared rival holds the first wave (game-rival-arc.js) */
+  S.mode='battle'; syncArmy(); S.army.forEach(m=>{ m.hp=m.maxHp; }); titheSouls(); allyAid(S.run); vilAid(S.run); knightJoin(S.run);   /* the spared rival holds the first wave (game-rival-arc.js); Miller's Ford's militia, Saint Aldric's knight (game-villages.js) */
   spawnSiege(); return true;
 }
 function nextWave(){   // between waves: the usual between-room heal, then the next wave at once
@@ -502,7 +502,7 @@ function siegeOverflow(){ const n=S.army.filter(m=>!m.thrall&&!m.wall).length-sl
 function siegeEnd(){   // back from the walls (won, fell or fled): thralls crumble, the record is written, then dawn
   const r=S.run, g=sg(), w=S.army.filter(m=>m.wall); S.army=S.army.filter(m=>!m.thrall&&!m.wall); S.mode='town';
   if(r){ const res=r.cleared?'cleared':r.fled?'fled':'fell'; recordRun(S,r,res); recRun(r,res); }
-  S.run=null; mapSiege(); g.pending=false; g.next=0; delete g.guard; delete g.wall; delete g.road; wallHome(S,w); syncArmy();
+  S.run=null; mapSiege(); raidTierBack(); g.pending=false; g.next=0; delete g.guard; delete g.wall; delete g.road; wallHome(S,w); syncArmy();
   const P=S.player; P.hp=pMax(); P.mana=pMana(); P.shield=0; allies().forEach(clearAll); S.army.forEach(m=>m.hp=m.maxHp);
   closeDay(); if(r&&r.siegeLoss) notify(r.siegeLoss,'bad'); else if(r&&r.siegePay) notify('Last night the necropolis held against the living: +'+r.siegePay.g+' gold, +'+r.siegePay.d+' bone dust.','ok');
 }

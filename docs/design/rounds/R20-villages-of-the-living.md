@@ -134,3 +134,30 @@ Friendly by default (do favors that fit the day); `"villages":"raid"` probe raid
 - **Measured**: see 04-balance (market unchanged; full 91%, Tower 84.8, sieges 91%, about 2 levels lower at day 100
   than with the villages off).
 - **Tests**: `tests/groups/98-villages.js` (13 tests); 972 in all.
+
+### PR B: raids, abandonment, allegiance, the knight, the mobs
+- **Raids** (`raidStart`/`raidRoom`/`raidWon`, a run flagged `r.sv='raid'`): a walk that must leave a watch, then a
+  watch for the fight (three militia and an elite: Miller's Ford a spearman, Greyhollow a witch-hunter, Saint Aldric's
+  its knight, or a chaplain when the knight rides with you). Won: 4-6 bodies of its people (Farmhand/Miller,
+  Miner/Foreman, Pilgrim/Monk) with a new corpse condition each (`farmhand`, `hardened`, `pious`: +15 to raise and
+  the Stalwart, Thick-boned or Warded trait; the spec's own traits would have been three new trait rules, the old ones
+  say the same thing), gold (40 a level, more at higher gates) and goods (salt, ore, or devotion for the Profane).
+- **What a raid costs**: standing -40 there and -10 with the others; dread +8 (spec 15); the next siege 2 days sooner,
+  once until it is fought. The spec's tier bump is built (`VIL_RAID_TIER`) but off: see 04-balance. Population drops
+  40-60 a raid; at 0 the village is **abandoned** (`gone`): no stall, favors or raids, standing frozen, its graveyard
+  digs twice as deep (`vilGyK`), its last passage.
+- **Allegiance**: Miller's Ford +60 holds a siege's first wave once a week (`vilAid`, like the spared rival's aid),
+  +100 adds 3 days to the Embalmery (`embDays`); Greyhollow +60 sends 2 ore at the week's first dawn, +100 makes
+  reforging roll at the top (`hfReroll`); Saint Aldric's +60 keeps the blessing, +100 sends its knight.
+- **The knight** (`knightJoin`/`knightLeave`): Ser Aldwin, a vanguard (hp 1.4, atk 1.1, Stalwart), joins every gate run
+  (`startRun`) and siege (`beginSiege`) as a thrall: no army slot, dropped by `returnTown`, `siegeEnd` and any reload,
+  so he can never be raised, evolved, sold or saved. His level is your level -3, +1 for every 10 standing over 60. He
+  leaves when Saint Aldric's falls under +60, and the village defends with him when you raid it.
+- **Mobs**: each village at -60 or worse adds one militia to the first wave of every siege (spec "a small extra wave";
+  two each was too many with the dread).
+- **Story**: nine passages, act 4 (first dealings on the first trade, allegiance at +60, abandonment).
+- **Titles**: Empty Valley, Neither Feared nor Loved (day 100, every village within 10 of 0), The Knight's Oath.
+- **Save**: `gone`, `aid` and `S.vil.knight` in `vilFix`; `S.siege.rd` (the raid's notice) in `stierFix`.
+- **Bot**: `"villages":"raid"` probe. The friendly default is unchanged.
+- **Measured**: see 04-balance.
+- **Tests**: 8 more in `tests/groups/98-villages.js` (21 in all); 980 in all.

@@ -38,7 +38,7 @@ substantial feature or rework; small fixes ride along inside one. Rounds name th
 | R17 | Presentation: music, stage, art | Shipped (#40, PR B) | | R1, R2 | L | [spec](rounds/R17-presentation.md) |
 | R18 | UX and onboarding pass | Shipped (#42, PR B) | | after any 3 rounds | L | [spec](rounds/R18-ux-and-onboarding.md) |
 | R19 | The valley map: roads, sites and travel | Shipped (#44, PR B) | G28 | | XL | [spec](rounds/R19-the-valley-map.md) |
-| R20 | Villages of the living: trade, tribute and fear | In progress (PR A) | G29 | R5 | L | [spec](rounds/R20-villages-of-the-living.md) |
+| R20 | Villages of the living: trade, tribute and fear | Shipped (#46, PR B) | G29 | R5 | L | [spec](rounds/R20-villages-of-the-living.md) |
 | R21 | The phylactery: corruption and the hero's transformation | P4 | G30 | | L | [spec](rounds/R21-the-phylactery.md) |
 | R22 | The bone workshop: constructs built from parts | P4 | G31 | R4 helps | L | [spec](rounds/R22-the-bone-workshop.md) |
 | R23 | Bloodlines and the grave garden | P4 | G32 | R5 | L | [spec](rounds/R23-bloodlines-and-the-grave-garden.md) |

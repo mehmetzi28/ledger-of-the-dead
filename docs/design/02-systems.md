@@ -453,7 +453,18 @@ battlefield, keep a shrine), each purchase (+1), tribute (25 gold a level for +5
 or lost (-5), raising a body from the graveyard a village buries its dead in (-3), the town's dread (Terror -1 a day,
 Calm +1), pilgrims spared (+3) or taken (-5) and shrines desecrated (-5). Prices move up to 25% with standing; at -60
 and below the doors shut. Favors pay grain-salt and a draught, ore and gold, or a week's blessing (menders heal 5%
-more). Three titles at +60. Raids, allegiance rewards and the companion come in PR B.
+more). Three titles at +60.
+**Raids and allegiance** (R20 PR B): a **raid** walks to a village and spends a watch on a fight with three militia and
+its best (at Saint Aldric's, its knight). Won, it takes 4-6 of its people as bodies (Farmhand, Hardened or Pious: new
+corpse conditions, +15 to raise, with the Stalwart, Thick-boned or Warded trait), gold and goods; standing -40 there
+and -10 with the others, dread +8, the next siege 2 days sooner (once a siege), and 40-60 souls gone. With no one left
+a village is **abandoned** for good: no trade, no favors, and its graveyard digs twice as deep. **Allegiance** (+60 /
++100): Miller's Ford's militia hold a siege's first wave once a week / its salt keeps the Embalmery's bodies 3 days
+longer; Greyhollow sends 2 ore a week / its forge-master reforges heart-forged lines at their best; Saint Aldric's
+blessing stays / its knight, **Ser Aldwin**, rides with you: a living companion added to every gate run and siege (a
+thrall: no slot, never saved past the fight, never raised or evolved, his level set by the standing), who leaves if
+the standing falls under +60. At -60 and below a village sends a mob with each siege's first wave. Nine passages (first
+dealings, allegiance, abandonment) and three more titles: Empty Valley, Neither Feared nor Loved, The Knight's Oath.
 
 **Vane Abbey, the seventh gate** (`ABBEY`=6, rank SS, src/game-abbey.js, R3 PR A). Its card shows once the Throne of Ash
 falls, as a sealed door with two key slots (`ABBEY_KEYS`): the deep route (Throne cleared, Tower floor `ABBEY_TOWER` 90,

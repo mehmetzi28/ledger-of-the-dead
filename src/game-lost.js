@@ -28,7 +28,7 @@ function lostFix(g){   // normalizeSave: only well-formed records, at most LOST_
     hp:x.hp&&typeof x.hp==='object'?x.hp:{},foes:Array.isArray(x.foes)?x.foes.filter(f=>f&&typeof f.n==='string').slice(0,8):[]}));
   if(L.length) g.lost=L; else delete g.lost;
 }
-const lostWhere=x=>x.g<0?'Hell Tower, floor '+(x.tw||1):x.sv?(x.sv==='mine'?'The Old Iron Mine':x.sv==='den'?'The Wolf Den':'On the road'):x.rift?'The Rift, depth '+x.rift:(DUNGEONS[x.g]?DUNGEONS[x.g].name:'A gate')+', room '+(x.room+1);
+const lostWhere=x=>x.g<0?'Hell Tower, floor '+(x.tw||1):x.sv?(x.sv==='raid'?'A raid on a village':x.sv==='mine'?'The Old Iron Mine':x.sv==='den'?'The Wolf Den':'On the road'):x.rift?'The Rift, depth '+x.rift:(DUNGEONS[x.g]?DUNGEONS[x.g].name:'A gate')+', room '+(x.room+1);
 function lostShown(x){   // was the blow shown before it landed?
   const b=x.fb; if(!b||!b.k) return null;
   if(b.k==='dot') return 'Wounds tick at the end of each turn and go past your ward; your card showed the wound and its turns left.';
