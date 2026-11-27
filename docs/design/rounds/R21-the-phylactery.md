@@ -107,3 +107,31 @@ Bind at the first chance; take the form of its build; keep corruption under 90. 
 
 - **Death's Door trivializes danger**: once a day, and the Tether already exists; measure deaths prevented.
 - **The Colossus breaks row rules**: it is its own test group; the Tether counts the hero as a front-row body.
+
+## As built
+
+### PR A: corruption, the phylactery, the other edge
+- **Corruption** (`src/game-phyl.js`, `S.player.corr`, `corrAdd`): 0-100 in five bands (Clean, Stained 25, Marked 50,
+  Hungering 75, Named 100); a band crossed is announced. Hooks: `corrRaised` in `tryRaise` (+3 for a boss; every raise
+  marks the day as one with raising, `S.player.rday`), `corrSkill` in `useSkill` and `corrExec` on the Execute order
+  (+0.2 a use, **at most +0.5 a day**, `CORR_DARK_DAY`: uncapped, the bots reached 100 by day 100), `corrAltar` on the
+  defiled altar and a desecrated shrine (+5), `corrEternal` (+5), `corrRaid` in `raidWon` (+10), and at dawn
+  (`corrDawn` in `closeDay0`): Terror +1, a day without raising -2, Morrow or the Choir at rank 5 -1. A buried
+  battlefield is -1 a body (3, the field's average), the Memorial honoured -2.
+- **The phylactery** (`phylCan`/`phylBind`): level 30 and corruption 25, three vessels (cosmetic), chosen on the Status
+  panel. **Death's Door** (`phylDoor`, last in `playerFalls`, after gear revives, Grace and the Second Draft): 1 HP,
+  once a day, mended at dawn. The floor of 25. **Shattering** (`phylShatter`, the Temple's card, two presses): 20,000
+  gold, corruption 0, the vessel, the form (PR B) and the name gone; the title *Mortal Again*. New Game+ keeps the
+  vessel and sets corruption to the floor (`phylNgp`).
+- **The other edge**: at 50 `phylWave` (in `townSiegeWave`) adds one foe to each wave (a copy of a striker) and
+  `corrDawn` takes 1 standing a day from every village; at 75 a 10% dawn **Hunger** (`S.player.hunP`, answered on the
+  Status panel with `hungerAnswer`: the weakest Reserve minion for +5% damage that day (in `dmgMul`), or refuse for
+  -5% max HP that day (in `pMax`); it lapses at the next dawn, and a gate run started with it open refuses it); at 100
+  `S.player.named` for good (until a shattering): siege captains +15% HP and attack, and `phylEcho` (in
+  `callEchoes`) has the Hunger read "Echo of the Gravewalker" once as a fourth echo.
+- **UI**: the ink stain (an SVG blot that grows, with drops at 25/50/75) and the corruption line on the Status panel,
+  the effects line, the Hunger and binding cards; the Codex page *The phylactery*; the tip; three passages (The
+  vessel, Named, Mortal again). ~90 Turkish strings.
+- **Bots**: bind at the first chance, feed the Hunger, honour the Memorial at 80+, skip boss raises at 87+;
+  `"off":["phyl"]`. Measured: see 04-balance (corruption 64 at day 100, 31/40 bound around day 68, sieges 91%).
+- **Tests**: `tests/groups/98-phylactery.js` (10 tests); 990 in all.

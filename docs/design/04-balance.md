@@ -57,6 +57,16 @@ raid's next siege, two in each mob), the raid bot held 48% of its sieges: an ear
 lost 86% of the time. Now dread +8, one in each mob, and the next siege only comes sooner (once a siege); the tier bump
 is behind `VIL_RAID_TIER` (off). The two paths now sit within about 2 points on clears, Tower and level.
 
+**After corruption and the phylactery, PR A (R21, 2026-11-27)**: market 95%, Tower 80.6 (it binds nothing; within
+noise of 81.6). Full bot (binds at the first chance, feeds the Hunger from the Reserve, honours the Memorial at 80+,
+skips boss raises at 87+) against `"off":["phyl"]`: clears 92% / 91%, Tower 86.1 / 84.6, level 51.8 / 51.6, sieges
+held 91% / 90%. Corruption 26.5 on day 50 and 64.3 at day 100 (spec 40-60), 50 first reached on day 71; 31 of 40 bots
+bound, on day 68 on average (spec 45-60); Death's Door held 9 blows a bot over 100 days; 1.2 Hungers a bot; 11 of 40
+named by day 100. Built to the spec (+0.2 for every Corpse Explosion, Reap and Execute, no cap), every bot hit 100
+by day 100, bound on day 53 and held 82% of its sieges against 90%, as the extra foe each wave came from day 34 (the
+bots cast hundreds of dark skills a cycle). Dark skills now add at most +0.5 a day (`CORR_DARK_DAY`); measured
+sources over 100 days with that cap: dark skills ~43, bosses raised ~22, Eternals ~24, against restraint ~45.
+
 **After Rift sigils and guardians, PR A (R9)**: gates and the Tower unchanged (market 89/90%, Tower 78.6/77.1; full 90/90%, Tower 87.6/86.6). Guardians cost the Rift ~0.5-1 depth: market 15.8/16.2 (was 16.8/16.6), full 19.4/18.8 (was 20.0/18.7). The full bot then makes 12 dives five depths above its best with three sigils (Thin Veil, Old Wounds, Iron Sky first): 53/55% cleared, ~28-29 shards and 4.4-5 guardians a bot. A first build moved the market bots because the Brass Saint's move reused the id `litany` of the Drowned Abbot's move; a test now checks the ids.
 
 **After Riftborn gear, the weekly dive and Rift events, PR B (R9)**: market unchanged (89/90%, Tower 78.6/77.1, Rift 15.7/16.4: Riftborn drops are rolled from a hash, so nothing else in a dive rolls differently). Full: gates 90/91%, level 60.8/61.4 at day 100, Rift 20.7/21.0 (22.1/20.7 with `"off":["weekly","riftborn"]`), ~13 Riftborn pieces found a bot, the weekly dive 14.3-14.5 times a bot (twice a week) to a best of depth ~38. The weekly dive costs the full bot ~3.5 Tower floors (83.6/84.6; 87.1 with `"off":["weekly"]`), in potions and draughts drunk for no XP: a player's choice, left as it is. Three first builds were cut back: with XP and gold the weekly dive took the full bot to level 95 by day 100 (it now pays only shards and a Riftborn piece); with a watch it cost ~4 levels (it now costs none, and nothing shatters or loses XP in it); every guardian in it left a Riftborn piece (~85 a bot; now only a new weekly best does). **Open**: the bot still prefers its uniques and heartforged pieces to Riftborn ones, even in the Rift (0% worn): its gear score only swaps one in past depth ~40. A probe of their real worth in the Rift is left to a later round.

@@ -87,7 +87,7 @@ Object.assign(SIEGE_PERK,{
 function townSiegeWave(list,r){   // spawnSiege, after scaling
   const hpK=(1-SIEGE_BELL*sbl('bell')), atkK=hasSpec('bell',3,'a')?.95:1;
   dreadWave(list,r); for(const e of list){ let k=hpK; if(e.boss) k*=(1-SIEGE_LIB*sbl('library'))*(hasSpec('bell',5,'b')?.85:1); if(k!==1){ e.maxHp=e.hp=Math.max(1,Math.round(e.maxHp*k)); } if(atkK!==1) e.atk=Math.max(1,Math.round(e.atk*atkK)); }
-  bellDefense(list,r); worksWave(list,r); godSiegeWave(list,r); vilMobs(list,r);   /* the hating villages' mobs (game-villages.js) */   /* siege works (game-siege2.js) */ if(r.room&&sbl('apoth')){ const P=S.player, h=healAlly(P,Math.round(pMax()*SIEGE_APO*sbl('apoth'))); if(h) log('The Apothecary\'s salves: +'+h+' HP.','ok'); }
+  bellDefense(list,r); worksWave(list,r); godSiegeWave(list,r); vilMobs(list,r); phylWave(list,r);   /* the hating villages' mobs (game-villages.js) */   /* siege works (game-siege2.js) */ if(r.room&&sbl('apoth')){ const P=S.player, h=healAlly(P,Math.round(pMax()*SIEGE_APO*sbl('apoth'))); if(h) log('The Apothecary\'s salves: +'+h+' HP.','ok'); }
 }
 const siegePayK=()=>(1+SIEGE_WAR*sbl('war'))*(hasSpec('bell',3,'b')?1.2:1)*dreadPayK()*godPayK();   // siegeGoldPay (the Choir: game-pantheon.js)
 const siegeDustK=()=>hasSpec('bell',5,'a')?2:1;   // siegeWon

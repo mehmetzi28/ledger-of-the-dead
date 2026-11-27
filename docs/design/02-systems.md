@@ -465,6 +465,19 @@ blessing stays / its knight, **Ser Aldwin**, rides with you: a living companion 
 thrall: no slot, never saved past the fight, never raised or evolved, his level set by the standing), who leaves if
 the standing falls under +60. At -60 and below a village sends a mob with each siege's first wave. Nine passages (first
 dealings, allegiance, abandonment) and three more titles: Empty Valley, Neither Feared nor Loved, The Knight's Oath.
+**Corruption and the phylactery** (R21 PR A, `src/game-phyl.js`): the hero carries **corruption** from 0 to 100 in five
+bands (Clean, Stained 25, Marked 50, Hungering 75, Named 100), shown on the Status panel as an ink stain that spreads.
+It rises with dark power: a boss raised +3, Corpse Explosion, Reap or an Execute order +0.2 each (at most +0.5 a day), a defiled altar or a
+broken shrine +5, an Eternal +5, a village raided +10, a day at Terror +1. It falls with restraint: a day without
+raising -2, a battlefield buried -1 a body (3), the Memorial honoured -2, Morrow or the Choir at rank 5 -1 a day. At
+level 30 and corruption 25 the Ledger offers the **phylactery**: bind the soul into a vessel (the Ledger's clasp, a
+bone ring, a skull lantern; cosmetic). Bound, **Death's Door** holds a killing blow at 1 HP once a day (after gear
+revives, Grace and the Second Draft; the vessel mends at dawn), and corruption never falls under 25. New Game+ keeps
+the soul bound at the floor. The Temple shatters it for 20,000 gold: corruption to 0, the title *Mortal Again*. The
+other edge: at 50 each siege wave brings one more foe and every village loses 1 standing a day; at 75 one dawn in ten
+the Ledger **hungers** (give it a Reserve minion for +5% damage that day, or refuse and lose 5% max HP that day; a run
+started with the question open refuses it); at 100 the Grand Inquisitor **names** you for good (until a shattering):
+siege captains come 15% harder and the Hunger reads your own echo as a fourth. Three passages. The forms come in PR B.
 
 **Vane Abbey, the seventh gate** (`ABBEY`=6, rank SS, src/game-abbey.js, R3 PR A). Its card shows once the Throne of Ash
 falls, as a sealed door with two key slots (`ABBEY_KEYS`): the deep route (Throne cleared, Tower floor `ABBEY_TOWER` 90,

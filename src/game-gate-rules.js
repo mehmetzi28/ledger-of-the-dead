@@ -70,6 +70,7 @@ function playerFalls(){   // the player hit 0 HP: revive from gear if possible, 
   if((r.revives||0)<lim){ r.revives=(r.revives||0)+1; P.hp=Math.round(pMax()*(hasFlag('deathless')?.5:.3)); log('Your armor refuses to break. You rise at '+P.hp+' HP.','ok'); return false; }
   if(blessed('hon')&&!r.tw&&!r.grace){ r.grace=true; P.hp=Math.max(1,Math.round(pMax()*GRACE_HP)); tally('graced'); log('The Old Gods will not let you fall. You rise at '+P.hp+' HP.','story'); moment('Grace','gold'); return false; }
   if(brewFall()) return false;   /* Second Draft (game-brew.js) */
+  if(phylDoor()) return false;   /* Death's Door (game-phyl.js) */
   defeat(); return true;
 }
 function sellItem(u){ if(S.mode!=='town') return 0; const i=S.inv.findIndex(x=>x.u===u); if(i<0) return 0; const it=S.inv[i], d=ITEM[it.id]; if(d.uq||it.lk) return 0; S.inv.splice(i,1); const g=sellValue(it); S.gold+=g; tally('soldItems'); sfx('coin'); return g; }
@@ -318,7 +319,7 @@ function resolveEvent(ch){
   else if(['oldgods','vshrine','ushrine','cshrine'].includes(ev.id)&&ch==='pray'){ const h=healAlly(P,Math.round(pMax()*.3)); P.mana=pMana(); tally('prayed'); deed(faithOf(),DEV_SHRINE/DEED_K[faithOf()]/templeDev()); m=FAITH[faithOf()].short.replace(/^the /,'The ')+' hears you. You recover '+h+' HP, your mana is full and your devotion grows.'; c='ok'; sfx('coin'); }
   else if(ev.id==='godshrine'&&ch==='convert'){ const g=ev.g; if(!convert(g)) return false; m='You kneel to '+FAITH[g].name+'. Half your devotion comes with you.'; c='ok'; sfx('raise'); }
   else if(ev.id==='godshrine'&&ch==='desecrate'){ if(faithOf()!=='dis') return false; const g=Math.round((10+P.lvl*3)*(1+r.di)*ngpReward()); S.gold+=g; r.goldTot=(r.goldTot||0)+g; deed('dis',10/DEED_K.dis/templeDev()); tally('desecrated'); m='You break the shrine of '+FAITH[ev.g].name+' and take '+g+' gold from its offerings.'; c='ok'; sfx('coin'); }
-  else if(ev.id==='defiled'&&ch==='take'){ const d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*.1))), g=Math.round((10+P.lvl*3)*(1+r.di)*ngpReward()); P.hp-=d; S.gold+=g; r.goldTot=(r.goldTot||0)+g; const got=gainSoul(); tally('defiled'); deed('dis',DEV_SHRINE/DEED_K.dis/templeDev());
+  else if(ev.id==='defiled'&&ch==='take'){ const d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*.1))), g=Math.round((10+P.lvl*3)*(1+r.di)*ngpReward()); P.hp-=d; S.gold+=g; r.goldTot=(r.goldTot||0)+g; const got=gainSoul(); tally('defiled'); corrAltar('a defiled altar'); deed('dis',DEV_SHRINE/DEED_K.dis/templeDev());
     m='You take the offerings: '+g+' gold'+(got?' and a Soul ('+r.souls+'/'+SOUL_MAX+')':'')+'. The altar takes '+d+' HP in return.'; c='ok'; sfx('coin'); }
   else if(ev.id==='straggler'&&ch==='raise'){ const e=makeEnemy(r.di,lvl,false), cp=corpseOf(e); cp.free=true; r.corpses.push(cp); m=e.name+' waits with the other bodies. Raising it costs no mana.'; c='ok'; }
   else if(ev.id==='straggler'&&ch==='finish'){ const e=makeEnemy(r.di,lvl,false), xp=Math.round(killXp(e)*1.5); r.gained+=xp; r.ups+=addXp(xp); m='You finish '+theName(e.name)+'. +'+xp+' XP.'; c='ok'; }

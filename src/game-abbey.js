@@ -165,6 +165,7 @@ function callEchoes(e){
     const a=makeEcho(e,en); if(a.role==='mender'&&liveFoes().some(x=>x.role==='mender')) a.role='striker';
     foeScale([a],foeAtkMul(ABBEY)); heatScale([a]); foeRise([a]); r.enemies.push(a); e.echoN=(e.echoN||0)+1; used.add(a.name); got.push(a);
   }
+  phylEcho(e);   /* named: your own echo (game-phyl.js) */
   log(got.length?e.name+' reads from your Memorial: '+got.map(x=>x.name.replace(/^Echo of /,'')).join(', ')+' stand'+(got.length>1?'':'s')+' again, in gold ink.':e.name+' reaches into the Memorial, but no one more answers.','bad');
 }
 function echoFades(e){   // checkDeaths: an echo leaves no body, no loot and no study
