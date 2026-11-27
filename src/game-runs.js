@@ -60,16 +60,16 @@ function spawnRoom(){
   snapRoom();
 }
 function startTower(f){
-  f=+f; if(S.mode!=='town'||S.watches<=0||!towerOpen()||!towerStarts().includes(f)) return;
-  S.watches--; S.runs++; tally('twRuns'); S.notices=[];   // notes are about what happened since your last run
+  f=+f; if(S.mode!=='town'||S.watches<=0||!towerOpen()||!towerStarts().includes(f)||!mapCan('tw')) return;
+  mapGo('tw'); S.watches--; S.runs++; tally('twRuns'); S.notices=[];   // notes are about what happened since your last run
   S.run={tw:f,tw0:f,di:5,room:0,rooms:1,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[]};
   S.mode='battle'; titheSouls();
   log('You step into the Hell Tower.');
   spawnFloor();
 }
 function startRun(di){
-  if(S.mode!=='town'||S.watches<=0||!RK[di]||gateLocked(di)) return;
-  S.watches--; S.runs++; S.notices=[];
+  if(S.mode!=='town'||S.watches<=0||!RK[di]||gateLocked(di)||!mapCan(gateNode(di))) return;
+  mapGo(gateNode(di)); S.watches--; S.runs++; S.notices=[];   /* the road there first (game-map.js) */
   S.run={di,room:0,rooms:di===ABBEY?ABBEY_ROOMS:4,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:gateMod(di),heat:heatOf(di)};
   S.run.rooms+=S.run.mod&&di!==ABBEY?longRooms([S.run.mod]):0;   /* the Long curse (game-valley.js) */
   S.mode='battle'; titheSouls(); prepTake(S.run); prepSoul(S.run); townStart(S.run); ascRead(S.run); rwEnter(S.run);   /* run prep, the black market's Soul (game-brew.js), the Soul Well (game-town2.js) */
@@ -438,7 +438,7 @@ function raiseChance(c){
   if(firstRaise()) return 100;
   let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+4*sk('mastery')+B_OSS*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*RAISE_LV-RK[c.rankI].pen;
   if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+nemRaise(c)+windRaise()+(hasInsc('many')?INSC_RAISE:0)+incRaise()+townRaise(c)+rgRaise(c)+twoBooks()+faithRaiseK(c)+ascRaise();
-  ch+=inscRaise();   /* the Raising inscription (game-collection.js) */
+  ch+=inscRaise()+mapRaise(c);   /* the Raising inscription (game-collection.js); old bones and fresh dead from the valley (game-map.js) */
   { const k=custK('raise'); if(k!==1) ch*=k; }   /* custom difficulty (game-modes.js) */
   return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
 }

@@ -415,6 +415,20 @@ Wall), Ashen Barrow (C, the Ember Knight: Cinder Wave), Hollow Cathedral (B, the
 Orchard (A, the Orchard Mother: Seedfall), Throne of Ash (S, the Pale Sovereign: Royal Decree). Each has 7 foe kinds (two
 of each role plus a gear-bearer), sharing their role's stat factors; each kind has a foe kit (2.3).
 
+**The valley map** (R19, `src/game-map.js`, `src/ui-map.js`). The Gates tab's **Valley map** sub-tab paints the valley
+as a place: the town, the seven gates, the Hell Tower, four old graveyards and two battlefields (15 nodes), joined by
+roads of 1 to 3 steps. The hero stands somewhere (`S.map.pos`): a run from the node you stand on costs no travel; from
+anywhere else the road is walked first (fewest steps), and every `MAP_STEP` (3) steps walked in a day spend a watch,
+with steps left over carried to the next. A walk that would leave no watch for the run is refused (the gate card's Enter
+is shut and says so). After a run you stand at that gate; at dawn the Ledger pulls you home. Every start goes through
+it: gate runs, the Tower (its node), the Rift (under the Throne), Trials, the rival's fights and sweeps. **Fog**: the
+town, the Rat Warren and the Sunken Crypt are known; an open gate is known, the Tower once open, and clearing a gate
+shows its neighbours; the unknown are smudges on the vellum. **Sites**: an old graveyard is dug for 2-4 old bodies of
+the nearest gate's kinds (-10% to raise), then rests 5 days; a battlefield fills after every siege, won or lost, with 3-6
+of the fallen living (+10% to raise) and empties once walked. A site needs a watch in hand but none left over. Dug
+bodies wait in the valley view until dawn and rise in town at no mana, into the army or the Reserve; at dawn the rest
+crumble. Two titles: Grave Digger (dig 100) and Wayfarer (300 steps). The Gates list still starts every gate.
+
 **Vane Abbey, the seventh gate** (`ABBEY`=6, rank SS, src/game-abbey.js, R3 PR A). Its card shows once the Throne of Ash
 falls, as a sealed door with two key slots (`ABBEY_KEYS`): the deep route (Throne cleared, Tower floor `ABBEY_TOWER` 90,
 `ABBEY_PAGES` 20 torn pages) or the secret route (Throne cleared, all six secret masters slain). Either key opens it for

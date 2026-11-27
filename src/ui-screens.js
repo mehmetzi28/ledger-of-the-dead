@@ -34,6 +34,7 @@ function townHTML(){
   if(ui.tab==='codex') return h+codexHTML();
   const subs=gateSubs(), sub=subs.some(x=>x[0]===ui.gsub)?ui.gsub:'open';   // the Gates tab's own sub-tabs: the gates, the War table, the Rift
   if(subs.length>1) h+='<div class="chips sub-nav" role="tablist">'+subs.map(x=>'<button class="btn small'+(x[0]===sub?' primary':'')+'" role="tab" data-a="gsub" data-k="'+x[0]+'" aria-selected="'+(x[0]===sub)+'">'+x[1]+'</button>').join('')+'</div>';
+  if(sub==='valley') return h+valleyHTML();   /* R19 (ui-map.js) */
   if(sub==='war') return h+raidHTML()+armyBriefHTML();
   if(sub==='rift') return h+riftHTML()+armyBriefHTML();
   if(sub==='trial') return h+trialHTML()+armyBriefHTML();
@@ -42,13 +43,14 @@ function townHTML(){
   h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'+gateArmyHTML()+nemStripHTML()
    +((n=>n<FIRST_STEPS.length&&!(S.tips&&S.tips.off)?'<p class="q-note guide-link"><button class="linkbtn" data-a="tab" data-k="help">How to play &middot; first steps '+n+'/'+FIRST_STEPS.length+'</button></p>':'')(stepsDone()))   /* for a new player; gone once every step is done or tips are switched off */
    +(omen()?'<div class="omen-line" title="It touches every gate and the Tower until dawn."><b>Omen today: '+OMENS[omen()].name+'.</b> '+OMENS[omen()].desc+'</div>':'')+(forecast()?'<div class="omen-line dim">Tomorrow: '+(forecast().id?OMENS[forecast().id].name:'no omen')+' (foreseen by '+FAITH[faithOf()].short+').</div>':'')+rivalWarnHTML()+arcGateHTML()
+   +((S.map&&S.map.bodies||[]).length?'<p class="q-note">'+S.map.bodies.length+' bod'+(S.map.bodies.length>1?'ies':'y')+' from the valley wait to be raised before dawn: <button class="linkbtn" data-a="gsub" data-k="valley">Valley map</button></p>':'')
    +prepHTML()+'<div class="gates">'+DUNGEONS.map((d,i)=>gateHTML(i)).join('')+'</div>'
    +'<div class="btns"><button class="btn small" data-a="rest">Rest until dawn</button></div></section>';
   return h;
 }
 function gateSubs(){
   const out=raidOrders(), war=raidPool().some(isCommander)||out.length||(S.raidLog||[]).length||expOut().length;   // a squad in the field waits there for its dawn choice
-  return [['open','Gates']].concat(war?[['war','War table'+(out.length?' &middot; '+out.length+' tonight':'')]]:[]).concat(S.ti&&S.ti.clr&&S.ti.clr[5]?[['rift','The Rift'+(riftOpen()?' &middot; next '+(riftBest()+1):' &middot; Lv '+RIFT_LV)]]:[]).concat(trialOpen()?[['trial','Trial'+(tri().day===S.day?' &middot; tried today':'')]]:[]);
+  return [['open','Gates'],['valley','Valley map']].concat(war?[['war','War table'+(out.length?' &middot; '+out.length+' tonight':'')]]:[]).concat(S.ti&&S.ti.clr&&S.ti.clr[5]?[['rift','The Rift'+(riftOpen()?' &middot; next '+(riftBest()+1):' &middot; Lv '+RIFT_LV)]]:[]).concat(trialOpen()?[['trial','Trial'+(tri().day===S.day?' &middot; tried today':'')]]:[]);
 }
 function nick(u){ return u.id==='p'?'You':u.nick||u.name; }
 // A small glyph on each status pill, so they read without colour: drop, bubbles, flame, wilt, snowflake, frost waves, eye, crack, down arrow, chevrons, shield.

@@ -3940,3 +3940,40 @@ TR_RX.unshift(
 ].forEach(([k,v])=>{ TR_DICT.set(k,v); });
 TR_RX.unshift([/^Save size: ([\d,.]+) KB$/,"Kayıt boyutu: $1 KB"],[/^Your save is ([\d.]+) MB, close to what a browser keeps for one page\. Download a save file from Settings to be safe$/,"Kaydın $1 MB; bir tarayıcının tek sayfa için tuttuğu sınıra yakın. Güvende olmak için Ayarlar'dan bir kayıt dosyası indir"]);
 TR_RX.unshift([/^Show (\d+) more \((\d+) not shown\)$/,"$1 tane daha göster ($2 gösterilmiyor)"]);
+
+// ----- R19 PR A: the valley map (place names stay English)
+[
+ ["The valley","Vadi"],["Valley map","Vadi haritası"],["Map of the valley","Vadinin haritası"],["Steps toward a watch","Bir nöbete doğru adımlar"],["You stand at","Durduğun yer"],
+ ["Each run takes a watch","Her akın bir nöbet alır"],["Every # steps walked spend a watch. You are pulled home at dawn","Yürünen her # adım bir nöbet harcar. Şafakta eve çekilirsin"],
+ ["The map is off: every road is free","Harita kapalı: her yol bedava"],["The necropolis","Nekropol"],["The Hell Tower","Cehennem Kulesi"],
+ ["Your town","Kasaban"],["A gate","Bir kapı"],["The Tower","Kule"],["An old graveyard","Eski bir mezarlık"],["A battlefield","Bir savaş alanı"],["you stand here","buradasın"],
+ ["Known places","Bilinen yerler"],["Not open to you yet","Henüz sana açık değil"],["Climb from the Tower tab","Kule sekmesinden tırman"],["Enter","Gir"],["Dig","Kaz"],["Walk the field","Alanı dolaş"],
+ ["The Rift lies under it","Yarık onun altında"],["Rest until dawn","Şafağa kadar dinlen"],["Too far for the watches left today","Bugün kalan nöbetler için fazla uzak"],["off the known roads","bilinen yolların dışında"],
+ ["Buildings, the market and your army wait here whatever road you stand on. The Ledger pulls you home at dawn","Binalar, pazar ve ordun hangi yolda durursan dur burada bekler. Defter seni şafakta eve çeker"],
+ ["Bodies from the valley","Vadiden cesetler"],["until dawn","şafağa kadar"],["Raise","Dirilt"],["Your army and Reserve are full","Ordun ve Yedeğin dolu"],["Old bones","Eski kemikler"],["Fresh dead","Taze ölüler"],
+ ["Ready to dig","Kazmaya hazır"],["Fresh dead wait","Taze ölüler bekliyor"],["Nothing here until the next siege","Bir sonraki kuşatmaya kadar burada bir şey yok"],
+ ["The Valley map on the Gates tab shows the valley as a place: your town, the gates, the Hell Tower and the sites between them, joined by roads of # to # steps. The Gates list still starts every gate; its cards show the road","Kapılar sekmesindeki Vadi haritası vadiyi bir yer olarak gösterir: kasaban, kapılar, Cehennem Kulesi ve aralarındaki yerler, # ile # adımlık yollarla birbirine bağlı. Kapılar listesi yine her kapıyı başlatır; kartları yolu gösterir"],
+ ["Travel","Yolculuk"],["Where you stand","Durduğun yer"],["A run from the place you stand on costs no travel. From anywhere else you walk the road first, by the fewest steps. After a run you stand at that gate","Durduğun yerden yapılan akın yolculuk istemez. Başka bir yerden önce en kısa yoldan yürürsün. Akından sonra o kapıda durursun"],
+ ["Steps and watches","Adımlar ve nöbetler"],["Every # steps walked in a day spend a watch. Steps left over count toward the next. A walk that would leave no watch for the run is refused","Bir günde yürünen her # adım bir nöbet harcar. Artan adımlar bir sonrakine sayılır. Akına nöbet bırakmayacak bir yürüyüş reddedilir"],
+ ["Home","Ev"],["At dawn the Ledger pulls you home to the town, with no steps carried over. Town work needs no walking","Şafakta Defter seni kasabaya, adımların sıfırlanarak, geri çeker. Kasaba işleri yürüme istemez"],
+ ["The Rift and the Tower","Yarık ve Kule"],["The Rift lies under the Throne of Ash; the Hell Tower stands at the north end of the valley","Yarık, Throne of Ash'in altındadır; Cehennem Kulesi vadinin kuzey ucunda durur"],
+ ["Fog","Sis"],["The town, the Rat Warren and the Sunken Crypt are known from the start. A gate is known once it is open to you. Clearing a gate shows the places next to it","Kasaba, Rat Warren ve Sunken Crypt baştan bilinir. Bir kapı sana açıldığında bilinir. Bir kapıyı temizlemek yanındaki yerleri gösterir"],
+ ["Sites","Yerler"],["Old graveyards (#)","Eski mezarlıklar (#)"],["Battlefields (#)","Savaş alanları (#)"],
+ ["Dig: # to # old bodies of the nearest gate's kinds, #% harder to raise. Then the graveyard rests # days","Kaz: en yakın kapının türlerinden # ile # eski ceset, diriltmesi %# daha zor. Sonra mezarlık # gün dinlenir"],
+ ["After each siege, won or lost, each holds # to # of the fallen living, #% easier to raise. Once walked, a field is empty until the next siege","Her kuşatmadan sonra, kazanılsın ya da kaybedilsin, her biri düşen dirilerden # ile # tane tutar, diriltmesi %# daha kolay. Bir kez dolaşılınca alan bir sonraki kuşatmaya kadar boş kalır"],
+ ["Dug bodies","Kazılan cesetler"],["They wait in the valley view until dawn and rise in town at no mana, into the army or, when it is full, the Reserve. At dawn the rest crumble","Şafağa kadar vadi görünümünde beklerler ve kasabada manasız dirilirler: orduya ya da o doluysa Yedeğe. Şafakta kalanlar ufalanır"],
+ ["Visiting","Ziyaret"],["A site needs a watch in hand but none left over: the walk is the visit","Bir yer elde bir nöbet ister ama artanı değil: yürüyüş ziyaretin kendisidir"],
+ ["Dig # bodies out of the valley's old graveyards","Vadinin eski mezarlıklarından # ceset kaz"],["Walk # steps on the valley's roads","Vadinin yollarında # adım yürü"],
+ ["The Gates tab has a Valley map. A run from where you stand is free; walking to another gate costs steps, and every # steps spend a watch. Old graveyards and battlefields between the gates hold bodies to dig and raise in town before dawn","Kapılar sekmesinde bir Vadi haritası var. Durduğun yerden akın bedavadır; başka bir kapıya yürümek adım ister ve her # adım bir nöbet harcar. Kapılar arasındaki eski mezarlıklar ve savaş alanları, şafaktan önce kasabada diriltilecek cesetler tutar"],
+ ["The walk would leave no watch for the run","Yürüyüş akına nöbet bırakmaz"]
+].forEach(([k,v])=>{ TR_DICT.set(k,v); });
+TR_RX.unshift(
+ [/^(\d+) steps?$/,"$1 adım"],[/^(\d+) steps?: spends a watch$/,"$1 adım: bir nöbet harcar"],[/^(\d+) steps?: spends (\d+) watches$/,"$1 adım: $2 nöbet harcar"],
+ [/^Old bones of the (.+)'s kinds: (\d+) to (\d+) bodies to raise before dawn, (\d+)% harder to raise\. (.+)$/,"$1 türlerinin eski kemikleri: şafaktan önce diriltilecek $2 ile $3 ceset, diriltmesi %$4 daha zor. {t5}"],
+ [/^Dug over: ready in (\d+) days?$/,"Kazılmış: $1 gün sonra hazır"],
+ [/^The fallen of the last siege lie here: (\d+) to (\d+) fresh bodies, (\d+)% easier to raise\. (.+)$/,"Son kuşatmanın düşenleri burada yatıyor: $1 ile $2 taze ceset, diriltmesi %$3 daha kolay. {t4}"],
+ [/^(Old bones|Fresh dead) from (.+)$/,"{t1}, $2 yerinden"],[/^(\d+)% to rise$/,"Dirilme %$1"],
+ [/^You (dig at|walk) (.+): (\d+) bod(?:y|ies) to raise before dawn$/,"$2: şafaktan önce diriltilecek $3 ceset"],
+ [/^(\d+) dug bod(?:y|ies) crumbled back into the earth at dawn$/,"Kazılan $1 ceset şafakta toprağa geri ufalandı"]
+);
+TR_DICT.set("It did not rise","Dirilmedi"); TR_RX.unshift([/^Risen: (.+)$/,"Dirildi: $1"]);

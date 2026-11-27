@@ -149,11 +149,11 @@ function trialPlan(){   // this week's Trial, fixed the first time the week asks
   T.cur={w,di,tier,mods,lv:trialLv(di,tier),seed:dayHash(w,127)}; return T.cur;
 }
 const trialBestWeek=()=>{ const w=trialWeek(); return (tri().log||[]).find(x=>x.w===w)||null; };
-const trialReady=()=>{ const p=trialPlan(); return !!p&&S.mode==='town'&&S.watches>0&&tri().day!==S.day&&S.player.lvl>=RK[p.di].unlock; };
+const trialReady=()=>{ const p=trialPlan(); return !!p&&S.mode==='town'&&S.watches>0&&tri().day!==S.day&&S.player.lvl>=RK[p.di].unlock&&mapCan(gateNode(p.di)); };
 function trialRng(seed,room){ let a=dayHash(seed,room,131)|0; return ()=>{ a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 function startTrial(){
   if(!trialReady()) return false; const p=trialPlan(), di=p.di;
-  S.watches--; S.runs++; S.notices=[]; tri().day=S.day; tally('trials');
+  mapGo(gateNode(di)); S.watches--; S.runs++; S.notices=[]; tri().day=S.day; tally('trials');
   S.run={di,trial:p.w,tseed:p.seed,tlv:p.lv,room:0,rooms:TRIAL_ROOMS,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:p.mods[0],mod2:p.mods[1]||null,heat:p.tier,downs:0};
   S.mode='battle'; titheSouls();
   log('The Trial of week '+p.w+' begins in the '+DUNGEONS[di].name+'.');

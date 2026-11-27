@@ -140,7 +140,7 @@ test('Language: Turkish lays over the English text, numbers and names kept; unkn
 });
 
 test('Gates tab: the War table and the Rift are sub-tabs, shown once they exist',()=>{
-  ui.tab='gates'; ok(!/data-a="gsub"/.test(renderAll('fresh')),'no sub-tabs on a new game');
+  ui.tab='gates'; ok(!/data-a="gsub" data-k="(war|rift|trial)"/.test(renderAll('fresh'))&&/data-a="gsub" data-k="valley"/.test(renderAll('fresh')),'a new game: only the gates and the Valley map');
   S.ti=S.ti||{}; S.ti.clr={5:1}; setLvl(30); let h=renderAll('rift teaser'); ok(/data-k="rift"/.test(h)&&/The Rift &middot; Lv 40/.test(h)); ok(!/data-k="war"/.test(h));
   ACTIONS.gsub('rift'); h=renderAll('rift tab'); ok(/opens at level 40/.test(h)&&!/h-gates/.test(h),'only the Rift');
   ACTIONS.gsub('nonsense'); eq(ui.gsub,'open'); ok(/h-gates/.test(renderAll('back to gates')));
