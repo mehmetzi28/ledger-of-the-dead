@@ -29,6 +29,8 @@ const SKILL_MODS={
   calcify:  {a:['Petrified','Enemy crits cannot crit you: they land as plain hits and open no wound.'], b:['Barbed Hide','Foes that hit you take 15% of the blow back.']},
   sanguine: {a:['Blood Feast','Healing past your max HP becomes Ward, up to 30% of your max HP.'], b:['Clear Mind','Healing you receive also restores mana worth 10% of it.']},
   thrift:   {a:['Frugal Rites','A failed raise refunds half its mana.'],   b:['Grave Sense','Grave Salts add 30% to a raise instead of 20%.']},
+  lance:    {a:['Shatterpoint','A frozen target takes the lance at x'+LANCE_SHATTER+'.'], b:['Rime Spread','Also freezes one foe beside it (not a boss).']},
+  pest:     {a:['Contagion','A foe that dies with two or more wounds passes one to another foe.'], b:['Virulence','The wounds on your foes can crit, at your Strike\'s crit chance.']},
   deathless:{a:['Deep Well','Active skills cost 15% less mana, and you regain '+DEEP_REGEN+' more mana every turn in battle.'], b:['Iron Will','You take '+Math.round((1-IRON_BASE)*100)+'% less damage, and '+Math.round((1-IRON_WILL)*100)+'% less below '+Math.round(IRON_LOW*100)+'% HP.']}
 };
 // The small passives above feed the same bonus pool as titles, sets and faith.

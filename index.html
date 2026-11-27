@@ -1623,7 +1623,10 @@ function towerTable(f,role,boss,elite){
   }
   return tcache[key]=rows;
 }
-const pierceMul=p=>(hasFlag('ruin')?1.25:1)*(1+xb('dmgp')/100)*(S&&S.run&&S.run.bless?1.15:1)*(1-foeArmor()*(1-p));   // p = share of foe armor ignored (some skills pierce); bless = the blood shrine event, +15%
+// R11 hero builds (game-builds.js): Hoarfrost Lance, Pestilence, Endurance, Requiem, The Long Name, Long Haul
+const LANCE_BASE=1.1, LANCE_STEP=.3, LANCE_BOSS=40, LANCE_SHATTER=1.5, PEST_STEP=.05, PEST_MAX=3, CON_ENDURE=.003, CON_ENDURE_CAP=.25, ENDURE_FROM=5,
+  REQUIEM_MUL=.6, LNAME_TURNS=3, LONG_HAUL=15;
+const pierceMul=p=>endureK()*(hasFlag('ruin')?1.25:1)*(1+xb('dmgp')/100)*(S&&S.run&&S.run.bless?1.15:1)*(1-foeArmor()*(1-p));   // p = share of foe armor ignored (some skills pierce); bless = the blood shrine event, +15%
 const dmgMul=()=>pierceMul(0);   // every hit you and your minions land goes through this
 const enrage=e=>(e.tw&&e.boss)?1+Math.max(0,S.run.turn-8)*(e.tw===100?.12:.07):1;   // tower wardens hit harder every turn after turn 8
 
@@ -2100,6 +2103,8 @@ const roll3=()=>S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&!
  ['as_10','Deeds','Ascendant X','Reach ascension level 10.',()=>(S.ngp||0)>=10,{xpp:5,goldp:5}],
  ['as_all','Deeds','Every Rule','Choose every ascension rule once.',()=>ASC_IDS.every(k=>S.ti&&S.ti['asc_'+k]),{dmgp:4,hpp:4}],
  ['as_rw','Deeds','Rewritten','Clear six gates the Ledger wrote over (one a cycle).',()=>T_('rewritten')>=6,{dmgp:3,goldp:3}],
+ ['b_haul','Deeds','Long Haul','Win a fight that lasts '+LONG_HAUL+' turns or more.',()=>T_('longHaul')>=1,{hpp:3}],
+ ['b_five','Deeds','Five by Five','Rank every skill of one path to 3.',()=>fiveByFive(),{dmgp:3,xpp:2}],
  ['r_six','Deeds','Six Guardians','Fell all six guardians of the Rift.',()=>GUARDIANS.every((g,i)=>!!(S.rift&&S.rift.gk&&S.rift.gk[i])),{dmgp:3,hpp:3}],
  ['r_sigil3','Deeds','Fully Sigiled','Clear depth 20 of the Rift or deeper with three sigils.',()=>T_('sig3_20')>=1,{mpow:4}],
  ['r_weekly','Deeds','Weekly Diver','Set 10 weekly dive bests.',()=>T_('weekBests')>=10,{xpp:3}],
@@ -2192,7 +2197,7 @@ function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // d
 // rarer ones stay hidden ("???") until earned. Rarity follows how hard a title is: bot runs measured the reachable ones,
 // and deeds the bots skip (events, forging) were judged by hand.
 const TITLE_RARITY={hd1:1,hd2:2,nm0:3,nm1:3,nm2:3,nm3:4,nm4:4,nm5:5,dm3:5,sb0:5,sb1:5,sb2:5,sb3:5,sb4:5,sb5:5,g0:0,g1:0,d_raise1:0,d_kill100:0,d_death:0,d_armed1:0,d_lv10:0,d_study:0,s_venom:0,f_crit:0,d_tower1:0,d_quest7:0,d_army:0,g2:1,t10:1,t20:1,d_raise50:1,d_cancel:1,d_evolve:1,d_uq:1,d_gold:1,m0:1,m1:1,c_drought:1,c_fury:1,c_bulwark:1,c_horde:1,c_volatile:1,p_25:1,k_spear:1,k_blast:1,k_chill:1,g_items:1,g_sold:1,f_flawless:1,f_last:1,a_boss:1,e_strag:1,e_pedlar:1,e_trap:1,d_death10:1,g3:2,g4:2,t30:2,t40:2,t50:2,d_kill1000:2,d_lv25:2,d_raise200:2,d_tower50:2,d_cancel10:2,d_trophy500:2,d_altar:2,d_elder:2,m2:2,m3:2,d_armed3:2,d_master:2,d_bag:2,c_25:2,e_shrine:2,e_coffer:2,s_poison:2,s_cure:2,k_reap:2,k_master3:2,k_all:2,f_boss25:2,f_elite100:2,g_gold:2,g_roll3:2,a_traits:2,a_elders:2,e_day100:2,e_runs100:2,g_reforge:2,g5:3,t60:3,t70:3,m4:3,m5:3,tw75:3,d_lv50:3,p_100:3,f_crit1000:3,e_rooms1000:3,twruns:3,d_ngp:3,d_tower110:3,t80:4,t90:4,t100:4,d_kill5000:4,d_all:4,d_tower150:4,a_raise500:4,e_lv75:4,tw200:5,d_ngp3:5,d_tuq:5,a_ancient:3,a_eternal:4,a_raid1:1,a_raid25:3,r_5:3,r_15:4,r_30:5};
-Object.assign(TITLE_RARITY,{x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,as_3:3,as_6:4,as_10:5,as_all:5,as_rw:4,r_six:4,r_sigil3:4,r_weekly:3,r_attuned:3,r_half:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
+Object.assign(TITLE_RARITY,{x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,as_3:3,as_6:4,as_10:5,as_all:5,as_rw:4,b_haul:2,b_five:3,r_six:4,r_sigil3:4,r_weekly:3,r_attuned:3,r_half:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
 const RARITY_MUL=[1,1,1.25,1.5,2,3], HIDDEN_FROM=3;
 TITLES.forEach(t=>{ t.r=TITLE_RARITY[t.id]!=null?TITLE_RARITY[t.id]:1; const m=RARITY_MUL[t.r]; for(const k in t.b) t.b[k]=Math.max(t.b[k],Math.round(t.b[k]*m)); });
 const titleHidden=t=>t.r>=HIDDEN_FROM&&!(S&&S.ti&&S.ti.got&&S.ti.got[t.id]);
@@ -2414,14 +2419,14 @@ function checkDeaths(){
     if(!(e.hp<=0)||e.dead) continue;
     if(e.echo){ echoFades(e); continue; }   /* the Hunger's echoes leave nothing (game-abbey.js) */
     if(e.risen){ e.dead=true; kitDeath(e); bossFoeDies(e); r.corpses.push(corpseOf(e)); log(e.name+' falls again.'); fxe('death',e); continue; }   /* called back by a Gravecaller: its reward was paid the first time */
-    e.dead=true; r.kills++; S.quest.kills++; kitDeath(e); bossFoeDies(e);
+    e.dead=true; r.kills++; S.quest.kills++; kitDeath(e); bossFoeDies(e); pestDeath(e);   /* Contagion (game-builds.js) */
     if(e.boss||e.elite) gainSoul();
     if(e.boss){ tally('bosses'); r.bossK=e.name; }   /* the History notes the boss that fell */
     if(e.elite) tally('elites');
     studyFoe(e.base,ascStudy(e));
     r.pending+=killXp(e); if(!e.stash) r.loot.push(...rollDrops(e)); killLoot(e,r);   // a stolen body drops no gear: the body is the reward
     killPowers(); capKill(e); faithKill(e,r);
-    if(!e.rival&&!e.guard&&sigBody()){ const c=corpseOf(e);   /* guardians and Loud Grave leave no body (game-rift.js) */ if(e.stash) rivalReclaim(e,c); r.corpses.push(c); }   // the rival leaves no body: they retreat
+    if(!e.rival&&!e.guard&&sigBody()){ const c=corpseOf(e);   /* guardians and Loud Grave leave no body (game-rift.js) */ if(e.stash) rivalReclaim(e,c); r.corpses.push(c); longNameRise(e,r); }   /* The Long Name (game-builds.js) */   // the rival leaves no body: they retreat
     if(e.boss) bossSpeaks(e,'bye');
     log(e.rival?e.name+' is beaten.':e.name+' falls.'); sfx('kill'); fxe('death',e);
     const page=e.secret?'secret':e.boss?(e.tw?'warden':'boss'):e.elite?'elite':null;   // who may carry a torn page
@@ -2547,7 +2552,7 @@ function act(kind){
     if(tg.hp<=0&&tg.id!=='p') log(tg.nick+' is down.','bad');
     if(P.hp<=0&&playerFalls()) return;
   }
-  hasteStrikes(); if(P.hp<=0&&playerFalls()) return;
+  hasteStrikes(); requiemStrikes(); if(P.hp<=0&&playerFalls()) return;   /* Requiem (game-builds.js) */
   checkDeaths(); if(!liveFoes().length){ roomWon(); return; }
   tickDots(); if(P.hp<=0&&playerFalls()) return;
   if(P.hp<hpBefore){ sfx('hurt'); if(hpBefore-P.hp>=pMax()*.2) ui.shake=true; }   // a heavy turn shakes the screen
@@ -2572,7 +2577,7 @@ function gateCleared(r){   // the boss room of a gate is won: story, clear talli
   return Math.round(RK[di].clear*fk);
 }
 function roomWon(){
-  const r=S.run, P=S.player; r.events=[]; r.focus=false; r.execute=false; bondsRoom();   /* Focus and Execute end with the room even if no minion phase came */
+  const r=S.run, P=S.player; r.events=[]; r.focus=false; r.execute=false; bondsRoom(); lnClear(); if(r.turn>=LONG_HAUL&&!r.sweep) tally('longHaul');   /* The Long Name's thralls go; Long Haul (game-builds.js) */   /* Focus and Execute end with the room even if no minion phase came */
   let xp=r.wk?0:r.pending; r.pending=0; const dn0=r.downs||0;   /* the weekly dive pays only its own rewards (game-rift.js) */
   const last=r.room===r.rooms-1;
   const share=Math.round(xp*.5), downs=[], bound=[];   /* the downed come first on the screen after the fight: who is gone, who got back up */
@@ -2654,7 +2659,7 @@ function descend(kind){   // go on: through one of the doors in the gates (the f
 function returnTown(){
   if(S.run&&S.run.siege){ siegeEnd(); save(); return; }   // back from the walls: then dawn
   const P=S.player;
-  if(S.run){ weekEnd(S.run); recordRun(S,S.run,runResult(S.run)); recRun(S.run); }   /* the weekly dive's depth (game-rift.js) */
+  lnClear(); if(S.run){ weekEnd(S.run); recordRun(S,S.run,runResult(S.run)); recRun(S.run); }   /* the weekly dive's depth (game-rift.js) */
   S.army.forEach(m=>m.hp=m.maxHp); cmdSync(); P.hp=pMax(); P.mana=pMana(); P.shield=0; allies().forEach(clearAll);
   const rd=S.run&&S.run.read; S.run=null; S.mode='town'; if(rd) syncArmy();   /* the Book Hungers lets go (game-asc.js) */
   if(S.watches<=0) endDay();
@@ -2785,7 +2790,9 @@ const SKILLS=[
  {id:'sanguine',name:'Sanguine Rites',type:'passive',lv:17,desc:r=>'+'+(8*r)+'% healing received.'},
  {id:'reap',name:'Reap',type:'active',lv:18,cost:18,cd:4,desc:r=>'Deal '+(120+30*r)+'% of your Siphon to your target, ignoring armor, doubled if it is below 35% HP.'},
  {id:'thrift',name:'Corpse Thrift',type:'passive',lv:20,desc:r=>'Raising costs '+(6*r)+'% less mana.'},
- {id:'deathless',name:'Deathless Will',type:'passive',lv:22,desc:r=>'+'+(5*r)+'% max mana.'}
+ {id:'deathless',name:'Deathless Will',type:'passive',lv:22,desc:r=>'+'+(5*r)+'% max mana.'},
+ {id:'lance',name:'Hoarfrost Lance',type:'active',lv:24,cost:16,cd:4,desc:r=>'Deal '+Math.round((LANCE_BASE+LANCE_STEP*r)*100)+'% of your Siphon as frost to your target and freeze it for a turn (bosses resist '+(100-LANCE_BOSS-10*r)+'% of the time). The foes beside it are Chilled for a turn.'},   /* R11 (game-builds.js) */
+ {id:'pest',name:'Pestilence',type:'passive',lv:24,desc:r=>'Each wound on a foe (poison, blight, bleed, burn; up to '+PEST_MAX+') makes the wounds on it tick '+Math.round(PEST_STEP*r*100)+'% harder.'}
 ];
 const SKILL={}; SKILLS.forEach(s=>SKILL[s.id]=s);
 const skReq=(s,rank)=>s.lv+(rank-1)*SK_STEP;
@@ -2834,6 +2841,7 @@ function useSkill(id,t){
   else if(id==='reap'){ const low=t.hp<t.maxHp*reapLow(); let d=hit(pSiph()*(1.2+.3*rk)*pierceMul(1)*skMul()*shadowK()); if(low) d*=2; else if(hasMod('reap','a')) d=Math.round(d*MOON_HIGH); const fb=frozenChilled(t); if(fb) d=Math.round(d*FROSTBREAK); KILL='reap'; hurtFoe(t,d,'shad'); KILL=null; fxe('strike',t,{crit:1});
     if(hasMod('reap','b')){ healAlly(P,Math.round(d*SOUL_REAP_HEAL)); if(t.hp<=0) P.mana=Math.min(pMana(),P.mana+SOUL_REAP_MANA); }   // Soul Reap
     log('You reap '+t.name+' for '+d+(low?' (harvest)':'')+'.'); if(fb&&t.hp>0) frostbreak(t); }
+  else if(id==='lance') useLance(t,rk);   /* Hoarfrost Lance (game-builds.js) */
   MARGIN=null; return true;
 }
 function skillTick(){
@@ -3472,7 +3480,7 @@ function hasteStrikes(){   // the end of the turn: every Hasted unit strikes onc
 function tickDots(){
   let foeD=0, ourD=0;
   const tick=(u,hurt)=>{ if(!u.dots) return; for(const k of Object.keys(u.dots)){ const o=u.dots[k]; if(u.hp>0) hurt(u,o.d,k); if(--o.t<=0) delete u.dots[k]; } if(!Object.keys(u.dots).length) delete u.dots; };
-  for(const e of S.run.enemies) tick(e,(u,d,k)=>{ const h=u.hp; KILL=k; hurtFoe(u,k==='blight'?Math.round(d*shadowK()*faithRot()):d,DOT_TYPE[k]); KILL=null; foeD+=h-u.hp; });   // Black Eclipse feeds your blight
+  for(const e of S.run.enemies) tick(e,(u,d,k)=>{ const h=u.hp; KILL=k; d=Math.round(d*pestK(u)*(pestCrit()?1.8:1)); /* Pestilence (game-builds.js) */ hurtFoe(u,k==='blight'?Math.round(d*shadowK()*faithRot()):d,DOT_TYPE[k]); KILL=null; foeD+=h-u.hp; });   // Black Eclipse feeds your blight
   const dg=S.run.dirge>S.run.turn?2:1;   /* a Dirge: your side's wounds bleed twice as fast */
   for(const a of allies()) tick(a,(u,d,k)=>{ d*=dg; { const rs=allyRes(u,DOT_TYPE[k]); if(rs) d=Math.max(1,Math.round(d*(1-rs))); } const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u,n,0); if(u.id==='p'){ S.run.hurt=true; S.run.blow={k:'dot',dot:k}; } } ourD+=n; if(u.hp<=0&&u.id!=='p'&&!stitchUp(u)&&!faithSave(u)){ log(u.nick+' succumbs.','bad'); fxe('death',u); } });
   capFester(foeD);
@@ -4236,6 +4244,8 @@ const SKILL_MODS={
   calcify:  {a:['Petrified','Enemy crits cannot crit you: they land as plain hits and open no wound.'], b:['Barbed Hide','Foes that hit you take 15% of the blow back.']},
   sanguine: {a:['Blood Feast','Healing past your max HP becomes Ward, up to 30% of your max HP.'], b:['Clear Mind','Healing you receive also restores mana worth 10% of it.']},
   thrift:   {a:['Frugal Rites','A failed raise refunds half its mana.'],   b:['Grave Sense','Grave Salts add 30% to a raise instead of 20%.']},
+  lance:    {a:['Shatterpoint','A frozen target takes the lance at x'+LANCE_SHATTER+'.'], b:['Rime Spread','Also freezes one foe beside it (not a boss).']},
+  pest:     {a:['Contagion','A foe that dies with two or more wounds passes one to another foe.'], b:['Virulence','The wounds on your foes can crit, at your Strike\'s crit chance.']},
   deathless:{a:['Deep Well','Active skills cost 15% less mana, and you regain '+DEEP_REGEN+' more mana every turn in battle.'], b:['Iron Will','You take '+Math.round((1-IRON_BASE)*100)+'% less damage, and '+Math.round((1-IRON_WILL)*100)+'% less below '+Math.round(IRON_LOW*100)+'% HP.']}
 };
 // The small passives above feed the same bonus pool as titles, sets and faith.
@@ -4680,6 +4690,7 @@ function faithFix(g){   // normalizeSave: an old two-oath faith becomes Morrow o
   const n=(v,d)=>typeof v==='number'&&isFinite(v)?v:d, day=Math.floor(n(g.day,1));
   let dev=n(o.dev,null); if(dev==null){ const d=day-o.day; dev=d>=25?4*DEV_STEP:d>=10?2*DEV_STEP:0; }
   g.faith={id:o.id,day:Math.floor(o.day),dev:clamp(dev,0,DEV_STEP*DEV_RANKS*4),dd:Math.max(0,n(o.dd,0)),dday:Math.floor(n(o.dday,day)),vb:Math.max(0,Math.floor(n(o.vb,0))),cv:Math.max(0,Math.floor(n(o.cv,0)))};
+  Object.keys(o).forEach(k=>{ if((k==='pc'||k==='cd')&&typeof o[k]==='number'&&isFinite(o[k])) g.faith[k]=Math.floor(o[k]); });   /* the Profane's free call and the call cooldown day survive a save */
 }
 // ----- story: a passage per god at ranks 1 and 5 (Morrow's and the Profane's rank-5 passages are the old blessings)
 STORY.push(
@@ -5007,7 +5018,9 @@ const SOUL_MAX=5, ULT_LV=20, SIPHON_PIERCE=.25, SIPHON_LOW=.3, SIPHON_HEAL=.35, 
 const ULTS={
   toll:  {name:"Death's Toll",         desc:'Every foe takes '+TOLL_MUL*100+'% of your Siphon, ignoring armor. Foes other than bosses left below '+TOLL_EXEC*100+'% HP die outright.'},
   rise:  {name:'Unholy Resurrection',  desc:'Every downed minion rises at full HP and the rest heal fully; you heal 40% of your max HP, and your army deals 50% more damage for 3 turns.'},
-  prison:{name:'Soul Prison',          desc:'Every foe is frozen for 2 turns (bosses 1), breaking any charging move, and takes 30% more damage for 3 turns.'}
+  prison:{name:'Soul Prison',          desc:'Every foe is frozen for 2 turns (bosses 1), breaking any charging move, and takes 30% more damage for 3 turns.'},
+  requiem:{name:'Requiem',             desc:'At the end of this turn every standing minion acts again, at '+Math.round(REQUIEM_MUL*100)+'% damage.'},   /* R11 (game-builds.js) */
+  longname:{name:'The Long Name',      desc:'For '+LNAME_TURNS+' turns, every foe that falls (bosses excepted) rises at once as a thrall that fights for you this room.'}
 };
 function gainSoul(){ const r=S.run; if(!r) return false; r.souls=r.souls||0; if(r.souls>=soulCap()) return false; r.souls++; r.soulT=(r.soulT||0)+1;   // soulT: souls harvested this run, for the lifetime count
   if(hasMod('soulwell','a')) S.player.mana=Math.min(pMana(),S.player.mana+OVERFLOW_MANA);   // Overflow
@@ -5020,6 +5033,8 @@ function useUlt(t){
     log("Death's Toll: every foe takes the Ledger's due, "+tot+' damage in all'+(slain?', and '+slain+' fall where they stand':'')+'.','ok'); }
   else if(id==='rise'){ let n=0; for(const m of S.army){ if(m.hp<=0){ m.hp=m.maxHp; n++; } else healAlly(m,m.maxHp); } healAlly(P,Math.round(pMax()*.4*UK)); r.frenzy=Math.max(r.frenzy||0,3); r.frenzyMul=Math.max(r.frenzyMul||1,1+.5*UK);
     log('Unholy Resurrection: '+(n?n+' of your fallen rise again, ':'')+'your army is whole and burns with fury.','ok'); }
+  else if(id==='requiem'){ r.requiem=r.turn; log('Requiem: the Ledger sings your dead a second verse. Every minion will act again this turn.','ok'); }
+  else if(id==='longname'){ r.lname=r.turn+LNAME_TURNS-1; log('The Long Name: you speak it, and for '+LNAME_TURNS+' turns whatever falls here will answer.','ok'); }
   else { for(const o of liveFoes()){ o.stun=Math.max(o.stun||0,o.boss?1:2); o.curse={mul:1+.3*UK,t:3}; mark(o,0,0); } log('Soul Prison: every foe is locked in the Ledger\'s pages, frozen and laid bare.','ok'); }
   moment(ULTS[id].name,'gold'); sfx('boss'); fxe('ult',t,{id}); return true;
 }
@@ -5445,8 +5460,8 @@ const CAP_LV1=30, CAP_LV2=50, CAP_MIN=10;
 const PATHS={
   bone:{name:'Bone',skills:['spear','bonearmor','calcify','mastery','thrift']},
   blood:{name:'Blood',skills:['mend','gravepact','sanguine','frenzy','reap']},
-  frost:{name:'Frost',skills:['chill','soulwell','deathless','scholar']},
-  rot:{name:'Rot',skills:['blast','curse','edge','robber']}
+  frost:{name:'Frost',skills:['chill','soulwell','deathless','scholar','lance']},
+  rot:{name:'Rot',skills:['blast','curse','edge','robber','pest']}
 };
 const CAP_WARD=.08, CAP_THORNS=.2, CAP_FEED=.5, CAP_COV=.03, CAP_RIME=1.15, CAP_WINTER=.4, CAP_FESTER=.3, CAP_BLOOM=.12;
 const capPct=v=>Math.round(v*100)+'%';
@@ -7174,6 +7189,48 @@ function ascFix(g){   // normalizeSave
 }
 STORY.push({act:6,id:'rewritten',t:'The page was written over',when:()=>false,m:'You knew this gate. You had its turns by heart, the drip of it, the place the floor gave. The Ledger knew it too, and it has written over the page: the same walls in a wetter ink, the same dead with new habits, and its master waiting in the shape the book remembers best. Nothing here is a mistake. The book is practising.'});
 STORY_BY.rewritten=STORY.find(x=>x.id==='rewritten');
+// ===== HERO BUILDS 2.0, R11 PR A: fifth skills, two ultimates, Endurance =====
+// Frost and Rot get a fifth skill each (Hoarfrost Lance, Pestilence), so every path holds five. Two more ultimates: Requiem
+// (every minion acts again at the end of the turn) and The Long Name (for 3 turns every foe that falls rises at once as a
+// thrall for the room). Constitution gains Endurance: past the 5th turn of a fight you and your army deal more damage each turn.
+// the constants (LANCE_*, PEST_*, CON_ENDURE*, REQUIEM_MUL, LNAME_TURNS, LONG_HAUL) live in game-data.js: skills, titles and ultimates read them as they load
+// ----- Hoarfrost Lance (Frost, active): Siphon as frost, freezes the target, chills its neighbors
+const foeNbrs=t=>{ const L=liveFoes(), i=L.indexOf(t); return [L[i-1],L[i+1]].filter(o=>o&&o!==t); };
+function useLance(t,rk){
+  const fz=t.stun>0, d=hit(pSiph()*(LANCE_BASE+LANCE_STEP*rk)*dmgMul()*skMul()*shadowK()*(fz&&hasMod('lance','a')?LANCE_SHATTER:1)); hurtFoe(t,d,'frost'); fxe('ward',t);
+  const held=t.hp>0&&(!t.boss||Math.random()*100<LANCE_BOSS+10*rk);
+  if(held){ t.stun=Math.max(t.stun||0,1)+faithFrozen(t); tally('frozen'); }
+  const nb=foeNbrs(t); nb.forEach(o=>addSt(o,'chilled',1));
+  let spread=null; if(hasMod('lance','b')&&nb.length){ spread=nb.find(o=>!o.boss)||null; if(spread){ spread.stun=Math.max(spread.stun||0,1); tally('frozen'); } }
+  log('Hoarfrost Lance strikes '+t.name+' for '+d+(fz&&hasMod('lance','a')?' (shatterpoint)':'')+'.'); log(held?t.name+' freezes solid.':t.name+' shakes off the frost.');
+  if(nb.length) log('The cold chills '+nb.length+' foe'+(nb.length>1?'s':'')+' beside it.'); if(spread) log(spread.name+' freezes too.');
+}
+// ----- Pestilence (Rot, passive): each wound on a foe makes the ticks on it harder
+const pestN=u=>Math.min(PEST_MAX,Object.keys((u&&u.dots)||{}).length);
+const pestK=u=>{ const rk=sk('pest'); return rk?1+PEST_STEP*rk*pestN(u):1; };   // tickDots, on foes
+const pestCrit=()=>hasMod('pest','b')&&Math.random()<critChance();   // Virulence: a tick can crit
+function pestDeath(e){   // checkDeaths: Contagion passes one wound to a neighbor
+  if(!hasMod('pest','a')||!e.dots||Object.keys(e.dots).length<2) return; const L=liveFoes().filter(o=>o!==e&&!(o.dots&&Object.keys(e.dots).every(k=>o.dots[k])));
+  if(!L.length) return; const o=L[0], k=Object.keys(e.dots).find(x=>!(o.dots&&o.dots[x])), w=e.dots[k]; addDot(o,k,w.d,Math.max(2,w.t)); log('Contagion: '+e.name+'\'s '+k+' passes to '+o.name+'.','ok');
+}
+// ----- Endurance: Constitution in long fights
+const endureK=()=>{ const r=S&&S.run; if(!r||!(r.turn>ENDURE_FROM)) return 1; return 1+Math.min(CON_ENDURE_CAP,CON_ENDURE*Math.max(0,A('constitution'))/10*(r.turn-ENDURE_FROM)); };
+// ----- the new ultimates
+function requiemStrikes(){   // the end of the turn (after the haste strikes): Requiem's second action
+  const r=S.run; if(!r||r.requiem!==r.turn) return;
+  for(const m of S.army){ if(!(m.hp>0)) continue; const tg=minionTarget(m); if(!tg) break;
+    let d=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*REQUIEM_MUL*ascUlt()*hexK(m)*rowK(m)*breakK(m,tg)); hurtFoe(tg,d,minionType(m)); fxe('mhit',tg,{by:fxKey(m)}); log('Requiem: '+m.nick+' strikes '+tg.name+' again for '+d+'.'); minionOnHit(m,tg); }
+  checkDeaths();
+}
+function longNameRise(e,r){   // checkDeaths: The Long Name raises the fallen as thralls for the room
+  if(!(r.lname>=r.turn)||e.boss||e.rival||e.secret||e.guard||e.echo||e.stash) return false;
+  const i=r.corpses.findIndex(c=>c.id==='c'+e.id); if(i<0) return false; const c=r.corpses.splice(i,1)[0], lv=Math.min(S.player.lvl,c.lvl);
+  const m={uid:++S.uid,armed:false,eq:null,nick:freeNick(),name:c.name,kind:c.base,role:c.role,rankI:c.rankI,lvl:lv,lvl0:lv,xp:0,boss:false,elite:false,hf:c.hf,af:c.af,hp:1,maxHp:null,atk:0,stage:0,traits:[],thrall:true,ln:1};
+  syncMinion(m); m.hp=m.maxHp; S.army.push(m); tally('lnThralls'); log('The Long Name: '+e.name+' rises at once to fight for you this room.','ok'); return true;
+}
+const lnClear=()=>{ if(S&&S.army) S.army=S.army.filter(m=>!m.ln); };   // roomWon and returnTown: the Long Name's thralls go back to the dust
+// ----- titles: a fight of LONG_HAUL turns won; a path at five skills of rank 3
+const fiveByFive=()=>Object.keys(PATHS).some(p=>PATHS[p].skills.length>=5&&PATHS[p].skills.every(id=>sk(id)>=SK_MAX));
 //==UI==
 
 // ----- sound: tiny synthesized effects (Web Audio, no files). Off/on lives in Settings and is remembered per browser, not in the save.
@@ -11799,6 +11856,25 @@ TR_RX.unshift(
  [/^This Riftborn piece crosses at depth (\d+) \(now (\d+)\)\.?$/,"Bu Yarık doğumlu parça $1 derinlikte geçer (şimdi $2)"],
  [/^This heartforged piece crosses with its lines at (\d+)%\.?$/,"Bu kalpte dövülmüş parça satırları %$1 olarak geçer"]
 );
+// R11 PR A: Hoarfrost Lance, Pestilence, Requiem, The Long Name, Endurance, titles
+[["Hoarfrost Lance","Kırağı Mızrağı"],["Pestilence","Veba"],["Requiem","Ağıt"],["The Long Name","Uzun Ad"],["Shatterpoint","Kırılma Noktası"],["Rime Spread","Kırağı Yayılımı"],["Contagion","Bulaşma"],["Virulence","Virülans"],["Long Haul","Uzun Soluk"],["Five by Five","Beşe Beş"],["Endurance","Dayanıklılık"],
+ ["A frozen target takes the lance at x#","Donmuş bir hedef mızrağı x# alır"],["Also freezes one foe beside it (not a boss)","Yanındaki bir düşmanı da dondurur (patron değil)"],["A foe that dies with two or more wounds passes one to another foe","İki ya da daha fazla yarayla ölen bir düşman birini başka bir düşmana geçirir"],["The wounds on your foes can crit, at your Strike's crit chance","Düşmanlarındaki yaralar Vuruşunun kritik şansıyla kritik vurabilir"],
+ ["Deal #% of your Siphon as frost to your target and freeze it for a turn (bosses resist #% of the time)","Hedefine Emişinin %#'i kadar ayaz hasarı ver ve onu bir tur dondur (patronlar %# oranında direnir)"],["The foes beside it are Chilled for a turn","Yanındaki düşmanlar bir tur Üşür"],
+ ["Each wound on a foe (poison, blight, bleed, burn; up to #) makes the wounds on it tick #% harder","Bir düşmandaki her yara (zehir, çürüme, kanama, yanık; en çok #) üzerindeki yaraların %# daha sert işlemesini sağlar"],
+ ["At the end of this turn every standing minion acts again, at #% damage","Bu turun sonunda ayakta kalan her minyon %# hasarla yeniden hareket eder"],["For # turns, every foe that falls (bosses excepted) rises at once as a thrall that fights for you this room","# tur boyunca düşen her düşman (patronlar hariç) hemen bu oda için senin için dövüşen bir köle olarak kalkar"],
+ ["Win a fight that lasts # turns or more","# tur ya da daha uzun süren bir dövüşü kazan"],["Rank every skill of one path to #","Bir yoldaki her beceriyi #. dereceye çıkar"],
+ ["Requiem: the Ledger sings your dead a second verse","Ağıt: Defter ölülerine ikinci bir dize söylüyor"],["Every minion will act again this turn","Her minyon bu tur yeniden hareket edecek"]
+].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+TR_RX.unshift(
+ [/^Hoarfrost Lance strikes (.+?) for (\d+)( \(shatterpoint\))?\.?$/,"Kırağı Mızrağı {t1} hedefine $2 vuruyor$3"],[/^(.+?) freezes solid\.?$/,"{t1} kaskatı donuyor"],[/^(.+?) shakes off the frost\.?$/,"{t1} ayazı silkeliyor"],[/^The cold chills (\d+) foes? beside it\.?$/,"Soğuk yanındaki $1 düşmanı üşütüyor"],[/^(.+?) freezes too\.?$/,"{t1} da donuyor"],
+ [/^Contagion: (.+?)'s (\w+) passes to (.+?)\.?$/,"Bulaşma: {t1} üzerindeki $2 {t3} hedefine geçiyor"],
+ [/^Requiem: (.+?) strikes (.+?) again for (\d+)\.?$/,"Ağıt: $1, {t2} hedefine yeniden $3 vuruyor"],
+ [/^The Long Name: (.+?) rises at once to fight for you this room\.?$/,"Uzun Ad: {t1} bu oda için senin için dövüşmek üzere hemen kalkıyor"],
+ [/^The Long Name: you speak it, and for (\d+) turns whatever falls here will answer\.?$/,"Uzun Ad: onu söylüyorsun ve $1 tur boyunca burada düşen her şey cevap verecek"]
+);
+[["Max HP, damage taken, healing received, minion HP, Command, Endurance","Azami can, alınan hasar, alınan iyileştirme, minyon canı, Komuta, Dayanıklılık"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+TR_RX.unshift([/^Endurance: \+([\d.]+)% damage a turn after turn (\d+), up to \+(\d+)%$/,"Dayanıklılık: $2. turdan sonra her tur +%$1 hasar, en çok +%$3"]);
+[["Past turn # of a fight, you and your army deal #% more damage per # Constitution for every further turn, up to +#%","Bir dövüşün #. turundan sonra sen ve ordun her ek tur için her # Bünye başına %# daha fazla hasar verirsiniz, en çok +%#"],["Gates rarely last that long; the Tower, the Rift, secret masters and sieges do","Kapılar nadiren bu kadar sürer; Kule, Yarık, gizli efendiler ve kuşatmalar sürer"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -12908,7 +12984,7 @@ const statGain=k=>statGainList(k).map(([x,d,u])=>x+' '+(d>0?'+':'')+d+u).join(',
 const gainG=k=>statGainList(k).map(([x,d,u])=>'<span class="sv">'+sgl(GAIN_G[x],GAIN_W[x]||x[0].toUpperCase()+x.slice(1))+(d>0?'+':'')+d+u+'</span>').join(' ');
 function statusHTML(){
   const P=S.player, st=P.stats, ri=pRankI();
-  const rows=[['strength','Strength','Strike damage, crit chance, armor piercing, minion attack, Command',['atk','crit','pierce','matk']],['constitution','Constitution','Max HP, damage taken, healing received, minion HP, Command',['hp','dr','heal','mhp']],['intelligence','Intelligence','Mana, Siphon, Ward, skill damage, minion attack, Command',['mana','siph','ward','skill','matk']],['will','Will','Mana, army slots, raise odds, minion bond',['mana','slot','raise','mpow']]];
+  const rows=[['strength','Strength','Strike damage, crit chance, armor piercing, minion attack, Command',['atk','crit','pierce','matk']],['constitution','Constitution','Max HP, damage taken, healing received, minion HP, Command, Endurance',['hp','dr','heal','mhp']],['intelligence','Intelligence','Mana, Siphon, Ward, skill damage, minion attack, Command',['mana','siph','ward','skill','matk']],['will','Will','Mana, army slots, raise odds, minion bond',['mana','slot','raise','mpow']]];
   const canAlloc=P.pts>0&&S.mode!=='battle';
   return '<section class="win" aria-labelledby="h-status"><h2 class="win-h" id="h-status">Status</h2>'
    +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(faithOf()?'<div class="faith-l '+faithOf()+'" title="Devotion rank '+faithRank()+' of '+DEV_RANKS+'">'+FAITH[faithOf()].name+' &middot; '+faithRank()+'</div>':'')+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+'</div></div></div>'
@@ -12921,6 +12997,7 @@ function statusHTML(){
       +(canAlloc?'<button class="plus" data-a="alloc" data-k="'+r[0]+'" aria-label="Add a point to '+r[1]+'">+</button>':'<span class="plus-slot"></span>')+'</div>').join('')+'</div>'
    +'<div class="derived"><div>'+sgl('atk')+'<b>'+pAtk()+'</b></div><div>'+sgl('siph')+'<b>'+pSiph()+'</b></div><div>'+sgl('slot')+'<b>'+slots()+'</b></div></div>'
    +(cmdAtk()||cmdSiph()||cmdHp()?'<p class="cmd-line u-sub" title="Command: your hero draws on the power of your three strongest minions">Command: +'+cmdAtk()+' Strike, +'+cmdSiph()+' Siphon, +'+cmdHp()+' max HP</p>':'')
+   +(A('constitution')>0?'<p class="u-sub" title="Endurance: Constitution in long fights (game-builds.js)">Endurance: +'+(Math.round(CON_ENDURE*A('constitution')/10*1000)/10)+'% damage a turn after turn '+ENDURE_FROM+', up to +'+Math.round(CON_ENDURE_CAP*100)+'%</p>':'')
    +'</section>';
 }
 function questHTML(){
@@ -13464,6 +13541,7 @@ function codexSection(k){
     +'<p class="group-h">Stats</p>'+cxList([cxRow('Strength','Strike damage: 3 + 2.2 per point + your level + gear. Also '+STR_CRIT+'% crit chance per point (up to '+STR_CRIT_CAP+'%), 1% of foe armor pierced by Strike per '+STR_PEN+' points (up to '+STR_PEN_CAP+'%), and '+STR_MINION+'% minion attack per point.'),
       cxRow('Constitution','Max HP: 24 + '+CON_HP+' per point + 4 per level + gear. Also '+CON_DR+'% less damage taken per point (up to '+CON_DR_CAP+'%), '+CON_HEAL+'% more healing received per point (up to '+CON_HEAL_CAP+'%) and '+CON_MINION+'% minion max HP per point.'),
       cxRow('Intelligence','Mana (6 per point), Soul Siphon (2.8 per point), Bone Ward (3 per point), '+INT_SKILL+'% skill damage per point (Bone Spear, Corpse Explosion, Grave Chill and Reap) and '+INT_MINION+'% minion attack per point.'),cxRow('Will','Mana (3 per point), one army slot per 2.5 points, '+RAISE_WILL+'% raise chance per point, 2% minion power per point, and '+SHATTER_WILL+'% less chance per point that a downed minion shatters (never below '+SHATTER_MIN+'%).'),
+      cxRow('Endurance','Past turn '+ENDURE_FROM+' of a fight, you and your army deal '+(CON_ENDURE*100)+'% more damage per 10 Constitution for every further turn, up to +'+Math.round(CON_ENDURE_CAP*100)+'%. Gates rarely last that long; the Tower, the Rift, secret masters and sieges do.'),
       cxRow('Command','Your army\'s power is the average attack and max HP of its '+CMD_TOP+' strongest minions; empty places count as nothing. Strike gains '+CMD_STR+'% of that attack per Strength point, Soul Siphon and the skills built on it '+CMD_INT+'% per Intelligence point, and max HP '+CMD_CON+'% of that HP per Constitution point. It is measured as each room begins and in town, so it holds through a fight.'+(cmd().a?' Now: +'+cmdAtk()+' Strike, +'+cmdSiph()+' Siphon, +'+cmdHp()+' max HP.':'')),
       cxRow('Limits','Strike crits 10% of the time before Strength, gear and skills. All your damage reduction together (Constitution, titles, sets, faith and Calcified Hide) stops at '+DR_CAP+'%.')])
     +'<p class="group-h">Everything gear can give</p>'+cxList(Object.keys(STATL).map(s=>cxRow(STATL[s][0],(ROLL_KEYS[s]?'Can appear as a bonus line.':'Only on base stats and uniques.')+(STATL[s][1]?' Measured in percent.':''))))

@@ -6,8 +6,8 @@ const CAP_LV1=30, CAP_LV2=50, CAP_MIN=10;
 const PATHS={
   bone:{name:'Bone',skills:['spear','bonearmor','calcify','mastery','thrift']},
   blood:{name:'Blood',skills:['mend','gravepact','sanguine','frenzy','reap']},
-  frost:{name:'Frost',skills:['chill','soulwell','deathless','scholar']},
-  rot:{name:'Rot',skills:['blast','curse','edge','robber']}
+  frost:{name:'Frost',skills:['chill','soulwell','deathless','scholar','lance']},
+  rot:{name:'Rot',skills:['blast','curse','edge','robber','pest']}
 };
 const CAP_WARD=.08, CAP_THORNS=.2, CAP_FEED=.5, CAP_COV=.03, CAP_RIME=1.15, CAP_WINTER=.4, CAP_FESTER=.3, CAP_BLOOM=.12;
 const capPct=v=>Math.round(v*100)+'%';

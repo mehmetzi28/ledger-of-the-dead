@@ -232,7 +232,7 @@ const statGain=k=>statGainList(k).map(([x,d,u])=>x+' '+(d>0?'+':'')+d+u).join(',
 const gainG=k=>statGainList(k).map(([x,d,u])=>'<span class="sv">'+sgl(GAIN_G[x],GAIN_W[x]||x[0].toUpperCase()+x.slice(1))+(d>0?'+':'')+d+u+'</span>').join(' ');
 function statusHTML(){
   const P=S.player, st=P.stats, ri=pRankI();
-  const rows=[['strength','Strength','Strike damage, crit chance, armor piercing, minion attack, Command',['atk','crit','pierce','matk']],['constitution','Constitution','Max HP, damage taken, healing received, minion HP, Command',['hp','dr','heal','mhp']],['intelligence','Intelligence','Mana, Siphon, Ward, skill damage, minion attack, Command',['mana','siph','ward','skill','matk']],['will','Will','Mana, army slots, raise odds, minion bond',['mana','slot','raise','mpow']]];
+  const rows=[['strength','Strength','Strike damage, crit chance, armor piercing, minion attack, Command',['atk','crit','pierce','matk']],['constitution','Constitution','Max HP, damage taken, healing received, minion HP, Command, Endurance',['hp','dr','heal','mhp']],['intelligence','Intelligence','Mana, Siphon, Ward, skill damage, minion attack, Command',['mana','siph','ward','skill','matk']],['will','Will','Mana, army slots, raise odds, minion bond',['mana','slot','raise','mpow']]];
   const canAlloc=P.pts>0&&S.mode!=='battle';
   return '<section class="win" aria-labelledby="h-status"><h2 class="win-h" id="h-status">Status</h2>'
    +'<div class="id-row"><div class="badge r'+ri+'" title="Necromancer rank">'+RANKS[ri]+'</div><div><div class="who">Gravewalker</div>'+(faithOf()?'<div class="faith-l '+faithOf()+'" title="Devotion rank '+faithRank()+' of '+DEV_RANKS+'">'+FAITH[faithOf()].name+' &middot; '+faithRank()+'</div>':'')+(titleName()?'<div class="ttl" title="'+buffTxt(TITLE[S.ti.sel].b)+'">'+titleName()+'</div>':'')+'<div class="num dim" style="font-size:12px">Level '+P.lvl+'</div></div></div>'
@@ -245,6 +245,7 @@ function statusHTML(){
       +(canAlloc?'<button class="plus" data-a="alloc" data-k="'+r[0]+'" aria-label="Add a point to '+r[1]+'">+</button>':'<span class="plus-slot"></span>')+'</div>').join('')+'</div>'
    +'<div class="derived"><div>'+sgl('atk')+'<b>'+pAtk()+'</b></div><div>'+sgl('siph')+'<b>'+pSiph()+'</b></div><div>'+sgl('slot')+'<b>'+slots()+'</b></div></div>'
    +(cmdAtk()||cmdSiph()||cmdHp()?'<p class="cmd-line u-sub" title="Command: your hero draws on the power of your three strongest minions">Command: +'+cmdAtk()+' Strike, +'+cmdSiph()+' Siphon, +'+cmdHp()+' max HP</p>':'')
+   +(A('constitution')>0?'<p class="u-sub" title="Endurance: Constitution in long fights (game-builds.js)">Endurance: +'+(Math.round(CON_ENDURE*A('constitution')/10*1000)/10)+'% damage a turn after turn '+ENDURE_FROM+', up to +'+Math.round(CON_ENDURE_CAP*100)+'%</p>':'')
    +'</section>';
 }
 function questHTML(){

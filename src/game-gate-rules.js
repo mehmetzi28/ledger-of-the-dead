@@ -255,7 +255,7 @@ function hasteStrikes(){   // the end of the turn: every Hasted unit strikes onc
 function tickDots(){
   let foeD=0, ourD=0;
   const tick=(u,hurt)=>{ if(!u.dots) return; for(const k of Object.keys(u.dots)){ const o=u.dots[k]; if(u.hp>0) hurt(u,o.d,k); if(--o.t<=0) delete u.dots[k]; } if(!Object.keys(u.dots).length) delete u.dots; };
-  for(const e of S.run.enemies) tick(e,(u,d,k)=>{ const h=u.hp; KILL=k; hurtFoe(u,k==='blight'?Math.round(d*shadowK()*faithRot()):d,DOT_TYPE[k]); KILL=null; foeD+=h-u.hp; });   // Black Eclipse feeds your blight
+  for(const e of S.run.enemies) tick(e,(u,d,k)=>{ const h=u.hp; KILL=k; d=Math.round(d*pestK(u)*(pestCrit()?1.8:1)); /* Pestilence (game-builds.js) */ hurtFoe(u,k==='blight'?Math.round(d*shadowK()*faithRot()):d,DOT_TYPE[k]); KILL=null; foeD+=h-u.hp; });   // Black Eclipse feeds your blight
   const dg=S.run.dirge>S.run.turn?2:1;   /* a Dirge: your side's wounds bleed twice as fast */
   for(const a of allies()) tick(a,(u,d,k)=>{ d*=dg; { const rs=allyRes(u,DOT_TYPE[k]); if(rs) d=Math.max(1,Math.round(d*(1-rs))); } const n=Math.min(d,u.hp); u.hp-=n; if(n>0){ mark(u,n,0); if(u.id==='p'){ S.run.hurt=true; S.run.blow={k:'dot',dot:k}; } } ourD+=n; if(u.hp<=0&&u.id!=='p'&&!stitchUp(u)&&!faithSave(u)){ log(u.nick+' succumbs.','bad'); fxe('death',u); } });
   capFester(foeD);
