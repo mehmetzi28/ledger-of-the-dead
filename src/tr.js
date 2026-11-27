@@ -4160,3 +4160,63 @@ TR_RX.unshift([/^You take (\d+) of ([^.]+?)'s people \(to raise before dawn\), (
  [/^A mob from ([^,]+?) marches with them, torches and pitchforks$/,"$1 köyünden bir kalabalık meşaleler ve dirgenlerle onlarla yürüyor"],
  [/^You were dragged out of (Miller's Ford|Greyhollow|Saint Aldric's)\. (.+)$/,"$1 baskınından sürüklenerek çıkarıldın. {t2}"]);
 TR_RX.unshift([/^From the Ledger, "([^"]+)": ([\s\S]+)$/,"Defter'den, \"{t1}\": {t2}"]);
+// R21 PR A: corruption and the phylactery
+[["The phylactery","Filakteri"],["Corruption #","Yozlaşma #"],["Corruption","Yozlaşma"],
+ ["Corruption: what the Ledger has made of you. Dark power raises it; restraint lowers it","Yozlaşma: Defter'in senden ne yaptığı. Karanlık güç onu artırır; ölçülülük azaltır"],
+ ["Clean","Temiz"],["Stained","Lekeli"],["Marked","İşaretli"],["Hungering","Açlık çeken"],["Named","Adı konmuş"],
+ ["a boss raised","bir patron diriltildi"],["a defiled altar","kirletilmiş bir sunak"],["a shrine broken","bir tapınak kırıldı"],["an Eternal","bir Ebedi"],["a village raided","bir köy yağmalandı"],["the dead buried","ölüler gömüldü"],["the Memorial honoured","Anıt onurlandırıldı"],["a day without raising","diriltmeden geçen bir gün"],["the Terror","Dehşet"],["they fear a corrupted keeper","yozlaşmış bir bekçiden korkuyorlar"],["a test","bir deneme"],
+ ["The Ledger offers to bind your soul into a vessel. Once a day a killing blow will leave you at # HP, but your corruption will never fall under #. Choose the vessel","Defter ruhunu bir kaba bağlamayı teklif ediyor. Günde bir kez öldürücü bir darbe seni # canla bırakacak, ama yozlaşman asla #'in altına düşmeyecek. Kabı seç"],
+ ["The Ledger's clasp","Defter'in kopçası"],["A bone ring","Bir kemik yüzük"],["A skull lantern","Bir kafatası feneri"],
+ ["Your soul sleeps in the iron clasp that shuts the book","Ruhun, kitabı kapatan demir kopçada uyuyor"],
+ ["Your soul is carved into a ring of your own finger bone","Ruhun, kendi parmak kemiğinden bir yüzüğe oyulmuş"],
+ ["Your soul burns in a lantern made from a skull, and lights the way down","Ruhun, bir kafatasından yapılmış bir fenerde yanıyor ve aşağı giden yolu aydınlatıyor"],
+ ["Sieges bring one more foe each wave; the villages cool a step a day","Kuşatmalar her dalgada bir düşman fazla getirir; köyler her gün bir adım soğur"],
+ ["Sieges bring one more foe each wave; the villages cool a step a day; the Ledger may hunger at dawn","Kuşatmalar her dalgada bir düşman fazla getirir; köyler her gün bir adım soğur; Defter şafakta acıkabilir"],
+ ["Sieges bring one more foe each wave; the villages cool a step a day; the Ledger may hunger at dawn; the Grand Inquisitor knows your name","Kuşatmalar her dalgada bir düşman fazla getirir; köyler her gün bir adım soğur; Defter şafakta acıkabilir; Büyük Engizitör adını biliyor"],
+ ["The Grand Inquisitor knows your name","Büyük Engizitör adını biliyor"],
+ ["The Grand Inquisitor has written your name on the Church's rolls. Its sieges will come for you by name","Büyük Engizitör adını Kilise'nin listelerine yazdı. Kuşatmaları adınla senin için gelecek"],
+ ["You bind your soul into the Ledger's clasp. Death's Door holds a killing blow once a day; your corruption will never fall under #","Ruhunu Defter'in kopçasına bağlıyorsun. Ölümün Kapısı günde bir kez öldürücü bir darbeyi tutar; yozlaşman asla #'in altına düşmeyecek"],
+ ["You bind your soul into a bone ring. Death's Door holds a killing blow once a day; your corruption will never fall under #","Ruhunu bir kemik yüzüğe bağlıyorsun. Ölümün Kapısı günde bir kez öldürücü bir darbeyi tutar; yozlaşman asla #'in altına düşmeyecek"],
+ ["You bind your soul into a skull lantern. Death's Door holds a killing blow once a day; your corruption will never fall under #","Ruhunu bir kafatası fenerine bağlıyorsun. Ölümün Kapısı günde bir kez öldürücü bir darbeyi tutar; yozlaşman asla #'in altına düşmeyecek"],
+ ["The phylactery cracks. Death's Door holds: you stand at # HP","Filakteri çatlıyor. Ölümün Kapısı tutuyor: # canla ayaktasın"],
+ ["The Ledger hungers. Give it one of your Reserve and your dead strike #% harder today; refuse and it takes #% of your max HP until dawn","Defter acıkıyor. Ona Yedek'inden birini ver, ölülerin bugün %# daha sert vursun; reddedersen şafağa kadar azami canının %#'ini alır"],
+ ["The Ledger hungers. It asks for one of your Reserve, and promises strength for today","Defter acıkıyor. Yedek'inden birini istiyor ve bugün için güç vaat ediyor"],
+ ["Give it a Reserve minion","Ona bir Yedek minyon ver"],["Refuse","Reddet"],["No one in your Reserve","Yedek'inde kimse yok"],
+ ["Fed the Ledger: +#% damage until dawn","Defter beslendi: şafağa kadar +%# hasar"],["Refused the Ledger: -#% max HP until dawn","Defter reddedildi: şafağa kadar -%# azami can"],
+ ["You close the book on its hunger. It takes its due from you instead: #% less max HP today","Kitabı açlığının üstüne kapatıyorsun. Payını senden alıyor: bugün %# daha az azami can"],
+ ["The living have heard what you are becoming. More of them came","Yaşayanlar neye dönüştüğünü duydu. Daha fazlası geldi"],
+ ["The priests can break the vessel that holds your soul: corruption goes to #, and Death's Door is gone","Rahipler ruhunu tutan kabı kırabilir: yozlaşma #'a iner ve Ölümün Kapısı gider"],
+ ["Shatter the phylactery","Filakteriyi parçala"],["Confirm: shatter the phylactery","Onayla: filakteriyi parçala"],
+ ["The Temple's priests break the vessel on the altar stone. Your soul comes home to your body, and your corruption is gone","Tapınak rahipleri kabı sunak taşında kırıyor. Ruhun bedenine dönüyor ve yozlaşman gidiyor"],
+ ["The phylactery is shattered. You are mortal again","Filakteri parçalandı. Yeniden ölümlüsün"],
+ ["Corruption runs from # to # and shows what the Ledger has made of you. It is on the Status panel as an ink stain that spreads","Yozlaşma # ile # arasında gider ve Defter'in senden ne yaptığını gösterir. Durum panelinde yayılan bir mürekkep lekesi olarak durur"],
+ ["What raises it","Onu ne artırır"],["What lowers it","Onu ne azaltır"],["The other edge","Öbür yüzü"],
+ ["A boss raised","Diriltilen bir patron"],["Corpse Explosion, Reap, an Execute order","Ceset Patlatma, Biçme, bir İnfaz emri"],["A defiled altar, a broken shrine","Kirletilmiş bir sunak, kırılmış bir tapınak"],["An Eternal in your army","Ordunda bir Ebedi"],["A village raided","Yağmalanan bir köy"],["A day at Terror","Dehşet'te bir gün"],
+ ["A day without raising","Diriltmeden bir gün"],["A battlefield buried","Gömülen bir savaş alanı"],["-# per body","ceset başına -#"],["+# each","her biri +#"],["The Memorial honoured","Onurlandırılan Anıt"],["Morrow or the Choir at rank #","#. rütbede Morrow ya da Koro"],["-# a day","günde -#"],
+ ["Sieges bring one more foe each wave; every village loses # standing a day","Kuşatmalar her dalgada bir düşman fazla getirir; her köy günde # itibar kaybeder"],
+ ["Some dawns the Ledger asks for a Reserve minion: +#% damage that day, or refuse and lose #% max HP that day","Bazı şafaklarda Defter bir Yedek minyon ister: o gün +%# hasar, ya da reddet ve o gün azami canının %#'ini kaybet"],
+ ["The Grand Inquisitor knows you: siege captains come #% harder, and the Hunger reads your own echo from the book","Büyük Engizitör seni tanıyor: kuşatma kaptanları %# daha zorlu gelir ve Açlık kitaptan kendi yankını okur"],
+ ["Shatter the phylactery at the Temple","Tapınakta filakteriyi parçala"],["Mortal Again","Yeniden Ölümlü"],
+ ["The Ledger has been watching what you do with it. Your corruption is on the Status panel, under the ink stain. At level # and corruption #, you may bind your soul into a vessel: once a day, a killing blow leaves you standing","Defter onunla ne yaptığını izliyor. Yozlaşman Durum panelinde, mürekkep lekesinin altında. # seviyede ve # yozlaşmada ruhunu bir kaba bağlayabilirsin: günde bir kez öldürücü bir darbe seni ayakta bırakır"],
+ ["The vessel","Kap"],["Mortal again","Yeniden ölümlü"],
+ ["You did not feel your soul leave. You felt it arrive, somewhere small and cold, and settle the way a dog settles at the foot of a bed. The Ledger turned one page on its own. Oswin's hand shook when he did this, the margins say. Yours does not, and that is the thing you notice","Ruhunun gittiğini hissetmedin. Bir yere vardığını hissettin, küçük ve soğuk bir yere, ve bir köpeğin yatağın ayak ucuna kıvrılışı gibi yerleştiğini. Defter bir sayfayı kendiliğinden çevirdi. Kenar notları, Oswin bunu yaptığında elinin titrediğini söylüyor. Seninki titremiyor ve fark ettiğin şey bu"],
+ ["A priest came to the gate in daylight with a scroll and no guard, which is its own kind of courage. He read your name aloud, all of it, the name your mother gave you and the one the Ledger did, and nailed the scroll to the post. \"The Grand Inquisitor knows you now,\" he said. \"That is all I was sent to say.\" The dead let him walk away. You told them to","Bir rahip gün ışığında elinde bir tomarla ve muhafızsız kapıya geldi; bu da kendince bir cesaret. Adını yüksek sesle okudu, tamamını, annenin verdiğini ve Defter'in verdiğini, ve tomarı direğe çiviledi. \"Büyük Engizitör artık seni tanıyor,\" dedi. \"Söylemem için gönderildiğim tek şey bu.\" Ölüler gitmesine izin verdi. Sen öyle söyledin"],
+ ["The vessel broke with a sound like a book dropped in an empty church. For a while you could not get warm. Then you could, and your hands were your own again, and you found you were afraid of dying, which you had forgotten how to be. The Ledger said nothing at all. It only waited, as it always has","Kap, boş bir kiliseye düşen bir kitap gibi bir sesle kırıldı. Bir süre ısınamadın. Sonra ısındın, ellerin yeniden senindi ve ölmekten korktuğunu fark ettin; nasıl korkulacağını unutmuştun. Defter hiçbir şey söylemedi. Her zamanki gibi yalnızca bekledi"]
+].forEach(([k,v])=>TR_DICT.set(k,v));
+TR_RX.unshift([/^Corruption (\d+): (Clean|Stained|Marked|Hungering|Named) \((.+)\)$/,"Yozlaşma $1: {t2} ({t3})"],
+ [/^Corruption (\d+): (Clean|Stained|Marked|Hungering|Named)$/,"Yozlaşma $1: {t2}"],
+ [/^Give it (.+)$/,"Ona $1 adlı minyonu ver"],
+ [/^The Ledger takes (.+?)\. The page where the name was is warm\. Your dead strike (\d+)% harder today$/,"Defter $1 adlı minyonu alıyor. Adın durduğu sayfa sıcak. Ölülerin bugün %$2 daha sert vuruyor"],
+ [/^(The Ledger's clasp|A bone ring|A skull lantern) \(cracked until dawn\)$/,"{t1} (şafağa kadar çatlak)"],
+ [/^Your soul is bound into (.+)$/,"Ruhun {t1} içine bağlandı"],
+ [/^You stand at (\d+) \((Clean|Stained|Marked|Hungering|Named)\)$/,"$1 noktasındasın ({t2})"]);
+[["# per body","ceset başına #"],["# a day","günde #"],
+ ["At level # and corruption # the Ledger offers to bind your soul into a vessel","# seviyede ve # yozlaşmada Defter ruhunu bir kaba bağlamayı teklif eder"]
+].forEach(([k,v])=>TR_DICT.set(k,v));
+[["A battlefield buried (per body)","Gömülen bir savaş alanı (ceset başına)"],["Morrow or the Choir at rank # (each day)","#. rütbede Morrow ya da Koro (her gün)"],["Corpse Explosion, Reap, an Execute order (each)","Ceset Patlatma, Biçme, bir İnfaz emri (her biri)"],
+ ["At level # and corruption # the Ledger offers to bind your soul into a vessel","# seviyede ve # yozlaşmada Defter ruhunu bir kaba bağlamayı teklif eder"],
+ ["Bound, Death's Door holds a killing blow at # HP once a day, and the vessel stays cracked until dawn","Bağlıyken Ölümün Kapısı günde bir kez öldürücü bir darbeyi # canda tutar ve kap şafağa kadar çatlak kalır"],
+ ["Corruption never falls under # while you are bound","Bağlı olduğun sürece yozlaşma asla #'in altına düşmez"],["New Game+ keeps the soul bound","Yeni Oyun+ ruhu bağlı tutar"],
+ ["The Temple can shatter the vessel for # gold, and corruption goes to #","Tapınak kabı # altına parçalayabilir ve yozlaşma #'a iner"],["Your soul","Ruhun"]
+].forEach(([k,v])=>TR_DICT.set(k,v));
+[["Corpse Explosion, Reap, an Execute order (each, at most +# a day)","Ceset Patlatma, Biçme, bir İnfaz emri (her biri, günde en çok +#)"]].forEach(([k,v])=>TR_DICT.set(k,v));

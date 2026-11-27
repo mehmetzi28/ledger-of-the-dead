@@ -211,7 +211,11 @@ link between existing ones)
   (PR A); raids that take their people as bodies and can empty them for good, allegiance rewards, a living knight
   companion and mobs from the villages that hate you (PR B).
 - **G30. Power has no personal cost.** The hero's body and kit never change with what they do; the Ledger's corruption
-  of its keeper is only lore. (Hero, faith, story.) R21.
+  of its keeper is only lore. (Hero, faith, story.) R21. **Partly closed by R21 PR A**: a corruption meter moved by
+  bosses raised, dark skills, altars, Eternals, raids and Terror, and pulled down by restraint, burial, the Memorial
+  and Morrow or the Choir; the phylactery (Death's Door once a day, a floor of 25, shattered at the Temple); and the
+  other edge (sieges and villages at 50, the dawn Hunger at 75, named by the Grand Inquisitor at 100). The forms (PR B)
+  close it.
 - **G31. Minions can be shaped but never designed.** Every minion is a foe that rose; spare bodies and trophies have no
   creative use. (Army, crafting, trophies.) R22.
 - **G32. A fallen minion's line ends.** The Memorial remembers names, but nothing of what a minion was carries into the

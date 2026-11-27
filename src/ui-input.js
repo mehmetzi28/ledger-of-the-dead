@@ -74,6 +74,9 @@ const ACTIONS={
   standwatch:()=>{ standWatch(); },
   gcall:k=>{ const o=callGodOmen(k||null); ui.msg=o?{mk:1,m:'Your god calls tomorrow\'s omen: '+OMENS[o].name+'.',c:'ok'}:null; },
   gward:()=>{ const o=wardOmen(); ui.msg=o?{mk:1,m:'You ward off tomorrow\'s '+OMENS[o].name+'.',c:'ok'}:null; },
+  phylbind:k=>{ if(phylBind(k)) ui.msg={mk:1,m:'Your soul is bound into '+VESSELS[k].name+'.',c:'ok'}; },
+  phylshatter:()=>{ if(ui.confirm!=='shatter'){ ui.confirm='shatter'; return; } ui.confirm=null; ui.msg=phylShatter()?{mk:1,m:'The phylactery is shattered. You are mortal again.',c:'ok'}:null; },
+  hunger:k=>{ const m=hungerAnswer(k==='feed'); ui.msg=m?{mk:1,m,c:k==='feed'?'bad':'ok'}:null; },
   callomen:()=>{ const id=callOmen(); ui.msg=id?{mk:1,m:'The Temple calls a new omen: '+OMENS[id].name+'.',c:'ok'}:null; },
   brewx:k=>{ const B=BREWS[k]; ui.msg=brewIt(k)?{mk:1,m:'You brew '+B.name+'.'+(B.belt?' It is on your belt.':' It waits in your stash.'),c:'ok'}:null; },
   prep:k=>{ const a=k.split('|'); prepSet(a[0],a[1]||null); },
@@ -184,7 +187,7 @@ const ACTIONS={
 function settled(){ sgTipHide(); if(S&&S.mode==='town') cmdSync(); checkTitles(); try{ loreCheck(); }catch(e){} render(); }   // after an action: award titles and lore passages, then draw
 // the vow warning (game-pantheon.js): the first press says what breaks; the next one goes ahead (ui.vowOk for the rest of the day)
 function vowAsk(k){ if(!vowWarn(k)||ui.vowOk===k+S.day) return false; ui.vowOk=k+S.day; ui.msg={m:k==='raise'?'Raising another body breaks your vow to Morrow (no more than '+MORROW_RAISE+' in a run). Press again to raise anyway.':'Selling a trophy breaks your vow to Ulm. Press again to sell anyway.',c:'bad'}; return true; }
-const CONFIRM_ACTS=['titleslot','titlenew','ngmode','ngstep','ascpick','carrypick','release','respec','cross','ending','hforge','newgame','ngcode','plogclr','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
+const CONFIRM_ACTS=['titleslot','titlenew','ngmode','ngstep','ascpick','carrypick','release','respec','cross','ending','hforge','newgame','ngcode','plogclr','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave','phylshatter'];   // two-press actions: a click on these keeps the pending confirm
 document.addEventListener('click',e=>{
   MUSIC.armed=true;
   const b=e.target.closest('[data-a]'); if(!b||b.disabled) return;

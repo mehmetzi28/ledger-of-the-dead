@@ -144,7 +144,7 @@ const remembered=()=>!!(S&&S.honor&&S.honor.day<=S.day&&S.honor.day>S.day-honour
 const canHonour=e=>!!e&&e.st>=1&&S.mode==='town'&&!remembered()&&S.gold>=honourCost(e);
 function honour(i){
   const e=(S.memorial||[])[i]; if(!canHonour(e)) return false;
-  S.gold-=honourCost(e); S.honor={day:S.day,nick:e.nick}; deed('choir',5); syncArmy(); S.army.concat(S.reserve||[]).forEach(m=>{ m.hp=Math.min(m.hp,m.maxHp); }); sfx('raise'); return true;
+  S.gold-=honourCost(e); S.honor={day:S.day,nick:e.nick}; deed('choir',5); corrMem(); syncArmy(); S.army.concat(S.reserve||[]).forEach(m=>{ m.hp=Math.min(m.hp,m.maxHp); }); sfx('raise'); return true;
 }
 // HEADSTONES: an uncapped late gold sink. In town, carve a headstone over any name in the Memorial (the released are never written
 // there) and raise it tier by tier; the next tier of a stone costs HEAD_GOLD*HEAD_GROW^(its tier). Each tier of every stone adds about

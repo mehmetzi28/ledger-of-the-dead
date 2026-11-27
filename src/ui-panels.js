@@ -242,7 +242,7 @@ function statusHTML(){
    +'<div class="vials">'+vial('HP',P.hp,pMax(),'hp')+vial('Mana',P.mana,pMana(),'mp')+'</div>'+'<div class="xp-eng">'+meter('XP',P.xp,need(P.lvl),'xp')+'</div>'
    +((P.pts>0||P.sp>0)?'<div class="chips">'+(P.pts>0?'<span class="chip pts">'+P.pts+' unspent point'+(P.pts>1?'s':'')+'</span>':'')+(P.sp>0?'<span class="chip pts">'+P.sp+' skill point'+(P.sp>1?'s':'')+'</span>':'')+'</div>':'')
    +(remembered()?'<div class="chips"><span class="chip mem-buff" title="Honoured a fallen minion today">Remembered: +'+Math.round(MEM_HP*100)+'% minion max HP until dawn</span></div>':'')
-   +pactChipsHTML()
+   +pactChipsHTML()+phylHTML()
    +'<div class="stats">'+rows.map(r=>'<div class="stat"><div>'+detl('st'+r[0],'<b>'+r[1]+'</b><span class="st-g">'+r[3].map(g=>sgl(g)).join('')+'</span>','<small>'+r[2]+'</small>'+(canAlloc?'<small>Next point: '+statGain(r[0])+'</small>':''),'sdesc',1)
       +(canAlloc?'<small class="gain">Next: '+gainG(r[0])+'</small>':'')+'</div><span class="val">'+st[r[0]]+(G(r[0])?'<small class="gb"> +'+G(r[0])+'</small>':'')+'</span>'
       +(canAlloc?'<button class="plus" data-a="alloc" data-k="'+r[0]+'" aria-label="Add a point to '+r[1]+'">+</button>':'<span class="plus-slot"></span>')+'</div>').join('')+'</div>'
@@ -889,4 +889,30 @@ function wardrobeHTML(){
         +(own?(town?'<button class="btn small'+(w?'':' primary')+'" data-a="coswear" data-k="'+k+'|'+id+'">'+(w?'Take off':'Wear')+'</button>':''):'<span class="u-tag">Locked</span>')+'</div>'; }
     h+='</div>'; }
   return h+'</section>';
+}
+
+// ===== R21 PR A: the ink stain, the binding and the Hunger (game-phyl.js) =====
+function inkStain(c){   // a blot that spreads with corruption, with drops thrown off past 25, 50 and 75
+  const r=3+c*.065, k=c/100, q=x=>Math.round(x*10)/10;
+  const d='M '+q(12-r)+' 12 Q '+q(12-r*1.05)+' '+q(12-r*1.1)+' 12 '+q(12-r*.95)+' Q '+q(12+r*1.25)+' '+q(12-r*1.05)+' '+q(12+r*.95)+' '+q(12+r*.15)+' Q '+q(12+r*.75)+' '+q(12+r*1.2)+' '+q(12-r*.15)+' '+q(12+r)+' Q '+q(12-r*1.2)+' '+q(12+r*.8)+' '+q(12-r)+' 12 Z';
+  const drops=[[25,19.5,5,1.1],[50,4.5,19,1.4],[75,20,19.5,1.7]].filter(x=>c>=x[0]).map(x=>'<circle cx="'+x[1]+'" cy="'+x[2]+'" r="'+x[3]+'" fill="currentColor"/>').join('');
+  return '<svg class="ink-stain" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="'+d+'" fill="currentColor" opacity="'+(.45+k*.55).toFixed(2)+'"/>'+drops+'</svg>';
+}
+function phylHTML(){
+  if(!PHYL_ON) return ''; const P=S.player, c=corrI(), b=corrBand(), town=S.mode==='town';
+  let h='<div class="ph-row" title="Corruption: what the Ledger has made of you. Dark power raises it; restraint lowers it.">'+inkStain(c)+'<span><b>Corruption '+c+'</b> &middot; '+b.name+(phylOn()?' &middot; <span class="ph-v">'+VESSELS[P.phyl.v].name+(P.phyl.cr?' (cracked until dawn)':'')+'</span>':'')+'</span></div>';
+  const fx=[]; if(c>=CORR_SEEN) fx.push('sieges bring one more foe each wave; the villages cool a step a day'); if(c>=CORR_HUNGER) fx.push('the Ledger may hunger at dawn'); if(P.named) fx.push('the Grand Inquisitor knows your name');
+  if(fx.length){ const t=fx.join('; '); h+='<p class="u-sub ph-fx">'+t[0].toUpperCase()+t.slice(1)+'.</p>'; }
+  if(P.hun&&P.hun.d===S.day) h+='<div class="chips"><span class="chip '+(P.hun.k==='dmg'?'mem-buff':'')+'">'+(P.hun.k==='dmg'?'Fed the Ledger: +5% damage until dawn':'Refused the Ledger: -5% max HP until dawn')+'</span></div>';
+  if(hungerOpen()){ const v=hungerVictim(); h+='<div class="ph-hunger"><p class="q-note bad">The Ledger hungers. Give it one of your Reserve and your dead strike 5% harder today; refuse and it takes 5% of your max HP until dawn.</p><div class="btns"><button class="btn small danger" data-a="hunger" data-k="feed"'+(v?'':' disabled title="No one in your Reserve"')+'>'+(v?'Give it '+v.nick:'Give it a Reserve minion')+'</button><button class="btn small" data-a="hunger" data-k="refuse">Refuse</button></div></div>'; }
+  if(phylCan()&&town) h+='<div class="ph-bind"><p class="q-note">The Ledger offers to bind your soul into a vessel. Once a day a killing blow will leave you at 1 HP, but your corruption will never fall under '+PHYL_FLOOR+'. Choose the vessel:</p><div class="btns">'+VESSEL_IDS.map(k=>'<button class="btn small primary" data-a="phylbind" data-k="'+k+'" title="'+VESSELS[k].desc+'">'+VESSELS[k].name+'</button>').join('')+'</div></div>';
+  return h;
+}
+function cxPhylHTML(){
+  const P=S.player;
+  return cxP('Corruption runs from 0 to 100 and shows what the Ledger has made of you. It is on the Status panel as an ink stain that spreads. You stand at '+corrI()+' ('+corrBand().name+').')
+   +'<p class="group-h">What raises it</p>'+cxList([cxRow('A boss raised','+'+CORR_BOSS),cxRow('Corpse Explosion, Reap, an Execute order (each, at most +'+CORR_DARK_DAY+' a day)','+'+CORR_DARK),cxRow('A defiled altar, a broken shrine','+'+CORR_ALTAR),cxRow('An Eternal in your army','+'+CORR_ETERNAL),cxRow('A village raided','+'+CORR_RAID),cxRow('A day at Terror','+'+CORR_TERROR)])
+   +'<p class="group-h">What lowers it</p>'+cxList([cxRow('A day without raising','-'+CORR_CLEAN),cxRow('A battlefield buried (per body)','-'+CORR_BURY),cxRow('The Memorial honoured','-'+CORR_MEM),cxRow('Morrow or the Choir at rank '+DEV_RANKS+' (each day)','-'+CORR_GOD)])
+   +'<p class="group-h">The phylactery</p>'+cxP('At level '+PHYL_LV+' and corruption '+PHYL_AT+' the Ledger offers to bind your soul into a vessel. Bound, Death\'s Door holds a killing blow at 1 HP once a day, and the vessel stays cracked until dawn. Corruption never falls under '+PHYL_FLOOR+' while you are bound. New Game+ keeps the soul bound. The Temple can shatter the vessel for '+PHYL_SHATTER+' gold, and corruption goes to 0.')+cxList(VESSEL_IDS.map(k=>cxRow(VESSELS[k].name,VESSELS[k].desc,phylOn()&&P.phyl.v===k?'Your soul':'')))
+   +'<p class="group-h">The other edge</p>'+cxList([cxRow('Marked','Sieges bring one more foe each wave; every village loses 1 standing a day.','Corruption '+CORR_SEEN),cxRow('Hungering','Some dawns the Ledger asks for a Reserve minion: +5% damage that day, or refuse and lose 5% max HP that day.','Corruption '+CORR_HUNGER),cxRow('Named','The Grand Inquisitor knows you: siege captains come 15% harder, and the Hunger reads your own echo from the book.','Corruption '+CORR_NAMED)]);
 }

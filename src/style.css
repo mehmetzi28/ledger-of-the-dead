@@ -1304,3 +1304,8 @@ body.cv-skin .win{border-color:#9a7a66;box-shadow:inset 0 0 0 2px rgba(154,122,1
 .vmap .v-enc{cursor:pointer}.vmap .v-enc circle{fill:#d8a24a;stroke:#0a0807;stroke-width:.3}.vmap .v-enc text{fill:#0a0807;font:700 2.2px/1 var(--font-body);text-anchor:middle;pointer-events:none}
 .v-opts{flex-wrap:wrap}.v-enc-card{border-color:#d8a24a}
 .v-card{padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:rgba(0,0,0,.2)}.v-card h3{margin:0 0 2px}.v-list{margin:6px 0}.v-dug{margin-top:10px}
+/* R21: the ink stain */
+.ph-row{display:flex;align-items:center;gap:8px;margin:6px 0 2px}
+.ink-stain{color:#9a63b8;flex:none;filter:drop-shadow(0 0 2px rgba(154,99,184,.45))}
+.ph-v{color:var(--gold,#c9a14a)}
+.ph-hunger,.ph-bind{margin:6px 0}

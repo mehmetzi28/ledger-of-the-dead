@@ -69,7 +69,7 @@ function startTower(f){
 }
 function startRun(di){
   if(S.mode!=='town'||S.watches<=0||!RK[di]||gateLocked(di)||!mapCan(gateNode(di))) return;
-  mapGo(gateNode(di)); S.watches--; S.runs++; S.notices=[];   /* the road there first (game-map.js) */
+  mapGo(gateNode(di)); S.watches--; S.runs++; S.notices=[]; hungerLeave();   /* the road there first (game-map.js) */
   S.run={di,room:0,rooms:di===ABBEY?ABBEY_ROOMS:4,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:gateMod(di),heat:heatOf(di)};
   S.run.rooms+=S.run.mod&&di!==ABBEY?longRooms([S.run.mod]):0;   /* the Long curse (game-valley.js) */
   S.mode='battle'; titheSouls(); prepTake(S.run); prepSoul(S.run); townStart(S.run); knightJoin(S.run); ascRead(S.run); rwEnter(S.run);   /* run prep, the black market's Soul (game-brew.js), the Soul Well (game-town2.js) */
@@ -477,7 +477,7 @@ function tryRaise(id,salt,bench){   // bench: raise to the Reserve, only when th
     { const ct=carryTrait(m); if(ct) r.events.push({m:m.nick+' rises with the trait you carried: '+TRAITS[ct].name+'.',c:'ok'}); }   /* a carried trait (game-asc.js) */
     if(rollCommand(m)) tally('commanders');
     syncMinion(m); m.hp=m.maxHp; if(toRes){ S.reserve.push(m); c.res=1; } else S.army.push(m); r.raised++; faithRaised(c); if(faithOf()==='hon'&&r.raised>MORROW_RAISE) vowBreak('hon','body '+r.raised+' raised in one run'); S.firstRaise=0; S.ti=S.ti||{}; S.ti.raised=(S.ti.raised||0)+1; if(m.armed) S.ti.armed=(S.ti.armed||0)+1;
-    if(!r.siege){ dread(DREAD_RAISE); orderEv('raise',c); } if(c.free) tally('straggler'); if(c.boss) tally('raisedBoss'); c.result='raised'; if(c.boss||c.elite) moment(m.nick+' rises: '+(c.boss?'a boss':'an elite')+' serves you','ok'); c.minion=m.nick+' ('+m.traits.map(t=>TRAITS[t].name).join(', ')+')'; sfx('raise'); fxe('raise',c);
+    if(!r.siege){ dread(DREAD_RAISE); orderEv('raise',c); } if(c.free) tally('straggler'); if(c.boss) tally('raisedBoss'); corrRaised(c); c.result='raised'; if(c.boss||c.elite) moment(m.nick+' rises: '+(c.boss?'a boss':'an elite')+' serves you','ok'); c.minion=m.nick+' ('+m.traits.map(t=>TRAITS[t].name).join(', ')+')'; sfx('raise'); fxe('raise',c);
   }else{ c.result='failed'; sfx('fail'); fxe('rfail',c); if(hasMod('thrift','a')&&cost>0){ const back=Math.floor(cost*FRUGAL); P.mana=Math.min(pMana(),P.mana+back); r.events.push({m:'Frugal Rites: '+back+' mana comes back.',c:'ok'}); } }   // Frugal Rites
 }
 // Quicker raising: try every untouched body, most valuable first (salts on bosses and elites), until mana or slots run out.

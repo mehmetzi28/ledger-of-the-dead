@@ -362,7 +362,7 @@ const SGN_LV=40, SGN_COST=22, SGN_WARD=.15, SGN_DRAIN=.08, SGN_DRAIN_BOSS=.04, S
 const LANCE_BASE=1.1, LANCE_STEP=.3, LANCE_BOSS=40, LANCE_SHATTER=1.5, PEST_STEP=.05, PEST_MAX=3, CON_ENDURE=.003, CON_ENDURE_CAP=.25, ENDURE_FROM=5,
   REQUIEM_MUL=.6, LNAME_TURNS=3, LONG_HAUL=15;
 const pierceMul=p=>endureK()*(hasFlag('ruin')?1.25:1)*(1+xb('dmgp')/100)*(S&&S.run&&S.run.bless?1.15:1)*(1-foeArmor()*(1-p));   // p = share of foe armor ignored (some skills pierce); bless = the blood shrine event, +15%
-const dmgMul=()=>pierceMul(0);   // every hit you and your minions land goes through this
+const dmgMul=()=>pierceMul(0)*hungerDmgK();   // every hit you and your minions land goes through this
 const enrage=e=>(e.tw&&e.boss)?1+Math.max(0,S.run.turn-8)*(e.tw===100?.12:.07):1;   // tower wardens hit harder every turn after turn 8
 
 // ===== DIFFICULTY (tune here) =====

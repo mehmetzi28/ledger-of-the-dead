@@ -139,7 +139,7 @@ function raidWon(r){   // svCleared: its people as bodies, gold and goods; stand
   if(v==='grey'){ M.ore=Math.min(ORE_HOLD,(M.ore|0)+2); goods=', two lumps of ore'; }
   if(v==='aldric'&&faithOf()==='dis'){ deed('dis',DEV_SHRINE/DEED_K.dis); goods=', and the Dissonance drinks the bells\' silence'; }
   const lost=VIL_RAID_POP[0]+Math.floor(Math.random()*(VIL_RAID_POP[1]-VIL_RAID_POP[0]+1)); x.pop=Math.max(0,x.pop-lost); tally('raidsV'); tally('raid_'+v);
-  stand(v,-VIL_RAID_ST,'a raid'); VIL_IDS.filter(o=>o!==v).forEach(o=>stand(o,-VIL_RAID_ALL,'a raid on '+V.name)); dread(VIL_RAID_DREAD); const inq=raidInquisition();
+  stand(v,-VIL_RAID_ST,'a raid'); VIL_IDS.filter(o=>o!==v).forEach(o=>stand(o,-VIL_RAID_ALL,'a raid on '+V.name)); dread(VIL_RAID_DREAD); corrRaid(); const inq=raidInquisition();
   r.events.push({m:'You take '+take+' of '+V.name+'\'s people (to raise before dawn), '+g+' gold'+goods+'. '+x.pop+' souls are left there.',c:'ok'});
   if(inq) r.events.push({m:inq,c:'bad'});
   if(x.pop<=0){ x.gone=1; delete x.fav; tally('abandoned'); if(v==='aldric') delete vilAll().knight; unlockStory('vil_'+v+'3',r); r.events.push({m:V.name+' is abandoned. No one will trade or ask favors there again; its graveyard at '+VALLEY_NODES[V.gy].name+' lies open and deep.',c:'bad'}); }
@@ -173,7 +173,7 @@ const vilGyK=id=>VIL_IDS.some(v=>vilGone(v)&&VILLAGES[v].gy===id)?VIL_GY_BIG:1; 
 // ----- the battlefield burial (Saint Aldric's favor) and the escort fight
 const buryOpen=id=>VALLEY_NODES[id]&&VALLEY_NODES[id].k==='field'&&favOpen('aldric','bury')&&siteReady(id);
 function buryField(id){   // walk a fresh battlefield and bury its dead: no bodies, the favor done
-  if(!buryOpen(id)||S.mode!=='town'||!mapGo(id,1)) return null; delete siteState(id).fresh; tally('buried'); tally('mapSites');
+  if(!buryOpen(id)||S.mode!=='town'||!mapGo(id,1)) return null; delete siteState(id).fresh; tally('buried'); tally('mapSites'); corrBury(Math.round((MAP_BF_N[0]+MAP_BF_N[1])/2));
   const m='You bury the fallen at '+VALLEY_NODES[id].name+' as Saint Aldric\'s asked. '+favDone('aldric'); return m;
 }
 function escortRoom(list,r){   // svRoom: what waits on the cart's road (Miller's Ford: wolves; Greyhollow: iron things; Saint Aldric's: the nearest gate's kinds)

@@ -63,7 +63,7 @@ function command(role){
   if(role==='vanguard'){ r.taunt=2+(elderCmdr()?1:0)+(S.army.some(m=>m.spec==='bastion'&&m.hp>0)?1:0);   /* a Bastion (game-army.js) */ log('Taunt: your vanguards bellow, and every foe turns on them.','ok'); }
   else if(role==='striker'){ r.focus=true; log('Focus: your strikers pick their spots.','ok'); }
   else if(role==='mender'){ const w=Math.round(mine.reduce((a,m)=>a+Math.round(m.atk*1.5),0)*(elderCmdr()?ELDER_SHIELD:1)); P.shield=Math.min(Math.round(pMax()*.6),P.shield+w); mark('p',0,0); log('Bone Shield: your menders ward you. You hold '+P.shield+' ward.','ok'); }
-  else { r.execute=true; log('Execute: your reapers look for the weak.','ok'); }
+  else { r.execute=true; corrExec(); log('Execute: your reapers look for the weak.','ok'); }
   sfx('skill'); return true;
 }
 // Guard: a vanguard order that costs your turn (act('guard')), apart from the free orders above. Until your next turn, the first foe blow that

@@ -1,5 +1,5 @@
 // ----- player-derived stats
-const pMax = ()=>Math.round((24+A('constitution')*CON_HP+S.player.lvl*4+G('hp')+cmdHp())*(1+.06*sk('bonearmor'))*(1+xb('hpp')/100)*tearK());
+const pMax = ()=>Math.round((24+A('constitution')*CON_HP+S.player.lvl*4+G('hp')+cmdHp())*(1+.06*sk('bonearmor'))*(1+xb('hpp')/100)*tearK()*hungerHpK());
 const pMana = ()=>Math.round((20+A('intelligence')*6+A('will')*3+G('mana'))*(1+xb('manap')/100)*(1+B_ALT_MANA*bl('altar'))*manaK());   /* Black Altar */
 const pAtk = ()=>Math.round(3+A('strength')*2.2+S.player.lvl+G('atk')+cmdAtk());
 const pSiph = ()=>Math.round(6+A('intelligence')*2.8+S.player.lvl+G('siph')+cmdSiph());
@@ -86,8 +86,8 @@ const canNGP=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]);
 const ownedUniques=()=>[...new Set(S.inv.concat(Object.values(S.equip)).filter(it=>it&&ITEM[it.id]&&ITEM[it.id].uq).map(it=>it.id))];
 function startNGP(carry,pacts,rule,carries){
   if(S.mode!=='town'||!canNGP()) return false; if(faithOf()==='dis') tally('godless');   /* Godless: a cycle finished Profane (game-pantheon.js) */
-  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts),ally:S.ally||null}; if(S.iron){ keep.iron=true; keep.ironDeaths=S.ironDeaths|0; } if(S.custom) keep.custom=S.custom; if(S.code) keep.code=S.code; if(S.insc) keep.insc=S.insc; if(S.coll) keep.coll=S.coll; if(S.cos) keep.cos=S.cos;   /* inscriptions and milestones (game-collection.js) */   /* the mode carries into New Game+ (game-modes.js) */ ngpEnding(keep); ascStart(keep,rule,carries);   /* the ascension rule (game-asc.js) */   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
-  newGame(); Object.assign(S,keep); S.ti.clr={}; ngpEndingStart(); ascBegin();   // titles stay earned; New Game+ again needs another Throne of Ash clear
+  const oldP=S.player, own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts),ally:S.ally||null}; if(S.iron){ keep.iron=true; keep.ironDeaths=S.ironDeaths|0; } if(S.custom) keep.custom=S.custom; if(S.code) keep.code=S.code; if(S.insc) keep.insc=S.insc; if(S.coll) keep.coll=S.coll; if(S.cos) keep.cos=S.cos;   /* inscriptions and milestones (game-collection.js) */   /* the mode carries into New Game+ (game-modes.js) */ ngpEnding(keep); ascStart(keep,rule,carries);   /* the ascension rule (game-asc.js) */   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
+  newGame(); Object.assign(S,keep); S.ti.clr={}; ngpEndingStart(); ascBegin(); phylNgp(oldP);   // titles stay earned; New Game+ again needs another Throne of Ash clear
   S.watches=WATCHES-pactWatch(); S.notices=[]; if(carry&&own.includes(carry)){ const it=addItem(carry,null); if(it&&carryAw) it.aw=carryAw; }   /* an awakened unique keeps its ranks */ unlockStory('ngp');
   notify('New Game+ '+S.ngp+' begins. Foes have '+Math.round(NGP_FOE*S.ngp*100)+'% more HP and attack, and pay '+Math.round(NGP_REWARD*S.ngp*100)+'% more XP and gold.'+(carry&&own.includes(carry)?' '+ITEM[carry].name+' is in your bag.':''),'ok');
   return true;
@@ -211,7 +211,7 @@ function normalizeSave(src){
   { const c=g.player.cmd; if(!hadCmd||!(obj(c)&&c.a>=0&&c.h>=0&&isFinite(c.a)&&isFinite(c.h))) g.player.cmd=cmdPow(Array.isArray(g.army)?g.army:[]); else g.player.cmd={a:Math.round(c.a),h:Math.round(c.h)}; }   // Command: an old or damaged save measures its army again
   const okB=b=>obj(b)&&BOUNTIES[b.id]&&typeof b.n==='number'&&typeof b.base==='number'&&obj(b.rw)&&typeof b.claimed==='boolean';
   g.bounty=(obj(g.bounty)&&typeof g.bounty.day==='number'&&Array.isArray(g.bounty.list)&&g.bounty.list.every(okB))?g.bounty:null;
-  memorialFix(g); nemFix(g); modesFix(g); codeFix(g); inscFix(g); collFix(g); cosFix(g); lostFix(g); mapFix(g); vilFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
+  memorialFix(g); nemFix(g); modesFix(g); codeFix(g); inscFix(g); collFix(g); cosFix(g); lostFix(g); mapFix(g); vilFix(g); phylFix(P); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
   return g;
 }
 function validSave(g){ return !!normalizeSave(g); }
@@ -575,7 +575,7 @@ function closeDay0(){
   if(!S.quest.claimed&&questDone()) claimQuest();   // an unfinished quest simply lapses
   const hon=remembered(); S.day++; nemDawn(); S.watches=WATCHES-pactWatch(); if(hon) syncArmy();   /* the Remembered buff ends at dawn; nemDawn: nemeses grow each week (game-nemesis.js) */
   S.quest={kills:0,rooms:0,clears:0,claimed:false};
-  const rr=resolveRaids(); placeWaiting(); mapDawn(); roadsDawn(); vilDawn();   /* home at dawn, then the scouts and the raven (game-map.js, game-roads.js) */ bondsDawn(); yardDawn(); embDawn(); upkeepDawn(); dreadDawn(); faithDawn(); godDreadDawn(); omenDusk();   /* upkeep and the town's dread (game-dread.js) */   /* the Charnel Yard, the Embalmery (game-town2.js) */
+  const rr=resolveRaids(); placeWaiting(); mapDawn(); roadsDawn(); vilDawn(); corrDawn();   /* home at dawn, then the scouts and the raven (game-map.js, game-roads.js) */ bondsDawn(); yardDawn(); embDawn(); upkeepDawn(); dreadDawn(); faithDawn(); godDreadDawn(); omenDusk();   /* upkeep and the town's dread (game-dread.js) */   /* the Charnel Yard, the Embalmery (game-town2.js) */
   P.hp=pMax(); P.mana=pMana(); P.shield=0;
   S.army.forEach(m=>m.hp=m.maxHp);
   notify('Day '+S.day+' begins. You have '+S.watches+' watches.'+raidDayLine(rr)+forecastLine());
