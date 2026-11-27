@@ -507,6 +507,12 @@ before). Three waves (militia, crossbowmen, chaplains, witch-hunters, then the I
 foes x2.2 HP, x2.5 attack. You pick a building to guard and up to 2 Reserve minions for the wall; each building lends a
 perk. Win: ~1.5 clears of gold, dust, gear. Loss: a building is damaged (off until repaired) or a 10% gold fine. Bot
 holds 84-86%.
+**Siege tiers** (R14, `src/game-siege2.js`): five tiers (Militia, Templars, Inquisition, Crusade, Purge); two held in a
+row raise the tier, a loss lowers it, Calm fights one lower and Terror one higher. Each tier adds kinds with kits (Templar
+Shieldwall, Flagellant, Relic Bearer, Exorcist, Pyre Priest, Hound Master and War Hounds), waves (3, 3, 4, 4, 5), a boss
+(the Captain, then the Witchfinder General, the Saint of Pyres, the Grand Inquisitor) and pay (x1 to x2). Tier 4+ burns
+the strongest unguarded perk for the night. On the night you pick a wall: North road (+1 foe, Bell Tower defenses x2,
++25%), River gate (one fewer, all elites, the boss a turn late, +15%) or Graveyard (the Ossuary raises two).
 
 **The Rival** (`RIVAL_*`). After 4 distinct clears a rival keeper (one of six names) appears. Every 2-6 days they steal
 the best body of the role your army leans on; about every two weeks (warned a day ahead) they wait in a cleared gate's

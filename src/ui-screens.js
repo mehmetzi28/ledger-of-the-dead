@@ -574,25 +574,27 @@ function siegeTownHTML(){   // the Town tab: a warning banner (only once warned:
     h+='<div class="siege-warn" role="status"><b>'+(now?'The living march on the necropolis tonight, when the day ends.':'The living march on the necropolis tomorrow at dusk.')+'</b> '
      +'<button class="linkbtn" data-a="cxgo" data-k="sieges">Read about sieges</button></div>'
      +'<p class="u-sub siege-line">Siege: '+(now?'tonight':'in 1 day')+'</p>'; }
+  if(STIERS_ON&&(T_('sieges')||stierRaw()>1)){ const t=siegeTier(); h+='<p class="u-sub siege-tier" title="'+STIERS[t-1].rule+' Two sieges held in a row raise the tier; a lost one lowers it. Calm lowers the tier a siege is fought at by one, Terror raises it.">Siege tier '+t+': '+STIERS[t-1].name+(t<STIER_MAX?' &middot; held in a row '+(sg().streak|0)+'/'+STIER_UP:'')+'</p>'; }
   if(g.dmg){ const c=repairCost(), conf=ui.confirm==='repair';
     h+='<div class="tt-row siege-dmg bad"><div><h4>'+BUILD[g.dmg].name+' &middot; damaged</h4><div class="u-sub" title="Burned in the last siege. Its effects, siege perk included, are lost until it is repaired. Repairs cost gold only.">No effect until repaired</div></div>'
      +'<button class="btn small '+(conf?'warn':'primary')+'" data-a="repair"'+(S.gold<c?' disabled':'')+'>'+(conf?'Confirm: repair for '+c+' gold':'Repair &middot; '+gold(c))+'</button></div>'; }
   return h;
 }
 function siegeHTML(){   // nightfall on a siege day: the intro screen
-  const di=siegeGate(), P=S.player, pk=siegePerks(), away=raidN(), g=sg();
+  const di=siegeGate(), P=S.player, pk=siegePerks(), away=raidN(), g=sg(), t=siegeTier(), burn=siegeBurnPick(t);
   return '<section class="win siege-intro" aria-labelledby="h-siege"><h2 class="win-h" id="h-siege">Siege &middot; Night of day '+S.day+'</h2><h3 class="win-title">The living are at the walls</h3>'
    +'<p class="lede">Torches on the hill road. The Inquisition leads the town\'s militia.</p>'
-   +'<div class="facts" title="Between waves you heal as between rooms; nothing can be raised until the last wave falls. On home ground your downed minions never shatter. Fleeing counts as a defeat."><span>'+SIEGE_WAVES+' waves</span><span>Lv '+siegeLvl()+'</span><span>Like the '+DUNGEONS[di].name+'</span><span>No raising until the end</span><span class="ok">Minions never shatter</span><span class="bad">Fleeing = defeat</span></div>'
-   +'<p class="group-h">Your buildings</p>'+(pk.length?'<ul class="siege-perks">'+pk.map(x=>'<li><b>'+x.name+'</b>: '+x.t+'</li>').join('')+'</ul>':'<p class="q-note">No building lends you its strength tonight.</p>')
+   +'<div class="facts" title="Between waves you heal as between rooms; nothing can be raised until the last wave falls. On home ground your downed minions never shatter. Fleeing counts as a defeat."><span class="'+(t>1?'bad':'')+'" title="'+STIERS[t-1].rule+'">Tier '+t+': '+STIERS[t-1].name+'</span><span>'+siegeRooms(t)+' waves</span><span>Lv '+siegeLvl()+'</span><span>Like the '+DUNGEONS[di].name+'</span><span>No raising until the end</span><span class="ok">Minions never shatter</span><span class="bad">Fleeing = defeat</span></div>'
+   +'<p class="group-h">Your buildings</p>'+(pk.length?'<ul class="siege-perks">'+pk.map(x=>'<li'+(x.k===burn?' class="bad"':'')+'><b>'+x.name+'</b>: '+x.t+(x.k===burn?' &middot; burnt tonight':'')+'</li>').join('')+'</ul>':'<p class="q-note">No building lends you its strength tonight.</p>')
    +(g.dmg?'<p class="q-note bad">The '+BUILD[g.dmg].name+' still lies in ruins and gives nothing.</p>':'')
    +(away?'<p class="q-note">'+away+' of your dead marched on a raid tonight and are not on the walls.</p>':'')
    +'<div class="facts" title="Hold, and the town pays: gold, bone dust and a piece of gear. Fall, and they burn one of your buildings until you repair it."><span class="ok">Hold: gold, dust, gear</span><span class="bad">Fall: a building burns</span></div>'+siegeChoiceHTML()
    +'<div class="btns"><button class="btn primary" data-a="siegego">Man the walls</button></div></section>'+armyHTML();
 }
-function siegeChoiceHTML(){   // the intro screen's two choices: the guarded building and the wall
-  const g=sg(), gb=g.dmg?[]:guardable(), pool=wallPool(), w=g.wall||[], chip=(a,k,t,on,dis)=>'<button class="btn small'+(on?' primary':'')+'" data-a="'+a+'" data-k="'+k+'" aria-pressed="'+on+'"'+(dis?' disabled':'')+'>'+t+'</button>';
-  return (gb.length?'<p class="group-h">Guard a building</p><p class="u-sub" title="If the walls fall, the living cannot burn the building you guard; they fire another, or take gold if none is left.">Spared if the walls fall</p><div class="chips">'+gb.map(k=>chip('sguard',k,BUILD[k].name+' &middot; Lv '+blRaw(k),g.guard===k)).join('')+'</div>':'')
+function siegeChoiceHTML(){   // the intro screen's choices: the wall you hold, the guarded building and the Reserve on the wall
+  const g=sg(), gb=g.dmg?[]:guardable(), pool=wallPool(), w=g.wall||[], chip=(a,k,t,on,dis)=>'<button class="btn small'+(on?' primary':'')+'" data-a="'+a+'" data-k="'+k+'" aria-pressed="'+on+'"'+(dis?' disabled':'')+'>'+t+'</button>', rd=siegeRoad();
+  return '<p class="group-h">Hold the wall</p><p class="u-sub">'+ROADS[rd].desc+'</p><div class="chips siege-roads">'+ROAD_IDS.map(k=>chip('sroad',k,ROADS[k].name+(ROADS[k].pay>1?' &middot; +'+b100(ROADS[k].pay-1)+'%':''),rd===k)).join('')+'</div>'
+   +(gb.length?'<p class="group-h">Guard a building</p><p class="u-sub" title="If the walls fall, the living cannot burn the building you guard; they fire another, or take gold if none is left.">Spared if the walls fall</p><div class="chips">'+gb.map(k=>chip('sguard',k,BUILD[k].name+' &middot; Lv '+blRaw(k),g.guard===k)).join('')+'</div>':'')
    +(pool.length?'<p class="group-h">On the wall &middot; '+w.length+'/'+SIEGE_WALL+'</p><p class="u-sub" title="Up to '+SIEGE_WALL+' minions from the Reserve fight this siege in your front row, then go back to the Reserve.">Reserve minions in your front row, tonight only</p><div class="chips">'+pool.map(m=>chip('swall',m.uid,m.nick+' &middot; Lv '+m.lvl,w.includes(m.uid),!w.includes(m.uid)&&w.length>=SIEGE_WALL)).join('')+'</div>':'');
 }
 

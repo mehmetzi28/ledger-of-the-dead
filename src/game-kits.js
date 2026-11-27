@@ -52,7 +52,7 @@ function kitAtk(e,it){   // a kit's share of a foe's blow
   if(otherBanner(e)) k*=1+KIT_BANNER;
   if(it&&it.amb) k*=KIT_AMBUSH;
   if(it&&it.sf) k*=KIT_SURFACE;
-  return k;
+  return k*sermonK();   /* the Saint of Pyres's Sermon (game-siege2.js) */
 }
 function kitTaken(e,d){   // a kit's share of the damage a foe takes (hurtFoe, before shields)
   if(stanceOn(e)) d=Math.round(d*KIT_STANCE);

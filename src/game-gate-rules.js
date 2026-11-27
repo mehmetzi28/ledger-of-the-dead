@@ -101,7 +101,7 @@ function addSt(u,k,t){ if(!u||!(u.hp>0)||!CONDS[k]||stImmune(u,k)) return false;
 const hasSt=(u,k)=>!!(u&&u.st&&u.st[k]>0);
 const hexK=u=>hasSt(u,'hexed')?HEX_MUL:1;
 const clearSt=u=>{ if(u) delete u.st; };
-const clearAll=u=>{ clearDots(u); clearSt(u); if(u){ delete u.mw; delete u.lock; delete u.root; delete u.unw; delete u.read; delete u.readBy; if(u.prow!=null){ if(u.prow) u.row=u.prow; else delete u.row; delete u.prow; } } };   /* unw, prow: Unwriting and Moth Light */   /* lock, root: a boss's Keymaster's Lock and Iron Thorns */   /* mw: a Warden's ward on a minion */   // leaving a room: every status ends
+const clearAll=u=>{ clearDots(u); clearSt(u); if(u){ delete u.mw; delete u.wmk; delete u.lock; delete u.root; delete u.unw; delete u.read; delete u.readBy; if(u.prow!=null){ if(u.prow) u.row=u.prow; else delete u.row; delete u.prow; } } };   /* unw, prow: Unwriting and Moth Light */   /* lock, root: a boss's Keymaster's Lock and Iron Thorns */   /* mw: a Warden's ward on a minion */   // leaving a room: every status ends
 function tickSt(){ const r=S.run; if(!r) return; for(const u of r.enemies.concat(allies())){ if(!u.st) continue; for(const k of Object.keys(u.st)) if(--u.st[k]<=0) delete u.st[k]; if(!Object.keys(u.st).length) delete u.st; } }
 function foeTarget(alive){ const w=alive.map(a=>a.role==='vanguard'?5:2); let roll=Math.random()*w.reduce((x,y)=>x+y,0), tg=alive[0];   // vanguards draw the eye
   for(let i=0;i<alive.length;i++){ roll-=w[i]; if(roll<=0){ tg=alive[i]; break; } } return tg; }

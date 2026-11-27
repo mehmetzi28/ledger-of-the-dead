@@ -95,7 +95,7 @@ function codexSection(k){
   if(k==='bosses') return cxP('Every gate boss fights with a move set: two or three moves it uses in turn every few turns in place of attacking, shown on its card once Known ("Next: ..."). Moves marked telegraphed are announced a turn ahead (Charging): soak a blow with Bone Ward, or freeze the boss with Grave Chill to cancel the move. A boss calls at most '+SUMMON_CAP+' helpers a fight. Some bosses also bring a hazard, a rule for the whole room while they stand. Tower wardens bring a signature move of their own beside the gate move they borrow (Abaddon all of them, abyssal wardens two); wardens move a turn sooner from floor 50 and grow wrathful after turn 8: every turn after that they hit 7% harder (12% on floor 100).')
     +cxP('At '+pct(PHASE_AT)+' HP a boss (from the Sunken Crypt on, and every Tower warden) enters its second phase: its moves come a turn sooner and every move is telegraphed. A gate boss turns its fight with a twist of its own; wardens and secret masters alternate their moves with Sundering Blow. Taunt sends that blow at a vanguard, and a Focus crit breaks any charging move.')
     +'<p class="group-h">Gate bosses</p>'+cxList(DUNGEONS.map(D=>{ const n=D.boss[0], met=metName(n); return cxRow(met?n:'An unmet boss',met?bossKitTxt(n):'Meet it to learn its moves.',D.name); }))
-    +cxRow(SIEGE_BOSS,bossKitTxt(SIEGE_BOSS),'Sieges')
+    +SIEGE_BOSSES.map((n,i)=>cxRow(n,bossKitTxt(n)+(SBOSS_PASSIVE[n]?'. '+SBOSS_PASSIVE[n][0]+': '+SBOSS_PASSIVE[n][1]:''),i?'Sieges, tier '+(i+2):'Sieges')).join('')
     +cxRow('The rival','Royal Decree, and a second move shaped by the bodies they stole: mostly vanguards bring '+BOSS_ABIL.rampart.name+', strikers '+BOSS_ABIL.called.name+', menders '+BOSS_ABIL.blackmass.name+', reapers '+BOSS_ABIL.harvest.name+'.','Challenges')
     +'<p class="group-h">Moves</p>'+cxList(Object.keys(BOSS_ABIL).map(id=>{ const A=BOSS_ABIL[id], own=Object.keys(BOSS_KIT).filter(n=>BOSS_KIT[n].moves.includes(id)), gi=GATE_ABIL.indexOf(id);
       const who=id==='sunder'?'Wardens and secret masters, second phase':id==='mirror'?'The Pale Sovereign, second phase':WARDEN_SIG.includes(id)?'A Tower warden':id==='otherhalf'?'Abaddon, King of Hell':own.length?own.map(n=>n===SIEGE_BOSS||metName(n)?n:'An unmet boss').join(', '):Object.values(RIVAL_MOVE).includes(id)?'The rival':gi>=0?DUNGEONS[gi].name:'';
@@ -227,7 +227,7 @@ function codexSection(k){
       cxRow('Victory','Gold worth about '+SIEGE_GOLD+' clears of the deepest open gate, bone dust, one piece of that gate\'s gear with a bonus line, and the raise screen for the last wave\'s bodies.'),
       cxRow('Guard and wall','On the night, before the first wave, choose one building to guard: a defeat cannot burn it (another burns instead, or you pay the fine if none is left). You can also send up to '+SIEGE_WALL+' Reserve minions to the wall: they fight this siege in your front row without taking army places, and go back to the Reserve when it ends. Raiders and minions waiting at the gate cannot go.'),
       cxRow('Defeat','Fleeing counts as one. No XP is lost and nothing is deleted. One built building is damaged: its effects, siege perk included, are lost until you repair it on the Town tab for '+pct(SIEGE_REPAIR)+' of its current level\'s gold. Only one can be damaged at a time; a defeat while one is costs '+pct(SIEGE_FINE)+' of the gold you carry instead (at most about '+SIEGE_FINE_MAX+' clear\'s worth).')])
-    +'<p class="group-h">Buildings on the walls</p>'+cxList(Object.keys(BUILD).filter(b=>SIEGE_PERK[b]).map(b=>cxRow(BUILD[b].name,SIEGE_PERK[b].d,'Level '+bl(b)+'/'+BUILD_MAX)))
+    +'<p class="group-h">Buildings on the walls</p>'+cxList(Object.keys(BUILD).filter(b=>SIEGE_PERK[b]).map(b=>cxRow(BUILD[b].name,SIEGE_PERK[b].d,'Level '+bl(b)+'/'+BUILD_MAX)))+siegeTiersCx()
     +(T_('sieges')?cxP('Sieges fought: '+T_('sieges')+', held: '+T_('siegeWins')+'.'):'');
   if(k==='army') return cxP('The Army tab is the command view over your army and the Reserve. Only its buttons change anything; filters and sorting change only what it shows.')
     +cxList([cxRow('Command','Power (attack x2 plus a quarter of health, added up over the army), damage per turn (the attack of every minion that strikes; menders heal instead), health, and the Reserve\'s power. Below them, one bar per role shows its share of the army; press one to show only that role.'),
@@ -490,3 +490,13 @@ function bldExtra(k){
   return h;
 }
 function raiseChanceEmb(c){ EMB_RAISING=true; try{ return raiseChance(Object.assign({},c,hasSpec('embalm',5,'b')?{lvl:Math.min(S.player.lvl+2,c.lvl+3)}:{})); } finally{ EMB_RAISING=false; } }
+
+// ===== R14 PR A: siege tiers, walls and the living by tier (game-siege2.js) =====
+function siegeTiersCx(){
+  return '<p class="group-h">Siege tiers</p>'+cxP('Sieges climb through '+STIER_MAX+' tiers. Two sieges held in a row raise the tier by one; a lost siege lowers it by one. The town\'s dread moves the tier a siege is fought at: Calm one lower, Terror one higher. Each tier pays more: '+STIER_PAY.map((p,i)=>'tier '+(i+1)+' x'+p).join(', ')+'.')
+   +cxList(STIERS.map((t,i)=>cxRow(t.name,t.rule,'Tier '+(i+1))))
+   +'<p class="group-h">Walls</p>'+cxP('On the night of a siege, before the first wave, choose the wall you hold. The Graveyard is the usual fight.')
+   +cxList(ROAD_IDS.map(k=>cxRow(ROADS[k].name,ROADS[k].desc)))
+   +'<p class="group-h">The living by tier</p>'+cxList(Object.keys(SIEGE2_FOES).map(k=>{ const F=SIEGE2_FOES[k], kt=KIT_OF[F[0]]; return cxRow(F[0],ROLES[F[1]].label+(kt?'. '+KITS[kt].name+': '+KITS[kt].rule:''),'Tier '+(STIER_WAVES.findIndex(W=>W&&W.some(w=>w.some(x=>x.replace('*','')===k)))+1)); }))
+   +(STIERS_ON&&T_('sieges')?cxP('Your sieges stand at tier '+stierRaw()+(siegeTier()!==stierRaw()?' (tier '+siegeTier()+' with the town\'s dread)':'')+'.'):'');
+}

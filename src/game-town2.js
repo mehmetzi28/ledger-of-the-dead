@@ -47,7 +47,7 @@ function chooseSpec(k,lv,c){
 // ----- the hooks: small numbers other systems read
 const cryptSlot=()=>hasSpec('crypt',5,'b')?1:0;   // slots, the slot cap
 const reserveSpec=()=>hasSpec('crypt',3,'a')?4:0;   // reserveMax
-const townHpK=m=>(hasSpec('crypt',3,'b')?1.05:1)*(S.run&&S.run.siege&&m.wall?1+SIEGE_YARD*bl('yard'):1);   // extraMul (HP)
+const townHpK=m=>(hasSpec('crypt',3,'b')?1.05:1)*(S.run&&S.run.siege&&m.wall?1+SIEGE_YARD*sbl('yard'):1);   // extraMul (HP)
 const smithK=()=>hasSpec('forge',3,'a')?.1:0;   // forgeGear, forgeTower
 const temperK=()=>hasSpec('forge',3,'b')?.75:1;   // temperCost
 const temperStep=()=>hasSpec('forge',5,'b')?2:1;   // temperTo
@@ -85,13 +85,13 @@ Object.assign(SIEGE_PERK,{
   war:    {t:n=>'sieges pay '+b100(SIEGE_WAR*n)+'% more gold', d:'Sieges pay '+b100(SIEGE_WAR)+'% more gold per level.'}
 });
 function townSiegeWave(list,r){   // spawnSiege, after scaling
-  const hpK=(1-SIEGE_BELL*bl('bell')), atkK=hasSpec('bell',3,'a')?.95:1;
-  dreadWave(list,r); for(const e of list){ let k=hpK; if(e.boss) k*=(1-SIEGE_LIB*bl('library'))*(hasSpec('bell',5,'b')?.85:1); if(k!==1){ e.maxHp=e.hp=Math.max(1,Math.round(e.maxHp*k)); } if(atkK!==1) e.atk=Math.max(1,Math.round(e.atk*atkK)); }
-  bellDefense(list,r); godSiegeWave(list,r); if(r.room&&bl('apoth')){ const P=S.player, h=healAlly(P,Math.round(pMax()*SIEGE_APO*bl('apoth'))); if(h) log('The Apothecary\'s salves: +'+h+' HP.','ok'); }
+  const hpK=(1-SIEGE_BELL*sbl('bell')), atkK=hasSpec('bell',3,'a')?.95:1;
+  dreadWave(list,r); for(const e of list){ let k=hpK; if(e.boss) k*=(1-SIEGE_LIB*sbl('library'))*(hasSpec('bell',5,'b')?.85:1); if(k!==1){ e.maxHp=e.hp=Math.max(1,Math.round(e.maxHp*k)); } if(atkK!==1) e.atk=Math.max(1,Math.round(e.atk*atkK)); }
+  bellDefense(list,r); godSiegeWave(list,r); if(r.room&&sbl('apoth')){ const P=S.player, h=healAlly(P,Math.round(pMax()*SIEGE_APO*sbl('apoth'))); if(h) log('The Apothecary\'s salves: +'+h+' HP.','ok'); }
 }
-const siegePayK=()=>(1+SIEGE_WAR*bl('war'))*(hasSpec('bell',3,'b')?1.2:1)*dreadPayK()*godPayK();   // siegeGoldPay (the Choir: game-pantheon.js)
+const siegePayK=()=>(1+SIEGE_WAR*sbl('war'))*(hasSpec('bell',3,'b')?1.2:1)*dreadPayK()*godPayK();   // siegeGoldPay (the Choir: game-pantheon.js)
 const siegeDustK=()=>hasSpec('bell',5,'a')?2:1;   // siegeWon
-function townSiegeWon(r){ dread(-DREAD_SIEGE_WON*tollK()); if(!bl('embalm')||!r.fallen||!r.fallen.length) return; const c=pick(r.fallen.concat(r.corpses||[]).filter(x=>x&&!x.boss)); if(c&&embKeep(c,true)) r.events.push({m:'The Embalmery takes in '+withArticle(c.base||c.name)+' from the walls.',c:'ok'}); }
+function townSiegeWon(r){ dread(-DREAD_SIEGE_WON*tollK()); if(!sbl('embalm')||!r.fallen||!r.fallen.length) return; const c=pick(r.fallen.concat(r.corpses||[]).filter(x=>x&&!x.boss)); if(c&&embKeep(c,true)) r.events.push({m:'The Embalmery takes in '+withArticle(c.base||c.name)+' from the walls.',c:'ok'}); }
 // ----- the Charnel Yard: dawn training
 function yardDawn(){
   const n=bl('yard'); if(!n) return 0; const top=Math.max(0,...S.army.map(m=>m.lvl)); if(!top) return 0;

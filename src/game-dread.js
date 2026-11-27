@@ -44,12 +44,12 @@ function dreadDawn(){   // closeDay: drift, then the band's own dawn
 // ----- the Bell Tower's wall defenses, one per level
 const BELL_DEF=[['Caltrops','wave 1 starts bleeding'],['Burning oil','wave 2 is scalded for 10% of its HP as fire'],['Great bells','the Captain acts a turn late'],['Arrow slits','each wave loses 5% of its HP'],['Sanctuary','you start each wave with a shield of 10% of your max HP']];
 function bellDefense(list,r){   // townSiegeWave, before the fight starts
-  const n=bl('bell'); if(!n||!r) return;
-  if(n>=1&&r.room===0) list.forEach(e=>addDot(e,'bleed',Math.max(1,Math.round(e.maxHp*.02)),3));
-  if(n>=2&&r.room===1) list.forEach(e=>{ e.hp=Math.max(1,e.hp-Math.round(e.maxHp*.1*(1-foeRes(e,'fire')))); });
-  if(n>=3) list.filter(e=>e.boss).forEach(e=>{ e.stun=Math.max(e.stun||0,1); });
-  if(n>=4) list.forEach(e=>{ e.hp=Math.max(1,e.hp-Math.round(e.maxHp*.05)); });
-  if(n>=5){ const P=S.player; P.shield=Math.max(P.shield||0,Math.round(pMax()*.1)); }
+  const n=sbl('bell'), k=bellK(); if(!n||!r) return;   /* k: the North road doubles them (game-siege2.js) */
+  if(n>=1&&r.room===0) list.forEach(e=>addDot(e,'bleed',Math.max(1,Math.round(e.maxHp*.02*k)),3));
+  if(n>=2&&r.room===1) list.forEach(e=>{ e.hp=Math.max(1,e.hp-Math.round(e.maxHp*.1*k*(1-foeRes(e,'fire')))); });
+  if(n>=3) list.filter(e=>e.boss).forEach(e=>{ e.stun=Math.max(e.stun||0,k); });
+  if(n>=4) list.forEach(e=>{ e.hp=Math.max(1,e.hp-Math.round(e.maxHp*.05*k)); });
+  if(n>=5){ const P=S.player; P.shield=Math.max(P.shield||0,Math.round(pMax()*.1*k)); }
 }
 // ----- upkeep
 const upkeepOf=(k,lv)=>Math.max(0,(lv==null?blRaw(k):lv)-2)*UPKEEP*(topGate()+1);

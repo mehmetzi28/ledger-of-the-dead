@@ -213,7 +213,7 @@ const MASTERY=[
   {id:'mastered',name:'Mastered',at:180,     bossAt:15,   raise:4, dmg:3, lv:0},
   {id:'ledgered',name:'Ledgered',at:450,     bossAt:35,   raise:5, dmg:4, lv:1}];
 let BOSS_KINDS=null;
-function bossKind(name){ if(!BOSS_KINDS){ BOSS_KINDS=new Set(); DUNGEONS.forEach(D=>BOSS_KINDS.add(D.boss[0])); SECRET.forEach(B=>BOSS_KINDS.add(B.name)); TW_BOSS.forEach(n=>BOSS_KINDS.add(n)); BOSS_KINDS.add(SIEGE_BOSS); BOSS_KINDS.add('Rival Necromancer'); } return BOSS_KINDS.has(name); }
+function bossKind(name){ if(!BOSS_KINDS){ BOSS_KINDS=new Set(); DUNGEONS.forEach(D=>BOSS_KINDS.add(D.boss[0])); SECRET.forEach(B=>BOSS_KINDS.add(B.name)); TW_BOSS.forEach(n=>BOSS_KINDS.add(n)); BOSS_KINDS.add(SIEGE_BOSS); SIEGE_BOSSES.forEach(n=>BOSS_KINDS.add(n)); BOSS_KINDS.add('Rival Necromancer'); } return BOSS_KINDS.has(name); }
 const masteryRungs=name=>MASTERY.map(t=>({t,at:bossKind(name)?t.bossAt:t.at})).filter(x=>x.at!=null);
 function masteryOf(name){ const k=(S&&S.kills&&S.kills[name])||0; let got=null; for(const x of masteryRungs(name)) if(k>=x.at) got=x.t; return got; }   // highest tier reached, or null
 function masteryNext(name){ const k=(S&&S.kills&&S.kills[name])||0; return masteryRungs(name).find(x=>k<x.at)||null; }   // {t,at} of the next tier, or null when complete
