@@ -56,7 +56,7 @@ const CMDS={
   mender:  {name:'Bone Shield',desc:'Each mender wards you for 150% of its attack.'},
   reaper:  {name:'Execute',    desc:'This turn your reapers deal double damage to foes below 40% HP.'}
 };
-const canCommand=role=>S.mode==='battle'&&!!CMDS[role]&&(!(S.run.cmd&&S.run.cmd[role])||xOrder(role))&&S.army.some(m=>m.role===role&&m.hp>0);
+const canCommand=role=>S.mode==='battle'&&!silentNow()&&!!CMDS[role]&&(!(S.run.cmd&&S.run.cmd[role])||xOrder(role))&&S.army.some(m=>m.role===role&&m.hp>0);
 function command(role){
   if(!canCommand(role)) return false;
   const r=S.run, P=S.player, mine=S.army.filter(m=>m.role===role&&m.hp>0); r.cmd=r.cmd||{}; if(r.cmd[role]){ r.xordU=1; log('Extra Order: the charm crumbles.','ok'); } r.cmd[role]=true; tally('commands');
@@ -312,8 +312,8 @@ Object.assign(EVENTS,CHAIN_EV);
 const CHAIN_IDS=['priest','reliquary','deserter'];
 const CHAIN_NEXT={spared:'priest_back',slain:'priest_kin',looted:'relic_curse',offered:'relic_gift',paid:'deserter_true',fedTrue:'deserter_true',fedFalse:'deserter_false'};
 const chainSt=id=>S.chains&&S.chains[id]||null;
-const chainOk=k=>{ const E=EVENTS[k]; return !E.chain||(!!E.start&&!chainSt(E.chain)); };   // rollEvent: first meetings only until chosen
-function chainDue(){ const due=CHAIN_IDS.filter(id=>{ const c=chainSt(id); return c&&CHAIN_NEXT[c.s]&&S.day>=c.d; }); if(!due.length||Math.random()>=CHAIN_BACK) return null; return CHAIN_NEXT[chainSt(pick(due)).s]; }
+const chainOk=k=>{ const E=EVENTS[k]; return !E.chain||(!!E.start&&!chainSt(E.chain)&&chainGate(k)); };   // rollEvent: first meetings only until chosen
+function chainDue(){ const due=CHAIN_IDS.filter(id=>{ const c=chainSt(id); return c&&CHAIN_NEXT[c.s]&&S.day>=c.d&&chainGate(CHAIN_NEXT[c.s]); }); if(!due.length||Math.random()>=CHAIN_BACK) return null; return CHAIN_NEXT[chainSt(pick(due)).s]; }
 function chainResolve(ev,ch){   // resolveEvent for chain events: {m,c}, or null for a choice that cannot be taken
   const E=EVENTS[ev.id], r=S.run, P=S.player, C=S.chains=S.chains||{}, go=s=>{ C[E.chain]={s,d:S.day+CHAIN_DAYS}; }, end=()=>{ C[E.chain]={s:'end'}; tally('chains'); };
   if(E.opts.every(o=>o[0]!==ch)||(E.off&&E.off(ch))) return null;
@@ -335,7 +335,7 @@ function chainResolve(ev,ch){   // resolveEvent for chain events: {m,c}, or null
   if(id==='deserter_true'&&ch==='take'){ const g=chainGold(2), it=chainGear(); chainCoin(g); end(); return {m:'The deserter\'s cache: '+chainLoot(g,it),c:'ok'}; }
   if(id==='deserter_false'&&ch==='fight'){ const d=chainHp(.25), xp=chainXp(); end(); return {m:'You fight your way out. It costs '+d+' HP; +'+xp+' XP.',c:'bad'}; }
   if(id==='deserter_false'&&ch==='pay'){ const g=chainGold(1.2); S.gold-=g; end(); return {m:'You buy the deserter off for '+g+' gold. You will not see him again.',c:''}; }
-  return null;
+  return valleyChain(id,ch,go,end);   /* the three gate chains (game-valley.js) */
 }
 function chainsFix(g){   // normalizeSave
   if(!('chains' in g)) return; const C=g.chains&&typeof g.chains==='object'&&!Array.isArray(g.chains)?g.chains:{}; g.chains={};

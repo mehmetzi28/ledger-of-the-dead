@@ -1754,7 +1754,7 @@ function cmdSync(){ const P=S&&S.player; if(!P) return; P.cmd=cmdPow(); P.hp=Mat
 const statMinion = ()=>Math.max(0,A('strength'))*STR_MINION+Math.max(0,A('intelligence'))*INT_MINION;   // % more minion attack from Strength and Intelligence
 const skMul = ()=>(1+intSkill()/100)*(S.run?hexK(S.player):1);   // Hexed: your skills hit 20% softer too
 const pDr = ()=>Math.min(DR_CAP,xb('drp')+conDr());   // all your damage reduction: titles, sets, faith, Calcified Hide and Constitution
-const critChance = ()=>.1+(G('crit')+strCrit()+(hasMod('edge','a')?RENDING:0))/100+sigCrit();   /* Thin Veil (game-rift.js) */   // Strike's crit chance
+const critChance = ()=>.1+(G('crit')+strCrit()+(hasMod('edge','a')?RENDING:0))/100+sigCrit()+mistCrit();   /* Thin Veil (game-rift.js); Red Mist (game-valley.js) */   // Strike's crit chance
 const ARMY_CAP=12;
 const RESERVE_BASE=6, RESERVE_CRYPT=2;   // the Reserve: a bench of places beside the army, +2 per Crypt level
 const slots = ()=>Math.min(ARMY_CAP+bl('crypt')+cryptSlot(),1+Math.floor(A('will')*2/5)+Math.floor(S.player.lvl/4)+G('slot')+bl('crypt')+cryptSlot());   /* Throne Crypt (game-town2.js) */   // one per 2.5 Will and one per 4 levels
@@ -2049,6 +2049,8 @@ const roll3=()=>S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&!
  ['c_volatile','Curses and events','Ember-Proof','Clear a gate cursed with Volatile dead.',()=>T_('cur_volatile')>=1,{drp:2}],
  ['c_drought','Curses and events','Dry-Souled','Clear a gate cursed with Drought.',()=>T_('cur_drought')>=1,{regen:1}],
  ['c_fury','Curses and events','Fury-Tamer','Clear a gate cursed with Fury.',()=>T_('cur_fury')>=1,{drp:2}],
+ ['c_five','Curses and events','Five Curses Broken','Clear a gate under each of Hunger, Mirror, Silent, Long and Thin.',()=>NEW_CURSES.every(k=>T_('cur_'+k)>=1),{xpp:4}],
+ ['c_paid','Curses and events','Paid in Full','Settle the Rat King\'s debts.',()=>T_('paidFull')>=1,{goldp:5}],
  ['c_bulwark','Curses and events','Wallbreaker','Clear a gate cursed with Bulwark.',()=>T_('cur_bulwark')>=1,{dmgp:3}],
  ['c_horde','Curses and events','Horde-Reaper','Clear a gate cursed with Horde.',()=>T_('cur_horde')>=1,{mpow:4}],
  ['c_25','Curses and events','Curse-Eater','Clear 25 cursed gates.',()=>T_('cursed')>=25,{goldp:8}],
@@ -2216,7 +2218,7 @@ function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // d
 // rarer ones stay hidden ("???") until earned. Rarity follows how hard a title is: bot runs measured the reachable ones,
 // and deeds the bots skip (events, forging) were judged by hand.
 const TITLE_RARITY={hd1:1,hd2:2,nm0:3,nm1:3,nm2:3,nm3:4,nm4:4,nm5:5,dm3:5,sb0:5,sb1:5,sb2:5,sb3:5,sb4:5,sb5:5,g0:0,g1:0,d_raise1:0,d_kill100:0,d_death:0,d_armed1:0,d_lv10:0,d_study:0,s_venom:0,f_crit:0,d_tower1:0,d_quest7:0,d_army:0,g2:1,t10:1,t20:1,d_raise50:1,d_cancel:1,d_evolve:1,d_uq:1,d_gold:1,m0:1,m1:1,c_drought:1,c_fury:1,c_bulwark:1,c_horde:1,c_volatile:1,p_25:1,k_spear:1,k_blast:1,k_chill:1,g_items:1,g_sold:1,f_flawless:1,f_last:1,a_boss:1,e_strag:1,e_pedlar:1,e_trap:1,d_death10:1,g3:2,g4:2,t30:2,t40:2,t50:2,d_kill1000:2,d_lv25:2,d_raise200:2,d_tower50:2,d_cancel10:2,d_trophy500:2,d_altar:2,d_elder:2,m2:2,m3:2,d_armed3:2,d_master:2,d_bag:2,c_25:2,e_shrine:2,e_coffer:2,s_poison:2,s_cure:2,k_reap:2,k_master3:2,k_all:2,f_boss25:2,f_elite100:2,g_gold:2,g_roll3:2,a_traits:2,a_elders:2,e_day100:2,e_runs100:2,g_reforge:2,g5:3,t60:3,t70:3,m4:3,m5:3,tw75:3,d_lv50:3,p_100:3,f_crit1000:3,e_rooms1000:3,twruns:3,d_ngp:3,d_tower110:3,t80:4,t90:4,t100:4,d_kill5000:4,d_all:4,d_tower150:4,a_raise500:4,e_lv75:4,tw200:5,d_ngp3:5,d_tuq:5,a_ancient:3,a_eternal:4,a_raid1:1,a_raid25:3,r_5:3,r_15:4,r_30:5};
-Object.assign(TITLE_RARITY,{nm_1:2,nm_5:3,nm_15:4,nm_old:4,x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,as_3:3,as_6:4,as_10:5,as_all:5,as_rw:4,b_haul:2,b_five:3,b_runes:4,b_sgn:3,ar_charmed:4,ar_hundred:2,ar_tennames:5,ar_witch:4,ar_roles:4,ar_order:3,r_six:4,r_sigil3:4,r_weekly:3,r_attuned:3,r_half:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
+Object.assign(TITLE_RARITY,{c_five:4,c_paid:3,nm_1:2,nm_5:3,nm_15:4,nm_old:4,x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,as_3:3,as_6:4,as_10:5,as_all:5,as_rw:4,b_haul:2,b_five:3,b_runes:4,b_sgn:3,ar_charmed:4,ar_hundred:2,ar_tennames:5,ar_witch:4,ar_roles:4,ar_order:3,r_six:4,r_sigil3:4,r_weekly:3,r_attuned:3,r_half:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
 const RARITY_MUL=[1,1,1.25,1.5,2,3], HIDDEN_FROM=3;
 TITLES.forEach(t=>{ t.r=TITLE_RARITY[t.id]!=null?TITLE_RARITY[t.id]:1; const m=RARITY_MUL[t.r]; for(const k in t.b) t.b[k]=Math.max(t.b[k],Math.round(t.b[k]*m)); });
 const titleHidden=t=>t.r>=HIDDEN_FROM&&!(S&&S.ti&&S.ti.got&&S.ti.got[t.id]);
@@ -2337,6 +2339,7 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
     else if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(r.rift&&guardAt(r.rift)?makeGuardian(di,lvl,r.rift):!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true));   /* a Rift guardian every fifth depth (game-rift.js) */ const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
     else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
     if(kind==='nem') nemRoom(list,di,lvl);   /* the sigil door (game-nemesis.js) */
+    mirrorRoom(list);   /* the Mirror curse (game-valley.js) */
     heatRoom(list,di); ledgerRoom(list,di); rwRoom(list,di); ascKits(list); ascRoom(list); brewRoom(r); foeScale(list,foeAtkMul(di)); if(r.trial) trialPow(list,di); bulwark(list); riftScale(list); if(boss&&r.rift) sigNamed(list);
     heatScale(list);
     if(!boss&&kind==='elite') for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*ELITE_ROOM); e.atk=Math.max(1,Math.round(e.atk*ELITE_ROOM)); }
@@ -2348,7 +2351,7 @@ function spawnRoom(){
   if(S.run.tw) return spawnFloor();
   const r=S.run, room=r.room, boss=roomBoss(r,room);
   const list=(!boss&&r.pre&&r.pre[r.roomKind])||buildRoom(room,r.roomKind); r.pre=null;   // a door's room was rolled with the doors: what it showed is what waits
-  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; delete r.lcU; delete r.mirU; delete r.mirS; delete r.flU; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null; roomStart(list);
+  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; delete r.lcU; delete r.mirU; delete r.mirS; delete r.flU; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null; curseRoom(r); roomStart(list);   /* Hunger (game-valley.js) */
   log(boss?(list[0].rival?list[0].name+' stands where the master should be, with their own dead around them.':list[0].secret?'The air turns wrong. This is not the master you came for.':'The air thickens. Something large waits ahead.'):(r.trial?'Trial, room ':'Room ')+(room+1)+' of '+r.rooms+(r.roomKind==='elite'?', behind the bloodied arch. These foes are stronger.':'.'));
   if(boss){ bossSpeaks(list[0],'hi'); fxe('boss',list[0]); }
   if(hasFlag('infernal')) infernalWard();
@@ -2366,6 +2369,7 @@ function startRun(di){
   if(S.mode!=='town'||S.watches<=0||!RK[di]||gateLocked(di)) return;
   S.watches--; S.runs++; S.notices=[];
   S.run={di,room:0,rooms:di===ABBEY?ABBEY_ROOMS:4,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:gateMod(di),heat:heatOf(di)};
+  S.run.rooms+=S.run.mod&&di!==ABBEY?longRooms([S.run.mod]):0;   /* the Long curse (game-valley.js) */
   S.mode='battle'; titheSouls(); prepTake(S.run); prepSoul(S.run); townStart(S.run); ascRead(S.run); rwEnter(S.run);   /* run prep, the black market's Soul (game-brew.js), the Soul Well (game-town2.js) */
   log('You step through the '+DUNGEONS[di].name+' gate.'+(S.run.mod?' It is cursed today: '+MODS[S.run.mod].name+'.':''));
   if(di===ABBEY) unlockStory('abbey3',S.run);
@@ -2476,7 +2480,7 @@ function plagueJump(tg){   // Plaguebearer: a slain foe's poison and blight move
   const to=pick(o); for(const k of ['poison','blight']) if(d[k]) addDot(to,k,d[k].d,d[k].t); return ' and its plague jumps to '+to.name;
 }
 const breakK=(m,tg)=>(hasTrait(m,'bonebreaker')&&hasSt(tg,'sundered')?1.25:1)*bondEchoK(m,tg);   /* a fallen partner's echo stands: +30% on the Hunger (game-abbey.js) */   // Bonebreaker
-const mCritCh=m=>(m.role==='striker'?.25:0)+(hasMod('gravepact','a')?BLOOD_OATH:0)+markV(m,'marksman');
+const mCritCh=m=>(m.role==='striker'?.25:0)+mistCrit()+(hasMod('gravepact','a')?BLOOD_OATH:0)+markV(m,'marksman');
 const blurCrit=m=>hasTrait(m,'blur')&&Math.random()<mCritCh(m);   // Blur: its extra strikes can crit
 function currentTarget(){
   const r=S.run; let t=r.enemies.find(e=>e.id===r.target&&reachable(e));
@@ -2600,7 +2604,7 @@ function gateCleared(r){   // the boss room of a gate is won: story, clear talli
   return Math.round(RK[di].clear*fk);
 }
 function roomWon(){
-  const r=S.run, P=S.player; r.events=[]; r.focus=false; r.execute=false; bondsRoom(); lnClear(); if(r.turn>=LONG_HAUL&&!r.sweep) tally('longHaul');   /* The Long Name's thralls go; Long Haul (game-builds.js) */   /* Focus and Execute end with the room even if no minion phase came */
+  const r=S.run, P=S.player; r.events=[]; r.focus=false; r.execute=false; thinRoom(r); bondsRoom();   /* Thin (game-valley.js) */ lnClear(); if(r.turn>=LONG_HAUL&&!r.sweep) tally('longHaul');   /* The Long Name's thralls go; Long Haul (game-builds.js) */   /* Focus and Execute end with the room even if no minion phase came */
   let xp=r.wk?0:r.pending; r.pending=0; const dn0=r.downs||0;   /* the weekly dive pays only its own rewards (game-rift.js) */
   const last=r.room===r.rooms-1;
   const share=Math.round(xp*.5), downs=[], bound=[];   /* the downed come first on the screen after the fight: who is gone, who got back up */
@@ -2724,7 +2728,7 @@ function raiseChance(c){
   if(soulBound(c)) return 0;
   if(firstRaise()) return 100;
   let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+4*sk('mastery')+B_OSS*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*RAISE_LV-RK[c.rankI].pen;
-  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+nemRaise(c)+(hasInsc('many')?INSC_RAISE:0)+incRaise()+townRaise(c)+rgRaise(c)+twoBooks()+faithRaiseK(c)+ascRaise();
+  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+nemRaise(c)+windRaise()+(hasInsc('many')?INSC_RAISE:0)+incRaise()+townRaise(c)+rgRaise(c)+twoBooks()+faithRaiseK(c)+ascRaise();
   return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
 }
 const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*ascRaiseCost()*(hasFlag('cheapraise')?.5:1)*(hasMod('mastery','b')?.75:1)*(1-.06*sk('thrift')));
@@ -2757,7 +2761,7 @@ function tryRaise(id,salt,bench){   // bench: raise to the Reserve, only when th
     if(hasFlag('bindsouls')) m.lvl=Math.min(S.player.lvl+2,m.lvl+2);
     if(hasMod('mastery','a')) m.lvl=Math.max(m.lvl,Math.min(S.player.lvl+2,m.lvl+GRAVECALLER));   // Gravecaller
     { const ml=masteryLv(c.base); if(ml) m.lvl=Math.max(m.lvl,Math.min(S.player.lvl+2,m.lvl+ml)); }   // a Ledgered kind rises higher, never past your level + 2
-    m.lvl0=m.lvl; m.stage=0; m.traits=[nemTrait(c)||(c.cd&&CORPSE_CONDS[c.cd]?CORPSE_CONDS[c.cd].trait:rollTrait([]))]; if(c.avg) tally('avengedRaised'); if(c.boss) m.traits.push(rollTrait(m.traits)); if(c.cd&&CORPSE_CONDS[c.cd]) m.cd=c.cd; if(c.recl){ m.recl=1; tally('reclaimed'); }   // bosses rise with two traits; how the body died replaces the random one
+    m.lvl0=m.lvl; m.stage=0; m.traits=[nemTrait(c)||(c.cd&&CORPSE_CONDS[c.cd]?CORPSE_CONDS[c.cd].trait:rollTrait([]))]; if(c.avg) tally('avengedRaised'); cantorStage(c,m); if(c.boss) m.traits.push(rollTrait(m.traits)); if(c.cd&&CORPSE_CONDS[c.cd]) m.cd=c.cd; if(c.recl){ m.recl=1; tally('reclaimed'); }   // bosses rise with two traits; how the body died replaces the random one
     if(c.aff&&c.aff.length){ const t=AFFIX[pick(c.aff)].trait; if(!m.traits.includes(t)) m.traits.push(t); }   // an elite keeps one of its affixes
     { const ct=carryTrait(m); if(ct) r.events.push({m:m.nick+' rises with the trait you carried: '+TRAITS[ct].name+'.',c:'ok'}); }   /* a carried trait (game-asc.js) */
     if(rollCommand(m)) tally('commanders');
@@ -3491,6 +3495,7 @@ function foeOnHit(e,tg){   // what a foe's hit leaves behind: affixes and the Wh
   if(!(tg.hp>0)) return kitOnHit(e,tg);
   let x='';
   if(hasAff(e,'plague')){ addDot(tg,'blight',e.atk*.2,2); if(tg.dots&&tg.dots.blight) x+=', blighted'; }
+  x+=foeTraitHit(e,tg);   /* a foe's wound trait: Mirror, a nemesis (game-valley.js) */
   if(e.role==='hexer'&&!hasKit(e,'hexer')&&addSt(tg,'hexed',2)) x+=', hexed';   /* a hexer foe (R12 PR B) */
   if(hasAff(e,'sundering')&&Math.random()<ST_CH&&addSt(tg,'sundered',2)) x+=', sundered';
   if((hasAff(e,'hexing')||hasKit(e,'hexer'))&&Math.random()<ST_CH&&addSt(tg,'hexed',2)) x+=', hexed';
@@ -3509,6 +3514,7 @@ function hasteStrikes(){   // the end of the turn: every Hasted unit strikes onc
     if(tg.hp<=0&&tg.id!=='p') log(tg.nick+' is down.','bad'); if(S.player.hp<=0) return; }
 }
 function tickDots(){
+  if(stillAir()) return;   /* Still Air (game-valley.js) */
   let foeD=0, ourD=0;
   const tick=(u,hurt)=>{ if(!u.dots) return; for(const k of Object.keys(u.dots)){ const o=u.dots[k]; if(u.hp>0) hurt(u,o.d,k); if(--o.t<=0) delete u.dots[k]; } if(!Object.keys(u.dots).length) delete u.dots; };
   for(const e of S.run.enemies) tick(e,(u,d,k)=>{ const h=u.hp; KILL=k; d=Math.round(d*pestK(u)*(pestCrit()?1.8:1)); /* Pestilence (game-builds.js) */ hurtFoe(u,k==='blight'?Math.round(d*shadowK()*faithRot()):d,DOT_TYPE[k]); KILL=null; foeD+=h-u.hp; });   // Black Eclipse feeds your blight
@@ -3537,7 +3543,7 @@ const EVENTS={
 const STRAGGLER_BONUS=25;
 const FAITH_EVENT=.25, SHRINE_OTHER=.3;   // SHRINE_OTHER: of those, another god's shrine (conversion)
    // a sworn necromancer meets a shrine true to the oath in a quarter of events
-function rollEvent(){ if(S.run&&S.run.rift&&Math.random()<RIFT_EV){ const re=riftEvent(); if(re) return re; }   /* the Rift's own events (game-rift.js) */ { const cd=chainDue(); if(cd) return {id:cd}; } const fe=Object.keys(EVENTS).find(k=>EVENTS[k].faith&&EVENTS[k].faith===faithOf()), id=fe&&Math.random()<FAITH_EVENT?(Math.random()<SHRINE_OTHER?'godshrine':fe):pick(Object.keys(EVENTS).filter(k=>!EVENTS[k].faith&&!EVENTS[k].rift&&chainOk(k))), ev={id:id!=='pedlar'&&dreadBand().id==='calm'&&Math.random()<1/Object.keys(EVENTS).filter(k=>!EVENTS[k].rift).length?'pedlar':id};   /* Calm: pedlars twice as common (game-dread.js) */ if(ev.id==='godshrine') ev.g=pick(GODS.filter(g=>g!==faithOf())); if(ev.id==='pedlar'){ ev.pot=pick(Object.keys(POTIONS)); ev.price=Math.ceil(POTIONS[ev.pot].price()/2); } return ev; }
+function rollEvent(){ if(S.run&&S.run.rift&&Math.random()<RIFT_EV){ const re=riftEvent(); if(re) return re; }   /* the Rift's own events (game-rift.js) */ { const cd=chainDue(); if(cd) return {id:cd}; } const fe=Object.keys(EVENTS).find(k=>EVENTS[k].faith&&EVENTS[k].faith===faithOf()), id=fe&&Math.random()<FAITH_EVENT?(Math.random()<SHRINE_OTHER?'godshrine':fe):pick(Object.keys(EVENTS).filter(k=>!EVENTS[k].faith&&!EVENTS[k].rift&&chainOk(k)&&evOk(k))), ev={id:id!=='pedlar'&&dreadBand().id==='calm'&&Math.random()<1/Object.keys(EVENTS).filter(k=>!EVENTS[k].rift).length?'pedlar':id};   /* Calm: pedlars twice as common (game-dread.js) */ if(ev.id==='godshrine') ev.g=pick(GODS.filter(g=>g!==faithOf())); if(ev.id==='pedlar'){ ev.pot=pick(Object.keys(POTIONS)); ev.price=Math.ceil(POTIONS[ev.pot].price()/2); } return ev; }
 function corpseOf(e){ const c={id:'c'+e.id,armed:isArmed(e.base),name:e.name,base:e.base,role:e.role,rankI:e.rankI,lvl:e.lvl,hf:e.hf,af:e.af,tw:e.tw,boss:e.boss,elite:e.elite,tried:false,result:null,minion:null}; if(e.aff&&e.aff.length) c.aff=e.aff.slice(); if(e.dots&&e.dots.blight) c.bl=e.dots.blight.d; if(e.cd&&e.hp<=0) c.cd=e.cd; if(e.avg) c.avg=e.avg; return c; }   // bl: it died Blighted (Spreading Rot); cd: how it died (CORPSE_CONDS)
 // Corpse conditions: how a foe died marks its body. First match in this order; raise: % added before the clamp; trait: what it rises with
 // in place of the random trait (a boss still rolls its second one, an elite still keeps an affix).
@@ -3558,6 +3564,7 @@ function resolveEvent(ch){
   const r=S.run; if(S.mode!=='raise'||!r||!r.event||r.event.done) return false;
   const ev=r.event, P=S.player, lvl=RK[r.di].lv+Math.floor(r.room/2); let m='', c='';
   if(EVENTS[ev.id].chain){ const o=chainResolve(ev,ch); if(!o) return false; m=o.m; c=o.c; }
+  else if(EVENTS[ev.id].vl&&ch!=='pass'){ const o=valleyEv(ev,ch); if(!o) return false; m=o.m; c=o.c; }   /* the valley's events (game-valley.js) */
   else if(EVENTS[ev.id].rift&&ch!=='pass'){ const o=riftEvResolve(ev,ch); if(!o) return false; m=o.m; c=o.c; }   /* the Rift's events (game-rift.js) */
   else if(ch==='pass') m='You leave it be.';
   else if(ev.id==='shrine'&&ch==='bleed'){ if(P.hp<=1) return false; const d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*.2))); P.hp-=d; r.bless=true; tally('shrine'); m='The shrine drinks '+d+' HP. You and your army hit 15% harder for the rest of this gate.'; c='ok'; }
@@ -3581,7 +3588,7 @@ function resolveEvent(ch){
 // ===== CURSED GATES =====
 // Each day one gate you have already cleared is cursed with a twist. It is harder, and it pays more.
 const MODS={
-  volatile:{name:'Volatile dead',desc:'Foes burst when they die and hurt you for half their attack (never below 1 HP; ward soaks it).'},
+  volatile:{name:'Volatile dead',desc:'Foes burst when they die and hurt you for 30% of their attack, at most 6% of your max HP (never below 1 HP; ward soaks it).'},
   drought: {name:'Drought',      desc:'No mana comes back at the end of a turn. Strike still gives 3.'},
   fury:    {name:'Fury',         desc:'Foes deal 25% more damage.'},
   bulwark: {name:'Bulwark',      desc:'Foes have 30% more HP.'},
@@ -3613,7 +3620,7 @@ const OMEN_NAT=Object.keys(OMENS).filter(k=>!OMENS[k].god);   // the omens a daw
 const OMEN_CHANCE=.25, OMEN_RAISE=10, OMEN_BOSS_XP=1.25;
 const ECLIPSE_SHADOW=1.2, ECLIPSE_CRIT=.1, ECLIPSE_MISS=.1, HARVEST_TRO=.25, HARVEST_DUST=.25, HARVEST_DUST_BOSS=3, IRON_DROP=1.1, IRON_ARMOR=1.25, STORM_REGEN=.2, STORM_ATK=1.25;
 const shadowK=()=>omen()==='eclipse'?ECLIPSE_SHADOW:1;   // Black Eclipse: Soul Siphon, the Siphon skills (Corpse Explosion, Grave Chill, Reap) and blight
-const foeCrit=()=>.25-(omen()==='eclipse'?ECLIPSE_CRIT:0)+sigCrit();   /* Thin Veil (game-rift.js) */   // an enemy striker's crit chance
+const foeCrit=()=>.25-(omen()==='eclipse'?ECLIPSE_CRIT:0)+sigCrit()+mistCrit();   /* Thin Veil (game-rift.js) */   // an enemy striker's crit chance
 function roomStart(list){   // a fresh room or floor: Soul Storm, the Swift affix and trait, and Ossified
   cmdSync();   /* Command: measured as the room begins */
   if(S.run){ S.run.sgnU=0; S.run.reapRs=0; }   /* the signature and Second Harvest: once a room (game-builds.js) */
@@ -3639,8 +3646,9 @@ const CURSE_GAP=5;
 const curseRise=di=>(runMod()&&S.ti&&S.ti.clr&&S.ti.clr[5])?Math.max(0,S.player.lvl-CURSE_GAP-RK[di].lv):0;
 const foeAtkMul=di=>DIFF.foeAtk[di]*(hasRunMod('fury')?1.25:1);
 const bulwark=list=>{ if(hasRunMod('bulwark')) for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*1.3); } };
+const VOLATILE_K=.3, VOLATILE_CAP=.06;   // R13: was half the attack, uncapped (the market bot cleared 39% of Volatile gates, 94-98% of the rest); now at most 6% of your max HP a burst
 function volatileBurst(e){   // Volatile dead: a dying foe bursts on you
-  const P=S.player; let d=Math.round(e.atk*.5*(1-allyRes(P,'fire'))); const s=Math.min(P.shield,d); P.shield-=s; d=Math.max(0,Math.min(d-s,P.hp-1)); P.hp-=d; if(d){ mark('p',d,0); S.run.hurt=true; }
+  const P=S.player; let d=Math.round(Math.min(e.atk*VOLATILE_K,pMax()*VOLATILE_CAP)*(1-allyRes(P,'fire'))); const s=Math.min(P.shield,d); P.shield-=s; d=Math.max(0,Math.min(d-s,P.hp-1)); P.hp-=d; if(d){ mark('p',d,0); S.run.hurt=true; }
   log(e.name+' bursts'+(d?' and burns you for '+d:', but your ward takes it')+'.','bad');
 }
 
@@ -4328,7 +4336,7 @@ const CMDS={
   mender:  {name:'Bone Shield',desc:'Each mender wards you for 150% of its attack.'},
   reaper:  {name:'Execute',    desc:'This turn your reapers deal double damage to foes below 40% HP.'}
 };
-const canCommand=role=>S.mode==='battle'&&!!CMDS[role]&&(!(S.run.cmd&&S.run.cmd[role])||xOrder(role))&&S.army.some(m=>m.role===role&&m.hp>0);
+const canCommand=role=>S.mode==='battle'&&!silentNow()&&!!CMDS[role]&&(!(S.run.cmd&&S.run.cmd[role])||xOrder(role))&&S.army.some(m=>m.role===role&&m.hp>0);
 function command(role){
   if(!canCommand(role)) return false;
   const r=S.run, P=S.player, mine=S.army.filter(m=>m.role===role&&m.hp>0); r.cmd=r.cmd||{}; if(r.cmd[role]){ r.xordU=1; log('Extra Order: the charm crumbles.','ok'); } r.cmd[role]=true; tally('commands');
@@ -4584,8 +4592,8 @@ Object.assign(EVENTS,CHAIN_EV);
 const CHAIN_IDS=['priest','reliquary','deserter'];
 const CHAIN_NEXT={spared:'priest_back',slain:'priest_kin',looted:'relic_curse',offered:'relic_gift',paid:'deserter_true',fedTrue:'deserter_true',fedFalse:'deserter_false'};
 const chainSt=id=>S.chains&&S.chains[id]||null;
-const chainOk=k=>{ const E=EVENTS[k]; return !E.chain||(!!E.start&&!chainSt(E.chain)); };   // rollEvent: first meetings only until chosen
-function chainDue(){ const due=CHAIN_IDS.filter(id=>{ const c=chainSt(id); return c&&CHAIN_NEXT[c.s]&&S.day>=c.d; }); if(!due.length||Math.random()>=CHAIN_BACK) return null; return CHAIN_NEXT[chainSt(pick(due)).s]; }
+const chainOk=k=>{ const E=EVENTS[k]; return !E.chain||(!!E.start&&!chainSt(E.chain)&&chainGate(k)); };   // rollEvent: first meetings only until chosen
+function chainDue(){ const due=CHAIN_IDS.filter(id=>{ const c=chainSt(id); return c&&CHAIN_NEXT[c.s]&&S.day>=c.d&&chainGate(CHAIN_NEXT[c.s]); }); if(!due.length||Math.random()>=CHAIN_BACK) return null; return CHAIN_NEXT[chainSt(pick(due)).s]; }
 function chainResolve(ev,ch){   // resolveEvent for chain events: {m,c}, or null for a choice that cannot be taken
   const E=EVENTS[ev.id], r=S.run, P=S.player, C=S.chains=S.chains||{}, go=s=>{ C[E.chain]={s,d:S.day+CHAIN_DAYS}; }, end=()=>{ C[E.chain]={s:'end'}; tally('chains'); };
   if(E.opts.every(o=>o[0]!==ch)||(E.off&&E.off(ch))) return null;
@@ -4607,7 +4615,7 @@ function chainResolve(ev,ch){   // resolveEvent for chain events: {m,c}, or null
   if(id==='deserter_true'&&ch==='take'){ const g=chainGold(2), it=chainGear(); chainCoin(g); end(); return {m:'The deserter\'s cache: '+chainLoot(g,it),c:'ok'}; }
   if(id==='deserter_false'&&ch==='fight'){ const d=chainHp(.25), xp=chainXp(); end(); return {m:'You fight your way out. It costs '+d+' HP; +'+xp+' XP.',c:'bad'}; }
   if(id==='deserter_false'&&ch==='pay'){ const g=chainGold(1.2); S.gold-=g; end(); return {m:'You buy the deserter off for '+g+' gold. You will not see him again.',c:''}; }
-  return null;
+  return valleyChain(id,ch,go,end);   /* the three gate chains (game-valley.js) */
 }
 function chainsFix(g){   // normalizeSave
   if(!('chains' in g)) return; const C=g.chains&&typeof g.chains==='object'&&!Array.isArray(g.chains)?g.chains:{}; g.chains={};
@@ -4677,7 +4685,7 @@ const faithRank=g=>{ const id=faithOf(); if(!id||(g&&g!==id)) return 0; return M
 const devotion=()=>faithRank();   // the old name, used by the endings' inscriptions
 const blessed=id=>faithOf()===id&&faithRank()>=DEV_RANKS;
 function titheSouls(){ if(blessed('dis')&&S.run){ S.run.souls=Math.max(S.run.souls||0,Math.min(soulCap(),TITHE_SOULS)); } }
-const soulCap=()=>ultCost()+(faithRank('dis')>=3?1:0);   /* Heavy Souls raises the cap with the cost (game-asc.js) */
+const soulCap=()=>Math.max(1,ultCost()+(faithRank('dis')>=3?1:0)-windSoul());   /* Grave Wind (game-valley.js) */   /* Heavy Souls raises the cap with the cost (game-asc.js) */
 const faithBuff=id=>{ const o={}; if(faithOf()!==id) return o; const k=templeBuff(); BOONS[id].slice(0,faithRank()).forEach(b=>{ if(b.s) for(const s in b.s) o[s]=(o[s]||0)+b.s[s]; }); for(const s in o) o[s]=Math.round(o[s]*(o[s]>0?k:1)); return o; };
 const faithB=k=>{ const id=faithOf(); return id?(faithBuff(id)[k]||0):0; };
 const renounceCost=()=>100*S.player.lvl;
@@ -5463,7 +5471,7 @@ function trialPlan(){   // this week's Trial, fixed the first time the week asks
   if(T.cur&&T.cur.w===w&&T.cur.di>=0) return T.cur;   // a week with no gate to try yet asks again (nothing was attempted)
   const gs=DUNGEONS.map((D,i)=>i).filter(i=>i<GATE_N&&S.ti&&S.ti.clr&&S.ti.clr[i]&&S.player.lvl>=RK[i].unlock);
   if(!gs.length){ T.cur={w,di:-1}; return null; }
-  const h=dayHash(w,101), ks=Object.keys(MODS), di=gs[h%gs.length], m1=ks[dayHash(w,103)%ks.length], two=dayHash(w,107)%2===1;
+  const h=dayHash(w,101), ks=Object.keys(MODS).filter(k=>k!=='long'), /* a Trial keeps four rooms: no Long */ di=gs[h%gs.length], m1=ks[dayHash(w,103)%ks.length], two=dayHash(w,107)%2===1;
   const rest=ks.filter(k=>k!==m1), mods=two?[m1,rest[dayHash(w,109)%rest.length]]:[m1];
   let tier=dayHash(w,113)%TRIAL_TIERS; while(tier>0&&S.player.lvl<tierRec(TRIAL_GATE,tier)) tier--;   /* never above the hardest tier the Throne recommends for your level */
   T.cur={w,di,tier,mods,lv:trialLv(di,tier),seed:dayHash(w,127)}; return T.cur;
@@ -7610,6 +7618,126 @@ function nemFix(g){   // normalizeSave: S.nem only when the save has it
     if(n.arch) o.arch=1; return keepOrder(n,o); }).filter(n=>n.v.length):[];
 }
 function keepOrder(src,o){ const out={}; for(const k of Object.keys(src)) if(k in o) out[k]=o[k]; for(const k of Object.keys(o)) if(!(k in out)) out[k]=o[k]; return out; }   // a repaired object keeps the save's key order
+// ===== R13 PR B: A LIVING VALLEY =====
+// Five more curses, ten events between rooms, three three-step chains tied to their gates, and three omens. The tables join the old
+// ones (MODS, EVENTS, OMENS in game-gate-rules.js; CHAIN_EV in game-faith-story.js); the rules are hooks named below.
+// ----- curses
+Object.assign(MODS,{
+  hunger:{name:'Hunger',desc:'Your Souls drain by one at the start of each room.'},
+  mirror:{name:'Mirror',desc:'Every foe takes your army\'s most common trait: a wound trait (Venomous, Necrotic, Cinderborn, Rimeborn) on its hits, any other as +15% HP and attack.'},
+  silent:{name:'Silent',desc:'No free orders: Taunt, Focus, Bone Shield and Execute stay quiet.'},
+  long:  {name:'Long',  desc:'The gate has one more room before its master.'},
+  thin:  {name:'Thin',  desc:'Only two bodies stay after each room: a boss\'s and the elites\' first.'}
+});
+const NEW_CURSES=['hunger','mirror','silent','long','thin'], MIRROR_K=1.15, THIN_KEEP=2;
+const WOUND_TRAIT={venom:['poison',.2,3],necrotic:['blight',.15,2],cinderborn:['burn',.2,2]};
+function curseRoom(r){   // spawnRoom, before roomStart: Hunger
+  if(hasRunMod('hunger')&&(r.souls||0)>0){ r.souls--; log('Hunger: a Soul drains away ('+r.souls+' left).','bad'); }
+}
+function armyTrait(){ const n={}; for(const m of S.army) if(!m.thrall) for(const t of m.traits||[]) n[t]=(n[t]||0)+1; let b=null; for(const t of Object.keys(n)) if(!b||n[t]>n[b]) b=t; return b; }   // the army's most common trait (first met wins a tie)
+function mirrorRoom(list){   // buildRoom: Mirror
+  if(!hasRunMod('mirror')) return; const t=armyTrait(); if(!t||!TRAITS[t]) return;
+  for(const e of list){ if(e.rival) continue; e.traits=(e.traits||[]).filter(x=>x!==t).concat([t]); if(!WOUND_TRAIT[t]&&t!=='rimeborn'){ e.maxHp=e.hp=Math.round(e.maxHp*MIRROR_K); e.atk=Math.max(1,Math.round(e.atk*MIRROR_K)); } }
+}
+function foeTraitHit(e,tg){   // foeOnHit: a foe's wound trait (a Mirror curse, a nemesis's stolen trait) marks what it hits
+  if(!e.traits||!e.traits.length||!(tg.hp>0)) return ''; let x='';
+  for(const t of e.traits){ const w=WOUND_TRAIT[t]; if(w){ addDot(tg,w[0],e.atk*w[1],w[2]); if(tg.dots&&tg.dots[w[0]]) x+=', '+DOTS[w[0]].name.toLowerCase(); } else if(t==='rimeborn'&&addSt(tg,'chilled',1)) x+=', chilled'; }
+  return x;
+}
+const silentNow=()=>hasRunMod('silent');   // canCommand
+const longRooms=mods=>mods&&mods.includes('long')?1:0;   // startRun (a Trial never draws Long)
+function thinRoom(r){   // roomWon: Thin keeps a boss's and the elites' bodies first
+  if(!hasRunMod('thin')||r.corpses.length<=THIN_KEEP) return; const k=c=>c.boss?0:c.elite?1:2; const keep=r.corpses.slice().sort((a,b)=>k(a)-k(b)).slice(0,THIN_KEEP);
+  const gone=r.corpses.length-keep.length; r.corpses=r.corpses.filter(c=>keep.includes(c)); r.events.push({m:'Thin: '+gone+(gone>1?' bodies crumble':' body crumbles')+' to dust before you can reach '+(gone>1?'them':'it')+'.',c:'bad'});
+}
+// ----- omens
+Object.assign(OMENS,{
+  redmist: {name:'Red Mist', desc:'Every unit, yours and theirs, crits 10% more often.'},
+  gravewind:{name:'Grave Wind',desc:'+5% chance to raise the dead, and you hold one Soul fewer.'},
+  stillair:{name:'Still Air',desc:'Wounds hold still: no damage over time ticks, on either side.'}
+});
+OMEN_NAT.push('redmist','gravewind','stillair'); GOD_OMENS.dis.push('redmist'); GOD_OMENS.choir.push('gravewind'); GOD_OMENS.vesh.push('stillair');
+const MIST_CRIT=.1, WIND_RAISE=5;
+const mistCrit=()=>omen()==='redmist'?MIST_CRIT:0;   // foeCrit, mCritCh, pCrit
+const windRaise=()=>omen()==='gravewind'?WIND_RAISE:0;   // raiseChance
+const windSoul=()=>omen()==='gravewind'?1:0;   // soulCap
+const stillAir=()=>omen()==='stillair';   // tickDots
+// ----- events between rooms (vl: resolved here)
+const VEV={
+  mourners:{vl:1,name:'Mourners at the gate',text:'The living have come to the gate with a body on a door. They are not afraid of you today, and they ask nothing.',opts:[['take','Take the body they bring (a free raise)'],['bless','Bless it and send it home (dread -4)'],['pass','Walk past']],when:()=>dreadOn()&&dreadBand().id==='calm'},
+  hanged:  {vl:1,name:'The Hanged Choir',text:'Seven singers hang from the rafters, and still they sing. One of them is still moving.',opts:[['cut','Cut them down (lose 15% HP: a hexer\'s body)'],['leave','Leave them singing (Choir devotion +15)'],['pass','Walk past']]},
+  patrol:  {vl:1,name:'The lost patrol',text:'A patrol of the living took a wrong turn in the dark. Their torches are nearly out.',opts:[['spare','Spare them (dread -3)'],['raise','Raise them (two free bodies, dread +3)'],['pass','Walk past']]},
+  bonemerch:{vl:1,name:'The bone merchant',text:'A dealer in the dead offers a trade: your weakest servant for one of his, sight unseen.',opts:[['swap','Trade your weakest minion for a stranger of this gate'],['pass','Walk past']],off:k=>k==='swap'&&!weakMinion()},
+  bell:    {vl:1,name:'A drowned bell',text:'A bell lies in black water. Ring it and the sky answers; muffle it and the sky stays still.',opts:[['ring','Ring it (tomorrow brings an omen)'],['silence','Silence it (no omen tomorrow)'],['pass','Walk past']]},
+  statue:  {vl:1,name:'The weeping statue',text:'A stone saint weeps black water into a bowl. Words are cut into its base, half worn away.',opts:[['read','Read the inscription (perhaps a torn page)'],['tears','Take the tears (a mana draught)'],['pass','Walk past']]},
+  thief:   {vl:1,name:'The Ledger thief',text:'A masked agent of your rival crouches over a body with a knife and a stolen page.',opts:[['duel','Duel the agent (lose 20% HP: the page or its price)'],['pass','Let them go']],when:()=>!!(S.rival&&S.rival.met)},
+  fever:   {vl:1,name:'The fever pit',text:'A pit of hot grave-mud bubbles in the floor. What goes in comes out changed, if it comes out.',opts:[['throw','Throw in your weakest minion (a new trait; 30%: it is lost)'],['pass','Walk past']],off:k=>k==='throw'&&!weakMinion()},
+  wagon:   {vl:1,name:'The broken wagon',text:'A wagon of the living lies on its side. The driver is alive, pinned under a wheel; the cargo is trophies.',opts:[['cargo','Take the cargo (3 trophies of this gate)'],['help','Help the driver (dread -2, gold)'],['pass','Walk past']]},
+  saint:   {vl:1,name:'The hollow saint',text:'A statue of another god, hollow inside, and something in it is listening.',opts:[['kneel','Kneel (convert to its god, keep 75% of your devotion)'],['break','Break it (Profane devotion +20, dread +2)'],['pass','Walk past']],when:()=>!!faithOf(),off:k=>k==='kneel'&&!faithOf()}
+};
+Object.assign(EVENTS,VEV);
+const VEV_IDS=Object.keys(VEV), FEVER_LOSS=.3, SAINT_KEEP=.75;
+const evOk=k=>!EVENTS[k].when||!!EVENTS[k].when();   // rollEvent
+const weakMinion=()=>S.army.filter(m=>!m.thrall&&!m.boss&&!m.recl).sort((a,b)=>a.lvl-b.lvl||(a.stage||0)-(b.stage||0))[0]||null;
+function vlBody(r,base,free){ const lvl=RK[r.di].lv+Math.floor(r.room/2); const e=makeEnemy(r.di,lvl,false); if(base){ const row=DUNGEONS[r.di].mobs.find(x=>x[0]===base); if(row){ const s=mobStats(r.di,lvl,row[2],row[3],false,false); Object.assign(e,{name:row[0],base:row[0],role:row[1],hf:row[2],af:row[3],elite:false,maxHp:s.hp,hp:s.hp,atk:s.atk}); } } const c=corpseOf(e); if(free) c.free=true; r.corpses.push(c); return c; }
+function valleyEv(ev,ch){   // resolveEvent for the valley's events: {m,c}, or null for a choice that cannot be taken
+  const E=EVENTS[ev.id], r=S.run, P=S.player; if(E.opts.every(o=>o[0]!==ch)||(E.off&&E.off(ch))) return null;
+  const id=ev.id, gold=k=>{ const g=chainGold(k); chainCoin(g); return g; };
+  if(id==='mourners'&&ch==='take'){ const c=vlBody(r,null,true); tally('mourners'); return {m:'You take the body from the mourners. '+c.name+' waits with the others; raising it costs no mana.',c:'ok'}; }
+  if(id==='mourners'&&ch==='bless'){ dread(-4); tally('mourners'); return {m:'You bless the dead one and send it home. The living will speak of it (dread -4).',c:'ok'}; }
+  if(id==='hanged'&&ch==='cut'){ const d=chainHp(.15), h=HEXER_FOES[r.di], c=vlBody(r,h&&h[0],false); return {m:'You cut the choir down. One of them claws you for '+d+' HP before it dies. '+c.name+'\'s body can be raised.',c:''}; }
+  if(id==='hanged'&&ch==='leave'){ const p=faithOf()==='choir'?deed('choir',15/DEED_K.choir/templeDev()):0; return {m:p?'You leave them singing. The Choir hears its own (+15 devotion).':'You leave them singing. No god of yours is listening.',c:p?'ok':''}; }
+  if(id==='patrol'&&ch==='spare'){ dread(-3); return {m:'You point the patrol back to the light. They will tell the town the dead let them live (dread -3).',c:'ok'}; }
+  if(id==='patrol'&&ch==='raise'){ vlBody(r,null,true); vlBody(r,null,true); dread(3); tally('patrolRaised'); return {m:'The patrol joins the bodies on the floor. Two of them can be raised for free (dread +3).',c:'ok'}; }
+  if(id==='bonemerch'&&ch==='swap'){ const m=weakMinion(); if(!m) return null; returnGear(m); S.army=S.army.filter(x=>x!==m); const c=vlBody(r,null,true); c.lvl=Math.max(c.lvl,m.lvl); tally('swapped'); return {m:'The merchant takes '+m.nick+' away. In its place, '+c.name+' (Lv '+c.lvl+') waits to be raised for free.',c:''}; }
+  if(id==='bell'&&ch==='ring'){ S.omenNext={day:S.day+1,id:pick(OMEN_NAT)}; return {m:'The bell tolls under the water. Tomorrow brings '+OMENS[S.omenNext.id].name+'.',c:'ok'}; }
+  if(id==='bell'&&ch==='silence'){ S.omenNext={day:S.day+1,id:null}; return {m:'You muffle the bell with mud. Tomorrow\'s sky will be still.',c:''}; }
+  if(id==='statue'&&ch==='read'){ if(findPage('statue',r)) return {m:'You read the worn words, and under the bowl lies a torn page.',c:'ok'}; const xp=chainXp(); return {m:'The words are a prayer for the dead. You learn something from them (+'+xp+' XP).',c:'ok'}; }
+  if(id==='statue'&&ch==='tears'){ if(S.belt.mp<beltMax()){ S.belt.mp++; return {m:'You bottle the black tears: a mana draught for your belt.',c:'ok'}; } const g=gold(.5); return {m:'Your belt is full. You sell the tears to the next dead man you meet: '+g+' gold.',c:'ok'}; }
+  if(id==='thief'&&ch==='duel'){ const d=chainHp(.2); tally('thiefDuels'); if(findPage('statue',r)) return {m:'You cut the agent down for '+d+' HP of your own and take back the stolen page.',c:'ok'}; const g=gold(1.2); return {m:'You cut the agent down for '+d+' HP of your own. The page burns, but their purse does not: '+g+' gold.',c:'ok'}; }
+  if(id==='fever'&&ch==='throw'){ const m=weakMinion(); if(!m) return null; tally('fever');
+    if(Math.random()<FEVER_LOSS){ returnGear(m); S.army=S.army.filter(x=>x!==m); memorialize(m,{g:r.di}); return {m:m.nick+' sinks into the fever pit and does not come back.',c:'bad'}; }
+    const old=m.traits.length?m.traits[m.traits.length-1]:null, nt=rollTrait(m.traits.filter(t=>t!==old)); if(old) m.traits[m.traits.length-1]=nt; else m.traits.push(nt); syncMinion(m);
+    return {m:m.nick+' crawls out of the pit changed: '+(old?TRAITS[old].name+' is gone, ':'')+TRAITS[nt].name+' instead.',c:'ok'}; }
+  if(id==='wagon'&&ch==='cargo'){ const row=DUNGEONS[r.di].mobs[0], key=row[0]; r.troph=r.troph||{}; r.troph[key]=(r.troph[key]||0)+3; return {m:'You take the cargo: 3 '+key+' trophies.',c:'ok'}; }
+  if(id==='wagon'&&ch==='help'){ dread(-2); const g=gold(.6); return {m:'You lift the wheel. The driver pays you '+g+' gold and swears he never saw you (dread -2).',c:'ok'}; }
+  if(id==='saint'&&ch==='kneel'){ const g=ev.g, dev=(S.faith&&S.faith.dev)||0; if(!convert(g)) return null; S.faith.dev=Math.floor(dev*SAINT_KEEP); return {m:'You kneel to '+FAITH[g].name+'. Three quarters of your devotion comes with you.',c:'ok'}; }
+  if(id==='saint'&&ch==='break'){ dread(2); const p=faithOf()==='dis'?deed('dis',20/DEED_K.dis/templeDev()):0; return {m:'You break the hollow saint'+(p?'. The Profane approve (+20 devotion).':'.')+' The town hears of it (dread +2).',c:p?'ok':''}; }
+  return null;
+}
+// ----- chains: three steps each, tied to their gates
+Object.assign(CHAIN_EV,{
+  tanner:{chain:'tanner',start:1,gate:0,name:'A ledger in the vats',text:'Floating in a tanning vat: a ledger of debts, every page signed by the Rat King, every debt unpaid.',get opts(){ return [['take','Take the ledger'],['pass','Leave it in the vat']]; }},
+  tanner_2:{chain:'tanner',gate:0,name:'The Rat King\'s creditors',text:'Three dead moneylenders block the tunnel. They want what the Rat King owes, and you carry his ledger.',get opts(){ return [['fight','Fight them off (lose 20% HP, bonus XP)'],['pay','Pay them ('+chainGold(1)+' gold)'],['pass','Not now']]; },off:k=>k==='pay'&&S.gold<chainGold(1)},
+  tanner_3:{chain:'tanner',gate:0,name:'Paid in full',text:'The last line of the ledger is a debt to the warren itself. Pay it, and the Rat King\'s name is clean.',get opts(){ return [['settle','Settle the debt in his name ('+chainGold(1.5)+' gold)'],['pass','Not now']]; },off:k=>k==='settle'&&S.gold<chainGold(1.5)},
+  warden:{chain:'warden',start:1,gate:1,name:'The watch roster',text:'A drowned board lists the crypt\'s night watch. Three names are scratched out; three are not.',get opts(){ return [['take','Take the roster'],['pass','Leave it']]; }},
+  warden_2:{chain:'warden',gate:1,name:'Three watchmen',text:'The three watchmen on the roster still keep their posts, rotting in the water. They will not stand down.',get opts(){ return [['rest','Lay them to rest (lose 25% HP, bonus XP)'],['pass','Not now']]; }},
+  warden_3:{chain:'warden',gate:1,name:'The last watch',text:'The roster ends with an empty line. Someone has to stand the last watch.',get opts(){ return [['stand','Stand it yourself (lose 20% HP: every Reserve minion gains a level)'],['pass','Not now']]; }},
+  ashchoir:{chain:'ashchoir',start:1,gate:3,name:'The missing voice',text:'The cathedral\'s choir of bones sings with a gap in it, one voice missing from every hymn.',get opts(){ return [['listen','Listen for the missing voice'],['pass','Walk past']]; }},
+  ashchoir_2:{chain:'ashchoir',gate:3,name:'The lost cantor',text:'Deep under the nave, something hums the missing part, alone.',get opts(){ return [['search','Search the crypts (lose 15% HP)'],['pass','Not now']]; }},
+  ashchoir_3:{chain:'ashchoir',gate:3,name:'The cantor found',text:'The Bishop\'s cantor, chained in the dark, still singing. It looks at you and waits.',get opts(){ return [['free','Free it (Choir devotion +50, or a Soul and full mana)'],['bind','Bind it (a cantor\'s body, raised at Elder, free)'],['pass','Not now']]; }}
+});
+Object.assign(EVENTS,CHAIN_EV); CHAIN_IDS.push('tanner','warden','ashchoir');
+Object.assign(CHAIN_NEXT,{tan1:'tanner_2',tan2:'tanner_3',war1:'warden_2',war2:'warden_3',ash1:'ashchoir_2',ash2:'ashchoir_3'});
+const chainGate=k=>EVENTS[k].gate==null||!!(S.run&&S.run.di===EVENTS[k].gate);   // chainOk, chainDue
+function valleyChain(id,ch,go,end){   // chainResolve, for the three gate chains
+  const r=S.run, P=S.player;
+  if(id==='tanner'&&ch==='take'){ go('tan1'); return {m:'You fish out the ledger. The Rat King owed everyone.',c:''}; }
+  if(id==='tanner_2'&&ch==='fight'){ const d=chainHp(.2), xp=chainXp(); go('tan2'); return {m:'You send the creditors back to their graves. It costs '+d+' HP; +'+xp+' XP.',c:'bad'}; }
+  if(id==='tanner_2'&&ch==='pay'){ const g=chainGold(1); S.gold-=g; go('tan2'); return {m:'You pay the creditors '+g+' gold. They cross the debt out and fade.',c:''}; }
+  if(id==='tanner_3'&&ch==='settle'){ const g=chainGold(1.5); S.gold-=g; end(); tally('paidFull'); return {m:'You pay '+g+' gold into the warren\'s mud. The Rat King\'s name is clean, and the Ledger marks you Paid in Full.',c:'ok'}; }
+  if(id==='warden'&&ch==='take'){ go('war1'); return {m:'You take the roster. Three names wait.',c:''}; }
+  if(id==='warden_2'&&ch==='rest'){ const d=chainHp(.25), xp=chainXp(); go('war2'); return {m:'You lay the three watchmen to rest. It costs '+d+' HP; +'+xp+' XP.',c:'bad'}; }
+  if(id==='warden_3'&&ch==='stand'){ const d=chainHp(.2), R=(S.reserve||[]).filter(m=>!m.thrall); for(const m of R){ m.lvl=Math.min(S.player.lvl+2,m.lvl+1); syncMinion(m); } end(); tally('lastWatch');
+    return {m:'You stand the last watch through the night for '+d+' HP. '+(R.length?'Your Reserve watched with you: '+R.length+' minion'+(R.length>1?'s gain':' gains')+' a level.':'Your Reserve is empty; only you learn from it.'),c:'ok'}; }
+  if(id==='ashchoir'&&ch==='listen'){ go('ash1'); return {m:'You hear it, faintly: the missing voice, somewhere below.',c:''}; }
+  if(id==='ashchoir_2'&&ch==='search'){ const d=chainHp(.15); go('ash2'); return {m:'You search the crypts for '+d+' HP of scrapes and bites, and find where the humming comes from.',c:''}; }
+  if(id==='ashchoir_3'&&ch==='free'){ end(); tally('cantorFreed'); if(faithOf()==='choir'){ deed('choir',50/DEED_K.choir/templeDev()); return {m:'You break the cantor\'s chain. The choir is whole again, and the Choir remembers it (+50 devotion).',c:'ok'}; } const got=gainSoul(); P.mana=pMana(); return {m:'You break the cantor\'s chain. It sings you whole: full mana'+(got?' and a Soul ('+r.souls+'/'+SOUL_MAX+')':'')+'.',c:'ok'}; }
+  if(id==='ashchoir_3'&&ch==='bind'){ const c=vlBody(r,'Choir Cantor',true); c.st2=1; end(); tally('cantorBound'); return {m:'You bind the cantor to the Ledger. Its body waits to rise at Elder, for free.',c:'ok'}; }
+  return null;
+}
+const cantorStage=(c,m)=>{ if(!c||!c.st2) return; m.stage=2; m.traits.push(rollTrait(m.traits)); m.traits.push(rollTrait(m.traits)); };   // tryRaise: the bound cantor rises at Elder
+PAGE_CHANCE.statue=.5;
 //==UI==
 
 // ----- sound: tiny synthesized effects (Web Audio, no files). Off/on lives in Settings and is remembered per browser, not in the save.
@@ -9680,7 +9808,7 @@ const TR_DICT=new Map(Object.entries({
 "Foes +#% HP and attack. Double gold and trophies, +#% XP, +#% gear":"Düşmanlar +%# can ve saldırı. Çift altın ve ganimet, +%# TP, +%# teçhizat",
 "Foes Lv #+":"Düşmanlar Sv #+",
 "Foes about Lv #":"Düşmanlar yaklaşık Sv #",
-"Foes burst when they die and hurt you for half their attack (never below # HP; ward soaks it)":"Düşmanlar ölünce patlar ve saldırılarının yarısı kadar seni yaralar (asla # canın altına değil; kalkan emer)",
+"Foes burst when they die and hurt you for #% of their attack, at most #% of your max HP (never below # HP; ward soaks it)":"Düşmanlar ölünce patlar ve saldırılarının %#'u kadar, en çok azami canının %#'sı kadar seni yaralar (asla # canın altına değil; kalkan emer)",
 "Foes deal #% more damage":"Düşmanlar %# daha fazla hasar verir",
 "Foes have #% more HP":"Düşmanların %# daha fazla canı var",
 "Foes that hit you take #% of the damage back":"Sana vuran düşmanlar hasarın %#'ini geri alır",
@@ -12383,6 +12511,81 @@ TR_RX.unshift([/^([^.,]+), who (gnawed down|drowned|burned|silenced|cut down|unm
  [/^([^.]+) has downed (\d+) of your dead\. It is an arch-nemesis now\.?$/,"$1 ölülerinden $2 tanesini düşürdü. Artık ezeli düşmanın"],[/^([^.]+) adds (.+) to its tally\.?$/,"$1, $2 adını hesabına ekliyor"],
  [/^([^.]+) still walks the (.+) with (.+)'s name on its tally\. It grows stronger \(Lv \+(\d+)\)\.?$/,"$1 hâlâ $2 içinde dolaşıyor, hesabında $3 adı var. Güçleniyor (Sv +$4)"],
  [/^([^.]+) devours what it stole from your dead and rises again \(\+(\d+) HP\)\.?$/,"$1 ölülerinden çaldığını yutuyor ve yeniden kalkıyor (+$2 can)"],[/^([^.]+) is avenged$/,"$1 için öç alındı"]);
+// ----- R13 PR B: a living valley
+[
+ ["Hunger","Açlık"],["Mirror","Ayna"],["Silent","Sessiz"],["Long","Uzun"],["Thin","Seyrek"],
+ ["Your Souls drain by one at the start of each room","Her odanın başında Ruhların bir azalır"],
+ ["Every foe takes your army's most common trait: a wound trait (Venomous, Necrotic, Cinderborn, Rimeborn) on its hits, any other as +#% HP and attack","Her düşman ordunun en yaygın özelliğini alır: bir yara özelliği (Zehirli, Nekrotik, Közdoğan, Kırağıdoğan) vuruşlarına geçer, diğerleri +%# can ve saldırı olarak"],
+ ["No free orders: Taunt, Focus, Bone Shield and Execute stay quiet","Bedava emir yok: Kışkırtma, Odak, Kemik Kalkan ve İnfaz susar"],
+ ["The gate has one more room before its master","Kapının efendisinden önce bir oda daha vardır"],
+ ["Only two bodies stay after each room: a boss's and the elites' first","Her odadan sonra yalnızca iki beden kalır: önce patronunki ve seçkinlerinki"],
+ ["Red Mist","Kızıl Sis"],["Grave Wind","Mezar Rüzgârı"],["Still Air","Durgun Hava"],
+ ["Every unit, yours and theirs, crits #% more often","Seninki ve onlarınki, her birim %# daha sık kritik vurur"],
+ ["+#% chance to raise the dead, and you hold one Soul fewer","Ölüleri diriltmeye +%# şans, ve bir Ruh eksik taşırsın"],
+ ["Wounds hold still: no damage over time ticks, on either side","Yaralar durur: iki tarafta da zamanla hasar işlemez"],
+ ["Mourners at the gate","Kapıda yas tutanlar"],["The living have come to the gate with a body on a door. They are not afraid of you today, and they ask nothing","Yaşayanlar bir kapı kanadında bir cesetle kapıya geldi. Bugün senden korkmuyorlar ve hiçbir şey istemiyorlar"],
+ ["Take the body they bring (a free raise)","Getirdikleri bedeni al (bedava diriltme)"],["Bless it and send it home (dread -#)","Onu kutsa ve evine gönder (korku -#)"],["Walk past","Geç git"],
+ ["The Hanged Choir","Asılı Koro"],["Seven singers hang from the rafters, and still they sing. One of them is still moving","Yedi şarkıcı kirişlerden sallanıyor ve hâlâ şarkı söylüyor. Biri hâlâ kıpırdıyor"],
+ ["Cut them down (lose #% HP: a hexer's body)","Onları indir (%# can kaybı: bir büyücünün bedeni)"],["Leave them singing (Choir devotion +#)","Şarkı söylemeye bırak (Koro bağlılığı +#)"],
+ ["The lost patrol","Kayıp devriye"],["A patrol of the living took a wrong turn in the dark. Their torches are nearly out","Yaşayanların bir devriyesi karanlıkta yanlış yola saptı. Meşaleleri sönmek üzere"],
+ ["Spare them (dread -#)","Onları bağışla (korku -#)"],["Raise them (two free bodies, dread +#)","Onları dirilt (iki bedava beden, korku +#)"],
+ ["The bone merchant","Kemik tüccarı"],["A dealer in the dead offers a trade: your weakest servant for one of his, sight unseen","Bir ölü tüccarı takas öneriyor: en zayıf hizmetkârın, görmeden onunkilerden biriyle"],
+ ["Trade your weakest minion for a stranger of this gate","En zayıf hizmetkârını bu kapıdan bir yabancıyla takas et"],
+ ["A drowned bell","Boğulmuş bir çan"],["A bell lies in black water. Ring it and the sky answers; muffle it and the sky stays still","Kara suda bir çan yatıyor. Çalarsan gök cevap verir; susturursan gök durgun kalır"],
+ ["Ring it (tomorrow brings an omen)","Çal (yarın bir alamet getirir)"],["Silence it (no omen tomorrow)","Sustur (yarın alamet yok)"],
+ ["The weeping statue","Ağlayan heykel"],["A stone saint weeps black water into a bowl. Words are cut into its base, half worn away","Taştan bir aziz bir kâseye kara su ağlıyor. Kaidesine yarısı aşınmış sözler kazınmış"],
+ ["Read the inscription (perhaps a torn page)","Yazıtı oku (belki yırtık bir sayfa)"],["Take the tears (a mana draught)","Gözyaşlarını al (bir mana iksiri)"],
+ ["The Ledger thief","Defter hırsızı"],["A masked agent of your rival crouches over a body with a knife and a stolen page","Rakibinin maskeli bir ajanı elinde bıçak ve çalıntı bir sayfayla bir cesedin üstüne eğilmiş"],
+ ["Duel the agent (lose #% HP: the page or its price)","Ajanla düello et (%# can kaybı: sayfa ya da bedeli)"],["Let them go","Bırak gitsin"],
+ ["The fever pit","Humma çukuru"],["A pit of hot grave-mud bubbles in the floor. What goes in comes out changed, if it comes out","Yerde sıcak mezar çamurundan bir çukur fokurduyor. İçine giren değişmiş çıkar, eğer çıkarsa"],
+ ["Throw in your weakest minion (a new trait; #%: it is lost)","En zayıf hizmetkârını at (yeni bir özellik; %#: kaybolur)"],
+ ["The broken wagon","Kırık araba"],["A wagon of the living lies on its side. The driver is alive, pinned under a wheel; the cargo is trophies","Yaşayanların bir arabası yan yatmış. Sürücü sağ, bir tekerin altında sıkışmış; yük ganimet"],
+ ["Take the cargo (# trophies of this gate)","Yükü al (bu kapıdan # ganimet)"],["Help the driver (dread -#, gold)","Sürücüye yardım et (korku -#, altın)"],
+ ["The hollow saint","Kof aziz"],["A statue of another god, hollow inside, and something in it is listening","Başka bir tanrının heykeli, içi boş, ve içindeki bir şey dinliyor"],
+ ["Kneel (convert to its god, keep #% of your devotion)","Diz çök (onun tanrısına geç, bağlılığının %#'ini koru)"],["Break it (Profane devotion +#, dread +#)","Kır (Kâfir bağlılığı +#, korku +#)"],
+ ["A ledger in the vats","Fıçılarda bir defter"],["Floating in a tanning vat: a ledger of debts, every page signed by the Rat King, every debt unpaid","Bir tabak fıçısında yüzen bir borç defteri: her sayfası Fare Kral imzalı, her borç ödenmemiş"],
+ ["Take the ledger","Defteri al"],["Leave it in the vat","Fıçıda bırak"],
+ ["The Rat King's creditors","Fare Kral'ın alacaklıları"],["Three dead moneylenders block the tunnel. They want what the Rat King owes, and you carry his ledger","Üç ölü tefeci tüneli kesiyor. Fare Kral'ın borcunu istiyorlar ve defteri sende"],
+ ["Fight them off (lose #% HP, bonus XP)","Onları püskürt (%# can kaybı, ek TP)"],["Pay them (# gold)","Onlara öde (# altın)"],["Not now","Şimdi değil"],
+ ["Paid in full","Tamamen ödendi"],["Paid in Full","Borcu Kapandı"],["The last line of the ledger is a debt to the warren itself. Pay it, and the Rat King's name is clean","Defterin son satırı yuvanın kendisine bir borç. Öde, Fare Kral'ın adı temizlensin"],
+ ["Settle the debt in his name (# gold)","Borcu onun adına kapat (# altın)"],
+ ["The watch roster","Nöbet çizelgesi"],["A drowned board lists the crypt's night watch. Three names are scratched out; three are not","Suya batmış bir tahta mahzenin gece nöbetçilerini sıralıyor. Üç ad kazınmış; üçü değil"],["Take the roster","Çizelgeyi al"],["Leave it","Bırak"],
+ ["Three watchmen","Üç nöbetçi"],["The three watchmen on the roster still keep their posts, rotting in the water. They will not stand down","Çizelgedeki üç nöbetçi suda çürüyerek hâlâ nöbet tutuyor. Görevi bırakmayacaklar"],["Lay them to rest (lose #% HP, bonus XP)","Onları huzura erdir (%# can kaybı, ek TP)"],
+ ["The last watch","Son nöbet"],["The roster ends with an empty line. Someone has to stand the last watch","Çizelge boş bir satırla bitiyor. Birinin son nöbeti tutması gerek"],["Stand it yourself (lose #% HP: every Reserve minion gains a level)","Kendin tut (%# can kaybı: her Yedek hizmetkâr bir seviye kazanır)"],
+ ["The missing voice","Eksik ses"],["The cathedral's choir of bones sings with a gap in it, one voice missing from every hymn","Katedralin kemik korosu bir boşlukla söylüyor, her ilahide bir ses eksik"],["Listen for the missing voice","Eksik sesi dinle"],
+ ["The lost cantor","Kayıp kantor"],["Deep under the nave, something hums the missing part, alone","Nefin derinlerinde bir şey eksik partiyi tek başına mırıldanıyor"],["Search the crypts (lose #% HP)","Mahzenleri ara (%# can kaybı)"],
+ ["The cantor found","Kantor bulundu"],["The Bishop's cantor, chained in the dark, still singing. It looks at you and waits","Piskoposun kantoru, karanlıkta zincirli, hâlâ şarkı söylüyor. Sana bakıp bekliyor"],
+ ["Free it (Choir devotion +#, or a Soul and full mana)","Serbest bırak (Koro bağlılığı +#, ya da bir Ruh ve dolu mana)"],["Bind it (a cantor's body, raised at Elder, free)","Bağla (Yaşlı aşamada kalkan bir kantor bedeni, bedava)"],
+ ["Five Curses Broken","Beş Lanet Kırıldı"],["Clear a gate under each of Hunger, Mirror, Silent, Long and Thin","Açlık, Ayna, Sessiz, Uzun ve Seyrek lanetlerinin her biri altında bir kapı temizle"],["Settle the Rat King's debts","Fare Kral'ın borçlarını kapat"],
+ ["You take the ledger. The Rat King owed everyone","Defteri alıyorsun. Fare Kral herkese borçluymuş"],["You fish out the ledger. The Rat King owed everyone","Defteri çıkarıyorsun. Fare Kral herkese borçluymuş"],["You take the roster. Three names wait","Çizelgeyi alıyorsun. Üç ad bekliyor"],
+ ["You hear it, faintly: the missing voice, somewhere below","Hafifçe duyuyorsun: eksik ses, aşağıda bir yerde"],["You muffle the bell with mud. Tomorrow's sky will be still","Çanı çamurla susturuyorsun. Yarının göğü durgun olacak"],
+ ["You bottle the black tears: a mana draught for your belt","Kara gözyaşlarını şişeliyorsun: kemerin için bir mana iksiri"],["You read the worn words, and under the bowl lies a torn page","Aşınmış sözleri okuyorsun ve kâsenin altında yırtık bir sayfa yatıyor"],
+ ["You bind the cantor to the Ledger. Its body waits to rise at Elder, for free","Kantoru Deftere bağlıyorsun. Bedeni Yaşlı aşamada, bedava kalkmayı bekliyor"],
+ ["You leave them singing. No god of yours is listening","Şarkı söylemeye bırakıyorsun. Hiçbir tanrın dinlemiyor"],["You leave them singing. The Choir hears its own (+# devotion)","Şarkı söylemeye bırakıyorsun. Koro kendi sesini duyuyor (+# bağlılık)"],
+ ["You point the patrol back to the light. They will tell the town the dead let them live (dread -#)","Devriyeye ışığa dönüş yolunu gösteriyorsun. Kasabaya ölülerin onları yaşattığını anlatacaklar (korku -#)"],
+ ["The patrol joins the bodies on the floor. Two of them can be raised for free (dread +#)","Devriye yerdeki bedenlere katılıyor. İkisi bedava diriltilebilir (korku +#)"],
+ ["You bless the dead one and send it home. The living will speak of it (dread -#)","Ölüyü kutsayıp evine gönderiyorsun. Yaşayanlar bundan söz edecek (korku -#)"],
+ ["Three quarters of your devotion comes with you","Bağlılığının dörtte üçü seninle geliyor"],["The town hears of it (dread +#)","Kasaba bunu duyuyor (korku +#)"],["The Profane approve (+# devotion)","Kâfirler onaylıyor (+# bağlılık)"]
+].forEach(([k,v])=>TR_DICT.set(k,v));
+TR_RX.unshift([/^Hunger: a Soul drains away \((\d+) left\)$/,"Açlık: bir Ruh tükeniyor ($1 kaldı)"],[/^Thin: (\d+) bod(?:y|ies) crumbles? to dust before you can reach (?:it|them)$/,"Seyrek: $1 beden sen ulaşamadan toza dönüyor"],
+ [/^You take the body from the mourners\. (.+) waits with the others; raising it costs no mana$/,"Bedeni yas tutanlardan alıyorsun. $1 diğerleriyle bekliyor; diriltmek mana istemiyor"],
+ [/^You cut the choir down\. One of them claws you for (\d+) HP before it dies\. (.+)'s body can be raised$/,"Koroyu indiriyorsun. Biri ölmeden seni $1 can tırmalıyor. $2 bedeni diriltilebilir"],
+ [/^The merchant takes (.+) away\. In its place, (.+) \(Lv (\d+)\) waits to be raised for free$/,"Tüccar $1 adlı hizmetkârını götürüyor. Yerine $2 (Sv $3) bedava diriltilmeyi bekliyor"],
+ [/^The bell tolls under the water\. Tomorrow brings (.+)$/,"Çan suyun altında çalıyor. Yarın {t1} geliyor"],[/^The words are a prayer for the dead\. You learn something from them \(\+(\d+) XP\)$/,"Sözler ölüler için bir dua. Onlardan bir şey öğreniyorsun (+$1 TP)"],
+ [/^Your belt is full\. You sell the tears to the next dead man you meet: (\d+) gold$/,"Kemerin dolu. Gözyaşlarını rastladığın ilk ölüye satıyorsun: $1 altın"],
+ [/^You cut the agent down for (\d+) HP of your own and take back the stolen page$/,"Ajanı kendi canından $1 karşılığında indiriyor ve çalınan sayfayı geri alıyorsun"],
+ [/^You cut the agent down for (\d+) HP of your own\. The page burns, but their purse does not: (\d+) gold$/,"Ajanı kendi canından $1 karşılığında indiriyorsun. Sayfa yanıyor ama kesesi yanmıyor: $2 altın"],
+ [/^(.+) sinks into the fever pit and does not come back$/,"$1 humma çukuruna batıyor ve geri gelmiyor"],[/^(.+) crawls out of the pit changed: (?:(.+) is gone, )?(.+) instead$/,"$1 çukurdan değişmiş çıkıyor: yerine {t3}"],
+ [/^You take the cargo: (\d+) (.+) trophies$/,"Yükü alıyorsun: $1 $2 ganimeti"],[/^You lift the wheel\. The driver pays you (\d+) gold and swears he never saw you \(dread -(\d+)\)$/,"Tekeri kaldırıyorsun. Sürücü sana $1 altın veriyor ve seni hiç görmediğine yemin ediyor (korku -$2)"],
+ [/^You kneel to (.+)\. Three quarters of your devotion comes with you$/,"$1 önünde diz çöküyorsun. Bağlılığının dörtte üçü seninle geliyor"],[/^You break the hollow saint$/,"Kof azizi kırıyorsun"],
+ [/^You send the creditors back to their graves\. It costs (\d+) HP; \+(\d+) XP$/,"Alacaklıları mezarlarına geri gönderiyorsun. $1 cana mal oluyor; +$2 TP"],[/^You pay the creditors (\d+) gold\. They cross the debt out and fade$/,"Alacaklılara $1 altın ödüyorsun. Borcu çizip siliniyorlar"],
+ [/^You pay (\d+) gold into the warren's mud\. The Rat King's name is clean, and the Ledger marks you Paid in Full$/,"Yuvanın çamuruna $1 altın ödüyorsun. Fare Kral'ın adı temiz ve Defter seni Borcu Kapandı olarak işaretliyor"],
+ [/^You lay the three watchmen to rest\. It costs (\d+) HP; \+(\d+) XP$/,"Üç nöbetçiyi huzura erdiriyorsun. $1 cana mal oluyor; +$2 TP"],
+ [/^You stand the last watch through the night for (\d+) HP\. Your Reserve watched with you: (\d+) minions? gains? a level$/,"Son nöbeti gece boyunca $1 can karşılığı tutuyorsun. Yedeğin seninle nöbet tuttu: $2 hizmetkâr bir seviye kazanıyor"],
+ [/^You stand the last watch through the night for (\d+) HP\. Your Reserve is empty; only you learn from it$/,"Son nöbeti gece boyunca $1 can karşılığı tutuyorsun. Yedeğin boş; bundan yalnız sen öğreniyorsun"],
+ [/^You search the crypts for (\d+) HP of scrapes and bites, and find where the humming comes from$/,"Mahzenleri $1 canlık sıyrık ve ısırık pahasına arıyor ve mırıltının nereden geldiğini buluyorsun"],
+ [/^You break the cantor's chain\. The choir is whole again, and the Choir remembers it \(\+(\d+) devotion\)$/,"Kantorun zincirini kırıyorsun. Koro yeniden tam ve Koro bunu hatırlıyor (+$1 bağlılık)"],
+ [/^You break the cantor's chain\. It sings you whole: full mana and a Soul \((\d+)\/(\d+)\)$/,"Kantorun zincirini kırıyorsun. Seni şarkısıyla iyileştiriyor: dolu mana ve bir Ruh ($1/$2)"],[/^You break the cantor's chain\. It sings you whole: full mana$/,"Kantorun zincirini kırıyorsun. Seni şarkısıyla iyileştiriyor: dolu mana"]);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }

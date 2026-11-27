@@ -143,7 +143,7 @@ function trialPlan(){   // this week's Trial, fixed the first time the week asks
   if(T.cur&&T.cur.w===w&&T.cur.di>=0) return T.cur;   // a week with no gate to try yet asks again (nothing was attempted)
   const gs=DUNGEONS.map((D,i)=>i).filter(i=>i<GATE_N&&S.ti&&S.ti.clr&&S.ti.clr[i]&&S.player.lvl>=RK[i].unlock);
   if(!gs.length){ T.cur={w,di:-1}; return null; }
-  const h=dayHash(w,101), ks=Object.keys(MODS), di=gs[h%gs.length], m1=ks[dayHash(w,103)%ks.length], two=dayHash(w,107)%2===1;
+  const h=dayHash(w,101), ks=Object.keys(MODS).filter(k=>k!=='long'), /* a Trial keeps four rooms: no Long */ di=gs[h%gs.length], m1=ks[dayHash(w,103)%ks.length], two=dayHash(w,107)%2===1;
   const rest=ks.filter(k=>k!==m1), mods=two?[m1,rest[dayHash(w,109)%rest.length]]:[m1];
   let tier=dayHash(w,113)%TRIAL_TIERS; while(tier>0&&S.player.lvl<tierRec(TRIAL_GATE,tier)) tier--;   /* never above the hardest tier the Throne recommends for your level */
   T.cur={w,di,tier,mods,lv:trialLv(di,tier),seed:dayHash(w,127)}; return T.cur;

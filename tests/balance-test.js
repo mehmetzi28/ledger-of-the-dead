@@ -265,7 +265,7 @@
     if(P.mana>=8+res&&pSiph()>=pAtk()) return 'siphon';
     return 'strike';
   }
-  const RZ={t:0,ok:0}, SWC={n:0,stop:0}, HFC={n:0,g:0}, BRC={n:0,g:0,comm:0,commG:0,bm:0};
+  const CURC={}, RZ={t:0,ok:0}, SWC={n:0,stop:0}, HFC={n:0,g:0}, BRC={n:0,g:0,comm:0,commG:0,bm:0};
   const useRes=B=>B&&B.full&&!B.off.reserve&&typeof reserveOpen==='function'&&reserveOpen();   // the Reserve, switchable with "off":["reserve"]
   function raisePhase(B){
     const r=S.run, P=S.player;
@@ -291,7 +291,10 @@
     straggler:f=>f.room?'raise':'finish', priest:f=>f.hp>=.4?'spare':'pass', priest_back:f=>f.hp<.6?'bless':'warn',
     priest_kin:f=>f.can('pay')?'pay':f.hp>=.5?'fight':'pass', reliquary:f=>f.can('offer')?'offer':'pass', relic_curse:f=>f.can('return')?'return':f.hp>=.5?'endure':'pass',
     relic_gift:f=>'take', deserter:f=>f.can('pay')?'pay':'bread', deserter_true:f=>'take', deserter_false:f=>f.can('pay')?'pay':f.hp>=.5?'fight':'pass',
-    rfold:f=>f.hp>=.8?'skip':'pass', rmem:f=>f.room?'raise':'free', rfrag:f=>'read', rshrine:f=>f.hp>=.7?'tear':'pass'};   /* R9 PR B: the Rift's events */
+    rfold:f=>f.hp>=.8?'skip':'pass', rmem:f=>f.room?'raise':'free', rfrag:f=>'read', rshrine:f=>f.hp>=.7?'tear':'pass',   /* R9 PR B: the Rift's events */
+    mourners:f=>f.room?'take':'bless', hanged:f=>f.hp>=.6?'cut':'leave', patrol:f=>'spare', bonemerch:f=>'pass', bell:f=>'pass', statue:f=>'tears', thief:f=>f.hp>=.6?'duel':'pass', fever:f=>'pass', wagon:f=>'cargo',
+    saint:f=>f.can('break')&&faithOf()==='dis'?'break':'pass', tanner:f=>'take', tanner_2:f=>f.can('pay')?'pay':f.hp>=.5?'fight':'pass', tanner_3:f=>f.can('settle')?'settle':'pass',
+    warden:f=>'take', warden_2:f=>f.hp>=.5?'rest':'pass', warden_3:f=>f.hp>=.5?'stand':'pass', ashchoir:f=>'listen', ashchoir_2:f=>f.hp>=.4?'search':'pass', ashchoir_3:f=>f.room?'bind':'free'};   /* R13 PR B: the valley's events and chains */
   function playEvent(B){
     const r=S.run, ev=r&&r.event; if(!B.full||B.off.events||!ev||ev.done||!EVENTS[ev.id]) return;
     const E=EVENTS[ev.id], f={hp:S.player.hp/pMax(),room:S.army.length<slots(),can:k=>!E.off||!E.off(k)}, ch=(EVT_PICK[ev.id]||(()=>'pass'))(f);
@@ -340,7 +343,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
     if(B.full&&!B.off.brew&&typeof prepSet==='function'){ const res=GATE_RES[gi]||{}, w=Object.keys(res).filter(t=>res[t]<0)[0], o=w?'oil_'+w:null; S.prep=S.prep||{}; if(o&&stashN(o)>0) S.prep.oil=o; else delete S.prep.oil; }   // arm the oil of this gate's weakness, or none
     startRun(gi);
     if(S.mode!=='battle'){ S.watches=0; endDay(); return; }
-    const run={gate:gi,lvl,diff:lvl-SAFE[gi],heat:S.run.heat||0,cleared:false,died:false,left:false,rooms:0,turns:0,hpEnd:[]}; if(duel) run.rival=1; let guard=0;   // a challenge run is left out of the gate table (reported on the rival line)
+    const run={gate:gi,lvl,diff:lvl-SAFE[gi],heat:S.run.heat||0,mod:S.run.mod||null,cleared:false,died:false,left:false,rooms:0,turns:0,hpEnd:[]}; if(duel) run.rival=1; let guard=0;   // a challenge run is left out of the gate table (reported on the rival line)
     for(;;){
       if(S.mode==='battle'){ if(++guard>400){ flee(); run.left=true; break; } if(S.run.enemies.some(e=>e.boss&&!e.secret&&!e.rival)){ run.bossIn=1; run.bossT=(run.bossT||0)+1; } act(decide(B)); run.turns++; continue; }   /* bossIn, bossT: the boss room and its actions */
       if(S.mode==='raise'){
@@ -353,7 +356,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
       if(S.mode==='defeat'){ run.died=true; if(B.heat){ B.hw[gi]=Math.max(0,run.heat-1); B.hwDay=B.hwDay||{}; B.hwDay[gi]=S.day; } returnTown(); break; }
       break;
     }
-    rec.push(run);
+    rec.push(run); if(!run.rival){ const k=run.mod||'-', c=CURC[k]=CURC[k]||{n:0,c:0}; c.n++; if(run.cleared) c.c++; }   /* clears by curse (R13) */
   }
   function climb(B,from){   // one tower climb (from floor 1 unless told otherwise), never retreating; returns the highest floor cleared
     S.watches=Math.max(1,S.watches); S.mode='town'; S.run=null; startTower(from||1); let guard=0;
@@ -498,7 +501,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
       tiers:HEAT.slice(0,3).map((H,h)=>{ const g=tr.filter(x=>x.done&&x.t===h); return g.length?H.name+' '+g.length+': score median '+med(g.map(x=>x.s))+' (turns '+med(g.map(x=>x.tt))+', downed '+avg(g.map(x=>x.downs))+')'+(g[0].par!=null?', par beaten '+pc(g.filter(x=>x.s<=x.par).length,g.length):''):null; }).filter(Boolean),
       hearts:avg(res.map(r=>(r.trials||[]).reduce((a,x)=>a+(x.hearts||0),0)))}:null;   // the weekly Trial ('full'): attempts, completions, score by difficulty, and hearts won per bot
     const ad=res.map(r=>r.abbeyDay).filter(x=>x!=null), abbey={open:ad.length+'/'+res.length,inSim:res.filter(r=>r.abbeyDay!=null&&!r.abbeyEnd).length,probed:res.filter(r=>r.abbeyProbe).length,day:avg(res.filter(r=>r.abbeyDay!=null&&!r.abbeyEnd).map(r=>r.abbeyDay))};   /* abbeyDay: the day the seventh gate opened (after the final climb counts as days+1) */
-    return {abbey,trials,gold,events,gates,heat,byLvl,tiers,sec,lore,raids,sieges,rival,rift,passives:avg(res.map(r=>r.passives||0)),nem:{born:avg(res.map(r=>r.nem?r.nem.born:0)),slain:avg(res.map(r=>r.nem?r.nem.slain:0)),arch:avg(res.map(r=>r.nem?r.nem.arch:0)),alive:avg(res.map(r=>r.nem?r.nem.alive:0))},raise:(z=>(RZ.t=RZ.ok=0,z))(RZ.t?pc(RZ.ok,RZ.t)+' of '+RZ.t:null),sweeps:(z=>(SWC.n=SWC.stop=0,z))(SWC.n?{n:SWC.n,perBot:+(SWC.n/res.length).toFixed(1),stopped:SWC.stop}:null),runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
+    return {abbey,trials,gold,events,gates,heat,byLvl,tiers,sec,lore,raids,sieges,rival,rift,passives:avg(res.map(r=>r.passives||0)),curses:(z=>{ for(const k in CURC) delete CURC[k]; return z; })(Object.keys(CURC).sort().map(k=>k+' '+Math.round(CURC[k].c/CURC[k].n*100)+'% of '+CURC[k].n).join(', ')),nem:{born:avg(res.map(r=>r.nem?r.nem.born:0)),slain:avg(res.map(r=>r.nem?r.nem.slain:0)),arch:avg(res.map(r=>r.nem?r.nem.arch:0)),alive:avg(res.map(r=>r.nem?r.nem.alive:0))},raise:(z=>(RZ.t=RZ.ok=0,z))(RZ.t?pc(RZ.ok,RZ.t)+' of '+RZ.t:null),sweeps:(z=>(SWC.n=SWC.stop=0,z))(SWC.n?{n:SWC.n,perBot:+(SWC.n/res.length).toFixed(1),stopped:SWC.stop}:null),runs:all.length,deathRate:pc(all.filter(x=>x.died).length,all.length),clearRate:pc(all.filter(x=>x.cleared).length,all.length),level:lv,towerBest:avg(res.map(r=>r.tower))};
   }
 
   function run(opts){

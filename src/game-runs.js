@@ -41,6 +41,7 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
     else if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(r.rift&&guardAt(r.rift)?makeGuardian(di,lvl,r.rift):!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true));   /* a Rift guardian every fifth depth (game-rift.js) */ const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
     else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
     if(kind==='nem') nemRoom(list,di,lvl);   /* the sigil door (game-nemesis.js) */
+    mirrorRoom(list);   /* the Mirror curse (game-valley.js) */
     heatRoom(list,di); ledgerRoom(list,di); rwRoom(list,di); ascKits(list); ascRoom(list); brewRoom(r); foeScale(list,foeAtkMul(di)); if(r.trial) trialPow(list,di); bulwark(list); riftScale(list); if(boss&&r.rift) sigNamed(list);
     heatScale(list);
     if(!boss&&kind==='elite') for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*ELITE_ROOM); e.atk=Math.max(1,Math.round(e.atk*ELITE_ROOM)); }
@@ -52,7 +53,7 @@ function spawnRoom(){
   if(S.run.tw) return spawnFloor();
   const r=S.run, room=r.room, boss=roomBoss(r,room);
   const list=(!boss&&r.pre&&r.pre[r.roomKind])||buildRoom(room,r.roomKind); r.pre=null;   // a door's room was rolled with the doors: what it showed is what waits
-  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; delete r.lcU; delete r.mirU; delete r.mirS; delete r.flU; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null; roomStart(list);
+  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; delete r.lcU; delete r.mirU; delete r.mirS; delete r.flU; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null; curseRoom(r); roomStart(list);   /* Hunger (game-valley.js) */
   log(boss?(list[0].rival?list[0].name+' stands where the master should be, with their own dead around them.':list[0].secret?'The air turns wrong. This is not the master you came for.':'The air thickens. Something large waits ahead.'):(r.trial?'Trial, room ':'Room ')+(room+1)+' of '+r.rooms+(r.roomKind==='elite'?', behind the bloodied arch. These foes are stronger.':'.'));
   if(boss){ bossSpeaks(list[0],'hi'); fxe('boss',list[0]); }
   if(hasFlag('infernal')) infernalWard();
@@ -70,6 +71,7 @@ function startRun(di){
   if(S.mode!=='town'||S.watches<=0||!RK[di]||gateLocked(di)) return;
   S.watches--; S.runs++; S.notices=[];
   S.run={di,room:0,rooms:di===ABBEY?ABBEY_ROOMS:4,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:gateMod(di),heat:heatOf(di)};
+  S.run.rooms+=S.run.mod&&di!==ABBEY?longRooms([S.run.mod]):0;   /* the Long curse (game-valley.js) */
   S.mode='battle'; titheSouls(); prepTake(S.run); prepSoul(S.run); townStart(S.run); ascRead(S.run); rwEnter(S.run);   /* run prep, the black market's Soul (game-brew.js), the Soul Well (game-town2.js) */
   log('You step through the '+DUNGEONS[di].name+' gate.'+(S.run.mod?' It is cursed today: '+MODS[S.run.mod].name+'.':''));
   if(di===ABBEY) unlockStory('abbey3',S.run);
@@ -180,7 +182,7 @@ function plagueJump(tg){   // Plaguebearer: a slain foe's poison and blight move
   const to=pick(o); for(const k of ['poison','blight']) if(d[k]) addDot(to,k,d[k].d,d[k].t); return ' and its plague jumps to '+to.name;
 }
 const breakK=(m,tg)=>(hasTrait(m,'bonebreaker')&&hasSt(tg,'sundered')?1.25:1)*bondEchoK(m,tg);   /* a fallen partner's echo stands: +30% on the Hunger (game-abbey.js) */   // Bonebreaker
-const mCritCh=m=>(m.role==='striker'?.25:0)+(hasMod('gravepact','a')?BLOOD_OATH:0)+markV(m,'marksman');
+const mCritCh=m=>(m.role==='striker'?.25:0)+mistCrit()+(hasMod('gravepact','a')?BLOOD_OATH:0)+markV(m,'marksman');
 const blurCrit=m=>hasTrait(m,'blur')&&Math.random()<mCritCh(m);   // Blur: its extra strikes can crit
 function currentTarget(){
   const r=S.run; let t=r.enemies.find(e=>e.id===r.target&&reachable(e));
@@ -304,7 +306,7 @@ function gateCleared(r){   // the boss room of a gate is won: story, clear talli
   return Math.round(RK[di].clear*fk);
 }
 function roomWon(){
-  const r=S.run, P=S.player; r.events=[]; r.focus=false; r.execute=false; bondsRoom(); lnClear(); if(r.turn>=LONG_HAUL&&!r.sweep) tally('longHaul');   /* The Long Name's thralls go; Long Haul (game-builds.js) */   /* Focus and Execute end with the room even if no minion phase came */
+  const r=S.run, P=S.player; r.events=[]; r.focus=false; r.execute=false; thinRoom(r); bondsRoom();   /* Thin (game-valley.js) */ lnClear(); if(r.turn>=LONG_HAUL&&!r.sweep) tally('longHaul');   /* The Long Name's thralls go; Long Haul (game-builds.js) */   /* Focus and Execute end with the room even if no minion phase came */
   let xp=r.wk?0:r.pending; r.pending=0; const dn0=r.downs||0;   /* the weekly dive pays only its own rewards (game-rift.js) */
   const last=r.room===r.rooms-1;
   const share=Math.round(xp*.5), downs=[], bound=[];   /* the downed come first on the screen after the fight: who is gone, who got back up */
@@ -428,7 +430,7 @@ function raiseChance(c){
   if(soulBound(c)) return 0;
   if(firstRaise()) return 100;
   let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+4*sk('mastery')+B_OSS*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*RAISE_LV-RK[c.rankI].pen;
-  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+nemRaise(c)+(hasInsc('many')?INSC_RAISE:0)+incRaise()+townRaise(c)+rgRaise(c)+twoBooks()+faithRaiseK(c)+ascRaise();
+  if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+nemRaise(c)+windRaise()+(hasInsc('many')?INSC_RAISE:0)+incRaise()+townRaise(c)+rgRaise(c)+twoBooks()+faithRaiseK(c)+ascRaise();
   return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
 }
 const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*ascRaiseCost()*(hasFlag('cheapraise')?.5:1)*(hasMod('mastery','b')?.75:1)*(1-.06*sk('thrift')));
@@ -461,7 +463,7 @@ function tryRaise(id,salt,bench){   // bench: raise to the Reserve, only when th
     if(hasFlag('bindsouls')) m.lvl=Math.min(S.player.lvl+2,m.lvl+2);
     if(hasMod('mastery','a')) m.lvl=Math.max(m.lvl,Math.min(S.player.lvl+2,m.lvl+GRAVECALLER));   // Gravecaller
     { const ml=masteryLv(c.base); if(ml) m.lvl=Math.max(m.lvl,Math.min(S.player.lvl+2,m.lvl+ml)); }   // a Ledgered kind rises higher, never past your level + 2
-    m.lvl0=m.lvl; m.stage=0; m.traits=[nemTrait(c)||(c.cd&&CORPSE_CONDS[c.cd]?CORPSE_CONDS[c.cd].trait:rollTrait([]))]; if(c.avg) tally('avengedRaised'); if(c.boss) m.traits.push(rollTrait(m.traits)); if(c.cd&&CORPSE_CONDS[c.cd]) m.cd=c.cd; if(c.recl){ m.recl=1; tally('reclaimed'); }   // bosses rise with two traits; how the body died replaces the random one
+    m.lvl0=m.lvl; m.stage=0; m.traits=[nemTrait(c)||(c.cd&&CORPSE_CONDS[c.cd]?CORPSE_CONDS[c.cd].trait:rollTrait([]))]; if(c.avg) tally('avengedRaised'); cantorStage(c,m); if(c.boss) m.traits.push(rollTrait(m.traits)); if(c.cd&&CORPSE_CONDS[c.cd]) m.cd=c.cd; if(c.recl){ m.recl=1; tally('reclaimed'); }   // bosses rise with two traits; how the body died replaces the random one
     if(c.aff&&c.aff.length){ const t=AFFIX[pick(c.aff)].trait; if(!m.traits.includes(t)) m.traits.push(t); }   // an elite keeps one of its affixes
     { const ct=carryTrait(m); if(ct) r.events.push({m:m.nick+' rises with the trait you carried: '+TRAITS[ct].name+'.',c:'ok'}); }   /* a carried trait (game-asc.js) */
     if(rollCommand(m)) tally('commanders');

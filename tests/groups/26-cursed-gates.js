@@ -15,8 +15,8 @@ test('Curses: Horde adds a foe to every room, Bulwark adds 30% HP, Fury 25% atta
 test('Curses: Drought stops mana coming back at the end of a turn',()=>{ cursedRun('drought'); const t=foe({hp:1e6}); S.run.enemies=[t]; S.run.target=t.id; S.player.mana=0; fix(.5); act('strike'); eq(S.player.mana,3); });
 test('Curses: Volatile dead burst on death, soaked by ward, never below 1 HP',()=>{
   cursedRun('volatile'); const a=foe({hp:1,atk:40}), b=foe({hp:1e6}); S.run.enemies=[a,b]; S.run.target=a.id; fix(.5); const P=S.player; P.hp=pMax();
-  act('strike'); ok(a.dead); eq(P.hp,pMax()-20-1,'20 from the burst, 1 from the other foe');
-  const c=foe({hp:1,atk:40}); S.run.enemies.push(c); setTarget(c.id); P.shield=15; P.hp=50; act('strike'); eq(P.hp,50-5-1); eq(P.shield,0);
+  act('strike'); ok(a.dead); const B=Math.round(Math.min(40*VOLATILE_K,pMax()*VOLATILE_CAP)); eq(P.hp,pMax()-B-1,'the burst (capped by your max HP), and 1 from the other foe');
+  const c=foe({hp:1,atk:40}); S.run.enemies.push(c); setTarget(c.id); P.shield=2; P.hp=50; act('strike'); eq(P.hp,50-(B-2)-1); eq(P.shield,0);
   const d=foe({hp:1,atk:400}); S.run.enemies=[d]; S.run.target=d.id; P.hp=3; act('strike'); eq(P.hp,1,'a burst alone never kills'); eq(S.mode,'raise');
 });
 test('Curses: cursed runs pay double gold and trophies, more XP and more gear',()=>{

@@ -236,6 +236,7 @@ function foeOnHit(e,tg){   // what a foe's hit leaves behind: affixes and the Wh
   if(!(tg.hp>0)) return kitOnHit(e,tg);
   let x='';
   if(hasAff(e,'plague')){ addDot(tg,'blight',e.atk*.2,2); if(tg.dots&&tg.dots.blight) x+=', blighted'; }
+  x+=foeTraitHit(e,tg);   /* a foe's wound trait: Mirror, a nemesis (game-valley.js) */
   if(e.role==='hexer'&&!hasKit(e,'hexer')&&addSt(tg,'hexed',2)) x+=', hexed';   /* a hexer foe (R12 PR B) */
   if(hasAff(e,'sundering')&&Math.random()<ST_CH&&addSt(tg,'sundered',2)) x+=', sundered';
   if((hasAff(e,'hexing')||hasKit(e,'hexer'))&&Math.random()<ST_CH&&addSt(tg,'hexed',2)) x+=', hexed';
@@ -254,6 +255,7 @@ function hasteStrikes(){   // the end of the turn: every Hasted unit strikes onc
     if(tg.hp<=0&&tg.id!=='p') log(tg.nick+' is down.','bad'); if(S.player.hp<=0) return; }
 }
 function tickDots(){
+  if(stillAir()) return;   /* Still Air (game-valley.js) */
   let foeD=0, ourD=0;
   const tick=(u,hurt)=>{ if(!u.dots) return; for(const k of Object.keys(u.dots)){ const o=u.dots[k]; if(u.hp>0) hurt(u,o.d,k); if(--o.t<=0) delete u.dots[k]; } if(!Object.keys(u.dots).length) delete u.dots; };
   for(const e of S.run.enemies) tick(e,(u,d,k)=>{ const h=u.hp; KILL=k; d=Math.round(d*pestK(u)*(pestCrit()?1.8:1)); /* Pestilence (game-builds.js) */ hurtFoe(u,k==='blight'?Math.round(d*shadowK()*faithRot()):d,DOT_TYPE[k]); KILL=null; foeD+=h-u.hp; });   // Black Eclipse feeds your blight
@@ -282,7 +284,7 @@ const EVENTS={
 const STRAGGLER_BONUS=25;
 const FAITH_EVENT=.25, SHRINE_OTHER=.3;   // SHRINE_OTHER: of those, another god's shrine (conversion)
    // a sworn necromancer meets a shrine true to the oath in a quarter of events
-function rollEvent(){ if(S.run&&S.run.rift&&Math.random()<RIFT_EV){ const re=riftEvent(); if(re) return re; }   /* the Rift's own events (game-rift.js) */ { const cd=chainDue(); if(cd) return {id:cd}; } const fe=Object.keys(EVENTS).find(k=>EVENTS[k].faith&&EVENTS[k].faith===faithOf()), id=fe&&Math.random()<FAITH_EVENT?(Math.random()<SHRINE_OTHER?'godshrine':fe):pick(Object.keys(EVENTS).filter(k=>!EVENTS[k].faith&&!EVENTS[k].rift&&chainOk(k))), ev={id:id!=='pedlar'&&dreadBand().id==='calm'&&Math.random()<1/Object.keys(EVENTS).filter(k=>!EVENTS[k].rift).length?'pedlar':id};   /* Calm: pedlars twice as common (game-dread.js) */ if(ev.id==='godshrine') ev.g=pick(GODS.filter(g=>g!==faithOf())); if(ev.id==='pedlar'){ ev.pot=pick(Object.keys(POTIONS)); ev.price=Math.ceil(POTIONS[ev.pot].price()/2); } return ev; }
+function rollEvent(){ if(S.run&&S.run.rift&&Math.random()<RIFT_EV){ const re=riftEvent(); if(re) return re; }   /* the Rift's own events (game-rift.js) */ { const cd=chainDue(); if(cd) return {id:cd}; } const fe=Object.keys(EVENTS).find(k=>EVENTS[k].faith&&EVENTS[k].faith===faithOf()), id=fe&&Math.random()<FAITH_EVENT?(Math.random()<SHRINE_OTHER?'godshrine':fe):pick(Object.keys(EVENTS).filter(k=>!EVENTS[k].faith&&!EVENTS[k].rift&&chainOk(k)&&evOk(k))), ev={id:id!=='pedlar'&&dreadBand().id==='calm'&&Math.random()<1/Object.keys(EVENTS).filter(k=>!EVENTS[k].rift).length?'pedlar':id};   /* Calm: pedlars twice as common (game-dread.js) */ if(ev.id==='godshrine') ev.g=pick(GODS.filter(g=>g!==faithOf())); if(ev.id==='pedlar'){ ev.pot=pick(Object.keys(POTIONS)); ev.price=Math.ceil(POTIONS[ev.pot].price()/2); } return ev; }
 function corpseOf(e){ const c={id:'c'+e.id,armed:isArmed(e.base),name:e.name,base:e.base,role:e.role,rankI:e.rankI,lvl:e.lvl,hf:e.hf,af:e.af,tw:e.tw,boss:e.boss,elite:e.elite,tried:false,result:null,minion:null}; if(e.aff&&e.aff.length) c.aff=e.aff.slice(); if(e.dots&&e.dots.blight) c.bl=e.dots.blight.d; if(e.cd&&e.hp<=0) c.cd=e.cd; if(e.avg) c.avg=e.avg; return c; }   // bl: it died Blighted (Spreading Rot); cd: how it died (CORPSE_CONDS)
 // Corpse conditions: how a foe died marks its body. First match in this order; raise: % added before the clamp; trait: what it rises with
 // in place of the random trait (a boss still rolls its second one, an elite still keeps an affix).
@@ -303,6 +305,7 @@ function resolveEvent(ch){
   const r=S.run; if(S.mode!=='raise'||!r||!r.event||r.event.done) return false;
   const ev=r.event, P=S.player, lvl=RK[r.di].lv+Math.floor(r.room/2); let m='', c='';
   if(EVENTS[ev.id].chain){ const o=chainResolve(ev,ch); if(!o) return false; m=o.m; c=o.c; }
+  else if(EVENTS[ev.id].vl&&ch!=='pass'){ const o=valleyEv(ev,ch); if(!o) return false; m=o.m; c=o.c; }   /* the valley's events (game-valley.js) */
   else if(EVENTS[ev.id].rift&&ch!=='pass'){ const o=riftEvResolve(ev,ch); if(!o) return false; m=o.m; c=o.c; }   /* the Rift's events (game-rift.js) */
   else if(ch==='pass') m='You leave it be.';
   else if(ev.id==='shrine'&&ch==='bleed'){ if(P.hp<=1) return false; const d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*.2))); P.hp-=d; r.bless=true; tally('shrine'); m='The shrine drinks '+d+' HP. You and your army hit 15% harder for the rest of this gate.'; c='ok'; }
@@ -326,7 +329,7 @@ function resolveEvent(ch){
 // ===== CURSED GATES =====
 // Each day one gate you have already cleared is cursed with a twist. It is harder, and it pays more.
 const MODS={
-  volatile:{name:'Volatile dead',desc:'Foes burst when they die and hurt you for half their attack (never below 1 HP; ward soaks it).'},
+  volatile:{name:'Volatile dead',desc:'Foes burst when they die and hurt you for 30% of their attack, at most 6% of your max HP (never below 1 HP; ward soaks it).'},
   drought: {name:'Drought',      desc:'No mana comes back at the end of a turn. Strike still gives 3.'},
   fury:    {name:'Fury',         desc:'Foes deal 25% more damage.'},
   bulwark: {name:'Bulwark',      desc:'Foes have 30% more HP.'},
@@ -358,7 +361,7 @@ const OMEN_NAT=Object.keys(OMENS).filter(k=>!OMENS[k].god);   // the omens a daw
 const OMEN_CHANCE=.25, OMEN_RAISE=10, OMEN_BOSS_XP=1.25;
 const ECLIPSE_SHADOW=1.2, ECLIPSE_CRIT=.1, ECLIPSE_MISS=.1, HARVEST_TRO=.25, HARVEST_DUST=.25, HARVEST_DUST_BOSS=3, IRON_DROP=1.1, IRON_ARMOR=1.25, STORM_REGEN=.2, STORM_ATK=1.25;
 const shadowK=()=>omen()==='eclipse'?ECLIPSE_SHADOW:1;   // Black Eclipse: Soul Siphon, the Siphon skills (Corpse Explosion, Grave Chill, Reap) and blight
-const foeCrit=()=>.25-(omen()==='eclipse'?ECLIPSE_CRIT:0)+sigCrit();   /* Thin Veil (game-rift.js) */   // an enemy striker's crit chance
+const foeCrit=()=>.25-(omen()==='eclipse'?ECLIPSE_CRIT:0)+sigCrit()+mistCrit();   /* Thin Veil (game-rift.js) */   // an enemy striker's crit chance
 function roomStart(list){   // a fresh room or floor: Soul Storm, the Swift affix and trait, and Ossified
   cmdSync();   /* Command: measured as the room begins */
   if(S.run){ S.run.sgnU=0; S.run.reapRs=0; }   /* the signature and Second Harvest: once a room (game-builds.js) */
@@ -384,8 +387,9 @@ const CURSE_GAP=5;
 const curseRise=di=>(runMod()&&S.ti&&S.ti.clr&&S.ti.clr[5])?Math.max(0,S.player.lvl-CURSE_GAP-RK[di].lv):0;
 const foeAtkMul=di=>DIFF.foeAtk[di]*(hasRunMod('fury')?1.25:1);
 const bulwark=list=>{ if(hasRunMod('bulwark')) for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*1.3); } };
+const VOLATILE_K=.3, VOLATILE_CAP=.06;   // R13: was half the attack, uncapped (the market bot cleared 39% of Volatile gates, 94-98% of the rest); now at most 6% of your max HP a burst
 function volatileBurst(e){   // Volatile dead: a dying foe bursts on you
-  const P=S.player; let d=Math.round(e.atk*.5*(1-allyRes(P,'fire'))); const s=Math.min(P.shield,d); P.shield-=s; d=Math.max(0,Math.min(d-s,P.hp-1)); P.hp-=d; if(d){ mark('p',d,0); S.run.hurt=true; }
+  const P=S.player; let d=Math.round(Math.min(e.atk*VOLATILE_K,pMax()*VOLATILE_CAP)*(1-allyRes(P,'fire'))); const s=Math.min(P.shield,d); P.shield-=s; d=Math.max(0,Math.min(d-s,P.hp-1)); P.hp-=d; if(d){ mark('p',d,0); S.run.hurt=true; }
   log(e.name+' bursts'+(d?' and burns you for '+d:', but your ward takes it')+'.','bad');
 }
 

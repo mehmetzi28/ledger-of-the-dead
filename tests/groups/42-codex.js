@@ -76,7 +76,7 @@ test('Codex: raising, mastery, skills, omens, uniques, fusion, the Reserve and r
   eq(raiseChance(c),Math.round(RAISE_BASE+20*RAISE_WILL+2*RAISE_LV-RK[1].pen-RAISE_ELITE),'raise formula');
   const b=txt('basics'); MASTERY.forEach(t=>{ ok(b.includes(t.name)&&b.includes(t.at+' kills'),'tier '+t.name); if(t.bossAt!=null) ok(b.includes(t.bossAt+' for bosses'),'boss tier '+t.name); ok(b.includes(masteryGives(t)),'gives '+t.name); });
   const sk=txt('skills'); for(const s of SKILLS){ [1,2,3].forEach(n=>ok(sk.includes(s.desc(n).replace(/<[^>]+>/g,' ')),s.name+' rank '+n)); const M=SKILL_MODS[s.id]; ok(sk.includes(M.a[0]+' ('+M.a[1]+') or '+M.b[0]+' ('+M.b[1]+')'),s.name+' upgrades'); }
-  const om=txt('omens'); eq(Object.keys(OMENS).length,10); eq(OMEN_NAT.length,7); Object.values(OMENS).forEach(O=>ok(om.includes(O.name)&&om.includes(O.desc),O.name)); ok(om.includes(Math.round(OMEN_CHANCE*100)+'% of dawns'));
+  const om=txt('omens'); eq(Object.keys(OMENS).length,13); eq(OMEN_NAT.length,10); Object.values(OMENS).forEach(O=>ok(om.includes(O.name)&&om.includes(O.desc),O.name)); ok(om.includes(Math.round(OMEN_CHANCE*100)+'% of dawns'));
   const st=txt('status'); Object.values(CONDS).forEach(x=>ok(st.includes(x.name)&&st.includes(x.desc),x.name)); Object.values(DOTS).forEach(x=>ok(st.includes(x.name),x.name));
   const tr=txt('traits'); AFFIX_TRAITS.forEach(t=>ok(tr.includes(TRAITS[t].name)&&tr.includes(TRAITS[t].desc),t)); const af=txt('affixes'); AFFIX_IDS.forEach(a=>ok(af.includes(AFFIX[a].name),a));
   const u=txt('uniques'); DUNGEONS.forEach((D,i)=>ok(u.includes('Boss '+(+UQ[i].toFixed(4))+'% per drop · elite '+(+(UQ[i]*UQ_MOB*2).toFixed(4))+'% · foe '+(+(UQ[i]*UQ_MOB).toFixed(4))+'%'),D.name+' unique odds'));
