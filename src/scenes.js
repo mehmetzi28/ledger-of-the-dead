@@ -109,14 +109,14 @@ const BOSS_LOOK={
   'The Gate Hound':['#2a0a06','#a8241a','rays'],'Cinder Matron':['#3a1406','#e8782a','mist'],'The Iron Inquisitor':['#1a1a1a','#8a8a80','drip'],
   'Lord of Flies':['#1e2410','#8a9a2a','mist'],'The Bone Cantor':['#201c18','#c8b890','rings'],'Duke of Chains':['#1a1410','#7a6a50','drip'],
   'The Pale Executioner':['#200808','#b8b0a0','rays'],'Archdevil Vael':['#2a0606','#e83a1e','rays'],'The Hollow Seraph':['#24200e','#e8c860','rings'],
-  'Abaddon, King of Hell':['#140404','#ff3a1a','mist'],'Inquisitor Captain':['#1e1206','#d8862a','rays'],
+  'Abaddon, King of Hell':['#140404','#ff3a1a','mist'],'Inquisitor Captain':['#1e1206','#d8862a','rays'],'The Witchfinder General':['#1a0e06','#c8702a','rays'],'The Saint of Pyres':['#200a04','#ff7a2a','rays'],'The Grand Inquisitor':['#1c1408','#e8b04a','rays'],
   'The Plague Matriarch':['#14180a','#7aa02a','mist'],'The Drowned Abbot':['#0e1a16','#3a8a6a','drip'],'The Cinder Wyrm':['#200a04','#ff6a1a','rays'],
   'The Choir Eternal':['#1a1814','#f0e6c8','rings'],'The Rootking':['#141a0a','#6a8a2a','drip'],'The Nameless Sovereign':['#0a0a0a','#e8564a','rings'],
   'The Hunger':['#140e0c','#e8c060','drip']
 };
 function bossBg(){
   const el=document.getElementById('bossbg'); if(!el) return; const b=liveBoss(), BL=b&&BOSS_LOOK[b.base];
-  const G=!BL&&S.mode!=='town'&&S.run&&!S.run.tw?BOSS_LOOK[S.run.siege?SIEGE_BOSS:DUNGEONS[S.run.di].boss[0]]:null, L=BL||G;   /* a siege burns in torchlight throughout */   // a gate's own colours outside its boss fight
+  const G=!BL&&S.mode!=='town'&&S.run&&!S.run.tw?BOSS_LOOK[S.run.siege?siegeBossName():DUNGEONS[S.run.di].boss[0]]:null, L=BL||G;   /* a siege burns in torchlight throughout */   // a gate's own colours outside its boss fight
   document.body.classList.toggle('bossfight',!!BL); document.body.classList.toggle('gatefight',!!G); if(!L) return;
   el.className='bb-'+L[2]; el.style.setProperty('--bb1',L[0]); el.style.setProperty('--bb2',L[1]);
 }

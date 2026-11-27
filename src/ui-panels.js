@@ -211,7 +211,7 @@ function bestiaryHTML(){
   h+='</div>';
   const liv=SIEGE_NAMES.filter(n=>kn(n)>0);   // the living who came in sieges: kills and mastery (their gear is the deepest gate's)
   if(liv.length) h+='<div class="bes-gate bes-living"><div class="bes-h"><div class="badge">&#9876;</div><div><h3>The living</h3><div class="tiers-line">They come in sieges and carry the deepest open gate\'s gear, at reduced odds.</div></div></div>'
-    +liv.map(n=>{ const boss=n===SIEGE_BOSS, role=boss?'reaper':Object.keys(SIEGE_FOES).find(r=>SIEGE_FOES[r][0]===n);
+    +liv.map(n=>{ const boss=SIEGE_BOSSES.includes(n), role=siegeRoleOf(n);
       return '<div class="bes-row">'+ico(n,siegeGate(),{boss,role})+'<div><div class="u-name">'+n+'</div><div class="u-sub">'+ROLES[role].label+' &middot; Kills '+kn(n)+'</div>'+masteryLine(n)+'</div></div>'; }).join('')+'</div>';
   return h+'</section>';
 }

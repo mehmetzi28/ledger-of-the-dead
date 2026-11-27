@@ -738,6 +738,10 @@ Object.assign(MAT,{'The Folded Knight':['metal','#5a5e6a'],'Mother of Gates':['s
 // The living who march on the necropolis wear borrowed shapes in their own colours: drab wool, oiled leather, the Inquisition's iron.
 [['Militia Spearman','Warren Bandit',['cloth','#5c5040']],['Crossbowman','Shiv Cutpurse',['cloth','#46483c']],['Chaplain','Tallow Chandler',['cloth','#5a5448']],['Witch-hunter','Crownless Duelist',['cloth','#3a302a']],[SIEGE_BOSS,'Cathedral Templar',['metal','#6e6046']]]
   .forEach(([n,from,m])=>{ IC[n]=IC[from]; MAT[n]=m; });
+[['Templar Shieldwall','Cathedral Templar',['metal','#7a7058']],['Flagellant','Ash Revenant',['flesh','#7a4a3a']],['Relic Bearer','Hollow Chorister',['cloth','#6a5a3a']],['Exorcist','Drowned Priest',['cloth','#4a4038']],
+ ['Pyre Priest','Pyre Witch',['cloth','#7a3a22']],['Hound Master','Barrow Champion',['cloth','#544634']],['War Hound','Hellhound',['fur','#5a4a38']],
+ ['The Witchfinder General','Crownless Duelist',['cloth','#2e2620']],['The Saint of Pyres','Brass Saint',['metal','#a86a2e']],['The Grand Inquisitor','Cathedral Templar',['metal','#8a7a4a']]]
+  .forEach(([n,from,m])=>{ IC[n]=IC[from]; MAT[n]=m; });   /* R14: the higher tiers of the living */
 const matOf=key=>MAT[key]||(()=>{ const i=SECRET.findIndex(B=>B.name===key); return i>=0?MAT[DUNGEONS[i].boss[0]]:null; })()||MAT._;
 function ico(key,rankI,o){ o=o||{}; const M=matOf(key); return '<span class="ico r'+rankI+(o.boss?' boss':'')+(o.secret?' secret':'')+(o.elite?' elite':'')+'" aria-hidden="true"><svg viewBox="0 0 64 64" class="mt-'+M[0]+'" style="color:'+M[1]+'"><g filter="url(#paint)">'+(IC[key]||IC._)+'</g></svg>'+(key!=='Necromancer'?roleBadge(o.role):'')+'</span>'; }
 const app=document.getElementById('app');

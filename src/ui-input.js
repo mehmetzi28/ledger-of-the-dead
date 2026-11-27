@@ -127,7 +127,7 @@ const ACTIONS={
     const t=T.find(x=>tKey(x)===ui.rt)||T.filter(x=>x.k==='gate').slice(-1)[0], NN=expNights(t.k), n=NN.includes(ui.rn)?ui.rn:NN[0], sel=(ui.rsq||[]).filter(u=>pool.some(m=>m.uid===u&&m!==c&&!inOrder(m))).slice(0,squadMax(c)-1);
     if(sendRaid(c.uid,t.di,sel,t,n)){ ui.msg={mk:1,m:c.nick+' will march on '+tName(t)+' tonight with '+sel.length+' at its back. They fight beside you until nightfall.',c:'ok'}; ui.rsq=[]; ui.rc=null; } },
   recall:k=>{ recallRaid(+k); },
-  siegego:()=>{ beginSiege(); }, sguard:k=>{ siegeGuard(k); }, swall:k=>{ siegeWallPick(+k); }, cxgo:k=>{ ui.tab='codex'; ui.cx=k; ui.cxq=''; },
+  siegego:()=>{ beginSiege(); }, sguard:k=>{ siegeGuard(k); }, swall:k=>{ siegeWallPick(+k); }, sroad:k=>{ siegeRoadPick(k); }, cxgo:k=>{ ui.tab='codex'; ui.cx=k; ui.cxq=''; },
   repair:()=>{ const g=sg(), k=g.dmg, c=repairCost(); if(!k) return; if(ui.confirm!=='repair'){ ui.confirm='repair'; return; } ui.confirm=null; ui.msg=repairBuilding()?{mk:1,m:'The '+BUILD[k].name+' is repaired for '+c+' gold. It works again.',c:'ok'}:null; },
   selltier:k=>{ const t=+k; if(ui.confirm!=='st'+t){ ui.confirm='st'+t; return; } ui.confirm=null; const r=sellTier(t); ui.msg=r&&r.n?{mk:1,m:'Sold '+r.n+' '+TIERS[t]+' piece'+(r.n>1?'s':'')+' for '+r.g+' gold.',c:'ok'}:null; },
   salvtier:k=>{ const t=+k; if(ui.confirm!=='sv'+t){ ui.confirm='sv'+t; return; } ui.confirm=null; const r=salvageTier(t); ui.msg=r&&r.n?{mk:1,m:'Salvaged '+r.n+' '+TIERS[t]+' piece'+(r.n>1?'s':'')+' into '+r.d+' bone dust.',c:'ok'}:null; },

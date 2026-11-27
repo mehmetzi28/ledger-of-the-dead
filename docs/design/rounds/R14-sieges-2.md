@@ -102,3 +102,38 @@ Hold the graveyard when the Ossuary is 3+, else the river gate; buy the palisade
 
 - **Tier 5 is a wall**: lesson 3; the Purge's difficulty is in rules (waves, two phases), and the target is 70%.
 - **Sieges eat too many days**: one siege per 7-10 days as now; the peace gives a long break.
+
+## As built (PR A: tiers, walls, bosses)
+
+- **Code**: `src/game-siege2.js` (new, after game-valley.js). Nothing in it rolls Math.random: the waves are tables and
+  the burnt perk follows the guard. `let STIERS_ON` is the bots' `"off":["siegetiers"]` switch (every siege at tier 1).
+- **Tier**: `S.siege.tier` and `S.siege.streak`, written only once they change (absent: tier 1). Two held in a row raise
+  it, a loss lowers it (`stierMove`, from siegeWon and siegeLost). The night's tier is `siegeTier()`: the stored tier, Calm
+  -1, Terror +1, clamped 1-5. Stored on the run as `S.run.tier` with `S.run.rooms` (3, 3, 4, 4, 5).
+- **Waves**: `STIER_WAVES` by tier, with seven new kinds in `SIEGE2_FOES`, each with an R1 kit: Templar Shieldwall
+  (Shieldbearer, vanguard), Flagellant (Frenzy, reaper), Relic Bearer (Banner-bearer), Exorcist (Sapper), Pyre Priest
+  (Bomber), Hound Master (Pack hunter, reaper) and War Hound (Pack hunter; two come with the Hound Master). From tier 2
+  wave 1 is led by a Templar elite. Tier 1 is the old table, unchanged.
+- **Bosses**: tier 1-2 the Inquisitor Captain; tier 3 the Witchfinder General (Mark of the Witch: the strongest minion
+  takes +50% for 3 turns; Pyre Sentence, telegraphed: 180% fire on the marked; Royal Decree; Iron Faith: never Hexed or
+  Sundered); tier 4 the Saint of Pyres (Pillar of Fire, telegraphed: 130% fire on one front and one back unit; Sermon:
+  every attacker +20% damage for 2 turns; Royal Decree; Martyr: rises once at 30%); tier 5 the Grand Inquisitor (Decree,
+  Mark, Pyre, Pillar; second phase Absolution: every attacker heals 20%, and it takes half damage while a Templar
+  Shieldwall stands). Boss stats x1 / x1.1 / x1.15 / x1.25 HP.
+- **Walls** (`S.siege.road`, picked on the intro screen, tonight only; the Graveyard is the default and is not written):
+  North road +1 foe a wave (a militia spearman, at most 5), the Bell Tower's five defenses twice as strong, pay x1.25;
+  River gate one foe fewer, every foe an elite, the boss's first move a turn late, pay x1.15; Graveyard as usual, and the
+  Ossuary raises two attackers each wave instead of one.
+- **Tier 4+**: the strongest perk building you did not guard loses its siege perk for the night (`S.run.burnt`; every
+  perk read goes through `sbl(k)`). The intro screen marks it "burnt tonight".
+- **Pay**: `siegeGoldPay` x `STIER_PAY` (1, 1.2, 1.4, 1.7, 2) x the wall's pay.
+- **Not built**: the doc's "unheld walls below Bell Tower 3" rule; the guard already decides what burns.
+- **UI**: the tier chip and wave count on the intro screen, the wall chips (`sroad`), the tier and streak on the Town tab;
+  the Codex's sieges page gains Siege tiers, Walls and The living by tier; the bosses page lists all four siege bosses.
+- **Tests**: `tests/groups/98-siege2.js` (6 tests). The invariant on siege waves now reads `S.run.rooms`.
+- **Tuning** (`STIER_K`, foe HP and attack by tier: x0.8, 1.2, 1.5, 1.85, 2.2): full bot (seeds 7700/9100) holds 94/92%
+  of sieges; by tier t1 84/83%, t2 96%, t3 99-100%, t4 97-99%, t5 85-100% (13-15 fought); average tier 2.5-2.6 on day 60,
+  4.5-4.6 on day 100. Gates stay at 94% (full) and 95% (market), Tower 86-87, Rift 24-27. Stat multipliers barely move the
+  later tiers (the bot ends most waves in one action), so they stay above the 80-87% target; PR B's Purge and works add
+  rules instead. The bot holds the Graveyard at tier 1 or with the Ossuary at 3+, else the River gate (holding the River gate
+  at tier 1 dropped tier 1 to 65%).

@@ -206,7 +206,8 @@ function normalizeSave(src){
   if(g.sbPity!==undefined){ if(!obj(g.sbPity)) delete g.sbPity; else for(const di of Object.keys(g.sbPity)){ const v=g.sbPity[di]; if(!RK[di]||typeof v!=='number'||!(v>=0)) delete g.sbPity[di]; else g.sbPity[di]=Math.min(1000,Math.floor(v)); } }
   for(const k of ['heat','heatMax']){ if(!obj(g[k])) g[k]={}; for(const di of Object.keys(g[k])){ const v=g[k][di]; if(!RK[di]||typeof v!=='number'||!(v>=0)) delete g[k][di]; else g[k][di]=Math.min(HEAT.length-1,Math.floor(v)); } }
   { const q=obj(g.siege)?g.siege:{}; g.siege={next:Math.max(0,Math.floor(num(q.next,0))),pending:!!q.pending,dmg:BUILD[q.dmg]&&g.build[q.dmg]>=1?q.dmg:null,warned:Math.max(0,Math.floor(num(q.warned,0)))};
-    if(g.siege.pending){ if(BUILD[q.guard]&&g.build[q.guard]>=1) g.siege.guard=q.guard; if(Array.isArray(q.wall)) g.siege.wall=q.wall.filter(u=>Number.isInteger(u)).slice(0,SIEGE_WALL); } }   // tonight's guard and wall survive a reload   // sieges: old saves get a first one scheduled on load (siegeTick)
+    if(g.siege.pending){ if(BUILD[q.guard]&&g.build[q.guard]>=1) g.siege.guard=q.guard; if(Array.isArray(q.wall)) g.siege.wall=q.wall.filter(u=>Number.isInteger(u)).slice(0,SIEGE_WALL); }
+    stierFix(g.siege,q); g.siege=keepOrder(q,g.siege); }   /* tier, streak, tonight's wall (game-siege2.js) */   // tonight's guard and wall survive a reload   // sieges: old saves get a first one scheduled on load (siegeTick)
   { const c=g.player.cmd; if(!hadCmd||!(obj(c)&&c.a>=0&&c.h>=0&&isFinite(c.a)&&isFinite(c.h))) g.player.cmd=cmdPow(Array.isArray(g.army)?g.army:[]); else g.player.cmd={a:Math.round(c.a),h:Math.round(c.h)}; }   // Command: an old or damaged save measures its army again
   const okB=b=>obj(b)&&BOUNTIES[b.id]&&typeof b.n==='number'&&typeof b.base==='number'&&obj(b.rw)&&typeof b.claimed==='boolean';
   g.bounty=(obj(g.bounty)&&typeof g.bounty.day==='number'&&Array.isArray(g.bounty.list)&&g.bounty.list.every(okB))?g.bounty:null;

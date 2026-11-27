@@ -66,7 +66,7 @@ function nextMove(e){   // after a move fires (or is broken): the rotation moves
 const bossNext=e=>{ if(!e.kit) return []; const out=[e.abil]; let ix=e.kitIx; for(let i=1;i<e.kit.length;i++){ ix=(ix+1)%e.kit.length; out.push(e.kit[ix]); } return out; };   // the rotation from the next move on (the card)
 function bossTwist(e){   // the second phase of a boss with a kit
   const K=BOSS_KIT[e.base]; if(!e.kit||!K||!K.twist) return null; e.twist=K.twist; e.p2d=S.army.filter(m=>m.hp<=0).length;   /* p2d: minions down when phase two began (the titles) */
-  guardTwist(e);
+  guardTwist(e); siegeTwist(e);
   if(e.twist==='burn'){ e.imm='fire'; e.res=Object.assign({},e.res||{}); e.res.frost=(e.res.frost||0)-.25; e.kit=['cinder','burnground','cinder','lance']; e.kitIx=e.kit.indexOf(e.abil); if(e.kitIx<0){ e.kitIx=0; e.abil='cinder'; } }
   return TWISTS[e.twist];
 }
@@ -257,7 +257,7 @@ function blockLands(e){ const m=S.army.find(x=>fxKey(x)===e.blockT&&x.hp>0); del
   if(m.hp<m.maxHp*.4){ m.hp=0; fxe('death',m); log(e.name+' brings the axe down: '+m.nick+' is executed.','bad'); return; }
   const d=bossHit(e,m,1.5,'phys','block'); log(e.name+'\'s axe bites '+m.nick+' for '+d+'.','bad'); }
 // ----- the hooks for masters and wardens (called from the PR A hooks)
-function bossTaken(e,d){ if(e.hw>S.run.turn) d=Math.round(d*.5); return hungerTaken(e,d); }   /* the Hunger's echoes guard it (game-abbey.js) */   // hurtFoe, before shields: Heartwood
+function bossTaken(e,d){ if(e.hw>S.run.turn) d=Math.round(d*.5); return hungerTaken(e,absolveDr(e,d)); }   /* the Hunger's echoes guard it (game-abbey.js) */   // hurtFoe, before shields: Heartwood
 function bossHurt2(e,d,ty){   // hurtFoe, after the damage
   const r=S.run;
   if(ty==='frost') e.frostT=r.turn; hungerHurt(e,d,ty);

@@ -91,8 +91,9 @@ function hurtFoe(e,d,ty){ if(abbeyMiss(e)) return; ty=MARGIN||(DTYPE[ty]?ty:'phy
   d=bossTaken(e,kitTaken(e,d));   /* Heartwood (game-boss-kits.js) */   /* Bulwark stance, a Banner-bearer beside it (game-kits.js) */
   if(e.shield>0){ const s=Math.min(e.shield,d); e.shield-=s; d-=s; if(d<=0){ mark(e,0,0); return; } }   // Bone Wall shield soaks damage first
   if(e.hp>0&&d>=e.hp){ e.cd=deathCond(e,d); e.kb=d; }   /* kb: the killing blow (Morrow's scorch) */   // the killing blow decides the body's condition
-  recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e,d,0); kitHurt(e); nemHurt(e); bossHurt(e,d,ty); { const r=S.run; r.dd=(r.dd||0)+d; if(d>(r.mh||0)) r.mh=d; } }   /* damage dealt and the biggest hit this run, for the History */
+  recBest('hit',d); d=Math.min(d,e.hp); e.hp-=d; mark(e,d,0); siegeHurt(e); kitHurt(e); nemHurt(e); bossHurt(e,d,ty); { const r=S.run; r.dd=(r.dd||0)+d; if(d>(r.mh||0)) r.mh=d; } }   /* damage dealt and the biggest hit this run, for the History */
 function hurtAlly(a,d,ty){
+  d=siegeTaken(a,d);   /* the Mark of the Witch (game-siege2.js) */
   if(S.run&&S.run.widen) d=Math.round(d*widenK());   /* the Tear Itself (game-rift.js) */
   if(a.id==='p'&&S.run&&S.run.conf) d=Math.round(d*BK_CONFESS);   /* the Iron Inquisitor's Confession, until you ward */
   if(a.id==='p'&&BLOW){ const v=guardBlow(a,d); if(v) return hurtAlly(v,Math.round(d*SB_TAKE),ty); }   // Guard, for boss moves (plain hits swap their target before this)

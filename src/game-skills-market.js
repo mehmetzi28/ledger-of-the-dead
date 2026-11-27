@@ -266,7 +266,7 @@ Object.assign(TRAITS,{
   glaciermaul:   {name:'Glaciermaul',   desc:'Rimeborn and Crushing in one. Its hits on Chilled foes always Sunder.', story:'Frozen bone breaks clean. It knows.'},
   pyreheart:     {name:'Pyreheart',     desc:'Cinderborn and Wrathful in one. Below half HP every hit Burns.', story:'Wound it and the fire inside shows through the cracks.'}
 });
-const stImmune=(u,k)=>(k==='chilled'&&(hasTrait(u,'shatterwrought')||hasTrait(u,'ironbound')))||(k==='hexed'&&hasTrait(u,'ironbound'))||(k==='sundered'&&hasTrait(u,'pristine'));
+const stImmune=(u,k)=>(k==='chilled'&&(hasTrait(u,'shatterwrought')||hasTrait(u,'ironbound')))||(k==='hexed'&&hasTrait(u,'ironbound'))||(k==='sundered'&&hasTrait(u,'pristine'))||faithImm(u,k);
 const CMD_ELITE=.2, CMD_BOSS=.4;   // chance an elite or a boss rises as a Commander (and again at each evolution)
 const canLead=m=>!!(m&&(m.elite||m.boss));
 function rollTrait(have){ const left=TRAIT_IDS.filter(t=>!have.includes(t)); return left.length?pick(left):null; }

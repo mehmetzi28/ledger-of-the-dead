@@ -185,7 +185,7 @@ function fireKitMove3(e,mv){   // the Hunger's moves (fireKitMove2 hands on what
     if(!m) log(e.name+' reaches for the margin, but no minion stands in it.','ok');
     else if(r.guard===r.turn&&guardFront()){ const g=guardFront(); delete r.guard; const d=bossHit(e,g,1.5,'shad',mv); log(g.nick+' plants itself in the margin. '+e.name+' bites it for '+d+' and swallows nothing.','ok'); }
     else { m.hp=0; fxe('death',m); log(e.name+' devours '+m.nick+' from the margin.','bad'); } }
-  else return false;
+  else return fireKitMove4(e,mv);   /* the siege bosses (game-siege2.js) */
   return true;
 }
 function hungerChip(e){   // the boss card: its page, and what counts down
