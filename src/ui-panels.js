@@ -686,12 +686,12 @@ function memorialHTML(){   // the fallen, newest first, in a muted hand; honouri
   h+=brief('mem','The Ledger keeps the names of those lost for good, shattered after a fight or fallen on a raid. The released are not written here.','q-note')
    +(remembered()?'<p class="q-note ok mem-hon">Honoured today: <b>'+S.honor.nick+'</b>. Your army is Remembered until dawn.</p>'
      :M.some(e=>e.st>=1)?'<p class="q-note">Once a day, in town, you may honour one of the Greater or older: the living army has +'+Math.round(MEM_HP*100)+'% max HP until dawn.</p>':'');
-  h+=mausNote();
+  h+=mausNote()+nameLinesHTML();   /* the Ledger's name lines (game-army.js) */
   { const t=headTiers(); h+='<p class="q-note mem-head-n">'+(t?'Headstones: '+t+' tiers carved. Your minions have +'+(headBonus()*100).toFixed(1)+'% max HP for good, at most +'+Math.round(HEAD_CAP*100)+'%.'
     :'In town you may carve a headstone over any name here and raise it with gold, tier by tier. Each tier gives your minions a little more max HP for good, at most +'+Math.round(HEAD_CAP*100)+'% in all.')+'</p>'; }
   h+='<div class="mem-list">'+list.map((e,i)=>{ const c=honourCost(e);
     return '<div class="mem-row">'+ico(e.kind,e.rk,{boss:e.boss,elite:e.elite,role:e.role})+'<span class="rk r'+e.rk+'">'+RANKS[e.rk]+'</span><div class="mem-t"><b>'+e.nick+'</b> <span class="dim">'+theName(mName({name:e.name,stage:e.st}))+'</span>'
-     +'<div class="u-sub"><span>'+memWhere(e)+'</span> &middot; <span>Day '+e.day+'</span> &middot; <span>Lv '+e.lvl+'</span></div>'
+     +'<div class="u-sub"><span>'+memWhere(e)+'</span> &middot; <span>Day '+e.day+'</span> &middot; <span>Lv '+e.lvl+'</span>'+(e.kl?' &middot; <span>Kills '+e.kl+'</span>':'')+'</div>'
      +(e.tr.length?'<div class="u-sub mem-tr">'+e.tr.map(t=>TRAITS[t].name).join(', ')+'</div>':'')+(e.bd?'<div class="u-sub mem-bd">Bonded to '+cleanText(e.bd)+'</div>':'')+(e.maus?'<div class="u-sub mem-maus">Rests in a mausoleum</div>':'')+(e.hs?'<div class="u-sub mem-hs">Headstone, tier '+e.hs+'</div>':'')+'</div>'+(town?'<div class="mem-b">':'')+mausBtn(e,i)
      +(town&&(e.hs|0)<HEAD_TOP?'<button class="btn small" data-a="head" data-k="'+i+'"'+(S.gold<headCost(e)?' disabled title="Not enough gold"':'')+'>'+(e.hs?'Raise headstone':'Carve a headstone')+' &middot; '+headCost(e)+' gold</button>':'')
      +(town&&e.st>=1&&!remembered()?'<button class="btn small" data-a="honour" data-k="'+i+'"'+(S.gold<c?' disabled title="Not enough gold"':'')+'>Honour &middot; '+c+' gold</button>':'')+(town?'</div>':'')+'</div>'; }).join('')+'</div>';

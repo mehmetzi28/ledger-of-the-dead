@@ -250,7 +250,10 @@ kind's kit, read from `m.kind` (`echoOf`): Shieldbearer (every second turn wards
 Pack hunter (+6% per other minion of its gate, max +18%), Bulwark stance (30% less damage every other turn), Thorned
 (reflects 9% of melee hits), Frenzy (+9% per fallen foe this fight), Banner-bearer (your other minions +6%), Marker (its
 first hit each room marks the target: +15% from your minions next turn), Gravecaller (once a room the first minion to fall
-gets up at 25%). Other kits give +10% damage (`ECHO_PLAIN`). Minion cards show "Echo: <kit>".
+gets up at 25%). R12 gave the other eight kits real echoes (Ambusher: first blow +30%; Mana thief: 1 mana a hit;
+Bomber: bursts for 30% of max HP on falling; Sapper: tears half a shield; Skirmisher: 30% less damage under 30% HP;
+Hexer: every third hit hexes; Purifier: sheds a condition a turn; Burrower: 50% less damage on turn 1), replacing
+`ECHO_PLAIN`; a charm carries the same echoes (`echoV`). Minion cards show "Echo: <kit>".
 
 **Evolution** (`checkEvolve`). At 5, 10, 18 and 28 levels above its raise level a minion becomes Greater, Elder, Ancient,
 then Eternal: more HP and attack and one more trait each time. **Evolution marks** (`MARK`): at Elder a minion picks one of
@@ -263,7 +266,15 @@ higher stage and takes the other's traits up to three. A minion takes at most tw
 Pristine, Blur, Bloodfiend, Ironbound, Bonebreaker, Witchrot, Deathless Husk, Glaciermaul, Pyreheart).
 
 **Gear-bearers** (`ARMED`). One armed kind per gate (two in the Tower) keeps weapon, armor and relic slots once raised;
-gear converts to minion attack and HP (`gearBonus`).
+gear converts to minion attack and HP (`gearBonus`). R12: a unique on a gear-bearer gives the minion its own version of
+the unique's power at about 40% (`MINION_FLAG`, `game-army.js`); powers with no minion meaning give +8% HP and attack.
+
+**Charms** (R12, `game-army.js`). Six trophies of one Known kind and 60 gold a gate tier make a charm that carries that
+kind's kit as an echo (the Undone's table, now with an echo for all sixteen kits). One per minion, moved freely in town,
+back to the pouch (`S.charms`) when its minion leaves; fusion keeps the stronger; a Ledgered kind's charm is x1.5.
+
+**Kills and names** (R12). Each minion counts its kills (`m.kills`, kept on its headstone); at 100 its name is written
+into the Ledger (`S.nameLines`, at most 10): +1% HP and attack for every minion of its role, for good.
 
 **Bonds** (`BOND_ROOMS`). Two minions alive together through 25 won rooms bond (+5% attack). When one is lost the other is
 Vengeful (+15% until dawn) if it saw it, else Grieving (-10% through a day).

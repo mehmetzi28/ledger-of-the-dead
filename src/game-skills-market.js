@@ -242,7 +242,7 @@ const AFFIX_TRAITS=['necrotic','crushing','hexing','swift'];
 TRAITS.rimeborn  ={name:'Rimeborn',  desc:'Its hits chill the target 1 time in 3: 20% more damage taken for 2 turns.'};
 TRAITS.unmarred  ={name:'Unmarred',  desc:'+15% max HP and attack.'};
 TRAITS.cinderborn={name:'Cinderborn',desc:'Its hits burn the target 1 time in 3 for 2 turns. Immune to burns.'};
-TRAITS.undone    ={name:'Undone',    desc:'Keeps an echo of its kind\'s kit, at 60% strength; kinds whose kit has no echo give +10% damage.'};
+TRAITS.undone    ={name:'Undone',    desc:'Keeps an echo of its kind\'s kit, at 60% strength.'};
 TRAITS.stitched  ={name:'Stitched',  desc:'Once per room, when downed it rises again at 25% HP. -10% max HP.'};
 const DEATH_TRAITS=['rimeborn','unmarred','cinderborn','stitched','undone'];
 // Compounds: formed only in the Flesh Pit, when a fusion brings both halves of a recipe together (never rolled, never from a death or

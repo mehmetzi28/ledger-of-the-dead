@@ -1893,7 +1893,7 @@ function normalizeSave(src){
     if('sel' in T&&T.sel!==null&&typeof T.sel!=='string') delete T.sel;
     if('compounds' in T) T.compounds=Array.isArray(T.compounds)?T.compounds.filter((c,i,a)=>COMPOUND[c]&&a.indexOf(c)===i):[]; }
   g.tips=obj(g.tips)?g.tips:{}; g.ngp=Math.max(0,Math.floor(num(g.ngp,0)));
-  g.pacts=g.ngp?cleanPacts(g.pacts):[]; ascFix(g); runesFix(g); if(!PATHS[P.capPath]) delete P.capPath;   // New Game+ pacts and the chosen capstone path (src/game-progression.js)
+  g.pacts=g.ngp?cleanPacts(g.pacts):[]; ascFix(g); runesFix(g); armyFix(g); if(!PATHS[P.capPath]) delete P.capPath;   // New Game+ pacts and the chosen capstone path (src/game-progression.js)
   g.firstRaise=('firstRaise' in g)?(g.firstRaise?1:0):(g.army.length||g.raids.length||g.reserve.length||(obj(g.ti)&&g.ti.raised)||g.runs||(Array.isArray(g.hist)&&g.hist.length)||(obj(g.life)&&g.life.runs)||g.day>1||P.lvl>1||g.ngp?0:1);   // saves from before the sure first raise: any army, history or progress counts as having raised already
   g.bagLv=clamp(Math.floor(num(g.bagLv,0)),0,BAG_COST.length); g.salts=clamp(Math.floor(num(g.salts,0)),0,SALT_MAX);
   g.shop=(obj(g.shop)&&typeof g.shop.day==='number'&&Array.isArray(g.shop.stock)&&g.shop.stock.every(s=>s&&ITEM[s.id]))?g.shop:null;
@@ -2108,6 +2108,9 @@ const roll3=()=>S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&!
  ['b_five','Deeds','Five by Five','Rank every skill of one path to 3.',()=>fiveByFive(),{dmgp:3,xpp:2}],
  ['b_runes','Deeds','Runesmith','Find all 16 skill runes.',()=>Array.isArray(S.runes)&&S.runes.length>=16,{dmgp:3,manap:3}],
  ['b_sgn','Deeds','Signature','Cast your signature 100 times.',()=>T_('sgnCast')>=100,{dmgp:3}],
+ ['ar_charmed','Deeds','Charmed','Make a charm of each of the sixteen kits.',()=>KIT_IDS.every(k=>T_('chK_'+k)>=1),{mpow:6}],
+ ['ar_hundred','Deeds','Hundred Kills','Have a minion take 100 lives.',()=>T_('nameLines')>=1,{mpow:4}],
+ ['ar_tennames','Deeds','Ten Names','Write ten names into the Ledger.',()=>Array.isArray(S.nameLines)&&S.nameLines.length>=10,{mpow:8}],
  ['r_six','Deeds','Six Guardians','Fell all six guardians of the Rift.',()=>GUARDIANS.every((g,i)=>!!(S.rift&&S.rift.gk&&S.rift.gk[i])),{dmgp:3,hpp:3}],
  ['r_sigil3','Deeds','Fully Sigiled','Clear depth 20 of the Rift or deeper with three sigils.',()=>T_('sig3_20')>=1,{mpow:4}],
  ['r_weekly','Deeds','Weekly Diver','Set 10 weekly dive bests.',()=>T_('weekBests')>=10,{xpp:3}],
@@ -2200,7 +2203,7 @@ function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // d
 // rarer ones stay hidden ("???") until earned. Rarity follows how hard a title is: bot runs measured the reachable ones,
 // and deeds the bots skip (events, forging) were judged by hand.
 const TITLE_RARITY={hd1:1,hd2:2,nm0:3,nm1:3,nm2:3,nm3:4,nm4:4,nm5:5,dm3:5,sb0:5,sb1:5,sb2:5,sb3:5,sb4:5,sb5:5,g0:0,g1:0,d_raise1:0,d_kill100:0,d_death:0,d_armed1:0,d_lv10:0,d_study:0,s_venom:0,f_crit:0,d_tower1:0,d_quest7:0,d_army:0,g2:1,t10:1,t20:1,d_raise50:1,d_cancel:1,d_evolve:1,d_uq:1,d_gold:1,m0:1,m1:1,c_drought:1,c_fury:1,c_bulwark:1,c_horde:1,c_volatile:1,p_25:1,k_spear:1,k_blast:1,k_chill:1,g_items:1,g_sold:1,f_flawless:1,f_last:1,a_boss:1,e_strag:1,e_pedlar:1,e_trap:1,d_death10:1,g3:2,g4:2,t30:2,t40:2,t50:2,d_kill1000:2,d_lv25:2,d_raise200:2,d_tower50:2,d_cancel10:2,d_trophy500:2,d_altar:2,d_elder:2,m2:2,m3:2,d_armed3:2,d_master:2,d_bag:2,c_25:2,e_shrine:2,e_coffer:2,s_poison:2,s_cure:2,k_reap:2,k_master3:2,k_all:2,f_boss25:2,f_elite100:2,g_gold:2,g_roll3:2,a_traits:2,a_elders:2,e_day100:2,e_runs100:2,g_reforge:2,g5:3,t60:3,t70:3,m4:3,m5:3,tw75:3,d_lv50:3,p_100:3,f_crit1000:3,e_rooms1000:3,twruns:3,d_ngp:3,d_tower110:3,t80:4,t90:4,t100:4,d_kill5000:4,d_all:4,d_tower150:4,a_raise500:4,e_lv75:4,tw200:5,d_ngp3:5,d_tuq:5,a_ancient:3,a_eternal:4,a_raid1:1,a_raid25:3,r_5:3,r_15:4,r_30:5};
-Object.assign(TITLE_RARITY,{x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,as_3:3,as_6:4,as_10:5,as_all:5,as_rw:4,b_haul:2,b_five:3,b_runes:4,b_sgn:3,r_six:4,r_sigil3:4,r_weekly:3,r_attuned:3,r_half:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
+Object.assign(TITLE_RARITY,{x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,as_3:3,as_6:4,as_10:5,as_all:5,as_rw:4,b_haul:2,b_five:3,b_runes:4,b_sgn:3,ar_charmed:4,ar_hundred:2,ar_tennames:5,r_six:4,r_sigil3:4,r_weekly:3,r_attuned:3,r_half:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
 const RARITY_MUL=[1,1,1.25,1.5,2,3], HIDDEN_FROM=3;
 TITLES.forEach(t=>{ t.r=TITLE_RARITY[t.id]!=null?TITLE_RARITY[t.id]:1; const m=RARITY_MUL[t.r]; for(const k in t.b) t.b[k]=Math.max(t.b[k],Math.round(t.b[k]*m)); });
 const titleHidden=t=>t.r>=HIDDEN_FROM&&!(S&&S.ti&&S.ti.got&&S.ti.got[t.id]);
@@ -2376,7 +2379,7 @@ function hurtAlly(a,d,ty){
   hfScales(a,d);   /* Scales (game-forge.js) */   // what hits you, for the defeat recap (before the ward soaks it)
   d=allyDr(a,d); { const ik=brewDr(a); if(ik!==1) d=Math.round(d*ik); }   /* Iron Draught (game-brew.js) */ { const rs=allyRes(a,ty); if(rs) d=Math.max(1,Math.round(d*(1-rs))); }   /* damage types: your resistance lines, a minion's typed trait */
   if(a.id==='p'){ const sk=SAP?KIT_SAP:1, s=Math.min(S.player.shield,d*sk); S.player.shield-=s; d-=Math.round(s/sk); if(BLOW&&d>0) d=tetherBlow(d); /* the Soul Tether (game-faith-story.js) */ } else if(a.mw>0){ const sk=SAP?KIT_SAP:1, s=Math.min(a.mw,d*sk); a.mw-=s; d-=Math.round(s/sk); }   // a Warden's ward on a minion
-  d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a,d,0); if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p'&&!echoCall(a)&&!stitchUp(a)&&!faithSave(a)){ fxe('death',a); chainSpear(); }
+  d=Math.min(d,a.hp); a.hp-=d; if(d>0) mark(a,d,0); if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p'&&!mfSave(a)&&!echoCall(a)&&!stitchUp(a)&&!faithSave(a)){ fxe('death',a); echoBomb(a); chainSpear(); }   /* gear-bearer powers, the Bomber echo (game-army.js, game-kits.js) */
   return d;
 }
 function allyDr(a,d){   // a blow on you or a minion after its damage reduction, before your ward (pure: the bestiary's damage figures use it too)
@@ -2386,7 +2389,7 @@ function allyDr(a,d){   // a blow on you or a minion after its damage reduction,
   if(a.id!=='p'&&hasMod('gravepact','b')) d=Math.max(1,Math.round(d*.9));
   if(hasSt(a,'sundered')) d=Math.round(d*SUNDER_MUL);
   if(hasSt(a,'chilled')) d=Math.round(d*CHILL_MUL);   /* a Frost-touched foe's chill */
-  if(a.id!=='p') d=echoDr(a,d);   /* an Undone minion's Bulwark echo */
+  if(a.id!=='p') d=mfDr(a,echoDr(a,d));   /* echoes (game-kits.js), Swarmguard on a gear-bearer (game-army.js) */
   if(a.id!=='p') d=rbBulwark(d);   /* Bulwark of the Deep (game-rift.js) */
   if(a.id==='p'&&hasMod('deathless','b')) d=Math.max(1,Math.round(d*(a.hp<pMax()*IRON_LOW?IRON_WILL:IRON_BASE)));   // Iron Will
   return d;
@@ -2422,7 +2425,7 @@ function checkDeaths(){
     if(!(e.hp<=0)||e.dead) continue;
     if(e.echo){ echoFades(e); continue; }   /* the Hunger's echoes leave nothing (game-abbey.js) */
     if(e.risen){ e.dead=true; kitDeath(e); bossFoeDies(e); r.corpses.push(corpseOf(e)); log(e.name+' falls again.'); fxe('death',e); continue; }   /* called back by a Gravecaller: its reward was paid the first time */
-    e.dead=true; r.kills++; S.quest.kills++; kitDeath(e); bossFoeDies(e); pestDeath(e);   /* Contagion (game-builds.js) */
+    e.dead=true; r.kills++; S.quest.kills++; minionKill(HITTER,e); kitDeath(e); bossFoeDies(e); pestDeath(e);   /* Contagion (game-builds.js) */
     if(e.boss||e.elite) gainSoul();
     if(e.boss){ tally('bosses'); r.bossK=e.name; }   /* the History notes the boss that fell */
     if(e.elite) tally('elites');
@@ -2511,10 +2514,10 @@ function act(kind){
     }
     let tg=minionTarget(m); if(!tg) break;
     const breach=m.role==='reaper'&&r.execute&&hasSt(tg,'sundered')&&foeArmor()>0;   // Breach: Execute ignores a Sundered foe's armor
-    let d=hit(m.atk*(breach?pierceMul(1):dmgMul())*(r.frenzy>0?r.frenzyMul:1)*(m.role==='reaper'&&r.execute&&tg.hp<tg.maxHp*.4?2:1)*(hasTrait(m,'wrathful')&&m.hp<m.maxHp/2?1.4:1)*hexK(m)*rowK(m)*(tg.hp<tg.maxHp*BUTCHER_LOW?1+markV(m,'butcher'):1)*breakK(m,tg)*echoDmg(m,tg)); const cc=mCritCh(m), crit=(m.role==='striker'&&r.focus)||(cc>0&&Math.random()<cc); if(crit){ d=Math.round(d*1.8); tally('crits'); }
+    let d=hit(m.atk*(breach?pierceMul(1):dmgMul())*(r.frenzy>0?r.frenzyMul:1)*(m.role==='reaper'&&r.execute&&tg.hp<tg.maxHp*.4?2:1)*(hasTrait(m,'wrathful')&&m.hp<m.maxHp/2?1.4:1)*hexK(m)*rowK(m)*(tg.hp<tg.maxHp*BUTCHER_LOW?1+markV(m,'butcher'):1)*breakK(m,tg)*echoDmg(m,tg)*mfDmg(m,tg)); const cc=mCritCh(m), crit=(m.role==='striker'&&r.focus)||(cc>0&&Math.random()<cc); if(crit){ d=Math.round(d*1.8); tally('crits'); }
     const mt=minionType(m); KILL=m.role==='reaper'&&r.execute?'exec':null; hurtFoe(tg,d,mt); KILL=null; runeLeech(m,d); fxe('mhit',tg,{by:fxKey(m)});
     if(crit&&r.focus&&tg.charging&&tg.hp>0) breakCharge(tg,m.nick+'\'s focused strike breaks '+theName(tg.name)+'\'s focus.');
-    let extra=minionOnHit(m,tg)+echoHit(m,tg)+kitReflect(tg,m,d);
+    let extra=minionOnHit(m,tg)+echoHit(m,tg)+mfHit(m,tg,d,mt)+kitReflect(tg,m,d);
     if(m.role==='reaper'&&m.hp>0){ const o=liveFoes().filter(x=>x!==tg&&reachable(x)); if(o.length){ const o2=pick(o); const d2=Math.round(d*.5); hurtFoe(o2,d2,mt); extra+=' and cleaves '+o2.name+' for '+d2; } }
     if(hasTrait(m,'frenzied')&&tg.hp>0&&m.hp>0&&Math.random()<.2){ let d3=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*rowK(m)*breakK(m,tg)); const c3=blurCrit(m); if(c3) d3=Math.round(d3*1.8); hurtFoe(tg,d3,mt); d+=d3; extra+=', then strikes again for '+d3+(c3?' (crit)':''); if(hasTrait(m,'blur')) extra+=minionOnHit(m,tg); }   // Blur: the extra strike carries its on-hit effects
     if(hasTrait(m,'leech')){ const h=healAlly(m,Math.round(d*(hasTrait(m,'bloodfiend')&&m.hp<m.maxHp/2?.5:.25))); if(h) extra+=' and drinks '+h+' HP'; }
@@ -2547,7 +2550,7 @@ function act(kind){
     { const gv=guardBlow(tg,d); if(gv){ tg=gv; d=Math.round(d*SB_TAKE); } }   // Guard: swapped here so the log names who was hit
     BLOW={n:e.name,k:crit?'crit':'hit'}; SAP=hasKit(e,'sapper'); hurtAlly(tg,d,foeHitType(e)); SAP=false; BLOW=null; fxe('hurt',tg,{crit:crit?1:0,by:e.id}); if(crit) addDot(tg,'bleed',e.atk*(pactOn('claws')?PACT_CLAW_BLEED:.3),pactOn('claws')?PACT_CLAW_T:2);   // a striker's crit opens a wound (deeper under Sharp Claws)
     if(hasAff(e,'vampiric')){ const h=Math.min(e.maxHp-e.hp,Math.round(d*.4*blightK(e))); if(h>0){ e.hp+=h; mark(e,0,h); } }
-    const ex=foeOnHit(e,tg)+echoThorns(e,tg,d);
+    const ex=foeOnHit(e,tg)+echoThorns(e,tg,d)+mfThorns(e,tg,d);
     log(e.name+' hits '+(tg.id==='p'?'you':nameOf(tg))+' for '+d+(crit?' (crit'+(tg.hp>0&&tg.dots&&tg.dots.bleed?', bleeding':'')+')':'')+ex+'.','bad');
     if(tg.id==='p'&&hasFlag('thorns')&&e.hp>0) hurtFoe(e,Math.max(1,Math.round(d*.2*(1-foeArmor()))));
     if(tg.id==='p'&&hasMod('calcify','b')&&e.hp>0) hurtFoe(e,Math.max(1,Math.round(d*BARBS*(1-foeArmor()))));   // Barbed Hide
@@ -2561,7 +2564,7 @@ function act(kind){
   if(P.hp<hpBefore){ sfx('hurt'); if(hpBefore-P.hp>=pMax()*.2) ui.shake=true; }   // a heavy turn shakes the screen
   checkDeaths(); if(!liveFoes().length){ roomWon(); return; }
   r.turn++; if(!hasRunMod('drought')){ let g=1+G('regen')+sk('soulwell')+(hasMod('deathless','a')?DEEP_REGEN:0); g=rbLungs(sigRegen(g)); if(omen()==='soulstorm'){ r.mf=(r.mf||0)+g*STORM_REGEN; const x=Math.floor(r.mf); r.mf-=x; g+=x; } P.mana=Math.min(pMana(),P.mana+g); } skillTick();   // Soul Storm: +20%, the fractions carried
-  echoTurn(); bossEndTurn(); hfTurn();   /* Undone shieldbearers (game-kits.js), boss hazards (game-boss-kits.js) */
+  echoTurn(); mfTurn(); bossEndTurn(); hfTurn();   /* Undone shieldbearers (game-kits.js), boss hazards (game-boss-kits.js) */
   if(hasFlag('halo')) allies().forEach(a=>{ if(a.hp>0) healAlly(a,Math.round((a.id==='p'?pMax():a.maxHp)*.04)); });
   if(r.turn===9&&liveFoes().some(e=>e.tw&&e.boss)) log('Wrath: the warden is enraged and hits harder every turn.','bad');
   planFoes();   // what every foe will do next turn, shown on its card
@@ -2714,7 +2717,7 @@ const RAISE_BASE=18, RAISE_WILL=1.1, RAISE_MIN=1, RAISE_MAX=80, SALT_CAP=95;   /
 const RAISE_BOSS_EACH=10;   // less per boss already in the army or Reserve, so bosses do not snowball
 const RAISE_LV=3, RAISE_ELITE=10, RAISE_BOSS=15,SHATTER_BASE=50, SHATTER_WILL=1, SHATTER_MIN=20, BIND_HP=.4;   // % per level you stand above the body, the elite and boss penalties; a downed minion's shatter chance after a fight (% , less per Will point, never below the floor)
 function shatterOdds(m){   // % chance a downed minion shatters for good when its room ends; otherwise it binds back at BIND_HP. Never in a siege (home ground), never Grave-bound, never with Bone Bank
-  if(hasFlag('bonebank')||hasTrait(m,'gravebound')||(S.run&&S.run.siege)) return 0;
+  if(hasFlag('bonebank')||hasTrait(m,'gravebound')||mfHas(m,'bonebank')||(S.run&&S.run.siege)) return 0;
   return Math.max(0,Math.max(SHATTER_MIN,SHATTER_BASE-A('will')*SHATTER_WILL)-hospice()-ascShatter());   /* Deep Scars (game-asc.js) */   /* Morrow's Hospice */
 }
 const saltAdd=()=>hasMod('thrift','b')?SENSE_SALT:SALT_BONUS;   // Grave Sense
@@ -2755,7 +2758,7 @@ function raiseBest(){
   return n;
 }
 const weakest=()=>S.army.slice().sort((a,b)=>mPower(a)-mPower(b))[0]||null;
-function returnGear(m){ if(!m.eq) return; for(const sl of GEAR_SLOTS){ if(m.eq[sl]){ S.inv.push(m.eq[sl]); m.eq[sl]=null; } } }
+function returnGear(m){ charmHome(m); if(!m.eq) return; for(const sl of GEAR_SLOTS){ if(m.eq[sl]){ S.inv.push(m.eq[sl]); m.eq[sl]=null; } } }
 function release(uid){ const m=S.army.concat(benched()).find(x=>x.uid===uid); if(m) returnGear(m); S.army=S.army.filter(m=>m.uid!==uid);   // the army, the Reserve or the gate: only the minion you pick
   if(S.reserve) S.reserve=S.reserve.filter(m=>m.uid!==uid); if(S.waiting) S.waiting=S.waiting.filter(m=>m.uid!==uid); bondsClean(); }
 function giveGear(uid,u){
@@ -3015,7 +3018,7 @@ const AFFIX_TRAITS=['necrotic','crushing','hexing','swift'];
 TRAITS.rimeborn  ={name:'Rimeborn',  desc:'Its hits chill the target 1 time in 3: 20% more damage taken for 2 turns.'};
 TRAITS.unmarred  ={name:'Unmarred',  desc:'+15% max HP and attack.'};
 TRAITS.cinderborn={name:'Cinderborn',desc:'Its hits burn the target 1 time in 3 for 2 turns. Immune to burns.'};
-TRAITS.undone    ={name:'Undone',    desc:'Keeps an echo of its kind\'s kit, at 60% strength; kinds whose kit has no echo give +10% damage.'};
+TRAITS.undone    ={name:'Undone',    desc:'Keeps an echo of its kind\'s kit, at 60% strength.'};
 TRAITS.stitched  ={name:'Stitched',  desc:'Once per room, when downed it rises again at 25% HP. -10% max HP.'};
 const DEATH_TRAITS=['rimeborn','unmarred','cinderborn','stitched','undone'];
 // Compounds: formed only in the Flesh Pit, when a fusion brings both halves of a recipe together (never rolled, never from a death or
@@ -3881,35 +3884,58 @@ function kitChip(e){
 }
 const kit2Chip=e=>e.kit2&&KITS[e.kit2]?' &middot; <span class="kit kit2" title="Kits Plus: '+KITS[e.kit2].rule+'">+ '+KITS[e.kit2].name+'</span>':'';   /* Kits Plus (game-asc.js): the rule's kit shows from the start */
 // ----- the Undone: a body killed by damage it was weak to rises Undone, with an echo of its kind's kit (60% strength).
-// The echo is read off the minion's kind (m.kind), so fusion and saves need nothing of their own.
-const ECHO={shield:.09,pack:.06,stance:.3,thorns:.09,frenzy:.09,banner:.06,marker:.15,call:.25}, ECHO_PLAIN=.1, ECHO_PACK_MAX=3;
-const echoOf=m=>m&&m.id!=='p'&&hasTrait(m,'undone')?(KIT_OF[m.kind]||null):null;
-const echoK=m=>{ const k=echoOf(m); return k&&ECHO[k]!=null?k:null; };
-function echoDmg(m,tg){   // an Undone minion's echo on its own blows, and every Banner echo standing beside it
-  const r=S.run; let k=1; const e=echoOf(m);
-  if(e&&ECHO[e]==null) k*=1+ECHO_PLAIN;
-  if(e==='pack') k*=1+ECHO.pack*Math.min(ECHO_PACK_MAX,S.army.filter(o=>o!==m&&o.hp>0&&o.rankI===m.rankI).length);
-  if(e==='frenzy') k*=1+ECHO.frenzy*r.enemies.filter(o=>o.dead).length;
-  if(S.army.some(o=>o!==m&&o.hp>0&&echoOf(o)==='banner')) k*=1+ECHO.banner;
-  if(tg&&tg.mkd>=r.turn) k*=1+ECHO.marker;
+// The echo is read off the minion's kind (m.kind), so fusion and saves need nothing of their own. R12: a charm (game-army.js)
+// carries the same echo from a crafted kind, at echo strength (x1.5 when that kind is Ledgered); every kit has its echo.
+const ECHO={shield:.09,pack:.06,stance:.3,thorns:.09,frenzy:.09,banner:.06,marker:.15,call:.25,
+  ambush:.3,thief:1,bomb:.3,sapper:.5,skirm:.3,hexer:3,purify:1,burrow:.5}, ECHO_PACK_MAX=3, ECHO_SKIRM_AT=.3;
+const echoV=(m,k)=>{ if(!m||m.id==='p') return 0; let v=hasTrait(m,'undone')&&KIT_OF[m.kind]===k?1:0; if(m.charm&&m.charm.k===k) v=Math.max(v,charmV(m.charm)); return v; };   // 0: no such echo
+const echoKits=m=>{ if(!m||m.id==='p') return []; const o=[]; if(hasTrait(m,'undone')&&KIT_OF[m.kind]) o.push(KIT_OF[m.kind]); if(m.charm&&KITS[m.charm.k]&&!o.includes(m.charm.k)) o.push(m.charm.k); return o; };
+const echoOf=m=>echoKits(m)[0]||null;
+const echoK=m=>echoOf(m);
+function echoDmg(m,tg){   // an echo on its own blows, and every Banner echo standing beside it
+  const r=S.run; let k=1, v;
+  if((v=echoV(m,'pack'))) k*=1+ECHO.pack*v*Math.min(ECHO_PACK_MAX,S.army.filter(o=>o!==m&&o.hp>0&&o.rankI===m.rankI).length);
+  if((v=echoV(m,'frenzy'))) k*=1+ECHO.frenzy*v*r.enemies.filter(o=>o.dead).length;
+  if((v=echoV(m,'ambush'))&&!m.amU){ m.amU=1; k*=1+ECHO.ambush*v; }   // its first blow each room
+  { const b=Math.max(0,...S.army.filter(o=>o!==m&&o.hp>0).map(o=>echoV(o,'banner'))); if(b) k*=1+ECHO.banner*b; }
+  if(tg&&tg.mkd>=r.turn) k*=1+ECHO.marker*(tg.mkv||1);
   return k;
 }
-function echoHit(m,tg){ if(echoOf(m)==='marker'&&!m.mkU&&tg.hp>0){ m.mkU=1; tg.mkd=S.run.turn+1; return ' and marks it'; } return ''; }   // first hit each room
-function echoDr(a,d){ return echoOf(a)==='stance'&&S.run&&S.run.turn%2===0?Math.max(1,Math.round(d*(1-ECHO.stance))):d; }   // allyDr
-function echoThorns(e,tg,d){ if(echoOf(tg)!=='thorns'||!(e.hp>0)||!(MELEE[e.role]||e.boss)) return ''; const t=Math.max(1,Math.round(d*ECHO.thorns)); hurtFoe(e,t,'phys'); return ', '+t+' bitten back'; }
-function echoCall(a){   // the first minion of yours to fall each room gets up, if an Undone gravecaller stands
-  const r=S.run; if(!r||a.id==='p'||a.hp>0||r.gcR===r.room||!S.army.some(o=>o!==a&&o.hp>0&&echoOf(o)==='call')) return false;
-  r.gcR=r.room; a.hp=Math.max(1,Math.round(a.maxHp*ECHO.call)); log(a.nick+' is called back up at '+a.hp+' HP by an Undone gravecaller.','ok'); return true;
+function echoHit(m,tg){   // what an echo leaves on a blow: the log's tail
+  let x='', v;
+  if((v=echoV(m,'marker'))&&!m.mkU&&tg.hp>0){ m.mkU=1; tg.mkd=S.run.turn+1; tg.mkv=v; x+=' and marks it'; }   // first hit each room
+  if((v=echoV(m,'thief'))){ const g=Math.round(ECHO.thief*v); S.player.mana=Math.min(pMana(),S.player.mana+g); }
+  if((v=echoV(m,'sapper'))&&tg.shield>0){ const s=Math.round(tg.shield*Math.min(1,ECHO.sapper*v)); tg.shield-=s; if(s) x+=' and tears '+s+' shield off'; }
+  if((v=echoV(m,'hexer'))&&tg.hp>0){ m.hxN=(m.hxN||0)+1; if(m.hxN>=Math.max(1,Math.round(ECHO.hexer/v))){ m.hxN=0; if(addSt(tg,'hexed',2)) x+=' and hexes it'; } }   // every third blow (every second at x1.5)
+  return x;
 }
-function echoTurn(){   // end of each turn: Undone shieldbearers ward your most hurt minion on even turns
-  const r=S.run; if(r.turn%2!==0) return;
-  for(const m of S.army){ if(!(m.hp>0)||echoOf(m)!=='shield') continue; const t=S.army.filter(o=>o.hp>0).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0]; if(!t) continue;
-    t.mw=Math.min(Math.round(t.maxHp*.3),(t.mw||0)+Math.round(m.maxHp*ECHO.shield)); }
+function echoDr(a,d){ let v;   // allyDr
+  if((v=echoV(a,'stance'))&&S.run&&S.run.turn%2===0) d=Math.max(1,Math.round(d*(1-Math.min(.6,ECHO.stance*v))));
+  if((v=echoV(a,'skirm'))&&a.hp<a.maxHp*ECHO_SKIRM_AT) d=Math.max(1,Math.round(d*(1-Math.min(.6,ECHO.skirm*v))));
+  if((v=echoV(a,'burrow'))&&S.run&&S.run.turn===1) d=Math.max(1,Math.round(d*(1-Math.min(.75,ECHO.burrow*v))));
+  return d; }
+function echoThorns(e,tg,d){ const v=echoV(tg,'thorns'); if(!v||!(e.hp>0)||!(MELEE[e.role]||e.boss)) return ''; const t=Math.max(1,Math.round(d*ECHO.thorns*v)); hurtFoe(e,t,'phys'); return ', '+t+' bitten back'; }
+function echoCall(a){   // the first minion of yours to fall each room gets up, if a gravecaller echo stands
+  const r=S.run; if(!r||a.id==='p'||a.hp>0||r.gcR===r.room) return false; const v=Math.max(0,...S.army.filter(o=>o!==a&&o.hp>0).map(o=>echoV(o,'call'))); if(!v) return false;
+  r.gcR=r.room; a.hp=Math.max(1,Math.round(a.maxHp*ECHO.call*v)); log(a.nick+' is called back up at '+a.hp+' HP by a gravecaller\'s echo.','ok'); return true;
 }
-function echoRoom(){ for(const m of S.army) delete m.mkU; }   // roomStart
-const echoTxt=k=>!k?'':ECHO[k]==null?'+10% damage.':({shield:'Every second turn it wards your most hurt minion for 9% of its own max HP.',pack:'+6% damage for every other minion of its gate in your army, up to +18%.',
+function echoBomb(a){   // a Bomber echo bursts as it falls: fire on every foe (hurtAlly, when a minion goes down)
+  const v=echoV(a,'bomb'); if(!v||!S.run||S.mode!=='battle') return; const d=Math.max(1,Math.round(a.maxHp*ECHO.bomb*v)); for(const o of liveFoes()) hurtFoe(o,d,'fire'); log(a.nick+' bursts as it falls: '+d+' fire on every foe.','ok');
+}
+function echoTurn(){   // end of each turn: shieldbearer echoes ward your most hurt minion on even turns; purifier echoes shed a condition
+  const r=S.run;
+  for(const m of S.army){ if(!(m.hp>0)) continue; const v=echoV(m,'purify'); if(v&&m.st){ const k=Object.keys(m.st).find(x=>m.st[x]>0); if(k) delete m.st[k]; } }
+  if(r.turn%2!==0) return;
+  for(const m of S.army){ const v=echoV(m,'shield'); if(!(m.hp>0)||!v) continue; const t=S.army.filter(o=>o.hp>0).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0]; if(!t) continue;
+    t.mw=Math.min(Math.round(t.maxHp*.3),(t.mw||0)+Math.round(m.maxHp*ECHO.shield*v)); }
+}
+function echoRoom(){ for(const m of S.army){ delete m.mkU; delete m.amU; } mfRoom(); }   // roomStart (gear-bearer powers: game-army.js)
+const echoTxt=k=>!k?'':({shield:'Every second turn it wards your most hurt minion for 9% of its own max HP.',pack:'+6% damage for every other minion of its gate in your army, up to +18%.',
   stance:'Takes 30% less damage every other turn.',thorns:'Reflects 9% of melee damage it takes.',frenzy:'+9% damage for every foe fallen this fight.',banner:'Your other minions deal 6% more while it stands.',
-  marker:'Its first hit each fight marks the target: your minions deal 15% more to it for 2 turns.',call:'Once a room, the first of your minions to fall gets up at 25% HP.'})[k];
+  marker:'Its first hit each fight marks the target: your minions deal 15% more to it for 2 turns.',call:'Once a room, the first of your minions to fall gets up at 25% HP.',
+  ambush:'Its first blow each fight deals 30% more.',thief:'Each of its hits gives you 1 mana.',bomb:'When it falls it bursts for 30% of its max HP as fire on every foe.',
+  sapper:'Its hits tear half of a foe\'s shield away.',skirm:'Below 30% HP it takes 30% less damage.',hexer:'Every third hit hexes the target for 2 turns.',
+  purify:'At the end of each turn it sheds one condition.',burrow:'Takes 50% less damage on the first turn of each fight.'})[k];
 
 // ===== SWEEP =====
 // An outgrown gate, cleared on Normal at least SWEEP_CLEARS times, can be swept from its card on a Normal, uncursed day when you
@@ -4575,7 +4601,7 @@ const mausN=()=>S&&S.memorial?Math.min(MAUS_MAX,S.memorial.filter(e=>e.maus).len
 const mausCost=()=>MAUS_COST[mausN()]||0;
 const canMaus=e=>!!e&&!e.maus&&S.mode==='town'&&mausN()<MAUS_MAX&&S.gold>=mausCost();
 function raiseMaus(i){ const e=(S.memorial||[])[i]; if(!canMaus(e)) return false; S.gold-=mausCost(); e.maus=1; tally('maus'); syncArmy(); sfx('raise'); return true; }
-const extraMul=(m,k)=>(k==='atk'?bondMul(m)*ascReadK(m):(1+headBonus()+fallenK())*townHpK(m)*ascArmyHp())*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K+(rivalBook()?BOOK_K:0):1)*(k==='atk'?choirK()*nightK():1);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
+const extraMul=(m,k)=>(1+(m?nameK(m.role)+mfStat(m):0))*(k==='atk'?bondMul(m)*ascReadK(m):(1+headBonus()+fallenK())*townHpK(m)*ascArmyHp())*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K+(rivalBook()?BOOK_K:0):1)*(k==='atk'?choirK()*nightK():1);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
 // ===== THE PANTHEON (R8 PR A) =====
 // From level 8 and 3 clears the Pantheon (the Town tab) takes an oath to one of four Old Gods or to none (the Profane path).
 // S.faith = {id, day, dev, dd, dday, vb, cv}: the god, the day sworn, devotion points, points earned on day dday (dd), the
@@ -4894,7 +4920,7 @@ function sortReserve(k){ if(!ARMY_SORTS[k]||S.mode!=='town'||!S.reserve) return 
 const MEM_MAX=200, MEM_HP=.05, MEM_COST=.6;
 function memorialize(m,at){
   if(!m||m.thrall) return null;
-  const e=Object.assign({nick:m.nick,kind:m.kind||m.name,name:m.name,rk:m.rankI|0,lvl:m.lvl,st:m.stage||0,tr:(m.traits||[]).slice(),role:m.role,day:S.day},m.boss?{boss:1}:{},m.elite?{elite:1}:{},at||{});
+  const e=Object.assign({nick:m.nick,kind:m.kind||m.name,name:m.name,rk:m.rankI|0,lvl:m.lvl,st:m.stage||0,tr:(m.traits||[]).slice(),role:m.role,day:S.day},m.kills?{kl:m.kills}:{},m.boss?{boss:1}:{},m.elite?{elite:1}:{},at||{});
   { const bd=bondFall(m,at); if(bd) e.bd=bd; }
   faithLost(m); S.memorial=[e].concat(S.memorial||[]); while(S.memorial.length>MEM_MAX){ const j=S.memorial.map(x=>!x.maus&&!x.hs).lastIndexOf(true); S.memorial.splice(j<0?MEM_MAX:j,1); }   /* a mausoleum's or headstone's name is never dropped */
   notify(m.nick+' '+theName(mName(m)).replace(/^The /,'the ')+' is written into the Memorial.','');
@@ -4921,7 +4947,7 @@ function memorialFix(g){   // normalizeSave: keep well-formed entries only
   const ok=e=>e&&typeof e==='object'&&typeof e.nick==='string'&&typeof e.name==='string';
   g.memorial=Array.isArray(g.memorial)?g.memorial.filter(ok).slice(0,MEM_MAX).map(e=>{ const o={nick:cleanNick(e.nick)||'Nameless',kind:cleanText(typeof e.kind==='string'?e.kind:e.name),name:cleanText(e.name),rk:clamp(Math.floor(num(e.rk,0)),0,RANKS.length-1),
     lvl:Math.max(1,Math.floor(num(e.lvl,1))),st:clamp(Math.floor(num(e.st,0)),0,STAGE_MAX),tr:Array.isArray(e.tr)?e.tr.filter(t=>TRAITS[t]):[],role:ROLES[e.role]?e.role:'striker',day:Math.max(1,Math.floor(num(e.day,1)))};
-    if(e.boss) o.boss=1; if(e.elite) o.elite=1; for(const k of ['g','raid']) if(RK[e[k]]) o[k]=e[k]; for(const k of ['f','rd']) if(num(e[k],0)>0) o[k]=Math.floor(e[k]); if(typeof e.bd==='string'&&cleanNick(e.bd)) o.bd=cleanNick(e.bd); if(e.maus) o.maus=1; if(num(e.hs,0)>=1) o.hs=Math.min(HEAD_TOP,Math.floor(e.hs)); return o; }):[];
+    if(num(e.kl,0)>0) o.kl=Math.floor(e.kl);   /* kills (game-army.js) */ if(e.boss) o.boss=1; if(e.elite) o.elite=1; for(const k of ['g','raid']) if(RK[e[k]]) o[k]=e[k]; for(const k of ['f','rd']) if(num(e[k],0)>0) o[k]=Math.floor(e[k]); if(typeof e.bd==='string'&&cleanNick(e.bd)) o.bd=cleanNick(e.bd); if(e.maus) o.maus=1; if(num(e.hs,0)>=1) o.hs=Math.min(HEAD_TOP,Math.floor(e.hs)); return o; }):[];
   g.honor=g.honor&&typeof g.honor==='object'&&typeof g.honor.day==='number'?{day:g.honor.day,nick:cleanNick(g.honor.nick)||'Nameless'}:null;
 }
 
@@ -5067,7 +5093,7 @@ function fuse(ua,ub){
   const a=findMinion(ua), b=findMinion(ub); if(!canFuse(a,b)) return null;   // army or Reserve
   const c=fuseCost(a,b); if(S.gold<c) return null;
   const [k,x]=fuseOrder(a,b), f=fuseTraits(k,x);
-  S.gold-=c; returnGear(x);
+  S.gold-=c; charmFuse(k,x); returnGear(x);
   k.traits=f.tr; S.ti=S.ti||{}; const got=S.ti.compounds=S.ti.compounds||[]; for(const t of f.made) if(!got.includes(t)) got.push(t); k.stage=Math.max(k.stage||0,x.stage||0); k.lvl=Math.min(S.player.lvl+2,Math.max(k.lvl,x.lvl)+FUSE_LV); k.xp=0; k.fused=(k.fused||0)+(x.fused||0)+1;
   S.army=S.army.filter(m=>m!==x); if(S.reserve) S.reserve=S.reserve.filter(m=>m!==x); bondsClean(); checkEvolve(k); syncMinion(k); k.hp=k.maxHp; tally('fused'); recBest('ftr',k.traits.length); recArmy(); sfx('raise'); return k;
 }
@@ -7302,6 +7328,97 @@ function runesFix(g){   // normalizeSave: only what the save has (a new game has
   if('runes' in g) g.runes=Array.isArray(g.runes)?[...new Set(g.runes.filter(id=>RUNES[id]))]:[];
   const P=g.player, R=P&&P.runes; if(!P||!('runes' in P)) return;
   const o={}; if(R&&typeof R==='object'&&!Array.isArray(R)) for(const k in R) if(RUNES[R[k]]&&RUNES[R[k]].sk===k&&(g.runes||[]).includes(R[k])) o[k]=R[k]; P.runes=o;
+}
+// ===== R12 PR A: army roles 2.0, part one: charms, gear-bearer powers, kill counts and the Ledger's name lines =====
+// ----- charms: crafted in town from CHARM_TROPHIES trophies of one foe kind you know (Known in the bestiary) and gold.
+// A charm carries that kind's kit as an echo (the Undone's table, game-kits.js): one slot on every minion, moved freely in
+// town, back to the pouch (S.charms) when its minion leaves or shatters. A charm of a Ledgered kind is x1.5.
+const CHARM_TROPHIES=6, CHARM_GOLD=60, CHARM_LEDGER=.5;
+const KNOWN_TIERS=['known','mastered','ledgered'];
+const charmKey=name=>TROPHY[name]?name:TROPHY['t:'+name]?'t:'+name:null;
+const charmTier=name=>{ const k=charmKey(name); return k?(TROPHY[k].rankI|0)+1:1; };
+const charmCost=name=>CHARM_GOLD*charmTier(name);
+const charmKnown=name=>{ const t=masteryOf(name); return !!t&&KNOWN_TIERS.includes(t.id); };
+const charmV=c=>!c||!KITS[c.k]?0:1+(c.src&&masteryOf(c.src)&&masteryOf(c.src).id==='ledgered'?CHARM_LEDGER:0);
+const charmName=c=>c&&KITS[c.k]?KITS[c.k].name+' charm':'';
+function charmKinds(){   // every kind a charm can be made from: it has a kit and a trophy
+  return Object.keys(KIT_OF).filter(n=>charmKey(n));
+}
+function craftWhy(name){   // why a charm cannot be crafted now, or '' when it can
+  if(!KIT_OF[name]||!charmKey(name)) return 'No charm comes from it.';
+  if(!charmKnown(name)) return 'Know the kind first ('+masteryRungs(name).find(x=>x.t.id==='known').at+' kills).';
+  const n=(S.trophies||{})[charmKey(name)]||0; if(n<CHARM_TROPHIES) return 'Needs '+CHARM_TROPHIES+' trophies ('+n+').';
+  if(S.gold<charmCost(name)) return 'Needs '+charmCost(name)+' gold.';
+  return '';
+}
+function craftCharm(name){
+  if(S.mode!=='town'||craftWhy(name)) return false; const k=charmKey(name);
+  S.trophies[k]-=CHARM_TROPHIES; if(!S.trophies[k]) delete S.trophies[k]; S.gold-=charmCost(name);
+  S.charms=Array.isArray(S.charms)?S.charms:[]; const c={k:KIT_OF[name],src:name}; S.charms.push(c); tally('charms'); tally('chK_'+c.k); return c;
+}
+function giveCharm(uid,i){   // a charm from the pouch onto a minion (its old charm goes back)
+  if(S.mode!=='town') return false; const m=findMinion(uid); S.charms=Array.isArray(S.charms)?S.charms:[]; const c=S.charms[i]; if(!m||!c) return false;
+  S.charms.splice(i,1); if(m.charm) S.charms.push(m.charm); m.charm=c; return true;
+}
+function takeCharm(uid){ if(S.mode!=='town') return false; const m=findMinion(uid); if(!m||!m.charm) return false; S.charms=Array.isArray(S.charms)?S.charms:[]; S.charms.push(m.charm); delete m.charm; return true; }
+function charmHome(m){ if(!m||!m.charm) return; S.charms=Array.isArray(S.charms)?S.charms:[]; S.charms.push(m.charm); delete m.charm; }   // returnGear: a minion leaving gives its charm back
+function charmFuse(k,x){ if(x.charm&&(!k.charm||charmV(x.charm)>charmV(k.charm))){ const t=k.charm; k.charm=x.charm; if(t) x.charm=t; else delete x.charm; } }   // fusion keeps the stronger charm (the other goes home with returnGear)
+// ----- gear-bearer powers: a unique on a gear-bearer gives the minion its own version of the unique's power, at MF_K
+const MF_K=.4, MF_STAT=.08;
+const MINION_FLAG={
+  bonebank:'It never shatters.', echo:'10% of its hits strike twice.', undying:'Once a run, a killing blow leaves it at 12% HP.',
+  lifedrain:'Heals for 32% of the damage it deals.', soulharvest:'Each of its kills restores 2 mana to you.', cheapraise:'+8% HP and attack.',
+  execute:'Deals 20% more to foes under 35% HP.', thorns:'Foes that hit it take 8% back.', censer:'Each of its kills restores 4 mana to you and heals it 5%.',
+  swarmguard:'Takes 10% less damage.', chorus:'Its hits drain another foe for 20%.', bindsouls:'+8% HP and attack.', cleave:'Its hits also strike another foe for 24%.',
+  infernal:'Starts each fight with a ward of 10% of its max HP.', halo:'Heals 1.6% of its max HP at the end of each turn.', ruin:'Deals 10% more damage.',
+  hellfire:'Its hits scorch every other foe for 16%.', deathless:'Twice a run, a killing blow leaves it at 20% HP.', ledgerchain:'+8% HP and attack.',
+  quill:'+8% HP and attack.', secondhand:'+8% HP and attack.', twobooks:'+8% HP and attack.'   /* the rival's uniques (game-rival-arc.js) */
+};
+const MF_STATS=['cheapraise','bindsouls','ledgerchain','quill','secondhand','twobooks'];
+const mfFlags=m=>{ if(!m||!m.eq) return []; const o=[]; for(const sl of GEAR_SLOTS){ const it=m.eq[sl]; const f=it&&ITEM[it.id]&&ITEM[it.id].flag; if(f&&MINION_FLAG[f]&&!o.includes(f)) o.push(f); } return o; };
+const mfHas=(m,f)=>!!m&&m.id!=='p'&&!!m.eq&&mfFlags(m).includes(f);
+const mfStat=m=>!m||!m.eq?0:mfFlags(m).filter(f=>MF_STATS.includes(f)).length*MF_STAT;   // extraMul: flags with no minion meaning
+function mfDmg(m,tg){ let k=1; if(mfHas(m,'ruin')) k*=1.1; if(mfHas(m,'execute')&&tg&&tg.hp<tg.maxHp*.35) k*=1.2; return k; }
+function mfDr(a,d){ return mfHas(a,'swarmguard')?Math.max(1,Math.round(d*.9)):d; }
+function mfHit(m,tg,d,mt){   // after a minion's blow: the log's tail
+  if(!m.eq||!(d>0)) return ''; let x=''; const fl=mfFlags(m); if(!fl.length) return '';
+  const others=()=>liveFoes().filter(o=>o!==tg);
+  if(fl.includes('lifedrain')&&m.hp>0){ const h=healAlly(m,Math.round(d*.32)); if(h) x+=' and drains '+h+' HP'; }
+  if(fl.includes('cleave')){ const o=others(); if(o.length){ const t=o[0], d2=Math.max(1,Math.round(d*.24)); hurtFoe(t,d2,mt); x+=' and cuts '+t.name+' for '+d2; } }
+  if(fl.includes('hellfire')){ const o=others(); if(o.length){ const d2=Math.max(1,Math.round(d*.16)); o.forEach(t=>hurtFoe(t,d2,'fire')); x+=' and scorches the rest for '+d2; } }
+  if(fl.includes('chorus')){ const o=others(); if(o.length){ const t=o[o.length-1], d2=Math.max(1,Math.round(d*.2)); hurtFoe(t,d2,'shad'); x+=' and drains '+t.name+' for '+d2; } }
+  if(fl.includes('echo')&&tg.hp>0){ m.ecN=(m.ecN||0)+1; if(m.ecN>=10){ m.ecN=0; hurtFoe(tg,d,mt); x+=', and again for '+d; } }   // every tenth blow: no Math.random
+  return x;
+}
+function mfThorns(e,tg,d){ if(!mfHas(tg,'thorns')||!(e.hp>0)) return ''; const t=Math.max(1,Math.round(d*.08)); hurtFoe(e,t,'phys'); return ', '+t+' thrown back'; }
+function mfKill(m){ if(!m||!m.eq) return; const P=S.player;
+  if(mfHas(m,'soulharvest')) P.mana=Math.min(pMana(),P.mana+2);
+  if(mfHas(m,'censer')){ P.mana=Math.min(pMana(),P.mana+4); if(m.hp>0) healAlly(m,Math.round(m.maxHp*.05)); } }
+function mfRoom(){ for(const m of S.army) if(m.hp>0&&mfHas(m,'infernal')) m.mw=Math.max(m.mw||0,Math.round(m.maxHp*.1)); }
+function mfTurn(){ for(const m of S.army) if(m.hp>0&&mfHas(m,'halo')) healAlly(m,Math.max(1,Math.round(m.maxHp*.016))); }
+function mfSave(a){   // a killing blow on a gear-bearer with Undying or Deathless: back up, so many times a run
+  const r=S.run; if(!r||!a.eq) return false; r.mfS=r.mfS||{}; const n=r.mfS[a.uid]||0;
+  const cap=(mfHas(a,'undying')?1:0)+(mfHas(a,'deathless')?2:0); if(n>=cap) return false;
+  r.mfS[a.uid]=n+1; a.hp=Math.max(1,Math.round(a.maxHp*(mfHas(a,'deathless')&&n>=(mfHas(a,'undying')?1:0)?.2:.12))); log(a.nick+' refuses to fall and stands at '+a.hp+' HP.','ok'); return true;
+}
+// ----- kill counts and name lines: each minion counts its kills (m.kills); at NAME_AT a minion's name is written into the
+// Ledger (S.nameLines, at most NAME_MAX): +NAME_K to its role's HP and attack for your whole army, kept when it falls.
+const NAME_AT=100, NAME_MAX=10, NAME_K=.01;
+function minionKill(m,e){   // checkDeaths: the minion whose blow (or wound) took the foe
+  if(!m||m.id==='p'||m.uid==null||!S.army.includes(m)) return; m.kills=(m.kills||0)+1; tally('mKills'); mfKill(m);
+  if(m.kills>=NAME_AT&&!m.nl){ S.nameLines=Array.isArray(S.nameLines)?S.nameLines:[]; if(S.nameLines.length<NAME_MAX){ m.nl=1; S.nameLines.push({name:m.nick,role:m.role,day:S.day}); syncArmy(); tally('nameLines');
+    notify(m.nick+' has taken '+NAME_AT+' lives: its name is written into the Ledger. Every '+ROLES[m.role].label.toLowerCase()+' of yours is a little stronger.','ok'); if(S.run) log('The Ledger writes '+m.nick+'\'s name.','story'); } }
+}
+const nameK=role=>!Array.isArray(S&&S.nameLines)?0:S.nameLines.filter(l=>l.role===role).length*NAME_K;
+function armyFix(g){   // normalizeSave: charms, kill counts, name lines (only fields the save has)
+  const okC=c=>!!c&&typeof c==='object'&&KITS[c.k]&&typeof c.src==='string'&&KIT_OF[c.src]===c.k;
+  if('charms' in g) g.charms=Array.isArray(g.charms)?g.charms.filter(okC).map(c=>({k:c.k,src:c.src})):[];
+  if('nameLines' in g) g.nameLines=Array.isArray(g.nameLines)?g.nameLines.filter(l=>l&&typeof l.name==='string'&&ROLES[l.role]).slice(0,NAME_MAX).map(l=>({name:cleanText(l.name).slice(0,40),role:l.role,day:Math.max(1,Math.floor(+l.day||1))})):[];
+  const all=(g.army||[]).concat(g.reserve||[],g.waiting||[],...(Array.isArray(g.raids)?g.raids:[]).map(x=>(x&&x.units)||[]));
+  for(const m of all){ if(!m||typeof m!=='object') continue;
+    if('charm' in m&&!okC(m.charm)) delete m.charm; else if(m.charm) m.charm={k:m.charm.k,src:m.charm.src};
+    if('kills' in m) m.kills=Math.max(0,Math.floor(+m.kills||0)); if('nl' in m) m.nl=1;
+    for(const k of ['amU','hxN','ecN']) if(k in m&&typeof m[k]!=='number') delete m[k]; }
 }
 //==UI==
 
@@ -11981,6 +12098,45 @@ TR_RX.unshift([/^(Marrow|Sundering Spear|Stitchwork|Overgrowth|Chain|Bone Shrapn
 TR_RX.unshift([/^Build: (.+) \((\d+) points?\)$/,"Yapı: {t1} ($2 puan)"],[/^Signature: (.+)$/,"İmza: {t1}"]);
 [["Runes:","Rünler:"]].forEach(([k,v])=>TR_DICT.set(k,v));
 [["It does not use your turn","Turunu harcamaz"]].forEach(([k,v])=>TR_DICT.set(k,v));
+// ----- R12 PR A: charms, gear-bearer powers, kills and name lines (game-army.js)
+[["Keeps an echo of its kind's kit, at #% strength","Türünün hünerinin bir yankısını %# güçle taşır"],
+ ["Its first blow each fight deals #% more","Her dövüşteki ilk darbesi %# daha fazla vurur"],["Each of its hits gives you # mana","Her vuruşu sana # mana verir"],
+ ["When it falls it bursts for #% of its max HP as fire on every foe","Düştüğünde azami canının %#'i kadar ateşle her düşmana patlar"],["Its hits tear half of a foe's shield away","Vuruşları düşmanın kalkanının yarısını söker"],
+ ["Below #% HP it takes #% less damage","Canı %#'un altındayken %# daha az hasar alır"],["Every third hit hexes the target for # turns","Her üçüncü vuruşu hedefi # tur lanetler"],
+ ["At the end of each turn it sheds one condition","Her turun sonunda bir durumdan kurtulur"],["Takes #% less damage on the first turn of each fight","Her dövüşün ilk turunda %# daha az hasar alır"],
+ ["The minion keeps an echo of its kind's kit at #% strength; a charm carries the same echo (see Charms)","Hizmetkâr türünün hünerinin bir yankısını %# güçle taşır; bir tılsım da aynı yankıyı taşır (bkz. Tılsımlar)"],
+ ["Charms","Tılsımlar"],["Charm","Tılsım"],["Gear-bearer powers","Teçhizat taşıyıcı güçleri"],["Kills and names","Öldürmeler ve adlar"],
+ ["In town, # trophies of one kind you know (Known in the bestiary) and # gold a gate tier make a charm: it carries that kind's echo on any minion, one charm each","Kasabada, tanıdığın bir türün (bestiyerde Bilinen) # ganimeti ve kapı kademesi başına # altın bir tılsım yapar: o türün yankısını herhangi bir hizmetkâra taşır, her birine bir tılsım"],
+ ["Charms move freely in town and come back to the pouch when a minion leaves or shatters; fusion keeps the stronger one","Tılsımlar kasabada serbestçe yer değiştirir ve bir hizmetkâr ayrıldığında ya da parçalandığında keseye döner; birleştirme güçlü olanı tutar"],
+ ["A charm of a Ledgered kind is half again as strong","Deftere Geçmiş bir türün tılsımı yarı yarıya daha güçlüdür"],
+ ["A unique worn by a gear-bearer gives it its own version of the unique's power, at about #%","Bir teçhizat taşıyıcının giydiği eşsiz eşya, ona o eşyanın gücünün kendi sürümünü yaklaşık %# oranında verir"],
+ ["Powers that mean nothing on a minion give +#% HP and attack instead","Bir hizmetkârda anlamı olmayan güçler bunun yerine +%# can ve saldırı verir"],
+ ["It never shatters","Asla parçalanmaz"],["#% of its hits strike twice","Vuruşlarının %#'u iki kez vurur"],["Once a run, a killing blow leaves it at #% HP","Seferde bir kez, öldürücü bir darbe onu %# canla bırakır"],
+ ["Heals for #% of the damage it deals","Verdiği hasarın %#'i kadar iyileşir"],["Each of its kills restores # mana to you","Her öldürmesi sana # mana kazandırır"],["+#% HP and attack","+%# can ve saldırı"],["#% HP and attack","%# can ve saldırı"],
+ ["Deals #% more to foes under #% HP","Canı %#'in altındaki düşmanlara %# daha fazla vurur"],["Foes that hit it take #% back","Ona vuran düşmanlar %#'ini geri alır"],
+ ["Each of its kills restores # mana to you and heals it #%","Her öldürmesi sana # mana kazandırır ve onu %# iyileştirir"],["Takes #% less damage","%# daha az hasar alır"],
+ ["Its hits drain another foe for #%","Vuruşları başka bir düşmandan %# emer"],["Its hits also strike another foe for #%","Vuruşları başka bir düşmana da %# vurur"],
+ ["Starts each fight with a ward of #% of its max HP","Her dövüşe azami canının %#'i kadar bir siperle başlar"],["Heals #% of its max HP at the end of each turn","Her turun sonunda azami canının %#'ini iyileştirir"],
+ ["Deals #% more damage","%# daha fazla hasar verir"],["Its hits scorch every other foe for #%","Vuruşları diğer her düşmanı %# kavurur"],["Twice a run, a killing blow leaves it at #% HP","Seferde iki kez, öldürücü bir darbe onu %# canla bırakır"],
+ ["Every minion counts its kills, and the Memorial keeps the count","Her hizmetkâr öldürmelerini sayar ve Anıt bu sayıyı saklar"],
+ ["At # kills its name is written into the Ledger: +#% HP and attack for every minion of its role, for good, even after it falls (# names at most)","# öldürmede adı Deftere yazılır: rolündeki her hizmetkâra kalıcı olarak +%# can ve saldırı, o düştükten sonra bile (en çok # ad)"],
+ ["No charm","Tılsım yok"],["Give a charm","Tılsım ver"],["Change charm","Tılsımı değiştir"],["Take it off","Çıkar"],["named in the Ledger","Deftere adı yazıldı"],
+ ["A charm is made from # trophies of one kind you know and some gold","Bir tılsım, tanıdığın bir türün # ganimetinden ve biraz altından yapılır"],
+ ["It carries that kind's kit as an echo, like an Undone body, on any minion you give it to","O türün hünerini, Çözülmüş bir beden gibi, verdiğin herhangi bir hizmetkârda yankı olarak taşır"],
+ ["One charm a minion; move them freely in town","Hizmetkâr başına bir tılsım; kasabada serbestçe değiştir"],
+ ["Know a kind in the bestiary (and keep its trophies) to make its charm","Tılsımını yapmak için bestiyerde bir türü tanı (ve ganimetlerini sakla)"],
+ ["No charm comes from it","Ondan tılsım çıkmaz"],["Show fewer","Daha az göster"],["Names in the Ledger","Defterdeki adlar"],
+ ["A minion that takes # lives has its name written into the Ledger: +#% HP and attack for every minion of its role, for good (# names at most)","# can alan bir hizmetkârın adı Deftere yazılır: rolündeki her hizmetkâra kalıcı olarak +%# can ve saldırı (en çok # ad)"],
+ ["x#: its kind is Ledgered","x#: türü Deftere Geçmiş"],
+ ["Charmed","Tılsımlı"],["Make a charm of each of the sixteen kits","On altı hünerin her birinden bir tılsım yap"],["Hundred Kills","Yüz Öldürme"],["Have a minion take # lives","Bir hizmetkâra # can aldır"],
+ ["Ten Names","On Ad"],["Write ten names into the Ledger","Deftere on ad yaz"],["Ambusher echo","Pusucu yankısı"],["Mana thief echo","Mana hırsızı yankısı"],["Bomber echo","Bombacı yankısı"]
+].forEach(([k,v])=>TR_DICT.set(k,v));
+TR_RX.unshift([/^(.+) charm$/,"{t1} tılsımı"],[/^(.+) echo$/,"{t1} yankısı"],[/^Needs (\d+) trophies \((\d+)\)\.?$/,"$1 ganimet gerekir ($2)"],[/^Needs (\d+) gold\.?$/,"$1 altın gerekir"],
+ [/^Know the kind first \((\d+) kills\)\.?$/,"Önce türü tanı ($1 öldürme)"],[/^Kills (\d+)$/,"Öldürme $1"],[/^Kills (\d+) \(named in the Ledger\)$/,"Öldürme $1 (Deftere adı yazıldı)"],[/^Make · (\d+) gold$/,"Yap · $1 altın"],
+ [/^Charms · (\d+) in the pouch, (\d+) worn$/,"Tılsımlar · kesede $1, takılı $2"],[/^Names in the Ledger · (\d+)\/(\d+)$/,"Defterdeki adlar · $1/$2"],[/^(\d+)\/(\d+) trophies$/,"$1/$2 ganimet"],[/^from (.+)$/,"kaynağı: {t1}"],
+ [/^(.+) has taken (\d+) lives: its name is written into the Ledger\. Every (.+) of yours is a little stronger\.?$/,"$1 $2 can aldı: adı Deftere yazıldı. Her {t3} biraz daha güçlü."],[/^The Ledger writes (.+)'s name\.?$/,"Defter $1 adını yazıyor."],
+ [/^(.+) bursts as it falls: (\d+) fire on every foe\.?$/,"$1 düşerken patlıyor: her düşmana $2 ateş."],[/^(.+) is called back up at (\d+) HP by a gravecaller's echo\.?$/,"$1 bir mezarçağıran yankısıyla $2 canla geri kaldırılıyor."],
+ [/^(.+) refuses to fall and stands at (\d+) HP\.?$/,"$1 düşmeyi reddediyor ve $2 canla ayakta."],[/^Show all (\d+)$/,"Tümünü göster ($1)"]);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -13544,12 +13700,12 @@ function memorialHTML(){   // the fallen, newest first, in a muted hand; honouri
   h+=brief('mem','The Ledger keeps the names of those lost for good, shattered after a fight or fallen on a raid. The released are not written here.','q-note')
    +(remembered()?'<p class="q-note ok mem-hon">Honoured today: <b>'+S.honor.nick+'</b>. Your army is Remembered until dawn.</p>'
      :M.some(e=>e.st>=1)?'<p class="q-note">Once a day, in town, you may honour one of the Greater or older: the living army has +'+Math.round(MEM_HP*100)+'% max HP until dawn.</p>':'');
-  h+=mausNote();
+  h+=mausNote()+nameLinesHTML();   /* the Ledger's name lines (game-army.js) */
   { const t=headTiers(); h+='<p class="q-note mem-head-n">'+(t?'Headstones: '+t+' tiers carved. Your minions have +'+(headBonus()*100).toFixed(1)+'% max HP for good, at most +'+Math.round(HEAD_CAP*100)+'%.'
     :'In town you may carve a headstone over any name here and raise it with gold, tier by tier. Each tier gives your minions a little more max HP for good, at most +'+Math.round(HEAD_CAP*100)+'% in all.')+'</p>'; }
   h+='<div class="mem-list">'+list.map((e,i)=>{ const c=honourCost(e);
     return '<div class="mem-row">'+ico(e.kind,e.rk,{boss:e.boss,elite:e.elite,role:e.role})+'<span class="rk r'+e.rk+'">'+RANKS[e.rk]+'</span><div class="mem-t"><b>'+e.nick+'</b> <span class="dim">'+theName(mName({name:e.name,stage:e.st}))+'</span>'
-     +'<div class="u-sub"><span>'+memWhere(e)+'</span> &middot; <span>Day '+e.day+'</span> &middot; <span>Lv '+e.lvl+'</span></div>'
+     +'<div class="u-sub"><span>'+memWhere(e)+'</span> &middot; <span>Day '+e.day+'</span> &middot; <span>Lv '+e.lvl+'</span>'+(e.kl?' &middot; <span>Kills '+e.kl+'</span>':'')+'</div>'
      +(e.tr.length?'<div class="u-sub mem-tr">'+e.tr.map(t=>TRAITS[t].name).join(', ')+'</div>':'')+(e.bd?'<div class="u-sub mem-bd">Bonded to '+cleanText(e.bd)+'</div>':'')+(e.maus?'<div class="u-sub mem-maus">Rests in a mausoleum</div>':'')+(e.hs?'<div class="u-sub mem-hs">Headstone, tier '+e.hs+'</div>':'')+'</div>'+(town?'<div class="mem-b">':'')+mausBtn(e,i)
      +(town&&(e.hs|0)<HEAD_TOP?'<button class="btn small" data-a="head" data-k="'+i+'"'+(S.gold<headCost(e)?' disabled title="Not enough gold"':'')+'>'+(e.hs?'Raise headstone':'Carve a headstone')+' &middot; '+headCost(e)+' gold</button>':'')
      +(town&&e.st>=1&&!remembered()?'<button class="btn small" data-a="honour" data-k="'+i+'"'+(S.gold<c?' disabled title="Not enough gold"':'')+'>Honour &middot; '+c+' gold</button>':'')+(town?'</div>':'')+'</div>'; }).join('')+'</div>';
@@ -13736,8 +13892,12 @@ function codexSection(k){
   if(k==='kits'){ const who=K=>Object.keys(KIT_OF).filter(n=>KIT_OF[n]===K&&metName(n));
     return cxP('Every kind of foe has a kit: one rule of its own. Bosses, the rival and secret masters have none. A foe card shows "Kit ?" until you have studied its kind; then it names the kit and its rule. Known kinds also show what the kit does this turn, and Ledgered kinds the answer.')
       +'<p class="group-h">The sixteen kits</p>'+cxList(KIT_IDS.map(K=>{ const w=who(K); return cxRow(KITS[K].name,KITS[K].rule+' Answer: '+KITS[K].ans+(w.length?' Carried by '+w.join(', ')+'.':'')); }))
-      +'<p class="group-h">The Undone</p>'+cxP('A foe killed by damage of a type it was weak to leaves an Undone body (+'+CORPSE_CONDS.undone.raise+'% to raise). The minion keeps an echo of its kind\'s kit at 60% strength. Kinds whose kit has no echo give +'+Math.round(ECHO_PLAIN*100)+'% damage instead.')
+      +'<p class="group-h">The Undone</p>'+cxP('A foe killed by damage of a type it was weak to leaves an Undone body (+'+CORPSE_CONDS.undone.raise+'% to raise). The minion keeps an echo of its kind\'s kit at 60% strength; a charm carries the same echo (see Charms).')
       +cxList(Object.keys(ECHO).map(K=>cxRow(KITS[K].name+' echo',echoTxt(K))))
+      +'<p class="group-h">Charms</p>'+cxP('In town, '+CHARM_TROPHIES+' trophies of one kind you know (Known in the bestiary) and '+CHARM_GOLD+' gold a gate tier make a charm: it carries that kind\'s echo on any minion, one charm each. Charms move freely in town and come back to the pouch when a minion leaves or shatters; fusion keeps the stronger one. A charm of a Ledgered kind is half again as strong.')
+      +'<p class="group-h">Gear-bearer powers</p>'+cxP('A unique worn by a gear-bearer gives it its own version of the unique\'s power, at about '+Math.round(MF_K*100)+'%. Powers that mean nothing on a minion give +'+Math.round(MF_STAT*100)+'% HP and attack instead.')
+      +cxList(Object.keys(MINION_FLAG).map(f=>cxRow(FLAGS[f].split(':')[0],MINION_FLAG[f])))
+      +'<p class="group-h">Kills and names</p>'+cxP('Every minion counts its kills, and the Memorial keeps the count. At '+NAME_AT+' kills its name is written into the Ledger: +'+Math.round(NAME_K*100)+'% HP and attack for every minion of its role, for good, even after it falls ('+NAME_MAX+' names at most).')
       +'<p class="group-h">Sweep</p>'+cxP('A gate you have cleared on Normal at least '+SWEEP_CLEARS+' times can be swept from its card on a Normal, uncursed day once you stand '+SWEEP_LV+' levels above its advice. A sweep costs one watch and wins every room at once: kill XP at '+Math.round(SWEEP_XP*100)+'%, gold, trophies, gear, bestiary kills and quest progress as usual; nothing is raised, and there are no events, doors or records. A secret master or the rival stops the sweep at the boss room, and you fight it.'); }
   if(k==='types'){ const pc=v=>Math.round(Math.abs(v)*100)+'%', prof=(res,hits)=>{ const w=DT_IDS.filter(t=>res[t]<0), r=DT_IDS.filter(t=>res[t]>0); return (w.length?'Weak to '+w.map(t=>DTYPE[t].name+' (+'+pc(res[t])+')').join(', ')+'. ':'')+(r.length?'Resists '+r.map(t=>DTYPE[t].name+' (-'+pc(res[t])+')').join(', ')+'. ':'')+'Strikers deal '+DTYPE[hits].name+'.'; };
     return cxP('Every hit has one of five damage types: Physical, Shadow, Frost, Fire and Rot. Where foes stand decides what they are weak to and what they resist. A weakness adds to the damage, a resistance takes from it, once, after armor and before any shield. Armor and resistance are separate: piercing beats armor, the right type beats resistance.')
@@ -14348,7 +14508,7 @@ function unitCard(u,side,mini){
   const tag=isP?'Necromancer':ROLES[u.role].label+(isArmed(u.base||u.name)?' &middot; Armed':'')+(u.boss?' &middot; Boss':'')
     +(u.elite?' &middot; Elite':'')+(u.abil&&!isP&&!u.kit?' &middot; <span title="'+BOSS_ABIL[u.abil].desc+'">'+BOSS_ABIL[u.abil].name+'</span>':'')+(u.kit&&!isP?bossRotChip(u):'')
     +(u.phase2&&!isP?' &middot; <span class="phase-t">Second phase</span>':'')
-    +(u.aff&&!isP?u.aff.map(a=>' &middot; <span class="aff" title="'+AFFIX[a].desc+'">'+AFFIX[a].name+'</span>').join(''):'')+(side==='foe'&&!isP?kitChip(u):echoOf(u)?' &middot; <span class="kit" title="'+echoTxt(echoK(u))+'">Echo: '+KITS[echoOf(u)].name+'</span>':'')
+    +(u.aff&&!isP?u.aff.map(a=>' &middot; <span class="aff" title="'+AFFIX[a].desc+'">'+AFFIX[a].name+'</span>').join(''):'')+(side==='foe'&&!isP?kitChip(u):echoKits(u).length?echoKits(u).map(k=>' &middot; <span class="kit" title="'+echoTxt(k)+'">Echo: '+KITS[k].name+'</span>').join(''):'')
     +(u.scd&&CORPSE_CONDS[u.scd]?' &middot; <span class="stash-t" title="A body the rival stole. '+CORPSE_CONDS[u.scd].when+'">'+CORPSE_CONDS[u.scd].name+'</span>':'');
   const rk=isP?'':'<span class="rk r'+u.rankI+'">'+RANKS[u.rankI]+'</span>';
   const fx=(f.d?'<span class="fx neg">-'+f.d+'</span>':f.h?'<span class="fx pos">+'+f.h+'</span>':'')+(f.c?'<span class="fx cmb">'+f.c+'</span>':'');   // c: a status combo fired on it
@@ -14363,7 +14523,7 @@ function unitCard(u,side,mini){
   if(mini){   // a minion in battle: icon, name, level, attack, HP; the rest lives on the Army tab
     const m='<div class="u-head">'+ico(u.base||u.kind||u.name,u.rankI,u)+'<div class="u-id"><div class="u-name">'+nick(u)+'</div><div class="u-sub num">'+(dead?'<span class="down-t">'+downTip(u)+'</span>':'Lv '+u.lvl+' &middot; ATK '+u.atk+(u.wall?' &middot; Wall':''))+'</div>'+dots+'</div></div>'
       +'<div class="bar"><i class="fill hp" style="width:'+pct(u.hp,max)+'%"></i></div><div class="num u-hp">'+Math.max(0,u.hp)+'/'+max+'</div>';
-    return '<div class="unit ally mini'+(dead?' dead':'')+(u.elite?' elite':'')+(f.d?' hit':'')+'" data-u="'+fxKey(u)+'" title="'+mName(u)+', '+ROLES[u.role].label+(u.wall?', on the wall':'')+(echoOf(u)?', Echo: '+KITS[echoOf(u)].name:'')+'">'+fx+m+'</div>'; }
+    return '<div class="unit ally mini'+(dead?' dead':'')+(u.elite?' elite':'')+(f.d?' hit':'')+'" data-u="'+fxKey(u)+'" title="'+mName(u)+', '+ROLES[u.role].label+(u.wall?', on the wall':'')+(echoKits(u).length?', Echo: '+echoKits(u).map(k=>KITS[k].name).join(', '):'')+'">'+fx+m+'</div>'; }
   const cls='unit '+side+(dead?' dead':'')+(sel?' sel':'')+(ch?' charging':'')+(u.elite?' elite':'')+(f.d?' hit':'');
   return side==='foe'&&!dead?'<button class="'+cls+'" data-a="target" data-k="'+u.id+'" data-u="'+u.id+'" aria-pressed="'+sel+'">'+inner+'</button>':'<div class="'+cls+'" data-u="'+fxKey(u)+'">'+inner+'</div>';
 }
@@ -14480,7 +14640,7 @@ function minionCard(m,canRelease,where){
   return '<div class="minion"><div><div class="u-head">'+ico(m.kind||m.name,m.rankI,m)+'<div class="u-id"><div class="u-top"><span class="rk r'+m.rankI+'">'+RANKS[m.rankI]+'</span><span class="u-tag">'+ROLES[m.role].label+(m.armed?' &middot; Armed':'')+(m.boss?' &middot; Boss':'')+(m.elite?' &middot; Elite':'')+' &middot; '+(rowOf(m)==='f'?'Front row':'Back row')+(m.wall?' &middot; On the wall':'')+'</span></div>'
    +(ui.rename===m.uid&&canRelease?'<div class="rn-row"><input id="rn" class="rn-in" maxlength="'+NICK_MAX+'" value="'+cleanNick(ui.rn==null?m.nick:ui.rn)+'" aria-label="New name for '+m.nick+'"><button class="btn small primary" data-a="rename" data-k="'+m.uid+'">Save</button><button class="btn small" data-a="renamex">Cancel</button></div>'
      :'<div class="u-name" style="'+(m.elite?'color:var(--gold)':'')+'">'+m.nick+' <span class="dim" style="font-size:15px">'+theName(mName(m))+'</span></div>')
-   +traitChips(m)
+   +traitChips(m)+armyLineHTML(m,canRelease)   /* charm, kills, gear-bearer powers (game-army.js) */
    +'<div class="m-links"><button class="linkbtn" data-a="mdet" data-k="'+m.uid+'" aria-expanded="'+(ui.mdet===m.uid)+'">'+(ui.mdet===m.uid?'Hide details':'Details')+'</button>'+rowBtn(m,'linkbtn',f=>f?'Move to back':'Move to front')+(canRelease&&S.mode!=='battle'&&ui.rename!==m.uid?'<button class="linkbtn" data-a="renameo" data-k="'+m.uid+'">Rename</button>':'')+'</div>'
    +(ui.mdet===m.uid?minionDetail(m):'')+'</div></div>'
    +'<div class="bars"><div class="meter"><div class="m-top"><span>'+sgl('hp','HP')+'</span><span class="num">'+m.hp+'/'+m.maxHp+'</span></div><div class="bar"><i class="fill hp" style="width:'+pct(m.hp,m.maxHp)+'%"></i></div></div>'
@@ -14628,7 +14788,7 @@ function armyView(list){
   return L;
 }
 const avBtn=(a,k,t,on)=>'<button class="btn small'+(on?' primary':'')+'" data-a="'+a+'" data-k="'+k+'" aria-pressed="'+on+'">'+t+'</button>';
-function armyTabHTML(){ return armySumHTML()+markPickHTML()+bondsArmyHTML()+armyRaidHTML()+armyFilterHTML()+armyHTML(armyView)+quickGearHTML()+evoHTML(); }
+function armyTabHTML(){ return armySumHTML()+charmsHTML()+markPickHTML()+bondsArmyHTML()+armyRaidHTML()+armyFilterHTML()+armyHTML(armyView)+quickGearHTML()+evoHTML(); }
 function armySumHTML(){
   const A=S.army, R=S.reserve||[], sum=(L,f)=>L.reduce((a,m)=>a+f(m),0), n=r=>A.filter(m=>m.role===r).length;
   const st=(l,v,t)=>'<div class="as-st"'+(t?' title="'+t+'"':'')+'><span class="u-tag">'+l+'</span><b class="num">'+v+'</b></div>';
@@ -14841,6 +15001,37 @@ function siegeChoiceHTML(){   // the intro screen's two choices: the guarded bui
   return (gb.length?'<p class="group-h">Guard a building</p><p class="u-sub" title="If the walls fall, the living cannot burn the building you guard; they fire another, or take gold if none is left.">Spared if the walls fall</p><div class="chips">'+gb.map(k=>chip('sguard',k,BUILD[k].name+' &middot; Lv '+blRaw(k),g.guard===k)).join('')+'</div>':'')
    +(pool.length?'<p class="group-h">On the wall &middot; '+w.length+'/'+SIEGE_WALL+'</p><p class="u-sub" title="Up to '+SIEGE_WALL+' minions from the Reserve fight this siege in your front row, then go back to the Reserve.">Reserve minions in your front row, tonight only</p><div class="chips">'+pool.map(m=>chip('swall',m.uid,m.nick+' &middot; Lv '+m.lvl,w.includes(m.uid),!w.includes(m.uid)&&w.length>=SIEGE_WALL)).join('')+'</div>':'');
 }
+
+// ===== R12 PR A: charms, kill counts, gear-bearer powers and name lines on the Army tab (game-army.js) =====
+function armyLineHTML(m,can){   // under a minion's traits: its charm (a picker in town), its kills, its gear-bearer powers
+  const town=S.mode==='town'&&can, P=Array.isArray(S.charms)?S.charms:[], fl=mfFlags(m);
+  let h='<div class="u-sub m-charm">';
+  h+=m.charm?'<span class="kit" title="'+echoTxt(m.charm.k)+(charmV(m.charm)>1?' (x1.5: its kind is Ledgered)':'')+'">'+charmName(m.charm)+' <span class="dim">from '+cleanText(m.charm.src)+'</span></span>':'<span class="dim">No charm</span>';
+  if(town&&(P.length||m.charm)) h+=' <select class="ch-sel" data-a="charm" aria-label="Charm for '+m.nick+'"><option value="">'+(m.charm?'Change charm':'Give a charm')+'</option>'
+    +P.map((c,i)=>'<option value="'+m.uid+'|'+i+'">'+charmName(c)+' ('+cleanText(c.src)+')</option>').join('')+(m.charm?'<option value="'+m.uid+'|x">Take it off</option>':'')+'</select>';
+  if(m.kills) h+=' &middot; <span>Kills '+m.kills+(m.nl?' (named in the Ledger)':'')+'</span>';
+  h+='</div>';
+  if(fl.length) h+='<div class="u-sub m-mf">'+fl.map(f=>'<span class="kit" title="'+MINION_FLAG[f]+'">'+FLAGS[f].split(':')[0]+'</span>: '+MINION_FLAG[f]).join('<br>')+'</div>';
+  return h;
+}
+function charmsHTML(){   // the charm pouch and the bench where they are made (town only)
+  if(S.mode!=='town') return ''; const P=Array.isArray(S.charms)?S.charms:[], worn=S.army.concat(S.reserve||[]).filter(m=>m.charm).length;
+  const kinds=charmKinds().filter(n=>charmKnown(n)||((S.trophies||{})[charmKey(n)]||0)>0).sort((a,b)=>(craftWhy(a)?1:0)-(craftWhy(b)?1:0)||charmTier(a)-charmTier(b));
+  let h='<section class="win" aria-labelledby="h-charm"><h2 class="win-h" id="h-charm">Charms &middot; '+P.length+' in the pouch, '+worn+' worn</h2>'
+   +brief('charms','A charm is made from '+CHARM_TROPHIES+' trophies of one kind you know and some gold. It carries that kind\'s kit as an echo, like an Undone body, on any minion you give it to. One charm a minion; move them freely in town. A charm of a Ledgered kind is half again as strong.','q-note');
+  if(P.length) h+='<p class="u-sub">'+P.map(c=>'<span class="kit" title="'+echoTxt(c.k)+'">'+charmName(c)+'</span> <span class="dim">('+cleanText(c.src)+')</span>').join(', ')+'</p>';
+  if(!kinds.length) return h+'<p class="q-note">Know a kind in the bestiary (and keep its trophies) to make its charm.</p></section>';
+  h+='<div class="ch-list">'+kinds.slice(0,ui.chAll?999:8).map(n=>{ const w=craftWhy(n), k=KIT_OF[n];
+    return '<div class="mrow"><span class="mr-name"><b>'+KITS[k].name+' charm</b> <span class="dim">'+n+' &middot; '+((S.trophies||{})[charmKey(n)]||0)+'/'+CHARM_TROPHIES+' trophies</span></span><span class="u-sub">'+echoTxt(k)+'</span>'
+     +'<span class="mr-acts"><button class="btn small" data-a="craftc" data-k="'+n+'"'+(w?' disabled title="'+w+'"':'')+'>Make &middot; '+charmCost(n)+' gold</button></span></div>'; }).join('')+'</div>';
+  if(kinds.length>8) h+='<div class="btns"><button class="linkbtn" data-a="chall">'+(ui.chAll?'Show fewer':'Show all '+kinds.length)+'</button></div>';
+  return h+'</section>';
+}
+function nameLinesHTML(){   // the Memorial: names written into the Ledger at NAME_AT kills
+  const L=Array.isArray(S.nameLines)?S.nameLines:[]; if(!L.length) return '<p class="q-note">A minion that takes '+NAME_AT+' lives has its name written into the Ledger: +'+Math.round(NAME_K*100)+'% HP and attack for every minion of its role, for good ('+NAME_MAX+' names at most).</p>';
+  return '<p class="group-h">Names in the Ledger &middot; '+L.length+'/'+NAME_MAX+'</p><p class="u-sub">'+L.map(l=>'<b>'+cleanText(l.name)+'</b> <span class="dim">('+ROLES[l.role].label+', day '+l.day+')</span>').join(', ')+'</p>';
+}
+
 function render(){   // draws only: titles and lore are settled by the input handlers (settled), so a drawn and an undrawn turn play the same
   document.body.classList.toggle('hell', S.mode==='town'?ui.tab==='tower':!!(S.run&&S.run.tw));   // hell backdrop on the Tower tab and during a climb
   document.body.classList.toggle('fight', S.mode!=='town');   // a slimmer header while you are in a gate or the Tower
@@ -14925,7 +15116,7 @@ const ACTIONS={
   mark:k=>{ const a=k.split('|'); chooseMark(+a[0],a[1]); },
   tores:k=>{ toReserve(+k); }, toarmy:k=>{ toArmy(+k); }, swapo:k=>{ ui.swap=ui.swap===+k?null:+k; }, swap:k=>{ const a=k.split('|'); if(swapReserve(+a[0],+a[1])) ui.swap=null; },
   rsort:k=>{ sortReserve(k); }, gatearmy:k=>{ fromGate(+k,'army'); }, gateres:k=>{ fromGate(+k,'reserve'); },
-  event:k=>{ resolveEvent(k); }, door:k=>{ descend(k); }, cmd:k=>{ command(k); }, rally:k=>{ rally(k); }, sgn:()=>{ useSgn(); }, wager:k=>{ if(!wager(k==='none'?null:+k)) ui.msg={m:'They will not take that one.',c:'bad'}; },
+  event:k=>{ resolveEvent(k); }, door:k=>{ descend(k); }, cmd:k=>{ command(k); }, rally:k=>{ rally(k); }, craftc:k=>{ craftCharm(k); }, chall:()=>{ ui.chAll=!ui.chAll; }, charm:v=>{ const a=String(v).split('|'); if(a.length<2) return; if(a[1]==='x') takeCharm(+a[0]); else giveCharm(+a[0],+a[1]); syncArmy(); }, sgn:()=>{ useSgn(); }, wager:k=>{ if(!wager(k==='none'?null:+k)) ui.msg={m:'They will not take that one.',c:'bad'}; },
   rgate:()=>{ startRivalGate(); }, reck:()=>{ startReckoning(); }, rend:k=>{ arcEnd(k); }, atrade:k=>{ if(!allyTrade(+k)) ui.msg={m:'They will not take that one.',c:'bad'}; },   /* the rival's end (game-rival-arc.js) */
   skmod:k=>{ const a=k.split('|'); chooseMod(a[0],a[1]); },
   build:k=>{ const c=buildCost(k); ui.msg=build(k)?{mk:1,m:BUILD[k].name+' raised to level '+bl(k)+' for '+c[0]+' gold'+(c[1]?' and '+c[1]+' bone dust':'')+'.',c:'ok'}:null; },

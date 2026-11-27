@@ -91,7 +91,7 @@ test('Undone: a weakness kill leaves an Undone body that rises with the trait an
   const m=mkMinion({lvl:20,kind:'Tunnel Rat',traits:['undone'],rankI:0}); eq(echoOf(m),'pack'); mkMinion({lvl:20,rankI:0}); mkMinion({lvl:20,rankI:0});
   near(echoDmg(m,null),1+ECHO.pack*2,1e-9);
   const b=mkMinion({lvl:20,kind:'Pyre Witch',traits:['undone'],role:'mender'}); near(echoDmg(m,null),(1+ECHO.pack*3)*(1+ECHO.banner),1e-9,'a Banner echo lifts the others');
-  const w=mkMinion({lvl:20,kind:'Warren Bandit',traits:['undone']}); near(echoDmg(w,null)/(1+ECHO.banner),1+ECHO_PLAIN,1e-9,'no echo: +10%');
+  const w=mkMinion({lvl:20,kind:'Warren Bandit',traits:['undone']}); near(echoDmg(w,null),1+ECHO.banner,1e-9,'a thief echo adds no damage'); { const t=foe({hp:1e6}); S.player.mana=0; echoHit(w,t); eq(S.player.mana,ECHO.thief,'a thief echo gives mana'); }
   const st=mkMinion({lvl:20,kind:'Grave Beetle',traits:['undone']}); S.run.turn=2; eq(echoDr(st,1000),700); S.run.turn=3; eq(echoDr(st,1000),1000);
   const gc=mkMinion({lvl:20,kind:'Drowned Priest',traits:['undone']}); const v=mkMinion({lvl:20}); v.hp=0; ok(echoCall(v)); eq(v.hp,Math.round(v.maxHp*ECHO.call)); v.hp=0; ok(!echoCall(v),'once a room');
   ok(/Echo: /.test(renderAll('battle')),'the minion card names its echo (the small card in its title)'); ok(trText('Undone')!=='Undone');
