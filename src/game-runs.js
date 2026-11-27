@@ -321,7 +321,7 @@ function roomWon(){
     if(m.hp<=0) r.downs=(r.downs||0)+1;   /* downed this room: a Trial's score counts them */
     if(m.hp>0){ if(minionXp(m,Math.round(share*ascReadXp(r,m)))) r.events.push({m:m.nick+' reaches level '+m.lvl+'.',c:'ok'}); continue; }
     const ch=r.wk?0:shatterOdds(m);   /* nothing shatters in the weekly dive (game-rift.js) */
-    if(Math.random()*100<ch&&!secondHand(m,r)){ r.lostN=(r.lostN||0)+1; returnGear(m); S.army=S.army.filter(x=>x!==m); downs.push({m:m.nick+', '+theName(mName(m))+', shattered and is gone ('+ch+'% chance).',c:'bad'}); memorialize(m,r.tw?{f:r.tw}:r.rift?{rd:r.rift}:{g:r.di}); }
+    if(Math.random()*100<ch&&!secondHand(m,r)&&!consBreak(m,r)){ r.lostN=(r.lostN||0)+1; returnGear(m); S.army=S.army.filter(x=>x!==m); downs.push({m:m.nick+', '+theName(mName(m))+', shattered and is gone ('+ch+'% chance).',c:'bad'}); memorialize(m,r.tw?{f:r.tw}:r.rift?{rd:r.rift}:{g:r.di}); }
     else{ m.hp=Math.ceil(m.maxHp*ascBind()); bound.push(m); }
   }
   if(bound.length){ const ch=Math.max(...bound.map(shatterOdds)); downs.push({m:'Downed but bound back together at '+Math.round(ascBind()*100)+'% HP: '+bound.map(m=>m.nick).join(', ')+'. '+(ch?'The chance to shatter was '+ch+'%.':'None of them could shatter.'),c:'down'}); }

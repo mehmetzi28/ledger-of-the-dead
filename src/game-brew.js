@@ -117,7 +117,7 @@ function commPay0(c){
   return {g:COMM_MIN_GOLD*c.st+100*S.player.lvl,d:20};
 }
 const commItem=c=>c.k==='hf'?S.inv.find(it=>it.hf&&!it.lk&&ITEM[it.id].slot===c.slot):null;
-const commMinion=c=>c.k==='min'?S.army.filter(m=>m.role===c.role&&(m.stage||0)>=c.st&&!m.lk&&!m.wall&&!m.thrall).sort((a,b)=>a.lvl-b.lvl)[0]:null;
+const commMinion=c=>c.k==='min'?S.army.filter(m=>m.role===c.role&&(m.stage||0)>=c.st&&!m.lk&&!m.wall&&!m.thrall&&!m.cons).sort((a,b)=>a.lvl-b.lvl)[0]:null;
 function commCan(i){ const c=commissions()[i]; if(!c||c.done||S.mode!=='town') return false;
   if(c.k==='tro') return trosOf(c.role,c.g).reduce((a,k)=>a+S.trophies[k],0)>=c.n;
   if(c.k==='hf') return !!commItem(c); return !!commMinion(c); }

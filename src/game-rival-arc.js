@@ -39,7 +39,7 @@ function arcTick(r){   // dawn, after a challenge and after a siege: the next ch
 const wagerOpen=()=>!!S&&rivalArcOn()&&rivalOpen()&&arc().ch>=2&&rivalWarned()&&S.mode==='town'&&(rv().stash||[]).length>0;
 function theirStake(m){   // the stash body they put up against m: the closest at m's tier or above; never above their best
   if(!m) return null; const L=(rv().stash||[]).filter(b=>b.rankI>=m.rankI).sort((x,y)=>x.rankI-y.rankI||(x.elite-y.elite)||(y.day-x.day)); return L[0]||null; }
-const canStake=m=>!!m&&(S.reserve||[]).includes(m)&&!m.lk&&!m.boss&&!m.tw&&!!gateMob(m.kind||m.name)&&!!theirStake(m);
+const canStake=m=>!!m&&(S.reserve||[]).includes(m)&&!m.lk&&!m.boss&&!m.tw&&!m.cons&&!!gateMob(m.kind||m.name)&&!!theirStake(m);
 function wager(uid){   // stake a Reserve minion for today's (or tomorrow's) challenge; null withdraws it
   if(!wagerOpen()) return false; const a=arc();
   if(uid==null){ a.wg=null; return true; }
@@ -80,7 +80,7 @@ function rivalSiegeWon(r){   // siegeWon: two stolen bodies come back, and the n
 }
 function rivalSiegeLost(r){   // siegeLost: they take one of your Reserve as well
   const a=arc(), g=rv(); a.rs=3; tally('rivalSiegeLosses');
-  const m=(S.reserve||[]).filter(x=>!x.lk&&!x.boss&&!x.tw&&gateMob(x.kind||x.name)).sort((x,y)=>x.lvl-y.lvl)[0];
+  const m=(S.reserve||[]).filter(x=>!x.lk&&!x.boss&&!x.tw&&!x.cons&&gateMob(x.kind||x.name)).sort((x,y)=>x.lvl-y.lvl)[0];
   if(m){ minionBody(m); notify(g.name+' carries '+m.nick+' away from your Reserve in the smoke.','bad'); }
   arcTick(r);
 }
@@ -154,7 +154,7 @@ function reckLastPage(e){   // checkPhase: The Last Page, they burn their own fo
 function reckDown(e,r){ arc().pick=1; tally('reckWins'); r.reckWon=1; moment(e.name+' kneels','gold'); log(e.name+' kneels in the torn pages. Their fate is yours to write.','story'); }
 function reckCleared(r){ r.cleared=true; r.events.push({m:rv().name+' kneels. Choose their fate on the Gates tab: end them, or spare them.',c:'ok'}); return Math.round(RK[r.di].clear); }
 function reckLost(r){   // fell or fled with the rival standing: one more body, and the duel again in a week
-  const a=arc(), g=rv(); a.rd=S.day+ARC_DUEL_WAIT; tally('reckLosses'); const m=(S.reserve||[]).filter(x=>!x.lk&&!x.boss&&!x.tw&&gateMob(x.kind||x.name)).sort((x,y)=>x.lvl-y.lvl)[0];
+  const a=arc(), g=rv(); a.rd=S.day+ARC_DUEL_WAIT; tally('reckLosses'); const m=(S.reserve||[]).filter(x=>!x.lk&&!x.boss&&!x.tw&&!x.cons&&gateMob(x.kind||x.name)).sort((x,y)=>x.lvl-y.lvl)[0];
   notify(g.name+' stands over you in the torn pages.'+(m?' They take '+m.nick+' from your Reserve.':'')+' They will wait for you again in '+ARC_DUEL_WAIT+' days.','bad'); if(m) minionBody(m);
 }
 const reckStanding=r=>!!(r&&r.rk&&r.enemies.some(e=>e.reck&&e.hp>0));
@@ -171,7 +171,7 @@ function arcEnd(k){   // after the duel: 'end' or 'spare'
 // ----- The ally (New Game+ after sparing): a weekly body trade, and the first siege of each cycle's first wave
 const allyOn=()=>!!S&&!!S.ally&&(S.ngp||0)>S.ally.ngp;
 function allyOffer(){ if(!allyOn()||S.ally.week===trialWeek()||!S.ally.stash.length) return null; return S.ally.stash[dayHash(trialWeek(),S.ngp||0,61)%S.ally.stash.length]; }
-const allyCan=m=>{ const b=allyOffer(); return !!b&&!!m&&(S.reserve||[]).includes(m)&&!m.lk&&!m.boss&&!m.tw&&!!gateMob(m.kind||m.name)&&m.rankI===b.rankI; };
+const allyCan=m=>{ const b=allyOffer(); return !!b&&!!m&&(S.reserve||[]).includes(m)&&!m.lk&&!m.boss&&!m.tw&&!m.cons&&!!gateMob(m.kind||m.name)&&m.rankI===b.rankI; };
 function allyTrade(uid){ if(S.mode!=='town') return false; const m=(S.reserve||[]).find(x=>x.uid===uid), b=allyOffer(); if(!allyCan(m)) return false;
   S.ally.stash=S.ally.stash.filter(x=>x!==b); const mb=minionBody(m); rv().stash=rv().stash.filter(x=>x!==mb); delete mb.mine; S.ally.stash.push(mb); S.ally=allyFix(S.ally);
   const p=bodyMinion(b); S.ally.week=trialWeek(); tally('allyTrades'); notify(S.ally.name+' takes '+m.nick+' and gives you '+p.m.nick+', once '+withArticle(b.base)+'.','ok'); return true; }

@@ -441,7 +441,7 @@ const TRAIT_RES={rimeborn:['frost',.25],cinderborn:['fire',.25],necrotic:['rot',
 function allyRes(a,ty){ if(!ty||ty==='phys') return 0; if(a.id==='p'){ const k=DTYPE[ty].res; return k?Math.min(RES_CAP,G(k)/100):0; } let v=0; for(const t in TRAIT_RES) if(TRAIT_RES[t][0]===ty&&hasTrait(a,t)) v=Math.max(v,TRAIT_RES[t][1]); return v; }
 const DOT_TYPE={poison:'rot',blight:'rot',burn:'fire',bleed:'phys'};
 const foeHitType=e=>hasAff(e,'frosty')?'frost':hasAff(e,'burning')?'fire':e.role!=='striker'?'phys':S.run&&S.run.siege?SIEGE_HITS:S.run&&S.run.tw?TOWER_HITS:GATE_HITS[S.run?S.run.di:0]||'phys';
-function minionType(m){ { const o=oilType(); if(o) return o; }   /* a weapon oil (game-brew.js) */ if(hasTrait(m,'shatterwrought')) return m.swt?'fire':'frost'; if(hasTrait(m,'rimeborn')) return 'frost'; if(hasTrait(m,'cinderborn')) return 'fire'; if(hasTrait(m,'venom')||hasTrait(m,'necrotic')) return 'rot'; if(hasTrait(m,'bloodfiend')) return 'shad'; return 'phys'; }   // compounds count as both halves (hasTrait)
+function minionType(m){ { const o=oilType(); if(o) return o; } { const c=consType(m); if(c) return c; }   /* a construct's arms (game-workshop.js) */   /* a weapon oil (game-brew.js) */ if(hasTrait(m,'shatterwrought')) return m.swt?'fire':'frost'; if(hasTrait(m,'rimeborn')) return 'frost'; if(hasTrait(m,'cinderborn')) return 'fire'; if(hasTrait(m,'venom')||hasTrait(m,'necrotic')) return 'rot'; if(hasTrait(m,'bloodfiend')) return 'shad'; return 'phys'; }   // compounds count as both halves (hasTrait)
 const resWord=v=>v<=-.5?'very weak':v<0?'weak':v>=.5?'resists strongly':'resists';
 let S = null;
 const rnd = (a,b)=>a+Math.random()*(b-a);

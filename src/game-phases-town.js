@@ -291,7 +291,7 @@ function useUlt(t){
 // higher evolution stage and takes the other's traits (up to three). A minion can take at most two fusions in all. The other's gear goes back to your bag.
 const FUSE_LV=1, FUSE_TRAITS=3, FUSE_MAX=2, FUSE_GOLD=60;   // FUSE_GOLD: gold per level of the two minions together
 const fuseCost=(a,b)=>Math.round((a.lvl+b.lvl)*FUSE_GOLD);
-const canFuse=(a,b)=>!!a&&!!b&&a!==b&&a.role===b.role&&(a.fused||0)+(b.fused||0)<FUSE_MAX;   // a minion takes at most two fusions in all
+const canFuse=(a,b)=>!!a&&!!b&&a!==b&&!a.cons&&!b.cons&&a.role===b.role&&(a.fused||0)+(b.fused||0)<FUSE_MAX;   // a minion takes at most two fusions in all
 const fuseOrder=(a,b)=>b.lvl>a.lvl||(b.lvl===a.lvl&&(b.stage||0)>(a.stage||0))?[b,a]:[a,b];   // [survivor, consumed]
 function fuseTraits(k,x){   // the survivor's traits, then the other's it lacks; recipe pairs become their compound; then the cap
   const all=(k.traits||[]).slice(); for(const t of x.traits||[]) if(!all.includes(t)&&(t!=='commander'||canLead(k))) all.push(t);   // only an elite or boss keeps Commander

@@ -61,7 +61,7 @@ function syncMinion(m){
   if(m.maxHp!=null && nh>m.maxHp) m.hp+=nh-m.maxHp;
   m.maxHp=nh; m.atk=na; m.hp=Math.min(m.hp,m.maxHp);
 }
-const syncArmy = ()=>{ S.army.forEach(syncMinion); (S.reserve||[]).forEach(syncMinion); (S.waiting||[]).forEach(syncMinion); };   // benched and waiting minions keep up with Will and gear too
+const syncArmy = ()=>{ S.army.forEach(syncMinion); (S.reserve||[]).forEach(syncMinion); (S.waiting||[]).forEach(syncMinion); (S.broken||[]).forEach(syncMinion); };   // benched and waiting minions keep up with Will and gear too
 
 const MOMENTS=[];   // banners for big moments; render() shows them once, then clears them
 function moment(t,c,k){ MOMENTS.push(k?{t,c:c||'ok',k}:{t,c:c||'ok'}); if(MOMENTS.length>3) MOMENTS.shift(); }   // k: 'lvl' or 'title', drawn as the big framed banner
@@ -211,7 +211,7 @@ function normalizeSave(src){
   { const c=g.player.cmd; if(!hadCmd||!(obj(c)&&c.a>=0&&c.h>=0&&isFinite(c.a)&&isFinite(c.h))) g.player.cmd=cmdPow(Array.isArray(g.army)?g.army:[]); else g.player.cmd={a:Math.round(c.a),h:Math.round(c.h)}; }   // Command: an old or damaged save measures its army again
   const okB=b=>obj(b)&&BOUNTIES[b.id]&&typeof b.n==='number'&&typeof b.base==='number'&&obj(b.rw)&&typeof b.claimed==='boolean';
   g.bounty=(obj(g.bounty)&&typeof g.bounty.day==='number'&&Array.isArray(g.bounty.list)&&g.bounty.list.every(okB))?g.bounty:null;
-  memorialFix(g); nemFix(g); modesFix(g); codeFix(g); inscFix(g); collFix(g); cosFix(g); lostFix(g); mapFix(g); vilFix(g); phylFix(P); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
+  memorialFix(g); nemFix(g); modesFix(g); codeFix(g); inscFix(g); collFix(g); cosFix(g); lostFix(g); mapFix(g); vilFix(g); phylFix(P); consFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
   return g;
 }
 function validSave(g){ return !!normalizeSave(g); }

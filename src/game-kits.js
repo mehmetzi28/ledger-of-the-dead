@@ -138,8 +138,8 @@ const kit2Chip=e=>e.kit2&&KITS[e.kit2]?' &middot; <span class="kit kit2" title="
 // carries the same echo from a crafted kind, at echo strength (x1.5 when that kind is Ledgered); every kit has its echo.
 const ECHO={shield:.09,pack:.06,stance:.3,thorns:.09,frenzy:.09,banner:.06,marker:.15,call:.25,
   ambush:.3,thief:1,bomb:.3,sapper:.5,skirm:.3,hexer:3,purify:1,burrow:.5}, ECHO_PACK_MAX=3, ECHO_SKIRM_AT=.3;
-const echoV=(m,k)=>{ if(!m||m.id==='p') return 0; let v=hasTrait(m,'undone')&&KIT_OF[m.kind]===k?1:0; if(m.charm&&m.charm.k===k) v=Math.max(v,charmV(m.charm)); return v; };   // 0: no such echo
-const echoKits=m=>{ if(!m||m.id==='p') return []; const o=[]; if(hasTrait(m,'undone')&&KIT_OF[m.kind]) o.push(KIT_OF[m.kind]); if(m.charm&&KITS[m.charm.k]&&!o.includes(m.charm.k)) o.push(m.charm.k); return o; };
+const echoV=(m,k)=>{ if(!m||m.id==='p') return 0; let v=hasTrait(m,'undone')&&KIT_OF[m.kind]===k?1:0; if(m.charm&&m.charm.k===k) v=Math.max(v,charmV(m.charm)); if(consEchoK(m,k)) v=Math.max(v,1); return v; };   /* a construct's head (game-workshop.js) */   // 0: no such echo
+const echoKits=m=>{ if(!m||m.id==='p') return []; const o=[]; if(hasTrait(m,'undone')&&KIT_OF[m.kind]) o.push(KIT_OF[m.kind]); if(m.charm&&KITS[m.charm.k]&&!o.includes(m.charm.k)) o.push(m.charm.k); for(const k of consKits(m)) if(!o.includes(k)) o.push(k); return o; };
 const echoOf=m=>echoKits(m)[0]||null;
 const echoK=m=>echoOf(m);
 function echoDmg(m,tg){   // an echo on its own blows, and every Banner echo standing beside it

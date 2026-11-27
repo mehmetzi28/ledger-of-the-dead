@@ -218,7 +218,9 @@ link between existing ones)
   PR B**: five forms by build (Lich, Blood Lord, Bone Colossus, Choir Saint, Plague Herald) that change the kit and
   the hero's look, with a second stage at 75, an apotheosis at 100, and the endings' Clean Hand and Ledger's Own lines.
 - **G31. Minions can be shaped but never designed.** Every minion is a foe that rose; spare bodies and trophies have no
-  creative use. (Army, crafting, trophies.) R22.
+  creative use. (Army, crafting, trophies.) R22. **Mostly closed by R22 PR A**: the Bone Workshop sews constructs from
+  parts (trophies or Embalmery bodies) in four slots, with boss-heart, Soul and Rift cores; they break instead of
+  shattering and are repaired, and parts can be replaced. The evolution slots and *Eternal Machine* come in PR B.
 - **G32. A fallen minion's line ends.** The Memorial remembers names, but nothing of what a minion was carries into the
   next raise of its kind; raising is only a dice roll, never a slow craft. (Memorial, raising, Embalmery.) R23.
 - **G33. The keeper does everything personally.** No one but the hero (and a raid squad) works; no succession for the

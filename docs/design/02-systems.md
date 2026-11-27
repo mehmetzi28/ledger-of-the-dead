@@ -493,6 +493,20 @@ Earthshaker, Hymn of All, Pandemic); both stay open once reached. The hero's spr
 (one per form, Apotheosis). Close the book under corruption 25 adds *The Clean Hand* to the epilogue, above 75 *The
 Ledger's Own*.
 
+**The Bone Workshop and constructs** (R22 PR A, `src/game-workshop.js`): a building that opens at the Crypt L2. Parts
+(`S.parts`) are sewn from 6 trophies of one kind (4 with *Bonesmith*) or cut from a body kept in the Embalmery (two with
+*Flesh Sculptor*). A **construct** takes four slots: the **frame** sets its role and HP factor (its gate is the tier),
+the **arms** its attack factor and damage type (a striker's arms hit with their gate's type), the **head** its kind's
+kit as a full echo plus the role's trait (Stalwart, Vicious, Warded, Wrathful, Hexing), and the **core** a spare boss
+heart (+15% HP and attack, +25% from a secret master), a Soul core (40 bone dust: a Soul once a room when it kills) or a
+Rift core (3 shards: +10% attack, +25% in the Rift). Parts below the frame's gate cost 5% a step of the average.
+Building costs 1,000 gold and 10 dust a tier and a watch. A construct is an ordinary minion record (`m.cons`) that
+levels and evolves, can never be fused, sold at the Grave Market, staked, fed to the Hunger or taken by the rival, and
+never shatters: it **breaks** (`S.broken`) and is repaired after a day (300 gold and 5 dust a tier, half at L2, free and
+at once with *Living Steel*). A part can be replaced in town (500 gold a tier, the old part lost); *Masterwork* allows a
+second head. The Workshop keeps 1/2/3 constructs at L1/2/5 (broken ones count); L4 gives +10% max HP, and its siege
+perk +10% max HP on the wall. Four titles (First Stitch, Patchwork Army, Heart of a King, Every Gate in One).
+
 **Vane Abbey, the seventh gate** (`ABBEY`=6, rank SS, src/game-abbey.js, R3 PR A). Its card shows once the Throne of Ash
 falls, as a sealed door with two key slots (`ABBEY_KEYS`): the deep route (Throne cleared, Tower floor `ABBEY_TOWER` 90,
 `ABBEY_PAGES` 20 torn pages) or the secret route (Throne cleared, all six secret masters slain). Either key opens it for
