@@ -3763,3 +3763,24 @@ TR_RX.unshift([/^The Inquisition sues for peace: no siege for (\d+) days, and th
  [/^Build · (\d+) gold(?: · (\d+) dust)?$/,"İnşa et · $1 altın"],[/^(\d+) gold, (\d+) dust$/,"$1 altın, $2 toz"],[/^(\d+) gold$/,"$1 altın"],[/^(.+) \(built\)$/,"$1 (inşa edildi)"],
  [/^(.+) \((Shieldbearer|Ambusher|Mana thief|Gravecaller|Pack hunter|Bomber|Sapper|Skirmisher|Bulwark stance|Hexer|Marker|Purifier|Burrower|Thorned|Frenzy|Banner-bearer)\)$/,"$1 ({t2})"],
  [/^From the Ledger, "(Templars on the road|An Inquisitor's letter|The pyres in the valley|The last crusade)": (.+)$/,"Defterden, \"{t1}\": {t2}"]);
+// ----- R15 PR A: modes (Ironman, custom difficulty)
+[
+ ["Modes","Modlar"],["Mode","Mod"],["Normal","Normal"],["Ironman","Demir Adam"],["Story","Hikâye"],["Hardened","Sertleşmiş"],["Custom","Özel"],["Harder","Daha zor"],["Off","Kapalı"],
+ ["A mode is chosen at New game (Settings) and kept for the whole game, New Game+ too","Mod Yeni oyunda (Ayarlar) seçilir ve Yeni Oyun+ dahil bütün oyun boyunca kalır"],
+ ["The game as it is meant: every rule as written","Oyun amaçlandığı gibi: her kural yazıldığı gibi"],
+ ["One life for the run: no Instant Retry and no save slots. A lost room costs the whole run's spoils and one minion that fell in it shatters. Cannot be turned off","Akın başına tek can: Anında Yeniden Deneme ve kayıt yuvası yok. Kaybedilen bir oda bütün akının ganimetine mal olur ve orada düşen bir hizmetkâr parçalanır. Kapatılamaz"],
+ ["Foes have #% of their HP and attack; raising is #% likelier. Custom: no titles","Düşmanların canı ve saldırısı %#; diriltme %# daha olası. Özel: unvan yok"],
+ ["Foes have #% HP and attack; gold is #%. Titles are earned as usual","Düşmanların canı ve saldırısı %#; altın %#. Unvanlar her zamanki gibi kazanılır"],
+ ["Set foe HP and attack, raise chance, gold and siege frequency yourself. Easing any of them marks the save Custom: no titles","Düşman canını ve saldırısını, diriltme şansını, altını ve kuşatma sıklığını kendin ayarla. Herhangi birini kolaylaştırmak kaydı Özel yapar: unvan yok"],
+ ["Custom difficulty","Özel zorluk"],["Each setting moves in steps of #%. A game that eases any of them (foes or sieges below #%, raise or gold above) is Custom and earns no titles; making it only harder keeps them","Her ayar %#'luk adımlarla değişir. Herhangi birini kolaylaştıran oyun (düşmanlar ya da kuşatmalar %#'ün altında, diriltme ya da altın üstünde) Özeldir ve unvan kazanmaz; yalnızca zorlaştırmak onları korur"],
+ ["Foe HP","Düşman canı"],["Foe attack","Düşman saldırısı"],["Raise chance","Diriltme şansı"],["Gold","Altın"],["Siege frequency","Kuşatma sıklığı"],
+ ["#% to #%","%# ile %# arası"],["#% to #%, or off","%# ile %# arası ya da kapalı"],
+ ["Ironman titles","Demir Adam unvanları"],["Iron Keeper","Demir Bekçi"],["Clear the Throne of Ash in an Ironman game","Bir Demir Adam oyununda Throne of Ash'i temizle"],["Iron Book","Demir Kitap"],["End a cycle in an Ironman game","Bir Demir Adam oyununda bir döngüyü bitir"],
+ ["Iron Climb","Demir Tırmanış"],["Reach Hell Tower floor # in an Ironman game","Bir Demir Adam oyununda Hell Tower'ın #. katına ulaş"],
+ ["Ironman: this game cannot be saved to a slot","Demir Adam: bu oyun bir yuvaya kaydedilemez"],["Ironman games cannot be saved to a slot","Demir Adam oyunları bir yuvaya kaydedilemez"],["Custom: this game will earn no titles","Özel: bu oyun unvan kazanmayacak"],
+ ["Ironman: one life for each run. There is no Retry, and a fall costs the run's spoils and one of the fallen","Demir Adam: her akın için tek can. Yeniden deneme yok ve bir düşüş akının ganimetine ve düşenlerden birine mal olur"],
+ ["Custom difficulty: titles are not earned in this game","Özel zorluk: bu oyunda unvan kazanılmaz"],["Less","Daha az"],["More","Daha çok"]
+].forEach(([k,v])=>TR_DICT.set(k,v));
+TR_RX.unshift([/^Press again to erase everything and start: (.+)$/,"Her şeyi silip başlatmak için yeniden bas: {t1}"],[/^This game: (.+)$/,"Bu oyun: {t1}"],[/^Ironman, (\d+) falls?$/,"Demir Adam, $1 düşüş"],
+ [/^This game: (\d+)%$/,"Bu oyun: %$1"],[/^This game: off$/,"Bu oyun: kapalı"],[/^This is an Ironman game: (\d+) falls so far\.?$/,"Bu bir Demir Adam oyunu: şimdiye dek $1 düşüş"],
+ [/^Ironman: the fall costs (.+)\.?$/,"Demir Adam: düşüşün bedeli: $1"],[/^(.+) shatters as you fall\. Ironman takes one of the fallen\.?$/,"$1 sen düşerken parçalanıyor. Demir Adam düşenlerden birini alır"]);

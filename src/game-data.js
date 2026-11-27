@@ -420,7 +420,7 @@ const REC_TIER=[1,.2,.18,.13], REC_TIER_F=[1,1.8,2.5,3.6];
 const tierRaw=(di,h,f)=>REC_BASE[di]+recShift(di)+ngpRec(di)+(REC_TIER[h]||1)*(recShift(di,f)-recShift(di));
 const tierRec=(di,h)=>{ let r=gateRec(di); for(let t=1;t<=(h||0)&&t<HEAT.length;t++) r=Math.max(r+1,Math.round(tierRaw(di,t,HEAT[t].foe))); return r; };   // each tier at least a level above the one below
 const NGP_FOE=.15, NGP_REWARD=.25, ngpFoe=()=>(1+NGP_FOE*((S&&S.ngp)||0))*ngpQuiet(), ngpReward=()=>(1+NGP_REWARD*((S&&S.ngp)||0))*pactReward()*ascReward();   /* R10: +15% foes a level (was +30%); the ascension rules carry the rest (game-asc.js) */   // New Game+: tougher foes, richer rewards
-function foeScale(list,a){ const n=ngpFoe(); for(const e of list){ if(n!==1){ e.maxHp=e.hp=Math.round(e.maxHp*n); } if(a*n!==1) e.atk=Math.max(1,Math.round(e.atk*a*n)); } }
+function foeScale(list,a){ const n=ngpFoe(), ch=n*custK('foeHp'), ca=a*n*custK('foeAtk'); for(const e of list){ if(ch!==1){ e.maxHp=e.hp=Math.max(1,Math.round(e.maxHp*ch)); } if(ca!==1) e.atk=Math.max(1,Math.round(e.atk*ca)); } }   /* custom difficulty (game-modes.js) */
 const foeArmor=()=>{ if(!S.run) return 0; const a=S.run.tw?TW.armor:DIFF.armor[S.run.trial?TRIAL_GATE:S.run.di]*(S.run.siege?siegeArmorK():1); return sigArmor(omen()==='ironrain'?1-(1-a)/IRON_ARMOR:a); };   /* Iron Sky (game-rift.js) */   // Iron Rain: foes 25% tougher to hurt
 // ===== DAMAGE TYPES =====
 // Every hit has one of five types (hurtFoe / hurtAlly take it; physical when none is given). A foe's resistance to a type comes from where it

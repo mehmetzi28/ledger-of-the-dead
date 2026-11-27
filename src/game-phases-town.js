@@ -419,12 +419,12 @@ const SIEGE_PERK={
 const blRaw=k=>(S&&S.build&&S.build[k])||0;   // the level built, damaged or not (bl is what works)
 const sg=()=>{ if(!S.siege) S.siege={next:0,pending:false,dmg:null,warned:0}; return S.siege; };
 const builtLevels=()=>Object.keys(BUILD).reduce((a,k)=>a+blRaw(k),0);
-let siegeOpen=()=>!!S&&townOpen()&&builtLevels()>=SIEGE_BUILT;   // let: the balance bot switches sieges off with "off":["siege"]
+let siegeOpen=()=>!!S&&townOpen()&&builtLevels()>=SIEGE_BUILT&&custK('siege')>0;   /* custom: sieges off (game-modes.js) */   // let: the balance bot switches sieges off with "off":["siege"]
 const siegeTonight=()=>!!S&&siegeOpen()&&sg().next>0&&S.day>=sg().next;
 const siegeWarned=()=>!!S&&siegeOpen()&&sg().next>0&&S.day>=sg().next-1;   // the day before and the day itself
 const siegeGate=()=>topGate();
 const siegeLvl=()=>Math.max(1,S.player.lvl-SIEGE_LV);
-function siegeGap(){ let a=(Math.imul(S.day+1,2654435761)^Math.imul(T_('sieges')+7,40503)^Math.imul((S.ngp||0)+3,97))>>>0; a^=a>>>15; a=Math.imul(a,2246822519)>>>0; a=(a^(a>>>13))>>>0; const G=dreadGap(); return G[0]+a%(G[1]-G[0]+1); }   /* the town's dread sets the gap (game-dread.js) */   // a hash of the day: Math.random is never touched
+function siegeGap(){ let a=(Math.imul(S.day+1,2654435761)^Math.imul(T_('sieges')+7,40503)^Math.imul((S.ngp||0)+3,97))>>>0; a^=a>>>15; a=Math.imul(a,2246822519)>>>0; a=(a^(a>>>13))>>>0; const G=dreadGap(); return Math.max(2,Math.round((G[0]+a%(G[1]-G[0]+1))/custK('siege'))); }   /* custom siege frequency (game-modes.js) */   /* the town's dread sets the gap (game-dread.js) */   // a hash of the day: Math.random is never touched
 function siegeTick(){   // dawn, load and building: schedule the next siege, and warn the dawn before it
   if(!S||!siegeOpen()) return; const g=sg();
   if(siegePeace()){ if(g.next&&!g.pending) g.next=0; return; }   /* the Inquisition's peace (game-siege2.js) */

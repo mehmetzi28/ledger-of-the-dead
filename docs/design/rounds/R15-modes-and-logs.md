@@ -89,3 +89,26 @@ log.
 - **Seeding every random call is a large refactor**: do it per system with tests; unseeded calls stay `Math.random` until
   moved, and the challenge promise covers only seeded systems (listed in the Codex).
 - **Privacy**: the log never leaves the device; the export is a file the player chooses to share.
+
+## As built (PR A: Ironman and custom difficulty)
+
+- **Code**: `src/game-modes.js` (new, after game-siege2.js); `newGameMode(mode, custom)` wraps `newGame`.
+- **Ironman** (`S.iron`, `S.ironDeaths`): set at New game and never changed after; it carries into New Game+. No
+  Instant Retry (`canRetry`), no saving to a slot (`slotWrite`). Autosave is unchanged (the game already saves after every
+  action). A fall (`ironFall`, from `defeat`, not in the weekly dive or a siege) takes back the run's banked gold
+  (`r.goldTot`), its trophies (`r.trTot`, counted only in Ironman) and its gear (`r.spoils`), and one minion downed in that
+  room shatters with no roll (into the Memorial). Titles: Iron Keeper (the Throne), Iron Book (end a cycle), Iron Climb
+  (Tower 100), each only in an Ironman game. 218 titles.
+- **Custom difficulty** (`S.custom = {foeHp, foeAtk, raise, gold, siege}`, whole percentages in steps of 10, written only
+  when not all 100): foe HP and attack in `foeScale`, raise chance at the end of `raiseChance`, gold in `bankLoot`, siege
+  frequency in `siegeGap` (0 turns sieges off through `siegeOpen`; otherwise 50-150%). Easing any (foes or sieges below
+  100, raise or gold above) is Custom: `checkTitles` earns nothing. Presets Story (foes 60%, raise 130%) and Hardened (foes
+  150%, gold 75%; earns titles).
+- **Not built**: the doc's "Year length" slider (the game has no year).
+- **UI**: New game in Settings opens mode cards (Normal, Ironman, Story, Hardened, Custom) with +/- steps for each
+  setting; the save list and Settings show the mode (Ironman with its falls; Custom or Harder). The Codex has a Modes page.
+- **Bot**: `"iron":true` and `"custom":{...}` probes.
+- **Tests**: `tests/groups/98-modes.js` (4 tests).
+- **Measured** (market bot, seed 7700, 40 bots): Normal clears 95% of rooms (Tower 84, level 53.9 on day 100). Ironman
+  clears 85% (Tower 77.4, level 50.8): losing whole runs' spoils and a minion per fall slows the climb, as intended,
+  without changing a rule. Story clears 99% (Tower 88.2, Rift 41 deepest against 21).

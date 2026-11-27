@@ -1697,7 +1697,7 @@ const REC_TIER=[1,.2,.18,.13], REC_TIER_F=[1,1.8,2.5,3.6];
 const tierRaw=(di,h,f)=>REC_BASE[di]+recShift(di)+ngpRec(di)+(REC_TIER[h]||1)*(recShift(di,f)-recShift(di));
 const tierRec=(di,h)=>{ let r=gateRec(di); for(let t=1;t<=(h||0)&&t<HEAT.length;t++) r=Math.max(r+1,Math.round(tierRaw(di,t,HEAT[t].foe))); return r; };   // each tier at least a level above the one below
 const NGP_FOE=.15, NGP_REWARD=.25, ngpFoe=()=>(1+NGP_FOE*((S&&S.ngp)||0))*ngpQuiet(), ngpReward=()=>(1+NGP_REWARD*((S&&S.ngp)||0))*pactReward()*ascReward();   /* R10: +15% foes a level (was +30%); the ascension rules carry the rest (game-asc.js) */   // New Game+: tougher foes, richer rewards
-function foeScale(list,a){ const n=ngpFoe(); for(const e of list){ if(n!==1){ e.maxHp=e.hp=Math.round(e.maxHp*n); } if(a*n!==1) e.atk=Math.max(1,Math.round(e.atk*a*n)); } }
+function foeScale(list,a){ const n=ngpFoe(), ch=n*custK('foeHp'), ca=a*n*custK('foeAtk'); for(const e of list){ if(ch!==1){ e.maxHp=e.hp=Math.max(1,Math.round(e.maxHp*ch)); } if(ca!==1) e.atk=Math.max(1,Math.round(e.atk*ca)); } }   /* custom difficulty (game-modes.js) */
 const foeArmor=()=>{ if(!S.run) return 0; const a=S.run.tw?TW.armor:DIFF.armor[S.run.trial?TRIAL_GATE:S.run.di]*(S.run.siege?siegeArmorK():1); return sigArmor(omen()==='ironrain'?1-(1-a)/IRON_ARMOR:a); };   /* Iron Sky (game-rift.js) */   // Iron Rain: foes 25% tougher to hurt
 // ===== DAMAGE TYPES =====
 // Every hit has one of five types (hurtFoe / hurtAlly take it; physical when none is given). A foe's resistance to a type comes from where it
@@ -1815,7 +1815,7 @@ const canNGP=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]);
 const ownedUniques=()=>[...new Set(S.inv.concat(Object.values(S.equip)).filter(it=>it&&ITEM[it.id]&&ITEM[it.id].uq).map(it=>it.id))];
 function startNGP(carry,pacts,rule,carries){
   if(S.mode!=='town'||!canNGP()) return false; if(faithOf()==='dis') tally('godless');   /* Godless: a cycle finished Profane (game-pantheon.js) */
-  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts),ally:S.ally||null}; ngpEnding(keep); ascStart(keep,rule,carries);   /* the ascension rule (game-asc.js) */   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
+  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts),ally:S.ally||null}; if(S.iron){ keep.iron=true; keep.ironDeaths=S.ironDeaths|0; } if(S.custom) keep.custom=S.custom;   /* the mode carries into New Game+ (game-modes.js) */ ngpEnding(keep); ascStart(keep,rule,carries);   /* the ascension rule (game-asc.js) */   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
   newGame(); Object.assign(S,keep); S.ti.clr={}; ngpEndingStart(); ascBegin();   // titles stay earned; New Game+ again needs another Throne of Ash clear
   S.watches=WATCHES-pactWatch(); S.notices=[]; if(carry&&own.includes(carry)){ const it=addItem(carry,null); if(it&&carryAw) it.aw=carryAw; }   /* an awakened unique keeps its ranks */ unlockStory('ngp');
   notify('New Game+ '+S.ngp+' begins. Foes have '+Math.round(NGP_FOE*S.ngp*100)+'% more HP and attack, and pay '+Math.round(NGP_REWARD*S.ngp*100)+'% more XP and gold.'+(carry&&own.includes(carry)?' '+ITEM[carry].name+' is in your bag.':''),'ok');
@@ -1940,7 +1940,7 @@ function normalizeSave(src){
   { const c=g.player.cmd; if(!hadCmd||!(obj(c)&&c.a>=0&&c.h>=0&&isFinite(c.a)&&isFinite(c.h))) g.player.cmd=cmdPow(Array.isArray(g.army)?g.army:[]); else g.player.cmd={a:Math.round(c.a),h:Math.round(c.h)}; }   // Command: an old or damaged save measures its army again
   const okB=b=>obj(b)&&BOUNTIES[b.id]&&typeof b.n==='number'&&typeof b.base==='number'&&obj(b.rw)&&typeof b.claimed==='boolean';
   g.bounty=(obj(g.bounty)&&typeof g.bounty.day==='number'&&Array.isArray(g.bounty.list)&&g.bounty.list.every(okB))?g.bounty:null;
-  memorialFix(g); nemFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
+  memorialFix(g); nemFix(g); modesFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
   return g;
 }
 function validSave(g){ return !!normalizeSave(g); }
@@ -1954,7 +1954,7 @@ function applyLoaded(g){
   else siegeTick();   /* the rival's schedule waits for dawn or a clear: loading never changes the game */
 }
 function slotRead(i){ try{ const r=localStorage.getItem(slotKey(i)); if(!r) return null; const g=JSON.parse(r); return validSave(g.data)?g:null; }catch(e){ return null; } }
-function slotWrite(i){ if(S.mode!=='town') return false; try{ S.savedAt=Date.now(); localStorage.setItem(slotKey(i),JSON.stringify({t:Date.now(),data:S})); return true; }catch(e){ return false; } }
+function slotWrite(i){ if(S.mode!=='town'||ironOn()) return false;   /* Ironman: no slots (game-modes.js) */ try{ S.savedAt=Date.now(); localStorage.setItem(slotKey(i),JSON.stringify({t:Date.now(),data:S})); return true; }catch(e){ return false; } }
 function slotDelete(i){ try{ localStorage.removeItem(slotKey(i)); }catch(e){} }
 function adoptSave(g){   // load a slot or code; on any problem the current game is left exactly as it was
   const n=normalizeSave(g); if(!n) return false;
@@ -2193,6 +2193,9 @@ const masteredN=ids=>allNames().filter(n=>{ const t=masteryOf(n); return !!t&&id
  ['a_keeper','Deeds','The Last Keeper','Close the book: write your own name on the last page.',()=>endedAs('closed'),{hpp:4,drp:2}],
  ['a_hand','Deeds','The Hand That Writes','Keep writing: turn the last page and go on.',()=>endedAs('kept'),{dmgp:4,mpow:4}],
  ['a_both','Deeds','Both Endings','End one cycle each way.',()=>endedAs('closed')&&endedAs('kept'),{xpp:5,goldp:5}],
+ ['i_keeper','Deeds','Iron Keeper','Clear the Throne of Ash in an Ironman game.',()=>ironOn()&&!!(S.ti.clr&&S.ti.clr[5]),{hpp:4,drp:2}],
+ ['i_book','Deeds','Iron Book','End a cycle in an Ironman game.',()=>ironOn()&&(endedAs('closed')||endedAs('kept')),{dmgp:4,xpp:3}],
+ ['i_climb','Deeds','Iron Climb','Reach Hell Tower floor 100 in an Ironman game.',()=>ironOn()&&S.tower.best>=100,{mpow:4,hpp:3}],
  ['s_unburnt','Deeds','The Unburnt','Break the Inquisition\'s Purge.',()=>T_('purgeWon')>0,{drp:3,hpp:3}],
  ['s_road','Deeds','Holding the Road','Hold 10 sieges on the North road.',()=>T_('roadNorth')>=10,{dmgp:3}],
  ['s_tiers','Deeds','Ten Tiers','Bring the sieges to tier 5 twice.',()=>T_('stier5')>=2,{goldp:4}],
@@ -2229,7 +2232,7 @@ function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // d
 // rarer ones stay hidden ("???") until earned. Rarity follows how hard a title is: bot runs measured the reachable ones,
 // and deeds the bots skip (events, forging) were judged by hand.
 const TITLE_RARITY={hd1:1,hd2:2,nm0:3,nm1:3,nm2:3,nm3:4,nm4:4,nm5:5,dm3:5,sb0:5,sb1:5,sb2:5,sb3:5,sb4:5,sb5:5,g0:0,g1:0,d_raise1:0,d_kill100:0,d_death:0,d_armed1:0,d_lv10:0,d_study:0,s_venom:0,f_crit:0,d_tower1:0,d_quest7:0,d_army:0,g2:1,t10:1,t20:1,d_raise50:1,d_cancel:1,d_evolve:1,d_uq:1,d_gold:1,m0:1,m1:1,c_drought:1,c_fury:1,c_bulwark:1,c_horde:1,c_volatile:1,p_25:1,k_spear:1,k_blast:1,k_chill:1,g_items:1,g_sold:1,f_flawless:1,f_last:1,a_boss:1,e_strag:1,e_pedlar:1,e_trap:1,d_death10:1,g3:2,g4:2,t30:2,t40:2,t50:2,d_kill1000:2,d_lv25:2,d_raise200:2,d_tower50:2,d_cancel10:2,d_trophy500:2,d_altar:2,d_elder:2,m2:2,m3:2,d_armed3:2,d_master:2,d_bag:2,c_25:2,e_shrine:2,e_coffer:2,s_poison:2,s_cure:2,k_reap:2,k_master3:2,k_all:2,f_boss25:2,f_elite100:2,g_gold:2,g_roll3:2,a_traits:2,a_elders:2,e_day100:2,e_runs100:2,g_reforge:2,g5:3,t60:3,t70:3,m4:3,m5:3,tw75:3,d_lv50:3,p_100:3,f_crit1000:3,e_rooms1000:3,twruns:3,d_ngp:3,d_tower110:3,t80:4,t90:4,t100:4,d_kill5000:4,d_all:4,d_tower150:4,a_raise500:4,e_lv75:4,tw200:5,d_ngp3:5,d_tuq:5,a_ancient:3,a_eternal:4,a_raid1:1,a_raid25:3,r_5:3,r_15:4,r_30:5};
-Object.assign(TITLE_RARITY,{s_unburnt:5,s_road:3,s_tiers:4,s_pyre:3,s_works:3,c_five:4,c_paid:3,nm_1:2,nm_5:3,nm_15:4,nm_old:4,x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,as_3:3,as_6:4,as_10:5,as_all:5,as_rw:4,b_haul:2,b_five:3,b_runes:4,b_sgn:3,ar_charmed:4,ar_hundred:2,ar_tennames:5,ar_witch:4,ar_roles:4,ar_order:3,r_six:4,r_sigil3:4,r_weekly:3,r_attuned:3,r_half:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
+Object.assign(TITLE_RARITY,{i_keeper:5,i_book:5,i_climb:5,s_unburnt:5,s_road:3,s_tiers:4,s_pyre:3,s_works:3,c_five:4,c_paid:3,nm_1:2,nm_5:3,nm_15:4,nm_old:4,x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,as_3:3,as_6:4,as_10:5,as_all:5,as_rw:4,b_haul:2,b_five:3,b_runes:4,b_sgn:3,ar_charmed:4,ar_hundred:2,ar_tennames:5,ar_witch:4,ar_roles:4,ar_order:3,r_six:4,r_sigil3:4,r_weekly:3,r_attuned:3,r_half:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
 const RARITY_MUL=[1,1,1.25,1.5,2,3], HIDDEN_FROM=3;
 TITLES.forEach(t=>{ t.r=TITLE_RARITY[t.id]!=null?TITLE_RARITY[t.id]:1; const m=RARITY_MUL[t.r]; for(const k in t.b) t.b[k]=Math.max(t.b[k],Math.round(t.b[k]*m)); });
 const titleHidden=t=>t.r>=HIDDEN_FROM&&!(S&&S.ti&&S.ti.got&&S.ti.got[t.id]);
@@ -2251,7 +2254,7 @@ function checkTitles(){
   const sel0=T.sel, valid=T.sel&&T.got[T.sel]&&TITLE[T.sel];
   let next=valid?T.sel:null; const won=[];
   for(const t of TITLES){
-    if(T.got[t.id]) continue;
+    if(T.got[t.id]||custEasy()) continue;   /* a Custom save earns no titles (game-modes.js) */
     let ok=false; try{ ok=t.ok(); }catch(e){}
     if(ok){ T.got[t.id]=S.day; if(!next) next=t.id; won.push(t); }   // only auto-worn if you wear none
   }
@@ -2651,6 +2654,7 @@ function defeat(){
   sfx('death');
   const r=S.run; if(r.siege){ r.pending=0; r.loot=[]; S.mode='defeat'; S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); }); siegeLost(false); return; }   // a lost siege costs no XP; the town pays instead
   S.ti=S.ti||{}; S.ti.deaths=(S.ti.deaths||0)+1; r.pending=0; r.gold=0; r.troph={}; r.bdust=0; S.mode='defeat'; if(!r.wk) S.player.xp=Math.max(0,S.player.xp-Math.round(need(S.player.lvl)*DIFF.deathXp));   /* the weekly dive pays no XP and costs none (game-rift.js) */
+  ironFall(r);   /* Ironman: the run's spoils and one of the fallen (game-modes.js) */
   S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); });
   if(rivalStanding(r)) rivalLost(r); if(reckStanding(r)) reckLost(r); nemBirth(r);   /* a foe that downed a Greater minion may live on (game-nemesis.js) */
   if(r.blow) r.felled=r.blow;
@@ -2674,7 +2678,7 @@ function blowCounters(b){   // the answers to a blow you have and have not used,
 function snapRoom(){ const r=S.run; if(!r) return; delete r.blow; delete r.felled;   // the start of a fight room: what Instant Retry restores
   ROOM0=(r.siege||r.trial)?null:{r,j:JSON.stringify(r),s:JSON.stringify({p:['hp','mana','shield','st','dots'].map(k=>S.player[k]),a:S.army.map(m=>[m.uid,m.hp,m.st,m.dots])})}; }
 // Not for sieges (a lost siege is the town's loss, at once), Trials (the score counts each attempt) or a room the rival stood in (the loss is already theirs to keep).
-const canRetry=()=>S.mode==='defeat'&&ascRetry()&&!!ROOM0&&ROOM0.r===S.run&&!S.run.siege&&!S.run.trial&&!S.run.wk&&!S.run.rk&&!S.run.enemies.some(e=>e.rival);
+const canRetry=()=>S.mode==='defeat'&&ascRetry()&&!ironOn()&&!!ROOM0&&ROOM0.r===S.run&&!S.run.siege&&!S.run.trial&&!S.run.wk&&!S.run.rk&&!S.run.enemies.some(e=>e.rival);
 function retryRoom(){   // the room again as it began: same foes at full HP, you and your army as you entered; no watch, the XP loss stands, potions drunk stay drunk
   if(!canRetry()) return false;
   const r=S.run, o=JSON.parse(ROOM0.j), s=JSON.parse(ROOM0.s), P=S.player;
@@ -2741,6 +2745,7 @@ function raiseChance(c){
   if(firstRaise()) return 100;
   let ch=RAISE_BASE+A('will')*RAISE_WILL+G('raise')+4*sk('mastery')+B_OSS*bl('ossuary')+(omen()==='paletide'?OMEN_RAISE:0)+(S.player.lvl-c.lvl)*RAISE_LV-RK[c.rankI].pen;
   if(c.elite) ch-=RAISE_ELITE; if(c.boss) ch-=RAISE_BOSS+RAISE_BOSS_EACH*S.army.concat(benched()).filter(m=>m.boss).length; if(c.free) ch+=STRAGGLER_BONUS; ch+=masteryRaise(c.base)-pactRaise()+condRaise(c)+nemRaise(c)+windRaise()+(hasInsc('many')?INSC_RAISE:0)+incRaise()+townRaise(c)+rgRaise(c)+twoBooks()+faithRaiseK(c)+ascRaise();
+  { const k=custK('raise'); if(k!==1) ch*=k; }   /* custom difficulty (game-modes.js) */
   return clamp(Math.round(ch),RAISE_MIN,RAISE_MAX);
 }
 const raiseCost = c=>c.free?0:Math.ceil((8+c.rankI*3+(c.boss?4:0))*ascRaiseCost()*(hasFlag('cheapraise')?.5:1)*(hasMod('mastery','b')?.75:1)*(1-.06*sk('thrift')));
@@ -2938,8 +2943,8 @@ function killLoot(e,r){   // called once per kill, from checkDeaths
   if(n){ const q=quillK(r,n); r.troph=r.troph||{}; r.troph[key]=(r.troph[key]||0)+n*q; }   /* Pickpocket: the first trophy of a room drops twice (game-rival-arc.js) */
 }
 function bankLoot(r){     // called when a room is won
-  r.lastGold=r.gold||0; if(r.lastGold) sfx('coin'); r.lastTroph=r.troph||{};
-  S.gold+=r.lastGold; r.goldTot=(r.goldTot||0)+r.lastGold; for(const k in r.lastTroph) S.trophies[k]=(S.trophies[k]||0)+r.lastTroph[k];
+  r.lastGold=Math.round((r.gold||0)*custK('gold')); if(r.lastGold) sfx('coin'); r.lastTroph=r.troph||{};   /* custom gold (game-modes.js) */
+  S.gold+=r.lastGold; r.goldTot=(r.goldTot||0)+r.lastGold; for(const k in r.lastTroph){ S.trophies[k]=(S.trophies[k]||0)+r.lastTroph[k]; if(ironOn()){ r.trTot=r.trTot||{}; r.trTot[k]=(r.trTot[k]||0)+r.lastTroph[k]; } }   /* Ironman counts them for a fall */
   r.lastDust=r.bdust||0; if(r.lastDust){ S.dust=(S.dust||0)+r.lastDust; if(r.events) r.events.push({m:'Bone Harvest: +'+r.lastDust+' bone dust.',c:'ok'}); }
   r.gold=0; r.troph={}; r.bdust=0;
 }
@@ -5249,12 +5254,12 @@ const SIEGE_PERK={
 const blRaw=k=>(S&&S.build&&S.build[k])||0;   // the level built, damaged or not (bl is what works)
 const sg=()=>{ if(!S.siege) S.siege={next:0,pending:false,dmg:null,warned:0}; return S.siege; };
 const builtLevels=()=>Object.keys(BUILD).reduce((a,k)=>a+blRaw(k),0);
-let siegeOpen=()=>!!S&&townOpen()&&builtLevels()>=SIEGE_BUILT;   // let: the balance bot switches sieges off with "off":["siege"]
+let siegeOpen=()=>!!S&&townOpen()&&builtLevels()>=SIEGE_BUILT&&custK('siege')>0;   /* custom: sieges off (game-modes.js) */   // let: the balance bot switches sieges off with "off":["siege"]
 const siegeTonight=()=>!!S&&siegeOpen()&&sg().next>0&&S.day>=sg().next;
 const siegeWarned=()=>!!S&&siegeOpen()&&sg().next>0&&S.day>=sg().next-1;   // the day before and the day itself
 const siegeGate=()=>topGate();
 const siegeLvl=()=>Math.max(1,S.player.lvl-SIEGE_LV);
-function siegeGap(){ let a=(Math.imul(S.day+1,2654435761)^Math.imul(T_('sieges')+7,40503)^Math.imul((S.ngp||0)+3,97))>>>0; a^=a>>>15; a=Math.imul(a,2246822519)>>>0; a=(a^(a>>>13))>>>0; const G=dreadGap(); return G[0]+a%(G[1]-G[0]+1); }   /* the town's dread sets the gap (game-dread.js) */   // a hash of the day: Math.random is never touched
+function siegeGap(){ let a=(Math.imul(S.day+1,2654435761)^Math.imul(T_('sieges')+7,40503)^Math.imul((S.ngp||0)+3,97))>>>0; a^=a>>>15; a=Math.imul(a,2246822519)>>>0; a=(a^(a>>>13))>>>0; const G=dreadGap(); return Math.max(2,Math.round((G[0]+a%(G[1]-G[0]+1))/custK('siege'))); }   /* custom siege frequency (game-modes.js) */   /* the town's dread sets the gap (game-dread.js) */   // a hash of the day: Math.random is never touched
 function siegeTick(){   // dawn, load and building: schedule the next siege, and warn the dawn before it
   if(!S||!siegeOpen()) return; const g=sg();
   if(siegePeace()){ if(g.next&&!g.pending) g.next=0; return; }   /* the Inquisition's peace (game-siege2.js) */
@@ -7960,6 +7965,57 @@ function stierFix2(g,q){   // normalizeSave: works, arc, the Purge and the peace
   if(obj(q.peace)) g.peace={until:Math.max(0,Math.floor(num(q.peace.until,0)))};
   if(obj(q.purge)) g.purge={won:Math.max(0,Math.floor(num(q.purge.won,0))),day:Math.max(0,Math.floor(num(q.purge.day,0)))};
 }
+// ===== R15 PR A: MODES (IRONMAN AND CUSTOM DIFFICULTY) =====
+// Ironman (S.iron, set at New game, never changed after): no Instant Retry, no saving to a slot; a lost room costs the whole
+// run's spoils (the gold, trophies and gear banked from its earlier rooms) and one minion that fell in it shatters, with no
+// roll. Nothing else changes. S.ironDeaths counts its falls. Custom difficulty (S.custom = {foeHp, foeAtk, raise, gold, siege},
+// whole percentages): foe HP and attack (foeScale), raise chance, gold from kills (bankLoot) and siege frequency (0: no
+// sieges). A save that eases any of them (foes or sieges below 100, raise or gold above) is Custom: no titles are earned.
+// Presets: Story (foes 60%, raise 130%) and Hardened (foes 150%, gold 75%). Both fields are absent on a normal save.
+const CUSTOM_KEYS={   // [min, max, step, name]
+  foeHp:[50,200,10,'Foe HP'], foeAtk:[50,200,10,'Foe attack'], raise:[50,150,10,'Raise chance'], gold:[50,200,10,'Gold'], siege:[0,150,10,'Siege frequency']
+};
+const CUSTOM_IDS=Object.keys(CUSTOM_KEYS);
+const CUSTOM_PRESETS={
+  story:   {name:'Story',   desc:'Foes have 60% of their HP and attack; raising is 30% likelier. Custom: no titles.', c:{foeHp:60,foeAtk:60,raise:130,gold:100,siege:100}},
+  hardened:{name:'Hardened',desc:'Foes have 150% HP and attack; gold is 75%. Titles are earned as usual.', c:{foeHp:150,foeAtk:150,raise:100,gold:75,siege:100}}
+};
+const NG_MODES={
+  normal:{name:'Normal', desc:'The game as it is meant: every rule as written.'},
+  iron:  {name:'Ironman',desc:'One life for the run: no Instant Retry and no save slots. A lost room costs the whole run\'s spoils and one minion that fell in it shatters. Cannot be turned off.'},
+  story:CUSTOM_PRESETS.story, hardened:CUSTOM_PRESETS.hardened,
+  custom:{name:'Custom', desc:'Set foe HP and attack, raise chance, gold and siege frequency yourself. Easing any of them marks the save Custom: no titles.'}
+};
+const IRON_TITLES=['i_keeper','i_book','i_climb'];
+const custOf=()=>S&&S.custom&&typeof S.custom==='object'?S.custom:null;
+const custK=k=>{ const c=custOf(); return c&&isFinite(c[k])?c[k]/100:1; };   // a multiplier, 1 on a normal save
+const custEasy=c=>{ c=c===undefined?custOf():c; return !!c&&(c.foeHp<100||c.foeAtk<100||c.raise>100||c.gold>100||c.siege<100); };   // no titles
+const custClamp=c=>Object.fromEntries(CUSTOM_IDS.map(k=>{ const [lo,hi,st]=CUSTOM_KEYS[k]; let v=Math.round(num(c&&c[k],100)/st)*st; if(k==='siege'&&v>0&&v<50) v=50; return [k,clamp(v,lo,hi)]; }));
+const custNorm=c=>CUSTOM_IDS.every(k=>c[k]===100);
+const ironOn=()=>!!(S&&S.iron);
+function newGameMode(mode,custom){   // New game with a mode: 'normal', 'iron', a preset, or 'custom' with its sliders
+  newGame(); if(mode==='iron'){ S.iron=true; S.ironDeaths=0; }
+  const c=mode==='custom'?custClamp(custom):CUSTOM_PRESETS[mode]?custClamp(CUSTOM_PRESETS[mode].c):null;
+  if(c&&!custNorm(c)) S.custom=c;
+  if(S.iron) notify('Ironman: one life for each run. There is no Retry, and a fall costs the run\'s spoils and one of the fallen.','bad');
+  if(custEasy()) notify('Custom difficulty: titles are not earned in this game.','');
+  return true;
+}
+function ironFall(r){   // defeat, before the downed get back up: the whole run's spoils, and one of the fallen
+  if(!ironOn()||!r||r.wk||r.siege) return; S.ironDeaths=(S.ironDeaths|0)+1; const lost=[];
+  const g=Math.min(S.gold,r.goldTot||0); if(g>0){ S.gold-=g; lost.push(g+' gold'); }
+  let tn=0; for(const k in r.trTot||{}){ const n=Math.min(S.trophies[k]||0,r.trTot[k]); if(n>0){ S.trophies[k]-=n; tn+=n; if(!S.trophies[k]) delete S.trophies[k]; } } if(tn) lost.push(tn+' trophies');
+  const items=(r.spoils||[]).map(u=>S.inv.find(it=>it.u===u)).filter(Boolean); if(items.length){ S.inv=S.inv.filter(it=>!items.includes(it)); lost.push(items.length+' piece'+(items.length>1?'s':'')+' of gear'); }
+  const down=S.army.filter(m=>m.hp<=0&&!m.thrall&&!m.wall);
+  if(down.length){ const m=down[Math.floor(Math.random()*down.length)]; returnGear(m); S.army=S.army.filter(x=>x!==m); memorialize(m,r.tw?{f:r.tw}:r.rift?{rd:r.rift}:{g:r.di}); lost.push(m.nick+', who shattered');
+    log(m.nick+' shatters as you fall. Ironman takes one of the fallen.','bad'); }
+  r.ironLost=lost; if(lost.length) notify('Ironman: the fall costs '+lost.join(', ')+'.','bad');
+}
+function modesFix(g){   // normalizeSave: the fields only when the save has them
+  if(g.iron){ g.iron=true; g.ironDeaths=Math.max(0,Math.floor(num(g.ironDeaths,0))); } else { delete g.iron; delete g.ironDeaths; }
+  if('custom' in g){ const c=g.custom&&typeof g.custom==='object'?custClamp(g.custom):null; if(c&&!custNorm(c)) g.custom=keepOrder(g.custom,c); else delete g.custom; }
+}
+const modeLabel=d=>{ const t=[]; if(d&&d.iron) t.push('Ironman, '+(d.ironDeaths|0)+' fall'+((d.ironDeaths|0)===1?'':'s')); if(d&&d.custom) t.push(custEasy(d.custom)?'Custom':'Hardened'); return t.join(' &middot; '); };
 //==UI==
 
 // ----- sound: tiny synthesized effects (Web Audio, no files). Off/on lives in Settings and is remembered per browser, not in the save.
@@ -12884,6 +12940,27 @@ TR_RX.unshift([/^The Inquisition sues for peace: no siege for (\d+) days, and th
  [/^Build · (\d+) gold(?: · (\d+) dust)?$/,"İnşa et · $1 altın"],[/^(\d+) gold, (\d+) dust$/,"$1 altın, $2 toz"],[/^(\d+) gold$/,"$1 altın"],[/^(.+) \(built\)$/,"$1 (inşa edildi)"],
  [/^(.+) \((Shieldbearer|Ambusher|Mana thief|Gravecaller|Pack hunter|Bomber|Sapper|Skirmisher|Bulwark stance|Hexer|Marker|Purifier|Burrower|Thorned|Frenzy|Banner-bearer)\)$/,"$1 ({t2})"],
  [/^From the Ledger, "(Templars on the road|An Inquisitor's letter|The pyres in the valley|The last crusade)": (.+)$/,"Defterden, \"{t1}\": {t2}"]);
+// ----- R15 PR A: modes (Ironman, custom difficulty)
+[
+ ["Modes","Modlar"],["Mode","Mod"],["Normal","Normal"],["Ironman","Demir Adam"],["Story","Hikâye"],["Hardened","Sertleşmiş"],["Custom","Özel"],["Harder","Daha zor"],["Off","Kapalı"],
+ ["A mode is chosen at New game (Settings) and kept for the whole game, New Game+ too","Mod Yeni oyunda (Ayarlar) seçilir ve Yeni Oyun+ dahil bütün oyun boyunca kalır"],
+ ["The game as it is meant: every rule as written","Oyun amaçlandığı gibi: her kural yazıldığı gibi"],
+ ["One life for the run: no Instant Retry and no save slots. A lost room costs the whole run's spoils and one minion that fell in it shatters. Cannot be turned off","Akın başına tek can: Anında Yeniden Deneme ve kayıt yuvası yok. Kaybedilen bir oda bütün akının ganimetine mal olur ve orada düşen bir hizmetkâr parçalanır. Kapatılamaz"],
+ ["Foes have #% of their HP and attack; raising is #% likelier. Custom: no titles","Düşmanların canı ve saldırısı %#; diriltme %# daha olası. Özel: unvan yok"],
+ ["Foes have #% HP and attack; gold is #%. Titles are earned as usual","Düşmanların canı ve saldırısı %#; altın %#. Unvanlar her zamanki gibi kazanılır"],
+ ["Set foe HP and attack, raise chance, gold and siege frequency yourself. Easing any of them marks the save Custom: no titles","Düşman canını ve saldırısını, diriltme şansını, altını ve kuşatma sıklığını kendin ayarla. Herhangi birini kolaylaştırmak kaydı Özel yapar: unvan yok"],
+ ["Custom difficulty","Özel zorluk"],["Each setting moves in steps of #%. A game that eases any of them (foes or sieges below #%, raise or gold above) is Custom and earns no titles; making it only harder keeps them","Her ayar %#'luk adımlarla değişir. Herhangi birini kolaylaştıran oyun (düşmanlar ya da kuşatmalar %#'ün altında, diriltme ya da altın üstünde) Özeldir ve unvan kazanmaz; yalnızca zorlaştırmak onları korur"],
+ ["Foe HP","Düşman canı"],["Foe attack","Düşman saldırısı"],["Raise chance","Diriltme şansı"],["Gold","Altın"],["Siege frequency","Kuşatma sıklığı"],
+ ["#% to #%","%# ile %# arası"],["#% to #%, or off","%# ile %# arası ya da kapalı"],
+ ["Ironman titles","Demir Adam unvanları"],["Iron Keeper","Demir Bekçi"],["Clear the Throne of Ash in an Ironman game","Bir Demir Adam oyununda Throne of Ash'i temizle"],["Iron Book","Demir Kitap"],["End a cycle in an Ironman game","Bir Demir Adam oyununda bir döngüyü bitir"],
+ ["Iron Climb","Demir Tırmanış"],["Reach Hell Tower floor # in an Ironman game","Bir Demir Adam oyununda Hell Tower'ın #. katına ulaş"],
+ ["Ironman: this game cannot be saved to a slot","Demir Adam: bu oyun bir yuvaya kaydedilemez"],["Ironman games cannot be saved to a slot","Demir Adam oyunları bir yuvaya kaydedilemez"],["Custom: this game will earn no titles","Özel: bu oyun unvan kazanmayacak"],
+ ["Ironman: one life for each run. There is no Retry, and a fall costs the run's spoils and one of the fallen","Demir Adam: her akın için tek can. Yeniden deneme yok ve bir düşüş akının ganimetine ve düşenlerden birine mal olur"],
+ ["Custom difficulty: titles are not earned in this game","Özel zorluk: bu oyunda unvan kazanılmaz"],["Less","Daha az"],["More","Daha çok"]
+].forEach(([k,v])=>TR_DICT.set(k,v));
+TR_RX.unshift([/^Press again to erase everything and start: (.+)$/,"Her şeyi silip başlatmak için yeniden bas: {t1}"],[/^This game: (.+)$/,"Bu oyun: {t1}"],[/^Ironman, (\d+) falls?$/,"Demir Adam, $1 düşüş"],
+ [/^This game: (\d+)%$/,"Bu oyun: %$1"],[/^This game: off$/,"Bu oyun: kapalı"],[/^This is an Ironman game: (\d+) falls so far\.?$/,"Bu bir Demir Adam oyunu: şimdiye dek $1 düşüş"],
+ [/^Ironman: the fall costs (.+)\.?$/,"Demir Adam: düşüşün bedeli: $1"],[/^(.+) shatters as you fall\. Ironman takes one of the fallen\.?$/,"$1 sen düşerken parçalanıyor. Demir Adam düşenlerden birini alır"]);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -14385,12 +14462,12 @@ function saveTabHTML(){
    +'<p class="group-h">Save &amp; load</p><p class="lede">The game saves itself after every action (in a gate or the Tower, as if you had walked out). Slots are for keeping a safe copy before something risky, like a Tower warden. A save code lets you carry your progress to another browser or device.</p>';
   if(!ok) h+='<div class="note bad"><i>Storage</i><span>This browser is not letting the page store anything, so autosave and slots will not persist. Use a save code below to keep your progress.</span></div>';
   if(ui.msg) h+='<div class="note '+(ui.msg.c||'')+'"><i>Save</i><span>'+ui.msg.m+'</span></div>';
-  h+='<div class="u-sub">Autosave: '+(ok?'on &middot; last saved '+when(S.savedAt):'off')+'</div><p class="group-h">Slots</p><div class="items">';
+  h+='<div class="u-sub">Autosave: '+(ok?'on &middot; last saved '+when(S.savedAt):'off')+'</div>'+(modeLabel(S)?'<div class="u-sub mode-line">This game: '+modeLabel(S)+'</div>':'')+(ironOn()?'<p class="q-note bad">Ironman: this game cannot be saved to a slot.</p>':'')+'<p class="group-h">Slots</p><div class="items">';
   for(let i=1;i<=SLOTS_N;i++){
     const g=slotRead(i), d=g&&g.data;
-    const info=d?'Level '+d.player.lvl+' &middot; Day '+d.day+' &middot; Tower '+((d.tower&&d.tower.best)||0)+'/100 &middot; '+Object.keys((d.ti&&d.ti.got)||{}).length+' titles &middot; saved '+when(g.t):'Empty';
+    const info=d?'Level '+d.player.lvl+' &middot; Day '+d.day+' &middot; Tower '+((d.tower&&d.tower.best)||0)+'/100 &middot; '+Object.keys((d.ti&&d.ti.got)||{}).length+' titles'+(modeLabel(d)?' &middot; '+modeLabel(d):'')+' &middot; saved '+when(g.t):'Empty';
     h+='<div class="tt-row'+(d?' on':'')+'"><div><h4>Slot '+i+'</h4><div class="u-sub">'+info+'</div></div><div class="btns" style="margin:0">'
-     +'<button class="btn small primary" data-a="slotsave" data-k="'+i+'">'+(d?(ui.confirm==='ss'+i?'Confirm overwrite':'Save over'):'Save here')+'</button>'
+     +'<button class="btn small primary" data-a="slotsave" data-k="'+i+'"'+(ironOn()?' disabled title="Ironman games cannot be saved to a slot"':'')+'>'+(d?(ui.confirm==='ss'+i?'Confirm overwrite':'Save over'):'Save here')+'</button>'
      +(d?'<button class="btn small" data-a="slotload" data-k="'+i+'">'+(ui.confirm==='sl'+i?'Confirm load':'Load')+'</button><button class="btn small warn" data-a="slotdel" data-k="'+i+'">'+(ui.confirm==='sd'+i?'Confirm':'Delete')+'</button>':'')
      +'</div></div>';
   }
@@ -14410,7 +14487,7 @@ function saveTabHTML(){
    +'<div class="btns"><button class="btn small" data-a="loadcode">'+(ui.confirm==='lc'?'Confirm: replaces your current game':'Load code')+'</button></div>'
    +ngpHTML()
    +'<p class="group-h">New game</p><div class="danger-zone"><p class="q-note" style="margin-top:0">Erases this character, its army, gear, skills and titles, and starts again on day 1. Save slots are kept, so save to a slot first if you might want this character back.</p>'
-   +'<div class="btns"><button class="btn small warn" data-a="newgame">'+(ui.confirm==='new'?'Press again to erase everything':'New game')+'</button></div></div></section>';
+   +(ui.confirm==='new'?ngModesHTML():'')+'<div class="btns"><button class="btn small warn" data-a="newgame">'+(ui.confirm==='new'?'Press again to erase everything and start: '+NG_MODES[ngPick().mode].name:'New game')+'</button></div></div></section>';
   return h;
 }
 function loreHTML(){
@@ -14540,10 +14617,20 @@ function bmHTML(bagFull){
     const btn=k==='piece'?GEAR_SLOTS.map(sl=>'<button class="btn small'+(ok?' primary':'')+'" data-a="bmt" data-k="piece|'+sl+'"'+(ok?'':' disabled')+'>'+SLOTS[sl]+'</button>').join(''):'<button class="btn small primary" data-a="bmt" data-k="'+k+'"'+(ok?'':' disabled')+'>'+(used?'Traded':'Trade')+'</button>';
     return '<div class="tt-row"><div><h4>'+T.name+'</h4><div class="u-sub">For '+T.take+'.'+(used?' Traded this week.':'')+'</div></div><div class="btns" style="margin:0">'+btn+'</div></div>'; }).join('')+'</div>';
 }
+
+// ===== R15 PR A: the New game modes (game-modes.js) =====
+const ngPick=()=>{ const n=ui.ng&&NG_MODES[ui.ng.mode]?ui.ng:{mode:'normal'}; return {mode:n.mode,c:custClamp(n.c||(CUSTOM_PRESETS[n.mode]||{}).c||{})}; };
+function ngModesHTML(){   // the mode cards and, for Custom, the sliders as steps
+  const n=ngPick();
+  return '<p class="group-h">Mode</p><div class="chips ng-modes">'+Object.keys(NG_MODES).map(k=>'<button class="btn small'+(n.mode===k?' primary':'')+'" data-a="ngmode" data-k="'+k+'" aria-pressed="'+(n.mode===k)+'">'+NG_MODES[k].name+'</button>').join('')+'</div><p class="u-sub">'+NG_MODES[n.mode].desc+'</p>'
+   +(n.mode==='custom'||CUSTOM_PRESETS[n.mode]?'<div class="items ng-custom">'+CUSTOM_IDS.map(k=>{ const K=CUSTOM_KEYS[k], v=n.c[k];
+      return '<div class="tt-row"><div><h4>'+K[3]+'</h4><div class="u-sub num">'+(k==='siege'&&!v?'Off':v+'%')+'</div></div><div class="btns" style="margin:0"><button class="btn small" data-a="ngstep" data-k="'+k+'|-1"'+(v<=K[0]?' disabled':'')+' aria-label="Less">&minus;</button><button class="btn small" data-a="ngstep" data-k="'+k+'|1"'+(v>=K[1]?' disabled':'')+' aria-label="More">+</button></div></div>'; }).join('')+'</div>'
+     +(custEasy(n.c)?'<p class="q-note bad">Custom: this game will earn no titles.</p>':''):'');
+}
 // ----- the Codex: every rule and list in the game, read straight from the game's own tables so it never goes stale.
 // Enemies you have not met yet stay hidden, as in the bestiary.
 const CODEX=[['basics','Basics'],['raising','Raising'],['faith','Faith'],['omens','Omens'],['roles','Roles'],['traits','Traits'],['minions','Minion stats'],['army','Army'],['reserve','Reserve'],['fusion','Fusion'],['affixes','Elite affixes'],['bosses','Bosses'],['status','Status effects'],['types','Damage types'],['kits','Foe kits'],['nemeses','Nemeses'],['skills','Skills'],['orders','Orders'],
-  ['gates','Gates'],['tower','Hell Tower'],['gear','Gear'],['forge','Heartforge'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['trade','Commissions and black market'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['records','Records'],['endings','Endings']];
+  ['gates','Gates'],['tower','Hell Tower'],['gear','Gear'],['forge','Heartforge'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['trade','Commissions and black market'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['records','Records'],['modes','Modes'],['endings','Endings']];
 const CDX_ROLE={
   hexer:'Only raised from the hexer foes (one in each gate). It stands in the back row with low HP and attack, and each of its hits leaves a condition: a Hex by default, or its trait\'s wound (Rimeborn chills, Venomous poisons, Necrotic blights, Cinderborn burns). At most one hexer for every four army places brings its conditions; more fight plainly. As a foe it hexes your side.',
   vanguard:'When a foe picks a target, each vanguard counts 5 and everyone else (you included) counts 2, so vanguards draw most blows. They take Taunt orders and stand in front of a Sundering Blow.',
@@ -14807,6 +14894,12 @@ function codexSection(k){
       +cxList(Object.values(ENDINGS).map(E=>cxRow(E.name,'&ldquo;'+E.line+'&rdquo; Title: '+E.title+'. New Game+ becomes '+E.cycle+': '+E.ngp)))
       +'<p class="group-h">Ledger inscriptions</p>'+cxP('Each ending lets you write one inscription you earned in that cycle. Inscriptions are permanent and stay through every New Game+, at most '+INSC_MAX+'.')
       +cxList(INSC_IDS.map(id=>{ const I=INSCRIPTIONS[id]; return cxRow(I.name,'Earned by '+I.need+'. '+I.desc+(hasInsc(id)?' Written.':'')); })); }
+  if(k==='modes') return cxP('A mode is chosen at New game (Settings) and kept for the whole game, New Game+ too.')
+    +cxList(Object.keys(NG_MODES).map(m=>cxRow(NG_MODES[m].name,NG_MODES[m].desc)))
+    +'<p class="group-h">Custom difficulty</p>'+cxP('Each setting moves in steps of 10%. A game that eases any of them (foes or sieges below 100%, raise or gold above) is Custom and earns no titles; making it only harder keeps them.')
+    +cxList(CUSTOM_IDS.map(c=>cxRow(CUSTOM_KEYS[c][3],(c==='siege'?50:CUSTOM_KEYS[c][0])+'% to '+CUSTOM_KEYS[c][1]+'%'+(c==='siege'?', or off':'')+(custOf()?'. This game: '+(c==='siege'&&!custOf()[c]?'off':custOf()[c]+'%'):''))))
+    +'<p class="group-h">Ironman titles</p>'+cxList(IRON_TITLES.map(id=>cxRow(TITLE[id].name,TITLE[id].req)))
+    +(ironOn()?cxP('This is an Ironman game: '+(S.ironDeaths|0)+' falls so far.'):'');
   if(k==='records') return cxP('The Records page on the Ledger tab keeps your personal bests through every New Game+. A new best flashes a banner, once per run and kind, but never for a first record.')
     +cxList(REC_NUM.map(r=>cxRow(REC_NAME[r].charAt(0).toUpperCase()+REC_NAME[r].slice(1),CDX_REC[r]||'')).concat([cxRow('Fastest clears','The fewest turns from the first room to the fallen boss, for each gate, on any difficulty.'),
       cxRow('Fastest Rift dives','The fewest turns to clear a dive, for each band of '+RIFT_BAND+' depths. A dive at depth 12 counts for 10 and deeper.'),cxRow('Secret masters','The day you first slew each one.')]))
@@ -16018,12 +16111,13 @@ const ACTIONS={
   inscribe:k=>{ inscribe(k); },
   lplater:()=>{ ui.lpLater=1; ui.lpJust=0; }, lpopen:()=>{ ui.lpLater=0; ui.lpJust=S.ending?1:0; }, lpseen:()=>{ ui.lpJust=0; },
   cross:k=>{ if(ui.confirm==='x'+k){ scriptCross(+k); ui.confirm=null; } else ui.confirm='x'+k; },   /* the Scriptorium (game-abbey.js): a second press confirms */
-  newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; newGame(); OPEN_HELP.on=false; ui.tab='gates'; ui.gsub='open'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
+  ngmode:k=>{ if(NG_MODES[k]){ ui.ng=Object.assign(ngPick(),{mode:k}); ui.confirm='new'; } }, ngstep:k=>{ const [id,d]=String(k).split('|'), n=ngPick(); if(CUSTOM_KEYS[id]){ let v=n.c[id]+(+d)*CUSTOM_KEYS[id][2]; if(id==='siege'&&v>0&&v<50) v=+d<0?0:50; n.c=custClamp(Object.assign({},n.c,{[id]:v}));   /* siege frequency: off, then 50% and up */ n.mode='custom'; ui.ng=n; ui.confirm='new'; } },
+  newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; const n=ngPick(); newGameMode(n.mode,n.c); ui.ng=null; OPEN_HELP.on=false; ui.tab='gates'; ui.gsub='open'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
 };
 function settled(){ sgTipHide(); if(S&&S.mode==='town') cmdSync(); checkTitles(); try{ loreCheck(); }catch(e){} render(); }   // after an action: award titles and lore passages, then draw
 // the vow warning (game-pantheon.js): the first press says what breaks; the next one goes ahead (ui.vowOk for the rest of the day)
 function vowAsk(k){ if(!vowWarn(k)||ui.vowOk===k+S.day) return false; ui.vowOk=k+S.day; ui.msg={m:k==='raise'?'Raising another body breaks your vow to Morrow (no more than '+MORROW_RAISE+' in a run). Press again to raise anyway.':'Selling a trophy breaks your vow to Ulm. Press again to sell anyway.',c:'bad'}; return true; }
-const CONFIRM_ACTS=['ascpick','carrypick','release','respec','cross','ending','hforge','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
+const CONFIRM_ACTS=['ngmode','ngstep','ascpick','carrypick','release','respec','cross','ending','hforge','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
 document.addEventListener('click',e=>{
   MUSIC.armed=true;
   const b=e.target.closest('[data-a]'); if(!b||b.disabled) return;

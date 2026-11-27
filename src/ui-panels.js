@@ -615,12 +615,12 @@ function saveTabHTML(){
    +'<p class="group-h">Save &amp; load</p><p class="lede">The game saves itself after every action (in a gate or the Tower, as if you had walked out). Slots are for keeping a safe copy before something risky, like a Tower warden. A save code lets you carry your progress to another browser or device.</p>';
   if(!ok) h+='<div class="note bad"><i>Storage</i><span>This browser is not letting the page store anything, so autosave and slots will not persist. Use a save code below to keep your progress.</span></div>';
   if(ui.msg) h+='<div class="note '+(ui.msg.c||'')+'"><i>Save</i><span>'+ui.msg.m+'</span></div>';
-  h+='<div class="u-sub">Autosave: '+(ok?'on &middot; last saved '+when(S.savedAt):'off')+'</div><p class="group-h">Slots</p><div class="items">';
+  h+='<div class="u-sub">Autosave: '+(ok?'on &middot; last saved '+when(S.savedAt):'off')+'</div>'+(modeLabel(S)?'<div class="u-sub mode-line">This game: '+modeLabel(S)+'</div>':'')+(ironOn()?'<p class="q-note bad">Ironman: this game cannot be saved to a slot.</p>':'')+'<p class="group-h">Slots</p><div class="items">';
   for(let i=1;i<=SLOTS_N;i++){
     const g=slotRead(i), d=g&&g.data;
-    const info=d?'Level '+d.player.lvl+' &middot; Day '+d.day+' &middot; Tower '+((d.tower&&d.tower.best)||0)+'/100 &middot; '+Object.keys((d.ti&&d.ti.got)||{}).length+' titles &middot; saved '+when(g.t):'Empty';
+    const info=d?'Level '+d.player.lvl+' &middot; Day '+d.day+' &middot; Tower '+((d.tower&&d.tower.best)||0)+'/100 &middot; '+Object.keys((d.ti&&d.ti.got)||{}).length+' titles'+(modeLabel(d)?' &middot; '+modeLabel(d):'')+' &middot; saved '+when(g.t):'Empty';
     h+='<div class="tt-row'+(d?' on':'')+'"><div><h4>Slot '+i+'</h4><div class="u-sub">'+info+'</div></div><div class="btns" style="margin:0">'
-     +'<button class="btn small primary" data-a="slotsave" data-k="'+i+'">'+(d?(ui.confirm==='ss'+i?'Confirm overwrite':'Save over'):'Save here')+'</button>'
+     +'<button class="btn small primary" data-a="slotsave" data-k="'+i+'"'+(ironOn()?' disabled title="Ironman games cannot be saved to a slot"':'')+'>'+(d?(ui.confirm==='ss'+i?'Confirm overwrite':'Save over'):'Save here')+'</button>'
      +(d?'<button class="btn small" data-a="slotload" data-k="'+i+'">'+(ui.confirm==='sl'+i?'Confirm load':'Load')+'</button><button class="btn small warn" data-a="slotdel" data-k="'+i+'">'+(ui.confirm==='sd'+i?'Confirm':'Delete')+'</button>':'')
      +'</div></div>';
   }
@@ -640,7 +640,7 @@ function saveTabHTML(){
    +'<div class="btns"><button class="btn small" data-a="loadcode">'+(ui.confirm==='lc'?'Confirm: replaces your current game':'Load code')+'</button></div>'
    +ngpHTML()
    +'<p class="group-h">New game</p><div class="danger-zone"><p class="q-note" style="margin-top:0">Erases this character, its army, gear, skills and titles, and starts again on day 1. Save slots are kept, so save to a slot first if you might want this character back.</p>'
-   +'<div class="btns"><button class="btn small warn" data-a="newgame">'+(ui.confirm==='new'?'Press again to erase everything':'New game')+'</button></div></div></section>';
+   +(ui.confirm==='new'?ngModesHTML():'')+'<div class="btns"><button class="btn small warn" data-a="newgame">'+(ui.confirm==='new'?'Press again to erase everything and start: '+NG_MODES[ngPick().mode].name:'New game')+'</button></div></div></section>';
   return h;
 }
 function loreHTML(){
@@ -769,4 +769,14 @@ function bmHTML(bagFull){
   return h+'<div class="items">'+Object.keys(BM_TRADES).map(k=>{ const T=BM_TRADES[k], used=bmUsed(k), ok=!used&&T.can();
     const btn=k==='piece'?GEAR_SLOTS.map(sl=>'<button class="btn small'+(ok?' primary':'')+'" data-a="bmt" data-k="piece|'+sl+'"'+(ok?'':' disabled')+'>'+SLOTS[sl]+'</button>').join(''):'<button class="btn small primary" data-a="bmt" data-k="'+k+'"'+(ok?'':' disabled')+'>'+(used?'Traded':'Trade')+'</button>';
     return '<div class="tt-row"><div><h4>'+T.name+'</h4><div class="u-sub">For '+T.take+'.'+(used?' Traded this week.':'')+'</div></div><div class="btns" style="margin:0">'+btn+'</div></div>'; }).join('')+'</div>';
+}
+
+// ===== R15 PR A: the New game modes (game-modes.js) =====
+const ngPick=()=>{ const n=ui.ng&&NG_MODES[ui.ng.mode]?ui.ng:{mode:'normal'}; return {mode:n.mode,c:custClamp(n.c||(CUSTOM_PRESETS[n.mode]||{}).c||{})}; };
+function ngModesHTML(){   // the mode cards and, for Custom, the sliders as steps
+  const n=ngPick();
+  return '<p class="group-h">Mode</p><div class="chips ng-modes">'+Object.keys(NG_MODES).map(k=>'<button class="btn small'+(n.mode===k?' primary':'')+'" data-a="ngmode" data-k="'+k+'" aria-pressed="'+(n.mode===k)+'">'+NG_MODES[k].name+'</button>').join('')+'</div><p class="u-sub">'+NG_MODES[n.mode].desc+'</p>'
+   +(n.mode==='custom'||CUSTOM_PRESETS[n.mode]?'<div class="items ng-custom">'+CUSTOM_IDS.map(k=>{ const K=CUSTOM_KEYS[k], v=n.c[k];
+      return '<div class="tt-row"><div><h4>'+K[3]+'</h4><div class="u-sub num">'+(k==='siege'&&!v?'Off':v+'%')+'</div></div><div class="btns" style="margin:0"><button class="btn small" data-a="ngstep" data-k="'+k+'|-1"'+(v<=K[0]?' disabled':'')+' aria-label="Less">&minus;</button><button class="btn small" data-a="ngstep" data-k="'+k+'|1"'+(v>=K[1]?' disabled':'')+' aria-label="More">+</button></div></div>'; }).join('')+'</div>'
+     +(custEasy(n.c)?'<p class="q-note bad">Custom: this game will earn no titles.</p>':''):'');
 }
