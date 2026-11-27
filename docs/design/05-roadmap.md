@@ -36,7 +36,7 @@ substantial feature or rework; small fixes ride along inside one. Rounds name th
 | R15 | Modes and playtest logs | Shipped (PR A #36, PR B #37) | G27, B6 | | L | [spec](rounds/R15-modes-and-logs.md) |
 | R16 | Titles and collection 2.0 | Shipped (#38, PR B) | G26 | | L | [spec](rounds/R16-titles-and-collection.md) |
 | R17 | Presentation: music, stage, art | Shipped (#40, PR B) | | R1, R2 | L | [spec](rounds/R17-presentation.md) |
-| R18 | UX and onboarding pass | P3 | | after any 3 rounds | L | [spec](rounds/R18-ux-and-onboarding.md) |
+| R18 | UX and onboarding pass | PR A shipped (PR B next) | | after any 3 rounds | L | [spec](rounds/R18-ux-and-onboarding.md) |
 | R19 | The valley map: roads, sites and travel | P4 | G28 | | XL | [spec](rounds/R19-the-valley-map.md) |
 | R20 | Villages of the living: trade, tribute and fear | P4 | G29 | R5 | L | [spec](rounds/R20-villages-of-the-living.md) |
 | R21 | The phylactery: corruption and the hero's transformation | P4 | G30 | | L | [spec](rounds/R21-the-phylactery.md) |

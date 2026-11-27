@@ -573,10 +573,17 @@ the foe's second intent, door sight), Mastered (180 / 15: +4% raise, +3% damage,
 
 **Records** (`REC_NAME`): biggest hit, most kills, most gold, deepest floor, deepest Rift, fastest climbs and clears,
 streaks, most damage survived, highest minion level, most traits on a fused minion, most gold held. **History**: the last
-20 runs with details, plus lifetime analytics.
+20 runs with details, plus lifetime analytics, and **Why you fell** (R18, `game-lost.js`): the last 3 lost rooms, each
+turn by turn (every log line, where you and your army stood at the end of each turn), the blow that felled you, whether it
+was shown, the answers the rules give for it (its move's counters or its kit's answer) and what the bestiary knew of its
+kind then. The defeat screen opens the same view.
 
 **The Codex** (`ui-codex.js`): every rule and list, generated from the game's own tables, searchable. **What next**:
-a next-objective callout and goals. **Tips**: 36 first-time tips, one at a time.
+a next-objective callout and goals, now covering orders, sieges, nemeses, inscriptions, boss hearts, brewing, tithes and the
+black market (R18). **Tips** (R18): 49 first-time tips (11 core, 17 moment, 21 system), one at a time, each with a kind and a Codex page (its "Read more"
+link in town): core tips (the first hour) and moment tips show when their moment comes; a system tip waits if another
+system was introduced that day, so at most one new system arrives a day (`TIP_META`, `S.tips.pace`). Every town panel
+heading carries a "?" that opens its Codex page (`H_CX`, `cxHeads`).
 
 ## 2.9 Story
 

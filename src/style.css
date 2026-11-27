@@ -1270,3 +1270,13 @@ body.cv-skin .win{border-color:#9a7a66;box-shadow:inset 0 0 0 2px rgba(154,122,1
 .epi-art{margin:4px 0 14px;aspect-ratio:16/7;overflow:hidden;border:1px solid var(--line)}.epi-art svg{width:100%;height:100%;display:block}
 .mvol{min-width:44px;text-align:center;align-self:center}
 @media (max-width:540px){.ts-page{min-width:0;flex:1 1 100%;max-width:none}}
+/* R18: the Codex "?" on panel headings, and the tip's Codex link */
+.cx-ln{order:1;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;min-height:0;padding:0;border:1px dotted var(--line);border-radius:50%;background:none;color:var(--mute);font:600 11px/1 var(--font-body);letter-spacing:0;text-transform:none;cursor:pointer;flex:none}
+.cx-ln:hover,.cx-ln:focus-visible{color:var(--gold);border-color:var(--gold)}
+/* R18: the lost room view (History and the defeat screen) */
+.lost{margin:8px 0 4px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:rgba(0,0,0,.18)}
+.lost-q{display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:8px 0}.lost-q dt{color:var(--gold);font-weight:600}.lost-q dd{margin:0}
+.lost-turns{margin:6px 0 0;padding-left:0;list-style:none;max-height:360px;overflow:auto}.lost-turns>li{padding:4px 0;border-top:1px solid var(--line)}
+.lost-turns ul{margin:2px 0 0;padding-left:16px;font-size:.92em}.lost-turns .bad{color:var(--bad,#e5776a)}.lost-turns .ok{color:var(--ok,#9fd47a)}
+.lost-list{list-style:none;padding:0;margin:0}.lost-list>li{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--line)}.lost-list>li>.lost{flex-basis:100%}
+@media (max-width:520px){.lost-q{grid-template-columns:1fr}}

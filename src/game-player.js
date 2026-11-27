@@ -174,7 +174,7 @@ function normalizeSave(src){
     for(const k of ['got','clr']) if(k in T&&!obj(T[k])) T[k]={}; if(T.got) for(const k in T.got) if(!(fin(T.got[k])&&T.got[k]>0)) delete T.got[k];
     if('sel' in T&&T.sel!==null&&typeof T.sel!=='string') delete T.sel;
     if('compounds' in T) T.compounds=Array.isArray(T.compounds)?T.compounds.filter((c,i,a)=>COMPOUND[c]&&a.indexOf(c)===i):[]; }
-  g.tips=obj(g.tips)?g.tips:{}; g.ngp=Math.max(0,Math.floor(num(g.ngp,0)));
+  g.tips=obj(g.tips)?g.tips:{}; if('pace' in g.tips){ const q=g.tips.pace; if(!obj(q)||!isFinite(q.d)||!isFinite(q.sys)) delete g.tips.pace; else g.tips.pace={d:Math.floor(q.d),sys:Math.max(0,Math.floor(q.sys))}; }   /* R18: the day's tip pacing */ g.ngp=Math.max(0,Math.floor(num(g.ngp,0)));
   g.pacts=g.ngp?cleanPacts(g.pacts):[]; ascFix(g); runesFix(g); armyFix(g); if(!PATHS[P.capPath]) delete P.capPath;   // New Game+ pacts and the chosen capstone path (src/game-progression.js)
   g.firstRaise=('firstRaise' in g)?(g.firstRaise?1:0):(g.army.length||g.raids.length||g.reserve.length||(obj(g.ti)&&g.ti.raised)||g.runs||(Array.isArray(g.hist)&&g.hist.length)||(obj(g.life)&&g.life.runs)||g.day>1||P.lvl>1||g.ngp?0:1);   // saves from before the sure first raise: any army, history or progress counts as having raised already
   g.bagLv=clamp(Math.floor(num(g.bagLv,0)),0,BAG_COST.length); g.salts=clamp(Math.floor(num(g.salts,0)),0,SALT_MAX);
@@ -211,7 +211,7 @@ function normalizeSave(src){
   { const c=g.player.cmd; if(!hadCmd||!(obj(c)&&c.a>=0&&c.h>=0&&isFinite(c.a)&&isFinite(c.h))) g.player.cmd=cmdPow(Array.isArray(g.army)?g.army:[]); else g.player.cmd={a:Math.round(c.a),h:Math.round(c.h)}; }   // Command: an old or damaged save measures its army again
   const okB=b=>obj(b)&&BOUNTIES[b.id]&&typeof b.n==='number'&&typeof b.base==='number'&&obj(b.rw)&&typeof b.claimed==='boolean';
   g.bounty=(obj(g.bounty)&&typeof g.bounty.day==='number'&&Array.isArray(g.bounty.list)&&g.bounty.list.every(okB))?g.bounty:null;
-  memorialFix(g); nemFix(g); modesFix(g); codeFix(g); inscFix(g); collFix(g); cosFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
+  memorialFix(g); nemFix(g); modesFix(g); codeFix(g); inscFix(g); collFix(g); cosFix(g); lostFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
   return g;
 }
 function validSave(g){ return !!normalizeSave(g); }

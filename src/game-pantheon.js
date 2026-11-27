@@ -1,5 +1,5 @@
 // ===== THE PANTHEON (R8 PR A) =====
-// From level 8 and 3 clears the Pantheon (the Town tab) takes an oath to one of four Old Gods or to none (the Profane path).
+// From level 8 and 3 clears the Pantheon (the Town tab) takes an oath to one of five Old Gods or to none (the Profane path).
 // S.faith = {id, day, dev, dd, dday, vb, cv}: the god, the day sworn, devotion points, points earned on day dday (dd), the
 // last day the vow broke (vb) and conversions this oath (cv). Devotion grows by DEEDS the god likes; every DEV_STEP points is a
 // rank, five ranks, and each rank opens a boon. Breaking the vow costs a rank and that day's points (once a day).

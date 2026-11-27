@@ -70,7 +70,7 @@ function codexSection(k){
     +cxList([cxRow('Army slots','1, plus one per 2.5 Will, one per 4 levels, gear and the Crypt. At most '+ARMY_CAP+', plus the Crypt\'s levels.'),cxRow('Gear-bearers','Armed foes (marked Armed) can wear a weapon, armor and relic from your bag once raised.'),cxRow('Bone Altar','Gold raises a minion one level at once, never past your level + 2.'),
       cxRow('Reserve','Opens with the Town tab: '+RESERVE_BASE+' places, +'+RESERVE_CRYPT+' per Crypt level. Benched minions do not fight, take damage or earn XP, and keep their gear. Moving one is free, in town; a full army can raise straight into it.')])
     +'<div class="btns"><button class="btn small" data-a="cx" data-k="army">Army</button><button class="btn small" data-a="cx" data-k="reserve">Reserve</button><button class="btn small" data-a="cx" data-k="fusion">Fusion</button></div>';
-  if(k==='faith') return cxP('Once '+OPEN_AT.faith+' gates are cleared, from level '+FAITH_LV+', the Pantheon on the Town tab takes an oath to one of four Old Gods, or to none (the Profane path). Devotion is earned by deeds your god likes; every '+DEV_STEP+' points is a rank, up to '+DEV_RANKS+', and each rank opens a boon. Each god asks a vow: break it and you lose a rank and that day\'s devotion (once a day). Renouncing costs 100 gold per level and starts devotion over. Swearing and renouncing happen in town.')
+  if(k==='faith') return cxP('Once '+OPEN_AT.faith+' gates are cleared, from level '+FAITH_LV+', the Pantheon on the Town tab takes an oath to one of five Old Gods, or to none (the Profane path). Devotion is earned by deeds your god likes; every '+DEV_STEP+' points is a rank, up to '+DEV_RANKS+', and each rank opens a boon. Each god asks a vow: break it and you lose a rank and that day\'s devotion (once a day). Renouncing costs 100 gold per level and starts devotion over. Swearing and renouncing happen in town.')
     +cxP('In about '+pct(FAITH_EVENT)+' of the events between rooms a sworn necromancer meets a shrine: their own god\'s (pray: heal, refill mana, +'+DEV_SHRINE+' devotion), or another god\'s, which offers a conversion (that god, keeping '+pct(CONVERT_KEEP)+' of your devotion points). The Profane may desecrate another god\'s shrine instead.')
     +cxList(GODS.map(k=>{ const F=FAITH[k]; return cxRow(F.name,F.domain+'. '+F.about+'<br><b>Vow:</b> '+F.vow+'<br><b>Deeds:</b> '+F.deeds+BOONS[k].map((b,i)=>'<br><b>Rank '+(i+1)+':</b> '+b.t+'.').join('')+'<br><b>Omens:</b> '+godOmens(k).map(o=>OMENS[o].name).join(', ')+'.<br><b>Temple chapel:</b> '+CHAPELS[k].name+': '+CHAPELS[k].d+'.<br><b>The town:</b> '+GOD_TOWN[k]+'.',faithOf()===k?'Sworn':''); }));
   if(k==='omens') return cxP('Once you have cleared a gate, about '+pct(OMEN_CHANCE)+' of dawns bring an omen. It lasts the whole day and touches every gate, the Tower and the Rift, but never a siege or a Trial. Today: '+(omen()?OMENS[omen()].name:'no omen')+'.')
@@ -340,6 +340,17 @@ function cxMark(root){   // after the Turkish pass: highlight the search words i
     while((j=low.indexOf(q,i))>=0){ if(j>i) f.appendChild(document.createTextNode(v.slice(i,j))); const m=document.createElement('mark'); m.className='cx-hit'; m.textContent=v.slice(j,j+q.length); f.appendChild(m); i=j+q.length; }
     if(i<v.length) f.appendChild(document.createTextNode(v.slice(i))); t.parentNode.replaceChild(f,t); }
 }
+// ----- R18: a small "?" on each town panel's heading opens the Codex page that explains it (every target is checked by a test)
+const H_CX={'h-status':'basics','h-sk':'skills','h-army':'army','h-asum':'orders','h-res':'reserve','h-gear':'gear','h-bag':'gear','h-qg':'gear','h-lo':'gear','h-gates':'gates',
+  'h-tw':'tower','h-rift':'rift','h-bld':'town','h-spec':'town','h-siege':'sieges','h-bty':'bounties','h-raid':'raids','h-araid':'raids','h-trial':'trials','h-mem':'raising',
+  'h-ms':'collection','h-tt':'titles','h-cos':'collection','h-rec':'records','h-hist':'records','h-mk':'supplies','h-charm':'supplies','h-evo':'traits','h-mark':'army','h-bonds':'bonds','h-bes':'kits'};
+const hCx=id=>id==='h-quest'?(ordersOn()?'town':'basics'):H_CX[id];
+function cxHeads(html){
+  if(!S||S.mode!=='town'||ui.tab==='codex'||typeof html!=='string') return html;
+  return html.replace(/(<h2 class="win-h" id="(h-[a-z]+)">)([\s\S]*?)(<\/h2>)/g,(all,open,id,inner,close)=>{ const k=hCx(id); if(!k||!CODEX.some(c=>c[0]===k)) return all;
+    const q='<button class="cx-ln" data-a="cxgo" data-k="'+k+'" title="Read about this in the Codex" aria-label="Read about this in the Codex">?</button>', i=inner.search(/<span class="fold-sum"|<button class="fold"/);
+    return open+(i<0?inner+q:inner.slice(0,i)+q+inner.slice(i))+close; });
+}
 function codexHTML(){
   const k=CODEX.some(c=>c[0]===ui.cx)?ui.cx:'basics', name=CODEX.find(c=>c[0]===k)[1];
   return '<section class="win" aria-labelledby="h-cx"><h2 class="win-h" id="h-cx">Codex &middot; '+name+'</h2>'
@@ -433,12 +444,14 @@ function nextObjective(){   // after the Throne of Ash: its next difficulty, the
   return beat(top)<HEAT.length-1?heat:null;
 }
 const GOAL_N=3;
-function goals(){
+function goalsAll(){   // every goal that applies, in order; What next shows the first GOAL_N
   if(!S||S.mode!=='town') return [];
   const P=S.player, g=[], add=(t,b,k)=>g.push({t,b,k});
   if(townOpen()&&bounties().some(b=>bountyDone(b)&&!b.claimed)) add('A bounty is ready to claim.','Bounty board','||bounty');
   if(questDone()&&!S.quest.claimed) add('Today\'s quest is done: claim the reward.','Daily quest','||quest');
   if(P.pts>0) add(P.pts+' stat point'+(P.pts>1?'s':'')+' to spend.','Status','||status');
+  if(siegeWarned()) add('A siege comes when '+(S.day>=sg().next?'this':'tomorrow\'s')+' day ends: look to the walls.','Town','town');   /* R18: the systems added since What next was written */
+  if(ordersOn()&&orders().pick<0) add('Today\'s orders are posted: take one.','Daily orders','||quest');
   if(P.sp>0) add(P.sp+' skill point'+(P.sp>1?'s':'')+' to spend.','Skills','skills');
   if(SKILLS.some(s=>SKILL_MODS[s.id]&&sk(s.id)>=SK_MAX&&!skMod(s.id))) add('A rank 3 skill upgrade is waiting for your choice.','Skills','skills');
   if(betterGear()) add('Your bag holds gear of a higher tier than you wear.','Gear','gear');
@@ -449,8 +462,15 @@ function goals(){
   if(raidPool().some(m=>markPend(m))) add('A minion is ready to choose its mark.','Army','army');
   if((S.memorial||[]).some(canHonour)) add('You can honour a fallen minion in the Memorial.','Memorial','mem');
   if(GEAR_SLOTS.some(sl=>S.equip[sl]&&canAwaken(S.equip[sl]))) add('A unique you wear can be awakened.','Gear','gear');
-  return g.slice(0,GOAL_N);
+  { const n=(S.nem||[])[0]; if(n&&DUNGEONS[n.g]) add(n.name+' waits for you in the '+DUNGEONS[n.g].name+'.','Gates','gates|open'); }
+  if(inscSlots()>inscList().length) add('An inscription slot is free.','Collection','titles');
+  if(workOpen()&&hfHearts().some(k=>!hfGuard(k.slice(2)))&&S.inv.length<bagMax()) add('A boss heart can be forged into gear.','Forge','market');
+  if(titheReady()&&dreadOf()>=DREAD_BANDS[2].min) add('The living are afraid: a tithe would calm them.','Town','town');
+  if(Object.keys(BREWS).some(brewCan)) add('You have the parts for a brew.','Market','market');
+  if(bmOpen()) add('The black market is open today.','Market','market');
+  return g;
 }
+const goals=()=>goalsAll().slice(0,GOAL_N);
 function goalsHTML(){
   const g=goals(), n=nextObjective(); if(!g.length&&!n) return '';
   return '<section class="win goals'+foldCls('goal')+'" aria-labelledby="h-goal"><h2 class="win-h" id="h-goal">What next<span class="fold-sum">'+(g.length+(n?1:0))+'</span>'+foldBtn('goal')+'</h2>'

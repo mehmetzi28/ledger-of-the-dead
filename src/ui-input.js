@@ -11,7 +11,7 @@ function render(){   // draws only: titles and lore are settled by the input han
   const hdr='<header class="top"><div class="brand"><svg class="sigil" viewBox="0 0 64 64" width="54" height="54" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="32" cy="32" r="30"/><circle cx="32" cy="32" r="24" stroke-dasharray="1.5 3.5"/><rect x="16" y="16" width="32" height="32"/><rect x="16" y="16" width="32" height="32" transform="rotate(45 32 32)"/><circle cx="32" cy="32" r="6"/><circle cx="32" cy="32" r="2" fill="currentColor"/></g></svg><div><h1>Ledger of the Dead</h1><p class="tag">Every name in this book answers to you.</p></div></div><div class="top-meta">'+(S.ngp?'<span class="ngp-b" title="New Game+">NG+'+S.ngp+'</span>':'')+'<span>Day '+S.day+'</span><span title="Gold">'+gold(S.gold)+'</span><span title="Each dungeon you enter uses a watch. When the third is spent, the day closes.">Watches<span class="pips" aria-label="'+S.watches+' of '+WATCHES+' watches left">'+pips+'</span></span></div>'
    +'<button class="gearbtn'+((ui.tab==='settings'&&S.mode==='town')?' on':'')+'" data-a="settings" aria-label="Settings" aria-pressed="'+(ui.tab==='settings'&&S.mode==='town')+'"'+(S.mode==='town'?' title="Settings: save, load, new game"':' disabled title="Settings open when you are back in town"')+'><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M10.3 2h3.4l.5 2.6c.6.2 1.2.5 1.7.9l2.5-.9 1.7 2.9-2 1.7c.1.6.1 1.3 0 1.9l2 1.7-1.7 2.9-2.5-.9c-.5.4-1.1.7-1.7.9l-.5 2.6h-3.4l-.5-2.6c-.6-.2-1.2-.5-1.7-.9l-2.5.9-1.7-2.9 2-1.7a6 6 0 0 1 0-1.9l-2-1.7 1.7-2.9 2.5.9c.5-.4 1.1-.7 1.7-.9zM12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z"/></svg></button></header>'
    ;
-  paintApp(hdr,tabNote+mo+tipHTML()+main,[goalsHTML(),questHTML(),statusHTML(),equipHTML(),townOpen()?bountyHTML():''].filter(Boolean),ui.keys?keysHTML():'');
+  paintApp(hdr,tabNote+mo+tipHTML()+cxHeads(main),[goalsHTML(),questHTML(),statusHTML(),equipHTML(),townOpen()?bountyHTML():''].filter(Boolean).map(cxHeads),ui.keys?keysHTML():'');
   try{ cxMark(app); if(document.documentElement) document.documentElement.lang=VIEW.lang; }catch(e){}
   if(key){ const n=app.querySelector(key); if(n){ n.focus({preventScroll:true}); if(n.tagName==='INPUT'&&n.type==='search'){ const l=n.value.length; try{ n.setSelectionRange(l,l); }catch(e){} } } }
   const scr=S.mode+'|'+(S.mode==='town'?ui.tab:(S.run?(S.run.tw||'g')+':'+S.run.room:''));   // entering a gate, a new room or another tab starts at the top
@@ -165,7 +165,7 @@ const ACTIONS={
   ttf:k=>{ ui.ttf=(k in {all:1,got:1,locked:1,close:1}||/^r[0-5]$/.test(k))?k:'all'; },
   tower:k=>startTower(+k),
   act:k=>act(k),
-  target:k=>setTarget(k), logall:()=>{ ui.logAll=!ui.logAll; },
+  target:k=>setTarget(k), logall:()=>{ ui.logAll=!ui.logAll; }, lostv:k=>{ ui.lostV=ui.lostV===+k?null:+k; },
   flee:()=>flee(),
   raise:k=>{ if(!vowAsk('raise')) tryRaise(k); }, descend:()=>descend(), town:()=>returnTown(), retry:()=>{ retryRoom(); }, rest:()=>restDay(),
   release:k=>{ if(ui.confirm===+k){ release(+k); ui.confirm=null; } else ui.confirm=+k; },
