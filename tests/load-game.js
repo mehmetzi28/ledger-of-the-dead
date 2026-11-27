@@ -20,6 +20,7 @@ module.exports=function loadGame(extraFiles){
       execCommand:()=>false,
     },
     __listeners:listeners,
+    __css:(html.match(/<style>([\s\S]*?)<\/style>/)||[])[1]||'',   // the page's CSS, for tests that check a style rule
   };
   const app={innerHTML:'',querySelector:()=>null,querySelectorAll:()=>[]};
   ctx.window=ctx;

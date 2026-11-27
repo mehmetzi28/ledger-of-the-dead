@@ -3930,3 +3930,13 @@ TR_RX.unshift(
  [/^(.+) was announced (\d+) turns? ahead \(Charging on its card\)$/,"$1 $2 tur önceden duyurulmuştu (kartında Yükleniyor)"],[/^(.+) was announced a turn ahead \(Charging on its card\)$/,"$1 bir tur önceden duyurulmuştu (kartında Yükleniyor)"],
  [/^(.+) lands without a warning$/,"$1 uyarısız iner"],[/^Felled by (.+)'s blow$/,"$1 darbesiyle düştün"]
 );
+
+// ----- R18 PR B: text size, save size, the phone
+[
+ ["Text size","Yazı boyutu"],["#% is the compact view: it fits more on a phone, with tighter spacing and tabs on one swipeable line","%# sıkışık görünümdür: telefona daha çok sığdırır, aralıklar daralır ve sekmeler kaydırılabilir tek satıra dizilir"],
+ ["#% is the compact view: it fits more on a phone, with tighter spacing and tabs on one swipeable line (recommended on this screen)","%# sıkışık görünümdür: telefona daha çok sığdırır, aralıklar daralır ve sekmeler kaydırılabilir tek satıra dizilir (bu ekranda önerilir)"],
+ ["#% to #% make the whole page bigger","%# ile %# arası tüm sayfayı büyütür"],["large: download a save file","büyük: bir kayıt dosyası indir"],
+ ["The browser refused the last save: its storage for this page is full. Download a save file from Settings now, then clear old save slots or backups","Tarayıcı son kaydı reddetti: bu sayfa için ayırdığı alan dolu. Hemen Ayarlar'dan bir kayıt dosyası indir, sonra eski kayıt yuvalarını ya da yedekleri temizle"]
+].forEach(([k,v])=>{ TR_DICT.set(k,v); });
+TR_RX.unshift([/^Save size: ([\d,.]+) KB$/,"Kayıt boyutu: $1 KB"],[/^Your save is ([\d.]+) MB, close to what a browser keeps for one page\. Download a save file from Settings to be safe$/,"Kaydın $1 MB; bir tarayıcının tek sayfa için tuttuğu sınıra yakın. Güvende olmak için Ayarlar'dan bir kayıt dosyası indir"]);
+TR_RX.unshift([/^Show (\d+) more \((\d+) not shown\)$/,"$1 tane daha göster ($2 gösterilmiyor)"]);

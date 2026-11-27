@@ -102,9 +102,9 @@ function snapshot(){
   return c;
 }
 // TAB guards against two open tabs overwriting each other: when another tab saves, this one stops saving until you reload.
-const TAB={blocked:false,last:null,out:null,bakDay:null};
+const TAB={blocked:false,last:null,out:null,bakDay:null,size:0,full:false}, SAVE_WARN=4e6;   // SAVE_WARN: a save past 4 MB is flagged (browsers keep about 5 MB a site)
 function save(){ if(TAB.blocked) return; try{ const t=S.savedAt; S.savedAt=0; const j=JSON.stringify(snapshot()); if(j===TAB.last&&localStorage.getItem(SAVE_KEY)===TAB.out){ S.savedAt=t; return; }   // nothing changed and the save is still there: no write
-  S.savedAt=Date.now(); const out=JSON.stringify(snapshot()); localStorage.setItem(SAVE_KEY,out); TAB.last=j; TAB.out=out; dayBackup(out); }catch(e){} plogTick(); }
+  S.savedAt=Date.now(); const out=JSON.stringify(snapshot()); TAB.size=out.length; try{ localStorage.setItem(SAVE_KEY,out); TAB.full=false; }catch(e){ TAB.full=true; return; } TAB.last=j; TAB.out=out; dayBackup(out); }catch(e){} plogTick(); }   /* R18: the save's size, and a write the browser refused (storage full) */
 // Earlier autosaves: the first save of each new day also goes into a ring of three (newest first), restorable from Settings.
 const BAK_N=3, bakKey=i=>SAVE_KEY+'-bak'+i;
 function bakRead(i){ try{ const r=localStorage.getItem(bakKey(i)); if(!r) return null; const g=JSON.parse(r); return g&&validSave(g.data)?g:null; }catch(e){ return null; } }
