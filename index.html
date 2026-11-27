@@ -1266,6 +1266,21 @@ body.cv-skin .win{border-color:#9a7a66;box-shadow:inset 0 0 0 2px rgba(154,122,1
 .item.f-hf{box-shadow:inset 0 0 18px -6px rgba(240,140,60,.6),inset 0 -2px 0 rgba(200,80,30,.6)}
 .item.f-rb{outline:1px dashed rgba(201,185,143,.45);outline-offset:-5px}
 .item.f-aw .i-name::after{content:" \2726";color:var(--gold)}
+/* R17 PR B: the title screen and the epilogues */
+.title-screen{position:fixed;inset:0;z-index:60;display:grid;grid-template-rows:auto 1fr auto;overflow:auto;background:#070908}
+.ts-art{position:absolute;inset:0}.ts-art svg{width:100%;height:100%;display:block}
+.ts-body{position:relative;display:contents;text-align:center}.ts-head{position:relative;padding:6vh 16px 0;text-align:center}.ts-low{position:relative;grid-row:3;padding:18px 16px 22px;text-align:center;background:linear-gradient(180deg,transparent,rgba(5,6,5,.85) 40%)}
+.ts-name{margin:0;font:600 clamp(30px,6vw,56px)/1.05 var(--font-head,serif);letter-spacing:.06em;color:var(--bone,#e8dcc8);text-shadow:0 2px 18px #000}
+.ts-sub{margin:6px 0 18px;color:var(--mute);font-style:italic}
+.ts-pages{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.ts-page{display:grid;gap:2px;min-width:180px;max-width:280px;padding:12px 16px;text-align:left;cursor:pointer;color:var(--bone,#e8dcc8);background:linear-gradient(180deg,#d8cdb0 0,#c4b894 100%);color:#2a2218;border:1px solid #6a5a40;box-shadow:0 6px 18px -8px #000,inset 0 0 18px rgba(90,70,40,.35);font:inherit}
+.ts-page b{font-size:16px}.ts-page span{font-size:12px;opacity:.8}
+.ts-page.primary{background:linear-gradient(180deg,#e4ecc8 0,#c8d8a8 100%);box-shadow:0 0 22px -6px #8fd46a,inset 0 0 18px rgba(90,110,40,.3)}
+.ts-page:hover,.ts-page:focus-visible{transform:translateY(-2px);outline:2px solid var(--gold);outline-offset:2px}
+.ts-foot{margin:14px 0 0;font-size:12px;color:var(--mute)}
+.epi-art{margin:4px 0 14px;aspect-ratio:16/7;overflow:hidden;border:1px solid var(--line)}.epi-art svg{width:100%;height:100%;display:block}
+.mvol{min-width:44px;text-align:center;align-self:center}
+@media (max-width:540px){.ts-page{min-width:0;flex:1 1 100%;max-width:none}}
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
@@ -8387,20 +8402,39 @@ function sfx(kind){
   } }catch(e){}
 }
 
-// ----- music: synthesized themes (a pad, a slow melody in the place's mode, an echo and a pulse) for town, the gates, the
-// Tower and every boss (BOSS_THEME). Off by default; remembered per browser. Starts after your first click.
-const MUSIC={on:false,armed:false,scene:null,nodes:null};
-try{ MUSIC.on=localStorage.getItem('lotd-music')==='on'; }catch(e){}
-// Music: a soft pad (root, fifth and third of the scene's mode, under a slowly breathing filter), a sparse melody from the
-// same mode played through an echo, and a low pulse. Every boss has its own theme, picked when its fight begins.
-const MODES={aeo:[0,2,3,5,7,8,10],phr:[0,1,3,5,7,8,10],dor:[0,2,3,5,7,9,10],loc:[0,1,3,5,6,8,10],hm:[0,2,3,5,7,8,11]};
-const SCENES={
-  town: {root:55,  mode:'dor',bpm:50,tone:'triangle',drum:0,  noise:0,  dens:.3, vol:.05, cut:420},
-  gate: {root:49,  mode:'aeo',bpm:58,tone:'triangle',drum:.12,noise:0,  dens:.3, vol:.055,cut:340},
-  tower:{root:41.2,mode:'phr',bpm:64,tone:'sawtooth',drum:.25,noise:.03,dens:.32,vol:.058,cut:480},
-  rift: {root:36.7,mode:'loc',bpm:70,tone:'sawtooth',drum:.38,noise:.06,dens:.36,vol:.058,cut:540}   // low, unstable and hissing: the torn sky
+// ----- music (R17 PR B): a small WebAudio engine, no audio files. Each place has a theme: a mode, a tempo, a lead voice, a
+// pad or drone, a noise bed and a short motif that its boss reuses. Off by default and remembered per browser, with its own
+// volume; starts after your first click. Themes crossfade over 1.5 s when the place changes.
+const MUSIC={on:false,armed:false,scene:null,nodes:null,vol:.7};
+try{ MUSIC.on=localStorage.getItem('lotd-music')==='on'; const v=parseFloat(localStorage.getItem('lotd-music-vol')); if(isFinite(v)) MUSIC.vol=Math.max(0,Math.min(1,v)); }catch(e){}
+const MODES={ion:[0,2,4,5,7,9,11],dor:[0,2,3,5,7,9,10],phr:[0,1,3,5,7,8,10],aeo:[0,2,3,5,7,8,10],loc:[0,1,3,5,6,8,10],hm:[0,2,3,5,7,8,11],whl:[0,2,4,6,8,10]};
+// lead voices: wave, attack and decay (s), octave above the root's second, a partial (ring) for bells and metal, detune for a
+// choir, a low-pass, vibrato for the single voice
+const VOICES={
+  pluck:{wave:'triangle',att:.004,dec:.32,oct:1},           box:  {wave:'sine',att:.002,dec:.9,oct:2,ring:4},
+  bell: {wave:'sine',att:.003,dec:1.8,oct:1,ring:2.76},     brass:{wave:'sawtooth',att:.07,dec:.9,oct:0,cut:900},
+  choir:{wave:'sawtooth',att:.28,dec:1.5,oct:1,det:9,cut:1300}, metal:{wave:'square',att:.003,dec:.45,oct:1,ring:3.5,cut:2400},
+  march:{wave:'triangle',att:.02,dec:.55,oct:0},            voice:{wave:'sine',att:.35,dec:2.4,oct:1,vib:5},
+  lead: {wave:'triangle',att:.012,dec:.7,oct:1}
 };
-// [root Hz, mode, beats per minute, timbre, pulse 0-1, hiss 0-1]: one theme per boss
+// pads: waves and the scale steps they hold (3 = the mode's third)
+const PADS={drone:{w:['triangle'],n:[0,7]},brass:{w:['sawtooth'],n:[0,7,12]},organ:{w:['square','triangle'],n:[0,7,12,19]},strings:{w:['sawtooth'],n:[0,3,7]}};
+const THEMES={
+  g0:{name:'Rat Warren',      root:55,  mode:'aeo',bpm:84,lead:'pluck',pad:'drone',  noise:'scratch',drum:.25,dens:.45,vol:.055,cut:520,motif:[0,2,4,3,2,0]},
+  g1:{name:'Sunken Crypt',    root:46.2,mode:'dor',bpm:50,lead:'bell', pad:'drone',  noise:'water',  drum:0,  dens:.28,vol:.055,cut:380,echo:.55,motif:[4,3,1,0,1]},
+  g2:{name:'Ashen Barrow',    root:41.2,mode:'phr',bpm:88,lead:'brass',pad:'brass',  noise:'crackle',drum:.5, dens:.34,vol:.052,cut:460,motif:[0,1,0,3,1,0]},
+  g3:{name:'Hollow Cathedral',root:49,  mode:'aeo',bpm:46,lead:'choir',pad:'organ',  noise:null,     drum:0,  dens:.3, vol:.05, cut:640,echo:.5,motif:[0,2,4,5,4,2,0]},
+  g4:{name:'Iron Orchard',    root:51.9,mode:'whl',bpm:66,lead:'metal',pad:'drone',  noise:null,     drum:.2, dens:.36,vol:.05, cut:480,motif:[0,2,4,3,1]},
+  g5:{name:'Throne of Ash',   root:43.7,mode:'hm', bpm:56,lead:'march',pad:'strings',noise:null,     drum:.55,dens:.32,vol:.052,cut:520,march:1,motif:[0,4,5,6,4,0]},
+  g6:{name:'Vane Abbey',      root:38.9,mode:'loc',bpm:40,lead:'voice',pad:null,     noise:null,     drum:0,  dens:.16,vol:.06, cut:400,rest:.55,motif:[0,1,4,1]},
+  tower:{name:'Hell Tower',   root:41.2,mode:'phr',bpm:64,lead:'brass',pad:'brass',  noise:'crackle',drum:.3, dens:.32,vol:.055,cut:480,motif:[0,1,3,1,0]},
+  rift:{name:'The Rift',      root:36.7,mode:'loc',bpm:70,lead:'metal',pad:'drone',  noise:'hiss',   drum:.36,dens:.36,vol:.055,cut:540,atonal:1,motif:[0,3,1,6]},
+  'town:calm':  {name:'Town, calm',  root:58.3,mode:'ion',bpm:60,lead:'box', pad:'drone',noise:null,  drum:0,  dens:.36,vol:.045,cut:420,motif:[0,2,4,2,1,0]},
+  'town:uneasy':{name:'Town, uneasy',root:55,  mode:'dor',bpm:52,lead:'lead',pad:'drone',noise:null,  drum:0,  dens:.3, vol:.05, cut:420,motif:[0,2,3,1,0]},
+  'town:afraid':{name:'Town, afraid',root:51.9,mode:'aeo',bpm:56,lead:'lead',pad:'drone',noise:null,  drum:.12,dens:.26,vol:.05, cut:380,motif:[0,3,2,0]},
+  'town:terror':{name:'Town, terror',root:49,  mode:'phr',bpm:60,lead:'voice',pad:'drone',noise:'hiss',drum:.3, dens:.08,vol:.055,cut:300,motif:[0,1]}
+};
+// [root Hz, mode, beats per minute, timbre, pulse 0-1, hiss 0-1]: one theme per boss; a gate's boss plays its gate's motif
 const BOSS_THEME={
   'The Rat King':[55,'phr',72,'square',.4,.02],'The Crypt Warden':[46.2,'aeo',56,'triangle',.3,0],'The Ember Knight':[49,'hm',80,'sawtooth',.55,.04],
   'The Bishop of Teeth':[41.2,'loc',60,'square',.35,0],'The Orchard Mother':[51.9,'dor',66,'triangle',.4,.02],'The Pale Sovereign':[43.7,'hm',62,'sawtooth',.5,.03],
@@ -8412,42 +8446,91 @@ const BOSS_THEME={
   'The Choir Eternal':[49,'dor',48,'triangle',.2,.01],'The Rootking':[38.9,'phr',82,'square',.65,.04],'The Nameless Sovereign':[34.6,'loc',90,'sawtooth',.9,.05],
   'The Hunger':[32.7,'aeo',50,'sawtooth',.7,.09]
 };
+const BOSS_LEAD={square:'metal',sawtooth:'brass',triangle:'pluck'};
+const strHash=s=>{ let h=2166136261; for(let i=0;i<s.length;i++) h=Math.imul(h^s.charCodeAt(i),16777619); return h>>>0; };
 const liveBoss=()=>S.mode==='battle'&&S.run?liveFoes().find(e=>e.boss)||null:null;
-const musicScene=()=>{ const b=liveBoss(); if(b&&BOSS_THEME[b.base]) return 'boss:'+b.base; return S.mode==='town'?(ui.tab==='tower'?'tower':'town'):(S.run&&S.run.tw?'tower':S.run&&S.run.rift?'rift':'gate'); };
-function sceneOf(sc){ if(sc.startsWith('boss:')){ const t=BOSS_THEME[sc.slice(5)]; return {root:t[0],mode:t[1],bpm:t[2],tone:t[3],drum:t[4],noise:t[5],dens:.5,vol:.062,cut:620}; } return SCENES[sc]; }
+function musicScene(){   // the theme for where you are: a boss (|2 in its second phase), the town by its dread, a Tower band, a gate
+  const b=liveBoss(); if(b) return 'boss:'+b.base+(b.phase2?'|2':'');
+  const town=()=>'town:'+(typeof dreadOn==='function'&&dreadOn()?dreadBand().id:'uneasy');
+  if(S.mode==='town') return ui.tab==='tower'?'tower:'+Math.min(12,Math.floor(((S.tower&&S.tower.best)|0)/10)):town();
+  if(S.mode==='siege') return 'town:terror';
+  const r=S.run; if(!r) return town(); if(r.tw) return 'tower:'+Math.min(12,Math.floor(r.tw/10)); if(r.rift) return 'rift'; return 'g'+Math.max(0,Math.min(6,r.di|0));
+}
+function themeOf(sc){   // the full theme for a scene key
+  sc=String(sc||''); let P;
+  if(sc.startsWith('boss:')){ const [n,ph]=sc.slice(5).split('|'), gi=DUNGEONS.findIndex(D=>D.boss[0]===n), G=THEMES['g'+gi]||THEMES[S&&S.run&&S.run.tw?'tower':'g'+((S&&S.run&&S.run.di)|0)]||THEMES.g0, t=BOSS_THEME[n];
+    P=Object.assign({},G,{boss:n,dens:G.dens+.12,vol:.06,cut:G.cut+140,drum:Math.min(1,G.drum+.2),bpm:Math.round(G.bpm*1.15),rest:0});
+    if(t) Object.assign(P,{root:t[0],mode:t[1],bpm:t[2],drum:t[4],noise:t[5]>.04?'hiss':P.noise,lead:gi>=0?G.lead:BOSS_LEAD[t[3]]||'lead'});
+    if(gi<0) P.motif=[0,1,2,3,4,5,6].map(i=>(strHash(n)>>>(i*3))%7).slice(0,4+strHash(n)%3);   // a boss of no gate: its own motif from its name
+    if(ph==='2') Object.assign(P,{bpm:Math.round(P.bpm*1.25),root:P.root*Math.pow(2,2/12),drum:Math.min(1,P.drum+.25),dens:Math.min(.8,P.dens+.1),phase:2}); }
+  else if(sc.startsWith('tower:')){ const band=Math.max(0,Math.min(12,parseInt(sc.slice(6))||0)); P=Object.assign({},THEMES.tower,{root:THEMES.tower.root*Math.pow(2,band/12),bpm:THEMES.tower.bpm+band*2,band}); }   // a semitone higher every 10 floors
+  else P=Object.assign({},THEMES[sc]||THEMES['town:uneasy']);
+  return P;
+}
+const sceneOf=themeOf;   // the older name
+const musicVol=()=>MUSIC.vol;
 function stopMusic(){
   const n=MUSIC.nodes, c=SFX.ctx; MUSIC.nodes=null; MUSIC.scene=null; if(!n) return; clearInterval(n.timer); if(!c) return;
-  try{ n.g.gain.cancelScheduledValues(c.currentTime); n.g.gain.setTargetAtTime(0.0001,c.currentTime,.7); }catch(e){}
-  setTimeout(()=>n.src.forEach(o=>{ try{ o.stop(); }catch(e){} }),4000);
+  try{ n.g.gain.cancelScheduledValues(c.currentTime); n.g.gain.setValueAtTime(n.g.gain.value,c.currentTime); n.g.gain.linearRampToValueAtTime(0.0001,c.currentTime+1.5); }catch(e){}   // the 1.5 s crossfade
+  setTimeout(()=>n.src.forEach(o=>{ try{ o.stop(); }catch(e){} }),1700);
+}
+function musicGraph(c,P){   // build the theme's sound: master, pad or drone, sub, noise bed, the lead's echo; returns {g,src,mel,P,rng,...}
+  const M=MODES[P.mode]||MODES.aeo, t=c.currentTime, g=c.createGain(), lp=c.createBiquadFilter(), lfo=c.createOscillator(), lg=c.createGain(), src=[];
+  g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(P.vol*musicVol(),t+1.5); g.connect(c.destination);
+  lp.type='lowpass'; lp.frequency.value=P.cut; lp.Q.value=2.5; lfo.frequency.value=.06; lg.gain.value=P.cut*.4; lfo.connect(lg).connect(lp.frequency); lfo.start(t); src.push(lfo); lp.connect(g);
+  const st=n=>P.root*Math.pow(2,n/12), deg=d=>{ const L=M.length, o=Math.floor(d/L); return M[((d%L)+L)%L]+12*o; };
+  const PD=P.pad&&PADS[P.pad];
+  if(PD){ const padG=c.createGain(); padG.gain.value=.5; padG.connect(lp);
+    PD.n.forEach((n,i)=>{ const nn=n===3?M[2]:n; for(const det of [-6,5]){ const o=c.createOscillator(); o.type=PD.w[i%PD.w.length]; o.frequency.value=st(nn); o.detune.value=det; o.connect(padG); o.start(t); src.push(o); } }); }
+  const sub=c.createOscillator(), sg=c.createGain(); sub.frequency.value=P.root/2; sg.gain.value=PD?.5:.25; sub.connect(sg).connect(g); sub.start(t); src.push(sub);
+  if(P.noise){ const n=Math.floor(c.sampleRate*2), b=c.createBuffer(1,n,c.sampleRate), d=b.getChannelData(0), r=scRand(strHash(P.noise)); for(let i=0;i<n;i++) d[i]=r()*2-1;
+    const ns=c.createBufferSource(), f=c.createBiquadFilter(), ng=c.createGain(), NZ={water:['lowpass',380,.05],crackle:['bandpass',2600,.02],hiss:['highpass',3200,.012],scratch:['bandpass',1300,.018]}[P.noise]||['bandpass',180,.03];
+    ns.buffer=b; ns.loop=true; f.type=NZ[0]; f.frequency.value=NZ[1]; ng.gain.value=NZ[2]*8;
+    if(P.noise==='water'){ const wl=c.createOscillator(), wg=c.createGain(); wl.frequency.value=.13; wg.gain.value=NZ[2]*5; wl.connect(wg).connect(ng.gain); wl.start(t); src.push(wl); }   // water laps
+    ns.connect(f).connect(ng).connect(g); ns.start(t); src.push(ns); }
+  const dl=c.createDelay(1.5), fb=c.createGain(), dlp=c.createBiquadFilter(), mel=c.createGain(); dl.delayTime.value=60/P.bpm*.75; fb.gain.value=P.echo||.36; dlp.type='lowpass'; dlp.frequency.value=1800;
+  mel.gain.value=1; mel.connect(g); mel.connect(dl); dl.connect(dlp).connect(fb).connect(dl); dlp.connect(g);
+  return {g,src,mel,P,st,deg,rng:scRand(strHash(MUSIC.scene||P.name||'m')),next:t+1.2,step:0,at:0,wander:0,crk:0};
+}
+function musicNote(c,n,at,d){   // one lead note: the voice's wave, envelope, partial, detune, vibrato and filter
+  const P=n.P, V=VOICES[P.lead]; if(!V) return; const f=n.st(d+12*(2+V.oct)), e=c.createGain(), out=V.cut?c.createBiquadFilter():null, peak=V.wave==='sawtooth'||V.wave==='square'?.06:.13;
+  if(out){ out.type='lowpass'; out.frequency.value=V.cut; out.connect(n.mel); }
+  e.gain.setValueAtTime(0.0001,at); e.gain.exponentialRampToValueAtTime(peak,at+V.att); e.gain.exponentialRampToValueAtTime(0.0001,at+V.att+V.dec); e.connect(out||n.mel);
+  const osc=(fr,det,amp)=>{ const o=c.createOscillator(); o.type=V.wave; o.frequency.value=fr; if(det) o.detune.value=det; let node=o; if(amp!=null){ const a=c.createGain(); a.gain.value=amp; o.connect(a); node=a; } node.connect(e); o.start(at); o.stop(at+V.att+V.dec+.05); return o; };
+  const o=osc(f,0);
+  if(V.det){ osc(f,V.det); osc(f,-V.det); }
+  if(V.ring) osc(f*V.ring,0,.25);
+  if(V.vib){ const l=c.createOscillator(), lg=c.createGain(); l.frequency.value=V.vib; lg.gain.value=f*.012; l.connect(lg).connect(o.frequency); l.start(at); l.stop(at+V.att+V.dec+.05); }
+}
+function musicPulse(c,n,at,acc){ const P=n.P, o=c.createOscillator(), e=c.createGain(); o.type='sine'; o.frequency.setValueAtTime(acc?78:66,at); o.frequency.exponentialRampToValueAtTime(36,at+.25);
+  e.gain.setValueAtTime(0.0001,at); e.gain.exponentialRampToValueAtTime((acc?.6:.42)*P.drum,at+.01); e.gain.exponentialRampToValueAtTime(0.0001,at+.3); o.connect(e).connect(n.g); o.start(at); o.stop(at+.32); }
+function musicTick(c,n,now,ahead){   // schedule the next stretch: the motif, a varied answer, then a wandering line with rests
+  const P=n.P, beat=60/P.bpm, r=n.rng, mo=P.motif||[0], L=mo.length, phrase=Math.max(16,L*4);
+  if(n.next<now) n.next=now+.05;   // the timer ran late (a busy or hidden tab): skip what was missed instead of playing it all at once
+  while(n.next<now+ahead){ const s=n.step%phrase, half=s%2===0;
+    if(s===0&&P.atonal) n.shift=Math.floor(r()*12)-6;   // the Rift: each phrase from somewhere else
+    if(half&&P.lead){ const i=s/2; let d=null;
+      if(i<L) d=mo[i];   // the motif
+      else if(i<2*L) d=r()<.7?mo[i-L]+(i-L===L-1?0:[0,0,1,-1,2][Math.floor(r()*5)]):null;   // an answer that leans on it
+      else if(r()<P.dens&&!(P.rest&&r()<P.rest)){ n.wander=Math.max(-3,Math.min(9,n.wander+[-2,-1,1,1,2][Math.floor(r()*5)])); d=n.wander; }
+      if(d!=null) musicNote(c,n,n.next,P.atonal?d+(n.shift||0):n.deg(d)); }
+    if(P.drum&&(P.march?half:s%4===0)&&r()<.5+P.drum/2) musicPulse(c,n,n.next,s%8===0);
+    n.next+=beat/2; n.step++; }
 }
 function music(){
   if(!MUSIC.on){ stopMusic(); return; }
   if(!MUSIC.armed) return;
   const sc=musicScene(); if(sc===MUSIC.scene&&MUSIC.nodes) return;
   let c; try{ c=sfxCtx(); }catch(e){ return; } if(!c) return;
-  stopMusic();
-  const P=sceneOf(sc), M=MODES[P.mode], t=c.currentTime, g=c.createGain(), lp=c.createBiquadFilter(), lfo=c.createOscillator(), lg=c.createGain(), src=[];
-  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(P.vol,t+3); g.connect(c.destination);
-  // pad: root, fifth and the mode's third, softly detuned, under a breathing low-pass
-  lp.type='lowpass'; lp.frequency.value=P.cut; lp.Q.value=2.5; lfo.frequency.value=.06; lg.gain.value=P.cut*.4; lfo.connect(lg).connect(lp.frequency); lfo.start(t); src.push(lfo); lp.connect(g);
-  const st=n=>P.root*Math.pow(2,n/12), padG=c.createGain(); padG.gain.value=.55; padG.connect(lp);
-  [0,7,M[2]+12].forEach((n,i)=>{ for(const det of [-6,5]){ const o=c.createOscillator(); o.type=i?'sawtooth':'triangle'; o.frequency.value=st(n); o.detune.value=det; o.connect(padG); o.start(t); src.push(o); } });
-  const sub=c.createOscillator(), sg=c.createGain(); sub.frequency.value=P.root/2; sg.gain.value=.5; sub.connect(sg).connect(g); sub.start(t); src.push(sub);
-  if(P.noise){ const n=Math.floor(c.sampleRate*2), b=c.createBuffer(1,n,c.sampleRate), d=b.getChannelData(0); for(let i=0;i<n;i++) d[i]=Math.random()*2-1;
-    const ns=c.createBufferSource(), bp=c.createBiquadFilter(), ng=c.createGain(); ns.buffer=b; ns.loop=true; bp.type='bandpass'; bp.frequency.value=180; bp.Q.value=.7; ng.gain.value=P.noise*8; ns.connect(bp).connect(ng).connect(g); ns.start(t); src.push(ns); }
-  // echo for the melody
-  const dl=c.createDelay(1.5), fb=c.createGain(), dlp=c.createBiquadFilter(), mel=c.createGain(); dl.delayTime.value=60/P.bpm*.75; fb.gain.value=.38; dlp.type='lowpass'; dlp.frequency.value=1800;
-  mel.gain.value=1; mel.connect(g); mel.connect(dl); dl.connect(dlp).connect(fb).connect(dl); dlp.connect(g);
-  // melody and pulse, scheduled a little ahead
-  const beat=60/P.bpm; let next=t+1.5, step=0;
-  const note=(at,deg,oct)=>{ const o=c.createOscillator(), e=c.createGain(); o.type=P.tone==='square'?'square':'triangle'; o.frequency.value=st(M[deg%M.length]+12*(2+oct)); e.gain.setValueAtTime(0.0001,at); e.gain.exponentialRampToValueAtTime(P.tone==='square'?.05:.09,at+.03); e.gain.exponentialRampToValueAtTime(0.0001,at+beat*2.2); o.connect(e).connect(mel); o.start(at); o.stop(at+beat*2.4); };
-  const pulse=at=>{ const o=c.createOscillator(), e=c.createGain(); o.type='sine'; o.frequency.setValueAtTime(70,at); o.frequency.exponentialRampToValueAtTime(38,at+.25); e.gain.setValueAtTime(0.0001,at); e.gain.exponentialRampToValueAtTime(.5*P.drum,at+.01); e.gain.exponentialRampToValueAtTime(0.0001,at+.35); o.connect(e).connect(g); o.start(at); o.stop(at+.4); };
-  let deg=0;
-  const timer=setInterval(()=>{ if(!MUSIC.nodes||MUSIC.nodes.timer!==timer) return; const now=c.currentTime, ahead=document.hidden?1.5:.35;
-    if(next<now) next=now+.05;   // the timer ran late (a busy or hidden tab): skip what was missed instead of playing it all at once
-    while(next<now+ahead){ if(step%2===0&&Math.random()<P.dens){ deg=Math.max(0,Math.min(9,deg+[-2,-1,1,1,2][Math.floor(Math.random()*5)])); note(next,deg,deg>6?1:0); }   // a wandering line in the scene's mode
-      if(P.drum&&step%4===0&&Math.random()<.5+P.drum/2) pulse(next); next+=beat/2; step++; } },120);
-  MUSIC.nodes={g,src,timer}; MUSIC.scene=sc;
+  stopMusic(); MUSIC.scene=sc;
+  const n=musicGraph(c,themeOf(sc));
+  n.timer=setInterval(()=>{ if(MUSIC.nodes!==n) return; try{ musicTick(c,n,c.currentTime,document.hidden?1.5:.35); }catch(e){} },120);
+  MUSIC.nodes=n;
+}
+function musicSetVol(v){   // the volume slider: 0-1, kept per browser; touching it turns the music on
+  MUSIC.vol=Math.max(0,Math.min(1,Math.round(v*10)/10)); try{ localStorage.setItem('lotd-music-vol',String(MUSIC.vol)); }catch(e){}
+  if(MUSIC.vol>0&&!MUSIC.on){ MUSIC.on=true; MUSIC.armed=true; try{ localStorage.setItem('lotd-music','on'); }catch(e){} }
+  const n=MUSIC.nodes, c=SFX.ctx; if(n&&c) try{ n.g.gain.setTargetAtTime(Math.max(0.0001,n.P.vol*MUSIC.vol),c.currentTime,.1); }catch(e){}
 }
 // Boss backgrounds: each boss fight sets its own colours and pattern behind the battle (#bossbg).
 const BOSS_LOOK={
@@ -8937,6 +9020,47 @@ function scene(){
   document.body.classList.toggle('towerscene',k==='tower'); document.body.classList.toggle('scened',!!k);   // a scene brings its own vignette
   el.classList.toggle('on',!!k);
 }
+// ----- R17 PR B: the title screen and the two epilogues, painted with the same brushes (1600 x 900)
+const SC_DEFS='<defs><filter id="scB" x="-30%" y="-200%" width="160%" height="500%"><feGaussianBlur stdDeviation="34"/></filter><filter id="scB2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter></defs>';
+function scLectern(x,base,k,lit){   // a stone lectern with the Ledger open on it; lit: its pages glow soul-green
+  k=k||1; const w=v=>(v*k).toFixed(1);
+  return (lit?scGlow(x,base-170*k,150*k,'#8fd46a',.22):'')
+   +'<g transform="translate('+x+' '+base+')"><path d="M'+w(-46)+' 0H'+w(46)+'L'+w(30)+' '+w(-18)+'H'+w(-30)+'Z" fill="#0d0b09"/><path d="M'+w(-16)+' '+w(-18)+'H'+w(16)+'L'+w(12)+' '+w(-120)+'H'+w(-12)+'Z" fill="#14110d"/>'
+   +'<path d="M'+w(-70)+' '+w(-128)+'L'+w(70)+' '+w(-128)+'L'+w(56)+' '+w(-146)+'H'+w(-56)+'Z" fill="#1a1612"/>'
+   +'<path d="M'+w(-62)+' '+w(-146)+'Q'+w(-30)+' '+w(-162)+' 0 '+w(-150)+'Q'+w(30)+' '+w(-162)+' '+w(62)+' '+w(-146)+'L'+w(58)+' '+w(-138)+'Q'+w(30)+' '+w(-152)+' 0 '+w(-142)+'Q'+w(-30)+' '+w(-152)+' '+w(-58)+' '+w(-138)+'Z" fill="'+(lit?'#d8e8b8':'#b8ad92')+'" opacity="'+(lit?.95:.8)+'"/>'
+   +'<path d="M0 '+w(-150)+'V'+w(-142)+'" stroke="#3a3226" stroke-width="'+w(1.5)+'"/>'
+   +[0,1,2,3].map(i=>'<path d="M'+w(-52+i*2)+' '+w(-147+i*3)+'Q'+w(-28)+' '+w(-156+i*3)+' '+w(-6)+' '+w(-149+i*3)+'M'+w(6)+' '+w(-149+i*3)+'Q'+w(28)+' '+w(-156+i*3)+' '+w(52-i*2)+' '+w(-147+i*3)+'" stroke="#4a4234" stroke-width=".8" fill="none" opacity=".6"/>').join('')+'</g>';
+}
+function scTitle(){   // the drowned chapel at night: the nave half under black water, its windows still lit, the Ledger on its lectern
+  const r=scRand(1717); let o='<defs>'+scSky('skT','#07090a','#121816','#1e2622')+'</defs>'+SC_DEFS+'<rect width="1600" height="900" fill="url(#skT)"/>'+scStars(r,120,420)
+    +scGlow(1240,140,160,'#e8e0c8',.18)+'<circle cx="1240" cy="140" r="44" fill="#e6dec6" opacity=".8"/><circle cx="1226" cy="128" r="9" fill="#bdb49a" opacity=".5"/>'
+    +scRidge(scRand(171),470,110,90,'#0e1210',.95)
+    +scGothic(800,640,380,420,'#0b0d0c')+scGothic(800,640,300,500,'#0d100e')+'<path d="M800 140V90M786 104H814" stroke="#0d100e" stroke-width="7"/>'   // the nave, a broken cross on the gable
+    +scGothic(560,640,120,240,'#0b0d0c')+scGothic(1040,640,120,260,'#0b0d0c')
+    +scWin(780,330,40,90,.9)+scWin(548,470,22,56,.6)+scWin(1030,460,22,60,.7)
+    +scRuin(300,640,90,150,'#0a0c0b')+scRuin(1290,640,80,140,'#0a0c0b',1)
+    +'<rect y="630" width="1600" height="270" fill="#070908"/>'   // the black water
+    +'<g opacity=".18" transform="translate(0 1270) scale(1 -1)">'+scGothic(800,640,300,500,'#3a4a40')+scWin(780,330,40,90,.6)+'</g>'
+    +[0,1,2,3,4,5].map(i=>'<path d="M'+(420+i*40+r()*60)+' '+(650+i*28)+'h'+(140+r()*200)+'" stroke="#c8d8b8" stroke-opacity="'+(.05+r()*.07).toFixed(2)+'" stroke-width="2"/>').join('')
+    +scFog(640,.5,'#a8b8a0',1300)+scFog(720,.35,'#8a9a88',1100,1)
+    +'<path d="M690 712C720 690 880 690 910 712Z" fill="#0b0a08"/><path d="M640 714H960" stroke="#1a1f1a" stroke-width="3"/>'+scLectern(800,700,1.25,true)
+    +scMotes(r,26,'#8fd46a',560,860,'sc-amb');
+  return scCalm(o);
+}
+function scEpilogue(k){   // closed: dawn over a quiet valley, the book shut on a grave; kept: night, the book open, every gate lit along the road
+  const r=scRand(k==='closed'?2525:2626), dawn=k==='closed';
+  let o=SC_DEFS+'<defs>'+(dawn?scSky('skE','#2a2420','#7a5a3a','#d8a868'):scSky('skE','#060708','#101412','#1a1f1c'))+'</defs><rect width="1600" height="900" fill="url(#skE)"/>';
+  if(dawn){ o+=scGlow(800,520,420,'#f0c080',.35)+'<circle cx="800" cy="540" r="80" fill="#f4d8a0" opacity=".85"/>'+scRidge(scRand(251),600,90,80,'#3a3028',.9)+scRidge(scRand(252),660,70,60,'#2a221c',.95)
+      +'<path d="M0 700Q400 670 800 690T1600 680V900H0Z" fill="#1e1914"/>'+[0,1,2,3,4,5].map(i=>scArch(220+i*230,700-(i%2)*6,46,70,'#151210')).join('')   // six gates, dark and quiet
+      +'<path d="M700 770h200v-30q-100-36-200 0Z" fill="#2a241e"/><path d="M748 738h104l-8-18h-88Z" fill="#4a3a2a"/><path d="M756 730h88" stroke="#8a6a3e" stroke-width="2.5"/><path d="M800 720v-60M780 680h40" stroke="#3a3026" stroke-width="8"/>'   // a grave, the book shut on it
+      +scCrow(560,380,1.4,'#1a1410')+scCrow(620,350,1,'#1a1410')+scFog(720,.4,'#e8c8a0',1200); }
+  else { o+=scStars(r,140,520)+scGlow(300,160,120,'#e8e0c8',.12)+'<circle cx="300" cy="160" r="30" fill="#e0d8c0" opacity=".7"/>'+scRidge(scRand(261),560,110,90,'#0d100e',.95)
+      +'<path d="M0 640Q400 600 800 630T1600 610V900H0Z" fill="#0a0c0b"/><path d="M800 900L760 640H840Z" fill="#14120e" opacity=".9"/>'   // the road running into the night
+      +[0,1,2,3,4,5,6].map(i=>{ const x=800+(i%2?1:-1)*(80+i*90), y=640-i*6, s=1-i*.09; return scArch(x,y,40*s,62*s,'#0c0e0c')+scGlow(x,y-30*s,50*s,'#ff9a40',.2)+'<rect x="'+(x-8*s)+'" y="'+(y-40*s)+'" width="'+(16*s)+'" height="'+(26*s)+'" fill="#e8a050" opacity=".55"/>'; }).join('')   // every gate burning
+      +scLectern(800,790,1,true)+scMotes(r,30,'#8fd46a',560,800,'sc-amb'); }
+  return scCalm(o);
+}
+
 // ----- small paintings: each gate's backdrop on its Gates tile and the village strip on the Town tab. Drawn once into a stylesheet as
 // SVG images (classes gs-g0..gs-g5, gs-vil), so a render only names a class; as images they hold still and cost nothing to redraw.
 function scVillage(){   // the strip behind the Town tab's buildings: dusk, far cottages, the Old Shrine and a churchyard fence; the ground line sits at y 330 of 400
@@ -8982,7 +9106,7 @@ function vbIcon(k,lv){   // lv 0: ruin; the altar's rune glows mana blue
 }
 // ----- display settings (per browser, not in the save): text size, reduced motion, high contrast
 const LANGS={en:'English',tr:'Türkçe'};   // see LANGUAGE below
-const VIEW={size:0,calm:false,hc:false,nobg:false,lang:'en',fx:'auto',army:'grid',fold:{}};
+const VIEW={size:0,calm:false,hc:false,nobg:false,lang:'en',fx:'auto',army:'grid',fold:{},notitle:false};
 const FX_MODES={auto:'Auto',full:'Full',light:'Light'};
 const fxLight=()=>VIEW.fx==='light'||(VIEW.fx==='auto'&&((window.innerWidth||1200)<=540||((typeof navigator!=='undefined'&&navigator.hardwareConcurrency)||8)<=4));   // phones and weak machines get the cheap painting
 try{
@@ -8992,6 +9116,7 @@ try{
     VIEW.calm=!!v.calm;
     VIEW.hc=!!v.hc;
     VIEW.nobg=!!v.nobg;
+    VIEW.notitle=!!v.notitle;
     VIEW.lang=LANGS[v.lang]?v.lang:'en';
     VIEW.fx=FX_MODES[v.fx]?v.fx:'auto';
     VIEW.army=v.army==='compact'?'compact':'grid';   /* an old 'cards' choice opens as portraits: an opened portrait is that card */
@@ -13533,6 +13658,15 @@ TR_RX.unshift([/^Cosmetics · (\d+)\/(\d+)$/,"Görünümler · $1/$2"],[/^Earn e
  ["While a move gathers (Charging), the units it will land on are marked Threatened, and on the battle stage the boss draws back for the blow and a red ring marks the ground under them","Bir hamle toplanırken (Yükleniyor) ineceği birimler Tehdit altında olarak işaretlenir; savaş sahnesinde patron darbe için geri çekilir ve altlarındaki zemini kırmızı bir halka işaretler"]
 ].forEach(([k,v])=>{ TR_DICT.set(k,v); });
 TR_RX.unshift([/^Gathering against it: (.+)$/,"Ona karşı toplanan: $1"],[/^(.+) · Second phase$/,"$1 · İkinci evre"]);
+
+// ----- R17 PR B: music, the title screen and the epilogues
+[
+ ["The chapel drowned. The book did not","Şapel boğuldu. Kitap boğulmadı"],["Go on","Devam et"],["Open the Ledger","Defteri aç"],["A new book, a first page","Yeni bir kitap, ilk sayfa"],["A new book","Yeni bir kitap"],
+ ["Begin again (Settings, New game)","Baştan başla (Ayarlar, Yeni oyun)"],["Press Enter to go on","Devam etmek için Enter'a bas"],["Title screen","Açılış ekranı"],["The drowned chapel when the page opens","Sayfa açılınca boğulmuş şapel"],
+ ["A theme for each gate, the Tower, the Rift, the town as its fear changes, and every boss. Its own volume; sound effects keep theirs","Her kapı, Kule, Rift, korkusu değiştikçe kasaba ve her boss için bir tema. Kendi ses düzeyi vardır; ses efektleri kendilerininkini korur"],
+ ["Music quieter","Müzik daha kısık"],["Music louder","Müzik daha yüksek"],["Music volume","Müzik ses düzeyi"]
+].forEach(([k,v])=>{ TR_DICT.set(k,v); });
+TR_RX.unshift([/^Press again to open slot (\d+)$/,"Yuva $1'i açmak için tekrar bas"],[/^Slot (\d+)$/,"Yuva $1"],[/^Day (\d+) · Level (\d+) · (\d+) gates? cleared(.*)$/,"Gün $1 · Seviye $2 · $3 kapı temizlendi$4"]);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -14722,13 +14856,14 @@ const heatMarks=lv=>'<i class="hm h'+lv+'" aria-hidden="true">'+HEAT_SKULL.repea
 const bossMet=i=>metName(DUNGEONS[i].boss[0])||!!(S.ti&&S.ti.clr&&S.ti.clr[i]);   // a gate's boss stays ??? on its card until you have met or beaten it
 const gateStars=i=>HEAT.map((x,lv)=>lv?!!(S.heatMax&&S.heatMax[i]>=lv):!!(S.ti&&S.ti.clr&&S.ti.clr[i]));   // cleared on Normal, Hard, Brutal, Nightmare
 function inscChips(){ const o=inscOffer(); return o.length?'<p class="group-h">Write one inscription &middot; it stays in the Ledger for every cycle to come</p><div class="insc-list">'+o.map(id=>{ const I=INSCRIPTIONS[id]; return '<button class="btn small" data-a="inscribe" data-k="'+id+'" title="Earned: '+I.need+'"><b>'+I.name+'</b> &middot; '+I.desc+'</button>'; }).join('')+'</div>':''; }
+const epilogueArt=k=>VIEW.nobg?'':'<div class="epi-art" aria-hidden="true"><svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">'+scEpilogue(k)+'</svg></div>';   // R17: the ending painted (scenes.js)
 function lastPageHTML(){   // the Hunger has fallen: the Ledger open at its last page (chooseEnding, inscribe in game-abbey.js)
   if(!S.ending) return '<section class="win last-page" aria-labelledby="h-lp"><h2 class="win-h" id="h-lp">The last page</h2><h3 class="win-title">The Ledger lies open, and the pen is in your hand</h3>'
     +'<p class="lede">The Hunger is gone. What is left is a blank page and a choice Oswin never made. Answer now, or leave it: the page waits, and the gates stay open.</p><div class="lp-choices">'
     +Object.entries(ENDINGS).map(([k,E])=>'<div class="lp-choice"><h4>'+E.name+'</h4><p class="lp-line">&ldquo;'+E.line+'&rdquo;</p><p class="dim">Title: '+E.title+'. New Game+ becomes '+E.cycle+': '+E.ngp+'</p><button class="btn '+(ui.confirm==='end:'+k?'warn':'primary')+'" data-a="ending" data-k="'+k+'">'+(ui.confirm==='end:'+k?'Press again: '+E.name.toLowerCase():E.name)+'</button></div>').join('')
     +'</div><div class="btns"><button class="btn small" data-a="lplater">Not yet</button></div></section>';
   const st=STORY_BY[S.ending.k==='closed'?'end_closed':'end_kept'];
-  return '<section class="win last-page" aria-labelledby="h-lp"><h2 class="win-h" id="h-lp">'+ENDINGS[S.ending.k].name+'</h2><h3 class="win-title">'+st.t+'</h3><p class="lp-text">'+st.m+'</p><p class="lp-text">'+S.ending.v+'</p>'
+  return '<section class="win last-page" aria-labelledby="h-lp"><h2 class="win-h" id="h-lp">'+ENDINGS[S.ending.k].name+'</h2>'+epilogueArt(S.ending.k)+'<h3 class="win-title">'+st.t+'</h3><p class="lp-text">'+st.m+'</p><p class="lp-text">'+S.ending.v+'</p>'
     +inscChips()+'<p class="q-note">You can keep playing this cycle. New Game+ (Ledger tab, Settings) now begins '+ENDINGS[S.ending.k].cycle+'.</p><div class="btns"><button class="btn primary" data-a="lpseen">Close the Ledger</button></div></section>';
 }
 function lastPageBanner(){
@@ -15053,13 +15188,15 @@ function saveTabHTML(){
    +'<div class="btns" style="margin:0">'+(tipsOff?'<button class="btn small primary" data-a="tipson">Show tips</button>':'')+(seenTips?'<button class="btn small" data-a="tipsreset">Show all again</button>':tipsOff?'':'<button class="btn small" disabled>No tips seen yet</button>')+'</div></div></div>'
    +'<p class="group-h">Sound</p><div class="tt-row'+(SFX.on?' on':'')+'"><div><h4>Sound effects</h4><div class="u-sub">Remembered in this browser.</div></div>'
    +'<button class="btn small'+(SFX.on?'':' primary')+'" data-a="sound" aria-pressed="'+SFX.on+'">'+(SFX.on?'Turn off':'Turn on')+'</button></div>'
-   +'<div class="tt-row'+(MUSIC.on?' on':'')+'"><div><h4>Music</h4><div class="u-sub">A theme for each place and boss.</div></div>'
-   +'<button class="btn small'+(MUSIC.on?'':' primary')+'" data-a="music" aria-pressed="'+MUSIC.on+'">'+(MUSIC.on?'Turn off':'Turn on')+'</button></div>'
+   +'<div class="tt-row'+(MUSIC.on?' on':'')+'"><div><h4>Music</h4><div class="u-sub">A theme for each gate, the Tower, the Rift, the town as its fear changes, and every boss. Its own volume; sound effects keep theirs.</div></div>'
+   +'<div class="btns" style="margin:0"><button class="btn small" data-a="mvol" data-k="-1"'+(MUSIC.vol<=0?' disabled':'')+' aria-label="Music quieter">&minus;</button><span class="num mvol" aria-label="Music volume">'+Math.round(MUSIC.vol*100)+'%</span><button class="btn small" data-a="mvol" data-k="1"'+(MUSIC.vol>=1?' disabled':'')+' aria-label="Music louder">+</button>'
+   +'<button class="btn small'+(MUSIC.on?'':' primary')+'" data-a="music" aria-pressed="'+MUSIC.on+'">'+(MUSIC.on?'Turn off':'Turn on')+'</button></div></div>'
    +'<p class="group-h">Language</p><div class="tt-row"><div><h4>Language</h4><div class="u-sub">Names of places, foes and items stay in English.</div></div><div class="btns" style="margin:0">'
      +Object.keys(LANGS).map(k=>'<button class="btn small'+(VIEW.lang===k?' primary':'')+'" data-a="view" data-k="lang|'+k+'" aria-pressed="'+(VIEW.lang===k)+'" lang="'+k+'">'+LANGS[k]+'</button>').join('')+'</div></div>'
    +'<p class="group-h">Display</p><div class="items"><div class="tt-row"><div><h4>Size</h4><div class="u-sub">Compact fits more on a phone: smaller text, tighter spacing and tabs on one swipeable line'+(window.innerWidth<=540&&VIEW.size!==-1?' (recommended on this screen)':'')+'. Large and Larger make the whole page bigger.</div></div><div class="btns" style="margin:0">'
    +[['Compact',-1],['Normal',0],['Large',1],['Larger',2]].map(([t,i])=>'<button class="btn small'+(VIEW.size===i?' primary':'')+'" data-a="view" data-k="size|'+i+'" aria-pressed="'+(VIEW.size===i)+'">'+t+'</button>').join('')+'</div></div>'
    +'<div class="tt-row'+(VIEW.calm?' on':'')+'"><div><h4>Reduce motion</h4><div class="u-sub">Stops embers, flames, pulses and shake.</div></div><button class="btn small'+(VIEW.calm?'':' primary')+'" data-a="view" data-k="calm" aria-pressed="'+VIEW.calm+'">'+(VIEW.calm?'Turn off':'Turn on')+'</button></div>'
+   +'<div class="tt-row'+(VIEW.notitle?'':' on')+'"><div><h4>Title screen</h4><div class="u-sub">The drowned chapel when the page opens.</div></div><button class="btn small'+(VIEW.notitle?' primary':'')+'" data-a="view" data-k="notitle" aria-pressed="'+!VIEW.notitle+'">'+(VIEW.notitle?'Turn on':'Turn off')+'</button></div>'
    +'<div class="tt-row'+(VIEW.nobg?'':' on')+'"><div><h4>Backgrounds</h4><div class="u-sub">Painted scenes and boss arenas.</div></div><button class="btn small'+(VIEW.nobg?' primary':'')+'" data-a="view" data-k="nobg" aria-pressed="'+!VIEW.nobg+'">'+(VIEW.nobg?'Turn on':'Turn off')+'</button></div>'
    +'<div class="tt-row"><div><h4>Effects</h4><div class="u-sub">Light uses simpler icon shading and still backgrounds, for phones. Full also draws battle effects. Auto picks Light shading on small or slow devices and keeps battle effects unless the device is slow'+(VIEW.fx==='auto'?' (now: '+(fxLight()?'Light':'Full')+')':'')+'.</div></div><div class="btns" style="margin:0">'
      +Object.keys(FX_MODES).map(k=>'<button class="btn small'+(VIEW.fx===k?' primary':'')+'" data-a="view" data-k="fx|'+k+'" aria-pressed="'+(VIEW.fx===k)+'">'+FX_MODES[k]+'</button>').join('')+'</div></div>'
@@ -16633,7 +16770,19 @@ function siegeWorksHTML(){   // the siege works: built once, used in every siege
   return '<p class="group-h">Siege works</p><div class="siege-works">'+WORK_IDS.map(k=>{ const W=WORKS[k], own=worksOwn(k);
     return '<div class="tt-row"><div><h4>'+W.name+(own?' &middot; <span class="ok">built</span>':'')+'</h4><div class="u-sub">'+W.desc+'</div></div>'+(own?'':'<button class="btn small" data-a="swork" data-k="'+k+'"'+(workCan(k)?'':' disabled')+'>Build &middot; '+gold(W.g)+(W.d?' &middot; '+W.d+' dust':'')+'</button>')+'</div>'; }).join('')+'</div>';
 }
-function render(){   // draws only: titles and lore are settled by the input handlers (settled), so a drawn and an undrawn turn play the same
+
+// ----- R17 PR B: the title screen. The drowned chapel at night, the Ledger on its lectern, and the save as its pages: go on
+// with this game, open a slot, or begin again. Shown once when the page opens (Settings can turn it off); any page closes it.
+function titleHTML(){
+  const P=S.player, live=S.day>1||P.lvl>1||(S.ti&&S.ti.clr&&Object.keys(S.ti.clr).length), cl=Object.keys((S.ti&&S.ti.clr)||{}).length;
+  let pages='<button class="ts-page primary" data-a="titlego"><b>'+(live?'Go on':'Open the Ledger')+'</b><span>'+(live?'Day '+S.day+' &middot; Level '+P.lvl+' &middot; '+cl+' '+(cl===1?'gate':'gates')+' cleared'+(modeLabel(S)?' &middot; '+modeLabel(S):''):'A new book, a first page')+'</span></button>';
+  for(let i=1;i<=SLOTS_N;i++){ const g=slotRead(i), d=g&&g.data; if(!d) continue;
+    pages+='<button class="ts-page" data-a="titleslot" data-k="'+i+'"><b>'+(ui.confirm==='sl'+i?'Press again to open slot '+i:'Slot '+i)+'</b><span>Day '+d.day+' &middot; Level '+d.player.lvl+(modeLabel(d)?' &middot; '+modeLabel(d):'')+'</span></button>'; }
+  if(live) pages+='<button class="ts-page" data-a="titlenew"><b>A new book</b><span>Begin again (Settings, New game)</span></button>';
+  return '<section class="title-screen" aria-labelledby="h-ts">'+(VIEW.nobg?'':'<div class="ts-art" aria-hidden="true"><svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice">'+scTitle()+'</svg></div>')
+   +'<div class="ts-body"><div class="ts-head"><h2 class="ts-name" id="h-ts">Ledger of the Dead</h2><p class="ts-sub">The chapel drowned. The book did not.</p></div><div class="ts-low"><div class="ts-pages">'+pages+'</div>'
+   +'<p class="ts-foot">Press Enter to go on.</p></div></div></section>';
+}function render(){   // draws only: titles and lore are settled by the input handlers (settled), so a drawn and an undrawn turn play the same
   document.body.classList.toggle('hell', S.mode==='town'?ui.tab==='tower':!!(S.run&&S.run.tw));   // hell backdrop on the Tower tab and during a climb
   document.body.classList.toggle('fight', S.mode!=='town');   // a slimmer header while you are in a gate or the Tower
   const f=document.activeElement; let key=null;
@@ -16641,6 +16790,7 @@ function render(){   // draws only: titles and lore are settled by the input han
   let pips=''; for(let i=0;i<WATCHES;i++) pips+='<i class="pip'+(i<S.watches?' on':'')+'"></i>';
   const tabNote=TAB.blocked?'<div class="note bad tab-note"><span>This game was just saved from another tab. This tab has stopped saving so it cannot overwrite that progress. Close one of the tabs, or load the newer save here.</span><button class="btn small primary" data-a="tabsync">Load the newer save</button></div>':'';
   const mo=MOMENTS.length?'<div class="moments" role="status">'+MOMENTS.map(x=>'<div class="moment '+x.c+(x.k?' big '+x.k:'')+'">'+x.t+'</div>').join('')+'</div>':''; MOMENTS.length=0;
+  if(ui.title){ paintApp('',titleHTML(),[],''); try{ scene(); }catch(e){} try{ music(); }catch(e){} return; }   /* R17: the title screen (ui-screens.js) */
   const main=S.mode==='battle'?battleHTML():S.mode==='raise'?raiseHTML():S.mode==='defeat'?defeatHTML():S.mode==='siege'?siegeHTML():townHTML();
   const hdr='<header class="top"><div class="brand"><svg class="sigil" viewBox="0 0 64 64" width="54" height="54" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="32" cy="32" r="30"/><circle cx="32" cy="32" r="24" stroke-dasharray="1.5 3.5"/><rect x="16" y="16" width="32" height="32"/><rect x="16" y="16" width="32" height="32" transform="rotate(45 32 32)"/><circle cx="32" cy="32" r="6"/><circle cx="32" cy="32" r="2" fill="currentColor"/></g></svg><div><h1>Ledger of the Dead</h1><p class="tag">Every name in this book answers to you.</p></div></div><div class="top-meta">'+(S.ngp?'<span class="ngp-b" title="New Game+">NG+'+S.ngp+'</span>':'')+'<span>Day '+S.day+'</span><span title="Gold">'+gold(S.gold)+'</span><span title="Each dungeon you enter uses a watch. When the third is spent, the day closes.">Watches<span class="pips" aria-label="'+S.watches+' of '+WATCHES+' watches left">'+pips+'</span></span></div>'
    +'<button class="gearbtn'+((ui.tab==='settings'&&S.mode==='town')?' on':'')+'" data-a="settings" aria-label="Settings" aria-pressed="'+(ui.tab==='settings'&&S.mode==='town')+'"'+(S.mode==='town'?' title="Settings: save, load, new game"':' disabled title="Settings open when you are back in town"')+'><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M10.3 2h3.4l.5 2.6c.6.2 1.2.5 1.7.9l2.5-.9 1.7 2.9-2 1.7c.1.6.1 1.3 0 1.9l2 1.7-1.7 2.9-2.5-.9c-.5.4-1.1.7-1.7.9l-.5 2.6h-3.4l-.5-2.6c-.6-.2-1.2-.5-1.7-.9l-2.5.9-1.7-2.9 2-1.7a6 6 0 0 1 0-1.9l-2-1.7 1.7-2.9 2.5.9c.5-.4 1.1-.7 1.7-.9zM12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z"/></svg></button></header>'
@@ -16731,7 +16881,11 @@ const ACTIONS={
   temper:k=>{ const a=k.split('|'), it=findItem(+a[0]); ui.msg=temper(+a[0],+a[1])?{mk:1,m:'Tempered a line on '+ITEM[it.id].name+'.',c:'ok'}:null; },
   enchline:k=>{ const a=k.split('|'), it=findItem(+a[0]); ui.msg=enchant(+a[0],+a[1])?{mk:1,m:'Re-rolled a line on '+ITEM[it.id].name+'.',c:'ok'}:null; },
   music:()=>{ MUSIC.on=!MUSIC.on; MUSIC.armed=true; try{ localStorage.setItem('lotd-music',MUSIC.on?'on':'off'); }catch(e){} },
-  view:k=>{ const a=k.split('|'); if(a[0]==='size') VIEW.size=clamp(+a[1]||0,-1,2); else if(a[0]==='calm'||a[0]==='hc'||a[0]==='nobg') VIEW[a[0]]=!VIEW[a[0]]; else if(a[0]==='lang'&&LANGS[a[1]]) VIEW.lang=a[1]; else if(a[0]==='fx'&&FX_MODES[a[1]]) VIEW.fx=a[1]; else if(a[0]==='army'&&(a[1]==='grid'||a[1]==='compact')) VIEW.army=a[1]; saveView(); applyView(); },
+  mvol:k=>{ musicSetVol(MUSIC.vol+(+k||0)*.1); },
+  titlego:()=>{ ui.title=false; },
+  titleslot:k=>{ if(ui.confirm!=='sl'+k){ ui.confirm='sl'+k; return; } ui.confirm=null; if(slotLoad(+k)){ ui.title=false; ui.msg={m:'Loaded slot '+k+'.',c:'ok'}; } },
+  titlenew:()=>{ ui.title=false; ui.tab='settings'; S.mode==='town'&&(ui.confirm='new'); },
+  view:k=>{ const a=k.split('|'); if(a[0]==='size') VIEW.size=clamp(+a[1]||0,-1,2); else if(a[0]==='calm'||a[0]==='hc'||a[0]==='nobg'||a[0]==='notitle') VIEW[a[0]]=!VIEW[a[0]]; else if(a[0]==='lang'&&LANGS[a[1]]) VIEW.lang=a[1]; else if(a[0]==='fx'&&FX_MODES[a[1]]) VIEW.fx=a[1]; else if(a[0]==='army'&&(a[1]==='grid'||a[1]==='compact')) VIEW.army=a[1]; saveView(); applyView(); },
   dlsave:()=>{ ui.msg=downloadSave()?{m:'Save file downloaded.',c:'ok'}:{m:'This browser would not create the file. Use a save code instead.',c:'bad'}; },
   loadfile:()=>{ if(!ui.file) return; if(ui.confirm!=='lf'){ ui.confirm='lf'; return; } ui.confirm=null; const ok=importText(ui.file.text); ui.msg=ok?{m:'Loaded '+ui.file.name+'.',c:'ok'}:{m:ui.file.name+' is not a valid save.',c:'bad'}; ui.file=null; ui.exp=''; },
   dropfile:()=>{ ui.file=null; }, goal:k=>goGoal(k), fold:k=>{ if(!['equip','quest','bounty','goal'].includes(k)) return; if(VIEW.fold[k]) delete VIEW.fold[k]; else VIEW.fold[k]=true; saveView(); }, sort:k=>{ ui.sort=BAG_SORTS[k]?k:'tier'; }, mk:k=>{ ui.mk=k; ui.msg=null; },
@@ -16812,7 +16966,7 @@ const ACTIONS={
 function settled(){ sgTipHide(); if(S&&S.mode==='town') cmdSync(); checkTitles(); try{ loreCheck(); }catch(e){} render(); }   // after an action: award titles and lore passages, then draw
 // the vow warning (game-pantheon.js): the first press says what breaks; the next one goes ahead (ui.vowOk for the rest of the day)
 function vowAsk(k){ if(!vowWarn(k)||ui.vowOk===k+S.day) return false; ui.vowOk=k+S.day; ui.msg={m:k==='raise'?'Raising another body breaks your vow to Morrow (no more than '+MORROW_RAISE+' in a run). Press again to raise anyway.':'Selling a trophy breaks your vow to Ulm. Press again to sell anyway.',c:'bad'}; return true; }
-const CONFIRM_ACTS=['ngmode','ngstep','ascpick','carrypick','release','respec','cross','ending','hforge','newgame','ngcode','plogclr','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
+const CONFIRM_ACTS=['titleslot','titlenew','ngmode','ngstep','ascpick','carrypick','release','respec','cross','ending','hforge','newgame','ngcode','plogclr','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
 document.addEventListener('click',e=>{
   MUSIC.armed=true;
   const b=e.target.closest('[data-a]'); if(!b||b.disabled) return;
@@ -16852,6 +17006,7 @@ document.addEventListener('keydown',e=>{
   if(e.target&&e.target.id==='rn'){ if(e.key==='Escape'){ e.preventDefault(); ui.rename=null; settled(); return; } if(e.key==='Enter'&&ui.rename!=null){ e.preventDefault(); ACTIONS.rename(String(ui.rename)); settled(); } return; }   // typing a minion's new name
   if(e.ctrlKey||e.metaKey||e.altKey) return;
   const typing=e.target&&/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+  if(ui.title){ if(!typing&&(e.key==='Enter'||e.key==='Escape'||e.key===' ')&&!(e.target&&e.target.tagName==='BUTTON')){ e.preventDefault(); ui.title=false; settled(); } return; }   /* R17: the title screen */
   if(e.key==='?'&&!typing){ e.preventDefault(); ui.keys=!ui.keys; settled(); return; }   // the shortcut sheet
   if(e.key==='Escape'){ let ch=true;   // closes the sheet, then a pending confirm, a rename, a Gates sub-tab, then any other town tab
     if(ui.keys) ui.keys=false; else if(ui.confirm) ui.confirm=null; else if(ui.rename!=null) ui.rename=null;
@@ -16903,7 +17058,7 @@ document.addEventListener('keydown',e=>{
   if(still) draw(0); else requestAnimationFrame(step);
 })();
 
-applyView(); loadGame(); if(OPEN_HELP.on){ ui.tab='gates'; OPEN_HELP.on=false; } settled();
+applyView(); loadGame(); if(OPEN_HELP.on){ ui.tab='gates'; OPEN_HELP.on=false; } ui.title=!VIEW.notitle&&S.mode==='town'; settled();
 plogWrap(ACTIONS);   /* the play log listens to tabs, Codex pages, orders, events and town spending (game-playlog.js) */
 try{ window.addEventListener('pagehide',()=>{ plogTabTime(PLOG_TAB&&PLOG_TAB.k); plogFlush(); }); }catch(e){}
 </script>

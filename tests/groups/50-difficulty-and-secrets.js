@@ -69,8 +69,8 @@ test('Music and looks: every boss (secret ones too) has its own theme and backgr
   eq(new Set(bosses.map(n=>BOSS_THEME[n].join())).size,bosses.length,'no two themes alike');
   const hue=h=>{ const r=parseInt(h.slice(1,3),16)/255,g=parseInt(h.slice(3,5),16)/255,b=parseInt(h.slice(5,7),16)/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn; if(d<.08) return -1; let x=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4; return (x*60+360)%360; };
   bosses.forEach(n=>BOSS_LOOK[n].slice(0,2).forEach(c=>{ const h=hue(c); ok(h<0||h<190||h>320,n+' colour '+c+' is blue or purple'); }));
-  arena([foe()]); eq(musicScene(),'gate'); flee(); const b=bossFight(2); eq(musicScene(),'boss:The Ember Knight'); eq(sceneOf(musicScene()).mode,'hm'); b.hp=0; ok(/gate|boss/.test(musicScene()));
-  Object.keys(SCENES).forEach(k=>ok(MODES[SCENES[k].mode],k)); MUSIC.on=false; music();
+  arena([foe()]); eq(musicScene(),'g0'); flee(); const b=bossFight(2); eq(musicScene(),'boss:The Ember Knight'); eq(sceneOf(musicScene()).mode,'hm'); b.hp=0; ok(/^g\d|boss/.test(musicScene()));
+  Object.keys(THEMES).forEach(k=>ok(MODES[THEMES[k].mode],k)); MUSIC.on=false; music();
 });
 test('Gates: a card shows clears by difficulty, the best run, study and rewards, and keeps the boss hidden until met',()=>{
   setLvl(10); S.mode='town'; S.kills={}; S.ti=S.ti||{}; S.ti.clr={}; S.heatMax={}; S.rec={};

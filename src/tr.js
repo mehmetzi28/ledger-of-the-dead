@@ -3882,3 +3882,12 @@ TR_RX.unshift([/^Cosmetics · (\d+)\/(\d+)$/,"Görünümler · $1/$2"],[/^Earn e
  ["While a move gathers (Charging), the units it will land on are marked Threatened, and on the battle stage the boss draws back for the blow and a red ring marks the ground under them","Bir hamle toplanırken (Yükleniyor) ineceği birimler Tehdit altında olarak işaretlenir; savaş sahnesinde patron darbe için geri çekilir ve altlarındaki zemini kırmızı bir halka işaretler"]
 ].forEach(([k,v])=>{ TR_DICT.set(k,v); });
 TR_RX.unshift([/^Gathering against it: (.+)$/,"Ona karşı toplanan: $1"],[/^(.+) · Second phase$/,"$1 · İkinci evre"]);
+
+// ----- R17 PR B: music, the title screen and the epilogues
+[
+ ["The chapel drowned. The book did not","Şapel boğuldu. Kitap boğulmadı"],["Go on","Devam et"],["Open the Ledger","Defteri aç"],["A new book, a first page","Yeni bir kitap, ilk sayfa"],["A new book","Yeni bir kitap"],
+ ["Begin again (Settings, New game)","Baştan başla (Ayarlar, Yeni oyun)"],["Press Enter to go on","Devam etmek için Enter'a bas"],["Title screen","Açılış ekranı"],["The drowned chapel when the page opens","Sayfa açılınca boğulmuş şapel"],
+ ["A theme for each gate, the Tower, the Rift, the town as its fear changes, and every boss. Its own volume; sound effects keep theirs","Her kapı, Kule, Rift, korkusu değiştikçe kasaba ve her boss için bir tema. Kendi ses düzeyi vardır; ses efektleri kendilerininkini korur"],
+ ["Music quieter","Müzik daha kısık"],["Music louder","Müzik daha yüksek"],["Music volume","Müzik ses düzeyi"]
+].forEach(([k,v])=>{ TR_DICT.set(k,v); });
+TR_RX.unshift([/^Press again to open slot (\d+)$/,"Yuva $1'i açmak için tekrar bas"],[/^Slot (\d+)$/,"Yuva $1"],[/^Day (\d+) · Level (\d+) · (\d+) gates? cleared(.*)$/,"Gün $1 · Seviye $2 · $3 kapı temizlendi$4"]);

@@ -40,20 +40,39 @@ function sfx(kind){
   } }catch(e){}
 }
 
-// ----- music: synthesized themes (a pad, a slow melody in the place's mode, an echo and a pulse) for town, the gates, the
-// Tower and every boss (BOSS_THEME). Off by default; remembered per browser. Starts after your first click.
-const MUSIC={on:false,armed:false,scene:null,nodes:null};
-try{ MUSIC.on=localStorage.getItem('lotd-music')==='on'; }catch(e){}
-// Music: a soft pad (root, fifth and third of the scene's mode, under a slowly breathing filter), a sparse melody from the
-// same mode played through an echo, and a low pulse. Every boss has its own theme, picked when its fight begins.
-const MODES={aeo:[0,2,3,5,7,8,10],phr:[0,1,3,5,7,8,10],dor:[0,2,3,5,7,9,10],loc:[0,1,3,5,6,8,10],hm:[0,2,3,5,7,8,11]};
-const SCENES={
-  town: {root:55,  mode:'dor',bpm:50,tone:'triangle',drum:0,  noise:0,  dens:.3, vol:.05, cut:420},
-  gate: {root:49,  mode:'aeo',bpm:58,tone:'triangle',drum:.12,noise:0,  dens:.3, vol:.055,cut:340},
-  tower:{root:41.2,mode:'phr',bpm:64,tone:'sawtooth',drum:.25,noise:.03,dens:.32,vol:.058,cut:480},
-  rift: {root:36.7,mode:'loc',bpm:70,tone:'sawtooth',drum:.38,noise:.06,dens:.36,vol:.058,cut:540}   // low, unstable and hissing: the torn sky
+// ----- music (R17 PR B): a small WebAudio engine, no audio files. Each place has a theme: a mode, a tempo, a lead voice, a
+// pad or drone, a noise bed and a short motif that its boss reuses. Off by default and remembered per browser, with its own
+// volume; starts after your first click. Themes crossfade over 1.5 s when the place changes.
+const MUSIC={on:false,armed:false,scene:null,nodes:null,vol:.7};
+try{ MUSIC.on=localStorage.getItem('lotd-music')==='on'; const v=parseFloat(localStorage.getItem('lotd-music-vol')); if(isFinite(v)) MUSIC.vol=Math.max(0,Math.min(1,v)); }catch(e){}
+const MODES={ion:[0,2,4,5,7,9,11],dor:[0,2,3,5,7,9,10],phr:[0,1,3,5,7,8,10],aeo:[0,2,3,5,7,8,10],loc:[0,1,3,5,6,8,10],hm:[0,2,3,5,7,8,11],whl:[0,2,4,6,8,10]};
+// lead voices: wave, attack and decay (s), octave above the root's second, a partial (ring) for bells and metal, detune for a
+// choir, a low-pass, vibrato for the single voice
+const VOICES={
+  pluck:{wave:'triangle',att:.004,dec:.32,oct:1},           box:  {wave:'sine',att:.002,dec:.9,oct:2,ring:4},
+  bell: {wave:'sine',att:.003,dec:1.8,oct:1,ring:2.76},     brass:{wave:'sawtooth',att:.07,dec:.9,oct:0,cut:900},
+  choir:{wave:'sawtooth',att:.28,dec:1.5,oct:1,det:9,cut:1300}, metal:{wave:'square',att:.003,dec:.45,oct:1,ring:3.5,cut:2400},
+  march:{wave:'triangle',att:.02,dec:.55,oct:0},            voice:{wave:'sine',att:.35,dec:2.4,oct:1,vib:5},
+  lead: {wave:'triangle',att:.012,dec:.7,oct:1}
 };
-// [root Hz, mode, beats per minute, timbre, pulse 0-1, hiss 0-1]: one theme per boss
+// pads: waves and the scale steps they hold (3 = the mode's third)
+const PADS={drone:{w:['triangle'],n:[0,7]},brass:{w:['sawtooth'],n:[0,7,12]},organ:{w:['square','triangle'],n:[0,7,12,19]},strings:{w:['sawtooth'],n:[0,3,7]}};
+const THEMES={
+  g0:{name:'Rat Warren',      root:55,  mode:'aeo',bpm:84,lead:'pluck',pad:'drone',  noise:'scratch',drum:.25,dens:.45,vol:.055,cut:520,motif:[0,2,4,3,2,0]},
+  g1:{name:'Sunken Crypt',    root:46.2,mode:'dor',bpm:50,lead:'bell', pad:'drone',  noise:'water',  drum:0,  dens:.28,vol:.055,cut:380,echo:.55,motif:[4,3,1,0,1]},
+  g2:{name:'Ashen Barrow',    root:41.2,mode:'phr',bpm:88,lead:'brass',pad:'brass',  noise:'crackle',drum:.5, dens:.34,vol:.052,cut:460,motif:[0,1,0,3,1,0]},
+  g3:{name:'Hollow Cathedral',root:49,  mode:'aeo',bpm:46,lead:'choir',pad:'organ',  noise:null,     drum:0,  dens:.3, vol:.05, cut:640,echo:.5,motif:[0,2,4,5,4,2,0]},
+  g4:{name:'Iron Orchard',    root:51.9,mode:'whl',bpm:66,lead:'metal',pad:'drone',  noise:null,     drum:.2, dens:.36,vol:.05, cut:480,motif:[0,2,4,3,1]},
+  g5:{name:'Throne of Ash',   root:43.7,mode:'hm', bpm:56,lead:'march',pad:'strings',noise:null,     drum:.55,dens:.32,vol:.052,cut:520,march:1,motif:[0,4,5,6,4,0]},
+  g6:{name:'Vane Abbey',      root:38.9,mode:'loc',bpm:40,lead:'voice',pad:null,     noise:null,     drum:0,  dens:.16,vol:.06, cut:400,rest:.55,motif:[0,1,4,1]},
+  tower:{name:'Hell Tower',   root:41.2,mode:'phr',bpm:64,lead:'brass',pad:'brass',  noise:'crackle',drum:.3, dens:.32,vol:.055,cut:480,motif:[0,1,3,1,0]},
+  rift:{name:'The Rift',      root:36.7,mode:'loc',bpm:70,lead:'metal',pad:'drone',  noise:'hiss',   drum:.36,dens:.36,vol:.055,cut:540,atonal:1,motif:[0,3,1,6]},
+  'town:calm':  {name:'Town, calm',  root:58.3,mode:'ion',bpm:60,lead:'box', pad:'drone',noise:null,  drum:0,  dens:.36,vol:.045,cut:420,motif:[0,2,4,2,1,0]},
+  'town:uneasy':{name:'Town, uneasy',root:55,  mode:'dor',bpm:52,lead:'lead',pad:'drone',noise:null,  drum:0,  dens:.3, vol:.05, cut:420,motif:[0,2,3,1,0]},
+  'town:afraid':{name:'Town, afraid',root:51.9,mode:'aeo',bpm:56,lead:'lead',pad:'drone',noise:null,  drum:.12,dens:.26,vol:.05, cut:380,motif:[0,3,2,0]},
+  'town:terror':{name:'Town, terror',root:49,  mode:'phr',bpm:60,lead:'voice',pad:'drone',noise:'hiss',drum:.3, dens:.08,vol:.055,cut:300,motif:[0,1]}
+};
+// [root Hz, mode, beats per minute, timbre, pulse 0-1, hiss 0-1]: one theme per boss; a gate's boss plays its gate's motif
 const BOSS_THEME={
   'The Rat King':[55,'phr',72,'square',.4,.02],'The Crypt Warden':[46.2,'aeo',56,'triangle',.3,0],'The Ember Knight':[49,'hm',80,'sawtooth',.55,.04],
   'The Bishop of Teeth':[41.2,'loc',60,'square',.35,0],'The Orchard Mother':[51.9,'dor',66,'triangle',.4,.02],'The Pale Sovereign':[43.7,'hm',62,'sawtooth',.5,.03],
@@ -65,42 +84,91 @@ const BOSS_THEME={
   'The Choir Eternal':[49,'dor',48,'triangle',.2,.01],'The Rootking':[38.9,'phr',82,'square',.65,.04],'The Nameless Sovereign':[34.6,'loc',90,'sawtooth',.9,.05],
   'The Hunger':[32.7,'aeo',50,'sawtooth',.7,.09]
 };
+const BOSS_LEAD={square:'metal',sawtooth:'brass',triangle:'pluck'};
+const strHash=s=>{ let h=2166136261; for(let i=0;i<s.length;i++) h=Math.imul(h^s.charCodeAt(i),16777619); return h>>>0; };
 const liveBoss=()=>S.mode==='battle'&&S.run?liveFoes().find(e=>e.boss)||null:null;
-const musicScene=()=>{ const b=liveBoss(); if(b&&BOSS_THEME[b.base]) return 'boss:'+b.base; return S.mode==='town'?(ui.tab==='tower'?'tower':'town'):(S.run&&S.run.tw?'tower':S.run&&S.run.rift?'rift':'gate'); };
-function sceneOf(sc){ if(sc.startsWith('boss:')){ const t=BOSS_THEME[sc.slice(5)]; return {root:t[0],mode:t[1],bpm:t[2],tone:t[3],drum:t[4],noise:t[5],dens:.5,vol:.062,cut:620}; } return SCENES[sc]; }
+function musicScene(){   // the theme for where you are: a boss (|2 in its second phase), the town by its dread, a Tower band, a gate
+  const b=liveBoss(); if(b) return 'boss:'+b.base+(b.phase2?'|2':'');
+  const town=()=>'town:'+(typeof dreadOn==='function'&&dreadOn()?dreadBand().id:'uneasy');
+  if(S.mode==='town') return ui.tab==='tower'?'tower:'+Math.min(12,Math.floor(((S.tower&&S.tower.best)|0)/10)):town();
+  if(S.mode==='siege') return 'town:terror';
+  const r=S.run; if(!r) return town(); if(r.tw) return 'tower:'+Math.min(12,Math.floor(r.tw/10)); if(r.rift) return 'rift'; return 'g'+Math.max(0,Math.min(6,r.di|0));
+}
+function themeOf(sc){   // the full theme for a scene key
+  sc=String(sc||''); let P;
+  if(sc.startsWith('boss:')){ const [n,ph]=sc.slice(5).split('|'), gi=DUNGEONS.findIndex(D=>D.boss[0]===n), G=THEMES['g'+gi]||THEMES[S&&S.run&&S.run.tw?'tower':'g'+((S&&S.run&&S.run.di)|0)]||THEMES.g0, t=BOSS_THEME[n];
+    P=Object.assign({},G,{boss:n,dens:G.dens+.12,vol:.06,cut:G.cut+140,drum:Math.min(1,G.drum+.2),bpm:Math.round(G.bpm*1.15),rest:0});
+    if(t) Object.assign(P,{root:t[0],mode:t[1],bpm:t[2],drum:t[4],noise:t[5]>.04?'hiss':P.noise,lead:gi>=0?G.lead:BOSS_LEAD[t[3]]||'lead'});
+    if(gi<0) P.motif=[0,1,2,3,4,5,6].map(i=>(strHash(n)>>>(i*3))%7).slice(0,4+strHash(n)%3);   // a boss of no gate: its own motif from its name
+    if(ph==='2') Object.assign(P,{bpm:Math.round(P.bpm*1.25),root:P.root*Math.pow(2,2/12),drum:Math.min(1,P.drum+.25),dens:Math.min(.8,P.dens+.1),phase:2}); }
+  else if(sc.startsWith('tower:')){ const band=Math.max(0,Math.min(12,parseInt(sc.slice(6))||0)); P=Object.assign({},THEMES.tower,{root:THEMES.tower.root*Math.pow(2,band/12),bpm:THEMES.tower.bpm+band*2,band}); }   // a semitone higher every 10 floors
+  else P=Object.assign({},THEMES[sc]||THEMES['town:uneasy']);
+  return P;
+}
+const sceneOf=themeOf;   // the older name
+const musicVol=()=>MUSIC.vol;
 function stopMusic(){
   const n=MUSIC.nodes, c=SFX.ctx; MUSIC.nodes=null; MUSIC.scene=null; if(!n) return; clearInterval(n.timer); if(!c) return;
-  try{ n.g.gain.cancelScheduledValues(c.currentTime); n.g.gain.setTargetAtTime(0.0001,c.currentTime,.7); }catch(e){}
-  setTimeout(()=>n.src.forEach(o=>{ try{ o.stop(); }catch(e){} }),4000);
+  try{ n.g.gain.cancelScheduledValues(c.currentTime); n.g.gain.setValueAtTime(n.g.gain.value,c.currentTime); n.g.gain.linearRampToValueAtTime(0.0001,c.currentTime+1.5); }catch(e){}   // the 1.5 s crossfade
+  setTimeout(()=>n.src.forEach(o=>{ try{ o.stop(); }catch(e){} }),1700);
+}
+function musicGraph(c,P){   // build the theme's sound: master, pad or drone, sub, noise bed, the lead's echo; returns {g,src,mel,P,rng,...}
+  const M=MODES[P.mode]||MODES.aeo, t=c.currentTime, g=c.createGain(), lp=c.createBiquadFilter(), lfo=c.createOscillator(), lg=c.createGain(), src=[];
+  g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(P.vol*musicVol(),t+1.5); g.connect(c.destination);
+  lp.type='lowpass'; lp.frequency.value=P.cut; lp.Q.value=2.5; lfo.frequency.value=.06; lg.gain.value=P.cut*.4; lfo.connect(lg).connect(lp.frequency); lfo.start(t); src.push(lfo); lp.connect(g);
+  const st=n=>P.root*Math.pow(2,n/12), deg=d=>{ const L=M.length, o=Math.floor(d/L); return M[((d%L)+L)%L]+12*o; };
+  const PD=P.pad&&PADS[P.pad];
+  if(PD){ const padG=c.createGain(); padG.gain.value=.5; padG.connect(lp);
+    PD.n.forEach((n,i)=>{ const nn=n===3?M[2]:n; for(const det of [-6,5]){ const o=c.createOscillator(); o.type=PD.w[i%PD.w.length]; o.frequency.value=st(nn); o.detune.value=det; o.connect(padG); o.start(t); src.push(o); } }); }
+  const sub=c.createOscillator(), sg=c.createGain(); sub.frequency.value=P.root/2; sg.gain.value=PD?.5:.25; sub.connect(sg).connect(g); sub.start(t); src.push(sub);
+  if(P.noise){ const n=Math.floor(c.sampleRate*2), b=c.createBuffer(1,n,c.sampleRate), d=b.getChannelData(0), r=scRand(strHash(P.noise)); for(let i=0;i<n;i++) d[i]=r()*2-1;
+    const ns=c.createBufferSource(), f=c.createBiquadFilter(), ng=c.createGain(), NZ={water:['lowpass',380,.05],crackle:['bandpass',2600,.02],hiss:['highpass',3200,.012],scratch:['bandpass',1300,.018]}[P.noise]||['bandpass',180,.03];
+    ns.buffer=b; ns.loop=true; f.type=NZ[0]; f.frequency.value=NZ[1]; ng.gain.value=NZ[2]*8;
+    if(P.noise==='water'){ const wl=c.createOscillator(), wg=c.createGain(); wl.frequency.value=.13; wg.gain.value=NZ[2]*5; wl.connect(wg).connect(ng.gain); wl.start(t); src.push(wl); }   // water laps
+    ns.connect(f).connect(ng).connect(g); ns.start(t); src.push(ns); }
+  const dl=c.createDelay(1.5), fb=c.createGain(), dlp=c.createBiquadFilter(), mel=c.createGain(); dl.delayTime.value=60/P.bpm*.75; fb.gain.value=P.echo||.36; dlp.type='lowpass'; dlp.frequency.value=1800;
+  mel.gain.value=1; mel.connect(g); mel.connect(dl); dl.connect(dlp).connect(fb).connect(dl); dlp.connect(g);
+  return {g,src,mel,P,st,deg,rng:scRand(strHash(MUSIC.scene||P.name||'m')),next:t+1.2,step:0,at:0,wander:0,crk:0};
+}
+function musicNote(c,n,at,d){   // one lead note: the voice's wave, envelope, partial, detune, vibrato and filter
+  const P=n.P, V=VOICES[P.lead]; if(!V) return; const f=n.st(d+12*(2+V.oct)), e=c.createGain(), out=V.cut?c.createBiquadFilter():null, peak=V.wave==='sawtooth'||V.wave==='square'?.06:.13;
+  if(out){ out.type='lowpass'; out.frequency.value=V.cut; out.connect(n.mel); }
+  e.gain.setValueAtTime(0.0001,at); e.gain.exponentialRampToValueAtTime(peak,at+V.att); e.gain.exponentialRampToValueAtTime(0.0001,at+V.att+V.dec); e.connect(out||n.mel);
+  const osc=(fr,det,amp)=>{ const o=c.createOscillator(); o.type=V.wave; o.frequency.value=fr; if(det) o.detune.value=det; let node=o; if(amp!=null){ const a=c.createGain(); a.gain.value=amp; o.connect(a); node=a; } node.connect(e); o.start(at); o.stop(at+V.att+V.dec+.05); return o; };
+  const o=osc(f,0);
+  if(V.det){ osc(f,V.det); osc(f,-V.det); }
+  if(V.ring) osc(f*V.ring,0,.25);
+  if(V.vib){ const l=c.createOscillator(), lg=c.createGain(); l.frequency.value=V.vib; lg.gain.value=f*.012; l.connect(lg).connect(o.frequency); l.start(at); l.stop(at+V.att+V.dec+.05); }
+}
+function musicPulse(c,n,at,acc){ const P=n.P, o=c.createOscillator(), e=c.createGain(); o.type='sine'; o.frequency.setValueAtTime(acc?78:66,at); o.frequency.exponentialRampToValueAtTime(36,at+.25);
+  e.gain.setValueAtTime(0.0001,at); e.gain.exponentialRampToValueAtTime((acc?.6:.42)*P.drum,at+.01); e.gain.exponentialRampToValueAtTime(0.0001,at+.3); o.connect(e).connect(n.g); o.start(at); o.stop(at+.32); }
+function musicTick(c,n,now,ahead){   // schedule the next stretch: the motif, a varied answer, then a wandering line with rests
+  const P=n.P, beat=60/P.bpm, r=n.rng, mo=P.motif||[0], L=mo.length, phrase=Math.max(16,L*4);
+  if(n.next<now) n.next=now+.05;   // the timer ran late (a busy or hidden tab): skip what was missed instead of playing it all at once
+  while(n.next<now+ahead){ const s=n.step%phrase, half=s%2===0;
+    if(s===0&&P.atonal) n.shift=Math.floor(r()*12)-6;   // the Rift: each phrase from somewhere else
+    if(half&&P.lead){ const i=s/2; let d=null;
+      if(i<L) d=mo[i];   // the motif
+      else if(i<2*L) d=r()<.7?mo[i-L]+(i-L===L-1?0:[0,0,1,-1,2][Math.floor(r()*5)]):null;   // an answer that leans on it
+      else if(r()<P.dens&&!(P.rest&&r()<P.rest)){ n.wander=Math.max(-3,Math.min(9,n.wander+[-2,-1,1,1,2][Math.floor(r()*5)])); d=n.wander; }
+      if(d!=null) musicNote(c,n,n.next,P.atonal?d+(n.shift||0):n.deg(d)); }
+    if(P.drum&&(P.march?half:s%4===0)&&r()<.5+P.drum/2) musicPulse(c,n,n.next,s%8===0);
+    n.next+=beat/2; n.step++; }
 }
 function music(){
   if(!MUSIC.on){ stopMusic(); return; }
   if(!MUSIC.armed) return;
   const sc=musicScene(); if(sc===MUSIC.scene&&MUSIC.nodes) return;
   let c; try{ c=sfxCtx(); }catch(e){ return; } if(!c) return;
-  stopMusic();
-  const P=sceneOf(sc), M=MODES[P.mode], t=c.currentTime, g=c.createGain(), lp=c.createBiquadFilter(), lfo=c.createOscillator(), lg=c.createGain(), src=[];
-  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(P.vol,t+3); g.connect(c.destination);
-  // pad: root, fifth and the mode's third, softly detuned, under a breathing low-pass
-  lp.type='lowpass'; lp.frequency.value=P.cut; lp.Q.value=2.5; lfo.frequency.value=.06; lg.gain.value=P.cut*.4; lfo.connect(lg).connect(lp.frequency); lfo.start(t); src.push(lfo); lp.connect(g);
-  const st=n=>P.root*Math.pow(2,n/12), padG=c.createGain(); padG.gain.value=.55; padG.connect(lp);
-  [0,7,M[2]+12].forEach((n,i)=>{ for(const det of [-6,5]){ const o=c.createOscillator(); o.type=i?'sawtooth':'triangle'; o.frequency.value=st(n); o.detune.value=det; o.connect(padG); o.start(t); src.push(o); } });
-  const sub=c.createOscillator(), sg=c.createGain(); sub.frequency.value=P.root/2; sg.gain.value=.5; sub.connect(sg).connect(g); sub.start(t); src.push(sub);
-  if(P.noise){ const n=Math.floor(c.sampleRate*2), b=c.createBuffer(1,n,c.sampleRate), d=b.getChannelData(0); for(let i=0;i<n;i++) d[i]=Math.random()*2-1;
-    const ns=c.createBufferSource(), bp=c.createBiquadFilter(), ng=c.createGain(); ns.buffer=b; ns.loop=true; bp.type='bandpass'; bp.frequency.value=180; bp.Q.value=.7; ng.gain.value=P.noise*8; ns.connect(bp).connect(ng).connect(g); ns.start(t); src.push(ns); }
-  // echo for the melody
-  const dl=c.createDelay(1.5), fb=c.createGain(), dlp=c.createBiquadFilter(), mel=c.createGain(); dl.delayTime.value=60/P.bpm*.75; fb.gain.value=.38; dlp.type='lowpass'; dlp.frequency.value=1800;
-  mel.gain.value=1; mel.connect(g); mel.connect(dl); dl.connect(dlp).connect(fb).connect(dl); dlp.connect(g);
-  // melody and pulse, scheduled a little ahead
-  const beat=60/P.bpm; let next=t+1.5, step=0;
-  const note=(at,deg,oct)=>{ const o=c.createOscillator(), e=c.createGain(); o.type=P.tone==='square'?'square':'triangle'; o.frequency.value=st(M[deg%M.length]+12*(2+oct)); e.gain.setValueAtTime(0.0001,at); e.gain.exponentialRampToValueAtTime(P.tone==='square'?.05:.09,at+.03); e.gain.exponentialRampToValueAtTime(0.0001,at+beat*2.2); o.connect(e).connect(mel); o.start(at); o.stop(at+beat*2.4); };
-  const pulse=at=>{ const o=c.createOscillator(), e=c.createGain(); o.type='sine'; o.frequency.setValueAtTime(70,at); o.frequency.exponentialRampToValueAtTime(38,at+.25); e.gain.setValueAtTime(0.0001,at); e.gain.exponentialRampToValueAtTime(.5*P.drum,at+.01); e.gain.exponentialRampToValueAtTime(0.0001,at+.35); o.connect(e).connect(g); o.start(at); o.stop(at+.4); };
-  let deg=0;
-  const timer=setInterval(()=>{ if(!MUSIC.nodes||MUSIC.nodes.timer!==timer) return; const now=c.currentTime, ahead=document.hidden?1.5:.35;
-    if(next<now) next=now+.05;   // the timer ran late (a busy or hidden tab): skip what was missed instead of playing it all at once
-    while(next<now+ahead){ if(step%2===0&&Math.random()<P.dens){ deg=Math.max(0,Math.min(9,deg+[-2,-1,1,1,2][Math.floor(Math.random()*5)])); note(next,deg,deg>6?1:0); }   // a wandering line in the scene's mode
-      if(P.drum&&step%4===0&&Math.random()<.5+P.drum/2) pulse(next); next+=beat/2; step++; } },120);
-  MUSIC.nodes={g,src,timer}; MUSIC.scene=sc;
+  stopMusic(); MUSIC.scene=sc;
+  const n=musicGraph(c,themeOf(sc));
+  n.timer=setInterval(()=>{ if(MUSIC.nodes!==n) return; try{ musicTick(c,n,c.currentTime,document.hidden?1.5:.35); }catch(e){} },120);
+  MUSIC.nodes=n;
+}
+function musicSetVol(v){   // the volume slider: 0-1, kept per browser; touching it turns the music on
+  MUSIC.vol=Math.max(0,Math.min(1,Math.round(v*10)/10)); try{ localStorage.setItem('lotd-music-vol',String(MUSIC.vol)); }catch(e){}
+  if(MUSIC.vol>0&&!MUSIC.on){ MUSIC.on=true; MUSIC.armed=true; try{ localStorage.setItem('lotd-music','on'); }catch(e){} }
+  const n=MUSIC.nodes, c=SFX.ctx; if(n&&c) try{ n.g.gain.setTargetAtTime(Math.max(0.0001,n.P.vol*MUSIC.vol),c.currentTime,.1); }catch(e){}
 }
 // Boss backgrounds: each boss fight sets its own colours and pattern behind the battle (#bossbg).
 const BOSS_LOOK={
@@ -590,6 +658,47 @@ function scene(){
   document.body.classList.toggle('towerscene',k==='tower'); document.body.classList.toggle('scened',!!k);   // a scene brings its own vignette
   el.classList.toggle('on',!!k);
 }
+// ----- R17 PR B: the title screen and the two epilogues, painted with the same brushes (1600 x 900)
+const SC_DEFS='<defs><filter id="scB" x="-30%" y="-200%" width="160%" height="500%"><feGaussianBlur stdDeviation="34"/></filter><filter id="scB2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter></defs>';
+function scLectern(x,base,k,lit){   // a stone lectern with the Ledger open on it; lit: its pages glow soul-green
+  k=k||1; const w=v=>(v*k).toFixed(1);
+  return (lit?scGlow(x,base-170*k,150*k,'#8fd46a',.22):'')
+   +'<g transform="translate('+x+' '+base+')"><path d="M'+w(-46)+' 0H'+w(46)+'L'+w(30)+' '+w(-18)+'H'+w(-30)+'Z" fill="#0d0b09"/><path d="M'+w(-16)+' '+w(-18)+'H'+w(16)+'L'+w(12)+' '+w(-120)+'H'+w(-12)+'Z" fill="#14110d"/>'
+   +'<path d="M'+w(-70)+' '+w(-128)+'L'+w(70)+' '+w(-128)+'L'+w(56)+' '+w(-146)+'H'+w(-56)+'Z" fill="#1a1612"/>'
+   +'<path d="M'+w(-62)+' '+w(-146)+'Q'+w(-30)+' '+w(-162)+' 0 '+w(-150)+'Q'+w(30)+' '+w(-162)+' '+w(62)+' '+w(-146)+'L'+w(58)+' '+w(-138)+'Q'+w(30)+' '+w(-152)+' 0 '+w(-142)+'Q'+w(-30)+' '+w(-152)+' '+w(-58)+' '+w(-138)+'Z" fill="'+(lit?'#d8e8b8':'#b8ad92')+'" opacity="'+(lit?.95:.8)+'"/>'
+   +'<path d="M0 '+w(-150)+'V'+w(-142)+'" stroke="#3a3226" stroke-width="'+w(1.5)+'"/>'
+   +[0,1,2,3].map(i=>'<path d="M'+w(-52+i*2)+' '+w(-147+i*3)+'Q'+w(-28)+' '+w(-156+i*3)+' '+w(-6)+' '+w(-149+i*3)+'M'+w(6)+' '+w(-149+i*3)+'Q'+w(28)+' '+w(-156+i*3)+' '+w(52-i*2)+' '+w(-147+i*3)+'" stroke="#4a4234" stroke-width=".8" fill="none" opacity=".6"/>').join('')+'</g>';
+}
+function scTitle(){   // the drowned chapel at night: the nave half under black water, its windows still lit, the Ledger on its lectern
+  const r=scRand(1717); let o='<defs>'+scSky('skT','#07090a','#121816','#1e2622')+'</defs>'+SC_DEFS+'<rect width="1600" height="900" fill="url(#skT)"/>'+scStars(r,120,420)
+    +scGlow(1240,140,160,'#e8e0c8',.18)+'<circle cx="1240" cy="140" r="44" fill="#e6dec6" opacity=".8"/><circle cx="1226" cy="128" r="9" fill="#bdb49a" opacity=".5"/>'
+    +scRidge(scRand(171),470,110,90,'#0e1210',.95)
+    +scGothic(800,640,380,420,'#0b0d0c')+scGothic(800,640,300,500,'#0d100e')+'<path d="M800 140V90M786 104H814" stroke="#0d100e" stroke-width="7"/>'   // the nave, a broken cross on the gable
+    +scGothic(560,640,120,240,'#0b0d0c')+scGothic(1040,640,120,260,'#0b0d0c')
+    +scWin(780,330,40,90,.9)+scWin(548,470,22,56,.6)+scWin(1030,460,22,60,.7)
+    +scRuin(300,640,90,150,'#0a0c0b')+scRuin(1290,640,80,140,'#0a0c0b',1)
+    +'<rect y="630" width="1600" height="270" fill="#070908"/>'   // the black water
+    +'<g opacity=".18" transform="translate(0 1270) scale(1 -1)">'+scGothic(800,640,300,500,'#3a4a40')+scWin(780,330,40,90,.6)+'</g>'
+    +[0,1,2,3,4,5].map(i=>'<path d="M'+(420+i*40+r()*60)+' '+(650+i*28)+'h'+(140+r()*200)+'" stroke="#c8d8b8" stroke-opacity="'+(.05+r()*.07).toFixed(2)+'" stroke-width="2"/>').join('')
+    +scFog(640,.5,'#a8b8a0',1300)+scFog(720,.35,'#8a9a88',1100,1)
+    +'<path d="M690 712C720 690 880 690 910 712Z" fill="#0b0a08"/><path d="M640 714H960" stroke="#1a1f1a" stroke-width="3"/>'+scLectern(800,700,1.25,true)
+    +scMotes(r,26,'#8fd46a',560,860,'sc-amb');
+  return scCalm(o);
+}
+function scEpilogue(k){   // closed: dawn over a quiet valley, the book shut on a grave; kept: night, the book open, every gate lit along the road
+  const r=scRand(k==='closed'?2525:2626), dawn=k==='closed';
+  let o=SC_DEFS+'<defs>'+(dawn?scSky('skE','#2a2420','#7a5a3a','#d8a868'):scSky('skE','#060708','#101412','#1a1f1c'))+'</defs><rect width="1600" height="900" fill="url(#skE)"/>';
+  if(dawn){ o+=scGlow(800,520,420,'#f0c080',.35)+'<circle cx="800" cy="540" r="80" fill="#f4d8a0" opacity=".85"/>'+scRidge(scRand(251),600,90,80,'#3a3028',.9)+scRidge(scRand(252),660,70,60,'#2a221c',.95)
+      +'<path d="M0 700Q400 670 800 690T1600 680V900H0Z" fill="#1e1914"/>'+[0,1,2,3,4,5].map(i=>scArch(220+i*230,700-(i%2)*6,46,70,'#151210')).join('')   // six gates, dark and quiet
+      +'<path d="M700 770h200v-30q-100-36-200 0Z" fill="#2a241e"/><path d="M748 738h104l-8-18h-88Z" fill="#4a3a2a"/><path d="M756 730h88" stroke="#8a6a3e" stroke-width="2.5"/><path d="M800 720v-60M780 680h40" stroke="#3a3026" stroke-width="8"/>'   // a grave, the book shut on it
+      +scCrow(560,380,1.4,'#1a1410')+scCrow(620,350,1,'#1a1410')+scFog(720,.4,'#e8c8a0',1200); }
+  else { o+=scStars(r,140,520)+scGlow(300,160,120,'#e8e0c8',.12)+'<circle cx="300" cy="160" r="30" fill="#e0d8c0" opacity=".7"/>'+scRidge(scRand(261),560,110,90,'#0d100e',.95)
+      +'<path d="M0 640Q400 600 800 630T1600 610V900H0Z" fill="#0a0c0b"/><path d="M800 900L760 640H840Z" fill="#14120e" opacity=".9"/>'   // the road running into the night
+      +[0,1,2,3,4,5,6].map(i=>{ const x=800+(i%2?1:-1)*(80+i*90), y=640-i*6, s=1-i*.09; return scArch(x,y,40*s,62*s,'#0c0e0c')+scGlow(x,y-30*s,50*s,'#ff9a40',.2)+'<rect x="'+(x-8*s)+'" y="'+(y-40*s)+'" width="'+(16*s)+'" height="'+(26*s)+'" fill="#e8a050" opacity=".55"/>'; }).join('')   // every gate burning
+      +scLectern(800,790,1,true)+scMotes(r,30,'#8fd46a',560,800,'sc-amb'); }
+  return scCalm(o);
+}
+
 // ----- small paintings: each gate's backdrop on its Gates tile and the village strip on the Town tab. Drawn once into a stylesheet as
 // SVG images (classes gs-g0..gs-g5, gs-vil), so a render only names a class; as images they hold still and cost nothing to redraw.
 function scVillage(){   // the strip behind the Town tab's buildings: dusk, far cottages, the Old Shrine and a churchyard fence; the ground line sits at y 330 of 400
@@ -635,7 +744,7 @@ function vbIcon(k,lv){   // lv 0: ruin; the altar's rune glows mana blue
 }
 // ----- display settings (per browser, not in the save): text size, reduced motion, high contrast
 const LANGS={en:'English',tr:'Türkçe'};   // see LANGUAGE below
-const VIEW={size:0,calm:false,hc:false,nobg:false,lang:'en',fx:'auto',army:'grid',fold:{}};
+const VIEW={size:0,calm:false,hc:false,nobg:false,lang:'en',fx:'auto',army:'grid',fold:{},notitle:false};
 const FX_MODES={auto:'Auto',full:'Full',light:'Light'};
 const fxLight=()=>VIEW.fx==='light'||(VIEW.fx==='auto'&&((window.innerWidth||1200)<=540||((typeof navigator!=='undefined'&&navigator.hardwareConcurrency)||8)<=4));   // phones and weak machines get the cheap painting
 try{
@@ -645,6 +754,7 @@ try{
     VIEW.calm=!!v.calm;
     VIEW.hc=!!v.hc;
     VIEW.nobg=!!v.nobg;
+    VIEW.notitle=!!v.notitle;
     VIEW.lang=LANGS[v.lang]?v.lang:'en';
     VIEW.fx=FX_MODES[v.fx]?v.fx:'auto';
     VIEW.army=v.army==='compact'?'compact':'grid';   /* an old 'cards' choice opens as portraits: an opened portrait is that card */
