@@ -29,7 +29,7 @@ test('Draughts: the Iron Draught softens every blow for two turns; Bloodwine men
   P.hp=pMax(); let h=P.hp; hurtAlly(P,100); const full=h-P.hp; P.hp=pMax(); ok(drink('iron')); eq(S.belt.iron,0); h=P.hp; hurtAlly(P,100); eq(h-P.hp,Math.round(full*(1-IRON_DR)),'25% less');
   const mh=m.hp; hurtAlly(m,100); ok(mh-m.hp<100,'minions too'); S.run.turn+=IRON_TURNS; P.hp=pMax(); h=P.hp; hurtAlly(P,100); eq(h-P.hp,full,'wears off');
   P.hp=10; m.hp=1; ok(drink('blood')); ok(P.hp>10&&m.hp>1,'both mended'); eq(S.belt.blood,0); ok(!drink('blood'),'none left');
-  S.belt.iron=1; S.pacts=['dry']; if(typeof pactOn==='function'&&pactOn('dry')) ok(!drink('iron'),'Dry Throat');
+  S.belt.iron=1; S.pacts=['dry']; S.belt.hp=1; ok(!drink('hp'),'Dry Throat: no potions'); P.hp=pMax(); ok(drink('iron'),'draughts still work'); h=P.hp; hurtAlly(P,100); eq(h-P.hp,Math.round(full*(1-IRON_DR*PACT_DRY)),'at half');
 });
 test('Run prep: an armed oil, incense and charm go with each gate run while the stash lasts',()=>{
   town(); setLvl(20); pouch(3,30); brewIt('oil_fire'); brewIt('inc_grave'); S.trophies['b:The Rat King']=2; brewIt('ch_lantern');

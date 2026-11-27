@@ -58,6 +58,7 @@
 //              'bosskits' off: bosses fight with their old single move (no move sets, twists or hazards).
 //   The full bot now swears faith by default (Honored on even bots, Dishonored on odd) and climbs to Hard on cleared gates
 //   (opts.heat:1); pass faith/heat to override, heat:0 for the old behaviour. Every run also reports secret masters met/slain.
+//   opts.ngp (1+) starts every bot at that New Game+ ascension level, with opts.asc (rule ids) and opts.pacts (pact ids): an Ascension probe.
 //   opts.faith ('hon'|'dis') swears an oath once the shrine opens (3 gates cleared, level 8); opts.ult ('toll'|'rise'|'prison') picks the ultimate; opts.heat (1-3) lets
 //   the bot climb a cleared gate's difficulty up to that level, stepping down after a death there. Measured (full, seed 7700):
 //   both faiths +1-2 points of clears (Honored and Dishonored within a point of each other); the three ultimates within ~2 Tower
@@ -183,7 +184,7 @@
     if(S.inv.length>20){ S.inv.sort((a,b)=>itemScore(ITEM[b.id])-itemScore(ITEM[a.id])); S.inv=S.inv.filter((it,i)=>i<12||ITEM[it.id].uq); }
   }
   // fair bots enter the highest gate they meet the Recommended level for; push bots enter the highest gate they have unlocked.
-  function pickGate(B){ if(B.force!=null) return B.force; const l=S.player.lvl; let g=0; for(let i=0;i<DUNGEONS.length;i++) if((typeof gateLocked==='function'?!gateLocked(i):l>=RK[i].unlock)&&(B.push||l>=SAFE[i])) g=i; return g; }   /* Vane Abbey opens by its keys, not by level */
+  function pickGate(B){ if(B.force!=null) return B.force; const l=S.player.lvl; let g=0; for(let i=0;i<DUNGEONS.length;i++) if((typeof gateLocked==='function'?!gateLocked(i):l>=RK[i].unlock)&&(B.push||l>=SAFE[i]+(typeof ngpRec==='function'?Math.round(ngpRec(i)):0))) g=i; return g; }   /* Vane Abbey opens by its keys, not by level */
 
   // ----- battle: one decision per turn
   function chooseTarget(B){
@@ -385,7 +386,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
     if(S.mode!=='town') returnTown(); if(rk&&arc().pick) arcEnd(B.rival==='spare'?'spare':'end');
   }
   function simBot(seed,B,days){
-    Math.random=mulberry32(seed); newGame(); B.lastDay=days; B.statI=0; B.hw={}; B.hwDay={}; if(typeof BOSS_KITS_ON!=='undefined') BOSS_KITS_ON=!B.off.bosskits;   /* 'bosskits' off: the old single boss moves */
+    Math.random=mulberry32(seed); newGame(); if(B.ngp>0&&typeof ascBegin==='function'){ S.ngp=B.ngp; S.asc={rules:(B.asc||[]).filter(k=>ASC_RULES[k]),kp:0}; S.pacts=cleanPacts(B.pacts||[]); S.watches=WATCHES-pactWatch(); ascBegin(); }   /* opts.ngp/asc/pacts: a New Game+ probe (a fresh save at that ascension level with those rules) */ B.lastDay=days; B.statI=0; B.hw={}; B.hwDay={}; if(typeof BOSS_KITS_ON!=='undefined') BOSS_KITS_ON=!B.off.bosskits;   /* 'bosskits' off: the old single boss moves */
     let abbeyDay=null; HFC.n=0; HFC.g=0; TW2C.n=0; TW2C.spec=0; TW2C.emb=0; TW2C.omen=0; TW2C.ord=0; BRC.n=0; BRC.g=0; BRC.comm=0; BRC.commG=0; BRC.bm=0; const rec=[], lvAt={}, firstClear={}, loreAt={}, tiers=[], trials=[], goldAt={}, gl={earn:0,spend:0,S:null};
     const goldWatch=()=>{ if(gl.S===S) return; gl.S=S; let v=S.gold||0; Object.defineProperty(S,'gold',{enumerable:true,configurable:true,get:()=>v,set:x=>{ if(x>v) gl.earn+=x-v; else gl.spend+=v-x; v=x; }}); };   // lifetime gold earned and spent
     while(S.day<=days){
@@ -488,7 +489,7 @@ function brewPolicy(B){   // keep one oil (the deepest open gate's weakness), in
         if(keep.siegeOpen) siegeOpen=(opts.off||[]).includes('siege')?()=>false:keep.siegeOpen;   // "off":["siege"]: the living never come
         if(keep.rivalOpen) rivalOpen=(!full||(opts.off||[]).includes('rival'))?()=>false:keep.rivalOpen;   // the rival plays only in 'full'; "off":["rival"] switches it off there
         if(keep.rivalArcOn) rivalArcOn=(opts.off||[]).includes('rivalarc')?()=>false:keep.rivalArcOn;   // "off":["rivalarc"]: the rival stays in chapter 1
-        const res=[]; for(let b=0;b<opts.bots;b++) res.push(simBot(opts.seed+b,{skills,market,full,push:opts.push,dread:opts.dread,faith:opts.faith||(full?(typeof GODS!=='undefined'?GODS[b%GODS.length]:(b%2?'dis':'hon')):null),ult:opts.ult,heat:opts.heat!=null?opts.heat:(full?1:0),tiers:opts.tiers,stats:opts.stats,mods:opts.mods,mod:opts.mod,rival:opts.rival,off:Object.fromEntries((opts.off||[]).map(k=>[k,1]))},opts.days));
+        const res=[]; for(let b=0;b<opts.bots;b++) res.push(simBot(opts.seed+b,{skills,market,full,push:opts.push,dread:opts.dread,faith:opts.faith||(full?(typeof GODS!=='undefined'?GODS[b%GODS.length]:(b%2?'dis':'hon')):null),ult:opts.ult,heat:opts.heat!=null?opts.heat:(full?1:0),tiers:opts.tiers,stats:opts.stats,mods:opts.mods,mod:opts.mod,rival:opts.rival,ngp:opts.ngp,asc:opts.asc,pacts:opts.pacts,off:Object.fromEntries((opts.off||[]).map(k=>[k,1]))},opts.days));
         out[name]=summarize(res,opts.days);
       }
     } finally {

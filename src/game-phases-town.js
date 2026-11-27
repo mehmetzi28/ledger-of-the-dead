@@ -270,15 +270,15 @@ const ULTS={
 function gainSoul(){ const r=S.run; if(!r) return false; r.souls=r.souls||0; if(r.souls>=soulCap()) return false; r.souls++; r.soulT=(r.soulT||0)+1;   // soulT: souls harvested this run, for the lifetime count
   if(hasMod('soulwell','a')) S.player.mana=Math.min(pMana(),S.player.mana+OVERFLOW_MANA);   // Overflow
   return true; }
-const canUlt=()=>S.mode==='battle'&&!!S.run&&S.player.lvl>=ULT_LV&&!!ULTS[S.player.ult]&&(S.run.souls||0)>=SOUL_MAX;
+const canUlt=()=>S.mode==='battle'&&!!S.run&&S.player.lvl>=ULT_LV&&!!ULTS[S.player.ult]&&(S.run.souls||0)>=ultCost();   /* Heavy Souls (game-asc.js) */
 function chooseUlt(id){ if(S.mode!=='town'||!ULTS[id]||S.player.lvl<ULT_LV) return false; S.player.ult=id; return true; }
 function useUlt(t){
-  if(!canUlt()) return false; const r=S.run, P=S.player, id=P.ult; r.souls=Math.max(0,r.souls-SOUL_MAX); tally('ults');
-  if(id==='toll'){ let tot=0, slain=0; for(const o of liveFoes()){ const d=hit(pSiph()*TOLL_MUL*pierceMul(1)); hurtFoe(o,d,'shad'); tot+=d; if(o.hp>0&&!o.boss&&o.hp<o.maxHp*TOLL_EXEC){ mark(o,o.hp,0); o.hp=0; slain++; } }
+  if(!canUlt()) return false; const r=S.run, P=S.player, id=P.ult; r.souls=Math.max(0,r.souls-ultCost()); tally('ults'); const UK=ascUlt();
+  if(id==='toll'){ let tot=0, slain=0; for(const o of liveFoes()){ const d=hit(pSiph()*TOLL_MUL*pierceMul(1)*UK); hurtFoe(o,d,'shad'); tot+=d; if(o.hp>0&&!o.boss&&o.hp<o.maxHp*TOLL_EXEC){ mark(o,o.hp,0); o.hp=0; slain++; } }
     log("Death's Toll: every foe takes the Ledger's due, "+tot+' damage in all'+(slain?', and '+slain+' fall where they stand':'')+'.','ok'); }
-  else if(id==='rise'){ let n=0; for(const m of S.army){ if(m.hp<=0){ m.hp=m.maxHp; n++; } else healAlly(m,m.maxHp); } healAlly(P,Math.round(pMax()*.4)); r.frenzy=Math.max(r.frenzy||0,3); r.frenzyMul=Math.max(r.frenzyMul||1,1.5);
+  else if(id==='rise'){ let n=0; for(const m of S.army){ if(m.hp<=0){ m.hp=m.maxHp; n++; } else healAlly(m,m.maxHp); } healAlly(P,Math.round(pMax()*.4*UK)); r.frenzy=Math.max(r.frenzy||0,3); r.frenzyMul=Math.max(r.frenzyMul||1,1+.5*UK);
     log('Unholy Resurrection: '+(n?n+' of your fallen rise again, ':'')+'your army is whole and burns with fury.','ok'); }
-  else { for(const o of liveFoes()){ o.stun=Math.max(o.stun||0,o.boss?1:2); o.curse={mul:1.3,t:3}; mark(o,0,0); } log('Soul Prison: every foe is locked in the Ledger\'s pages, frozen and laid bare.','ok'); }
+  else { for(const o of liveFoes()){ o.stun=Math.max(o.stun||0,o.boss?1:2); o.curse={mul:1+.3*UK,t:3}; mark(o,0,0); } log('Soul Prison: every foe is locked in the Ledger\'s pages, frozen and laid bare.','ok'); }
   moment(ULTS[id].name,'gold'); sfx('boss'); fxe('ult',t,{id}); return true;
 }
 

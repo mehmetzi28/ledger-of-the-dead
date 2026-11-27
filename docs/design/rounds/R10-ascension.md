@@ -110,7 +110,7 @@ Pick rules by the probe's measured cost (cheapest first); carry the best trait. 
 - **Old NG+ saves get easier**: shown once, and the loader gives one free rule pick at the next cycle start.
 - **Rules that hit one build**: three are offered, so a player can avoid a rule their build hates.
 
-## As built (PR A)
+## As built (PR A, #26)
 
 - **Code**: `src/game-asc.js` (new, built right after game-rift.js). `ASC_RULES` holds 13 rules; `ASC_*` holds their
   numbers. A rule acts only through `ascOn(k)`, which needs `S.ngp>0`, so a first cycle and every bot run never see one.
@@ -134,3 +134,43 @@ Pick rules by the probe's measured cost (cheapest first); carry the best trait. 
 - **Tests**: `tests/groups/98-ascension.js` (offer never repeats a chosen rule and is stable; rules stack across cycles;
   rules are off in cycle 0; hooks apply; a save round-trips). 846 tests.
 - **Balance**: rules only exist in NG+, which the bots never start; market and full runs are unchanged (see 04).
+
+## As built (PR B)
+
+- **Two more rules** (15 in all): **Kits Plus** (ordinary gate foes carry a second kit, `e.kit2`, drawn from the kits of
+  their gate's other kinds and limited to `ASC_KIT2`, the kits that act through `hasKit` alone; every second kill of a
+  two-kit foe counts twice toward the bestiary) and **Heavy Souls** (replaces Fewer Souls: an ultimate costs one Soul more,
+  `ultCost`, and the Soul cap rises with it; ultimates are 25% stronger, `ascUlt`). **Short Year** and **Early Rival** were
+  dropped: the calendar has no year end to shorten, and after the rival's war (R7) the rival is gone for good in later
+  cycles, so neither would bite.
+- **Valley rewrites** (`rwPick`, `rwRoom`, `rwEnter`, `rwCleared`): every ascension cycle but the Quiet Valley writes over
+  one gate (from `dayHash`; never last cycle's gate or the Keeper's Ledger boss). Its boss returns in Ledger form ("…,
+  Written Over": phase two from the start, its twist, hearts x2 through `e.ledger`) with one move borrowed from another
+  gate boss (`GATE_ABIL`, the same pool Tower wardens borrow from). Two of its kinds come back **Ink-Wet** (`e.rwv`):
+  another kit (`kitO`), +15% HP (`RW_HP`), trophies x2 (`RW_TRO`). The gate card shows a "Written over" seal; the first
+  entry each cycle logs the passage *The page was written over* (story entry `rewritten`). A cycle curse (R13) is not
+  built yet.
+- **Carries** (`carryOpts`, `carryPack`, `carryApply`, `carryTrait`): besides the unique, one more thing crosses (two
+  into the Quiet Valley): a trait from any army or Reserve minion (given to the cycle's first raise, `S.asc.ct`), a
+  building at level 2 (any building at 2 or more), a Riftborn piece at half its depth (attunements reset), or a
+  heartforged piece with its lines at 70% (`CARRY_*`). The evolution-mark carry was dropped: marks are tied to a role and
+  a stage and would need a minion to hold them.
+- **Endings tie-in** (`ascPicks`, `carryN`): Close the book draws no rule and no rewrite, and gives two carries; Keep
+  writing offers four rules and takes two. The endings' New Game+ lines say so. (Each ending already offers an
+  inscription.)
+- **Pacts as rules** (`PACT_CLAW_*`, `PACT_DRY`, `PACT_MEND`): Thick Hides braces Bulwark-stance foes on turn 1; Sharp
+  Claws deepens a striker's crit bleed to 50% of its attack for 3 turns (the old crit already bled at 30% for 2, so the
+  spec's "crits apply bleed" became a deeper bleed); Knitting Flesh lets a foe mender's heal clear its target's wounds and
+  conditions; Deaf Graves makes a boss's body cost a Soul to raise; Dry Throat now allows draughts at half effect; Bitter
+  Blood makes Dark Mending heal every foe 5%; Short Nights adds a night to every expedition.
+- **Title**: *Rewritten* (clear six rewritten gates, `T_('rewritten')`). 194 titles.
+- **Save**: `S.asc` adds `rw`, `rwP` (last cycle's gate), `ct` (the carried trait) and `kp` (the Kits Plus counter);
+  `ascFix` checks each. `expFix` now accepts either expedition length (the loader runs with no live save, so it cannot read
+  the pacts) and keeps the save's key order, which fixed a fuzz-found round-trip mismatch.
+- **Recommended levels follow the cycle** (`REC_NGP` .5, `ngpRec` in game-data.js): the gate advice, the farming falloff and
+  the bot's entry level add half the modeled shift for `ngpFoe` (NG+1 about +1-2 levels, NG+3 +2-7, rising with the gate).
+  Without it a fresh NG+3 bot entered gates at first-cycle levels and cleared 30%.
+- **Bot**: `"ngp":N,"asc":[...],"pacts":[...]` starts every bot as a fresh save at that ascension level with those rules
+  and pacts (a probe; it carries nothing over). See 04 for the probe numbers.
+- **Tests**: four more in `98-ascension.js` (Kits Plus and Heavy Souls; rewrites, the seal, the passage, the title and both
+  endings; carries; the pacts' rules). 850 tests.

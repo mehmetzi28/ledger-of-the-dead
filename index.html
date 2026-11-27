@@ -1225,6 +1225,9 @@ details.brief>summary .more-l,details.brief>summary .more-h{margin-left:0}detail
 .lp-banner{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.lp-banner .btn{margin-left:auto}
 .i-hf{font-size:12px;color:#e0a060;margin-top:2px}
 .i-rb{font-size:12px;color:#9a8cff;margin-top:2px}
+/* R10 PR B: the rewritten gate's seal, a second kit (Kits Plus) */
+.rw-line .rw-tag{color:#c9a3ff}
+.kit.kit2{border-style:dashed}
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
@@ -1646,7 +1649,7 @@ DIFF.armor=[0.30,0.66,0.88,0.85,0.89,0.94,0.95]; DIFF.foeAtk=[1.0,0.9,1.0,7.0,5.
 // Farming far below you on Normal pays less: kill XP, kill gold and the clear bonus are full up to FARM_FROM levels past a gate's SAFE level,
 // then ramp down to FARM_MIN at FARM_TO and beyond. Hard and up, cursed gates, a gate's first clear, drops, the Tower, the Rift, raids, bounties and quests pay in full.
 DIFF.farmFrom=8; DIFF.farmTo=20; DIFF.farmMin=.5;
-const farmK=(di,lvl)=>{ const t=clamp(((lvl-SAFE[di])-DIFF.farmFrom)/(DIFF.farmTo-DIFF.farmFrom),0,1); return 1-(1-DIFF.farmMin)*t; };
+const farmK=(di,lvl)=>{ const t=clamp(((lvl-SAFE[di]-ngpRec(di))-DIFF.farmFrom)/(DIFF.farmTo-DIFF.farmFrom),0,1); return 1-(1-DIFF.farmMin)*t; };
 // Recommended hero level per gate: the gate card's "Recommended Lv N+", its Easy/Fair/Hard/Deadly label and the Codex.
 // REC_BASE is measured: the lowest hero level at which the market bot clears the gate about 75% or more on Normal
 // (node tests/run-balance.js '{"byLvl":true}', once as is and once with "push":true for the levels below SAFE), at the tuning in REC_AT.
@@ -1660,7 +1663,9 @@ function recShift(di,f){   // f: a difficulty's foe multiplier (HEAT[h].foe); sp
   const R=k(DIFF.gate[di],DIFF.armor[di],DIFF.foeAtk[di])/k(a[2],a[0],a[1])*grow(RK[di].lv+1)*(f||1)*(f||1), A=LV_HP*LV_ATK, B=LV_HP+LV_ATK;   // mid-run foes stand 2 levels above RK.lv
   return (-B+Math.sqrt(Math.max(0,B*B-4*A*(1-R))))/(2*A)-(a[3]+1);   // the foe level whose old-tuning strength matches the new tuning, minus the old one
 }
-const gateRec=di=>Math.max(1,Math.round(REC_BASE[di]+recShift(di)));
+const REC_NGP=.5;   // R10: the share of the modeled shift for New Game+'s foe growth (ngpFoe) that the advice, the farming falloff and the bot's entry level take; probed with '{"ngp":1|3}'
+const ngpRec=di=>{ const f=typeof ngpFoe==='function'&&S&&S.ngp>0?ngpFoe():1; return f===1?0:REC_NGP*(recShift(di,f)-recShift(di)); };   // levels added in New Game+ (0 in a first cycle)
+const gateRec=di=>Math.max(1,Math.round(REC_BASE[di]+recShift(di)+ngpRec(di)));
 // Per difficulty (HEAT): the same model with the tier's foe multiplier on foe HP and attack, times REC_TIER, the share of that modeled
 // shift the market bot really needs (gear, army and skills outgrow the multiplier; the raw model asked 4/12/35 levels too many).
 // Measured 2026-11-15 (node tests/run-balance.js '{"tiers":{"gates":[0,1,2,3,4,5],"every":3}}', seed 7700): the bot first clears ~75%
@@ -1674,7 +1679,7 @@ const gateRec=di=>Math.max(1,Math.round(REC_BASE[di]+recShift(di)));
 // errs high is the safer one).
 // REC_TIER_F holds HEAT's foe values at that measurement: a test fails once a HEAT change moves the advice past REC_DRIFT levels.
 const REC_TIER=[1,.2,.18,.13], REC_TIER_F=[1,1.8,2.5,3.6];
-const tierRaw=(di,h,f)=>REC_BASE[di]+recShift(di)+(REC_TIER[h]||1)*(recShift(di,f)-recShift(di));
+const tierRaw=(di,h,f)=>REC_BASE[di]+recShift(di)+ngpRec(di)+(REC_TIER[h]||1)*(recShift(di,f)-recShift(di));
 const tierRec=(di,h)=>{ let r=gateRec(di); for(let t=1;t<=(h||0)&&t<HEAT.length;t++) r=Math.max(r+1,Math.round(tierRaw(di,t,HEAT[t].foe))); return r; };   // each tier at least a level above the one below
 const NGP_FOE=.15, NGP_REWARD=.25, ngpFoe=()=>(1+NGP_FOE*((S&&S.ngp)||0))*ngpQuiet(), ngpReward=()=>(1+NGP_REWARD*((S&&S.ngp)||0))*pactReward()*ascReward();   /* R10: +15% foes a level (was +30%); the ascension rules carry the rest (game-asc.js) */   // New Game+: tougher foes, richer rewards
 function foeScale(list,a){ const n=ngpFoe(); for(const e of list){ if(n!==1){ e.maxHp=e.hp=Math.round(e.maxHp*n); } if(a*n!==1) e.atk=Math.max(1,Math.round(e.atk*a*n)); } }
@@ -1793,9 +1798,9 @@ function newGame(){
 // New Game+: after clearing the Throne of Ash, start over at level 1 keeping titles, bestiary, tips and one unique.
 const canNGP=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]);
 const ownedUniques=()=>[...new Set(S.inv.concat(Object.values(S.equip)).filter(it=>it&&ITEM[it.id]&&ITEM[it.id].uq).map(it=>it.id))];
-function startNGP(carry,pacts,rule){
+function startNGP(carry,pacts,rule,carries){
   if(S.mode!=='town'||!canNGP()) return false; if(faithOf()==='dis') tally('godless');   /* Godless: a cycle finished Profane (game-pantheon.js) */
-  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts),ally:S.ally||null}; ngpEnding(keep); ascStart(keep,rule);   /* the ascension rule (game-asc.js) */   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
+  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts),ally:S.ally||null}; ngpEnding(keep); ascStart(keep,rule,carries);   /* the ascension rule (game-asc.js) */   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
   newGame(); Object.assign(S,keep); S.ti.clr={}; ngpEndingStart(); ascBegin();   // titles stay earned; New Game+ again needs another Throne of Ash clear
   S.watches=WATCHES-pactWatch(); S.notices=[]; if(carry&&own.includes(carry)){ const it=addItem(carry,null); if(it&&carryAw) it.aw=carryAw; }   /* an awakened unique keeps its ranks */ unlockStory('ngp');
   notify('New Game+ '+S.ngp+' begins. Foes have '+Math.round(NGP_FOE*S.ngp*100)+'% more HP and attack, and pay '+Math.round(NGP_REWARD*S.ngp*100)+'% more XP and gold.'+(carry&&own.includes(carry)?' '+ITEM[carry].name+' is in your bag.':''),'ok');
@@ -2094,6 +2099,7 @@ const roll3=()=>S.inv.concat(Object.values(S.equip)).some(it=>it&&ITEM[it.id]&&!
  ['as_6','Deeds','Ascendant VI','Reach ascension level 6.',()=>(S.ngp||0)>=6,{xpp:4,goldp:4}],
  ['as_10','Deeds','Ascendant X','Reach ascension level 10.',()=>(S.ngp||0)>=10,{xpp:5,goldp:5}],
  ['as_all','Deeds','Every Rule','Choose every ascension rule once.',()=>ASC_IDS.every(k=>S.ti&&S.ti['asc_'+k]),{dmgp:4,hpp:4}],
+ ['as_rw','Deeds','Rewritten','Clear six gates the Ledger wrote over (one a cycle).',()=>T_('rewritten')>=6,{dmgp:3,goldp:3}],
  ['r_six','Deeds','Six Guardians','Fell all six guardians of the Rift.',()=>GUARDIANS.every((g,i)=>!!(S.rift&&S.rift.gk&&S.rift.gk[i])),{dmgp:3,hpp:3}],
  ['r_sigil3','Deeds','Fully Sigiled','Clear depth 20 of the Rift or deeper with three sigils.',()=>T_('sig3_20')>=1,{mpow:4}],
  ['r_weekly','Deeds','Weekly Diver','Set 10 weekly dive bests.',()=>T_('weekBests')>=10,{xpp:3}],
@@ -2186,7 +2192,7 @@ function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // d
 // rarer ones stay hidden ("???") until earned. Rarity follows how hard a title is: bot runs measured the reachable ones,
 // and deeds the bots skip (events, forging) were judged by hand.
 const TITLE_RARITY={hd1:1,hd2:2,nm0:3,nm1:3,nm2:3,nm3:4,nm4:4,nm5:5,dm3:5,sb0:5,sb1:5,sb2:5,sb3:5,sb4:5,sb5:5,g0:0,g1:0,d_raise1:0,d_kill100:0,d_death:0,d_armed1:0,d_lv10:0,d_study:0,s_venom:0,f_crit:0,d_tower1:0,d_quest7:0,d_army:0,g2:1,t10:1,t20:1,d_raise50:1,d_cancel:1,d_evolve:1,d_uq:1,d_gold:1,m0:1,m1:1,c_drought:1,c_fury:1,c_bulwark:1,c_horde:1,c_volatile:1,p_25:1,k_spear:1,k_blast:1,k_chill:1,g_items:1,g_sold:1,f_flawless:1,f_last:1,a_boss:1,e_strag:1,e_pedlar:1,e_trap:1,d_death10:1,g3:2,g4:2,t30:2,t40:2,t50:2,d_kill1000:2,d_lv25:2,d_raise200:2,d_tower50:2,d_cancel10:2,d_trophy500:2,d_altar:2,d_elder:2,m2:2,m3:2,d_armed3:2,d_master:2,d_bag:2,c_25:2,e_shrine:2,e_coffer:2,s_poison:2,s_cure:2,k_reap:2,k_master3:2,k_all:2,f_boss25:2,f_elite100:2,g_gold:2,g_roll3:2,a_traits:2,a_elders:2,e_day100:2,e_runs100:2,g_reforge:2,g5:3,t60:3,t70:3,m4:3,m5:3,tw75:3,d_lv50:3,p_100:3,f_crit1000:3,e_rooms1000:3,twruns:3,d_ngp:3,d_tower110:3,t80:4,t90:4,t100:4,d_kill5000:4,d_all:4,d_tower150:4,a_raise500:4,e_lv75:4,tw200:5,d_ngp3:5,d_tuq:5,a_ancient:3,a_eternal:4,a_raid1:1,a_raid25:3,r_5:3,r_15:4,r_30:5};
-Object.assign(TITLE_RARITY,{x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,as_3:3,as_6:4,as_10:5,as_all:5,r_six:4,r_sigil3:4,r_weekly:3,r_attuned:3,r_half:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
+Object.assign(TITLE_RARITY,{x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,as_3:3,as_6:4,as_10:5,as_all:5,as_rw:4,r_six:4,r_sigil3:4,r_weekly:3,r_attuned:3,r_half:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
 const RARITY_MUL=[1,1,1.25,1.5,2,3], HIDDEN_FROM=3;
 TITLES.forEach(t=>{ t.r=TITLE_RARITY[t.id]!=null?TITLE_RARITY[t.id]:1; const m=RARITY_MUL[t.r]; for(const k in t.b) t.b[k]=Math.max(t.b[k],Math.round(t.b[k]*m)); });
 const titleHidden=t=>t.r>=HIDDEN_FROM&&!(S&&S.ti&&S.ti.got&&S.ti.got[t.id]);
@@ -2306,7 +2312,7 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
     if(r.rg) rgRoom(list,di,room,lvl); else if(r.rk) reckRoom(list,di,lvl);   /* the rival's own gate and the duel (game-rival-arc.js) */
     else if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(r.rift&&guardAt(r.rift)?makeGuardian(di,lvl,r.rift):!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true));   /* a Rift guardian every fifth depth (game-rift.js) */ const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
     else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
-    heatRoom(list,di); ledgerRoom(list,di); ascRoom(list); brewRoom(r); foeScale(list,foeAtkMul(di)); if(r.trial) trialPow(list,di); bulwark(list); riftScale(list); if(boss&&r.rift) sigNamed(list);
+    heatRoom(list,di); ledgerRoom(list,di); rwRoom(list,di); ascKits(list); ascRoom(list); brewRoom(r); foeScale(list,foeAtkMul(di)); if(r.trial) trialPow(list,di); bulwark(list); riftScale(list); if(boss&&r.rift) sigNamed(list);
     heatScale(list);
     if(!boss&&kind==='elite') for(const e of list){ e.maxHp=e.hp=Math.round(e.maxHp*ELITE_ROOM); e.atk=Math.max(1,Math.round(e.atk*ELITE_ROOM)); }
     affixAll(list);
@@ -2335,7 +2341,7 @@ function startRun(di){
   if(S.mode!=='town'||S.watches<=0||!RK[di]||gateLocked(di)) return;
   S.watches--; S.runs++; S.notices=[];
   S.run={di,room:0,rooms:di===ABBEY?ABBEY_ROOMS:4,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:gateMod(di),heat:heatOf(di)};
-  S.mode='battle'; titheSouls(); prepTake(S.run); prepSoul(S.run); townStart(S.run); ascRead(S.run);   /* run prep, the black market's Soul (game-brew.js), the Soul Well (game-town2.js) */
+  S.mode='battle'; titheSouls(); prepTake(S.run); prepSoul(S.run); townStart(S.run); ascRead(S.run); rwEnter(S.run);   /* run prep, the black market's Soul (game-brew.js), the Soul Well (game-town2.js) */
   log('You step through the '+DUNGEONS[di].name+' gate.'+(S.run.mod?' It is cursed today: '+MODS[S.run.mod].name+'.':''));
   if(di===ABBEY) unlockStory('abbey3',S.run);
   spawnRoom();
@@ -2391,8 +2397,8 @@ function healAlly(a,h){
   return h;
 }
 function killXp(e){ return Math.round((4+e.lvl*2.5)*RK[e.rankI].xp*(e.boss?2.5*(omen()==='ashfall'?OMEN_BOSS_XP:1):1)*(e.elite?1.5:1)*(e.tw?1+e.tw/12:1)*(e.secret?SB_REWARD:1)*(e.rival?RIVAL_GOLD:1)*ngpReward()*(runMod()?MOD_XP:1)*heatK('xp')*(S.run&&S.run.rift?riftRew():1)*(1+xb('xpp')/100)*(e.living?SIEGE_XP:1)*((e.boss||e.elite)&&hasMod('scholar','a')?INSIGHT:1)*(S.run&&S.run.sweep?SWEEP_XP:1)); }   // Insight
-function studyFoe(name){   // count a kill toward studying this kind of foe (its drop table opens in the bestiary)
-  const notes=hasMod('scholar','b')&&(tally('notes'),T_('notes')%2===0), n0=S.kills[name]||0, n=S.kills[name]=n0+(notes?2:1)+(Math.random()*100<xb('studyp')?1:0)+(libStudy()>0&&Math.random()*100<libStudy()?1:0);   /* the Library (game-town2.js) */   /* the Scribe's Regalia: some kills count twice */   // Field Notes: every second kill counts twice
+function studyFoe(name,x){   // count a kill toward studying this kind of foe (its drop table opens in the bestiary)
+  const notes=hasMod('scholar','b')&&(tally('notes'),T_('notes')%2===0), n0=S.kills[name]||0, n=S.kills[name]=n0+(notes?2:1)+(x|0)+(Math.random()*100<xb('studyp')?1:0)+(libStudy()>0&&Math.random()*100<libStudy()?1:0);   /* the Library (game-town2.js) */   /* the Scribe's Regalia: some kills count twice */   // Field Notes: every second kill counts twice
   const hit=at=>n0<at&&n>=at;
   if(hit(KNOW_AT)) notify('Bestiary: you have studied '+name+'. Its drop table is now known.','ok');
   for(const x of masteryRungs(name)) if(x.t.id!=='studied'&&hit(x.at)) notify('Mastery: '+name+' is now '+x.t.name+'. '+masteryGives(x.t)+'.','ok');
@@ -2412,7 +2418,7 @@ function checkDeaths(){
     if(e.boss||e.elite) gainSoul();
     if(e.boss){ tally('bosses'); r.bossK=e.name; }   /* the History notes the boss that fell */
     if(e.elite) tally('elites');
-    studyFoe(e.base);
+    studyFoe(e.base,ascStudy(e));
     r.pending+=killXp(e); if(!e.stash) r.loot.push(...rollDrops(e)); killLoot(e,r);   // a stolen body drops no gear: the body is the reward
     killPowers(); capKill(e); faithKill(e,r);
     if(!e.rival&&!e.guard&&sigBody()){ const c=corpseOf(e);   /* guardians and Loud Grave leave no body (game-rift.js) */ if(e.stash) rivalReclaim(e,c); r.corpses.push(c); }   // the rival leaves no body: they retreat
@@ -2524,14 +2530,14 @@ function act(kind){
     if(it.amb) e.ambU=1;
     if(it.k==='heal'){
       const hurt=r.enemies.find(x=>x.id===it.t);
-      if(hurt){ const h=Math.min(Math.round(e.atk*.9*(1-foeArmor())*blightK(hurt)),hurt.maxHp-hurt.hp); /* scaled by armor like your damage, so menders can't stall a fight */ hurt.hp+=h; log(e.name+' mends '+hurt.name+'.'); continue; }
+      if(hurt){ const h=Math.min(Math.round(e.atk*.9*(1-foeArmor())*blightK(hurt)),hurt.maxHp-hurt.hp); /* scaled by armor like your damage, so menders can't stall a fight */ hurt.hp+=h; if(pactOn('regen')&&(hurt.dots||hurt.st)){ delete hurt.dots; delete hurt.st; log(e.name+' mends '+hurt.name+' and knits its wounds shut.'); continue; } log(e.name+' mends '+hurt.name+'.'); continue; }   /* Knitting Flesh: a mender cleanses too */
     }
     let tg=alive.find(a=>fxKey(a)===it.t)||foeTarget(foeReach(e,alive));
     if(it.bw&&fxKey(tg)===it.t) log('Bulwark: '+tg.nick+' intercepts '+e.name+'\'s blow.','ok');   // planned with the intent, so the card already showed it
     if(omen()==='eclipse'&&Math.random()<ECLIPSE_MISS){ log(e.name+' misses '+(tg.id==='p'?'you':nameOf(tg))+' in the dark.','ok'); continue; }   // Black Eclipse
     let d=hit(e.atk*enrage(e)*(hasAff(e,'enraged')&&e.hp<e.maxHp/2?1.6:1)*hexK(e)*kitAtk(e,it)); let crit=e.role==='striker'&&Math.random()<foeCrit(); if(crit&&hasSt(e,'hexed')){ crit=false; combo('fizzle',e,'Fizzle: the hex spoils '+e.name+'\'s killing blow.'); } if(crit&&tg.id==='p'&&hasMod('calcify','a')) crit=false;   /* Petrified: rolled, then refused */ if(crit) d=Math.round(d*1.8);
     { const gv=guardBlow(tg,d); if(gv){ tg=gv; d=Math.round(d*SB_TAKE); } }   // Guard: swapped here so the log names who was hit
-    BLOW={n:e.name,k:crit?'crit':'hit'}; SAP=hasKit(e,'sapper'); hurtAlly(tg,d,foeHitType(e)); SAP=false; BLOW=null; fxe('hurt',tg,{crit:crit?1:0,by:e.id}); if(crit) addDot(tg,'bleed',e.atk*.3,2);   // a striker's crit opens a wound
+    BLOW={n:e.name,k:crit?'crit':'hit'}; SAP=hasKit(e,'sapper'); hurtAlly(tg,d,foeHitType(e)); SAP=false; BLOW=null; fxe('hurt',tg,{crit:crit?1:0,by:e.id}); if(crit) addDot(tg,'bleed',e.atk*(pactOn('claws')?PACT_CLAW_BLEED:.3),pactOn('claws')?PACT_CLAW_T:2);   // a striker's crit opens a wound (deeper under Sharp Claws)
     if(hasAff(e,'vampiric')){ const h=Math.min(e.maxHp-e.hp,Math.round(d*.4*blightK(e))); if(h>0){ e.hp+=h; mark(e,0,h); } }
     const ex=foeOnHit(e,tg)+echoThorns(e,tg,d);
     log(e.name+' hits '+(tg.id==='p'?'you':nameOf(tg))+' for '+d+(crit?' (crit'+(tg.hp>0&&tg.dots&&tg.dots.bleed?', bleeding':'')+')':'')+ex+'.','bad');
@@ -2554,7 +2560,7 @@ function act(kind){
 }
 function gateCleared(r){   // the boss room of a gate is won: story, clear tallies (titles, difficulty, curses) and the secret-master hint; returns the clear bonus XP
   const di=r.di, fk=runFarm(); unlockStory('g'+di,r); r.cleared=true; S.quest.clears++;   /* fk before the clear is marked: a first clear pays in full */
-  S.ti=S.ti||{}; S.ti.clr=S.ti.clr||{}; S.ti.clr[di]=1; tally('clrN'+di); orderEv('clear',di);
+  S.ti=S.ti||{}; S.ti.clr=S.ti.clr||{}; S.ti.clr[di]=1; tally('clrN'+di); orderEv('clear',di); rwCleared(r);   /* a rewritten gate (game-asc.js) */
   if(T_('clrN'+di)===SECRET_HINT&&secretHinted(di)) notify('A torn page in the Ledger: '+SECRET[di].hint,'');
   if(r.heat){
     S.heatMax=S.heatMax||{}; S.heatMax[di]=Math.max(S.heatMax[di]||0,r.heat); tally('heat'+r.heat); if(r.mod) tally('damned');
@@ -2713,10 +2719,11 @@ function tryRaise(id,salt,bench){   // bench: raise to the Reserve, only when th
   if(quietLocked()){ r.events.push({m:'The Ledger is quiet. Nothing rises until your first gate clear of this cycle.',c:'bad'}); return; }   /* the Quiet Valley (game-abbey.js) */
   const toRes=!!bench&&armyUsed()>=slots()&&reserveRoom();
   if(armyUsed()>=slots()&&!toRes){ r.events.push({m:'Your army is full. Release someone first.',c:'bad'}); return; }
+  if(c.boss&&pactOn('deaf')&&!((r.souls||0)>0)){ r.events.push({m:'Deaf Graves: a boss\'s body needs a Soul to answer. You have none.',c:'bad'}); return; }   /* the Pact of Deaf Graves */
   const cost=raiseCost(c);
   if(P.mana<cost){ r.events.push({m:'Not enough mana. You need '+cost+'.',c:'bad'}); return; }
   const salted=!!(salt&&S.salts>0);
-  P.mana-=cost; c.tried=true; if(salted) S.salts--;
+  P.mana-=cost; c.tried=true; if(salted) S.salts--; if(c.boss&&pactOn('deaf')) r.souls--;
   if(Math.random()*100<(salted?saltChance(c):raiseChance(c))){
     const m={uid:++S.uid,armed:!!c.armed,eq:c.armed?{weapon:null,armor:null,relic:null}:null,nick:c.mem&&!S.army.concat(S.reserve).some(x=>x.nick===c.mem)?c.mem:freeNick(),name:c.name,kind:c.base,role:c.role,rankI:c.rankI,lvl:c.lvl,xp:0,boss:c.boss,elite:c.elite,hf:c.hf,af:c.af,tw:c.tw,hp:1,maxHp:null,atk:0};
     if(hasFlag('bindsouls')) m.lvl=Math.min(S.player.lvl+2,m.lvl+2);
@@ -2724,6 +2731,7 @@ function tryRaise(id,salt,bench){   // bench: raise to the Reserve, only when th
     { const ml=masteryLv(c.base); if(ml) m.lvl=Math.max(m.lvl,Math.min(S.player.lvl+2,m.lvl+ml)); }   // a Ledgered kind rises higher, never past your level + 2
     m.lvl0=m.lvl; m.stage=0; m.traits=[c.cd&&CORPSE_CONDS[c.cd]?CORPSE_CONDS[c.cd].trait:rollTrait([])]; if(c.boss) m.traits.push(rollTrait(m.traits)); if(c.cd&&CORPSE_CONDS[c.cd]) m.cd=c.cd; if(c.recl){ m.recl=1; tally('reclaimed'); }   // bosses rise with two traits; how the body died replaces the random one
     if(c.aff&&c.aff.length){ const t=AFFIX[pick(c.aff)].trait; if(!m.traits.includes(t)) m.traits.push(t); }   // an elite keeps one of its affixes
+    { const ct=carryTrait(m); if(ct) r.events.push({m:m.nick+' rises with the trait you carried: '+TRAITS[ct].name+'.',c:'ok'}); }   /* a carried trait (game-asc.js) */
     if(rollCommand(m)) tally('commanders');
     syncMinion(m); m.hp=m.maxHp; if(toRes){ S.reserve.push(m); c.res=1; } else S.army.push(m); r.raised++; faithRaised(c); if(faithOf()==='hon'&&r.raised>MORROW_RAISE) vowBreak('hon','body '+r.raised+' raised in one run'); S.firstRaise=0; S.ti=S.ti||{}; S.ti.raised=(S.ti.raised||0)+1; if(m.armed) S.ti.armed=(S.ti.armed||0)+1;
     if(!r.siege){ dread(DREAD_RAISE); orderEv('raise',c); } if(c.free) tally('straggler'); if(c.boss) tally('raisedBoss'); c.result='raised'; if(c.boss||c.elite) moment(m.nick+' rises: '+(c.boss?'a boss':'an elite')+' serves you','ok'); c.minion=m.nick+' ('+m.traits.map(t=>TRAITS[t].name).join(', ')+')'; sfx('raise'); fxe('raise',c);
@@ -2812,6 +2820,7 @@ function useSkill(id,t){
     if(cured) tally('cures');
     allies().forEach(clearDots);
     fxe('mend',P);
+    if(pactOn('bitter')&&S.run){ const fs=liveFoes(); fs.forEach(o=>{ const h=Math.min(o.maxHp-o.hp,Math.round(o.maxHp*PACT_MEND*blightK(o))); if(h>0){ o.hp+=h; mark(o,0,h); } }); if(fs.length) log('Bitter Blood: the foes drink from your mending too.','bad'); }   /* the Pact of Bitter Blood */
     log('Dark Mending knits your army back together for '+tot+' HP'+(cured?' and cures every wound and burn':'')+'.','ok');
   }
   else if(id==='curse'){ const turns=hasMod('curse','a')?5:3, bonus=.15+.1*rk;
@@ -2873,7 +2882,7 @@ function killLoot(e,r){   // called once per kill, from checkDeaths
   if(omen()==='boneharvest'&&!r.trial&&(e.boss||Math.random()<HARVEST_DUST)) r.bdust=(r.bdust||0)+(e.boss?HARVEST_DUST_BOSS:1);   // Bone Harvest: bone dust from the dead
   const key=trophyKey(e); if(!TROPHY[key]||e.stash) return;
   const har=omen()==='boneharvest', tch=(.6*(har?1+HARVEST_TRO:1)+(hasMod('robber','b')?KEEN_TRO:0))*faithTro();   /* Ulm (game-pantheon.js) */   // Bone Harvest and Keen Eye
-  const n=(e.boss?(1+(e.secret&&hasInsc('masters')?1:0))*(e.ledger?LEDGER_HEART:1)+ascHearts(e):e.elite?2+(har?1:0):(Math.random()<tch?1:0))*cursed;
+  const n=(e.boss?(1+(e.secret&&hasInsc('masters')?1:0))*(e.ledger?LEDGER_HEART:1)+ascHearts(e):e.elite?2+(har?1:0):(Math.random()<tch?1:0))*cursed*rwTro(e);   /* Ink-Wet variants (game-asc.js) */
   if(n){ const q=quillK(r,n); r.troph=r.troph||{}; r.troph[key]=(r.troph[key]||0)+n*q; }   /* Pickpocket: the first trophy of a room drops twice (game-rival-arc.js) */
 }
 function bankLoot(r){     // called when a room is won
@@ -2889,7 +2898,7 @@ const POTIONS={
   mp:{name:'Mana Tonic',key:'W',desc:'Restores 40% of your max mana. Drinking it uses your turn.',price:()=>Math.round((12+S.player.lvl*4)*apoPotK()*dreadPriceK()*ascPotPrice())}
 };
 function drink(k){
-  const P=S.player; if(!S.belt[k]||pactOn('dry')) return false;   // the Dry Throat pact
+  const P=S.player; if(!S.belt[k]||(pactOn('dry')&&!DRAUGHTS[k])) return false;   // the Dry Throat pact: draughts still work, at half
   if(DRAUGHTS[k]) return drinkDraught(k);   /* Iron Draught, Bloodwine (game-brew.js) */
   if(k==='hp'){ if(P.hp>=pMax()&&!P.dots) return false; S.belt.hp--; const h=healAlly(P,Math.round(pMax()*.35*ascPotHeal())), cured=!!P.dots; clearDots(P); if(kitchenHeal()) S.army.forEach(m=>{ if(m.hp>0) healAlly(m,Math.round(m.maxHp*.15)); });   /* Plague Kitchen (game-town2.js) */ tally('drank'); if(cured) tally('cures'); log('You drink a Healing Draught and recover '+h+' HP'+(cured?'. Your wounds close':'')+'.','ok'); }
   else { if(P.mana>=pMana()) return false; S.belt.mp--; tally('drank'); const m=Math.min(pMana()-P.mana,Math.round(pMana()*.4*ascPotHeal())); P.mana+=m; mark('p',0,0); log('You drink a Mana Tonic and recover '+m+' mana.','ok'); }
@@ -3760,9 +3769,9 @@ const KIT_OF={
 };
 const KIND_RES={'Glass Sentinel':{phys:-.25}};   // kinds with a weakness of their own on top of their place's (foeRes)
 const kitOf=e=>!e||e.boss||e.rival||e.secret||e.id==null?null:e.kitO||KIT_OF[e.base]||null;   /* kitO: a kit given by a boss (the Rat King's Crown of Rats) */
-const hasKit=(e,k)=>kitOf(e)===k;
+const hasKit=(e,k)=>kitOf(e)===k||(!!e&&!!e.kit2&&e.kit2===k&&!!kitOf(e));   /* kit2: Kits Plus (game-asc.js) */
 const kitNum=e=>parseInt(String(e.id).slice(1),10)||0;
-const stanceOn=(e,t)=>hasKit(e,'stance')&&!hasSt(e,'sundered')&&((t==null?S.run.turn:t)+kitNum(e))%2===0;   // braced this turn
+const stanceOn=(e,t)=>hasKit(e,'stance')&&!hasSt(e,'sundered')&&(((t==null?S.run.turn:t)+kitNum(e))%2===0||(pactOn('hides')&&(t==null?S.run.turn:t)===1));   /* Thick Hides: braced from the first turn */   // braced this turn
 const kitBack=e=>hasKit(e,'banner')||!!e.back;   // stands in the back row whatever its role
 const reachable=e=>e.hp>0&&!e.burrow;   // single blows (your target, your minions' targets) cannot reach a burrowed foe
 const otherBanner=e=>!!S.run&&S.run.enemies.some(o=>o!==e&&o.hp>0&&hasKit(o,'banner'));
@@ -3849,10 +3858,11 @@ function kitState(e){   // the kit's state this turn, in words (Known and up)
 }
 function kitChip(e){
   const K=kitOf(e); if(!K||!(e.hp>0)) return '';
-  const lv=knowLv(e); if(lv<1) return ' &middot; <span class="kit unk" title="It has a kit you have not learned. Study its kind to read it.">Kit ?</span>';
+  const lv=knowLv(e); if(lv<1) return ' &middot; <span class="kit unk" title="It has a kit you have not learned. Study its kind to read it.">Kit ?</span>'+kit2Chip(e);
   const st=lv>=2?kitState(e):'', tip=KITS[K].rule+(lv>=4?' Answer: '+KITS[K].ans:'');
-  return ' &middot; <span class="kit" title="'+tip+'">'+KITS[K].name+'</span>'+(st?' <span class="kit-st">'+st+'</span>':'');
+  return ' &middot; <span class="kit" title="'+tip+'">'+KITS[K].name+'</span>'+(st?' <span class="kit-st">'+st+'</span>':'')+kit2Chip(e);
 }
+const kit2Chip=e=>e.kit2&&KITS[e.kit2]?' &middot; <span class="kit kit2" title="Kits Plus: '+KITS[e.kit2].rule+'">+ '+KITS[e.kit2].name+'</span>':'';   /* Kits Plus (game-asc.js): the rule's kit shows from the start */
 // ----- the Undone: a body killed by damage it was weak to rises Undone, with an echo of its kind's kit (60% strength).
 // The echo is read off the minion's kind (m.kind), so fusion and saves need nothing of their own.
 const ECHO={shield:.09,pack:.06,stance:.3,thorns:.09,frenzy:.09,banner:.06,marker:.15,call:.25}, ECHO_PLAIN=.1, ECHO_PACK_MAX=3;
@@ -4600,7 +4610,7 @@ const faithRank=g=>{ const id=faithOf(); if(!id||(g&&g!==id)) return 0; return M
 const devotion=()=>faithRank();   // the old name, used by the endings' inscriptions
 const blessed=id=>faithOf()===id&&faithRank()>=DEV_RANKS;
 function titheSouls(){ if(blessed('dis')&&S.run){ S.run.souls=Math.max(S.run.souls||0,Math.min(soulCap(),TITHE_SOULS)); } }
-const soulCap=()=>SOUL_MAX+(faithRank('dis')>=3?1:0);
+const soulCap=()=>ultCost()+(faithRank('dis')>=3?1:0);   /* Heavy Souls raises the cap with the cost (game-asc.js) */
 const faithBuff=id=>{ const o={}; if(faithOf()!==id) return o; const k=templeBuff(); BOONS[id].slice(0,faithRank()).forEach(b=>{ if(b.s) for(const s in b.s) o[s]=(o[s]||0)+b.s[s]; }); for(const s in o) o[s]=Math.round(o[s]*(o[s]>0?k:1)); return o; };
 const faithB=k=>{ const id=faithOf(); return id?(faithBuff(id)[k]||0):0; };
 const renounceCost=()=>100*S.player.lvl;
@@ -5002,15 +5012,15 @@ const ULTS={
 function gainSoul(){ const r=S.run; if(!r) return false; r.souls=r.souls||0; if(r.souls>=soulCap()) return false; r.souls++; r.soulT=(r.soulT||0)+1;   // soulT: souls harvested this run, for the lifetime count
   if(hasMod('soulwell','a')) S.player.mana=Math.min(pMana(),S.player.mana+OVERFLOW_MANA);   // Overflow
   return true; }
-const canUlt=()=>S.mode==='battle'&&!!S.run&&S.player.lvl>=ULT_LV&&!!ULTS[S.player.ult]&&(S.run.souls||0)>=SOUL_MAX;
+const canUlt=()=>S.mode==='battle'&&!!S.run&&S.player.lvl>=ULT_LV&&!!ULTS[S.player.ult]&&(S.run.souls||0)>=ultCost();   /* Heavy Souls (game-asc.js) */
 function chooseUlt(id){ if(S.mode!=='town'||!ULTS[id]||S.player.lvl<ULT_LV) return false; S.player.ult=id; return true; }
 function useUlt(t){
-  if(!canUlt()) return false; const r=S.run, P=S.player, id=P.ult; r.souls=Math.max(0,r.souls-SOUL_MAX); tally('ults');
-  if(id==='toll'){ let tot=0, slain=0; for(const o of liveFoes()){ const d=hit(pSiph()*TOLL_MUL*pierceMul(1)); hurtFoe(o,d,'shad'); tot+=d; if(o.hp>0&&!o.boss&&o.hp<o.maxHp*TOLL_EXEC){ mark(o,o.hp,0); o.hp=0; slain++; } }
+  if(!canUlt()) return false; const r=S.run, P=S.player, id=P.ult; r.souls=Math.max(0,r.souls-ultCost()); tally('ults'); const UK=ascUlt();
+  if(id==='toll'){ let tot=0, slain=0; for(const o of liveFoes()){ const d=hit(pSiph()*TOLL_MUL*pierceMul(1)*UK); hurtFoe(o,d,'shad'); tot+=d; if(o.hp>0&&!o.boss&&o.hp<o.maxHp*TOLL_EXEC){ mark(o,o.hp,0); o.hp=0; slain++; } }
     log("Death's Toll: every foe takes the Ledger's due, "+tot+' damage in all'+(slain?', and '+slain+' fall where they stand':'')+'.','ok'); }
-  else if(id==='rise'){ let n=0; for(const m of S.army){ if(m.hp<=0){ m.hp=m.maxHp; n++; } else healAlly(m,m.maxHp); } healAlly(P,Math.round(pMax()*.4)); r.frenzy=Math.max(r.frenzy||0,3); r.frenzyMul=Math.max(r.frenzyMul||1,1.5);
+  else if(id==='rise'){ let n=0; for(const m of S.army){ if(m.hp<=0){ m.hp=m.maxHp; n++; } else healAlly(m,m.maxHp); } healAlly(P,Math.round(pMax()*.4*UK)); r.frenzy=Math.max(r.frenzy||0,3); r.frenzyMul=Math.max(r.frenzyMul||1,1+.5*UK);
     log('Unholy Resurrection: '+(n?n+' of your fallen rise again, ':'')+'your army is whole and burns with fury.','ok'); }
-  else { for(const o of liveFoes()){ o.stun=Math.max(o.stun||0,o.boss?1:2); o.curse={mul:1.3,t:3}; mark(o,0,0); } log('Soul Prison: every foe is locked in the Ledger\'s pages, frozen and laid bare.','ok'); }
+  else { for(const o of liveFoes()){ o.stun=Math.max(o.stun||0,o.boss?1:2); o.curse={mul:1+.3*UK,t:3}; mark(o,0,0); } log('Soul Prison: every foe is locked in the Ledger\'s pages, frozen and laid bare.','ok'); }
   moment(ULTS[id].name,'gold'); sfx('boss'); fxe('ult',t,{id}); return true;
 }
 
@@ -5489,15 +5499,15 @@ function progTick(){   // end of each turn (from skillTick): Deep Winter and the
 // Chosen when New Game+ begins (0 to PACT_MAX), kept for that whole cycle in S.pacts. Each makes the cycle harder and adds
 // its rw to XP and gold (through ngpReward) and half of it to gear drop chances. Finishing a cycle (clearing the Throne of
 // Ash again) under pacts earns titles.
-const PACT_MAX=3, PACT_REGEN=.03, PACT_RAISE=10, PACT_HP=.2, PACT_ATK=.15, PACT_BITTER=.25;
+const PACT_MAX=3, PACT_REGEN=.03, PACT_RAISE=10, PACT_HP=.2, PACT_ATK=.15, PACT_BITTER=.25, PACT_CLAW_BLEED=.5, PACT_CLAW_T=3, PACT_DRY=.5, PACT_MEND=.05;   /* R10 PR B: each pact also adds a rule */
 const PACTS={
-  hides:{name:'Pact of Thick Hides',rw:20,desc:()=>'Foes have '+capPct(PACT_HP)+' more HP.'},
-  claws:{name:'Pact of Sharp Claws',rw:20,desc:()=>'Foes deal '+capPct(PACT_ATK)+' more damage.'},
-  regen:{name:'Pact of Knitting Flesh',rw:15,desc:()=>'Foes regain '+capPct(PACT_REGEN)+' of their max HP at the end of every turn.'},
-  deaf:{name:'Pact of Deaf Graves',rw:15,desc:()=>'Your raise chance is '+PACT_RAISE+' points lower.'},
-  dry:{name:'Pact of the Dry Throat',rw:10,desc:()=>'You cannot drink potions.'},
-  bitter:{name:'Pact of Bitter Blood',rw:10,desc:()=>'Healing you receive is '+capPct(PACT_BITTER)+' lower.'},
-  night:{name:'Pact of Short Nights',rw:25,desc:()=>'Each day has one watch fewer.'}
+  hides:{name:'Pact of Thick Hides',rw:20,desc:()=>'Foes have '+capPct(PACT_HP)+' more HP. Bulwark-stance foes brace from the first turn.'},
+  claws:{name:'Pact of Sharp Claws',rw:20,desc:()=>'Foes deal '+capPct(PACT_ATK)+' more damage. A striker\'s crit opens a deeper wound: '+capPct(PACT_CLAW_BLEED)+' of its attack for '+PACT_CLAW_T+' turns.'},
+  regen:{name:'Pact of Knitting Flesh',rw:15,desc:()=>'Foes regain '+capPct(PACT_REGEN)+' of their max HP at the end of every turn. A foe mender\'s heal also clears its target\'s wounds and conditions.'},
+  deaf:{name:'Pact of Deaf Graves',rw:15,desc:()=>'Your raise chance is '+PACT_RAISE+' points lower. A boss\'s body needs a Soul to raise.'},
+  dry:{name:'Pact of the Dry Throat',rw:10,desc:()=>'You cannot drink potions. Draughts still work, at half effect.'},
+  bitter:{name:'Pact of Bitter Blood',rw:10,desc:()=>'Healing you receive is '+capPct(PACT_BITTER)+' lower. Dark Mending also heals every foe '+capPct(PACT_MEND)+'.'},
+  night:{name:'Pact of Short Nights',rw:25,desc:()=>'Each day has one watch fewer. Expeditions take one night more.'}
 };
 const pactList=()=>(S&&Array.isArray(S.pacts)?S.pacts:[]).filter(k=>PACTS[k]);
 const pactOn=k=>pactList().includes(k);
@@ -5752,9 +5762,9 @@ const fallenK=()=>hasInsc('fallen')?Math.min(INSC_FALLEN_MAX,(S.memorial||[]).le
 const quietLocked=()=>!!(S&&S.quiet);   // the Quiet Valley: the Ledger is silent until the cycle's first gate clear
 const ENDINGS={
   closed:{name:'Close the book',line:'Write your own name, and let the rest rest.',title:'The Last Keeper',cycle:'The Quiet Valley',
-    ngp:'Gates are '+Math.round((1-QUIET_FOE)*100)+'% gentler for the whole cycle, rewards unchanged. Nothing rises until your first gate clear of the cycle.'},
+    ngp:'Gates are '+Math.round((1-QUIET_FOE)*100)+'% gentler for the whole cycle, rewards unchanged. Nothing rises until your first gate clear of the cycle. No ascension rule is drawn, and two things cross with you instead of one.'},
   kept:  {name:'Keep writing',  line:'The Ledger is not finished with you. You are not finished with it.',title:'The Hand That Writes',cycle:'The Keeper\'s Cycle',
-    ngp:'The usual New Game+, and one gate boss returns in Ledger form: in its second phase from the start, its heart paid twice. Vane Abbey opens with the Throne and the way the book remembers.'}
+    ngp:'The usual New Game+, and one gate boss returns in Ledger form: in its second phase from the start, its heart paid twice. Vane Abbey opens with the Throne and the way the book remembers. You pick two ascension rules instead of one.'}
 };
 function endingVariant(k){   // the epilogue's third paragraph: your oath, the rival, the size of the Memorial, an Eternal in the army
   const L=[], f=faithOf(), mem=(S.memorial||[]).length, eternal=S.army.concat(S.reserve||[]).some(m=>m.stage>=4), rv=S.rival&&S.rival.wins>0;
@@ -5994,11 +6004,11 @@ function brewFall(){ const r=S.run, P=S.player; if(r&&r.charm==='ch_draft'&&!r.d
 const brewDoors=(r,out)=>{ if(r.charm==='ch_door'&&out[0]==='fight'&&!out.includes('elite')) out.push('elite'); return out; };   // rollDoors
 const brewSight=(di,v)=>S.run&&S.run.charm==='ch_lantern'&&S.run.di===di?Math.min(2,v+DOOR_SIGHT):v;   // doorSight
 const xOrder=role=>{ const r=S.run; return !!(r&&r.charm==='ch_order'&&!r.xordU&&r.cmd&&r.cmd[role]); };   // canCommand: a second order of a kind
-const brewDr=a=>{ const r=S.run; return r&&r.iron>=r.turn&&(a.id==='p'||a.uid!=null)?1-IRON_DR:1; };   // hurtAlly
+const brewDr=a=>{ const r=S.run; return r&&r.iron>=r.turn&&(a.id==='p'||a.uid!=null)?1-IRON_DR*(r.ironH?PACT_DRY:1):1; };   // hurtAlly
 function drinkDraught(k){
   const P=S.player, r=S.run; if(!r||!(S.belt[k]>0)) return false;
-  if(k==='iron'){ S.belt.iron--; r.iron=r.turn+IRON_TURNS-1; log('You drink an Iron Draught: your side takes 25% less damage for '+IRON_TURNS+' turns.','ok'); }
-  else if(k==='blood'){ const all=allies().filter(u=>u.hp>0); if(all.every(u=>u.hp>=(u.id==='p'?pMax():u.maxHp))) return false; S.belt.blood--; let h=0; all.forEach(u=>{ h+=healAlly(u,Math.round((u.id==='p'?pMax():u.maxHp)*BLOOD_HEAL))||0; }); log('You drink Bloodwine: your side mends '+h+' HP.','ok'); }
+  if(k==='iron'){ S.belt.iron--; r.iron=r.turn+IRON_TURNS-1; r.ironH=pactOn('dry')?1:0; log('You drink an Iron Draught: your side takes 25% less damage for '+IRON_TURNS+' turns.','ok'); }
+  else if(k==='blood'){ const all=allies().filter(u=>u.hp>0); if(all.every(u=>u.hp>=(u.id==='p'?pMax():u.maxHp))) return false; S.belt.blood--; let h=0; all.forEach(u=>{ h+=healAlly(u,Math.round((u.id==='p'?pMax():u.maxHp)*BLOOD_HEAL*(pactOn('dry')?PACT_DRY:1)))||0; }); log('You drink Bloodwine: your side mends '+h+' HP.','ok'); }
   else return false;
   tally('drank'); return true;
 }
@@ -6403,7 +6413,7 @@ function expEvent(x){   // something on the road (10% of nights that hold): a lo
   const won=Math.random()<.6; if(!won){ const fol=x.units.slice(1).filter(m=>!hasTrait(m,'gravebound')); if(fol.length&&Math.random()<RAID_LOSS){ const m=pick(fol); returnGear(m); memorialize(m,{raid:di}); x.units=x.units.filter(y=>y!==m); x.lostN=(x.lostN||0)+1; return {k,won,m:'Another keeper\'s squad on the same road. '+m.nick+' fell in the skirmish.'}; } }
   return {k,won,m:'Another keeper\'s squad on the same road. '+(won?'Your dead drove them off and took their share: spoils +50% tonight.':'They slipped away.')};
 }
-const expNights=k=>k==='gate'||k==='curse'?[1,2]:k==='band'?[2]:[1];
+const expNights=(k,add)=>(k==='gate'||k==='curse'?[1,2]:k==='band'?[2]:[1]).map(n=>n+(add==null?pactWatch():add));   /* Short Nights: one night more (game-progression.js) */
 const tDi=t=>t.k==='band'?5:t.di;   // the gate whose loot and resistances a target uses
 function expTargets(){   // what the War table offers today
   const out=[], G=raidGates(); G.forEach(di=>out.push({k:'gate',di}));
@@ -6482,11 +6492,12 @@ function expChoose(i,c){   // the dawn choice for a squad still out: press on, t
 const expOut=()=>(S.raids||[]).filter(x=>(x.night||0)<(x.nights||1)&&(x.night||0)>0);   // squads in the field during the day
 function expFix(x){   // the loader: a raid from before expeditions is a one-night gate expedition
   const t=x.t&&EXP_TARGETS.includes(x.t.k)&&RK[x.t.di]?{k:x.t.k,di:x.t.di}:{k:'gate',di:x.di}; if(t.k==='band') t.f=Math.max(10,Math.floor((+x.t.f||10)/10)*10); if(t.k==='hunt'){ if(typeof x.t.kind==='string'&&TROPHY[bossKind(x.t.kind)?'b:'+x.t.kind:x.t.kind]) t.kind=x.t.kind; else { t.k='gate'; } }
-  const nights=expNights(t.k).includes(x.nights)?x.nights:expNights(t.k)[0], out={t,nights,night:clamp(Math.floor(+x.night||0),0,nights)};
+  const nights=expNights(t.k,0).concat(expNights(t.k,1)).includes(x.nights)?x.nights:expNights(t.k)[0],   /* either length: the loader does not read the pacts */ out={t,nights,night:clamp(Math.floor(+x.night||0),0,nights)};
   if(x.sp&&typeof x.sp==='object'){ const sp={g:Math.max(0,Math.floor(+x.sp.g||0)),dust:Math.max(0,Math.floor(+x.sp.dust||0)),items:Array.isArray(x.sp.items)?x.sp.items.filter(id=>ITEM[id]):[],tro:{}}; for(const k in x.sp.tro||{}) if(TROPHY[k]&&x.sp.tro[k]>0) sp.tro[k]=Math.floor(x.sp.tro[k]); out.sp=sp; }
   for(const k of ['won','pressed','saved','lostN']) if(x[k]>0) out[k]=Math.floor(x[k]); if(x.pick==='press'||x.pick==='risky') out.pick=x.pick;
   if(Array.isArray(x.log)) out.log=x.log.filter(r=>r&&typeof r==='object').slice(-3).map(r=>({n:Math.floor(+r.n||1),roll:Object.fromEntries(EXP_STEPS.filter(s=>r.roll&&s in r.roll).map(s=>[s,r.roll[s]?1:0])),ok:!!r.ok,lost:Array.isArray(r.lost)?r.lost.filter(s=>typeof s==='string').map(cleanNick):[],saved:typeof r.saved==='string'?cleanNick(r.saved):null,half:!!r.half}));
-  return out;
+  const o={}; for(const k of Object.keys(x)) if(k in out) o[k]=out[k]; for(const k in out) if(!(k in o)) o[k]=out[k];   /* keep the save's key order: a round trip must give the same game */
+  return o;
 }
 function expOrderFix(o){ const t=o.t&&EXP_TARGETS.includes(o.t.k)&&RK[o.t.di]?Object.assign({k:o.t.k,di:o.t.di},o.t.k==='band'?{f:Math.max(10,Math.floor((+o.t.f||10)/10)*10)}:{},o.t.k==='hunt'&&typeof o.t.kind==='string'?{kind:o.t.kind}:{}):null; return t?{t,nights:expNights(t.k).includes(o.nights)?o.nights:expNights(t.k)[0]}:{}; }
 function resolveRaid(x){   // one night for x; home when its nights are done (a raid from before expeditions is one night at a gate)
@@ -7003,7 +7014,9 @@ const tearK=()=>S&&S.run&&S.run.tear?TEAR_HP:1;   // pMax
 // the balance bots (which never begin New Game+) play exactly as before.
 const ASC_OFFER=3, ASC_BOSS_HEART=1, ASC_ELITE_DROP=1.25, ASC_RAISE_COST=1.2, ASC_RAISE=5, ASC_XP=.15, ASC_DREAD=60, ASC_DREAD_REST=50, ASC_SIEGE=1.25,
   ASC_TETHER=.6, ASC_ARMY_HP=1.1, ASC_OMEN=.4, ASC_OMEN_PAY=.1, ASC_SECRET=2, ASC_SECRET_HP=1.25, ASC_BIND=.25, ASC_SHATTER=10, ASC_STOCK=2, ASC_HF=.8,
-  ASC_READ=.8, ASC_READ_XP=2, ASC_CROWD_DROP=1.2, ASC_POT_PRICE=2, ASC_POT_HEAL=1.25;
+  ASC_READ=.8, ASC_READ_XP=2, ASC_CROWD_DROP=1.2, ASC_POT_PRICE=2, ASC_POT_HEAL=1.25, ASC_ULT=1.25,
+  ASC_KIT2=['pack','stance','thief','bomb','sapper','skirm','thorns','frenzy','hexer','banner'],   /* Kits Plus: kits that act through hasKit alone, so a second one needs no intent of its own */
+  RW_HP=1.15, RW_TRO=2, CARRY_RB=.5, CARRY_HF=.7, CARRY_BUILD=2;
 const ASC_HARSH=['bloodmoon','ashfall','ironrain'];
 const ASC_RULES={
   twofaces:  {name:'Two Faces',        desc:'Every gate boss starts in its second phase.',                              rew:'Each gate boss leaves one heart more.'},
@@ -7018,25 +7031,105 @@ const ASC_RULES={
   ironmarket:{name:'Iron Market',      desc:'The market stocks two pieces of gear a day, not four.',                    rew:'Heart-forging costs 20% less gold.'},
   bookhungers:{name:'The Book Hungers',desc:'Each run the Ledger reads one of your minions: it deals 20% less damage.',  rew:'That minion earns double XP in the run.'},
   crowded:   {name:'Crowded Gates',    desc:'One more foe in every gate room.',                                         rew:'Gear drops 20% more often in the gates.'},
-  bloodprice:{name:'Blood Price',      desc:'Potions cost twice as much.',                                              rew:'Potions heal and restore 25% more.'}
+  bloodprice:{name:'Blood Price',      desc:'Potions cost twice as much.',                                              rew:'Potions heal and restore 25% more.'},
+  kitsplus:  {name:'Kits Plus',        desc:'Ordinary gate foes carry a second kit, taken from another kind of their gate.', rew:'Every second kill of a two-kit foe counts twice in the bestiary.'},
+  fewsouls:  {name:'Heavy Souls',      desc:'An ultimate needs one Soul more.',                                         rew:'Ultimates are 25% stronger.'}
 };
 const ASC_IDS=Object.keys(ASC_RULES);
 const ascRules=()=>(S&&S.asc&&Array.isArray(S.asc.rules)?S.asc.rules:[]).filter(k=>ASC_RULES[k]);
 const ascOn=k=>!!S&&S.ngp>0&&ascRules().includes(k);
 const ascLvl=()=>(S&&S.ngp)||0;
-function ascOffer(){   // three rules not yet chosen, fixed for the next level
+const ascNext=()=>S&&S.ending?S.ending.k:null;   // the ending that sets the next cycle: 'closed' the Quiet Valley, 'kept' the Keeper's Cycle (game-abbey.js)
+const ascPicks=()=>ascNext()==='closed'?0:ascNext()==='kept'?2:1;   // the Quiet Valley draws no rule; the Keeper's Cycle takes two
+const carryN=()=>ascNext()==='closed'?2:1;   // the Quiet Valley's carry choice is free: two
+function ascOffer(){   // three rules not yet chosen (four when two are picked), fixed for the next level
+  if(!ascPicks()) return [];
   const L=ASC_IDS.filter(k=>!ascRules().includes(k)), out=[], n=ascLvl()+1;
-  for(let i=0;i<ASC_OFFER&&L.length;i++) out.push(L.splice(dayHash(n,ascRules().length,i,401)%L.length,1)[0]);
+  for(let i=0;i<ASC_OFFER+ascPicks()-1&&L.length;i++) out.push(L.splice(dayHash(n,ascRules().length,i,401)%L.length,1)[0]);
   return out;
 }
-function ascStart(keep,rule){   // startNGP: the chosen rule joins the ones the valley remembers
-  const R=ascRules().slice(); if(rule&&ascOffer().includes(rule)) R.push(rule);
-  keep.asc={rules:R}; return keep;
+function ascStart(keep,rule,carry){   // startNGP, before newGame: the chosen rules join the ones the valley remembers; the carries are packed
+  const R=ascRules().slice(), off=ascOffer(), want=(Array.isArray(rule)?rule:rule?[rule]:[]).filter((k,i,a)=>off.includes(k)&&a.indexOf(k)===i).slice(0,ascPicks());
+  R.push(...want);
+  keep.asc={rules:R,rwP:S.asc&&S.asc.rw?S.asc.rw.g:null,kp:0};
+  keep.carryPack=carryPack(carry); return keep;
 }
 function ascBegin(){   // after newGame in startNGP
   if(ascOn('coldtown')) S.dread=ASC_DREAD;
-  for(const k of ascRules()){ S.ti['asc_'+k]=1; }
+  S.ti=S.ti||{}; for(const k of ascRules()){ S.ti['asc_'+k]=1; }
+  carryApply(S.carryPack); delete S.carryPack;
+  rwPick();
 }
+// ----- carries (R10 PR B): besides the unique, one more thing crosses into the new cycle (two into the Quiet Valley)
+// trait:<t> goes to the cycle's first raise; build:<k> starts that building at level 2; item:<u> a Riftborn piece at half
+// its depth or a heartforged piece with its lines at 70%.
+function carryOpts(){
+  const out=[], seen=new Set();
+  for(const m of S.army.concat(S.reserve||[])) for(const t of (m.traits||[])) if(TRAITS[t]&&!seen.has(t)){ seen.add(t); out.push({k:'trait:'+t,kind:'trait',name:TRAITS[t].name,desc:'Your first raise of the cycle rises with '+TRAITS[t].name+' (from '+m.nick+').'}); }
+  for(const k of Object.keys(BUILD)) if(((S.build&&S.build[k])||0)>=CARRY_BUILD) out.push({k:'build:'+k,kind:'build',name:BUILD[k].name,desc:'The '+BUILD[k].name+' stands at level '+CARRY_BUILD+' from the first day.'});
+  for(const it of S.inv.concat(Object.values(S.equip))) if(it&&(it.rb||it.hf)&&ITEM[it.id]) out.push({k:'item:'+it.u,kind:it.rb?'rb':'hf',name:ITEM[it.id].name,desc:it.rb?'This Riftborn piece crosses at depth '+Math.max(1,Math.floor(it.rb.d*CARRY_RB))+' (now '+it.rb.d+').':'This heartforged piece crosses with its lines at '+Math.round(CARRY_HF*100)+'%.'});
+  return out;
+}
+function carryPack(carry){   // the chosen carries, taken out of the old save
+  const want=(Array.isArray(carry)?carry:carry?[carry]:[]), ok=carryOpts().map(o=>o.k), pack=[];
+  for(const k of want) if(ok.includes(k)&&!pack.some(p=>p.k===k)&&pack.length<carryN()){
+    const [kind,v]=[k.slice(0,k.indexOf(':')),k.slice(k.indexOf(':')+1)];
+    if(kind==='item'){ const it=findItem(+v); if(!it) continue; const c=JSON.parse(JSON.stringify(it)); if(c.rb) delete c.rb.a; pack.push({k,it:c}); }
+    else pack.push({k});
+  }
+  return pack;
+}
+function carryApply(pack){   // after newGame: unpack the carries into the new cycle
+  if(!Array.isArray(pack)) return; const got=[];
+  for(const p of pack){ const k=p.k, kind=k.slice(0,k.indexOf(':')), v=k.slice(k.indexOf(':')+1);
+    if(kind==='trait'&&TRAITS[v]){ S.asc.ct=v; got.push(TRAITS[v].name+' waits for your first raise'); }
+    else if(kind==='build'&&BUILD[v]){ S.build=S.build||{}; S.build[v]=Math.max(S.build[v]||0,CARRY_BUILD); got.push('the '+BUILD[v].name+' stands at level '+CARRY_BUILD); }
+    else if(kind==='item'&&p.it&&ITEM[p.it.id]){ const it=p.it; it.u=++S.uid;
+      if(it.rb) it.rb.d=Math.max(1,Math.floor(it.rb.d*CARRY_RB));
+      if(it.hf&&Array.isArray(it.ro)) it.ro=it.ro.map(([l,x])=>[l,typeof x!=='number'?x:Number.isInteger(x)?Math.max(1,Math.round(x*CARRY_HF)):Math.round(x*CARRY_HF*1000)/1000]);
+      delete it.aw; S.inv.push(it); got.push(ITEM[it.id].name+' is in your bag'); }
+  }
+  if(got.length){ tally('carried'); notify('Carried into the new cycle: '+got.join('; ')+'.','ok'); }
+}
+function carryTrait(m){ const t=S.asc&&S.asc.ct; if(!t||!TRAITS[t]||!m) return; if(!m.traits.includes(t)) m.traits.push(t); delete S.asc.ct; return t; }   // tryRaise: the cycle's first raise
+// ----- valley rewrites (R10 PR B): every ascension cycle but the Quiet Valley writes over one gate (never the same twice in
+// a row). Its boss returns in Ledger form (phase two from the start, hearts paid twice) with a move borrowed from another gate's
+// boss; two of its kinds come back as Ink-Wet variants with another kit, 15% more HP and twice the trophies. S.asc.rw =
+// {g, foes:[kind,kind], kits:[kit,kit], mv, seen, clr}.
+function rwPick(){
+  if(!S.asc||!(S.ngp>0)||S.cycle==='quiet') return; const n=S.ngp, prev=S.asc.rwP;
+  const L=[...Array(GATE_N).keys()].filter(i=>i!==prev&&i!==S.ledgerBoss); const g=L[dayHash(n,prev==null?9:prev,0,403)%L.length];
+  const kinds=DUNGEONS[g].mobs.map(x=>x[0]).filter(k=>KIT_OF[k]), a=kinds.splice(dayHash(n,g,1,403)%kinds.length,1)[0], b=kinds[dayHash(n,g,2,403)%kinds.length];
+  const kit=(k,i)=>{ const K=KIT_IDS.filter(x=>x!==KIT_OF[k]&&x!=='call'); return K[dayHash(n,g,3+i,403)%K.length]; };
+  const mv=GATE_ABIL.filter((x,i)=>i!==g); S.asc.rw={g,foes:[a,b],kits:[kit(a,0),kit(b,1)],mv:mv[dayHash(n,g,5,403)%mv.length],seen:0,clr:0};
+  notify('The Ledger has written over '+DUNGEONS[g].name+'. Its boss waits in Ledger form with a borrowed move, and two of its kinds have changed.','story');
+}
+const rwGate=()=>S&&S.ngp>0&&S.asc&&S.asc.rw?S.asc.rw.g:-1;
+const rwRun=r=>!!r&&r.di===rwGate()&&ascGateRun(r)&&!r.sweep;
+function rwRoom(list,di){   // spawnRoom, after ledgerRoom: the rewritten gate
+  const r=S.run, W=S.asc&&S.asc.rw; if(!W||!rwRun(r)) return;
+  for(const e of list){
+    if(e.boss&&!e.secret&&!e.rival&&!e.guard&&e.base===DUNGEONS[di].boss[0]&&!e.rw){ e.rw=1; e.ledger=1; e.name=e.name.replace(/^The /,'')+', Written Over';
+      if(e.abil&&!e.phase2){ e.phase2=true; e.fast=(e.fast||0)+1; e.alt=true; e.abilT=Math.min(e.abilT,2); bossTwist(e); }
+      if(Array.isArray(e.kit)&&BOSS_ABIL[W.mv]&&!e.kit.includes(W.mv)) e.kit.push(W.mv); }
+    else if(!e.boss&&!e.rw){ const i=W.foes.indexOf(e.base); if(i<0) continue; e.rw=1; e.rwv=1; e.name='Ink-Wet '+e.name; e.kitO=W.kits[i]; e.maxHp=e.hp=Math.round(e.maxHp*RW_HP); }
+  }
+}
+function rwEnter(r){   // startRun: the passage on the cycle's first entry
+  const W=S.asc&&S.asc.rw; if(!W||W.seen||!rwRun(r)) return; W.seen=1; unlockStory('rewritten');
+  log('The page was written over. '+DUNGEONS[r.di].name+' is not the place you remember.','story');
+}
+function rwCleared(r){ const W=S.asc&&S.asc.rw; if(!W||W.clr||!rwRun(r)) return; W.clr=1; tally('rewritten'); notify('You cleared the rewritten '+DUNGEONS[r.di].name+'.','ok'); }   // gateCleared
+const rwTro=e=>e&&e.rwv?RW_TRO:1;   // killLoot
+// ----- Kits Plus and Heavy Souls
+function ascKits(list){   // buildRoom: Kits Plus gives ordinary gate foes a second kit from their gate's kinds
+  const r=S.run; if(!ascOn('kitsplus')||!ascGateRun(r)||!DUNGEONS[r.di]) return;
+  const pool=[...new Set(DUNGEONS[r.di].mobs.map(x=>KIT_OF[x[0]]).filter(k=>ASC_KIT2.includes(k)))];
+  for(const e of list){ const K=kitOf(e); if(!K||e.kit2) continue; const L=pool.filter(k=>k!==K); if(L.length) e.kit2=L[dayHash(S.runs,r.room,kitNum(e),405)%L.length]; }
+}
+function ascStudy(e){ if(!e||!e.kit2||!ascOn('kitsplus')) return 0; S.asc.kp=(S.asc.kp||0)+1; return S.asc.kp%2===0?1:0; }   // studyFoe: every second kill counts twice
+const ultCost=()=>SOUL_MAX+(ascOn('fewsouls')?1:0);
+const ascUlt=()=>ascOn('fewsouls')?ASC_ULT:1;
 const ascGateRun=r=>!!r&&!r.tw&&!r.rift&&!r.trial&&!r.siege&&!r.rg&&!r.rk;
 // the rules' hooks
 function ascRoom(list){   // buildRoom: Two Faces
@@ -7072,8 +7165,15 @@ const ascReadK=m=>S&&S.run&&m&&S.run.read===m.uid?ASC_READ:1;   // extraMul (att
 const ascReadXp=(r,m)=>r&&r.read===m.uid?ASC_READ_XP:1;   // roomWon
 function ascFix(g){   // normalizeSave
   if(!g.asc||typeof g.asc!=='object'||Array.isArray(g.asc)){ delete g.asc; return; }
-  g.asc={rules:Array.isArray(g.asc.rules)?g.asc.rules.filter((k,i,a)=>ASC_RULES[k]&&a.indexOf(k)===i):[]};
+  const o=g.asc, n=(v,d)=>typeof v==='number'&&isFinite(v)?Math.floor(v):d;
+  g.asc={rules:Array.isArray(o.rules)?o.rules.filter((k,i,a)=>ASC_RULES[k]&&a.indexOf(k)===i):[],kp:Math.max(0,n(o.kp,0))};
+  if(Number.isInteger(o.rwP)&&o.rwP>=0&&o.rwP<GATE_N) g.asc.rwP=o.rwP;
+  if(typeof o.ct==='string'&&TRAITS[o.ct]) g.asc.ct=o.ct;
+  const W=o.rw; if(W&&typeof W==='object'&&Number.isInteger(W.g)&&W.g>=0&&W.g<GATE_N&&Array.isArray(W.foes)&&W.foes.length===2&&W.foes.every(k=>KIT_OF[k])&&Array.isArray(W.kits)&&W.kits.length===2&&W.kits.every(k=>KITS[k])&&BOSS_ABIL[W.mv])
+    g.asc.rw={g:W.g,foes:W.foes.slice(),kits:W.kits.slice(),mv:W.mv,seen:W.seen?1:0,clr:W.clr?1:0};
 }
+STORY.push({act:6,id:'rewritten',t:'The page was written over',when:()=>false,m:'You knew this gate. You had its turns by heart, the drip of it, the place the floor gave. The Ledger knew it too, and it has written over the page: the same walls in a wetter ink, the same dead with new habits, and its master waiting in the shape the book remembers best. Nothing here is a mistake. The book is practising.'});
+STORY_BY.rewritten=STORY.find(x=>x.id==='rewritten');
 //==UI==
 
 // ----- sound: tiny synthesized effects (Web Audio, no files). Off/on lives in Settings and is remembered per browser, not in the save.
@@ -11661,6 +11761,44 @@ TR_RX.unshift([/^Weekly dive · Depth (\d+) · Guardian · (.+?) · Turn (\d+)$/
 TR_RX.unshift([/^The Ledger reads (.+?)\. It fights at (\d+)% this run, and learns twice as fast\.?$/,"Defter $1'i okuyor. Bu akında %$2 güçle dövüşür ve iki kat hızlı öğrenir"],[/^Level (\d+) · (.+)$/,"Seviye $1 · {t2}"],[/^Level (\d+)$/,"Seviye $1"]);
 [["a fresh army, bag and gold","yeni bir ordu, çanta ve altın"],["You keep your titles and bestiary, and one unique","Unvanların, bestiyerin ve bir eşsiz eşyan kalır"],["Foes get #% more HP and attack and pay #% more XP and gold, and you pick a rule for ascension level #","Düşmanlar %# daha fazla can ve saldırı kazanır, %# daha fazla XP ve altın öder; sen de yükseliş seviyesi # için bir kural seçersin"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
 [["Begin New Game+ #: level #, day #, a fresh army, bag and gold","Yeni Oyun+ # başlat: seviye #, gün #, yeni bir ordu, çanta ve altın"]].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+// R10 PR B: Kits Plus, Heavy Souls, rewritten gates, carries, the endings' picks, the pacts' rules
+[["Kits Plus","Ek Kitler"],["Heavy Souls","Ağır Ruhlar"],["Rewritten","Yeniden Yazılmış"],["Rewritten gates","Yeniden yazılmış kapılar"],["Carries","Taşınanlar"],["Written over","Üzerine yazıldı"],["Cleared this cycle","Bu döngüde temizlendi"],
+ ["Ordinary gate foes carry a second kit, taken from another kind of their gate","Sıradan kapı düşmanları, kapılarının başka bir türünden alınmış ikinci bir kit taşır"],["Every second kill of a two-kit foe counts twice in the bestiary","İki kitli bir düşmanın her ikinci öldürülüşü bestiyerde iki kez sayılır"],
+ ["An ultimate needs one Soul more","Bir nihai yetenek bir Ruh fazlasını ister"],["Ultimates are #% stronger","Nihai yetenekler %# daha güçlüdür"],
+ ["The Quiet Valley draws no rule; the Keeper's Cycle takes two from four","Sessiz Vadi kural çekmez; Bekçinin Döngüsü dört kuraldan ikisini alır"],
+ ["Every ascension cycle but the Quiet Valley, the Ledger writes over one gate, never the same twice in a row","Sessiz Vadi dışındaki her yükseliş döngüsünde Defter bir kapının üzerine yazar, aynı kapıyı asla art arda iki kez seçmez"],
+ ["Its boss returns in Ledger form: in its second phase from the start, with a move borrowed from another gate's boss, its heart paid twice","Patronu Defter biçiminde döner: baştan ikinci evresinde, başka bir kapının patronundan ödünç alınmış bir hamleyle ve kalbi iki kat ödenmiş olarak"],
+ ["Two of its kinds come back Ink-Wet, with another kit, #% more HP and twice the trophies","Türlerinden ikisi Mürekkebi Kurumamış olarak döner: başka bir kitle, %# daha fazla canla ve iki kat ganimetle"],["The gate card shows the seal","Kapı kartı mührü gösterir"],
+ ["Besides the unique, one more thing crosses into a new cycle (two into the Quiet Valley): a trait from one of your minions, given to your first raise; a building at level #; a Riftborn piece at half its depth; or a heartforged piece with its lines at #%","Eşsiz eşyanın yanında yeni döngüye bir şey daha geçer (Sessiz Vadi'ye iki): minyonlarından birinin bir özelliği, ilk diriltmene verilir; # seviyesinde bir yapı; derinliğinin yarısında bir Yarık doğumlu parça; ya da satırları %# olan kalpte dövülmüş bir parça"],
+ ["Nothing else to carry: a minion's trait, a building at level # or more, a Riftborn or heartforged piece could cross","Taşınacak başka bir şey yok: bir minyonun özelliği, # ya da üstü seviyede bir yapı, bir Yarık doğumlu ya da kalpte dövülmüş parça geçebilirdi"],
+ ["Carry one more thing into the new cycle (optional)","Yeni döngüye bir şey daha taşı (isteğe bağlı)"],["Carry up to two more things into the new cycle (optional)","Yeni döngüye en çok iki şey daha taşı (isteğe bağlı)"],
+ ["The Quiet Valley draws no rule","Sessiz Vadi kural çekmez"],["Pick up to two rules for ascension level # (optional): they stay for every later cycle","Yükseliş seviyesi # için en çok iki kural seç (isteğe bağlı): sonraki her döngüde kalırlar"],
+ ["Foes get #% more HP and attack and pay #% more XP and gold, and you pick a rule for ascension level # and one more thing to carry","Düşmanlar %# daha fazla can ve saldırı kazanır, %# daha fazla XP ve altın öder; sen de yükseliş seviyesi # için bir kural ve taşınacak bir şey daha seçersin"],
+ ["Clear six gates the Ledger wrote over (one a cycle)","Defterin üzerine yazdığı altı kapıyı temizle (döngü başına bir)"],["Rewritten gates cleared","Temizlenen yeniden yazılmış kapılar"],
+ ["Bulwark-stance foes brace from the first turn","Siper duruşlu düşmanlar ilk turdan itibaren siper alır"],["A striker's crit opens a deeper wound: #% of its attack for # turns","Bir vurucunun kritik vuruşu daha derin bir yara açar: # tur boyunca saldırısının %#'i"],
+ ["A foe mender's heal also clears its target's wounds and conditions","Bir düşman şifacının iyileştirmesi hedefinin yaralarını ve durumlarını da temizler"],["A boss's body needs a Soul to raise","Bir patronun bedenini diriltmek için bir Ruh gerekir"],
+ ["Draughts still work, at half effect","Şuruplar yine işe yarar, yarı etkiyle"],["Dark Mending also heals every foe #%","Karanlık Onarım her düşmanı da %# iyileştirir"],["Expeditions take one night more","Seferler bir gece fazla sürer"],
+ ["No ascension rule is drawn, and two things cross with you instead of one","Yükseliş kuralı çekilmez ve seninle bir yerine iki şey geçer"],["You pick two ascension rules instead of one","Bir yerine iki yükseliş kuralı seçersin"],
+ ["The page was written over","Sayfanın üzerine yazıldı"],["Bitter Blood: the foes drink from your mending too","Acı Kan: düşmanlar da onarımından içiyor"],["Deaf Graves: a boss's body needs a Soul to answer","Sağır Mezarlar: bir patronun bedeninin cevap vermesi için bir Ruh gerekir"],["You have none","Hiç yok"],
+ ["Ledger-form boss · two Ink-Wet kinds","Defter biçimli patron · iki Mürekkebi Kurumamış tür"],["Trait","Özellik"],["Building","Yapı"],["Riftborn","Yarık doğumlu"],["Heartforged","Kalpte dövülmüş"],
+ ["You knew this gate","Bu kapıyı biliyordun"],["You had its turns by heart, the drip of it, the place the floor gave","Dönemeçlerini ezbere bilirdin, damlamasını, zeminin çöktüğü yeri"],["The Ledger knew it too, and it has written over the page: the same walls in a wetter ink, the same dead with new habits, and its master waiting in the shape the book remembers best","Defter de biliyordu ve sayfanın üzerine yazdı: daha ıslak bir mürekkeple aynı duvarlar, yeni alışkanlıklarla aynı ölüler ve kitabın en iyi hatırladığı biçimde bekleyen efendisi"],["Nothing here is a mistake","Burada hiçbir şey hata değil"],["The book is practising","Kitap pratik yapıyor"]
+].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+TR_RX.unshift(
+ [/^Ink-Wet (.+)$/,"Mürekkebi Kurumamış {t1}"],[/^(.+), Written Over$/,"{t1}, Üzerine Yazılmış"],[/^\+ (.+)$/,"+ {t1}"],
+ [/^(Trait|Building|Riftborn|Heartforged): (.+)$/,"{t1}: {t2}"],
+ [/^This cycle: (.+?)(, cleared)?\.?$/,"Bu döngü: {t1}$2"],
+ [/^Kits Plus: (.+)$/,"Ek Kitler: {t1}"],
+ [/^The Ledger has written over (.+?)\. Its boss waits in Ledger form with a borrowed move, and two of its kinds have changed\.?$/,"Defter {t1} üzerine yazdı. Patronu ödünç bir hamleyle Defter biçiminde bekliyor ve türlerinden ikisi değişti"],
+ [/^The page was written over\. (.+?) is not the place you remember\.?$/,"Sayfanın üzerine yazıldı. {t1} hatırladığın yer değil"],
+ [/^You cleared the rewritten (.+?)\.?$/,"Yeniden yazılmış {t1} kapısını temizledin"],
+ [/^Carried into the new cycle: (.+?)\.?$/,"Yeni döngüye taşınan: $1"],
+ [/^(.+?) rises with the trait you carried: (.+?)\.?$/,"$1 taşıdığın özellikle diriliyor: {t2}"],
+ [/^(.+?) mends (.+?) and knits its wounds shut\.?$/,"{t1}, {t2} düşmanını onarıyor ve yaralarını kapatıyor"],
+ [/^Your first raise of the cycle rises with (.+?) \(from (.+?)\)\.?$/,"Döngünün ilk diriltmesi {t1} ile kalkar ($2'den)"],
+ [/^The (.+?) stands at level (\d+) from the first day\.?$/,"{t1} ilk günden $2. seviyede durur"],
+ [/^This Riftborn piece crosses at depth (\d+) \(now (\d+)\)\.?$/,"Bu Yarık doğumlu parça $1 derinlikte geçer (şimdi $2)"],
+ [/^This heartforged piece crosses with its lines at (\d+)%\.?$/,"Bu kalpte dövülmüş parça satırları %$1 olarak geçer"]
+);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -12851,6 +12989,10 @@ function abbeyDoorHTML(){   // Vane Abbey while sealed (game-abbey.js): the drow
    +'<p class="lede">A door in the riverbed, bound in chain. Either key opens it.</p><div class="key-slots">'+abbeyKeyIds().map(slot).join('')+'</div></div>'
    +'<button class="btn" disabled>Sealed</button></div>';
 }
+function rwLineHTML(i){   // the gate the Ledger wrote over this cycle (game-asc.js)
+  const W=S.asc&&S.asc.rw; if(rwGate()!==i||!W) return '';
+  return '<div role="note" class="curse-line rw-line" title="This cycle the Ledger wrote over this gate. Its boss is in Ledger form with '+BOSS_ABIL[W.mv].name+' borrowed from another gate, its heart paid twice. '+W.foes.map((k,j)=>'Ink-Wet '+k+': '+KITS[W.kits[j]].name).join('; ')+', 15% more HP, trophies twice.'+'"><b class="curse-tag rw-tag"><i aria-hidden="true">&#10070;</i> Written over</b> '+(W.clr?'Cleared this cycle':'Ledger-form boss &middot; two Ink-Wet kinds')+'</div>';
+}
 function gateHTML(i){
   if(i===ABBEY&&!abbeyOpen()) return throneDown()?abbeyDoorHTML():'';   // the seventh gate shows once the Throne of Ash has fallen
   const D=DUNGEONS[i], R=RK[i], P=S.player, locked=gateLocked(i), rec=tierRec(i,locked?0:heatOf(i)), diff=P.lvl-rec;   // advice and label follow the difficulty picked on the card
@@ -12861,7 +13003,7 @@ function gateHTML(i){
    +(met?'<span class="g-por gate-mark">'+ico(D.boss[0],i,{boss:true})+'</span>':'<span class="g-por unknown">'+G_UNKNOWN+'</span>')+'</div>'
    +'<div class="badge r'+i+'">'+RANKS[i]+'</div><div class="g-body"><h3>'+D.name+'</h3>'
    +(gateMod(i)?(M=>'<div role="note" class="curse-line" title="Cursed: '+M.name+'. '+M.desc+' '+MOD_REWARD+'"><b class="curse-tag"><i aria-hidden="true">&#9760;</i> '+M.name+'</b> Foes +'+Math.round((CURSE_FOE-1)*100)+'% &middot; gold x'+MOD_GOLD+' &middot; XP +'+Math.round((MOD_XP-1)*100)+'% &middot; gear +'+Math.round((MOD_DROP-1)*100)+'%'+(S.ti&&S.ti.clr&&S.ti.clr[5]&&P.lvl-CURSE_GAP>RK[i].lv?' &middot; Foes Lv '+(P.lvl-CURSE_GAP):'')+'</div>')(MODS[gateMod(i)]):'')
-   +'<div class="g-stars" role="list" aria-label="Clears by difficulty">'+HEAT.map((x,lv)=>'<span role="listitem" class="g-star h'+lv+(stars[lv]?' on':'')+'" title="'+x.name+(stars[lv]?': cleared':': not cleared yet')+'">'+'<i aria-hidden="true">'+(stars[lv]?'&#9733;':'&#9734;')+'</i> '+x.name+'</span>').join('')
+   +rwLineHTML(i)+'<div class="g-stars" role="list" aria-label="Clears by difficulty">'+HEAT.map((x,lv)=>'<span role="listitem" class="g-star h'+lv+(stars[lv]?' on':'')+'" title="'+x.name+(stars[lv]?': cleared':': not cleared yet')+'">'+'<i aria-hidden="true">'+(stars[lv]?'&#9733;':'&#9734;')+'</i> '+x.name+'</span>').join('')
    +(best?'<span class="g-best" title="Your fastest clear of this gate, day '+best.day+(best.heat?', '+HEAT[best.heat].name:'')+'">Best '+best.t+' turns</span>':'')+'</div>'
    +'<p>'+D.blurb+'</p>'
    +'<div class="meta">'+(locked?'Opens at level '+R.unlock:'<span class="danger-'+danger.toLowerCase()+'">'+danger+' for you</span>')+' &middot; <span class="rec-lv" title="Most necromancers clear this gate'+(heatOf(i)&&!locked?' on '+HEAT[heatOf(i)].name:'')+' from this hero level">Recommended Lv '+rec+'+</span>'
@@ -13039,18 +13181,24 @@ function skillsHTML(){
   if(spent) h+='<div class="btns"><button class="btn small warn" data-a="skreset">'+(ui.confirm==='skreset'?'Press again to forget all skills':'Forget all skills ('+spent+' back)')+'</button></div>';
   return h+'</section>';
 }
-function ascPickHTML(){   // the next level's rule: one of three, kept for every later cycle (game-asc.js)
-  const off=ascOffer(), pk=off.includes(ui.ascPick)?ui.ascPick:null, kept=ascRules();
-  let h='<p class="q-note">'+(kept.length?'Rules the valley remembers: '+kept.map(k=>'<b title="'+ASC_RULES[k].desc+' '+ASC_RULES[k].rew+'">'+ASC_RULES[k].name+'</b>').join(', ')+'. ':'')+(off.length?'Pick a rule for ascension level '+((S.ngp||0)+1)+' (optional): it stays for every later cycle.':'Every rule is already yours.')+'</p>';
-  if(off.length) h+='<div class="items">'+off.map(k=>{ const R=ASC_RULES[k], on=pk===k; return '<div class="item'+(on?' on':'')+'"><div class="i-body"><div class="i-top"><span class="i-name">'+R.name+'</span></div><div class="i-stats">'+R.desc+'</div><div class="i-hf">'+R.rew+'</div></div><div class="i-acts"><button class="btn small'+(on?' primary':'')+'" data-a="ascpick" data-k="'+k+'" aria-pressed="'+on+'">'+(on?'Chosen':'Choose')+'</button></div></div>'; }).join('')+'</div>';
+function ascPickHTML(){   // the next level's rules (one; two in the Keeper's Cycle; none in the Quiet Valley), kept for every later cycle, and the carries (game-asc.js)
+  const off=ascOffer(), N=ascPicks(), pk=ascPickList(), kept=ascRules();
+  let h='<p class="q-note">'+(kept.length?'Rules the valley remembers: '+kept.map(k=>'<b title="'+ASC_RULES[k].desc+' '+ASC_RULES[k].rew+'">'+ASC_RULES[k].name+'</b>').join(', ')+'. ':'')
+    +(!N?'The Quiet Valley draws no rule.':off.length?(N>1?'Pick up to two rules for ascension level ':'Pick a rule for ascension level ')+((S.ngp||0)+1)+' (optional): '+(N>1?'they stay':'it stays')+' for every later cycle.':'Every rule is already yours.')+'</p>';
+  if(off.length) h+='<div class="items">'+off.map(k=>{ const R=ASC_RULES[k], on=pk.includes(k); return '<div class="item'+(on?' on':'')+'"><div class="i-body"><div class="i-top"><span class="i-name">'+R.name+'</span></div><div class="i-stats">'+R.desc+'</div><div class="i-hf">'+R.rew+'</div></div><div class="i-acts"><button class="btn small'+(on?' primary':'')+'" data-a="ascpick" data-k="'+k+'" aria-pressed="'+on+'">'+(on?'Chosen':'Choose')+'</button></div></div>'; }).join('')+'</div>';
+  const C=carryOpts(), cn=carryN(), cp=carryPickList();
+  h+='<p class="q-note">'+(C.length?'Carry '+(cn>1?'up to two more things':'one more thing')+' into the new cycle (optional):':'Nothing else to carry: a minion\'s trait, a building at level '+CARRY_BUILD+' or more, a Riftborn or heartforged piece could cross.')+'</p>';
+  if(C.length) h+='<div class="chips">'+C.map(o=>{ const on=cp.includes(o.k); return '<button class="btn small'+(on?' primary':'')+'" data-a="carrypick" data-k="'+o.k+'" aria-pressed="'+on+'" title="'+o.desc+'">'+({trait:'Trait',build:'Building',rb:'Riftborn',hf:'Heartforged'}[o.kind])+': '+o.name+'</button>'; }).join('')+'</div>';
   return h;
 }
+const ascPickList=()=>(Array.isArray(ui.ascPick)?ui.ascPick:[]).filter(k=>ascOffer().includes(k)).slice(0,ascPicks());
+const carryPickList=()=>(Array.isArray(ui.carry)?ui.carry:[]).filter(k=>carryOpts().some(o=>o.k===k)).slice(0,carryN());
 function ngpHTML(){
   const n=(S.ngp||0)+1;
   let h='<p class="group-h">New Game+'+(S.ngp?' &middot; you are in New Game+ '+S.ngp:'')+'</p>';
   if(!canNGP()) return h+'<p class="q-note">Clear the Throne of Ash to unlock New Game+ '+n+'. You start again at level 1 with your titles, your bestiary and one unique, against foes with '+Math.round(NGP_FOE*n*100)+'% more HP and attack that pay '+Math.round(NGP_REWARD*n*100)+'% more XP and gold.</p>';
   const own=ownedUniques(), sel=own.includes(ui.ngpPick)?ui.ngpPick:null;
-  h+='<div class="danger-zone"><p class="q-note" style="margin-top:0">Begin New Game+ '+n+': level 1, day 1, a fresh army, bag and gold. You keep your titles and bestiary, and one unique. Foes get '+Math.round(NGP_FOE*n*100)+'% more HP and attack and pay '+Math.round(NGP_REWARD*n*100)+'% more XP and gold, and you pick a rule for ascension level '+n+'.</p>';
+  h+='<div class="danger-zone"><p class="q-note" style="margin-top:0">Begin New Game+ '+n+': level 1, day 1, a fresh army, bag and gold. You keep your titles and bestiary, and one unique. Foes get '+Math.round(NGP_FOE*n*100)+'% more HP and attack and pay '+Math.round(NGP_REWARD*n*100)+'% more XP and gold, and you pick a rule for ascension level '+n+' and one more thing to carry.</p>';
   h+=own.length?'<p class="q-note">Choose the unique to carry:</p><div class="chips">'+own.map(id=>'<button class="btn small'+(sel===id?' primary':'')+'" data-a="ngppick" data-k="'+id+'" aria-pressed="'+(sel===id)+'">'+ITEM[id].name+'</button>').join('')+'</div>'
     :'<p class="q-note">You hold no unique to carry.</p>';
   if(S.ending) h+='<p class="q-note"><b>'+ENDINGS[S.ending.k].cycle+'.</b> '+ENDINGS[S.ending.k].ngp+'</p>';   /* the ending you chose (game-abbey.js) */
@@ -13172,7 +13320,7 @@ function recordsHTML(){
   const row=(t,v)=>'<div class="tt-row"><div><h4>'+t+'</h4></div><div class="rec-v">'+v+'</div></div>';
   let h='<section class="win" aria-labelledby="h-rec"><h2 class="win-h" id="h-rec">Records</h2><h3 class="win-title">Your best, kept through every New Game+</h3>'
    +'<div class="items">'+row('Deepest Tower floor',Rc.floor?'<b>'+Rc.floor.v+'</b>'+(Rc.floor.v>100?' <span class="dim">(Abyss)</span>':'')+' <span class="dim">&middot; day '+Rc.floor.day+'</span>':'<span class="dim">not yet</span>')
-   +row('Ascension',S.ngp?'Level '+S.ngp+(ascRules().length?' &middot; '+ascRules().map(k=>ASC_RULES[k].name).join(', '):''):'<span class="dim">not yet</span>')
+   +row('Ascension',S.ngp?'Level '+S.ngp+(ascRules().length?' &middot; '+ascRules().map(k=>ASC_RULES[k].name).join(', '):''):'<span class="dim">not yet</span>')+(T_('rewritten')?row('Rewritten gates cleared','<b>'+T_('rewritten')+'</b>'):'')
    +row('Endings',(S.endHist||[]).length?S.endHist.map(e=>'<b>'+ENDINGS[e.k].name+'</b> <span class="dim">&middot; cycle '+(e.cycle+1)+', day '+e.day+'</span>').join('<br>'):'<span class="dim">not yet</span>')
    +row('Biggest single hit',on(Rc.hit))+row('Most foes slain in one run',on(Rc.kills))+row('Most gold from one run',on(Rc.gold))
    +row('Souls spent on ultimates','<b>'+n(T_('ults')*SOUL_MAX)+'</b> <span class="dim">&middot; '+n(T_('ults'))+' ultimate'+(T_('ults')===1?'':'s')+'</span>')
@@ -13320,7 +13468,9 @@ function codexSection(k){
       cxRow('Limits','Strike crits 10% of the time before Strength, gear and skills. All your damage reduction together (Constitution, titles, sets, faith and Calcified Hide) stops at '+DR_CAP+'%.')])
     +'<p class="group-h">Everything gear can give</p>'+cxList(Object.keys(STATL).map(s=>cxRow(STATL[s][0],(ROLL_KEYS[s]?'Can appear as a bonus line.':'Only on base stats and uniques.')+(STATL[s][1]?' Measured in percent.':''))))
     +'<p class="group-h">New Game+</p>'+cxP('Clear the Throne of Ash and Settings offers New Game+: start again at level 1 with your titles, bestiary, story and one unique of your choice. Foes get '+Math.round(NGP_FOE*100)+'% more HP and attack and pay '+Math.round(NGP_REWARD*100)+'% more XP and gold, and each New Game+ stacks.')
-    +'<p class="group-h">Ascension</p>'+cxP('Each New Game+ is an ascension level. Starting a cycle, pick one rule from three: it makes one thing harder and pays for it, and it stays for every later cycle. The three on offer are fixed for each level.')+cxList(ASC_IDS.map(k=>cxRow(ASC_RULES[k].name,ASC_RULES[k].desc+' '+ASC_RULES[k].rew,ascRules().includes(k)?'Chosen':'')))
+    +'<p class="group-h">Ascension</p>'+cxP('Each New Game+ is an ascension level. Starting a cycle, pick one rule from three: it makes one thing harder and pays for it, and it stays for every later cycle. The three on offer are fixed for each level. The Quiet Valley draws no rule; the Keeper\'s Cycle takes two from four.')+cxList(ASC_IDS.map(k=>cxRow(ASC_RULES[k].name,ASC_RULES[k].desc+' '+ASC_RULES[k].rew,ascRules().includes(k)?'Chosen':'')))
+    +'<p class="group-h">Rewritten gates</p>'+cxP('Every ascension cycle but the Quiet Valley, the Ledger writes over one gate, never the same twice in a row. Its boss returns in Ledger form: in its second phase from the start, with a move borrowed from another gate\'s boss, its heart paid twice. Two of its kinds come back Ink-Wet, with another kit, '+Math.round((RW_HP-1)*100)+'% more HP and twice the trophies. The gate card shows the seal.')+(rwGate()>=0?cxP('This cycle: '+DUNGEONS[rwGate()].name+(S.asc.rw.clr?', cleared.':'.')):'')
+    +'<p class="group-h">Carries</p>'+cxP('Besides the unique, one more thing crosses into a new cycle (two into the Quiet Valley): a trait from one of your minions, given to your first raise; a building at level '+CARRY_BUILD+'; a Riftborn piece at half its depth; or a heartforged piece with its lines at '+Math.round(CARRY_HF*100)+'%.')
     +'<p class="group-h">Bestiary</p>'+cxP('Defeat '+KNOW_AT+' of one kind of foe to study it: its drop table opens in the bestiary. Foes you have not met stay hidden, here and there.')
     +'<p class="group-h">Mastery</p>'+cxP('Keep killing one kind of foe and you master it. Elites count as their base kind. New Game+ keeps the bestiary, so mastery carries over.')+cxP('Bosses, Tower wardens and secret masters need far fewer kills. With the '+SKILL_MODS.scholar.b[0]+' upgrade of Forbidden Lore every second kill counts twice. The bestiary shows each kind\'s tier and how far it is to the next.')
       +cxList(MASTERY.map(t=>cxRow(t.name,t.at+' kills'+(t.bossAt!=null?' ('+t.bossAt+' for bosses, Tower wardens and secret masters)':'')+'. '+masteryGives(t)+'.')))
@@ -14018,8 +14168,8 @@ function unitCard(u,side,mini){
 const ORDER_KEYS={z:'vanguard',x:'striker',c:'mender',v:'reaper'}, ORDER_KEY=Object.fromEntries(Object.entries(ORDER_KEYS).map(([k,r])=>[r,k.toUpperCase()]));
 function ultHTML(){   // Souls and the ultimate, from level 20
   const P=S.player; if(P.lvl<ULT_LV) return '';
-  const n=S.run.souls||0, U=ULTS[P.ult]; let pips=''; for(let i=0;i<SOUL_MAX;i++) pips+='<i class="soul'+(i<n?' on':'')+'"></i>';
-  return '<div class="btns ult-row"><span class="souls" aria-label="'+n+' of '+SOUL_MAX+' Souls">Souls '+pips+'</span>'
+  const n=S.run.souls||0, U=ULTS[P.ult]; let pips=''; for(let i=0;i<ultCost();i++) pips+='<i class="soul'+(i<n?' on':'')+'"></i>';
+  return '<div class="btns ult-row"><span class="souls" aria-label="'+n+' of '+ultCost()+' Souls">Souls '+pips+'</span>'
    +(U?'<button class="btn ult'+(canUlt()?' primary':'')+'" data-a="act" data-k="ult" title="'+U.desc+'"'+(canUlt()?'':' disabled')+'>'+U.name+'<kbd>R</kbd></button>':'<span class="u-sub">Choose an ultimate on the Skills tab.</span>')+'</div>';
 }
 const ANS_M='<span class="ans-m" aria-hidden="true" title="Answers the charge"></span>', ANS_S='<span class="sr-only">, answers the charge</span>';
@@ -14093,7 +14243,7 @@ function battleHTML(){
       return '<button class="btn'+(an?' answer':'')+'" data-a="act" data-k="sk:'+s.id+'" title="'+why+'"'+(canUse(s.id)?'':' disabled')+'>'+(an?ANS_M:'')+s.name+' '+manaCost(skCost(s))+(cd>0?' &middot; '+cd+'t':'')+(an?ANS_S:'')+(i<6?'<kbd>'+(i+4)+'</kbd>':'')+'</button>'; }).join('')+'</div>':'')
    )
    +grpHTML('Orders',cmdHTML())
-   +grpHTML('Potions',(DRINK_IDS.some(k=>S.belt[k])?'<div class="btns">'+DRINK_IDS.filter(k=>S.belt[k]&&!pactOn('dry')).map(k=>{ const p=drinkDef(k), full=k==='hp'?P.hp>=pMax()&&!P.dots:k==='mp'?P.mana>=pMana():k==='blood'?allies().filter(u=>u.hp>0).every(u=>u.hp>=(u.id==='p'?pMax():u.maxHp)):false;
+   +grpHTML('Potions',(DRINK_IDS.some(k=>S.belt[k])?'<div class="btns">'+DRINK_IDS.filter(k=>S.belt[k]&&(!pactOn('dry')||DRAUGHTS[k])).map(k=>{ const p=drinkDef(k), full=k==='hp'?P.hp>=pMax()&&!P.dots:k==='mp'?P.mana>=pMana():k==='blood'?allies().filter(u=>u.hp>0).every(u=>u.hp>=(u.id==='p'?pMax():u.maxHp)):false;
       return '<button class="btn potion" data-a="act" data-k="pot:'+k+'"'+(full?' disabled title="Already full"':' title="'+p.desc+'"')+'>'+p.name+' &times;'+S.belt[k]+'<kbd>'+p.key+'</kbd></button>'; }).join('')+'</div>':'')
    )
    +'</div>'+logHTML(st)+'</div></div></section>';
@@ -14529,9 +14679,10 @@ const ACTIONS={
   discard:k=>{ if(ui.confirm==='d'+k){ discard(+k); ui.confirm=null; } else ui.confirm='d'+k; },
   alloc:k=>alloc(k), learn:k=>learnSkill(k),
   ngppick:k=>{ ui.ngpPick=ui.ngpPick===k?null:k; },
-  ascpick:k=>{ ui.ascPick=ui.ascPick===k?null:k; ui.confirm=null; },   // the ascension rule (game-asc.js)
+  ascpick:k=>{ const a=ascPickList(), i=a.indexOf(k); if(i>=0) a.splice(i,1); else { if(a.length>=ascPicks()) a.shift(); a.push(k); } ui.ascPick=a; ui.confirm=null; },   // the ascension rules (game-asc.js)
+  carrypick:k=>{ const a=carryPickList(), i=a.indexOf(k); if(i>=0) a.splice(i,1); else { if(a.length>=carryN()) a.shift(); a.push(k); } ui.carry=a; ui.confirm=null; },   // the carries (game-asc.js)
   ngppact:k=>togglePact(k), cappath:k=>choosePath(k),   // src/ui-progression.js, src/game-progression.js
-  ngp:()=>{ if(ui.confirm!=='ngp'){ ui.confirm='ngp'; return; } ui.confirm=null; if(startNGP(ui.ngpPick,ui.ngpPacts,ui.ascPick)){ ui.ngpPick=null; ui.ngpPacts=null; ui.ascPick=null; ui.tab='gates'; ui.msg=null; ui.exp=''; } },
+  ngp:()=>{ if(ui.confirm!=='ngp'){ ui.confirm='ngp'; return; } ui.confirm=null; if(startNGP(ui.ngpPick,ui.ngpPacts,ascPickList(),carryPickList())){ ui.ngpPick=null; ui.ngpPacts=null; ui.ascPick=null; ui.carry=null; ui.tab='gates'; ui.msg=null; ui.exp=''; } },
   tip:k=>dismissTip(k), tipsoff:()=>{ S.tips=S.tips||{}; S.tips.off=1; }, tipson:()=>{ S.tips=S.tips||{}; delete S.tips.off; }, tipsreset:()=>{ S.tips={}; },
   sound:()=>{ SFX.on=!SFX.on; try{ localStorage.setItem('lotd-sound',SFX.on?'on':'off'); }catch(e){} if(SFX.on) sfx('coin'); },
   buypot:k=>{ const c=POTIONS[k].price(); ui.msg=buyPotion(k)?{mk:1,m:'Bought a '+POTIONS[k].name+' for '+c+' gold.',c:'ok'}:null; },
@@ -14661,7 +14812,7 @@ const ACTIONS={
 function settled(){ sgTipHide(); if(S&&S.mode==='town') cmdSync(); checkTitles(); try{ loreCheck(); }catch(e){} render(); }   // after an action: award titles and lore passages, then draw
 // the vow warning (game-pantheon.js): the first press says what breaks; the next one goes ahead (ui.vowOk for the rest of the day)
 function vowAsk(k){ if(!vowWarn(k)||ui.vowOk===k+S.day) return false; ui.vowOk=k+S.day; ui.msg={m:k==='raise'?'Raising another body breaks your vow to Morrow (no more than '+MORROW_RAISE+' in a run). Press again to raise anyway.':'Selling a trophy breaks your vow to Ulm. Press again to sell anyway.',c:'bad'}; return true; }
-const CONFIRM_ACTS=['ascpick','release','respec','cross','ending','hforge','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
+const CONFIRM_ACTS=['ascpick','carrypick','release','respec','cross','ending','hforge','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
 document.addEventListener('click',e=>{
   MUSIC.armed=true;
   const b=e.target.closest('[data-a]'); if(!b||b.disabled) return;

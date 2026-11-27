@@ -378,7 +378,7 @@ DIFF.armor=[0.30,0.66,0.88,0.85,0.89,0.94,0.95]; DIFF.foeAtk=[1.0,0.9,1.0,7.0,5.
 // Farming far below you on Normal pays less: kill XP, kill gold and the clear bonus are full up to FARM_FROM levels past a gate's SAFE level,
 // then ramp down to FARM_MIN at FARM_TO and beyond. Hard and up, cursed gates, a gate's first clear, drops, the Tower, the Rift, raids, bounties and quests pay in full.
 DIFF.farmFrom=8; DIFF.farmTo=20; DIFF.farmMin=.5;
-const farmK=(di,lvl)=>{ const t=clamp(((lvl-SAFE[di])-DIFF.farmFrom)/(DIFF.farmTo-DIFF.farmFrom),0,1); return 1-(1-DIFF.farmMin)*t; };
+const farmK=(di,lvl)=>{ const t=clamp(((lvl-SAFE[di]-ngpRec(di))-DIFF.farmFrom)/(DIFF.farmTo-DIFF.farmFrom),0,1); return 1-(1-DIFF.farmMin)*t; };
 // Recommended hero level per gate: the gate card's "Recommended Lv N+", its Easy/Fair/Hard/Deadly label and the Codex.
 // REC_BASE is measured: the lowest hero level at which the market bot clears the gate about 75% or more on Normal
 // (node tests/run-balance.js '{"byLvl":true}', once as is and once with "push":true for the levels below SAFE), at the tuning in REC_AT.
@@ -392,7 +392,9 @@ function recShift(di,f){   // f: a difficulty's foe multiplier (HEAT[h].foe); sp
   const R=k(DIFF.gate[di],DIFF.armor[di],DIFF.foeAtk[di])/k(a[2],a[0],a[1])*grow(RK[di].lv+1)*(f||1)*(f||1), A=LV_HP*LV_ATK, B=LV_HP+LV_ATK;   // mid-run foes stand 2 levels above RK.lv
   return (-B+Math.sqrt(Math.max(0,B*B-4*A*(1-R))))/(2*A)-(a[3]+1);   // the foe level whose old-tuning strength matches the new tuning, minus the old one
 }
-const gateRec=di=>Math.max(1,Math.round(REC_BASE[di]+recShift(di)));
+const REC_NGP=.5;   // R10: the share of the modeled shift for New Game+'s foe growth (ngpFoe) that the advice, the farming falloff and the bot's entry level take; probed with '{"ngp":1|3}'
+const ngpRec=di=>{ const f=typeof ngpFoe==='function'&&S&&S.ngp>0?ngpFoe():1; return f===1?0:REC_NGP*(recShift(di,f)-recShift(di)); };   // levels added in New Game+ (0 in a first cycle)
+const gateRec=di=>Math.max(1,Math.round(REC_BASE[di]+recShift(di)+ngpRec(di)));
 // Per difficulty (HEAT): the same model with the tier's foe multiplier on foe HP and attack, times REC_TIER, the share of that modeled
 // shift the market bot really needs (gear, army and skills outgrow the multiplier; the raw model asked 4/12/35 levels too many).
 // Measured 2026-11-15 (node tests/run-balance.js '{"tiers":{"gates":[0,1,2,3,4,5],"every":3}}', seed 7700): the bot first clears ~75%
@@ -406,7 +408,7 @@ const gateRec=di=>Math.max(1,Math.round(REC_BASE[di]+recShift(di)));
 // errs high is the safer one).
 // REC_TIER_F holds HEAT's foe values at that measurement: a test fails once a HEAT change moves the advice past REC_DRIFT levels.
 const REC_TIER=[1,.2,.18,.13], REC_TIER_F=[1,1.8,2.5,3.6];
-const tierRaw=(di,h,f)=>REC_BASE[di]+recShift(di)+(REC_TIER[h]||1)*(recShift(di,f)-recShift(di));
+const tierRaw=(di,h,f)=>REC_BASE[di]+recShift(di)+ngpRec(di)+(REC_TIER[h]||1)*(recShift(di,f)-recShift(di));
 const tierRec=(di,h)=>{ let r=gateRec(di); for(let t=1;t<=(h||0)&&t<HEAT.length;t++) r=Math.max(r+1,Math.round(tierRaw(di,t,HEAT[t].foe))); return r; };   // each tier at least a level above the one below
 const NGP_FOE=.15, NGP_REWARD=.25, ngpFoe=()=>(1+NGP_FOE*((S&&S.ngp)||0))*ngpQuiet(), ngpReward=()=>(1+NGP_REWARD*((S&&S.ngp)||0))*pactReward()*ascReward();   /* R10: +15% foes a level (was +30%); the ascension rules carry the rest (game-asc.js) */   // New Game+: tougher foes, richer rewards
 function foeScale(list,a){ const n=ngpFoe(); for(const e of list){ if(n!==1){ e.maxHp=e.hp=Math.round(e.maxHp*n); } if(a*n!==1) e.atk=Math.max(1,Math.round(e.atk*a*n)); } }

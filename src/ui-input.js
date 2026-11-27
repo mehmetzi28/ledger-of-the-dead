@@ -39,9 +39,10 @@ const ACTIONS={
   discard:k=>{ if(ui.confirm==='d'+k){ discard(+k); ui.confirm=null; } else ui.confirm='d'+k; },
   alloc:k=>alloc(k), learn:k=>learnSkill(k),
   ngppick:k=>{ ui.ngpPick=ui.ngpPick===k?null:k; },
-  ascpick:k=>{ ui.ascPick=ui.ascPick===k?null:k; ui.confirm=null; },   // the ascension rule (game-asc.js)
+  ascpick:k=>{ const a=ascPickList(), i=a.indexOf(k); if(i>=0) a.splice(i,1); else { if(a.length>=ascPicks()) a.shift(); a.push(k); } ui.ascPick=a; ui.confirm=null; },   // the ascension rules (game-asc.js)
+  carrypick:k=>{ const a=carryPickList(), i=a.indexOf(k); if(i>=0) a.splice(i,1); else { if(a.length>=carryN()) a.shift(); a.push(k); } ui.carry=a; ui.confirm=null; },   // the carries (game-asc.js)
   ngppact:k=>togglePact(k), cappath:k=>choosePath(k),   // src/ui-progression.js, src/game-progression.js
-  ngp:()=>{ if(ui.confirm!=='ngp'){ ui.confirm='ngp'; return; } ui.confirm=null; if(startNGP(ui.ngpPick,ui.ngpPacts,ui.ascPick)){ ui.ngpPick=null; ui.ngpPacts=null; ui.ascPick=null; ui.tab='gates'; ui.msg=null; ui.exp=''; } },
+  ngp:()=>{ if(ui.confirm!=='ngp'){ ui.confirm='ngp'; return; } ui.confirm=null; if(startNGP(ui.ngpPick,ui.ngpPacts,ascPickList(),carryPickList())){ ui.ngpPick=null; ui.ngpPacts=null; ui.ascPick=null; ui.carry=null; ui.tab='gates'; ui.msg=null; ui.exp=''; } },
   tip:k=>dismissTip(k), tipsoff:()=>{ S.tips=S.tips||{}; S.tips.off=1; }, tipson:()=>{ S.tips=S.tips||{}; delete S.tips.off; }, tipsreset:()=>{ S.tips={}; },
   sound:()=>{ SFX.on=!SFX.on; try{ localStorage.setItem('lotd-sound',SFX.on?'on':'off'); }catch(e){} if(SFX.on) sfx('coin'); },
   buypot:k=>{ const c=POTIONS[k].price(); ui.msg=buyPotion(k)?{mk:1,m:'Bought a '+POTIONS[k].name+' for '+c+' gold.',c:'ok'}:null; },
@@ -171,7 +172,7 @@ const ACTIONS={
 function settled(){ sgTipHide(); if(S&&S.mode==='town') cmdSync(); checkTitles(); try{ loreCheck(); }catch(e){} render(); }   // after an action: award titles and lore passages, then draw
 // the vow warning (game-pantheon.js): the first press says what breaks; the next one goes ahead (ui.vowOk for the rest of the day)
 function vowAsk(k){ if(!vowWarn(k)||ui.vowOk===k+S.day) return false; ui.vowOk=k+S.day; ui.msg={m:k==='raise'?'Raising another body breaks your vow to Morrow (no more than '+MORROW_RAISE+' in a run). Press again to raise anyway.':'Selling a trophy breaks your vow to Ulm. Press again to sell anyway.',c:'bad'}; return true; }
-const CONFIRM_ACTS=['ascpick','release','respec','cross','ending','hforge','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
+const CONFIRM_ACTS=['ascpick','carrypick','release','respec','cross','ending','hforge','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
 document.addEventListener('click',e=>{
   MUSIC.armed=true;
   const b=e.target.closest('[data-a]'); if(!b||b.disabled) return;

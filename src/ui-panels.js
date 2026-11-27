@@ -313,6 +313,10 @@ function abbeyDoorHTML(){   // Vane Abbey while sealed (game-abbey.js): the drow
    +'<p class="lede">A door in the riverbed, bound in chain. Either key opens it.</p><div class="key-slots">'+abbeyKeyIds().map(slot).join('')+'</div></div>'
    +'<button class="btn" disabled>Sealed</button></div>';
 }
+function rwLineHTML(i){   // the gate the Ledger wrote over this cycle (game-asc.js)
+  const W=S.asc&&S.asc.rw; if(rwGate()!==i||!W) return '';
+  return '<div role="note" class="curse-line rw-line" title="This cycle the Ledger wrote over this gate. Its boss is in Ledger form with '+BOSS_ABIL[W.mv].name+' borrowed from another gate, its heart paid twice. '+W.foes.map((k,j)=>'Ink-Wet '+k+': '+KITS[W.kits[j]].name).join('; ')+', 15% more HP, trophies twice.'+'"><b class="curse-tag rw-tag"><i aria-hidden="true">&#10070;</i> Written over</b> '+(W.clr?'Cleared this cycle':'Ledger-form boss &middot; two Ink-Wet kinds')+'</div>';
+}
 function gateHTML(i){
   if(i===ABBEY&&!abbeyOpen()) return throneDown()?abbeyDoorHTML():'';   // the seventh gate shows once the Throne of Ash has fallen
   const D=DUNGEONS[i], R=RK[i], P=S.player, locked=gateLocked(i), rec=tierRec(i,locked?0:heatOf(i)), diff=P.lvl-rec;   // advice and label follow the difficulty picked on the card
@@ -323,7 +327,7 @@ function gateHTML(i){
    +(met?'<span class="g-por gate-mark">'+ico(D.boss[0],i,{boss:true})+'</span>':'<span class="g-por unknown">'+G_UNKNOWN+'</span>')+'</div>'
    +'<div class="badge r'+i+'">'+RANKS[i]+'</div><div class="g-body"><h3>'+D.name+'</h3>'
    +(gateMod(i)?(M=>'<div role="note" class="curse-line" title="Cursed: '+M.name+'. '+M.desc+' '+MOD_REWARD+'"><b class="curse-tag"><i aria-hidden="true">&#9760;</i> '+M.name+'</b> Foes +'+Math.round((CURSE_FOE-1)*100)+'% &middot; gold x'+MOD_GOLD+' &middot; XP +'+Math.round((MOD_XP-1)*100)+'% &middot; gear +'+Math.round((MOD_DROP-1)*100)+'%'+(S.ti&&S.ti.clr&&S.ti.clr[5]&&P.lvl-CURSE_GAP>RK[i].lv?' &middot; Foes Lv '+(P.lvl-CURSE_GAP):'')+'</div>')(MODS[gateMod(i)]):'')
-   +'<div class="g-stars" role="list" aria-label="Clears by difficulty">'+HEAT.map((x,lv)=>'<span role="listitem" class="g-star h'+lv+(stars[lv]?' on':'')+'" title="'+x.name+(stars[lv]?': cleared':': not cleared yet')+'">'+'<i aria-hidden="true">'+(stars[lv]?'&#9733;':'&#9734;')+'</i> '+x.name+'</span>').join('')
+   +rwLineHTML(i)+'<div class="g-stars" role="list" aria-label="Clears by difficulty">'+HEAT.map((x,lv)=>'<span role="listitem" class="g-star h'+lv+(stars[lv]?' on':'')+'" title="'+x.name+(stars[lv]?': cleared':': not cleared yet')+'">'+'<i aria-hidden="true">'+(stars[lv]?'&#9733;':'&#9734;')+'</i> '+x.name+'</span>').join('')
    +(best?'<span class="g-best" title="Your fastest clear of this gate, day '+best.day+(best.heat?', '+HEAT[best.heat].name:'')+'">Best '+best.t+' turns</span>':'')+'</div>'
    +'<p>'+D.blurb+'</p>'
    +'<div class="meta">'+(locked?'Opens at level '+R.unlock:'<span class="danger-'+danger.toLowerCase()+'">'+danger+' for you</span>')+' &middot; <span class="rec-lv" title="Most necromancers clear this gate'+(heatOf(i)&&!locked?' on '+HEAT[heatOf(i)].name:'')+' from this hero level">Recommended Lv '+rec+'+</span>'
@@ -501,18 +505,24 @@ function skillsHTML(){
   if(spent) h+='<div class="btns"><button class="btn small warn" data-a="skreset">'+(ui.confirm==='skreset'?'Press again to forget all skills':'Forget all skills ('+spent+' back)')+'</button></div>';
   return h+'</section>';
 }
-function ascPickHTML(){   // the next level's rule: one of three, kept for every later cycle (game-asc.js)
-  const off=ascOffer(), pk=off.includes(ui.ascPick)?ui.ascPick:null, kept=ascRules();
-  let h='<p class="q-note">'+(kept.length?'Rules the valley remembers: '+kept.map(k=>'<b title="'+ASC_RULES[k].desc+' '+ASC_RULES[k].rew+'">'+ASC_RULES[k].name+'</b>').join(', ')+'. ':'')+(off.length?'Pick a rule for ascension level '+((S.ngp||0)+1)+' (optional): it stays for every later cycle.':'Every rule is already yours.')+'</p>';
-  if(off.length) h+='<div class="items">'+off.map(k=>{ const R=ASC_RULES[k], on=pk===k; return '<div class="item'+(on?' on':'')+'"><div class="i-body"><div class="i-top"><span class="i-name">'+R.name+'</span></div><div class="i-stats">'+R.desc+'</div><div class="i-hf">'+R.rew+'</div></div><div class="i-acts"><button class="btn small'+(on?' primary':'')+'" data-a="ascpick" data-k="'+k+'" aria-pressed="'+on+'">'+(on?'Chosen':'Choose')+'</button></div></div>'; }).join('')+'</div>';
+function ascPickHTML(){   // the next level's rules (one; two in the Keeper's Cycle; none in the Quiet Valley), kept for every later cycle, and the carries (game-asc.js)
+  const off=ascOffer(), N=ascPicks(), pk=ascPickList(), kept=ascRules();
+  let h='<p class="q-note">'+(kept.length?'Rules the valley remembers: '+kept.map(k=>'<b title="'+ASC_RULES[k].desc+' '+ASC_RULES[k].rew+'">'+ASC_RULES[k].name+'</b>').join(', ')+'. ':'')
+    +(!N?'The Quiet Valley draws no rule.':off.length?(N>1?'Pick up to two rules for ascension level ':'Pick a rule for ascension level ')+((S.ngp||0)+1)+' (optional): '+(N>1?'they stay':'it stays')+' for every later cycle.':'Every rule is already yours.')+'</p>';
+  if(off.length) h+='<div class="items">'+off.map(k=>{ const R=ASC_RULES[k], on=pk.includes(k); return '<div class="item'+(on?' on':'')+'"><div class="i-body"><div class="i-top"><span class="i-name">'+R.name+'</span></div><div class="i-stats">'+R.desc+'</div><div class="i-hf">'+R.rew+'</div></div><div class="i-acts"><button class="btn small'+(on?' primary':'')+'" data-a="ascpick" data-k="'+k+'" aria-pressed="'+on+'">'+(on?'Chosen':'Choose')+'</button></div></div>'; }).join('')+'</div>';
+  const C=carryOpts(), cn=carryN(), cp=carryPickList();
+  h+='<p class="q-note">'+(C.length?'Carry '+(cn>1?'up to two more things':'one more thing')+' into the new cycle (optional):':'Nothing else to carry: a minion\'s trait, a building at level '+CARRY_BUILD+' or more, a Riftborn or heartforged piece could cross.')+'</p>';
+  if(C.length) h+='<div class="chips">'+C.map(o=>{ const on=cp.includes(o.k); return '<button class="btn small'+(on?' primary':'')+'" data-a="carrypick" data-k="'+o.k+'" aria-pressed="'+on+'" title="'+o.desc+'">'+({trait:'Trait',build:'Building',rb:'Riftborn',hf:'Heartforged'}[o.kind])+': '+o.name+'</button>'; }).join('')+'</div>';
   return h;
 }
+const ascPickList=()=>(Array.isArray(ui.ascPick)?ui.ascPick:[]).filter(k=>ascOffer().includes(k)).slice(0,ascPicks());
+const carryPickList=()=>(Array.isArray(ui.carry)?ui.carry:[]).filter(k=>carryOpts().some(o=>o.k===k)).slice(0,carryN());
 function ngpHTML(){
   const n=(S.ngp||0)+1;
   let h='<p class="group-h">New Game+'+(S.ngp?' &middot; you are in New Game+ '+S.ngp:'')+'</p>';
   if(!canNGP()) return h+'<p class="q-note">Clear the Throne of Ash to unlock New Game+ '+n+'. You start again at level 1 with your titles, your bestiary and one unique, against foes with '+Math.round(NGP_FOE*n*100)+'% more HP and attack that pay '+Math.round(NGP_REWARD*n*100)+'% more XP and gold.</p>';
   const own=ownedUniques(), sel=own.includes(ui.ngpPick)?ui.ngpPick:null;
-  h+='<div class="danger-zone"><p class="q-note" style="margin-top:0">Begin New Game+ '+n+': level 1, day 1, a fresh army, bag and gold. You keep your titles and bestiary, and one unique. Foes get '+Math.round(NGP_FOE*n*100)+'% more HP and attack and pay '+Math.round(NGP_REWARD*n*100)+'% more XP and gold, and you pick a rule for ascension level '+n+'.</p>';
+  h+='<div class="danger-zone"><p class="q-note" style="margin-top:0">Begin New Game+ '+n+': level 1, day 1, a fresh army, bag and gold. You keep your titles and bestiary, and one unique. Foes get '+Math.round(NGP_FOE*n*100)+'% more HP and attack and pay '+Math.round(NGP_REWARD*n*100)+'% more XP and gold, and you pick a rule for ascension level '+n+' and one more thing to carry.</p>';
   h+=own.length?'<p class="q-note">Choose the unique to carry:</p><div class="chips">'+own.map(id=>'<button class="btn small'+(sel===id?' primary':'')+'" data-a="ngppick" data-k="'+id+'" aria-pressed="'+(sel===id)+'">'+ITEM[id].name+'</button>').join('')+'</div>'
     :'<p class="q-note">You hold no unique to carry.</p>';
   if(S.ending) h+='<p class="q-note"><b>'+ENDINGS[S.ending.k].cycle+'.</b> '+ENDINGS[S.ending.k].ngp+'</p>';   /* the ending you chose (game-abbey.js) */
@@ -634,7 +644,7 @@ function recordsHTML(){
   const row=(t,v)=>'<div class="tt-row"><div><h4>'+t+'</h4></div><div class="rec-v">'+v+'</div></div>';
   let h='<section class="win" aria-labelledby="h-rec"><h2 class="win-h" id="h-rec">Records</h2><h3 class="win-title">Your best, kept through every New Game+</h3>'
    +'<div class="items">'+row('Deepest Tower floor',Rc.floor?'<b>'+Rc.floor.v+'</b>'+(Rc.floor.v>100?' <span class="dim">(Abyss)</span>':'')+' <span class="dim">&middot; day '+Rc.floor.day+'</span>':'<span class="dim">not yet</span>')
-   +row('Ascension',S.ngp?'Level '+S.ngp+(ascRules().length?' &middot; '+ascRules().map(k=>ASC_RULES[k].name).join(', '):''):'<span class="dim">not yet</span>')
+   +row('Ascension',S.ngp?'Level '+S.ngp+(ascRules().length?' &middot; '+ascRules().map(k=>ASC_RULES[k].name).join(', '):''):'<span class="dim">not yet</span>')+(T_('rewritten')?row('Rewritten gates cleared','<b>'+T_('rewritten')+'</b>'):'')
    +row('Endings',(S.endHist||[]).length?S.endHist.map(e=>'<b>'+ENDINGS[e.k].name+'</b> <span class="dim">&middot; cycle '+(e.cycle+1)+', day '+e.day+'</span>').join('<br>'):'<span class="dim">not yet</span>')
    +row('Biggest single hit',on(Rc.hit))+row('Most foes slain in one run',on(Rc.kills))+row('Most gold from one run',on(Rc.gold))
    +row('Souls spent on ultimates','<b>'+n(T_('ults')*SOUL_MAX)+'</b> <span class="dim">&middot; '+n(T_('ults'))+' ultimate'+(T_('ults')===1?'':'s')+'</span>')

@@ -37,9 +37,9 @@ const KIT_OF={
 };
 const KIND_RES={'Glass Sentinel':{phys:-.25}};   // kinds with a weakness of their own on top of their place's (foeRes)
 const kitOf=e=>!e||e.boss||e.rival||e.secret||e.id==null?null:e.kitO||KIT_OF[e.base]||null;   /* kitO: a kit given by a boss (the Rat King's Crown of Rats) */
-const hasKit=(e,k)=>kitOf(e)===k;
+const hasKit=(e,k)=>kitOf(e)===k||(!!e&&!!e.kit2&&e.kit2===k&&!!kitOf(e));   /* kit2: Kits Plus (game-asc.js) */
 const kitNum=e=>parseInt(String(e.id).slice(1),10)||0;
-const stanceOn=(e,t)=>hasKit(e,'stance')&&!hasSt(e,'sundered')&&((t==null?S.run.turn:t)+kitNum(e))%2===0;   // braced this turn
+const stanceOn=(e,t)=>hasKit(e,'stance')&&!hasSt(e,'sundered')&&(((t==null?S.run.turn:t)+kitNum(e))%2===0||(pactOn('hides')&&(t==null?S.run.turn:t)===1));   /* Thick Hides: braced from the first turn */   // braced this turn
 const kitBack=e=>hasKit(e,'banner')||!!e.back;   // stands in the back row whatever its role
 const reachable=e=>e.hp>0&&!e.burrow;   // single blows (your target, your minions' targets) cannot reach a burrowed foe
 const otherBanner=e=>!!S.run&&S.run.enemies.some(o=>o!==e&&o.hp>0&&hasKit(o,'banner'));
@@ -126,10 +126,11 @@ function kitState(e){   // the kit's state this turn, in words (Known and up)
 }
 function kitChip(e){
   const K=kitOf(e); if(!K||!(e.hp>0)) return '';
-  const lv=knowLv(e); if(lv<1) return ' &middot; <span class="kit unk" title="It has a kit you have not learned. Study its kind to read it.">Kit ?</span>';
+  const lv=knowLv(e); if(lv<1) return ' &middot; <span class="kit unk" title="It has a kit you have not learned. Study its kind to read it.">Kit ?</span>'+kit2Chip(e);
   const st=lv>=2?kitState(e):'', tip=KITS[K].rule+(lv>=4?' Answer: '+KITS[K].ans:'');
-  return ' &middot; <span class="kit" title="'+tip+'">'+KITS[K].name+'</span>'+(st?' <span class="kit-st">'+st+'</span>':'');
+  return ' &middot; <span class="kit" title="'+tip+'">'+KITS[K].name+'</span>'+(st?' <span class="kit-st">'+st+'</span>':'')+kit2Chip(e);
 }
+const kit2Chip=e=>e.kit2&&KITS[e.kit2]?' &middot; <span class="kit kit2" title="Kits Plus: '+KITS[e.kit2].rule+'">+ '+KITS[e.kit2].name+'</span>':'';   /* Kits Plus (game-asc.js): the rule's kit shows from the start */
 // ----- the Undone: a body killed by damage it was weak to rises Undone, with an echo of its kind's kit (60% strength).
 // The echo is read off the minion's kind (m.kind), so fusion and saves need nothing of their own.
 const ECHO={shield:.09,pack:.06,stance:.3,thorns:.09,frenzy:.09,banner:.06,marker:.15,call:.25}, ECHO_PLAIN=.1, ECHO_PACK_MAX=3;

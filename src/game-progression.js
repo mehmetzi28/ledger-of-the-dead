@@ -60,15 +60,15 @@ function progTick(){   // end of each turn (from skillTick): Deep Winter and the
 // Chosen when New Game+ begins (0 to PACT_MAX), kept for that whole cycle in S.pacts. Each makes the cycle harder and adds
 // its rw to XP and gold (through ngpReward) and half of it to gear drop chances. Finishing a cycle (clearing the Throne of
 // Ash again) under pacts earns titles.
-const PACT_MAX=3, PACT_REGEN=.03, PACT_RAISE=10, PACT_HP=.2, PACT_ATK=.15, PACT_BITTER=.25;
+const PACT_MAX=3, PACT_REGEN=.03, PACT_RAISE=10, PACT_HP=.2, PACT_ATK=.15, PACT_BITTER=.25, PACT_CLAW_BLEED=.5, PACT_CLAW_T=3, PACT_DRY=.5, PACT_MEND=.05;   /* R10 PR B: each pact also adds a rule */
 const PACTS={
-  hides:{name:'Pact of Thick Hides',rw:20,desc:()=>'Foes have '+capPct(PACT_HP)+' more HP.'},
-  claws:{name:'Pact of Sharp Claws',rw:20,desc:()=>'Foes deal '+capPct(PACT_ATK)+' more damage.'},
-  regen:{name:'Pact of Knitting Flesh',rw:15,desc:()=>'Foes regain '+capPct(PACT_REGEN)+' of their max HP at the end of every turn.'},
-  deaf:{name:'Pact of Deaf Graves',rw:15,desc:()=>'Your raise chance is '+PACT_RAISE+' points lower.'},
-  dry:{name:'Pact of the Dry Throat',rw:10,desc:()=>'You cannot drink potions.'},
-  bitter:{name:'Pact of Bitter Blood',rw:10,desc:()=>'Healing you receive is '+capPct(PACT_BITTER)+' lower.'},
-  night:{name:'Pact of Short Nights',rw:25,desc:()=>'Each day has one watch fewer.'}
+  hides:{name:'Pact of Thick Hides',rw:20,desc:()=>'Foes have '+capPct(PACT_HP)+' more HP. Bulwark-stance foes brace from the first turn.'},
+  claws:{name:'Pact of Sharp Claws',rw:20,desc:()=>'Foes deal '+capPct(PACT_ATK)+' more damage. A striker\'s crit opens a deeper wound: '+capPct(PACT_CLAW_BLEED)+' of its attack for '+PACT_CLAW_T+' turns.'},
+  regen:{name:'Pact of Knitting Flesh',rw:15,desc:()=>'Foes regain '+capPct(PACT_REGEN)+' of their max HP at the end of every turn. A foe mender\'s heal also clears its target\'s wounds and conditions.'},
+  deaf:{name:'Pact of Deaf Graves',rw:15,desc:()=>'Your raise chance is '+PACT_RAISE+' points lower. A boss\'s body needs a Soul to raise.'},
+  dry:{name:'Pact of the Dry Throat',rw:10,desc:()=>'You cannot drink potions. Draughts still work, at half effect.'},
+  bitter:{name:'Pact of Bitter Blood',rw:10,desc:()=>'Healing you receive is '+capPct(PACT_BITTER)+' lower. Dark Mending also heals every foe '+capPct(PACT_MEND)+'.'},
+  night:{name:'Pact of Short Nights',rw:25,desc:()=>'Each day has one watch fewer. Expeditions take one night more.'}
 };
 const pactList=()=>(S&&Array.isArray(S.pacts)?S.pacts:[]).filter(k=>PACTS[k]);
 const pactOn=k=>pactList().includes(k);

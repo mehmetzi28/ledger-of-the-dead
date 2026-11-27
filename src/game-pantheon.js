@@ -51,7 +51,7 @@ const faithRank=g=>{ const id=faithOf(); if(!id||(g&&g!==id)) return 0; return M
 const devotion=()=>faithRank();   // the old name, used by the endings' inscriptions
 const blessed=id=>faithOf()===id&&faithRank()>=DEV_RANKS;
 function titheSouls(){ if(blessed('dis')&&S.run){ S.run.souls=Math.max(S.run.souls||0,Math.min(soulCap(),TITHE_SOULS)); } }
-const soulCap=()=>SOUL_MAX+(faithRank('dis')>=3?1:0);
+const soulCap=()=>ultCost()+(faithRank('dis')>=3?1:0);   /* Heavy Souls raises the cap with the cost (game-asc.js) */
 const faithBuff=id=>{ const o={}; if(faithOf()!==id) return o; const k=templeBuff(); BOONS[id].slice(0,faithRank()).forEach(b=>{ if(b.s) for(const s in b.s) o[s]=(o[s]||0)+b.s[s]; }); for(const s in o) o[s]=Math.round(o[s]*(o[s]>0?k:1)); return o; };
 const faithB=k=>{ const id=faithOf(); return id?(faithBuff(id)[k]||0):0; };
 const renounceCost=()=>100*S.player.lvl;
