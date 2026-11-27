@@ -35,7 +35,7 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
   const lvl=r.trial?r.tlv+Math.floor(room/2)+(boss?2:0):(r.rift?riftLvl(r.rift):RK[di].lv)+Math.floor((r.wk?2:room)/2)+(boss?2:0)+curseRise(di);   // a Trial's foes stand at the level fixed for its week
   const list=[];
   const extra=(hasRunMod('horde')?1:0)+sigHands()+ascExtra(), R0=Math.random;   /* Crowded Gates (game-asc.js) */   /* Many Hands (game-rift.js) */
-  if(r.trial||r.wk) Math.random=trialRng(r.tseed,room);   // a Trial: the same rooms and foes for every attempt this week (src/game-rival-trials.js)
+  if(r.trial||r.wk) Math.random=trialRng(r.tseed,room); else if(chOn()) Math.random=chRng(CH_SYS.room,S.day,di,room,CH_KIND[kind]|0,r.rift|0);   /* a challenge code's rooms (game-playlog.js) */   // a Trial: the same rooms and foes for every attempt this week (src/game-rival-trials.js)
   try{
     if(r.rg) rgRoom(list,di,room,lvl); else if(r.rk) reckRoom(list,di,lvl);   /* the rival's own gate and the duel (game-rival-arc.js) */
     else if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(r.rift&&guardAt(r.rift)?makeGuardian(di,lvl,r.rift):!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true));   /* a Rift guardian every fifth depth (game-rift.js) */ const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
@@ -50,10 +50,10 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
   return list;
 }
 function spawnRoom(){
-  if(S.run.tw) return spawnFloor();
+  if(S.run.tw){ plogEnter('floor'); return chSeeded(spawnFloor,CH_SYS.floor,S.run.tw); }   /* challenge codes and the play log (game-playlog.js) */
   const r=S.run, room=r.room, boss=roomBoss(r,room);
   const list=(!boss&&r.pre&&r.pre[r.roomKind])||buildRoom(room,r.roomKind); r.pre=null;   // a door's room was rolled with the doors: what it showed is what waits
-  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; delete r.lcU; delete r.mirU; delete r.mirS; delete r.flU; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null; curseRoom(r); roomStart(list);   /* Hunger (game-valley.js) */
+  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; delete r.lcU; delete r.mirU; delete r.mirS; delete r.flU; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null; curseRoom(r); roomStart(list); plogEnter(r.roomKind,PLOG_OF); PLOG_OF=null;   /* Hunger (game-valley.js) */
   log(boss?(list[0].rival?list[0].name+' stands where the master should be, with their own dead around them.':list[0].secret?'The air turns wrong. This is not the master you came for.':'The air thickens. Something large waits ahead.'):(r.trial?'Trial, room ':'Room ')+(room+1)+' of '+r.rooms+(r.roomKind==='elite'?', behind the bloodied arch. These foes are stronger.':'.'));
   if(boss){ bossSpeaks(list[0],'hi'); fxe('boss',list[0]); }
   if(hasFlag('infernal')) infernalWard();
@@ -97,7 +97,7 @@ function hurtAlly(a,d,ty){
   if(S.run&&S.run.widen) d=Math.round(d*widenK());   /* the Tear Itself (game-rift.js) */
   if(a.id==='p'&&S.run&&S.run.conf) d=Math.round(d*BK_CONFESS);   /* the Iron Inquisitor's Confession, until you ward */
   if(a.id==='p'&&BLOW){ const v=guardBlow(a,d); if(v) return hurtAlly(v,Math.round(d*SB_TAKE),ty); }   // Guard, for boss moves (plain hits swap their target before this)
-  if(a.id==='p'&&S.run) S.run.blow=BLOW?blowNote(BLOW):null;
+  if(a.id==='p'&&S.run){ S.run.blow=BLOW?blowNote(BLOW):null; plogHit(a); }
   hfScales(a,d);   /* Scales (game-forge.js) */   // what hits you, for the defeat recap (before the ward soaks it)
   d=allyDr(a,d); { const ik=brewDr(a); if(ik!==1) d=Math.round(d*ik); }   /* Iron Draught (game-brew.js) */ { const rs=allyRes(a,ty); if(rs) d=Math.max(1,Math.round(d*(1-rs))); }   /* damage types: your resistance lines, a minion's typed trait */
   if(a.id==='p'){ const sk=SAP?KIT_SAP:1, s=Math.min(S.player.shield,d*sk); S.player.shield-=s; d-=Math.round(s/sk); if(BLOW&&d>0) d=tetherBlow(d); /* the Soul Tether (game-faith-story.js) */ } else if(a.mw>0){ const sk=SAP?KIT_SAP:1, s=Math.min(a.mw,d*sk); a.mw-=s; d-=Math.round(s/sk); }   // a Warden's ward on a minion
@@ -193,7 +193,7 @@ function currentTarget(){
 function setTarget(id){ const e=S.run&&S.run.enemies.find(x=>x.id===id); if(e&&reachable(e)) S.run.target=id; }
 
 function act(kind){
-  if(S.mode!=='battle') return;
+  if(S.mode!=='battle') return; plogAct(kind);   /* the play log (game-playlog.js) */
   const r=S.run, P=S.player; r.fx={};
   const t=currentTarget(); if(!t) return; HITTER=P;
   if(kind==='strike'){
@@ -331,8 +331,10 @@ function roomWon(){
   for(const id of r.loot){ const it=addItem(id); if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name); } r.loot=[];
   if(r.rift){ if(r.wk) weekRoom(r); rbDrop(r,last); }   /* the weekly dive's depth; Riftborn pieces (game-rift.js) */
   bankLoot(r); r.won=(r.won||0)+1; S.quest.rooms=(S.quest.rooms||0)+1; tally('rooms'); if(r.tw){ tally('floors'); orderEv('floor'); } else if(!r.siege&&!r.rift&&!r.trial&&!r.rg&&!r.rk) orderEv('room',{ok:(r.downs||0)===dn0,di:r.di}); if(P.hp>0&&P.hp<=pMax()*.1) tally('lastBreath');
+  plogWon(); chSeeded(()=>{   /* a challenge code's doors and events (game-playlog.js) */
   r.event=(!r.tw&&!r.siege&&!r.trial&&!r.rg&&!r.rk&&!r.wk&&!last&&Math.random()<EVENT_CHANCE)?rollEvent():null;   // something waits between rooms
   r.doors=(!r.tw&&!r.siege&&!r.trial&&!r.rg&&!r.rk&&!r.wk&&!last)?rollDoors(r):null;   // which way next
+  },CH_SYS.doors,S.day,r.di|0,r.room,r.rift|0);
   r.gained+=xp; r.lastXp=xp;
   r.ups+=addXp(xp); preRooms(r);   // after the level-up: the rooms behind the doors stand at the level you will enter them at
   if(r.siege&&!last){ nextWave(); return; }   // a siege goes straight on to its next wave
@@ -345,7 +347,7 @@ function defeat(){
   ironFall(r);   /* Ironman: the run's spoils and one of the fallen (game-modes.js) */
   S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); });
   if(rivalStanding(r)) rivalLost(r); if(reckStanding(r)) reckLost(r); nemBirth(r);   /* a foe that downed a Greater minion may live on (game-nemesis.js) */
-  if(r.blow) r.felled=r.blow;
+  if(r.blow) r.felled=r.blow; plogDeath(r);   /* the play log (game-playlog.js) */
   if(r.wk) notify('The weekly dive ends at depth '+(r.wkD||0)+'. It costs you no XP.','bad'); else notify('You were dragged out of '+(r.tw?'the Hell Tower on floor '+r.tw:'the '+DUNGEONS[r.di].name)+'. That room\'s spoils are lost, and you lose '+Math.round(DIFF.deathXp*100)+'% of a level in XP.','bad');
 }
 // ----- the fall: the blow that felled you, and Instant Retry
@@ -383,14 +385,14 @@ function descend(kind){   // go on: through one of the doors in the gates (the f
   if(r.doors){ if(kind==null) kind=r.doors[0]; if(!r.doors.includes(kind)) return false; } else kind='fight';
   P.hp=Math.min(pMax(),P.hp+Math.round(pMax()*DIFF.heal)); P.mana=Math.min(pMana(),P.mana+Math.round(pMana()*DIFF.mana)); P.shield=0;
   S.army.forEach(m=>m.hp=Math.min(m.maxHp,m.hp+Math.round(m.maxHp*DIFF.mheal)));
-  r.cd={}; r.frenzy=0; r.silence=0; r.event=null; allies().forEach(clearAll); if(r.tw) r.tw++; r.room++; if(r.wk) weekStep(r); r.roomKind=kind; r.doors=null; if(kind==='elite') tally('archs'); if(kind==='nem') r.nemU=1;
+  r.cd={}; r.frenzy=0; r.silence=0; r.event=null; allies().forEach(clearAll); if(r.tw) r.tw++; r.room++; if(r.wk) weekStep(r); r.roomKind=kind; PLOG_OF=r.doors; r.doors=null; if(kind==='elite') tally('archs'); if(kind==='nem') r.nemU=1;
   if(kind==='rest'||kind==='treasure'||kind==='script'){ quietRoom(kind); return true; }
   S.mode='battle'; spawnRoom(); return true;
 }
 function returnTown(){
-  if(S.run&&S.run.siege){ siegeEnd(); save(); return; }   // back from the walls: then dawn
+  if(S.run&&S.run.siege){ plogEnd(S.run); siegeEnd(); save(); return; }   // back from the walls: then dawn
   const P=S.player;
-  lnClear(); if(S.run){ weekEnd(S.run); recordRun(S,S.run,runResult(S.run)); recRun(S.run); }   /* the weekly dive's depth (game-rift.js) */
+  lnClear(); if(S.run){ plogEnd(S.run); weekEnd(S.run); recordRun(S,S.run,runResult(S.run)); recRun(S.run); }   /* the weekly dive's depth (game-rift.js) */
   S.army.forEach(m=>m.hp=m.maxHp); cmdSync(); P.hp=pMax(); P.mana=pMana(); P.shield=0; allies().forEach(clearAll);
   const rd=S.run&&S.run.read; S.run=null; S.mode='town'; if(rd) syncArmy();   /* the Book Hungers lets go (game-asc.js) */
   if(S.watches<=0) endDay();

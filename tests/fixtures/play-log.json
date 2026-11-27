@@ -1,0 +1,3114 @@
+{
+ "v": 1,
+ "kind": "lotd-play-log",
+ "made": "2026-11-27T09:16:29.672Z",
+ "game": {
+  "day": 25,
+  "lvl": 6,
+  "ngp": 0,
+  "code": "C29L3-CVZPWK",
+  "iron": false,
+  "custom": null
+ },
+ "runs": [
+  {
+   "key": "1:0:1",
+   "g": 0,
+   "d": 1,
+   "lv": 1,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 4,
+     "won": 1,
+     "t": 4
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 5,
+     "of": [
+      "fight",
+      "elite",
+      "rest"
+     ],
+     "won": 1,
+     "t": 5
+    },
+    {
+     "i": 2,
+     "k": "fight",
+     "acts": 6,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 6
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 2
+    }
+   ],
+   "acts": 17,
+   "ms": 19,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 3,
+    "n": "Warren Bandit",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 5,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 3
+  },
+  {
+   "key": "2:0:1",
+   "g": 0,
+   "d": 1,
+   "lv": 1,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 3,
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 5,
+     "of": [
+      "fight",
+      "elite",
+      "rest"
+     ],
+     "won": 1,
+     "t": 5
+    },
+    {
+     "i": 2,
+     "k": "elite",
+     "acts": 3,
+     "of": [
+      "fight",
+      "elite"
+     ]
+    }
+   ],
+   "acts": 11,
+   "ms": 5,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 2,
+    "n": "Tunnel Rat",
+    "k": "crit",
+    "c": [
+     "ward"
+    ],
+    "hp": 4,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 2
+  },
+  {
+   "key": "3:0:1",
+   "g": 0,
+   "d": 1,
+   "lv": 2,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 4,
+     "won": 1,
+     "t": 4
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 6,
+     "of": [
+      "fight",
+      "elite",
+      "rest"
+     ]
+    }
+   ],
+   "acts": 10,
+   "ms": 3,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 1,
+    "n": "Tallow Chandler",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 2,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 1
+  },
+  {
+   "key": "4:0:2",
+   "g": 0,
+   "d": 2,
+   "lv": 2,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 5,
+     "won": 1,
+     "t": 5
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 7,
+     "of": [
+      "fight",
+      "elite",
+      "rest"
+     ]
+    }
+   ],
+   "acts": 12,
+   "ms": 3,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 1,
+    "n": "Shiv Cutpurse",
+    "k": "crit",
+    "c": [
+     "ward"
+    ],
+    "hp": 1,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 1
+  },
+  {
+   "key": "5:0:2",
+   "g": 0,
+   "d": 2,
+   "lv": 2,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 6,
+     "won": 1,
+     "t": 6
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 6,
+     "of": [
+      "fight",
+      "elite",
+      "rest"
+     ],
+     "won": 1,
+     "t": 6
+    },
+    {
+     "i": 2,
+     "k": "rest",
+     "acts": 0,
+     "of": [
+      "fight",
+      "rest"
+     ]
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 7
+    }
+   ],
+   "acts": 19,
+   "ms": 6,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 3,
+    "n": "Grave Beetle",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 3,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 2
+  },
+  {
+   "key": "6:0:2",
+   "g": 0,
+   "d": 2,
+   "lv": 2,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 4,
+     "won": 1,
+     "t": 4
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 5,
+     "of": [
+      "fight",
+      "elite",
+      "rest"
+     ],
+     "won": 1,
+     "t": 5
+    },
+    {
+     "i": 2,
+     "k": "fight",
+     "acts": 5,
+     "of": [
+      "fight",
+      "rest"
+     ],
+     "won": 1,
+     "t": 5
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 6
+    }
+   ],
+   "acts": 20,
+   "ms": 6,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 3,
+    "n": "Warren Bandit",
+    "k": "crit",
+    "c": [
+     "ward"
+    ],
+    "hp": 9,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 3
+  },
+  {
+   "key": "7:0:3",
+   "g": 0,
+   "d": 3,
+   "lv": 2,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 2,
+     "won": 1,
+     "t": 2
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "rest",
+      "elite"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 2,
+     "k": "fight",
+     "acts": 8,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 8
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 6
+    }
+   ],
+   "acts": 19,
+   "ms": 5,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 3,
+    "n": "The Rat King",
+    "k": "sig",
+    "mv": "gnaw",
+    "c": [
+     "ward"
+    ],
+    "hp": 5,
+    "sh": 1
+   },
+   "out": "death",
+   "won": 3
+  },
+  {
+   "key": "8:0:3",
+   "g": 0,
+   "d": 3,
+   "lv": 2,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 2,
+     "won": 1,
+     "t": 2
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "rest",
+      "elite"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 2,
+     "k": "fight",
+     "acts": 6,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 6
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 6
+    }
+   ],
+   "acts": 17,
+   "ms": 5,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 3,
+    "n": "Grave Beetle",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 1,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 3
+  },
+  {
+   "key": "9:0:3",
+   "g": 0,
+   "d": 3,
+   "lv": 2,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 2,
+     "won": 1,
+     "t": 2
+    },
+    {
+     "i": 1,
+     "k": "rest",
+     "acts": 0,
+     "of": [
+      "fight",
+      "rest",
+      "elite"
+     ]
+    },
+    {
+     "i": 2,
+     "k": "elite",
+     "acts": 8,
+     "of": [
+      "fight",
+      "elite"
+     ]
+    }
+   ],
+   "acts": 10,
+   "ms": 3,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 2,
+    "n": "Grave Beetle",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 1,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 1
+  },
+  {
+   "key": "10:0:4",
+   "g": 0,
+   "d": 4,
+   "lv": 2,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 2,
+     "won": 1,
+     "t": 2
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "rest",
+      "elite"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 2,
+     "k": "elite",
+     "acts": 4,
+     "of": [
+      "fight",
+      "elite"
+     ]
+    }
+   ],
+   "acts": 9,
+   "ms": 3,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 2,
+    "n": "Tunnel Rat",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 2,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 2
+  },
+  {
+   "key": "11:0:4",
+   "g": 0,
+   "d": 4,
+   "lv": 2,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 3,
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "rest",
+      "elite"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 2,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 11
+    }
+   ],
+   "acts": 20,
+   "ms": 6,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 3,
+    "n": "Bog Witch",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 3,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 3
+  },
+  {
+   "key": "12:0:4",
+   "g": 0,
+   "d": 4,
+   "lv": 2,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 3,
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 1,
+     "k": "rest",
+     "acts": 0,
+     "of": [
+      "fight",
+      "rest",
+      "elite"
+     ]
+    },
+    {
+     "i": 2,
+     "k": "fight",
+     "acts": 4,
+     "of": [
+      "fight",
+      "treasure",
+      "elite"
+     ],
+     "won": 1,
+     "t": 4
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 7
+    }
+   ],
+   "acts": 14,
+   "ms": 4,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 3,
+    "n": "Warren Bandit",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 2,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 2
+  },
+  {
+   "key": "13:0:5",
+   "g": 0,
+   "d": 5,
+   "lv": 2,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 2,
+     "won": 1,
+     "t": 2
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "rest",
+      "elite"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 2,
+     "k": "rest",
+     "acts": 0,
+     "of": [
+      "fight",
+      "rest"
+     ]
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 8
+    }
+   ],
+   "acts": 13,
+   "ms": 4,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 3,
+    "n": "Tunnel Rat",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 2,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 2
+  },
+  {
+   "key": "14:0:5",
+   "g": 0,
+   "d": 5,
+   "lv": 2,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 2,
+     "won": 1,
+     "t": 2
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "rest",
+      "elite"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 2,
+     "k": "fight",
+     "acts": 6,
+     "of": [
+      "fight",
+      "rest"
+     ],
+     "won": 1,
+     "t": 6
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 6
+    }
+   ],
+   "acts": 17,
+   "ms": 6,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 3,
+    "n": "Tunnel Rat",
+    "k": "crit",
+    "c": [
+     "ward"
+    ],
+    "hp": 13,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 3
+  },
+  {
+   "key": "15:0:5",
+   "g": 0,
+   "d": 5,
+   "lv": 2,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 2,
+     "won": 1,
+     "t": 2
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "rest",
+      "elite"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 2,
+     "k": "rest",
+     "acts": 0,
+     "of": [
+      "fight",
+      "rest"
+     ]
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 8
+    }
+   ],
+   "acts": 13,
+   "ms": 4,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 3,
+    "n": "Tunnel Rat",
+    "k": "crit",
+    "c": [
+     "ward"
+    ],
+    "hp": 14,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 2
+  },
+  {
+   "key": "16:0:6",
+   "g": 0,
+   "d": 6,
+   "lv": 2,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 3,
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 1,
+     "k": "elite",
+     "acts": 4,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 4
+    },
+    {
+     "i": 2,
+     "k": "fight",
+     "acts": 5,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 5
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 12
+    }
+   ],
+   "acts": 24,
+   "ms": 7,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 3,
+    "n": "Bog Witch",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 1,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 3
+  },
+  {
+   "key": "17:0:6",
+   "g": 0,
+   "d": 6,
+   "lv": 2,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 3,
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 2,
+     "k": "fight",
+     "acts": 4,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 4
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 15
+    }
+   ],
+   "acts": 25,
+   "ms": 6,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 3,
+    "n": "Grave Beetle",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 2,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 3
+  },
+  {
+   "key": "18:0:6",
+   "g": 0,
+   "d": 6,
+   "lv": 3,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 3,
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 2,
+     "k": "elite",
+     "acts": 5,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 5
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 13
+    }
+   ],
+   "acts": 24,
+   "ms": 5,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 3,
+    "n": "Grave Beetle",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 3,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 3
+  },
+  {
+   "key": "19:0:7",
+   "g": 0,
+   "d": 7,
+   "lv": 3,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 3,
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 4,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 4
+    },
+    {
+     "i": 2,
+     "k": "rest",
+     "acts": 0,
+     "of": [
+      "fight",
+      "rest",
+      "elite"
+     ]
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 12,
+     "won": 1,
+     "t": 12
+    }
+   ],
+   "acts": 19,
+   "ms": 5,
+   "code": "C29L3-CVZPWK",
+   "out": "clear",
+   "won": 3
+  },
+  {
+   "key": "20:0:7",
+   "g": 0,
+   "d": 7,
+   "lv": 3,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 2,
+     "won": 1,
+     "t": 2
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 2,
+     "k": "fight",
+     "acts": 5,
+     "of": [
+      "fight",
+      "rest",
+      "elite"
+     ],
+     "won": 1,
+     "t": 5
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 12,
+     "won": 1,
+     "t": 12
+    }
+   ],
+   "acts": 22,
+   "ms": 5,
+   "code": "C29L3-CVZPWK",
+   "out": "clear",
+   "won": 4
+  },
+  {
+   "key": "21:0:7",
+   "g": 0,
+   "d": 7,
+   "lv": 3,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 2,
+     "won": 1,
+     "t": 2
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 2,
+     "k": "rest",
+     "acts": 0,
+     "of": [
+      "fight",
+      "rest",
+      "elite"
+     ]
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 10,
+     "won": 1,
+     "t": 10
+    }
+   ],
+   "acts": 15,
+   "ms": 4,
+   "code": "C29L3-CVZPWK",
+   "out": "clear",
+   "won": 3
+  },
+  {
+   "key": "22:0:8",
+   "g": 0,
+   "d": 8,
+   "lv": 4,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 3,
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 2,
+     "k": "elite",
+     "acts": 6,
+     "of": [
+      "fight",
+      "elite",
+      "rest"
+     ],
+     "won": 1,
+     "t": 6
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 13,
+     "won": 1,
+     "t": 13
+    }
+   ],
+   "acts": 25,
+   "ms": 7,
+   "mod": "silent",
+   "code": "C29L3-CVZPWK",
+   "out": "clear",
+   "won": 4
+  },
+  {
+   "key": "23:0:8",
+   "g": 0,
+   "d": 8,
+   "lv": 4,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 2,
+     "won": 1,
+     "t": 2
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 2,
+     "k": "elite",
+     "acts": 5,
+     "of": [
+      "fight",
+      "elite",
+      "rest"
+     ],
+     "won": 1,
+     "t": 5
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 9,
+     "won": 1,
+     "t": 9
+    }
+   ],
+   "acts": 19,
+   "ms": 5,
+   "mod": "silent",
+   "code": "C29L3-CVZPWK",
+   "out": "clear",
+   "won": 4
+  },
+  {
+   "key": "24:0:8",
+   "g": 0,
+   "d": 8,
+   "lv": 4,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 2,
+     "won": 1,
+     "t": 2
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 2,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "elite",
+      "rest"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 6,
+     "won": 1,
+     "t": 6
+    }
+   ],
+   "acts": 14,
+   "ms": 4,
+   "mod": "silent",
+   "code": "C29L3-CVZPWK",
+   "out": "clear",
+   "won": 4
+  },
+  {
+   "key": "25:0:9",
+   "g": 0,
+   "d": 9,
+   "lv": 5,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 2,
+     "won": 1,
+     "t": 2
+    },
+    {
+     "i": 1,
+     "k": "treasure",
+     "acts": 0,
+     "of": [
+      "fight",
+      "treasure"
+     ]
+    },
+    {
+     "i": 2,
+     "k": "fight",
+     "acts": 5,
+     "of": [
+      "fight",
+      "elite",
+      "rest"
+     ],
+     "won": 1,
+     "t": 5
+    },
+    {
+     "i": 3,
+     "k": "elite",
+     "acts": 7,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 7
+    },
+    {
+     "i": 4,
+     "k": "boss",
+     "acts": 9,
+     "won": 1,
+     "t": 9
+    }
+   ],
+   "acts": 23,
+   "ms": 7,
+   "mod": "long",
+   "code": "C29L3-CVZPWK",
+   "out": "clear",
+   "won": 4
+  },
+  {
+   "key": "26:0:9",
+   "g": 0,
+   "d": 9,
+   "lv": 5,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 2,
+     "won": 1,
+     "t": 2
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "treasure"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 2,
+     "k": "rest",
+     "acts": 0,
+     "of": [
+      "fight",
+      "rest"
+     ]
+    },
+    {
+     "i": 3,
+     "k": "rest",
+     "acts": 0,
+     "of": [
+      "fight",
+      "rest"
+     ]
+    },
+    {
+     "i": 4,
+     "k": "boss",
+     "acts": 5,
+     "won": 1,
+     "t": 5
+    }
+   ],
+   "acts": 10,
+   "ms": 4,
+   "mod": "long",
+   "code": "C29L3-CVZPWK",
+   "out": "clear",
+   "won": 3
+  },
+  {
+   "key": "27:0:9",
+   "g": 0,
+   "d": 9,
+   "lv": 5,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 2,
+     "won": 1,
+     "t": 2
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "treasure"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 2,
+     "k": "fight",
+     "acts": 5,
+     "of": [
+      "fight",
+      "rest"
+     ],
+     "won": 1,
+     "t": 5
+    },
+    {
+     "i": 3,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 4,
+     "k": "boss",
+     "acts": 10,
+     "won": 1,
+     "t": 10
+    }
+   ],
+   "acts": 23,
+   "ms": 7,
+   "mod": "long",
+   "code": "C29L3-CVZPWK",
+   "out": "clear",
+   "won": 5
+  },
+  {
+   "key": "28:0:10",
+   "g": 0,
+   "d": 10,
+   "lv": 5,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 3,
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 3
+    },
+    {
+     "i": 2,
+     "k": "elite",
+     "acts": 7,
+     "of": [
+      "fight",
+      "elite"
+     ],
+     "won": 1,
+     "t": 7
+    },
+    {
+     "i": 3,
+     "k": "boss",
+     "acts": 8,
+     "won": 1,
+     "t": 8
+    }
+   ],
+   "acts": 21,
+   "ms": 6,
+   "mod": "silent",
+   "code": "C29L3-CVZPWK",
+   "out": "clear",
+   "won": 4
+  },
+  {
+   "key": "29:1:10",
+   "g": 1,
+   "d": 10,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 69
+    }
+   ],
+   "acts": 69,
+   "ms": 8,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Skeleton Guard",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 7,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "30:1:10",
+   "g": 1,
+   "d": 10,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 67
+    }
+   ],
+   "acts": 67,
+   "ms": 8,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Skeleton Guard",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 13,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "31:1:11",
+   "g": 1,
+   "d": 11,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 10
+    }
+   ],
+   "acts": 10,
+   "ms": 2,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Coffin Crawler",
+    "k": "crit",
+    "c": [
+     "ward"
+    ],
+    "hp": 50,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "32:1:11",
+   "g": 1,
+   "d": 11,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 10,
+     "won": 1,
+     "t": 10
+    },
+    {
+     "i": 1,
+     "k": "elite",
+     "acts": 4,
+     "of": [
+      "fight",
+      "elite",
+      "rest"
+     ]
+    }
+   ],
+   "acts": 14,
+   "ms": 3,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 1,
+    "n": "Crypt Ghoul",
+    "k": "crit",
+    "c": [
+     "ward"
+    ],
+    "hp": 40,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 1
+  },
+  {
+   "key": "33:1:11",
+   "g": 1,
+   "d": 11,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 10,
+     "won": 1,
+     "t": 10
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 6,
+     "of": [
+      "fight",
+      "elite",
+      "rest"
+     ]
+    }
+   ],
+   "acts": 16,
+   "ms": 3,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 1,
+    "n": "Crypt Legionnaire",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 1,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 1
+  },
+  {
+   "key": "34:1:12",
+   "g": 1,
+   "d": 12,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 8
+    }
+   ],
+   "acts": 8,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Pale Crypt Ghoul",
+    "k": "crit",
+    "c": [
+     "ward"
+    ],
+    "hp": 35,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "35:1:12",
+   "g": 1,
+   "d": 12,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 10,
+     "won": 1,
+     "t": 10
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 5,
+     "of": [
+      "fight",
+      "elite"
+     ]
+    }
+   ],
+   "acts": 15,
+   "ms": 3,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 1,
+    "n": "Skeleton Guard",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 7,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 1
+  },
+  {
+   "key": "36:1:12",
+   "g": 1,
+   "d": 12,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 13,
+     "won": 1,
+     "t": 13
+    },
+    {
+     "i": 1,
+     "k": "elite",
+     "acts": 3,
+     "of": [
+      "fight",
+      "elite"
+     ]
+    }
+   ],
+   "acts": 16,
+   "ms": 3,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 1,
+    "n": "Skeleton Guard",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 20,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 1
+  },
+  {
+   "key": "37:1:13",
+   "g": 1,
+   "d": 13,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 5
+    }
+   ],
+   "acts": 5,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Skeleton Guard",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 19,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "38:1:13",
+   "g": 1,
+   "d": 13,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 9
+    }
+   ],
+   "acts": 9,
+   "ms": 2,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Drowned Sentinel",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 16,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "39:1:13",
+   "g": 1,
+   "d": 13,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 10
+    }
+   ],
+   "acts": 10,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Drowned Sentinel",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 10,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "40:1:14",
+   "g": 1,
+   "d": 14,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 7
+    }
+   ],
+   "acts": 7,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Coffin Crawler",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 11,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "41:1:14",
+   "g": 1,
+   "d": 14,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 7
+    }
+   ],
+   "acts": 7,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Coffin Crawler",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 21,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "42:1:14",
+   "g": 1,
+   "d": 14,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 7
+    }
+   ],
+   "acts": 7,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Coffin Crawler",
+    "k": "crit",
+    "c": [
+     "ward"
+    ],
+    "hp": 30,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "43:1:15",
+   "g": 1,
+   "d": 15,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 11
+    }
+   ],
+   "acts": 11,
+   "ms": 2,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Skeleton Guard",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 3,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "44:1:15",
+   "g": 1,
+   "d": 15,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 7
+    }
+   ],
+   "acts": 7,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Coffin Crawler",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 28,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "45:1:15",
+   "g": 1,
+   "d": 15,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 7
+    }
+   ],
+   "acts": 7,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Coffin Crawler",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 25,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "46:1:16",
+   "g": 1,
+   "d": 16,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 8
+    }
+   ],
+   "acts": 8,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Drowned Sentinel",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 1,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "47:1:16",
+   "g": 1,
+   "d": 16,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 8
+    }
+   ],
+   "acts": 8,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Crypt Legionnaire",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 11,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "48:1:16",
+   "g": 1,
+   "d": 16,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 6
+    }
+   ],
+   "acts": 6,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Crypt Legionnaire",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 3,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "49:1:17",
+   "g": 1,
+   "d": 17,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 8
+    }
+   ],
+   "acts": 8,
+   "ms": 2,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Coffin Crawler",
+    "k": "crit",
+    "c": [
+     "ward"
+    ],
+    "hp": 28,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "50:1:17",
+   "g": 1,
+   "d": 17,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 9
+    }
+   ],
+   "acts": 9,
+   "ms": 2,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Crypt Legionnaire",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 15,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "51:1:17",
+   "g": 1,
+   "d": 17,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 9
+    }
+   ],
+   "acts": 9,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Crypt Legionnaire",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 12,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "52:1:18",
+   "g": 1,
+   "d": 18,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 7
+    }
+   ],
+   "acts": 7,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Coffin Crawler",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 7,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "53:1:18",
+   "g": 1,
+   "d": 18,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 5
+    }
+   ],
+   "acts": 5,
+   "ms": 2,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Skeleton Guard",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 8,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "54:1:18",
+   "g": 1,
+   "d": 18,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 7
+    }
+   ],
+   "acts": 7,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Coffin Crawler",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 39,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "55:1:19",
+   "g": 1,
+   "d": 19,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 5
+    }
+   ],
+   "acts": 5,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Bone-sworn Coffin Crawler",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 22,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "56:1:19",
+   "g": 1,
+   "d": 19,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 12
+    }
+   ],
+   "acts": 12,
+   "ms": 2,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Crypt Legionnaire",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 11,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "57:1:19",
+   "g": 1,
+   "d": 19,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 12
+    }
+   ],
+   "acts": 12,
+   "ms": 2,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Crypt Legionnaire",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 2,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "58:1:20",
+   "g": 1,
+   "d": 20,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 7
+    }
+   ],
+   "acts": 7,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "",
+    "k": "dot",
+    "dot": "bleed",
+    "hp": 32,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "59:1:20",
+   "g": 1,
+   "d": 20,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 10
+    }
+   ],
+   "acts": 10,
+   "ms": 2,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Drowned Priest",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 7,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "60:1:20",
+   "g": 1,
+   "d": 20,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 8
+    }
+   ],
+   "acts": 8,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Crypt Ghoul",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 14,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "61:1:21",
+   "g": 1,
+   "d": 21,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 8
+    }
+   ],
+   "acts": 8,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Coffin Crawler",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 7,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "62:1:21",
+   "g": 1,
+   "d": 21,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 15
+    }
+   ],
+   "acts": 15,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Skeleton Guard",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 4,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "63:1:21",
+   "g": 1,
+   "d": 21,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 15
+    }
+   ],
+   "acts": 15,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Skeleton Guard",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 11,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "64:1:22",
+   "g": 1,
+   "d": 22,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 8
+    }
+   ],
+   "acts": 8,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Coffin Crawler",
+    "k": "crit",
+    "c": [
+     "ward"
+    ],
+    "hp": 49,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "65:1:22",
+   "g": 1,
+   "d": 22,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 8
+    }
+   ],
+   "acts": 8,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Hollowed Coffin Crawler",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 30,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "66:1:22",
+   "g": 1,
+   "d": 22,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 5
+    }
+   ],
+   "acts": 5,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "",
+    "k": "dot",
+    "dot": "bleed",
+    "hp": 101,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "67:1:23",
+   "g": 1,
+   "d": 23,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 11
+    }
+   ],
+   "acts": 11,
+   "ms": 1,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Coffin Crawler",
+    "k": "crit",
+    "c": [
+     "ward"
+    ],
+    "hp": 21,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "68:1:23",
+   "g": 1,
+   "d": 23,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 15
+    }
+   ],
+   "acts": 15,
+   "ms": 2,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Crypt Legionnaire",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 8,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "69:1:23",
+   "g": 1,
+   "d": 23,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 15
+    }
+   ],
+   "acts": 15,
+   "ms": 2,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Crypt Legionnaire",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 16,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  },
+  {
+   "key": "70:1:24",
+   "g": 1,
+   "d": 24,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 11,
+     "won": 1,
+     "t": 11
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 4,
+     "of": [
+      "fight",
+      "elite",
+      "rest"
+     ]
+    }
+   ],
+   "acts": 15,
+   "ms": 3,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 1,
+    "n": "Crypt Augur",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 9,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 1
+  },
+  {
+   "key": "71:1:24",
+   "g": 1,
+   "d": 24,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 14,
+     "won": 1,
+     "t": 14
+    },
+    {
+     "i": 1,
+     "k": "fight",
+     "acts": 3,
+     "of": [
+      "fight",
+      "elite",
+      "rest"
+     ]
+    }
+   ],
+   "acts": 17,
+   "ms": 3,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 1,
+    "n": "Crypt Legionnaire",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 1,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 1
+  },
+  {
+   "key": "72:1:24",
+   "g": 1,
+   "d": 24,
+   "lv": 6,
+   "h": 0,
+   "rooms": [
+    {
+     "i": 0,
+     "k": "fight",
+     "acts": 13
+    }
+   ],
+   "acts": 13,
+   "ms": 2,
+   "code": "C29L3-CVZPWK",
+   "death": {
+    "rm": 0,
+    "n": "Drowned Sentinel",
+    "k": "hit",
+    "c": [
+     "ward"
+    ],
+    "hp": 5,
+    "sh": 0
+   },
+   "out": "death",
+   "won": 0
+  }
+ ],
+ "days": [
+  {
+   "d": 1,
+   "x": {},
+   "tab": {
+    "army": 0
+   }
+  },
+  {
+   "d": 3,
+   "x": {
+    "buy": [
+     "buypot:hp"
+    ]
+   },
+   "tab": {
+    "gates": 48,
+    "market": 0
+   }
+  },
+  {
+   "d": 5,
+   "x": {
+    "buy": [
+     "buypot:hp"
+    ]
+   },
+   "tab": {
+    "gates": 30,
+    "market": 0
+   }
+  },
+  {
+   "d": 7,
+   "x": {
+    "buy": [
+     "buypot:hp"
+    ]
+   },
+   "tab": {
+    "gates": 33,
+    "market": 0
+   }
+  },
+  {
+   "d": 9,
+   "x": {
+    "buy": [
+     "buypot:hp"
+    ]
+   },
+   "tab": {
+    "gates": 35,
+    "market": 0
+   }
+  },
+  {
+   "d": 11,
+   "x": {
+    "buy": [
+     "buypot:hp"
+    ]
+   },
+   "tab": {
+    "gates": 45,
+    "market": 0
+   }
+  },
+  {
+   "d": 13,
+   "x": {
+    "buy": [
+     "buypot:hp"
+    ]
+   },
+   "tab": {
+    "gates": 19,
+    "market": 0
+   }
+  },
+  {
+   "d": 15,
+   "x": {
+    "buy": [
+     "buypot:hp"
+    ]
+   },
+   "tab": {
+    "gates": 9,
+    "market": 0
+   }
+  },
+  {
+   "d": 17,
+   "x": {
+    "buy": [
+     "buypot:hp"
+    ]
+   },
+   "tab": {
+    "gates": 10,
+    "market": 0
+   }
+  },
+  {
+   "d": 19,
+   "x": {
+    "buy": [
+     "buypot:hp"
+    ]
+   },
+   "tab": {
+    "gates": 11,
+    "market": 0
+   }
+  },
+  {
+   "d": 21,
+   "x": {
+    "buy": [
+     "buypot:hp"
+    ]
+   },
+   "tab": {
+    "gates": 10,
+    "market": 1
+   }
+  },
+  {
+   "d": 23,
+   "x": {
+    "buy": [
+     "buypot:hp"
+    ]
+   },
+   "tab": {
+    "gates": 11,
+    "market": 0
+   }
+  },
+  {
+   "d": 25,
+   "x": {
+    "buy": [
+     "buypot:hp"
+    ]
+   },
+   "tab": {
+    "gates": 16,
+    "market": 0
+   }
+  }
+ ],
+ "seen": {
+  "tabs": {
+   "army": 1,
+   "gates": 1,
+   "market": 1
+  },
+  "cx": {}
+ },
+ "never": {
+  "tabs": [
+   "gear",
+   "skills",
+   "titles",
+   "lore",
+   "codex",
+   "bes",
+   "hist",
+   "rec",
+   "mem",
+   "help",
+   "play",
+   "settings"
+  ],
+  "cx": [
+   "basics",
+   "raising",
+   "faith",
+   "omens",
+   "roles",
+   "traits",
+   "minions",
+   "army",
+   "reserve",
+   "fusion",
+   "bonds",
+   "affixes",
+   "bosses",
+   "status",
+   "types",
+   "kits",
+   "nemeses",
+   "skills",
+   "capstones",
+   "orders",
+   "gates",
+   "tower",
+   "gear",
+   "forge",
+   "uniques",
+   "sets",
+   "supplies",
+   "trade",
+   "rooms",
+   "chains",
+   "curses",
+   "raids",
+   "rift",
+   "town",
+   "sieges",
+   "bounties",
+   "rival",
+   "trials",
+   "pacts",
+   "titles",
+   "records",
+   "modes",
+   "codes",
+   "playlog",
+   "endings"
+  ],
+  "bld": []
+ },
+ "pruned": 0
+}

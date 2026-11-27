@@ -1,4 +1,4 @@
-const LEDGER=[['lore','Lore'],['codex','Codex'],['bes','Bestiary'],['hist','History'],['rec','Records'],['mem','Memorial'],['help','How to play']];   // the Ledger tab's pages
+const LEDGER=[['lore','Lore'],['codex','Codex'],['bes','Bestiary'],['hist','History'],['rec','Records'],['mem','Memorial'],['play','How I play'],['help','How to play']];   // the Ledger tab's pages
 function spendStrip(){   // on narrow screens the stats sit far below: offer the + buttons up here while points are waiting
   const P=S.player; if(P.pts<=0&&!(P.sp>0)) return '';
   return '<div class="spend-strip">'+(P.pts>0?'<span>'+P.pts+' point'+(P.pts>1?'s':'')+' to spend:</span>'+[['strength','Strength'],['constitution','Constitution'],['intelligence','Intelligence'],['will','Will']].map(([k,n])=>'<button class="btn small" data-a="alloc" data-k="'+k+'" aria-label="Add a point to '+n+'">+ '+n+'</button>').join(''):'')
@@ -28,6 +28,7 @@ function townHTML(){
   if(ui.tab==='hist') return h+histHTML();
   if(ui.tab==='rec') return h+recordsHTML();
   if(ui.tab==='mem') return h+memorialHTML();
+  if(ui.tab==='play') return h+playHTML();
   if(ui.tab==='lore') return h+loreHTML();
   if(ui.tab==='codex') return h+codexHTML();
   const subs=gateSubs(), sub=subs.some(x=>x[0]===ui.gsub)?ui.gsub:'open';   // the Gates tab's own sub-tabs: the gates, the War table, the Rift

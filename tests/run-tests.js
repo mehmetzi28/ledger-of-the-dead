@@ -9,7 +9,7 @@
 const lint=require('./lint');   // a "// comment" pasted mid-line that swallows code (see tests/lint.js)
 if(lint.length){ console.error('Lint: these line comments look like swallowed code:'); lint.forEach(h=>console.error('  '+h)); process.exit(1); }
 let ctx;
-try{ const core=require('./load-game')(['game-tests.js']); ctx=core; for(const f of core.LOTD_TESTS.files) require('vm').runInContext(require('fs').readFileSync(require('path').join(__dirname,'groups',f),'utf8'),ctx,{filename:'groups/'+f}); }
+try{ const core=require('./load-game')(['game-tests.js','replay-log.js']); ctx=core; for(const f of core.LOTD_TESTS.files) require('vm').runInContext(require('fs').readFileSync(require('path').join(__dirname,'groups',f),'utf8'),ctx,{filename:'groups/'+f}); }
 catch(e){ console.error('index.html failed to load:\n'+(e.stack||e)); process.exit(1); }
 
 const res=ctx.LOTD_TESTS.run({filter:process.argv[2]||'',quiet:true,trace:!!process.env.TRACE});

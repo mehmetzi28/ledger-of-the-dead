@@ -339,7 +339,7 @@ const MOD_XP=1.25, MOD_GOLD=2, MOD_DROP=1.5, MOD_REWARD='Foes +15% HP and attack
 function dayMod(){
   if(!S.mod||S.mod.day!==S.day){
     const cl=DUNGEONS.map((D,i)=>i).filter(i=>i<GATE_N&&S.ti&&S.ti.clr&&S.ti.clr[i]&&S.player.lvl>=RK[i].unlock);
-    S.mod=cl.length?{day:S.day,gi:pick(cl),id:pick(Object.keys(MODS))}:{day:S.day,gi:-1,id:null};
+    S.mod=chSeeded(()=>cl.length?{day:S.day,gi:pick(cl),id:pick(Object.keys(MODS))}:{day:S.day,gi:-1,id:null},CH_SYS.curse,S.day);   /* a challenge code's curse (game-playlog.js) */
   }
   return S.mod;
 }
@@ -483,7 +483,7 @@ function quietRoom(kind){   // a rest or treasure room: no fight, then the doors
   else if(kind==='script'){ m='The Scriptorium. Rows of drowned scribes, and the Ledger open at the page of your dead. You may cross out one name, or walk on.'; unlockStory('abbey4',r); sfx('skill'); }
   else { const g=Math.round((15+softLv(P.lvl)*5)*(1+r.di)*ngpReward()*(1+xb('goldp')/100)); S.gold+=g; r.goldTot=(r.goldTot||0)+g; r.lastGold=g; const it=addItem(pickRow(tableFor(r.di,'vanguard',true,false)));
     if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } m='The vault gives up '+g+' gold'+(it?' and '+withArticle(ITEM[it.id].name):'')+'.'; sfx('coin'); }
-  r.events.push({m,c:'ok'}); r.quiet=kind; r.doors=rollDoors(r); preRooms(r); S.mode='raise';
+  r.events.push({m,c:'ok'}); r.quiet=kind; r.doors=chSeeded(()=>rollDoors(r),CH_SYS.doors,S.day,r.di|0,r.room,r.rift|0); preRooms(r); S.mode='raise'; plogEnter(kind,PLOG_OF); PLOG_OF=null;
 }
 // The Ledger reads the doors: the room behind a fight or elite door is rolled with the doors (r.pre, kept in the save), so a door
 // can show what waits behind it. How much it shows depends on how well you know this gate's dead (doorSight) and its master (doorBoss).

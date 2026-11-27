@@ -33,7 +33,7 @@ substantial feature or rework; small fixes ride along inside one. Rounds name th
 | R12 | Army roles 2.0: charms, minion actives, a fifth role | Shipped (PR A #30, PR B) | G7, G8 | R1 | XL | [spec](rounds/R12-army-roles.md) |
 | R13 | Nemeses and a living valley: content pack | Shipped (PR A #32, PR B #33) | G24, G20 | R1 | L | [spec](rounds/R13-nemeses-and-content.md) |
 | R14 | Sieges 2.0: the Inquisition escalates | Shipped (PR A #34, PR B #35) | G23 | R5 | L | [spec](rounds/R14-sieges-2.md) |
-| R15 | Modes and playtest logs | In progress (PR A) | G27, B6 | | L | [spec](rounds/R15-modes-and-logs.md) |
+| R15 | Modes and playtest logs | Shipped (PR A #36, PR B) | G27, B6 | | L | [spec](rounds/R15-modes-and-logs.md) |
 | R16 | Titles and collection 2.0 | P3 | G26 | | L | [spec](rounds/R16-titles-and-collection.md) |
 | R17 | Presentation: music, stage, art | P3 | | R1, R2 | L | [spec](rounds/R17-presentation.md) |
 | R18 | UX and onboarding pass | P3 | | after any 3 rounds | L | [spec](rounds/R18-ux-and-onboarding.md) |

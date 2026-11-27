@@ -1815,7 +1815,7 @@ const canNGP=()=>!!(S.ti&&S.ti.clr&&S.ti.clr[5]);
 const ownedUniques=()=>[...new Set(S.inv.concat(Object.values(S.equip)).filter(it=>it&&ITEM[it.id]&&ITEM[it.id].uq).map(it=>it.id))];
 function startNGP(carry,pacts,rule,carries){
   if(S.mode!=='town'||!canNGP()) return false; if(faithOf()==='dis') tally('godless');   /* Godless: a cycle finished Profane (game-pantheon.js) */
-  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts),ally:S.ally||null}; if(S.iron){ keep.iron=true; keep.ironDeaths=S.ironDeaths|0; } if(S.custom) keep.custom=S.custom;   /* the mode carries into New Game+ (game-modes.js) */ ngpEnding(keep); ascStart(keep,rule,carries);   /* the ascension rule (game-asc.js) */   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
+  const own=ownedUniques(), carryAw=carry?Math.max(0,...S.inv.concat(Object.values(S.equip)).filter(it=>it&&it.id===carry).map(it=>it.aw|0)):0, keep={ti:S.ti,kills:S.kills,tips:S.tips,life:S.life,story:S.story||{},rec:S.rec||{},pages:S.pages||0,rift:S.rift||{best:0},memorial:S.memorial||[],rival:rivalNgp(S.rival),trials:Object.assign(trialDef(),S.trials||{},{cur:null,day:0}),ngp:(S.ngp||0)+1,pacts:cleanPacts(pacts),ally:S.ally||null}; if(S.iron){ keep.iron=true; keep.ironDeaths=S.ironDeaths|0; } if(S.custom) keep.custom=S.custom; if(S.code) keep.code=S.code;   /* the mode carries into New Game+ (game-modes.js) */ ngpEnding(keep); ascStart(keep,rule,carries);   /* the ascension rule (game-asc.js) */   // lifetime totals carry over too; the ending picks the next cycle (game-abbey.js)
   newGame(); Object.assign(S,keep); S.ti.clr={}; ngpEndingStart(); ascBegin();   // titles stay earned; New Game+ again needs another Throne of Ash clear
   S.watches=WATCHES-pactWatch(); S.notices=[]; if(carry&&own.includes(carry)){ const it=addItem(carry,null); if(it&&carryAw) it.aw=carryAw; }   /* an awakened unique keeps its ranks */ unlockStory('ngp');
   notify('New Game+ '+S.ngp+' begins. Foes have '+Math.round(NGP_FOE*S.ngp*100)+'% more HP and attack, and pay '+Math.round(NGP_REWARD*S.ngp*100)+'% more XP and gold.'+(carry&&own.includes(carry)?' '+ITEM[carry].name+' is in your bag.':''),'ok');
@@ -1833,7 +1833,7 @@ function snapshot(){
 // TAB guards against two open tabs overwriting each other: when another tab saves, this one stops saving until you reload.
 const TAB={blocked:false,last:null,out:null,bakDay:null};
 function save(){ if(TAB.blocked) return; try{ const t=S.savedAt; S.savedAt=0; const j=JSON.stringify(snapshot()); if(j===TAB.last&&localStorage.getItem(SAVE_KEY)===TAB.out){ S.savedAt=t; return; }   // nothing changed and the save is still there: no write
-  S.savedAt=Date.now(); const out=JSON.stringify(snapshot()); localStorage.setItem(SAVE_KEY,out); TAB.last=j; TAB.out=out; dayBackup(out); }catch(e){} }
+  S.savedAt=Date.now(); const out=JSON.stringify(snapshot()); localStorage.setItem(SAVE_KEY,out); TAB.last=j; TAB.out=out; dayBackup(out); }catch(e){} plogTick(); }
 // Earlier autosaves: the first save of each new day also goes into a ring of three (newest first), restorable from Settings.
 const BAK_N=3, bakKey=i=>SAVE_KEY+'-bak'+i;
 function bakRead(i){ try{ const r=localStorage.getItem(bakKey(i)); if(!r) return null; const g=JSON.parse(r); return g&&validSave(g.data)?g:null; }catch(e){ return null; } }
@@ -1940,7 +1940,7 @@ function normalizeSave(src){
   { const c=g.player.cmd; if(!hadCmd||!(obj(c)&&c.a>=0&&c.h>=0&&isFinite(c.a)&&isFinite(c.h))) g.player.cmd=cmdPow(Array.isArray(g.army)?g.army:[]); else g.player.cmd={a:Math.round(c.a),h:Math.round(c.h)}; }   // Command: an old or damaged save measures its army again
   const okB=b=>obj(b)&&BOUNTIES[b.id]&&typeof b.n==='number'&&typeof b.base==='number'&&obj(b.rw)&&typeof b.claimed==='boolean';
   g.bounty=(obj(g.bounty)&&typeof g.bounty.day==='number'&&Array.isArray(g.bounty.list)&&g.bounty.list.every(okB))?g.bounty:null;
-  memorialFix(g); nemFix(g); modesFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
+  memorialFix(g); nemFix(g); modesFix(g); codeFix(g); loadoutsFix(g); rivalFix(g); g.ally=allyFix(g.ally); trialsFix(g); bondsFix(g); chainsFix(g);
   return g;
 }
 function validSave(g){ return !!normalizeSave(g); }
@@ -2297,7 +2297,8 @@ function endDay(){   // nightfall: tonight's raids march, then a siege if one is
   marchRaids(); if(siegeOpen()&&(sg().pending||siegeTonight())){ startSiege(); return; }
   closeDay();
 }
-function closeDay(){
+function closeDay(){ chSeeded(closeDay0,CH_SYS.dawn,S.day+1); chHistNote(); plogFlush(); }   /* a challenge code's dawn; its line in this browser's list; the play log (game-playlog.js) */
+function closeDay0(){
   const P=S.player;
   if(!S.quest.claimed&&questDone()) claimQuest();   // an unfinished quest simply lapses
   const hon=remembered(); S.day++; nemDawn(); S.watches=WATCHES-pactWatch(); if(hon) syncArmy();   /* the Remembered buff ends at dawn; nemDawn: nemeses grow each week (game-nemesis.js) */
@@ -2347,7 +2348,7 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
   const lvl=r.trial?r.tlv+Math.floor(room/2)+(boss?2:0):(r.rift?riftLvl(r.rift):RK[di].lv)+Math.floor((r.wk?2:room)/2)+(boss?2:0)+curseRise(di);   // a Trial's foes stand at the level fixed for its week
   const list=[];
   const extra=(hasRunMod('horde')?1:0)+sigHands()+ascExtra(), R0=Math.random;   /* Crowded Gates (game-asc.js) */   /* Many Hands (game-rift.js) */
-  if(r.trial||r.wk) Math.random=trialRng(r.tseed,room);   // a Trial: the same rooms and foes for every attempt this week (src/game-rival-trials.js)
+  if(r.trial||r.wk) Math.random=trialRng(r.tseed,room); else if(chOn()) Math.random=chRng(CH_SYS.room,S.day,di,room,CH_KIND[kind]|0,r.rift|0);   /* a challenge code's rooms (game-playlog.js) */   // a Trial: the same rooms and foes for every attempt this week (src/game-rival-trials.js)
   try{
     if(r.rg) rgRoom(list,di,room,lvl); else if(r.rk) reckRoom(list,di,lvl);   /* the rival's own gate and the duel (game-rival-arc.js) */
     else if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(r.rift&&guardAt(r.rift)?makeGuardian(di,lvl,r.rift):!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true));   /* a Rift guardian every fifth depth (game-rift.js) */ const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
@@ -2362,10 +2363,10 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
   return list;
 }
 function spawnRoom(){
-  if(S.run.tw) return spawnFloor();
+  if(S.run.tw){ plogEnter('floor'); return chSeeded(spawnFloor,CH_SYS.floor,S.run.tw); }   /* challenge codes and the play log (game-playlog.js) */
   const r=S.run, room=r.room, boss=roomBoss(r,room);
   const list=(!boss&&r.pre&&r.pre[r.roomKind])||buildRoom(room,r.roomKind); r.pre=null;   // a door's room was rolled with the doors: what it showed is what waits
-  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; delete r.lcU; delete r.mirU; delete r.mirS; delete r.flU; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null; curseRoom(r); roomStart(list);   /* Hunger (game-valley.js) */
+  r.enemies=list; r.corpses=[]; r.events=[]; r.turn=1; r.fx={}; r.target=list[0].id; delete r.lcU; delete r.mirU; delete r.mirS; delete r.flU; r.loot=[]; r.spoils=[]; r.lostLoot=[]; r.cmd={}; r.taunt=0; r.quiet=null; curseRoom(r); roomStart(list); plogEnter(r.roomKind,PLOG_OF); PLOG_OF=null;   /* Hunger (game-valley.js) */
   log(boss?(list[0].rival?list[0].name+' stands where the master should be, with their own dead around them.':list[0].secret?'The air turns wrong. This is not the master you came for.':'The air thickens. Something large waits ahead.'):(r.trial?'Trial, room ':'Room ')+(room+1)+' of '+r.rooms+(r.roomKind==='elite'?', behind the bloodied arch. These foes are stronger.':'.'));
   if(boss){ bossSpeaks(list[0],'hi'); fxe('boss',list[0]); }
   if(hasFlag('infernal')) infernalWard();
@@ -2409,7 +2410,7 @@ function hurtAlly(a,d,ty){
   if(S.run&&S.run.widen) d=Math.round(d*widenK());   /* the Tear Itself (game-rift.js) */
   if(a.id==='p'&&S.run&&S.run.conf) d=Math.round(d*BK_CONFESS);   /* the Iron Inquisitor's Confession, until you ward */
   if(a.id==='p'&&BLOW){ const v=guardBlow(a,d); if(v) return hurtAlly(v,Math.round(d*SB_TAKE),ty); }   // Guard, for boss moves (plain hits swap their target before this)
-  if(a.id==='p'&&S.run) S.run.blow=BLOW?blowNote(BLOW):null;
+  if(a.id==='p'&&S.run){ S.run.blow=BLOW?blowNote(BLOW):null; plogHit(a); }
   hfScales(a,d);   /* Scales (game-forge.js) */   // what hits you, for the defeat recap (before the ward soaks it)
   d=allyDr(a,d); { const ik=brewDr(a); if(ik!==1) d=Math.round(d*ik); }   /* Iron Draught (game-brew.js) */ { const rs=allyRes(a,ty); if(rs) d=Math.max(1,Math.round(d*(1-rs))); }   /* damage types: your resistance lines, a minion's typed trait */
   if(a.id==='p'){ const sk=SAP?KIT_SAP:1, s=Math.min(S.player.shield,d*sk); S.player.shield-=s; d-=Math.round(s/sk); if(BLOW&&d>0) d=tetherBlow(d); /* the Soul Tether (game-faith-story.js) */ } else if(a.mw>0){ const sk=SAP?KIT_SAP:1, s=Math.min(a.mw,d*sk); a.mw-=s; d-=Math.round(s/sk); }   // a Warden's ward on a minion
@@ -2505,7 +2506,7 @@ function currentTarget(){
 function setTarget(id){ const e=S.run&&S.run.enemies.find(x=>x.id===id); if(e&&reachable(e)) S.run.target=id; }
 
 function act(kind){
-  if(S.mode!=='battle') return;
+  if(S.mode!=='battle') return; plogAct(kind);   /* the play log (game-playlog.js) */
   const r=S.run, P=S.player; r.fx={};
   const t=currentTarget(); if(!t) return; HITTER=P;
   if(kind==='strike'){
@@ -2643,8 +2644,10 @@ function roomWon(){
   for(const id of r.loot){ const it=addItem(id); if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name); } r.loot=[];
   if(r.rift){ if(r.wk) weekRoom(r); rbDrop(r,last); }   /* the weekly dive's depth; Riftborn pieces (game-rift.js) */
   bankLoot(r); r.won=(r.won||0)+1; S.quest.rooms=(S.quest.rooms||0)+1; tally('rooms'); if(r.tw){ tally('floors'); orderEv('floor'); } else if(!r.siege&&!r.rift&&!r.trial&&!r.rg&&!r.rk) orderEv('room',{ok:(r.downs||0)===dn0,di:r.di}); if(P.hp>0&&P.hp<=pMax()*.1) tally('lastBreath');
+  plogWon(); chSeeded(()=>{   /* a challenge code's doors and events (game-playlog.js) */
   r.event=(!r.tw&&!r.siege&&!r.trial&&!r.rg&&!r.rk&&!r.wk&&!last&&Math.random()<EVENT_CHANCE)?rollEvent():null;   // something waits between rooms
   r.doors=(!r.tw&&!r.siege&&!r.trial&&!r.rg&&!r.rk&&!r.wk&&!last)?rollDoors(r):null;   // which way next
+  },CH_SYS.doors,S.day,r.di|0,r.room,r.rift|0);
   r.gained+=xp; r.lastXp=xp;
   r.ups+=addXp(xp); preRooms(r);   // after the level-up: the rooms behind the doors stand at the level you will enter them at
   if(r.siege&&!last){ nextWave(); return; }   // a siege goes straight on to its next wave
@@ -2657,7 +2660,7 @@ function defeat(){
   ironFall(r);   /* Ironman: the run's spoils and one of the fallen (game-modes.js) */
   S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); });
   if(rivalStanding(r)) rivalLost(r); if(reckStanding(r)) reckLost(r); nemBirth(r);   /* a foe that downed a Greater minion may live on (game-nemesis.js) */
-  if(r.blow) r.felled=r.blow;
+  if(r.blow) r.felled=r.blow; plogDeath(r);   /* the play log (game-playlog.js) */
   if(r.wk) notify('The weekly dive ends at depth '+(r.wkD||0)+'. It costs you no XP.','bad'); else notify('You were dragged out of '+(r.tw?'the Hell Tower on floor '+r.tw:'the '+DUNGEONS[r.di].name)+'. That room\'s spoils are lost, and you lose '+Math.round(DIFF.deathXp*100)+'% of a level in XP.','bad');
 }
 // ----- the fall: the blow that felled you, and Instant Retry
@@ -2695,14 +2698,14 @@ function descend(kind){   // go on: through one of the doors in the gates (the f
   if(r.doors){ if(kind==null) kind=r.doors[0]; if(!r.doors.includes(kind)) return false; } else kind='fight';
   P.hp=Math.min(pMax(),P.hp+Math.round(pMax()*DIFF.heal)); P.mana=Math.min(pMana(),P.mana+Math.round(pMana()*DIFF.mana)); P.shield=0;
   S.army.forEach(m=>m.hp=Math.min(m.maxHp,m.hp+Math.round(m.maxHp*DIFF.mheal)));
-  r.cd={}; r.frenzy=0; r.silence=0; r.event=null; allies().forEach(clearAll); if(r.tw) r.tw++; r.room++; if(r.wk) weekStep(r); r.roomKind=kind; r.doors=null; if(kind==='elite') tally('archs'); if(kind==='nem') r.nemU=1;
+  r.cd={}; r.frenzy=0; r.silence=0; r.event=null; allies().forEach(clearAll); if(r.tw) r.tw++; r.room++; if(r.wk) weekStep(r); r.roomKind=kind; PLOG_OF=r.doors; r.doors=null; if(kind==='elite') tally('archs'); if(kind==='nem') r.nemU=1;
   if(kind==='rest'||kind==='treasure'||kind==='script'){ quietRoom(kind); return true; }
   S.mode='battle'; spawnRoom(); return true;
 }
 function returnTown(){
-  if(S.run&&S.run.siege){ siegeEnd(); save(); return; }   // back from the walls: then dawn
+  if(S.run&&S.run.siege){ plogEnd(S.run); siegeEnd(); save(); return; }   // back from the walls: then dawn
   const P=S.player;
-  lnClear(); if(S.run){ weekEnd(S.run); recordRun(S,S.run,runResult(S.run)); recRun(S.run); }   /* the weekly dive's depth (game-rift.js) */
+  lnClear(); if(S.run){ plogEnd(S.run); weekEnd(S.run); recordRun(S,S.run,runResult(S.run)); recRun(S.run); }   /* the weekly dive's depth (game-rift.js) */
   S.army.forEach(m=>m.hp=m.maxHp); cmdSync(); P.hp=pMax(); P.mana=pMana(); P.shield=0; allies().forEach(clearAll);
   const rd=S.run&&S.run.read; S.run=null; S.mode='town'; if(rd) syncArmy();   /* the Book Hungers lets go (game-asc.js) */
   if(S.watches<=0) endDay();
@@ -2971,9 +2974,9 @@ const STOCK_N=4;
 function shopStock(){   // four pieces of gear from your highest unlocked gate (and the one below); new every day and whenever a gate unlocks
   let g=0; for(let i=0;i<GATE_N;i++) if(S.player.lvl>=RK[i].unlock) g=i;
   if(!S.shop||S.shop.day!==S.day||S.shop.g!==g){
-    const pool=Object.values(ITEM).filter(d=>!d.uq&&d.set<=g&&d.set>=g-1), ids=[];
+    chSeeded(()=>{ const pool=Object.values(ITEM).filter(d=>!d.uq&&d.set<=g&&d.set>=g-1), ids=[];   /* a challenge code's stock (game-playlog.js) */
     while(ids.length<Math.min(ascStock(),pool.length)){ const d=pick(pool); if(!ids.includes(d.id)) ids.push(d.id); }
-    S.shop={day:S.day,g,stock:ids.map(id=>{ const s={id,sold:false}, ro=rollItem(id); if(ro) s.ro=ro; return s; })};   // rolls are shown before you buy
+    S.shop={day:S.day,g,stock:ids.map(id=>{ const s={id,sold:false}, ro=rollItem(id); if(ro) s.ro=ro; return s; })}; },CH_SYS.shop,S.day,g);   // rolls are shown before you buy
   }
   return S.shop.stock;
 }
@@ -3615,7 +3618,7 @@ const MOD_XP=1.25, MOD_GOLD=2, MOD_DROP=1.5, MOD_REWARD='Foes +15% HP and attack
 function dayMod(){
   if(!S.mod||S.mod.day!==S.day){
     const cl=DUNGEONS.map((D,i)=>i).filter(i=>i<GATE_N&&S.ti&&S.ti.clr&&S.ti.clr[i]&&S.player.lvl>=RK[i].unlock);
-    S.mod=cl.length?{day:S.day,gi:pick(cl),id:pick(Object.keys(MODS))}:{day:S.day,gi:-1,id:null};
+    S.mod=chSeeded(()=>cl.length?{day:S.day,gi:pick(cl),id:pick(Object.keys(MODS))}:{day:S.day,gi:-1,id:null},CH_SYS.curse,S.day);   /* a challenge code's curse (game-playlog.js) */
   }
   return S.mod;
 }
@@ -3759,7 +3762,7 @@ function quietRoom(kind){   // a rest or treasure room: no fight, then the doors
   else if(kind==='script'){ m='The Scriptorium. Rows of drowned scribes, and the Ledger open at the page of your dead. You may cross out one name, or walk on.'; unlockStory('abbey4',r); sfx('skill'); }
   else { const g=Math.round((15+softLv(P.lvl)*5)*(1+r.di)*ngpReward()*(1+xb('goldp')/100)); S.gold+=g; r.goldTot=(r.goldTot||0)+g; r.lastGold=g; const it=addItem(pickRow(tableFor(r.di,'vanguard',true,false)));
     if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } m='The vault gives up '+g+' gold'+(it?' and '+withArticle(ITEM[it.id].name):'')+'.'; sfx('coin'); }
-  r.events.push({m,c:'ok'}); r.quiet=kind; r.doors=rollDoors(r); preRooms(r); S.mode='raise';
+  r.events.push({m,c:'ok'}); r.quiet=kind; r.doors=chSeeded(()=>rollDoors(r),CH_SYS.doors,S.day,r.di|0,r.room,r.rift|0); preRooms(r); S.mode='raise'; plogEnter(kind,PLOG_OF); PLOG_OF=null;
 }
 // The Ledger reads the doors: the room behind a fight or elite door is rolled with the doors (r.pre, kept in the save), so a door
 // can show what waits behind it. How much it shows depends on how well you know this gate's dead (doorSight) and its master (doorBoss).
@@ -7984,7 +7987,8 @@ const NG_MODES={
   normal:{name:'Normal', desc:'The game as it is meant: every rule as written.'},
   iron:  {name:'Ironman',desc:'One life for the run: no Instant Retry and no save slots. A lost room costs the whole run\'s spoils and one minion that fell in it shatters. Cannot be turned off.'},
   story:CUSTOM_PRESETS.story, hardened:CUSTOM_PRESETS.hardened,
-  custom:{name:'Custom', desc:'Set foe HP and attack, raise chance, gold and siege frequency yourself. Easing any of them marks the save Custom: no titles.'}
+  custom:{name:'Custom', desc:'Set foe HP and attack, raise chance, gold and siege frequency yourself. Easing any of them marks the save Custom: no titles.'},
+  code:  {name:'Challenge code', desc:'The same valley as everyone who plays this code: the same dawns, curses, market stock and rooms, day by day. The code carries its own rules.'}
 };
 const IRON_TITLES=['i_keeper','i_book','i_climb'];
 const custOf=()=>S&&S.custom&&typeof S.custom==='object'?S.custom:null;
@@ -8016,6 +8020,120 @@ function modesFix(g){   // normalizeSave: the fields only when the save has them
   if('custom' in g){ const c=g.custom&&typeof g.custom==='object'?custClamp(g.custom):null; if(c&&!custNorm(c)) g.custom=keepOrder(g.custom,c); else delete g.custom; }
 }
 const modeLabel=d=>{ const t=[]; if(d&&d.iron) t.push('Ironman, '+(d.ironDeaths|0)+' fall'+((d.ironDeaths|0)===1?'':'s')); if(d&&d.custom) t.push(custEasy(d.custom)?'Custom':'Hardened'); return t.join(' &middot; '); };
+// ===== R15 PR B: CHALLENGE CODES AND THE PLAY LOG =====
+// A challenge code (base 36: a seed, then the rules, then a check letter) starts a new game in the same valley: the same dawn
+// rolls, the same day's curse, the same market stock and the same rooms behind the same doors on the same day. Seeded systems
+// draw from their own stream (chSeeded: trialRng over dayHash(seed, system, keys)), so what you do elsewhere never shifts them.
+// Fights are not seeded (your choices change them). Rules in a code: Ironman and the five custom settings. S.code = {c, s}.
+// The play log is opt-in and local: its own storage key (never the save, never sent anywhere), at most ~2 MB, oldest runs
+// pruned first. It records runs, rooms, deaths, choices, town spending, time per tab and the systems you never opened. The
+// Ledger's How I play page reads it, and Records exports it as a JSON file for the bot replay (tests/run-balance.js {"log"}).
+const CH_SYS={dawn:1,shop:2,room:3,doors:4,curse:5,floor:6,start:7};
+const CH_KIND={fight:0,elite:1,nem:2};
+const CH_SEEDED=['Dawn: raids, omens and everything else rolled as the day turns','The day\'s cursed gate','The market\'s stock','The foes in each gate and Rift room, by day, gate, room and door','The doors and events between rooms','Hell Tower floors','Your first day'];
+const chOn=()=>!!(S&&S.code&&isFinite(S.code.s));
+function chRng(){ return trialRng(dayHash.apply(null,[S.code.s].concat([].slice.call(arguments))),0); }
+function chSeeded(fn){   // run fn with Math.random as this challenge's stream for these keys; a normal game is untouched
+  if(!chOn()) return fn(); const R0=Math.random; Math.random=chRng.apply(null,[].slice.call(arguments,1)); try{ return fn(); } finally { Math.random=R0; } }
+function chRules(iron,c){ c=custClamp(c||{}); let v=0; for(let i=CUSTOM_IDS.length-1;i>=0;i--) v=v*32+Math.round(c[CUSTOM_IDS[i]]/10); return v*2+(iron?1:0); }
+const chCheck=(s,r)=>(dayHash(s,r,36)%36).toString(36).toUpperCase();
+function chEncode(seed,iron,c){ seed=seed>>>0; const r=chRules(iron,c); return seed.toString(36).toUpperCase()+'-'+r.toString(36).toUpperCase()+chCheck(seed,r); }
+function chDecode(code){   // {s, iron, c} or null: a mistyped code fails its check letter
+  const m=String(code||'').toUpperCase().replace(/\s+/g,'').match(/^([0-9A-Z]{1,7})-([0-9A-Z]{1,6})([0-9A-Z])$/); if(!m) return null;
+  const s=parseInt(m[1],36), r=parseInt(m[2],36); if(!(s>=0&&s<=0xffffffff)||!(r>=0)||chCheck(s,r)!==m[3]) return null;
+  const c={}; let v=Math.floor(r/2); for(const k of CUSTOM_IDS){ c[k]=(v%32)*10; v=Math.floor(v/32); } if(v) return null;
+  const cc=custClamp(c); if(CUSTOM_IDS.some(k=>cc[k]!==c[k])) return null; return {s,iron:!!(r%2),c:cc};
+}
+const chRandom=(iron,c)=>chEncode(Math.floor(Math.random()*4294967296),iron,c);
+function newChallenge(code){   // a new game in the code's valley, with its rules
+  const d=chDecode(code); if(!d) return false; const R0=Math.random; Math.random=trialRng(dayHash(d.s,CH_SYS.start),0);
+  try{ newGameMode(d.iron?'iron':'custom',d.c); if(d.iron&&!custNorm(d.c)) S.custom=d.c; } finally { Math.random=R0; }
+  S.code={c:chEncode(d.s,d.iron,d.c),s:d.s}; notify('Challenge '+S.code.c+': the same valley for everyone who plays this code.','ok'); chHistNote(); return true;
+}
+const codeOf=()=>chOn()?S.code.c:'';
+function codeFix(g){   // normalizeSave
+  if(!('code' in g)) return; const c=g.code, d=c&&typeof c==='object'&&chDecode(c.c);
+  if(d&&d.s===c.s){ const o={c:chEncode(d.s,d.iron,d.c),s:d.s}; if(c.t0>0) o.t0=Math.floor(c.t0); g.code=o; } else delete g.code;
+}
+// Each challenge game this browser played, kept apart from the save (so a New game keeps the list): code, best day and result.
+const CH_HIST_KEY='lotd-codes', CH_HIST_N=20;
+function chHist(){ try{ const h=JSON.parse(localStorage.getItem(CH_HIST_KEY)||'[]'); return Array.isArray(h)?h.filter(x=>x&&typeof x.c==='string').slice(0,CH_HIST_N):[]; }catch(e){ return []; } }
+function chHistNote(){   // at dawn and when the game starts: this game's line, newest first
+  if(!chOn()) return; const h=chHist().filter(x=>x.c!==S.code.c||x.t0!==S.code.t0), clr=Object.keys((S.ti&&S.ti.clr)||{}).filter(k=>S.ti.clr[k]).length;
+  if(!S.code.t0) S.code.t0=Date.now();
+  h.unshift({c:S.code.c,t0:S.code.t0,day:S.day,lvl:S.player.lvl,gates:clr,tower:(S.tower&&S.tower.best)||0,iron:S.iron?(S.ironDeaths|0):null,t:Date.now()});
+  try{ localStorage.setItem(CH_HIST_KEY,JSON.stringify(h.slice(0,CH_HIST_N))); }catch(e){}
+}
+// ----- the play log
+const PLOG_KEY='lotd-log', PLOG_MAX=2e6, PLOG_IDLE=60000, PLOG_FLUSH=30000;
+const PLOG_TOWN={buypot:'buy',buyitem:'buy',buysalt:'buy',buysaltmax:'buy',buybag:'buy',bmt:'buy',empower:'build',build:'build',spec:'build',forge:'craft',hforge:'craft',brew:'craft',craftc:'craft',fuse:'craft',enchadd:'craft',temper:'craft',reforge:'craft',awaken:'craft',comm:'craft'};
+const PLOG_TABS=['gates','tower','gear','market','army','town','skills','titles','lore','codex','bes','hist','rec','mem','help','play','settings'];
+// What the market bot does at each gate (100 days, seed 7700): actions a room and clear %, for How I play.
+const PLOG_BOT={tpr:[3.4,4.1,5.1,3,3.7,3,1.7],clr:[92,94,95,95,92,96,99]};
+let PLOG=null, PLOG_OF=null, PLOG_RUN=null, PLOG_DIRTY=false, PLOG_AT=0, PLOG_TAB=null, PLOG_HIT=null;
+const plogBlank=()=>({v:1,on:false,runs:[],days:[],seen:{tabs:{},cx:{}}});
+function plogLoad(){ if(PLOG) return PLOG; let p=null; try{ p=JSON.parse(localStorage.getItem(PLOG_KEY)||'null'); }catch(e){}
+  PLOG=p&&p.v===1&&Array.isArray(p.runs)&&Array.isArray(p.days)&&p.seen&&typeof p.seen==='object'?p:plogBlank(); PLOG.seen.tabs=PLOG.seen.tabs||{}; PLOG.seen.cx=PLOG.seen.cx||{}; return PLOG; }
+const plogOn=()=>plogLoad().on===true;
+function plogSet(on){ const p=plogLoad(); p.on=!!on; if(on&&!p.t0) p.t0=Date.now(); PLOG_RUN=null; plogFlush(true); return p.on; }
+function plogClear(){ const on=plogOn(); PLOG=plogBlank(); PLOG.on=on; PLOG_RUN=null; plogFlush(true); }
+function plogPrune(p,max){   // the oldest runs and days go first, a tenth at a time
+  let j=JSON.stringify(p); while(j.length>max&&(p.runs.length>1||p.days.length>1)){ p.runs.splice(0,Math.max(1,Math.ceil(p.runs.length/10))); p.days.splice(0,Math.max(1,Math.ceil(p.days.length/10))); p.pruned=(p.pruned|0)+1; j=JSON.stringify(p); } return j; }
+function plogFlush(force){ if(!PLOG||(!PLOG_DIRTY&&!force)) return; const j=plogPrune(PLOG,PLOG_MAX); PLOG_DIRTY=false; PLOG_AT=Date.now(); try{ localStorage.setItem(PLOG_KEY,j); }catch(e){} }
+const plogTick=()=>{ if(PLOG_DIRTY&&Date.now()-PLOG_AT>PLOG_FLUSH) plogFlush(); };   // save(): at most every 30 seconds
+const plogNow=()=>Date.now();
+function plogActive(o){ const t=plogNow(), d=o.last?t-o.last:0; o.ms=(o.ms|0)+Math.min(Math.max(0,d),PLOG_IDLE); o.last=t; }   // idle time does not count
+function plogRun(){   // this run's entry: found again after a reload by the run number and the gate
+  const r=S.run; if(!r||!plogOn()) return null; const g=r.tw?'t':r.rift?'r':r.siege?'s':r.di, key=S.runs+':'+g+':'+S.day;
+  if(PLOG_RUN&&PLOG_RUN.key===key&&!PLOG_RUN.out) return PLOG_RUN;
+  const p=plogLoad(); let e=p.runs.find(x=>x.key===key&&!x.out);
+  if(!e){ e={key,g,d:S.day,lv:S.player.lvl,h:r.heat|0,rooms:[],acts:0,ms:0}; if(r.mod) e.mod=r.mod; if(r.tw) e.fl=r.tw; if(r.rift) e.dp=r.rift; if(S.ngp) e.ngp=S.ngp; if(chOn()) e.code=S.code.c; if(S.iron) e.iron=1; p.runs.push(e); PLOG_DIRTY=true; }
+  return PLOG_RUN=e;
+}
+const plogRoom=()=>{ const e=plogRun(); return e&&e.rooms[e.rooms.length-1]||null; };
+function plogEnter(kind,offered){   // spawnRoom and quietRoom: a new room; kind is the door taken
+  const e=plogRun(); if(!e) return; const o={i:S.run.room,k:kind||'fight',acts:0}; if(offered&&offered.length>1) o.of=offered.slice(); e.rooms.push(o); PLOG_DIRTY=true; }
+function plogAct(kind){ const e=plogRun(); if(!e) return; const o=plogRoom(); e.acts++; plogActive(e); if(o){ o.acts++; if(kind&&kind!=='strike'){ o.sk=o.sk||{}; o.sk[kind]=(o.sk[kind]|0)+1; } } PLOG_DIRTY=true; }
+function plogWon(){ const o=plogRoom(); if(o){ o.won=1; o.t=S.run.turn|0; PLOG_DIRTY=true; } }
+function plogChoice(k,v){ const o=plogRoom(); if(!o) return; if(k==='ord'){ (o.ord=o.ord||[]).push(v); } else o[k]=v; PLOG_DIRTY=true; }
+function plogHit(a){   // hurtAlly, on you: your HP before the blow, and whether the foe's card showed what it would do
+  if(!plogOn()||!S.run||a.id!=='p') return; const n=BLOW&&BLOW.n, e=n&&(S.run.enemies||[]).find(x=>x.name===n&&!x.dead);
+  PLOG_HIT={hp:a.hp,sh:!!(BLOW&&(BLOW.w||(e&&typeof intentInfo==='function'&&intentInfo(e))))}; }
+function plogDeath(r){ const e=plogRun(); if(!e) return; const b=r.blow||{}, d={rm:r.room|0,n:b.n||'',k:b.k||''};
+  if(b.mv) d.mv=b.mv; if(b.dot) d.dot=b.dot; if(b.c) d.c=b.c.slice(); if(PLOG_HIT){ d.hp=PLOG_HIT.hp; d.sh=PLOG_HIT.sh?1:0; } e.death=d; PLOG_DIRTY=true; }
+function plogEnd(r){ const e=plogRun(); if(!e) return; plogActive(e); delete e.last; e.out=r.cleared?'clear':e.death?'death':r.fled?'fled':'left'; e.won=r.won|0; PLOG_RUN=null; PLOG_DIRTY=true; plogFlush(); }
+function plogDay(){ const p=plogLoad(); let d=p.days[p.days.length-1]; if(!d||d.d!==S.day){ d={d:S.day,x:{},tab:{}}; p.days.push(d); } return d; }
+function plogTown(a,k){ if(!plogOn()||S.mode!=='town') return; const d=plogDay(), w=PLOG_TOWN[a]; (d.x[w]=d.x[w]||[]).push(a+(k!=null&&k!==''?':'+k:'')); PLOG_DIRTY=true; }
+function plogTabTime(next){   // the time on the tab you leave, by day; idle minutes do not count
+  if(!plogOn()) return; const t=plogNow(); if(PLOG_TAB&&PLOG_TAB.k){ const d=plogDay(), ms=Math.min(Math.max(0,t-PLOG_TAB.t),PLOG_IDLE*5); d.tab[PLOG_TAB.k]=(d.tab[PLOG_TAB.k]|0)+ms; }
+  PLOG_TAB={k:next,t}; if(next){ plogLoad().seen.tabs[next]=1; } PLOG_DIRTY=true; }
+function plogCx(k){ if(!plogOn()||!k) return; plogLoad().seen.cx[k]=1; PLOG_DIRTY=true; }
+function plogWrap(A){   // ui-input.js: the actions the log listens to
+  const wrap=(a,fn)=>{ const f=A[a]; if(typeof f==='function') A[a]=function(k){ const t0=S&&S.mode==='town'&&plogOn()?ui.tab:null, out=f.apply(this,arguments); try{ fn(k,t0); }catch(e){} return out; }; };
+  wrap('tab',(k,t0)=>{ if(ui.tab!==t0||!PLOG_TAB) plogTabTime(ui.tab); });
+  wrap('cx',k=>plogCx(k)); wrap('cmd',k=>plogChoice('ord',k));
+  for(const a of Object.keys(PLOG_TOWN)) wrap(a,k=>plogTown(a,k));
+  const ev=A.event; if(typeof ev==='function') A.event=function(k){ const id=S.run&&S.run.event&&S.run.event.id; const out=ev.apply(this,arguments); if(id) try{ plogChoice('ev',id+':'+k); }catch(e){} return out; };
+}
+function plogNever(){   // the systems this log never saw you open or use
+  const p=plogLoad(), tabs=PLOG_TABS.filter(t=>!p.seen.tabs[t]&&(t!=='tower'||towerOpen())&&(t!=='town'||townOpen())), cx=CODEX.map(x=>x[0]).filter(k=>!p.seen.cx[k]);
+  const bld=typeof BUILD!=='undefined'&&townOpen()?Object.keys(BUILD).filter(k=>!(S.build&&S.build[k])):[];
+  return {tabs,cx,bld};
+}
+function plogExport(){ const p=plogLoad(); plogFlush(true);
+  return JSON.stringify({v:1,kind:'lotd-play-log',made:new Date().toISOString(),game:{day:S.day,lvl:S.player.lvl,ngp:S.ngp|0,code:codeOf()||null,iron:!!S.iron,custom:S.custom||null},runs:p.runs.filter(e=>e.out),days:p.days,seen:p.seen,never:plogNever(),pruned:p.pruned|0}); }
+function plogDownload(){ try{ const url=URL.createObjectURL(new Blob([plogExport()],{type:'application/json'})), a=document.createElement('a');
+  a.href=url; a.download='ledger-play-log-day'+S.day+'.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000); return true; }catch(e){ return false; } }
+function plogStats(){   // what How I play shows: runs, deaths by cause, actions a room against the bot, doors, time
+  const p=plogLoad(), R=p.runs.filter(e=>e.out), gates=R.filter(e=>typeof e.g==='number');
+  const deaths={}; for(const e of R) if(e.death){ const d=e.death, k=(d.n||'?')+(d.mv?' ('+(BOSS_ABIL[d.mv]?BOSS_ABIL[d.mv].name:d.mv)+')':d.k==='dot'?' (a damage-over-time)':d.k==='crit'?' (a critical hit)':''); deaths[k]=(deaths[k]|0)+1; }
+  let rooms=0, acts=0, bot=0; for(const e of gates) for(const o of e.rooms) if(o.acts){ rooms++; acts+=o.acts; bot+=PLOG_BOT.tpr[e.g]||3; }
+  const doors={}; let picks=0; for(const e of R) for(const o of e.rooms) if(o.of){ doors[o.k]=(doors[o.k]|0)+1; picks++; }
+  const tab={}; for(const d of p.days) for(const k in d.tab) tab[k]=(tab[k]|0)+d.tab[k];
+  const unseen=R.filter(e=>e.death&&e.death.sh===0).length, dn=R.filter(e=>e.death).length;
+  return {runs:R.length,clears:R.filter(e=>e.out==='clear').length,deaths,dn,unseen,rooms,apr:rooms?acts/rooms:0,bpr:rooms?bot/rooms:0,doors,picks,tab,ms:R.length?R.reduce((a,e)=>a+(e.ms|0),0)/R.length:0,
+    botClr:gates.length?gates.reduce((a,e)=>a+(PLOG_BOT.clr[e.g]||90),0)/gates.length:0,gClr:gates.length?gates.filter(e=>e.out==='clear').length/gates.length*100:0,gn:gates.length};
+}
 //==UI==
 
 // ----- sound: tiny synthesized effects (Web Audio, no files). Off/on lives in Settings and is remembered per browser, not in the save.
@@ -12961,6 +13079,48 @@ TR_RX.unshift([/^The Inquisition sues for peace: no siege for (\d+) days, and th
 TR_RX.unshift([/^Press again to erase everything and start: (.+)$/,"Her şeyi silip başlatmak için yeniden bas: {t1}"],[/^This game: (.+)$/,"Bu oyun: {t1}"],[/^Ironman, (\d+) falls?$/,"Demir Adam, $1 düşüş"],
  [/^This game: (\d+)%$/,"Bu oyun: %$1"],[/^This game: off$/,"Bu oyun: kapalı"],[/^This is an Ironman game: (\d+) falls so far\.?$/,"Bu bir Demir Adam oyunu: şimdiye dek $1 düşüş"],
  [/^Ironman: the fall costs (.+)\.?$/,"Demir Adam: düşüşün bedeli: $1"],[/^(.+) shatters as you fall\. Ironman takes one of the fallen\.?$/,"$1 sen düşerken parçalanıyor. Demir Adam düşenlerden birini alır"]);
+
+// ----- R15 PR B: challenge codes and the play log
+[
+ ["How I play","Nasıl oynuyorum"],["What the play log saw","Oyun günlüğünün gördükleri"],["Runs logged","Kaydedilen akınlar"],["Time a run","Akın başına süre"],["# min","# dk"],
+ ["of play, idle minutes left out","oyun, boşta geçen dakikalar hariç"],["Gate clears","Kapı temizlemeleri"],["the bot clears #% at the same gates","bot aynı kapılarda %# temizliyor"],
+ ["Actions a fight","Dövüş başına hamle"],["the bot takes #","bot # hamle yapıyor"],["Deaths by cause","Nedene göre ölümler"],
+ ["# of # killing blows came from a foe whose card showed no intent","# öldürücü darbenin #'ı kartında niyet görünmeyen bir düşmandan geldi"],
+ ["Doors chosen","Seçilen kapılar"],["Time by tab","Sekmeye göre süre"],["Never opened","Hiç açılmayanlar"],["Play log","Oyun günlüğü"],["Turn the play log off","Oyun günlüğünü kapat"],["Turn the play log on","Oyun günlüğünü aç"],
+ ["Export play log","Oyun günlüğünü dışa aktar"],["Press again to clear it","Silmek için yeniden bas"],["Clear the play log","Oyun günlüğünü sil"],["Challenge codes","Meydan okuma kodları"],["Challenge code","Meydan okuma kodu"],
+ ["This game is the challenge","Bu oyun şu meydan okuma"],["Anyone who starts a new game with this code gets the same valley","Bu kodla yeni oyun başlatan herkes aynı vadiyi alır"],
+ ["New random code","Yeni rastgele kod"],["New random Ironman code","Yeni rastgele Demir Adam kodu"],["Not a valid code yet","Henüz geçerli bir kod değil"],
+ ["Type or paste a code, such as 1A2B3C-4D5E","Bir kod yaz ya da yapıştır, örneğin 1A2B3C-4D5E"],
+ ["The same valley as everyone who plays this code: the same dawns, curses, market stock and rooms, day by day. The code carries its own rules","Bu kodu oynayan herkesle aynı vadi: gün gün aynı şafaklar, lanetler, pazar stoğu ve odalar. Kod kendi kurallarını taşır"],
+ ["A challenge code starts a new game (Settings, New game, Challenge code) in a valley everyone with the same code shares. Codes stay on your device: copy one to a friend and compare how far you got","Meydan okuma kodu, aynı kodu kullanan herkesin paylaştığı bir vadide yeni oyun başlatır (Ayarlar, Yeni oyun, Meydan okuma kodu). Kodlar cihazında kalır: birini bir arkadaşına kopyala ve ne kadar ilerlediğinizi karşılaştırın"],
+ ["A code is two parts in base #: the seed, then the rules with a check letter at the end, so a mistyped code is refused. The rules are Ironman and the five custom settings","Kod # tabanında iki parçadır: tohum, ardından sonunda bir kontrol harfiyle kurallar; yanlış yazılmış bir kod reddedilir. Kurallar Demir Adam ve beş özel ayardır"],
+ ["What a code fixes","Bir kodun sabitledikleri"],
+ ["Each of these draws from its own stream, keyed by the day (and the gate, room and door), so what you do elsewhere never shifts it. The fights themselves are not fixed: your choices change them","Bunların her biri güne (ve kapıya, odaya ve geçide) bağlı kendi akışından çeker; başka yerde yaptıkların onu asla kaydırmaz. Dövüşlerin kendisi sabit değildir: seçimlerin onları değiştirir"],
+ ["Dawn: raids, omens and everything else rolled as the day turns","Şafak: baskınlar, kehanetler ve gün dönerken atılan her şey"],["The day's cursed gate","Günün lanetli kapısı"],["The market's stock","Pazarın stoğu"],
+ ["The foes in each gate and Rift room, by day, gate, room and door","Her kapı ve Rift odasındaki düşmanlar; güne, kapıya, odaya ve geçide göre"],["The doors and events between rooms","Odalar arasındaki geçitler ve olaylar"],["Hell Tower floors","Hell Tower katları"],["Your first day","İlk günün"],
+ ["The play log is off until you turn it on (Records or How I play, on the Ledger tab). It is kept in this browser only, apart from your save, and never sent anywhere. When it grows past about # MB the oldest runs are dropped","Oyun günlüğü sen açana dek kapalıdır (Defter sekmesinde Rekorlar ya da Nasıl oynuyorum). Yalnızca bu tarayıcıda, kaydından ayrı tutulur ve hiçbir yere gönderilmez. Yaklaşık # MB'ı aşınca en eski akınlar silinir"],
+ ["Runs","Akınlar"],["The gate, difficulty, rooms, the outcome, minutes of play (idle time left out) and actions","Kapı, zorluk, odalar, sonuç, oyun dakikaları (boşta geçen süre hariç) ve hamleler"],
+ ["Deaths","Ölümler"],["The room, the blow and its move, whether its foe showed an intent, your HP before it, and the answers you had left","Oda, darbe ve hamlesi, düşmanının niyet gösterip göstermediği, darbeden önceki canın ve elinde kalan karşılıklar"],
+ ["Choices","Seçimler"],["Doors, events, orders and skills cast, room by room","Oda oda geçitler, olaylar, emirler ve kullanılan beceriler"],["Town","Kasaba"],
+ ["What you bought, built and crafted, and the time on each tab, day by day","Gün gün satın aldıkların, inşa ettiklerin, ürettiklerin ve her sekmede geçen süre"],
+ ["Tabs, Codex pages and buildings you have not used","Kullanmadığın sekmeler, Kodeks sayfaları ve binalar"],
+ ["Export play log (Records) saves it as a JSON file. Only you choose to share it. The game's balance bot can replay it against its own play at the same gates and levels","Oyun günlüğünü dışa aktar (Rekorlar) onu bir JSON dosyası olarak kaydeder. Paylaşıp paylaşmamayı yalnızca sen seçersin. Oyunun denge botu onu aynı kapılarda ve seviyelerde kendi oyunuyla karşılaştırabilir"],
+ ["The play log is off. Turn it on to see where you fall, what you choose and what you never open. It stays in this browser","Oyun günlüğü kapalı. Nerede düştüğünü, neyi seçtiğini ve neyi hiç açmadığını görmek için aç. Bu tarayıcıda kalır"],
+ ["Nothing logged yet. Finish a run and come back","Henüz kayıt yok. Bir akını bitir ve geri gel"],["None. Nothing has felled you while the log was on","Yok. Günlük açıkken seni hiçbir şey devirmedi"],
+ ["Every tab","Her sekme"],["Every Codex page","Her Kodeks sayfası"],["Tabs","Sekmeler"],["Codex pages","Kodeks sayfaları"],["Buildings never built","Hiç inşa edilmeyen binalar"],["None","Yok"],
+ ["Fight","Dövüş"],["Bloodied arch (elite)","Kanlı kemer (seçkin)"],["Rest","Dinlenme"],["Treasure","Hazine"],["Sigil door (nemesis)","Mühürlü kapı (baş düşman)"],["Boss","Patron"],["Scriptorium","Yazıhane"],["Tower floor","Kule katı"],
+ ["Gates","Kapılar"],["Gear","Teçhizat"],["Market","Pazar"],["Army","Ordu"],["Skills","Beceriler"],["Titles","Unvanlar"],["Lore","Bilgi"],["Codex","Kodeks"],["Bestiary","Canavar kitabı"],["History","Geçmiş"],["Records","Rekorlar"],["Memorial","Anıt"],["How to play","Nasıl oynanır"],["Settings","Ayarlar"],
+ ["The play log is on. It stays in this browser","Oyun günlüğü açık. Bu tarayıcıda kalır"],["The play log is off. What it holds is kept until you clear it","Oyun günlüğü kapalı. İçindekiler sen silene dek saklanır"],
+ ["Play log downloaded","Oyun günlüğü indirildi"],["This browser would not create the file","Bu tarayıcı dosyayı oluşturmadı"],["The play log is cleared","Oyun günlüğü silindi"],["That challenge code is not valid. Check each letter","Bu meydan okuma kodu geçerli değil. Her harfi kontrol et"]
+].forEach(([k,v])=>{ if(!TR_DICT.has(k)) TR_DICT.set(k,v); });
+TR_RX.unshift([/^(.+) \(a critical hit\)$/,"$1 (kritik vuruş)"],[/^(.+) \(a damage-over-time\)$/,"$1 (zamanla hasar)"],
+ [/^Challenge ([0-9A-Z]+-[0-9A-Z]+): the same valley for everyone who plays this code\.?$/,"Meydan okuma $1: bu kodu oynayan herkes için aynı vadi"],[/^This game is the challenge ([0-9A-Z]+-[0-9A-Z]+)\.?$/,"Bu oyun $1 meydan okuması"],
+ [/^Rules: (.+)\.?$/,"Kurallar: {t1}"],
+ [/^On\. An optional record of how you play \(runs, deaths, choices, time per tab\), kept only in this browser and never sent anywhere\. (\d+) runs? logged\. The Ledger's How I play page reads it\.?$/,"Açık. Nasıl oynadığının isteğe bağlı kaydı (akınlar, ölümler, seçimler, sekme başına süre); yalnızca bu tarayıcıda tutulur, hiçbir yere gönderilmez. $1 akın kaydedildi. Defterin Nasıl oynuyorum sayfası onu okur"],
+ [/^Off\. An optional record of how you play \(runs, deaths, choices, time per tab\), kept only in this browser and never sent anywhere\. (\d+) runs? logged\. The Ledger's How I play page reads it\.?$/,"Kapalı. Nasıl oynadığının isteğe bağlı kaydı (akınlar, ölümler, seçimler, sekme başına süre); yalnızca bu tarayıcıda tutulur, hiçbir yere gönderilmez. $1 akın kaydedildi. Defterin Nasıl oynuyorum sayfası onu okur"],
+ [/^Day (\d+) · Level (\d+) · (\d+) gates? cleared · Tower (\d+) · Ironman, (\d+) falls?$/,"Gün $1 · Seviye $2 · $3 kapı temizlendi · Kule $4 · Demir Adam, $5 düşüş"],
+ [/^Day (\d+) · Level (\d+) · (\d+) gates? cleared · Tower (\d+)$/,"Gün $1 · Seviye $2 · $3 kapı temizlendi · Kule $4"],
+ [/^(\d+) of (\d+) Codex pages$/,"$2 Kodeks sayfasından $1"]);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -14523,8 +14683,39 @@ function recordsHTML(){
    +DUNGEONS.map((D,i)=>{ const o=Rc.fast&&Rc.fast[i]; return row(D.name,o?'<b>'+o.t+' turns</b> <span class="dim">&middot; day '+o.day+(o.heat&&HEAT[o.heat]?' &middot; '+HEAT[o.heat].name:'')+'</span>':'<span class="dim">not yet</span>'); }).join('')+'</div>';
   const sl=SECRET.map((B,i)=>({B,i})).filter(x=>Rc.sec&&Rc.sec[x.i]);
   if(sl.length) h+='<p class="group-h">Secret masters</p><div class="items">'+sl.map(x=>row('<span class="sec-k">&#9760; '+x.B.name+'</span>','<span class="dim">first slain day '+Rc.sec[x.i]+'</span>')).join('')+'</div>';
-  return h+rivalCardHTML()+trialRecHTML()+'</section>';
+  return h+rivalCardHTML()+trialRecHTML()+challengeRecHTML()+plogRecHTML()+'</section>';
 }
+function challengeRecHTML(){   // this game's challenge code and the challenges this browser played (game-playlog.js)
+  const H=chHist(); if(!chOn()&&!H.length) return '';
+  let h='<p class="group-h">Challenge codes</p>'+(chOn()?'<p class="q-note">This game is the challenge <b class="num">'+S.code.c+'</b>. Anyone who starts a new game with this code gets the same valley.</p>':'');
+  if(H.length) h+='<div class="items">'+H.slice(0,8).map(x=>'<div class="tt-row"><div><h4 class="num">'+cleanText(x.c)+'</h4><div class="u-sub">Day '+(x.day|0)+' &middot; Level '+(x.lvl|0)+' &middot; '+(x.gates|0)+' gate'+((x.gates|0)===1?'':'s')+' cleared &middot; Tower '+(x.tower|0)+(x.iron!=null?' &middot; Ironman, '+(x.iron|0)+' fall'+((x.iron|0)===1?'':'s'):'')+'</div></div></div>').join('')+'</div>';
+  return h;
+}
+function plogRecHTML(){   // the play log's switch, export and clear
+  const on=plogOn(), n=plogLoad().runs.filter(e=>e.out).length;
+  return '<p class="group-h">Play log</p><p class="q-note">'+(on?'On. ':'Off. ')+'An optional record of how you play (runs, deaths, choices, time per tab), kept only in this browser and never sent anywhere. '+n+' run'+(n===1?'':'s')+' logged. The Ledger\'s How I play page reads it.</p>'
+   +'<div class="btns"><button class="btn small'+(on?'':' primary')+'" data-a="'+(on?'plogoff':'plogon')+'">'+(on?'Turn the play log off':'Turn the play log on')+'</button>'+(n?'<button class="btn small" data-a="plogexp">Export play log</button><button class="btn small warn" data-a="plogclr">'+(ui.confirm==='plc'?'Press again to clear it':'Clear the play log')+'</button>':'')+'</div>';
+}
+function playHTML(){   // How I play: the play log, read back
+  let h='<section class="win" aria-labelledby="h-play"><h2 class="win-h" id="h-play">How I play</h2><h3 class="win-title">What the play log saw</h3>';
+  if(!plogOn()&&!plogLoad().runs.length) return h+'<p class="lede">The play log is off. Turn it on to see where you fall, what you choose and what you never open. It stays in this browser.</p><div class="btns"><button class="btn small primary" data-a="plogon">Turn the play log on</button></div></section>';
+  const st=plogStats(), row=(t,v)=>'<div class="tt-row"><div><h4>'+t+'</h4></div><div class="rec-v">'+v+'</div></div>', mins=ms=>Math.max(1,Math.round(ms/60000))+' min';
+  if(!st.runs) return h+'<p class="lede">Nothing logged yet. Finish a run and come back.</p>'+plogRecHTML()+'</section>';
+  h+='<div class="items">'+row('Runs logged','<b>'+st.runs+'</b> <span class="dim">&middot; '+st.clears+' cleared, '+st.dn+' fallen</span>')+row('Time a run','<b>'+mins(st.ms)+'</b> <span class="dim">of play, idle minutes left out</span>')
+   +(st.gn?row('Gate clears','<b>'+Math.round(st.gClr)+'%</b> <span class="dim">&middot; the bot clears '+Math.round(st.botClr)+'% at the same gates</span>'):'')
+   +(st.rooms?row('Actions a fight','<b>'+st.apr.toFixed(1)+'</b> <span class="dim">&middot; the bot takes '+st.bpr.toFixed(1)+'</span>'):'')+'</div>';
+  const D=Object.entries(st.deaths).sort((a,b)=>b[1]-a[1]);
+  h+='<p class="group-h">Deaths by cause</p>'+(D.length?'<div class="items">'+D.slice(0,8).map(([k,n])=>row(cleanText(k),'<b>'+n+'</b>')).join('')+'</div>'+(st.unseen?'<p class="q-note">'+st.unseen+' of '+st.dn+' killing blows came from a foe whose card showed no intent.</p>':''):'<p class="lede">None. Nothing has felled you while the log was on.</p>');
+  if(st.picks) h+='<p class="group-h">Doors chosen</p><div class="items">'+Object.entries(st.doors).sort((a,b)=>b[1]-a[1]).map(([k,n])=>row(cleanText(DOOR_NAMES[k]||k),'<b>'+Math.round(n/st.picks*100)+'%</b> <span class="dim">&middot; '+n+'</span>')).join('')+'</div>';
+  const T=Object.entries(st.tab).filter(x=>x[1]>=1000).sort((a,b)=>b[1]-a[1]);
+  if(T.length) h+='<p class="group-h">Time by tab</p><div class="items">'+T.slice(0,8).map(([k,ms])=>row(cleanText(PLOG_TAB_NAMES[k]||k),'<b>'+mins(ms)+'</b>')).join('')+'</div>';
+  const nv=plogNever();
+  const sp=a=>a.map(x=>'<span>'+cleanText(x)+'</span>').join(', ');
+  h+='<p class="group-h">Never opened</p><div class="items">'+row('Tabs',nv.tabs.length?sp(nv.tabs.map(k=>PLOG_TAB_NAMES[k]||k)):'<span class="dim">Every tab</span>')+row('Codex pages',nv.cx.length?'<span>'+nv.cx.length+' of '+CODEX.length+' Codex pages</span>':'<span class="dim">Every Codex page</span>')+(townOpen()?row('Buildings never built',nv.bld.length?sp(nv.bld.map(k=>BUILD[k].name)):'<span class="dim">None</span>'):'')+'</div>';
+  return h+plogRecHTML()+'</section>';
+}
+const DOOR_NAMES={fight:'Fight',elite:'Bloodied arch (elite)',rest:'Rest',treasure:'Treasure',nem:'Sigil door (nemesis)',boss:'Boss',script:'Scriptorium',floor:'Tower floor'};
+const PLOG_TAB_NAMES={gates:'Gates',tower:'Hell Tower',gear:'Gear',market:'Market',army:'Army',town:'Town',skills:'Skills',titles:'Titles',lore:'Lore',codex:'Codex',bes:'Bestiary',hist:'History',rec:'Records',mem:'Memorial',help:'How to play',play:'How I play',settings:'Settings'};
 const MEM_SHOW=30;
 function memorialHTML(){   // the fallen, newest first, in a muted hand; honouring one is a town action, once a day
   const M=S.memorial||[], town=S.mode==='town', list=ui.memAll?M:M.slice(0,MEM_SHOW);
@@ -14625,12 +14816,20 @@ function ngModesHTML(){   // the mode cards and, for Custom, the sliders as step
   return '<p class="group-h">Mode</p><div class="chips ng-modes">'+Object.keys(NG_MODES).map(k=>'<button class="btn small'+(n.mode===k?' primary':'')+'" data-a="ngmode" data-k="'+k+'" aria-pressed="'+(n.mode===k)+'">'+NG_MODES[k].name+'</button>').join('')+'</div><p class="u-sub">'+NG_MODES[n.mode].desc+'</p>'
    +(n.mode==='custom'||CUSTOM_PRESETS[n.mode]?'<div class="items ng-custom">'+CUSTOM_IDS.map(k=>{ const K=CUSTOM_KEYS[k], v=n.c[k];
       return '<div class="tt-row"><div><h4>'+K[3]+'</h4><div class="u-sub num">'+(k==='siege'&&!v?'Off':v+'%')+'</div></div><div class="btns" style="margin:0"><button class="btn small" data-a="ngstep" data-k="'+k+'|-1"'+(v<=K[0]?' disabled':'')+' aria-label="Less">&minus;</button><button class="btn small" data-a="ngstep" data-k="'+k+'|1"'+(v>=K[1]?' disabled':'')+' aria-label="More">+</button></div></div>'; }).join('')+'</div>'
-     +(custEasy(n.c)?'<p class="q-note bad">Custom: this game will earn no titles.</p>':''):'');
+     +(custEasy(n.c)?'<p class="q-note bad">Custom: this game will earn no titles.</p>':''):'')
+   +(n.mode==='code'?ngCodeHTML():'');
 }
+function ngCodeHTML(){   // a challenge code: typed, pasted or made at random (game-playlog.js)
+  const d=chDecode(ui.ngcode);
+  return '<div class="ng-code"><input id="ngcode" class="codebox" maxlength="20" autocomplete="off" spellcheck="false" placeholder="Type or paste a code, such as 1A2B3C-4D5E" aria-label="Challenge code" value="'+cleanText(ui.ngcode||'')+'">'
+   +'<div class="btns"><button class="btn small" data-a="ngcode" data-k="normal">New random code</button><button class="btn small" data-a="ngcode" data-k="iron">New random Ironman code</button></div>'
+   +(ui.ngcode?(d?'<p class="u-sub ok">Rules: '+chRulesText(d)+'.</p>':'<p class="u-sub bad">Not a valid code yet.</p>'):'')+'</div>';
+}
+const chRulesText=d=>{ const t=[d.iron?'Ironman':'Normal']; if(!custNorm(d.c)) t.push(CUSTOM_IDS.filter(k=>d.c[k]!==100).map(k=>CUSTOM_KEYS[k][3]+' '+(k==='siege'&&!d.c[k]?'off':d.c[k]+'%')).join(', ')+(custEasy(d.c)?' (Custom: no titles)':'')); return t.join(', '); };
 // ----- the Codex: every rule and list in the game, read straight from the game's own tables so it never goes stale.
 // Enemies you have not met yet stay hidden, as in the bestiary.
 const CODEX=[['basics','Basics'],['raising','Raising'],['faith','Faith'],['omens','Omens'],['roles','Roles'],['traits','Traits'],['minions','Minion stats'],['army','Army'],['reserve','Reserve'],['fusion','Fusion'],['affixes','Elite affixes'],['bosses','Bosses'],['status','Status effects'],['types','Damage types'],['kits','Foe kits'],['nemeses','Nemeses'],['skills','Skills'],['orders','Orders'],
-  ['gates','Gates'],['tower','Hell Tower'],['gear','Gear'],['forge','Heartforge'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['trade','Commissions and black market'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['records','Records'],['modes','Modes'],['endings','Endings']];
+  ['gates','Gates'],['tower','Hell Tower'],['gear','Gear'],['forge','Heartforge'],['uniques','Unique powers'],['sets','Sets'],['supplies','Supplies'],['trade','Commissions and black market'],['rooms','Doors and events'],['curses','Curses'],['raids','Raids'],['rift','The Rift'],['town','Town'],['sieges','Sieges'],['bounties','Bounties'],['rival','The Rival'],['trials','Trials'],['titles','Titles'],['records','Records'],['modes','Modes'],['codes','Challenge codes'],['playlog','Play log'],['endings','Endings']];
 const CDX_ROLE={
   hexer:'Only raised from the hexer foes (one in each gate). It stands in the back row with low HP and attack, and each of its hits leaves a condition: a Hex by default, or its trait\'s wound (Rimeborn chills, Venomous poisons, Necrotic blights, Cinderborn burns). At most one hexer for every four army places brings its conditions; more fight plainly. As a foe it hexes your side.',
   vanguard:'When a foe picks a target, each vanguard counts 5 and everyone else (you included) counts 2, so vanguards draw most blows. They take Taunt orders and stand in front of a Sundering Blow.',
@@ -14900,6 +15099,13 @@ function codexSection(k){
     +cxList(CUSTOM_IDS.map(c=>cxRow(CUSTOM_KEYS[c][3],(c==='siege'?50:CUSTOM_KEYS[c][0])+'% to '+CUSTOM_KEYS[c][1]+'%'+(c==='siege'?', or off':'')+(custOf()?'. This game: '+(c==='siege'&&!custOf()[c]?'off':custOf()[c]+'%'):''))))
     +'<p class="group-h">Ironman titles</p>'+cxList(IRON_TITLES.map(id=>cxRow(TITLE[id].name,TITLE[id].req)))
     +(ironOn()?cxP('This is an Ironman game: '+(S.ironDeaths|0)+' falls so far.'):'');
+  if(k==='codes') return cxP('A challenge code starts a new game (Settings, New game, Challenge code) in a valley everyone with the same code shares. Codes stay on your device: copy one to a friend and compare how far you got.')
+    +cxP('A code is two parts in base 36: the seed, then the rules with a check letter at the end, so a mistyped code is refused. The rules are Ironman and the five custom settings.')+(chOn()?cxP('This game is the challenge '+S.code.c+'.'):'')
+    +'<p class="group-h">What a code fixes</p>'+cxP('Each of these draws from its own stream, keyed by the day (and the gate, room and door), so what you do elsewhere never shifts it. The fights themselves are not fixed: your choices change them.')
+    +cxList(CH_SEEDED.map((t,i)=>cxRow(String(i+1),t)));
+  if(k==='playlog') return cxP('The play log is off until you turn it on (Records or How I play, on the Ledger tab). It is kept in this browser only, apart from your save, and never sent anywhere. When it grows past about 2 MB the oldest runs are dropped.')
+    +cxList([cxRow('Runs','The gate, difficulty, rooms, the outcome, minutes of play (idle time left out) and actions.'),cxRow('Deaths','The room, the blow and its move, whether its foe showed an intent, your HP before it, and the answers you had left.'),cxRow('Choices','Doors, events, orders and skills cast, room by room.'),cxRow('Town','What you bought, built and crafted, and the time on each tab, day by day.'),cxRow('Never opened','Tabs, Codex pages and buildings you have not used.')])
+    +cxP('Export play log (Records) saves it as a JSON file. Only you choose to share it. The game\'s balance bot can replay it against its own play at the same gates and levels.');
   if(k==='records') return cxP('The Records page on the Ledger tab keeps your personal bests through every New Game+. A new best flashes a banner, once per run and kind, but never for a first record.')
     +cxList(REC_NUM.map(r=>cxRow(REC_NAME[r].charAt(0).toUpperCase()+REC_NAME[r].slice(1),CDX_REC[r]||'')).concat([cxRow('Fastest clears','The fewest turns from the first room to the fallen boss, for each gate, on any difficulty.'),
       cxRow('Fastest Rift dives','The fewest turns to clear a dive, for each band of '+RIFT_BAND+' depths. A dive at depth 12 counts for 10 and deeper.'),cxRow('Secret masters','The day you first slew each one.')]))
@@ -15283,7 +15489,7 @@ function cxPactHTML(){
    +cxList(Object.keys(PACTS).map(k=>cxRow(PACTS[k].name,PACTS[k].desc(),'+'+PACTS[k].rw+'% XP and gold')))
    +(l.length?cxP('This cycle: '+l.map(k=>PACTS[k].name).join(', ')+'.'):cxP('You swore no pacts this cycle.'));
 }
-const LEDGER=[['lore','Lore'],['codex','Codex'],['bes','Bestiary'],['hist','History'],['rec','Records'],['mem','Memorial'],['help','How to play']];   // the Ledger tab's pages
+const LEDGER=[['lore','Lore'],['codex','Codex'],['bes','Bestiary'],['hist','History'],['rec','Records'],['mem','Memorial'],['play','How I play'],['help','How to play']];   // the Ledger tab's pages
 function spendStrip(){   // on narrow screens the stats sit far below: offer the + buttons up here while points are waiting
   const P=S.player; if(P.pts<=0&&!(P.sp>0)) return '';
   return '<div class="spend-strip">'+(P.pts>0?'<span>'+P.pts+' point'+(P.pts>1?'s':'')+' to spend:</span>'+[['strength','Strength'],['constitution','Constitution'],['intelligence','Intelligence'],['will','Will']].map(([k,n])=>'<button class="btn small" data-a="alloc" data-k="'+k+'" aria-label="Add a point to '+n+'">+ '+n+'</button>').join(''):'')
@@ -15313,6 +15519,7 @@ function townHTML(){
   if(ui.tab==='hist') return h+histHTML();
   if(ui.tab==='rec') return h+recordsHTML();
   if(ui.tab==='mem') return h+memorialHTML();
+  if(ui.tab==='play') return h+playHTML();
   if(ui.tab==='lore') return h+loreHTML();
   if(ui.tab==='codex') return h+codexHTML();
   const subs=gateSubs(), sub=subs.some(x=>x[0]===ui.gsub)?ui.gsub:'open';   // the Gates tab's own sub-tabs: the gates, the War table, the Rift
@@ -16112,12 +16319,15 @@ const ACTIONS={
   lplater:()=>{ ui.lpLater=1; ui.lpJust=0; }, lpopen:()=>{ ui.lpLater=0; ui.lpJust=S.ending?1:0; }, lpseen:()=>{ ui.lpJust=0; },
   cross:k=>{ if(ui.confirm==='x'+k){ scriptCross(+k); ui.confirm=null; } else ui.confirm='x'+k; },   /* the Scriptorium (game-abbey.js): a second press confirms */
   ngmode:k=>{ if(NG_MODES[k]){ ui.ng=Object.assign(ngPick(),{mode:k}); ui.confirm='new'; } }, ngstep:k=>{ const [id,d]=String(k).split('|'), n=ngPick(); if(CUSTOM_KEYS[id]){ let v=n.c[id]+(+d)*CUSTOM_KEYS[id][2]; if(id==='siege'&&v>0&&v<50) v=+d<0?0:50; n.c=custClamp(Object.assign({},n.c,{[id]:v}));   /* siege frequency: off, then 50% and up */ n.mode='custom'; ui.ng=n; ui.confirm='new'; } },
-  newgame:()=>{ if(ui.confirm==='new'){ ui.confirm=null; const n=ngPick(); newGameMode(n.mode,n.c); ui.ng=null; OPEN_HELP.on=false; ui.tab='gates'; ui.gsub='open'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
+  ngcode:k=>{ const n=ngPick(); ui.ngcode=chRandom(k==='iron',n.mode==='custom'||CUSTOM_PRESETS[n.mode]?n.c:null); ui.ng={mode:'code'}; ui.confirm='new'; },
+  plogon:()=>{ plogSet(true); plogTabTime(ui.tab); ui.msg={m:'The play log is on. It stays in this browser.',c:'ok'}; }, plogoff:()=>{ plogTabTime(null); plogSet(false); ui.msg={m:'The play log is off. What it holds is kept until you clear it.',c:''}; },
+  plogexp:()=>{ ui.msg=plogDownload()?{m:'Play log downloaded.',c:'ok'}:{m:'This browser would not create the file.',c:'bad'}; }, plogclr:()=>{ if(ui.confirm!=='plc'){ ui.confirm='plc'; return; } ui.confirm=null; plogClear(); ui.msg={m:'The play log is cleared.',c:''}; },
+  newgame:()=>{ if(ui.confirm==='new'){ const n=ngPick(); if(n.mode==='code'){ if(!chDecode(ui.ngcode)){ ui.msg={m:'That challenge code is not valid. Check each letter.',c:'bad'}; return; } ui.confirm=null; newChallenge(ui.ngcode); ui.ngcode=''; } else { ui.confirm=null; newGameMode(n.mode,n.c); } ui.ng=null; OPEN_HELP.on=false; ui.tab='gates'; ui.gsub='open'; ui.exp=''; ui.msg=null; } else ui.confirm='new'; }
 };
 function settled(){ sgTipHide(); if(S&&S.mode==='town') cmdSync(); checkTitles(); try{ loreCheck(); }catch(e){} render(); }   // after an action: award titles and lore passages, then draw
 // the vow warning (game-pantheon.js): the first press says what breaks; the next one goes ahead (ui.vowOk for the rest of the day)
 function vowAsk(k){ if(!vowWarn(k)||ui.vowOk===k+S.day) return false; ui.vowOk=k+S.day; ui.msg={m:k==='raise'?'Raising another body breaks your vow to Morrow (no more than '+MORROW_RAISE+' in a run). Press again to raise anyway.':'Selling a trophy breaks your vow to Ulm. Press again to sell anyway.',c:'bad'}; return true; }
-const CONFIRM_ACTS=['ngmode','ngstep','ascpick','carrypick','release','respec','cross','ending','hforge','newgame','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
+const CONFIRM_ACTS=['ngmode','ngstep','ascpick','carrypick','release','respec','cross','ending','hforge','newgame','ngcode','plogclr','ngp','ngppick','skreset','sellitem','discard','slotsave','slotload','slotdel','loadcode','junk','loadfile','fuse','sjunk','bakload','swear','renounce','selltier','salvtier','repair','losave'];   // two-press actions: a click on these keeps the pending confirm
 document.addEventListener('click',e=>{
   MUSIC.armed=true;
   const b=e.target.closest('[data-a]'); if(!b||b.disabled) return;
@@ -16126,7 +16336,7 @@ document.addEventListener('click',e=>{
   ACTIONS[a]&&ACTIONS[a](b.dataset.k); settled();
 });
 document.addEventListener('toggle',e=>{ const d=e.target; if(d&&d.dataset&&d.dataset.det){ ui.det=ui.det||{}; ui.det[d.dataset.det]=d.open; } },true);   // a folded Details stays open across renders
-document.addEventListener('input',e=>{ if(e.target&&e.target.id==='cxq'){ ui.cxq=e.target.value.slice(0,40); settled(); return; } if(e.target&&e.target.id==='imp') ui.imp=e.target.value; if(e.target&&e.target.id==='rn') ui.rn=e.target.value; if(e.target&&e.target.id==='lrn') ui.lrn=e.target.value; });
+document.addEventListener('input',e=>{ if(e.target&&e.target.id==='cxq'){ ui.cxq=e.target.value.slice(0,40); settled(); return; } if(e.target&&e.target.id==='imp') ui.imp=e.target.value; if(e.target&&e.target.id==='ngcode') ui.ngcode=e.target.value.slice(0,20); if(e.target&&e.target.id==='rn') ui.rn=e.target.value; if(e.target&&e.target.id==='lrn') ui.lrn=e.target.value; });
 document.addEventListener('change',e=>{   // a dropdown with data-a works like a button whose data-k is the chosen value
   const sl=e.target&&e.target.tagName==='SELECT'&&e.target.dataset&&e.target.dataset.a; if(sl&&ACTIONS[sl]){ ACTIONS[sl](e.target.value); settled(); return; }
   // a save file was picked: read it, then ask before loading
@@ -16209,4 +16419,6 @@ document.addEventListener('keydown',e=>{
 })();
 
 applyView(); loadGame(); if(OPEN_HELP.on){ ui.tab='gates'; OPEN_HELP.on=false; } settled();
+plogWrap(ACTIONS);   /* the play log listens to tabs, Codex pages, orders, events and town spending (game-playlog.js) */
+try{ window.addEventListener('pagehide',()=>{ plogTabTime(PLOG_TAB&&PLOG_TAB.k); plogFlush(); }); }catch(e){}
 </script>

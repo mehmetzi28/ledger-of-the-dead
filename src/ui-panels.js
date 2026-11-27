@@ -676,8 +676,39 @@ function recordsHTML(){
    +DUNGEONS.map((D,i)=>{ const o=Rc.fast&&Rc.fast[i]; return row(D.name,o?'<b>'+o.t+' turns</b> <span class="dim">&middot; day '+o.day+(o.heat&&HEAT[o.heat]?' &middot; '+HEAT[o.heat].name:'')+'</span>':'<span class="dim">not yet</span>'); }).join('')+'</div>';
   const sl=SECRET.map((B,i)=>({B,i})).filter(x=>Rc.sec&&Rc.sec[x.i]);
   if(sl.length) h+='<p class="group-h">Secret masters</p><div class="items">'+sl.map(x=>row('<span class="sec-k">&#9760; '+x.B.name+'</span>','<span class="dim">first slain day '+Rc.sec[x.i]+'</span>')).join('')+'</div>';
-  return h+rivalCardHTML()+trialRecHTML()+'</section>';
+  return h+rivalCardHTML()+trialRecHTML()+challengeRecHTML()+plogRecHTML()+'</section>';
 }
+function challengeRecHTML(){   // this game's challenge code and the challenges this browser played (game-playlog.js)
+  const H=chHist(); if(!chOn()&&!H.length) return '';
+  let h='<p class="group-h">Challenge codes</p>'+(chOn()?'<p class="q-note">This game is the challenge <b class="num">'+S.code.c+'</b>. Anyone who starts a new game with this code gets the same valley.</p>':'');
+  if(H.length) h+='<div class="items">'+H.slice(0,8).map(x=>'<div class="tt-row"><div><h4 class="num">'+cleanText(x.c)+'</h4><div class="u-sub">Day '+(x.day|0)+' &middot; Level '+(x.lvl|0)+' &middot; '+(x.gates|0)+' gate'+((x.gates|0)===1?'':'s')+' cleared &middot; Tower '+(x.tower|0)+(x.iron!=null?' &middot; Ironman, '+(x.iron|0)+' fall'+((x.iron|0)===1?'':'s'):'')+'</div></div></div>').join('')+'</div>';
+  return h;
+}
+function plogRecHTML(){   // the play log's switch, export and clear
+  const on=plogOn(), n=plogLoad().runs.filter(e=>e.out).length;
+  return '<p class="group-h">Play log</p><p class="q-note">'+(on?'On. ':'Off. ')+'An optional record of how you play (runs, deaths, choices, time per tab), kept only in this browser and never sent anywhere. '+n+' run'+(n===1?'':'s')+' logged. The Ledger\'s How I play page reads it.</p>'
+   +'<div class="btns"><button class="btn small'+(on?'':' primary')+'" data-a="'+(on?'plogoff':'plogon')+'">'+(on?'Turn the play log off':'Turn the play log on')+'</button>'+(n?'<button class="btn small" data-a="plogexp">Export play log</button><button class="btn small warn" data-a="plogclr">'+(ui.confirm==='plc'?'Press again to clear it':'Clear the play log')+'</button>':'')+'</div>';
+}
+function playHTML(){   // How I play: the play log, read back
+  let h='<section class="win" aria-labelledby="h-play"><h2 class="win-h" id="h-play">How I play</h2><h3 class="win-title">What the play log saw</h3>';
+  if(!plogOn()&&!plogLoad().runs.length) return h+'<p class="lede">The play log is off. Turn it on to see where you fall, what you choose and what you never open. It stays in this browser.</p><div class="btns"><button class="btn small primary" data-a="plogon">Turn the play log on</button></div></section>';
+  const st=plogStats(), row=(t,v)=>'<div class="tt-row"><div><h4>'+t+'</h4></div><div class="rec-v">'+v+'</div></div>', mins=ms=>Math.max(1,Math.round(ms/60000))+' min';
+  if(!st.runs) return h+'<p class="lede">Nothing logged yet. Finish a run and come back.</p>'+plogRecHTML()+'</section>';
+  h+='<div class="items">'+row('Runs logged','<b>'+st.runs+'</b> <span class="dim">&middot; '+st.clears+' cleared, '+st.dn+' fallen</span>')+row('Time a run','<b>'+mins(st.ms)+'</b> <span class="dim">of play, idle minutes left out</span>')
+   +(st.gn?row('Gate clears','<b>'+Math.round(st.gClr)+'%</b> <span class="dim">&middot; the bot clears '+Math.round(st.botClr)+'% at the same gates</span>'):'')
+   +(st.rooms?row('Actions a fight','<b>'+st.apr.toFixed(1)+'</b> <span class="dim">&middot; the bot takes '+st.bpr.toFixed(1)+'</span>'):'')+'</div>';
+  const D=Object.entries(st.deaths).sort((a,b)=>b[1]-a[1]);
+  h+='<p class="group-h">Deaths by cause</p>'+(D.length?'<div class="items">'+D.slice(0,8).map(([k,n])=>row(cleanText(k),'<b>'+n+'</b>')).join('')+'</div>'+(st.unseen?'<p class="q-note">'+st.unseen+' of '+st.dn+' killing blows came from a foe whose card showed no intent.</p>':''):'<p class="lede">None. Nothing has felled you while the log was on.</p>');
+  if(st.picks) h+='<p class="group-h">Doors chosen</p><div class="items">'+Object.entries(st.doors).sort((a,b)=>b[1]-a[1]).map(([k,n])=>row(cleanText(DOOR_NAMES[k]||k),'<b>'+Math.round(n/st.picks*100)+'%</b> <span class="dim">&middot; '+n+'</span>')).join('')+'</div>';
+  const T=Object.entries(st.tab).filter(x=>x[1]>=1000).sort((a,b)=>b[1]-a[1]);
+  if(T.length) h+='<p class="group-h">Time by tab</p><div class="items">'+T.slice(0,8).map(([k,ms])=>row(cleanText(PLOG_TAB_NAMES[k]||k),'<b>'+mins(ms)+'</b>')).join('')+'</div>';
+  const nv=plogNever();
+  const sp=a=>a.map(x=>'<span>'+cleanText(x)+'</span>').join(', ');
+  h+='<p class="group-h">Never opened</p><div class="items">'+row('Tabs',nv.tabs.length?sp(nv.tabs.map(k=>PLOG_TAB_NAMES[k]||k)):'<span class="dim">Every tab</span>')+row('Codex pages',nv.cx.length?'<span>'+nv.cx.length+' of '+CODEX.length+' Codex pages</span>':'<span class="dim">Every Codex page</span>')+(townOpen()?row('Buildings never built',nv.bld.length?sp(nv.bld.map(k=>BUILD[k].name)):'<span class="dim">None</span>'):'')+'</div>';
+  return h+plogRecHTML()+'</section>';
+}
+const DOOR_NAMES={fight:'Fight',elite:'Bloodied arch (elite)',rest:'Rest',treasure:'Treasure',nem:'Sigil door (nemesis)',boss:'Boss',script:'Scriptorium',floor:'Tower floor'};
+const PLOG_TAB_NAMES={gates:'Gates',tower:'Hell Tower',gear:'Gear',market:'Market',army:'Army',town:'Town',skills:'Skills',titles:'Titles',lore:'Lore',codex:'Codex',bes:'Bestiary',hist:'History',rec:'Records',mem:'Memorial',help:'How to play',play:'How I play',settings:'Settings'};
 const MEM_SHOW=30;
 function memorialHTML(){   // the fallen, newest first, in a muted hand; honouring one is a town action, once a day
   const M=S.memorial||[], town=S.mode==='town', list=ui.memAll?M:M.slice(0,MEM_SHOW);
@@ -778,5 +809,13 @@ function ngModesHTML(){   // the mode cards and, for Custom, the sliders as step
   return '<p class="group-h">Mode</p><div class="chips ng-modes">'+Object.keys(NG_MODES).map(k=>'<button class="btn small'+(n.mode===k?' primary':'')+'" data-a="ngmode" data-k="'+k+'" aria-pressed="'+(n.mode===k)+'">'+NG_MODES[k].name+'</button>').join('')+'</div><p class="u-sub">'+NG_MODES[n.mode].desc+'</p>'
    +(n.mode==='custom'||CUSTOM_PRESETS[n.mode]?'<div class="items ng-custom">'+CUSTOM_IDS.map(k=>{ const K=CUSTOM_KEYS[k], v=n.c[k];
       return '<div class="tt-row"><div><h4>'+K[3]+'</h4><div class="u-sub num">'+(k==='siege'&&!v?'Off':v+'%')+'</div></div><div class="btns" style="margin:0"><button class="btn small" data-a="ngstep" data-k="'+k+'|-1"'+(v<=K[0]?' disabled':'')+' aria-label="Less">&minus;</button><button class="btn small" data-a="ngstep" data-k="'+k+'|1"'+(v>=K[1]?' disabled':'')+' aria-label="More">+</button></div></div>'; }).join('')+'</div>'
-     +(custEasy(n.c)?'<p class="q-note bad">Custom: this game will earn no titles.</p>':''):'');
+     +(custEasy(n.c)?'<p class="q-note bad">Custom: this game will earn no titles.</p>':''):'')
+   +(n.mode==='code'?ngCodeHTML():'');
 }
+function ngCodeHTML(){   // a challenge code: typed, pasted or made at random (game-playlog.js)
+  const d=chDecode(ui.ngcode);
+  return '<div class="ng-code"><input id="ngcode" class="codebox" maxlength="20" autocomplete="off" spellcheck="false" placeholder="Type or paste a code, such as 1A2B3C-4D5E" aria-label="Challenge code" value="'+cleanText(ui.ngcode||'')+'">'
+   +'<div class="btns"><button class="btn small" data-a="ngcode" data-k="normal">New random code</button><button class="btn small" data-a="ngcode" data-k="iron">New random Ironman code</button></div>'
+   +(ui.ngcode?(d?'<p class="u-sub ok">Rules: '+chRulesText(d)+'.</p>':'<p class="u-sub bad">Not a valid code yet.</p>'):'')+'</div>';
+}
+const chRulesText=d=>{ const t=[d.iron?'Ironman':'Normal']; if(!custNorm(d.c)) t.push(CUSTOM_IDS.filter(k=>d.c[k]!==100).map(k=>CUSTOM_KEYS[k][3]+' '+(k==='siege'&&!d.c[k]?'off':d.c[k]+'%')).join(', ')+(custEasy(d.c)?' (Custom: no titles)':'')); return t.join(', '); };

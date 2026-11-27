@@ -157,9 +157,9 @@ const STOCK_N=4;
 function shopStock(){   // four pieces of gear from your highest unlocked gate (and the one below); new every day and whenever a gate unlocks
   let g=0; for(let i=0;i<GATE_N;i++) if(S.player.lvl>=RK[i].unlock) g=i;
   if(!S.shop||S.shop.day!==S.day||S.shop.g!==g){
-    const pool=Object.values(ITEM).filter(d=>!d.uq&&d.set<=g&&d.set>=g-1), ids=[];
+    chSeeded(()=>{ const pool=Object.values(ITEM).filter(d=>!d.uq&&d.set<=g&&d.set>=g-1), ids=[];   /* a challenge code's stock (game-playlog.js) */
     while(ids.length<Math.min(ascStock(),pool.length)){ const d=pick(pool); if(!ids.includes(d.id)) ids.push(d.id); }
-    S.shop={day:S.day,g,stock:ids.map(id=>{ const s={id,sold:false}, ro=rollItem(id); if(ro) s.ro=ro; return s; })};   // rolls are shown before you buy
+    S.shop={day:S.day,g,stock:ids.map(id=>{ const s={id,sold:false}, ro=rollItem(id); if(ro) s.ro=ro; return s; })}; },CH_SYS.shop,S.day,g);   // rolls are shown before you buy
   }
   return S.shop.stock;
 }
