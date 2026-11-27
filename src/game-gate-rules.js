@@ -41,7 +41,7 @@ function summonAdd(e,kind,role){   // kind: a set kind of foe (Court Summons, Br
 }
 function setKind(a,kind){ for(const D of DUNGEONS){ const t=D.mobs.find(m=>m[0]===kind); if(!t) continue; const s=mobStats(a.rankI,a.lvl,t[2],t[3],false,a.elite); a.name=(a.elite?a.name.split(' ')[0]+' ':'')+t[0]; a.base=t[0]; a.role=t[1]; a.hf=t[2]; a.af=t[3]; a.maxHp=a.hp=s.hp; a.atk=s.atk; return a; } return a; }
 function fireAbility(e,mv){
-  mv=mv||e.abil; const r=S.run, P=S.player, A=BOSS_ABIL[mv], foes=liveFoes();
+  mv=mv||e.abil; if(wardStone(e,mv)) return; const r=S.run, P=S.player, A=BOSS_ABIL[mv], foes=liveFoes();   /* the Ward stones (game-siege2.js) */
   if(mv==='swarm'){ const got=[summonAdd(e),summonAdd(e)].concat(e.twist==='crown'?[summonAdd(e)]:[]).filter(Boolean); if(e.twist==='crown') got.forEach(a=>{ a.kitO='pack'; }); log(got.length?e.name+' uses '+A.name+': '+got.map(x=>x.name).join(' and ')+' join the fight.':e.name+' calls, but nothing more answers.','bad'); }
   else if(mv==='bonewall'){ foes.forEach(f=>{ f.shield=Math.min(Math.round(f.maxHp*.4),(f.shield||0)+Math.round(f.maxHp*.2)); fxe('ward',f); }); log(e.name+' raises a Bone Wall. Every foe is shielded.','bad'); }
   else if(mv==='cinder'){

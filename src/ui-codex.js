@@ -498,5 +498,8 @@ function siegeTiersCx(){
    +'<p class="group-h">Walls</p>'+cxP('On the night of a siege, before the first wave, choose the wall you hold. The Graveyard is the usual fight.')
    +cxList(ROAD_IDS.map(k=>cxRow(ROADS[k].name,ROADS[k].desc)))
    +'<p class="group-h">The living by tier</p>'+cxList(Object.keys(SIEGE2_FOES).map(k=>{ const F=SIEGE2_FOES[k], kt=KIT_OF[F[0]]; return cxRow(F[0],ROLES[F[1]].label+(kt?'. '+KITS[kt].name+': '+KITS[kt].rule:''),'Tier '+(STIER_WAVES.findIndex(W=>W&&W.some(w=>w.some(x=>x.replace('*','')===k)))+1)); }))
+   +'<p class="group-h">Siege works</p>'+cxP('Built once on the Town tab with gold and bone dust; each serves every siege after.')+cxList(WORK_IDS.map(k=>cxRow(WORKS[k].name+(worksOwn(k)?' (built)':''),WORKS[k].desc,WORKS[k].g+' gold'+(WORKS[k].d?', '+WORKS[k].d+' dust':''))))
+   +'<p class="group-h">The Inquisition</p>'+cxP('Reaching tier '+STIER_MAX+' makes the next siege the Purge: the Grand Inquisitor, five waves, every wall at once, whatever the dread. Break it and the Inquisition sues for peace: no siege for '+PEACE_DAYS+' days, the town falls Calm, and the Grand Inquisitor\'s heart goes to the Forge; the sieges restart at tier '+PURGE_RESET+'. Lose it and the tier falls to '+PURGE_RESET+'; the Purge comes again at tier '+STIER_MAX+'.')
+   +cxList(SIEGE_ARC.filter(a=>(sg().arc|0)>=a.t-1).map(a=>cxRow(a.name,a.m,'Tier '+a.t)))+(sg().purge?cxP('Purges broken: '+sg().purge.won+'.'):'')
    +(STIERS_ON&&T_('sieges')?cxP('Your sieges stand at tier '+stierRaw()+(siegeTier()!==stierRaw()?' (tier '+siegeTier()+' with the town\'s dread)':'')+'.'):'');
 }

@@ -1229,6 +1229,11 @@ details.brief>summary .more-l,details.brief>summary .more-h{margin-left:0}detail
 /* R10 PR B: the rewritten gate's seal, a second kit (Kits Plus) */
 .rw-line .rw-tag{color:#c9a3ff}
 .kit.kit2{border-style:dashed}
+/* R14: siege planning, works */
+.siege-plan{border-left:2px solid #7a4a1e;padding:2px 0 4px 10px;margin:6px 0}
+.siege-waves{margin:4px 0 6px 18px;padding:0;font-size:12.5px;line-height:1.5}
+.siege-works .tt-row h4 .ok{font-weight:400}
+.siege-tier,.siege-peace{margin:4px 0}
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
@@ -2188,6 +2193,11 @@ const masteredN=ids=>allNames().filter(n=>{ const t=masteryOf(n); return !!t&&id
  ['a_keeper','Deeds','The Last Keeper','Close the book: write your own name on the last page.',()=>endedAs('closed'),{hpp:4,drp:2}],
  ['a_hand','Deeds','The Hand That Writes','Keep writing: turn the last page and go on.',()=>endedAs('kept'),{dmgp:4,mpow:4}],
  ['a_both','Deeds','Both Endings','End one cycle each way.',()=>endedAs('closed')&&endedAs('kept'),{xpp:5,goldp:5}],
+ ['s_unburnt','Deeds','The Unburnt','Break the Inquisition\'s Purge.',()=>T_('purgeWon')>0,{drp:3,hpp:3}],
+ ['s_road','Deeds','Holding the Road','Hold 10 sieges on the North road.',()=>T_('roadNorth')>=10,{dmgp:3}],
+ ['s_tiers','Deeds','Ten Tiers','Bring the sieges to tier 5 twice.',()=>T_('stier5')>=2,{goldp:4}],
+ ['s_pyre','Deeds','Pyre-Proof','Hold a siege of tier 4 or higher without a minion of yours down at the end.',()=>T_('pyreProof')>0,{mpow:3}],
+ ['s_works','Deeds','Every Work Built','Build all five siege works.',()=>WORK_IDS.every(k=>worksOwn(k)),{goldp:3}],
 ].forEach(a=>TITLES.push({id:a[0],grp:a[1],name:a[2],req:a[3],ok:a[4],b:a[5]}));
 { const t=TITLES.find(x=>x.id==='x_eclipse'), u=TITLES.find(x=>x.id==='x_ftr'); Object.defineProperty(t,'req',{enumerable:true,get:()=>OMENS.eclipse?'Win 5 runs under the Eclipse.':'Win 15 runs under an omen.'}); Object.defineProperty(u,'req',{enumerable:true,get:()=>'Fuse a minion that carries '+FUSE_TRAITS+' traits.'}); }   // read when shown: OMENS and FUSE_TRAITS are defined further on
 // ----- title bonuses. Small, and only the title you wear counts. Stat keys add like gear; the rest are percentages.
@@ -2219,7 +2229,7 @@ function tally(k,n){ S.ti=S.ti||{}; S.ti[k]=(S.ti[k]||0)+(n==null?1:n); }   // d
 // rarer ones stay hidden ("???") until earned. Rarity follows how hard a title is: bot runs measured the reachable ones,
 // and deeds the bots skip (events, forging) were judged by hand.
 const TITLE_RARITY={hd1:1,hd2:2,nm0:3,nm1:3,nm2:3,nm3:4,nm4:4,nm5:5,dm3:5,sb0:5,sb1:5,sb2:5,sb3:5,sb4:5,sb5:5,g0:0,g1:0,d_raise1:0,d_kill100:0,d_death:0,d_armed1:0,d_lv10:0,d_study:0,s_venom:0,f_crit:0,d_tower1:0,d_quest7:0,d_army:0,g2:1,t10:1,t20:1,d_raise50:1,d_cancel:1,d_evolve:1,d_uq:1,d_gold:1,m0:1,m1:1,c_drought:1,c_fury:1,c_bulwark:1,c_horde:1,c_volatile:1,p_25:1,k_spear:1,k_blast:1,k_chill:1,g_items:1,g_sold:1,f_flawless:1,f_last:1,a_boss:1,e_strag:1,e_pedlar:1,e_trap:1,d_death10:1,g3:2,g4:2,t30:2,t40:2,t50:2,d_kill1000:2,d_lv25:2,d_raise200:2,d_tower50:2,d_cancel10:2,d_trophy500:2,d_altar:2,d_elder:2,m2:2,m3:2,d_armed3:2,d_master:2,d_bag:2,c_25:2,e_shrine:2,e_coffer:2,s_poison:2,s_cure:2,k_reap:2,k_master3:2,k_all:2,f_boss25:2,f_elite100:2,g_gold:2,g_roll3:2,a_traits:2,a_elders:2,e_day100:2,e_runs100:2,g_reforge:2,g5:3,t60:3,t70:3,m4:3,m5:3,tw75:3,d_lv50:3,p_100:3,f_crit1000:3,e_rooms1000:3,twruns:3,d_ngp:3,d_tower110:3,t80:4,t90:4,t100:4,d_kill5000:4,d_all:4,d_tower150:4,a_raise500:4,e_lv75:4,tw200:5,d_ngp3:5,d_tuq:5,a_ancient:3,a_eternal:4,a_raid1:1,a_raid25:3,r_5:3,r_15:4,r_30:5};
-Object.assign(TITLE_RARITY,{c_five:4,c_paid:3,nm_1:2,nm_5:3,nm_15:4,nm_old:4,x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,as_3:3,as_6:4,as_10:5,as_all:5,as_rw:4,b_haul:2,b_five:3,b_runes:4,b_sgn:3,ar_charmed:4,ar_hundred:2,ar_tennames:5,ar_witch:4,ar_roles:4,ar_order:3,r_six:4,r_sigil3:4,r_weekly:3,r_attuned:3,r_half:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
+Object.assign(TITLE_RARITY,{s_unburnt:5,s_road:3,s_tiers:4,s_pyre:3,s_works:3,c_five:4,c_paid:3,nm_1:2,nm_5:3,nm_15:4,nm_old:4,x_long:2,x_hunt:3,x_clean:3,x_rally:3,r_stakes:3,r_reclaim:3,r_end:4,r_spare:4,r_clean:5,f_hon:4,f_vesh:4,f_ulm:4,f_choir:4,f_dis:4,f_godless:4,f_turncoat:3,f_weather:4,as_3:3,as_6:4,as_10:5,as_all:5,as_rw:4,b_haul:2,b_five:3,b_runes:4,b_sgn:3,ar_charmed:4,ar_hundred:2,ar_tennames:5,ar_witch:4,ar_roles:4,ar_order:3,r_six:4,r_sigil3:4,r_weekly:3,r_attuned:3,r_half:3,a_keeper:4,a_hand:4,a_both:5,a_river:3,a_script:2,a_echo:4,a_unwritten:5,a_seven:4,b_ub0:2,b_ub1:2,b_ub2:2,b_ub3:3,b_ub4:3,b_ub5:3,b_ten:4,k_reader:2,k_weak:2,k_defuse:2,k_gcbane:2,x_clr100:2,x_allgates:2,x_swift:2,x_flaw10:3,x_streak10:2,x_tw10:2,x_floors500:2,x_abyss:5,x_rift25:2,x_rift50:3,x_riftfast:3,x_fuse10:1,x_ftr:3,x_mlv50:2,x_omen1:1,x_omen25:2,x_omenall:3,x_eclipse:3,x_mastered25:2,x_ledger10:3,x_relics:3,x_hoard:2,x_titles50:2,x_titles100:4});
 const RARITY_MUL=[1,1,1.25,1.5,2,3], HIDDEN_FROM=3;
 TITLES.forEach(t=>{ t.r=TITLE_RARITY[t.id]!=null?TITLE_RARITY[t.id]:1; const m=RARITY_MUL[t.r]; for(const k in t.b) t.b[k]=Math.max(t.b[k],Math.round(t.b[k]*m)); });
 const titleHidden=t=>t.r>=HIDDEN_FROM&&!(S&&S.ti&&S.ti.got&&S.ti.got[t.id]);
@@ -3302,7 +3312,7 @@ function summonAdd(e,kind,role){   // kind: a set kind of foe (Court Summons, Br
 }
 function setKind(a,kind){ for(const D of DUNGEONS){ const t=D.mobs.find(m=>m[0]===kind); if(!t) continue; const s=mobStats(a.rankI,a.lvl,t[2],t[3],false,a.elite); a.name=(a.elite?a.name.split(' ')[0]+' ':'')+t[0]; a.base=t[0]; a.role=t[1]; a.hf=t[2]; a.af=t[3]; a.maxHp=a.hp=s.hp; a.atk=s.atk; return a; } return a; }
 function fireAbility(e,mv){
-  mv=mv||e.abil; const r=S.run, P=S.player, A=BOSS_ABIL[mv], foes=liveFoes();
+  mv=mv||e.abil; if(wardStone(e,mv)) return; const r=S.run, P=S.player, A=BOSS_ABIL[mv], foes=liveFoes();   /* the Ward stones (game-siege2.js) */
   if(mv==='swarm'){ const got=[summonAdd(e),summonAdd(e)].concat(e.twist==='crown'?[summonAdd(e)]:[]).filter(Boolean); if(e.twist==='crown') got.forEach(a=>{ a.kitO='pack'; }); log(got.length?e.name+' uses '+A.name+': '+got.map(x=>x.name).join(' and ')+' join the fight.':e.name+' calls, but nothing more answers.','bad'); }
   else if(mv==='bonewall'){ foes.forEach(f=>{ f.shield=Math.min(Math.round(f.maxHp*.4),(f.shield||0)+Math.round(f.maxHp*.2)); fxe('ward',f); }); log(e.name+' raises a Bone Wall. Every foe is shielded.','bad'); }
   else if(mv==='cinder'){
@@ -5247,6 +5257,7 @@ const siegeLvl=()=>Math.max(1,S.player.lvl-SIEGE_LV);
 function siegeGap(){ let a=(Math.imul(S.day+1,2654435761)^Math.imul(T_('sieges')+7,40503)^Math.imul((S.ngp||0)+3,97))>>>0; a^=a>>>15; a=Math.imul(a,2246822519)>>>0; a=(a^(a>>>13))>>>0; const G=dreadGap(); return G[0]+a%(G[1]-G[0]+1); }   /* the town's dread sets the gap (game-dread.js) */   // a hash of the day: Math.random is never touched
 function siegeTick(){   // dawn, load and building: schedule the next siege, and warn the dawn before it
   if(!S||!siegeOpen()) return; const g=sg();
+  if(siegePeace()){ if(g.next&&!g.pending) g.next=0; return; }   /* the Inquisition's peace (game-siege2.js) */
   if(!g.next||g.next<S.day) g.next=S.day+siegeGap();
   if(S.day>=g.next-1-bellAhead()&&S.day<g.next&&!(g.warned>=g.next-1-bellAhead())){   /* the Bell Tower warns earlier (game-town2.js) */ g.warned=S.day; tally('siegeWarned'); notify('The living march on the necropolis tomorrow at dusk. When the day ends they will be at the walls. The Codex has a page on sieges.','bad'); }
 }
@@ -5300,10 +5311,10 @@ function nextWave(){   // between waves: the usual between-room heal, then the n
 const siegeGoldPay=()=>{ const di=siegeGate(), lv=RK[di].lv+1; return Math.round(SIEGE_GOLD*20*(1+lv*.5)*(1+di*.5)*ngpReward()*siegePayK()*ascSiege()*siegePay2()); };   /* tier and wall (game-siege2.js) */   /* the War Room, the Belfry */   // a clear is about 20 kills' worth of coin at the gate's level
 function siegeWon(r){   // the last wave falls: pay, and the raise screen for its bodies
   const di=r.di, g=siegeGoldPay(), d=Math.round(SIEGE_DUST*(6+Math.floor(S.player.lvl/4))*(1+BOUNTY_GATE*di)*siegeDustK()); r.cleared=true; S.quest.clears++;
-  S.gold+=g; S.dust=(S.dust||0)+d; tally('sieges'); tally('siegeWins'); stierMove(true); sg().pending=false; sg().next=0;   /* settled: a reload from the raise screen does not fight it again */
+  S.gold+=g; S.dust=(S.dust||0)+d; tally('sieges'); tally('siegeWins'); sg().pending=false; sg().next=0;   /* settled: a reload from the raise screen does not fight it again */
   const id=pickNorm(tableFor(di,'reaper',true,false).filter(x=>!ITEM[x.id].uq&&(ROLL_LINES[ITEM[x.id].tier]||[0])[0]>0)), it=addItem(id,rollItem(id,true));   /* a tier that can carry a bonus line */
   if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name);
-  r.siegePay={g,d,item:it?ITEM[id].name:null}; townSiegeWon(r); if(r.rivalSiege) rivalSiegeWon(r);   /* the Embalmery keeps a body */
+  r.siegePay={g,d,item:it?ITEM[id].name:null}; townSiegeWon(r); stierMove(true);   /* after the dread falls: the Purge's peace sets it (game-siege2.js) */ if(r.rivalSiege) rivalSiegeWon(r);   /* the Embalmery keeps a body */
   r.events.push({m:'The living break and run. The town will remember this night. +'+g+' gold, +'+d+' bone dust'+(it?' and '+withArticle(ITEM[id].name)+' from the dead':'')+'.',c:'ok'});
   if(sg().guard&&BUILD[sg().guard]) r.events.push({m:'The '+BUILD[sg().guard].name+' stood under your guard all night.',c:'ok'});
   moment('The necropolis holds','gold'); return Math.round(RK[di].clear*SIEGE_XP);
@@ -5953,7 +5964,7 @@ function hfInfo0(boss){
   if(gi>=0) return {boss,set:gi,m:TM[gi],gold:2000*(gi+1),dust:10*(gi+1),n:2};
   if(tw>=0){ const f=(tw+1)*10; return {boss,set:5,m:TM[5]*(1+HF_TW_K*f),gold:6000+200*f/10,dust:40,n:2,floor:f}; }
   if(si>=0) return {boss,set:5,m:TM[5],gold:20000,dust:80,n:3,pw:powOf(boss)};
-  return null;
+  return hfInfoX(boss);   /* the Grand Inquisitor's heart (game-siege2.js) */
 }
 const hfKey=boss=>'b:'+boss;
 const hfLinesFor=(boss,slot)=>(HF_LINES[boss]||[]).filter(k=>!ROLL_SLOT[k]||ROLL_SLOT[k].includes(slot));
@@ -6261,7 +6272,7 @@ Object.assign(SIEGE_PERK,{
 function townSiegeWave(list,r){   // spawnSiege, after scaling
   const hpK=(1-SIEGE_BELL*sbl('bell')), atkK=hasSpec('bell',3,'a')?.95:1;
   dreadWave(list,r); for(const e of list){ let k=hpK; if(e.boss) k*=(1-SIEGE_LIB*sbl('library'))*(hasSpec('bell',5,'b')?.85:1); if(k!==1){ e.maxHp=e.hp=Math.max(1,Math.round(e.maxHp*k)); } if(atkK!==1) e.atk=Math.max(1,Math.round(e.atk*atkK)); }
-  bellDefense(list,r); godSiegeWave(list,r); if(r.room&&sbl('apoth')){ const P=S.player, h=healAlly(P,Math.round(pMax()*SIEGE_APO*sbl('apoth'))); if(h) log('The Apothecary\'s salves: +'+h+' HP.','ok'); }
+  bellDefense(list,r); worksWave(list,r); godSiegeWave(list,r);   /* siege works (game-siege2.js) */ if(r.room&&sbl('apoth')){ const P=S.player, h=healAlly(P,Math.round(pMax()*SIEGE_APO*sbl('apoth'))); if(h) log('The Apothecary\'s salves: +'+h+' HP.','ok'); }
 }
 const siegePayK=()=>(1+SIEGE_WAR*sbl('war'))*(hasSpec('bell',3,'b')?1.2:1)*dreadPayK()*godPayK();   // siegeGoldPay (the Choir: game-pantheon.js)
 const siegeDustK=()=>hasSpec('bell',5,'a')?2:1;   // siegeWon
@@ -7801,17 +7812,18 @@ Object.assign(PHASE_LINES,{'The Grand Inquisitor':'Templars, to me! I absolve yo
 // ----- the tier
 const stierRaw=()=>{ const t=sg().tier; return Number.isInteger(t)&&t>=1&&t<=STIER_MAX?t:1; };
 const stierShift=()=>{ const b=dreadBand().id; return b==='calm'?-1:b==='terror'?1:0; };
-const siegeTier=()=>!STIERS_ON?1:clamp(stierRaw()+stierShift(),1,STIER_MAX);   // the tier tonight's siege is fought at
+const siegeTier=()=>!STIERS_ON?1:sg().pd?STIER_MAX:clamp(stierRaw()+stierShift(),1,STIER_MAX);   /* the Purge: tier 5 whatever the dread */   // the tier tonight's siege is fought at
 const runTier=()=>S.run&&S.run.siege&&S.run.tier?S.run.tier:1;
 const siegeRooms=t=>{ t=t||siegeTier(); return t<=1?SIEGE_WAVES:STIER_WAVES[t-1].length; };
 const siegeBossName=t=>SIEGE_BOSSES[STIER_BOSS[(t||runTier())-1]]||SIEGE_BOSS;
-const siegeRoad=()=>{ const r=S.run; if(r&&r.siege&&ROADS[r.road]) return r.road; return ROADS[sg().road]?sg().road:'grave'; };
-function siegeRoadPick(k){ if(S.mode!=='siege'||!ROADS[k]) return false; if(k==='grave') delete sg().road; else sg().road=k; return true; }   // the intro screen
+const siegeRoad=()=>{ const r=S.run; if(r&&r.siege&&ROADS[r.road]) return r.road; if(STIERS_ON&&sg().pd) return 'all'; return ROADS[sg().road]&&sg().road!=='all'?sg().road:'grave'; };
+function siegeRoadPick(k){ if(!(S.mode==='siege'||(S.mode==='town'&&siegeWarned()))||!ROAD_IDS.includes(k)||siegeRoad()==='all') return false; if(k==='grave') delete sg().road; else sg().road=k; return true; }   // the intro screen
 const siegePay2=()=>{ const r=S.run&&S.run.siege?S.run:null; return STIER_PAY[(r?r.tier||1:siegeTier())-1]*ROADS[siegeRoad()].pay; };   // siegeGoldPay (the wall: tonight's pick, or the Graveyard)
 function stierMove(won){   // siegeWon / siegeLost: the tier climbs after two held in a row, falls after a loss
-  if(!STIERS_ON) return; const g=sg(), t=stierRaw();
+  if(!STIERS_ON) return; const g=sg(), t=stierRaw(), r=S.run&&S.run.siege?S.run:null; siegeDeeds(r,won);
+  if(r&&r.purge){ purgeEnd(won); return; }
   if(won){ const s=(g.streak|0)+1; if(s>=STIER_UP&&t<STIER_MAX){ g.tier=t+1; g.streak=0; tally('stierUp'); if(g.tier>(T_('stierTop')|0)) S.ti.stierTop=g.tier;
-      notify('The Inquisition takes your measure: the next sieges come at tier '+g.tier+', '+STIERS[g.tier-1].name+'. '+STIERS[g.tier-1].rule,'bad'); }
+      notify('The Inquisition takes your measure: the next sieges come at tier '+g.tier+', '+STIERS[g.tier-1].name+'. '+STIERS[g.tier-1].rule,'bad'); stierAfter(g,t); }
     else g.streak=s; return; }
   if(g.streak) g.streak=0; if(t>1){ g.tier=t-1; notify('The living think you broken: sieges fall back to tier '+g.tier+', '+STIERS[g.tier-1].name+'.','ok'); }
 }
@@ -7831,7 +7843,7 @@ function siegeFoe2(tok,lvl,di,t){   // one of the living from a wave token
 }
 function siegeWaveList(r,lvl,di){   // spawnSiege: the wave for this tier and wall
   const t=r.tier||1, W=t<=1?SIEGE_WAVE:STIER_WAVES[t-1], toks=(W[r.room]||W[W.length-1]).slice(), road=r.road;
-  if(road==='north'&&toks.length<5) toks.push('vanguard');
+  if((road==='north'||road==='all')&&toks.length<5) toks.push('vanguard');
   if(road==='river'&&toks.length>2) toks.pop();
   const list=toks.map(k=>siegeFoe2(road==='river'&&k!=='boss'&&!k.endsWith('*')&&k!=='reaper'?k+'*':k,lvl,di,t));
   const K=STIER_K[t-1]; if(K!==1) for(const e of list){ e.maxHp=e.hp=Math.max(1,Math.round(e.maxHp*K)); e.atk=Math.max(1,Math.round(e.atk*K)); }
@@ -7839,6 +7851,7 @@ function siegeWaveList(r,lvl,di){   // spawnSiege: the wave for this tier and wa
   return list;
 }
 function siegeBegin2(r){   // beginSiege: tonight's tier, wall and burnt perk
+  if(STIERS_ON&&sg().pd){ r.purge=1; log('The Purge: the Grand Inquisitor comes at every wall at once.','bad'); }
   r.tier=siegeTier(); r.road=siegeRoad(); r.rooms=siegeRooms(r.tier); const b=siegeBurnPick(r.tier); if(b) r.burnt=b;
   if(r.tier>1) log('Tier '+r.tier+': '+STIERS[r.tier-1].name+'. '+STIERS[r.tier-1].rule,'bad');
   if(r.road!=='grave') log('You hold the '+ROADS[r.road].name+'. '+ROADS[r.road].desc,'ok');
@@ -7876,7 +7889,76 @@ const siegeRoleOf=n=>{ if(SIEGE_BOSSES.includes(n)) return 'reaper'; const a=Obj
 function stierFix(g,q){   // normalizeSave: tier and streak only when the save has them; tonight's wall while pending
   if('tier' in q) g.tier=clamp(Math.floor(num(q.tier,1)),1,STIER_MAX);
   if('streak' in q) g.streak=clamp(Math.floor(num(q.streak,0)),0,STIER_UP-1);
-  if(g.pending&&ROADS[q.road]&&q.road!=='grave') g.road=q.road;
+  if(g.pending&&ROAD_IDS.includes(q.road)&&q.road!=='grave') g.road=q.road;
+  stierFix2(g,q);
+}
+
+// ===== R14 PR B: SIEGE WORKS, THE INQUISITION'S ARC, THE PURGE AND THE PEACE =====
+// Siege works are built once in town (gold and bone dust) and serve every siege after (S.siege.works = {k:1}). The arc: a
+// passage the first time the tier reaches 2, 3, 4 and 5 (S.siege.arc, the last read). Reaching tier 5 makes the next siege
+// The Purge (S.siege.pd): tier 5 whatever the dread, every wall at once (no choice, one more foe a wave, no wall pay). Win it:
+// the Inquisition sues for peace (S.siege.peace = {until}: no siege for PEACE_DAYS), the town falls Calm, the Grand Inquisitor's
+// heart ('b:The Inquisition', forged at the Forge), and the tier restarts at 3. Lose it: the tier falls to 3, and the Purge
+// comes again on reaching tier 5. S.siege.purge = {won, day}: the Purges won and the last day.
+const PEACE_DAYS=20, PEACE_DREAD=10, PURGE_RESET=3, CATAPULT_K=.08, PALISADE_K=.15, OIL_K=.15, CALTROP_K=.04, WARD_BLOCK=['decree','hymn','verse','nothing'];
+const WORKS={
+  caltrops:{name:'Caltrop field',  g:800, d:0, desc:'Every attacker in the first wave bleeds for 4% of its max HP a turn for 3 turns.'},
+  oil:     {name:'Oil cauldron',   g:1500,d:10,desc:'The first wave\'s front row is scalded for 15% of its max HP as fire.'},
+  palisade:{name:'Bone palisade',  g:2000,d:20,desc:'At the start of every wave your front-row minions gain a Bone Shield worth 15% of their max HP.'},
+  catapult:{name:'Corpse catapult',g:3000,d:30,desc:'From the second wave, a fallen attacker is flung back over the wall: every attacker takes 8% of its max HP.'},
+  wards:   {name:'Ward stones',    g:5000,d:50,desc:'Once a wave, a Royal Decree, Hymn of Silence, Verse of Binding or Decree of Nothing breaks on the stones.'}
+};
+const WORK_IDS=Object.keys(WORKS);
+ROADS.all={name:'Every wall',pay:1,desc:'The Purge comes at every wall at once: one more foe in every wave, and no wall to choose.'};
+const SIEGE_ARC=[
+  {t:2,name:'Templars on the road',m:'Steel on the hill road at dawn: Templars, riding under the Church\'s white banner. The militia step aside for them. Someone in the town has written to the Inquisition, and the Inquisition has written back.'},
+  {t:3,name:'An Inquisitor\'s letter',m:'A letter nailed to your gate, sealed in red wax: "To the keeper of the book. You are named. Your dead are named. The Witchfinder General comes to read your names aloud, and burn them one by one."'},
+  {t:4,name:'The pyres in the valley',m:'The valley smells of smoke. They are burning the old graveyards before you can reach them, and singing as they do it. A Saint walks at the head of the crusade, and the fire does not touch her.'},
+  {t:5,name:'The last crusade',m:'Every bell in the valley rings at once. The Grand Inquisitor has come himself, with every Templar the Church could spare. This is not a siege. It is a Purge, and it means to end at your door.'}
+];
+const worksOwn=k=>!!(sg().works&&sg().works[k]);
+const workCan=k=>!!WORKS[k]&&S.mode==='town'&&siegeOpen()&&!worksOwn(k)&&S.gold>=WORKS[k].g&&(S.dust||0)>=WORKS[k].d;
+function buildWork(k){ if(!workCan(k)) return false; const W=WORKS[k]; S.gold-=W.g; S.dust=(S.dust||0)-W.d; const g=sg(); g.works=Object.assign({},g.works||{},{[k]:1}); tally('works'); sfx('level'); return true; }
+const siegePeace=()=>!!S&&!!sg().peace&&S.day<sg().peace.until;
+const purgeDue=()=>!!S&&!!sg().pd;
+function worksWave(list,r){   // townSiegeWave: the works, then the Ward stones reset for the wave
+  const front=e=>rowOf(e)==='f';
+  if(r.room===0&&worksOwn('caltrops')) list.forEach(e=>addDot(e,'bleed',Math.max(1,Math.round(e.maxHp*CALTROP_K)),3));
+  if(r.room===0&&worksOwn('oil')) list.filter(front).forEach(e=>{ e.hp=Math.max(1,e.hp-Math.round(e.maxHp*OIL_K*(1-foeRes(e,'fire')))); });
+  if(worksOwn('palisade')) S.army.filter(m=>m.hp>0&&rowOf(m)==='f').forEach(m=>{ m.mw=Math.max(m.mw||0,Math.round(m.maxHp*PALISADE_K)); });
+  if(r.room>0&&worksOwn('catapult')&&r.fallen&&r.fallen.length){ const c=r.fallen.pop(); list.forEach(e=>{ e.hp=Math.max(1,e.hp-Math.round(e.maxHp*CATAPULT_K)); }); log('The Corpse catapult flings '+withArticle(c.base||c.name)+' back over the wall.','ok'); }
+  r.wsU=0;
+}
+function wardStone(e,mv){   // fireAbility: the Ward stones break one move a wave
+  const r=S.run; if(!r||!r.siege||!worksOwn('wards')||r.wsU||!WARD_BLOCK.includes(mv)) return false;
+  r.wsU=1; log(e.name+'\'s '+BOSS_ABIL[mv].name+' breaks on the Ward stones.','ok'); tally('wardStones'); return true;
+}
+function siegeArc(t){   // the tier reached t: its passage, once
+  const g=sg(), a=SIEGE_ARC.find(x=>x.t===t); if(!a||(g.arc|0)>=t-1) return; g.arc=t-1; notify('From the Ledger, "'+a.name+'": '+a.m,'story'); moment(a.name,'bad');
+}
+function purgeEnd(won){   // siegeWon / siegeLost on the Purge
+  const g=sg(); delete g.pd; g.streak=0;
+  if(!won){ g.tier=PURGE_RESET; notify('The Purge broke your walls. The Inquisition withdraws to lick its wounds, and the sieges fall back to tier '+PURGE_RESET+'. It will come again.','bad'); return; }
+  const p=g.purge||{}; g.purge={won:(p.won|0)+1,day:S.day}; g.peace={until:S.day+1+PEACE_DAYS}; g.tier=PURGE_RESET; g.next=0; tally('purgeWon');
+  if(dreadOn()) dread(PEACE_DREAD-dreadOf()); S.trophies['b:The Inquisition']=(S.trophies['b:The Inquisition']||0)+1;
+  notify('The Grand Inquisitor is dead and his Templars are scattered. The Inquisition sues for peace: no siege for '+PEACE_DAYS+' days, and the town is calm. His heart is yours; the Forge can work it.','gold'); moment('The Purge is broken','gold');
+}
+function stierAfter(g,t0){   // stierMove, once the tier has climbed: the arc, tier 5 and the Purge
+  if(g.tier>t0){ siegeArc(g.tier); if(g.tier===STIER_MAX){ tally('stier5'); if(!g.pd){ g.pd=1; notify('The Inquisition has had enough. The next siege is the Purge: the Grand Inquisitor, five waves, every wall at once.','bad'); } } }
+}
+function siegeDeeds(r,won){   // stierMove: tallies for the titles
+  if(!won||!r) return; if(r.road==='north') tally('roadNorth'); if((r.tier|0)>=4&&!S.army.some(m=>!m.thrall&&m.hp<=0)) tally('pyreProof');
+}
+const hfInfoX=boss=>boss==='The Inquisition'?{boss,set:5,m:TM[5],gold:20000,dust:80,n:3}:null;   // hfInfo0
+HF_LINES['The Inquisition']=['fres','will','constitution','hp','ward','atk'];
+TROPHY['b:The Inquisition']={name:'Heart of the Grand Inquisitor',value:TROPHY_VAL[5]*40,ico:'The Grand Inquisitor',rankI:5,gate:5};
+function stierFix2(g,q){   // normalizeSave: works, arc, the Purge and the peace, each only when the save has it
+  const obj=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
+  if(obj(q.works)){ const w={}; for(const k of WORK_IDS) if(q.works[k]) w[k]=1; g.works=w; }
+  if('arc' in q) g.arc=clamp(Math.floor(num(q.arc,0)),0,SIEGE_ARC.length);
+  if(q.pd) g.pd=1;
+  if(obj(q.peace)) g.peace={until:Math.max(0,Math.floor(num(q.peace.until,0)))};
+  if(obj(q.purge)) g.purge={won:Math.max(0,Math.floor(num(q.purge.won,0))),day:Math.max(0,Math.floor(num(q.purge.day,0)))};
 }
 //==UI==
 
@@ -12769,6 +12851,39 @@ TR_RX.unshift([/^Tier (\d): ([A-Za-z]+)\.?$/,"Kademe $1: {t2}"],[/^Tier (\d)$/,"
  [/^The Inquisition takes your measure: the next sieges come at tier (\d), ([A-Za-z]+)\.?$/,"Engizisyon seni tartıyor: sonraki kuşatmalar kademe $1, {t2} olarak geliyor"],
  [/^The living think you broken: sieges fall back to tier (\d), ([A-Za-z]+)\.?$/,"Yaşayanlar seni kırılmış sanıyor: kuşatmalar kademe $1, {t2} seviyesine geriliyor"],
  [/^Your sieges stand at tier (\d)(?: \(tier (\d) with the town's dread\))?\.?$/,"Kuşatmaların kademe $1 seviyesinde"]);
+// ----- R14 PR B: siege works, the Inquisition's arc, the Purge and the peace
+[
+ ["Siege works","Kuşatma tahkimatı"],["built","inşa edildi"],["Built once on the Town tab with gold and bone dust; each serves every siege after","Kasaba sekmesinde altın ve kemik tozuyla bir kez inşa edilir; her biri sonraki her kuşatmada işe yarar"],
+ ["Caltrop field","Çivi tarlası"],["Every attacker in the first wave bleeds for #% of its max HP a turn for # turns","İlk dalgadaki her saldıran # tur boyunca her tur azami canının %#'i kadar kanar"],
+ ["Oil cauldron","Yağ kazanı"],["The first wave's front row is scalded for #% of its max HP as fire","İlk dalganın ön sırası azami canının %#'i kadar ateşle haşlanır"],
+ ["Bone palisade","Kemik çit"],["At the start of every wave your front-row minions gain a Bone Shield worth #% of their max HP","Her dalganın başında ön sıradaki hizmetkârların azami canlarının %#'i değerinde bir Kemik Kalkan kazanır"],
+ ["Corpse catapult","Ceset mancınığı"],["From the second wave, a fallen attacker is flung back over the wall: every attacker takes #% of its max HP","İkinci dalgadan itibaren düşmüş bir saldıran surun üstünden geri fırlatılır: her saldıran azami canının %#'i kadar hasar alır"],
+ ["Ward stones","Muska taşları"],["Once a wave, a Royal Decree, Hymn of Silence, Verse of Binding or Decree of Nothing breaks on the stones","Her dalgada bir kez, bir Royal Decree, Hymn of Silence, Verse of Binding ya da Decree of Nothing taşlarda kırılır"],
+ ["The Inquisition","Engizisyon"],["The Purge","Arınma"],["Every wall","Her sur"],
+ ["The Purge comes at every wall at once: one more foe in every wave, and no wall to choose","Arınma her surdan birden gelir: her dalgada bir düşman fazla ve seçilecek sur yok"],
+ ["Reaching tier # makes the next siege the Purge: the Grand Inquisitor, five waves, every wall at once, whatever the dread. Break it and the Inquisition sues for peace: no siege for # days, the town falls Calm, and the Grand Inquisitor's heart goes to the Forge; the sieges restart at tier #. Lose it and the tier falls to #; the Purge comes again at tier #","Kademe #'e ulaşmak sonraki kuşatmayı Arınma yapar: The Grand Inquisitor, beş dalga, korku ne olursa olsun her surdan birden. Onu kır ve Engizisyon barış ister: # gün kuşatma yok, kasaba Sakinleşir ve The Grand Inquisitor'ın kalbi Demirhane'ye gider; kuşatmalar kademe #'ten yeniden başlar. Kaybedersen kademe #'e düşer; Arınma kademe #'te yeniden gelir"],
+ ["Templars on the road","Yoldaki Tapınakçılar"],["Steel on the hill road at dawn: Templars, riding under the Church's white banner. The militia step aside for them. Someone in the town has written to the Inquisition, and the Inquisition has written back","Şafakta tepe yolunda çelik: Kilise'nin beyaz sancağı altında ilerleyen Tapınakçılar. Milisler onlara yol açıyor. Kasabada biri Engizisyon'a yazmış ve Engizisyon da cevap vermiş"],
+ ["An Inquisitor's letter","Bir Engizisyoncunun mektubu"],["A letter nailed to your gate, sealed in red wax: \"To the keeper of the book. You are named. Your dead are named. The Witchfinder General comes to read your names aloud, and burn them one by one.\"","Kapına çakılmış, kırmızı mumla mühürlü bir mektup: \"Kitabın bekçisine. Adın yazıldı. Ölülerinin adları yazıldı. The Witchfinder General adlarınızı yüksek sesle okumaya ve tek tek yakmaya geliyor.\""],
+ ["The pyres in the valley","Vadideki odun yığınları"],["The valley smells of smoke. They are burning the old graveyards before you can reach them, and singing as they do it. A Saint walks at the head of the crusade, and the fire does not touch her","Vadi duman kokuyor. Eski mezarlıkları sen varmadan yakıyorlar ve yakarken şarkı söylüyorlar. Haçlı seferinin başında bir Aziz yürüyor ve ateş ona dokunmuyor"],
+ ["The last crusade","Son haçlı seferi"],["Every bell in the valley rings at once. The Grand Inquisitor has come himself, with every Templar the Church could spare. This is not a siege. It is a Purge, and it means to end at your door","Vadideki bütün çanlar aynı anda çalıyor. The Grand Inquisitor, Kilise'nin ayırabildiği her Tapınakçıyla bizzat geldi. Bu bir kuşatma değil. Bu bir Arınma ve senin kapında bitmeye niyetli"],
+ ["The Purge: the Grand Inquisitor comes at every wall at once","Arınma: The Grand Inquisitor her surdan birden geliyor"],
+ ["The Inquisition has had enough. The next siege is the Purge: the Grand Inquisitor, five waves, every wall at once","Engizisyonun sabrı tükendi. Sonraki kuşatma Arınma: The Grand Inquisitor, beş dalga, her surdan birden"],
+ ["The Grand Inquisitor is dead and his Templars are scattered","The Grand Inquisitor öldü ve Tapınakçıları dağıldı"],
+ ["His heart is yours; the Forge can work it","Kalbi senin; Demirhane onu işleyebilir"],["The Purge is broken","Arınma kırıldı"],
+ ["The Purge broke your walls","Arınma surlarını yıktı"],["It will come again","Yeniden gelecek"],
+ ["Heart of the Grand Inquisitor","The Grand Inquisitor'ın Kalbi"],
+ ["The Unburnt","Yanmayan"],["Break the Inquisition's Purge","Engizisyonun Arınmasını kır"],["Holding the Road","Yolu Tutan"],["Hold # sieges on the North road","Kuzey yolunda # kuşatma tut"],
+ ["Ten Tiers","On Kademe"],["Bring the sieges to tier # twice","Kuşatmaları iki kez kademe #'e getir"],["Pyre-Proof","Ateşe Dayanıklı"],["Hold a siege of tier # or higher without a minion of yours down at the end","Sonunda hiçbir hizmetkârın düşmüş olmadan kademe # ya da üstü bir kuşatmayı tut"],
+ ["Every Work Built","Her Tahkimat Kuruldu"],["Build all five siege works","Beş kuşatma tahkimatının hepsini kur"]
+].forEach(([k,v])=>TR_DICT.set(k,v));
+TR_RX.unshift([/^The Inquisition sues for peace: no siege for (\d+) days, and the town is calm\.?$/,"Engizisyon barış istiyor: $1 gün kuşatma yok ve kasaba sakin"],
+ [/^The Inquisition withdraws to lick its wounds, and the sieges fall back to tier (\d)\.?$/,"Engizisyon yaralarını sarmak için çekiliyor ve kuşatmalar kademe $1 seviyesine geriliyor"],
+ [/^The Inquisition's peace: no siege until day (\d+)\.?$/,"Engizisyonun barışı: $1. güne dek kuşatma yok"],[/^Purges broken: (\d+)\.?$/,"Kırılan Arınmalar: $1"],
+ [/^The Corpse catapult flings (?:an? |the )?(.+) back over the wall\.?$/,"Ceset mancınığı bir $1 bedenini surun üstünden geri fırlatıyor"],
+ [/^([^.]+)'s (.+) breaks on the Ward stones\.?$/,"$1 adlı düşmanın $2 hamlesi Muska taşlarında kırılıyor"],
+ [/^Build · (\d+) gold(?: · (\d+) dust)?$/,"İnşa et · $1 altın"],[/^(\d+) gold, (\d+) dust$/,"$1 altın, $2 toz"],[/^(\d+) gold$/,"$1 altın"],[/^(.+) \(built\)$/,"$1 (inşa edildi)"],
+ [/^(.+) \((Shieldbearer|Ambusher|Mana thief|Gravecaller|Pack hunter|Bomber|Sapper|Skirmisher|Bulwark stance|Hexer|Marker|Purifier|Burrower|Thorned|Frenzy|Banner-bearer)\)$/,"$1 ({t2})"],
+ [/^From the Ledger, "(Templars on the road|An Inquisitor's letter|The pyres in the valley|The last crusade)": (.+)$/,"Defterden, \"{t1}\": {t2}"]);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -14925,6 +15040,9 @@ function siegeTiersCx(){
    +'<p class="group-h">Walls</p>'+cxP('On the night of a siege, before the first wave, choose the wall you hold. The Graveyard is the usual fight.')
    +cxList(ROAD_IDS.map(k=>cxRow(ROADS[k].name,ROADS[k].desc)))
    +'<p class="group-h">The living by tier</p>'+cxList(Object.keys(SIEGE2_FOES).map(k=>{ const F=SIEGE2_FOES[k], kt=KIT_OF[F[0]]; return cxRow(F[0],ROLES[F[1]].label+(kt?'. '+KITS[kt].name+': '+KITS[kt].rule:''),'Tier '+(STIER_WAVES.findIndex(W=>W&&W.some(w=>w.some(x=>x.replace('*','')===k)))+1)); }))
+   +'<p class="group-h">Siege works</p>'+cxP('Built once on the Town tab with gold and bone dust; each serves every siege after.')+cxList(WORK_IDS.map(k=>cxRow(WORKS[k].name+(worksOwn(k)?' (built)':''),WORKS[k].desc,WORKS[k].g+' gold'+(WORKS[k].d?', '+WORKS[k].d+' dust':''))))
+   +'<p class="group-h">The Inquisition</p>'+cxP('Reaching tier '+STIER_MAX+' makes the next siege the Purge: the Grand Inquisitor, five waves, every wall at once, whatever the dread. Break it and the Inquisition sues for peace: no siege for '+PEACE_DAYS+' days, the town falls Calm, and the Grand Inquisitor\'s heart goes to the Forge; the sieges restart at tier '+PURGE_RESET+'. Lose it and the tier falls to '+PURGE_RESET+'; the Purge comes again at tier '+STIER_MAX+'.')
+   +cxList(SIEGE_ARC.filter(a=>(sg().arc|0)>=a.t-1).map(a=>cxRow(a.name,a.m,'Tier '+a.t)))+(sg().purge?cxP('Purges broken: '+sg().purge.won+'.'):'')
    +(STIERS_ON&&T_('sieges')?cxP('Your sieges stand at tier '+stierRaw()+(siegeTier()!==stierRaw()?' (tier '+siegeTier()+' with the town\'s dread)':'')+'.'):'');
 }
 // ----- the Rival and Trials: icon, arena, Gates tab lines, the Trial card, Records, bestiary row, Codex pages
@@ -15647,8 +15765,10 @@ function siegeTownHTML(){   // the Town tab: a warning banner (only once warned:
   if(siegeWarned()){ const now=siegeTonight();
     h+='<div class="siege-warn" role="status"><b>'+(now?'The living march on the necropolis tonight, when the day ends.':'The living march on the necropolis tomorrow at dusk.')+'</b> '
      +'<button class="linkbtn" data-a="cxgo" data-k="sieges">Read about sieges</button></div>'
-     +'<p class="u-sub siege-line">Siege: '+(now?'tonight':'in 1 day')+'</p>'; }
+     +'<p class="u-sub siege-line">Siege: '+(now?'tonight':'in 1 day')+'</p>'+siegePlanHTML(); }
+  if(siegePeace()) h+='<p class="u-sub siege-peace ok">The Inquisition\'s peace: no siege until day '+sg().peace.until+'.</p>';
   if(STIERS_ON&&(T_('sieges')||stierRaw()>1)){ const t=siegeTier(); h+='<p class="u-sub siege-tier" title="'+STIERS[t-1].rule+' Two sieges held in a row raise the tier; a lost one lowers it. Calm lowers the tier a siege is fought at by one, Terror raises it.">Siege tier '+t+': '+STIERS[t-1].name+(t<STIER_MAX?' &middot; held in a row '+(sg().streak|0)+'/'+STIER_UP:'')+'</p>'; }
+  h+=siegeWorksHTML();
   if(g.dmg){ const c=repairCost(), conf=ui.confirm==='repair';
     h+='<div class="tt-row siege-dmg bad"><div><h4>'+BUILD[g.dmg].name+' &middot; damaged</h4><div class="u-sub" title="Burned in the last siege. Its effects, siege perk included, are lost until it is repaired. Repairs cost gold only.">No effect until repaired</div></div>'
      +'<button class="btn small '+(conf?'warn':'primary')+'" data-a="repair"'+(S.gold<c?' disabled':'')+'>'+(conf?'Confirm: repair for '+c+' gold':'Repair &middot; '+gold(c))+'</button></div>'; }
@@ -15667,7 +15787,7 @@ function siegeHTML(){   // nightfall on a siege day: the intro screen
 }
 function siegeChoiceHTML(){   // the intro screen's choices: the wall you hold, the guarded building and the Reserve on the wall
   const g=sg(), gb=g.dmg?[]:guardable(), pool=wallPool(), w=g.wall||[], chip=(a,k,t,on,dis)=>'<button class="btn small'+(on?' primary':'')+'" data-a="'+a+'" data-k="'+k+'" aria-pressed="'+on+'"'+(dis?' disabled':'')+'>'+t+'</button>', rd=siegeRoad();
-  return '<p class="group-h">Hold the wall</p><p class="u-sub">'+ROADS[rd].desc+'</p><div class="chips siege-roads">'+ROAD_IDS.map(k=>chip('sroad',k,ROADS[k].name+(ROADS[k].pay>1?' &middot; +'+b100(ROADS[k].pay-1)+'%':''),rd===k)).join('')+'</div>'
+  return '<p class="group-h">Hold the wall</p><p class="u-sub'+(rd==='all'?' bad':'')+'">'+ROADS[rd].desc+'</p>'+(rd==='all'?'':'<div class="chips siege-roads">'+ROAD_IDS.map(k=>chip('sroad',k,ROADS[k].name+(ROADS[k].pay>1?' &middot; +'+b100(ROADS[k].pay-1)+'%':''),rd===k)).join('')+'</div>')
    +(gb.length?'<p class="group-h">Guard a building</p><p class="u-sub" title="If the walls fall, the living cannot burn the building you guard; they fire another, or take gold if none is left.">Spared if the walls fall</p><div class="chips">'+gb.map(k=>chip('sguard',k,BUILD[k].name+' &middot; Lv '+blRaw(k),g.guard===k)).join('')+'</div>':'')
    +(pool.length?'<p class="group-h">On the wall &middot; '+w.length+'/'+SIEGE_WALL+'</p><p class="u-sub" title="Up to '+SIEGE_WALL+' minions from the Reserve fight this siege in your front row, then go back to the Reserve.">Reserve minions in your front row, tonight only</p><div class="chips">'+pool.map(m=>chip('swall',m.uid,m.nick+' &middot; Lv '+m.lvl,w.includes(m.uid),!w.includes(m.uid)&&w.length>=SIEGE_WALL)).join('')+'</div>':'');
 }
@@ -15716,6 +15836,18 @@ function specPickHTML(){   // Elder minions with a specialization to choose (fin
      +roleSpecs(m.role).map(k=>'<button class="btn small" data-a="mspec" data-k="'+m.uid+'|'+k+'" title="'+SPECS[k].desc+'">'+SPECS[k].name+'</button>').join('')+'</div></div>').join('')+'</div></section>';
 }
 
+
+// ===== R14 PR B: the siege planning card (once warned) and the siege works (game-siege2.js) =====
+function siegePlanHTML(){   // the waves to come with their kits, and the wall to hold
+  const t=siegeTier(), W=t<=1?SIEGE_WAVE:STIER_WAVES[t-1], rd=siegeRoad(), nm=k=>{ k=k.replace('*',''); if(k==='boss') return siegeBossName(t); const F=SIEGE2_FOES[k]; return F?F[0]:SIEGE_FOES[k][0]; };
+  const chip=k=>'<button class="btn small'+(rd===k?' primary':'')+'" data-a="sroad" data-k="'+k+'" aria-pressed="'+(rd===k)+'">'+ROADS[k].name+'</button>';
+  return '<div class="siege-plan"><p class="group-h">'+(purgeDue()?'The Purge':'Tier '+t+': '+STIERS[t-1].name)+'</p><ol class="siege-waves">'+W.map(w=>'<li>'+[...new Set(w.map(nm))].map(n=>{ const k=KIT_OF[n]; return k?n+' ('+KITS[k].name+')':n; }).join(', ')+'</li>').join('')+'</ol>'
+   +(rd==='all'?'<p class="u-sub bad">'+ROADS.all.desc+'</p>':'<p class="u-sub">'+ROADS[rd].desc+'</p><div class="chips siege-roads">'+ROAD_IDS.map(chip).join('')+'</div>')+'</div>';
+}
+function siegeWorksHTML(){   // the siege works: built once, used in every siege
+  return '<p class="group-h">Siege works</p><div class="siege-works">'+WORK_IDS.map(k=>{ const W=WORKS[k], own=worksOwn(k);
+    return '<div class="tt-row"><div><h4>'+W.name+(own?' &middot; <span class="ok">built</span>':'')+'</h4><div class="u-sub">'+W.desc+'</div></div>'+(own?'':'<button class="btn small" data-a="swork" data-k="'+k+'"'+(workCan(k)?'':' disabled')+'>Build &middot; '+gold(W.g)+(W.d?' &middot; '+W.d+' dust':'')+'</button>')+'</div>'; }).join('')+'</div>';
+}
 function render(){   // draws only: titles and lore are settled by the input handlers (settled), so a drawn and an undrawn turn play the same
   document.body.classList.toggle('hell', S.mode==='town'?ui.tab==='tower':!!(S.run&&S.run.tw));   // hell backdrop on the Tower tab and during a climb
   document.body.classList.toggle('fight', S.mode!=='town');   // a slimmer header while you are in a gate or the Tower
@@ -15845,7 +15977,7 @@ const ACTIONS={
     const t=T.find(x=>tKey(x)===ui.rt)||T.filter(x=>x.k==='gate').slice(-1)[0], NN=expNights(t.k), n=NN.includes(ui.rn)?ui.rn:NN[0], sel=(ui.rsq||[]).filter(u=>pool.some(m=>m.uid===u&&m!==c&&!inOrder(m))).slice(0,squadMax(c)-1);
     if(sendRaid(c.uid,t.di,sel,t,n)){ ui.msg={mk:1,m:c.nick+' will march on '+tName(t)+' tonight with '+sel.length+' at its back. They fight beside you until nightfall.',c:'ok'}; ui.rsq=[]; ui.rc=null; } },
   recall:k=>{ recallRaid(+k); },
-  siegego:()=>{ beginSiege(); }, sguard:k=>{ siegeGuard(k); }, swall:k=>{ siegeWallPick(+k); }, sroad:k=>{ siegeRoadPick(k); }, cxgo:k=>{ ui.tab='codex'; ui.cx=k; ui.cxq=''; },
+  siegego:()=>{ beginSiege(); }, sguard:k=>{ siegeGuard(k); }, swall:k=>{ siegeWallPick(+k); }, sroad:k=>{ siegeRoadPick(k); }, swork:k=>{ buildWork(k); }, cxgo:k=>{ ui.tab='codex'; ui.cx=k; ui.cxq=''; },
   repair:()=>{ const g=sg(), k=g.dmg, c=repairCost(); if(!k) return; if(ui.confirm!=='repair'){ ui.confirm='repair'; return; } ui.confirm=null; ui.msg=repairBuilding()?{mk:1,m:'The '+BUILD[k].name+' is repaired for '+c+' gold. It works again.',c:'ok'}:null; },
   selltier:k=>{ const t=+k; if(ui.confirm!=='st'+t){ ui.confirm='st'+t; return; } ui.confirm=null; const r=sellTier(t); ui.msg=r&&r.n?{mk:1,m:'Sold '+r.n+' '+TIERS[t]+' piece'+(r.n>1?'s':'')+' for '+r.g+' gold.',c:'ok'}:null; },
   salvtier:k=>{ const t=+k; if(ui.confirm!=='sv'+t){ ui.confirm='sv'+t; return; } ui.confirm=null; const r=salvageTier(t); ui.msg=r&&r.n?{mk:1,m:'Salvaged '+r.n+' '+TIERS[t]+' piece'+(r.n>1?'s':'')+' into '+r.d+' bone dust.',c:'ok'}:null; },

@@ -54,7 +54,7 @@ function hfInfo0(boss){
   if(gi>=0) return {boss,set:gi,m:TM[gi],gold:2000*(gi+1),dust:10*(gi+1),n:2};
   if(tw>=0){ const f=(tw+1)*10; return {boss,set:5,m:TM[5]*(1+HF_TW_K*f),gold:6000+200*f/10,dust:40,n:2,floor:f}; }
   if(si>=0) return {boss,set:5,m:TM[5],gold:20000,dust:80,n:3,pw:powOf(boss)};
-  return null;
+  return hfInfoX(boss);   /* the Grand Inquisitor's heart (game-siege2.js) */
 }
 const hfKey=boss=>'b:'+boss;
 const hfLinesFor=(boss,slot)=>(HF_LINES[boss]||[]).filter(k=>!ROLL_SLOT[k]||ROLL_SLOT[k].includes(slot));

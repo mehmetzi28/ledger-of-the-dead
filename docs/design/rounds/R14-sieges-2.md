@@ -137,3 +137,30 @@ Hold the graveyard when the Ossuary is 3+, else the river gate; buy the palisade
   later tiers (the bot ends most waves in one action), so they stay above the 80-87% target; PR B's Purge and works add
   rules instead. The bot holds the Graveyard at tier 1 or with the Ossuary at 3+, else the River gate (holding the River gate
   at tier 1 dropped tier 1 to 65%).
+
+## As built (PR B: works, the arc, the Purge and the peace)
+
+- **Code**: the second half of `src/game-siege2.js`.
+- **Siege works** (`WORKS`, `S.siege.works = {k:1}`): built once on the Town tab, each serves every siege after (the doc's
+  "rebuilt after" read as kept). Caltrop field 800 gold (wave 1 bleeds 4% max HP a turn for 3 turns), Oil cauldron 1,500
+  + 10 dust (wave 1's front row loses 15% as fire), Bone palisade 2,000 + 20 (front-row minions gain a Bone Shield of 15%
+  at every wave), Corpse catapult 3,000 + 30 (from wave 2 a fallen attacker is thrown back: every attacker loses 8%),
+  Ward stones 5,000 + 50 (once a wave a Royal Decree, Hymn of Silence, Verse of Binding or Decree of Nothing breaks;
+  `wardStone` at the top of `fireAbility`).
+- **The arc** (`SIEGE_ARC`, `S.siege.arc`): a passage the first time the tier reaches 2, 3, 4 and 5 (Templars on the road,
+  An Inquisitor's letter, The pyres in the valley, The last crusade), shown again on the Codex's sieges page.
+- **The Purge** (`S.siege.pd`): reaching tier 5 makes the next siege the Purge: tier 5 whatever the dread, every wall at
+  once (the wall `all`: one more foe a wave, no wall pay, no choice). Won: `S.siege.peace = {until}` (no siege for 20
+  days; `siegeTick` schedules nothing), dread set to 10, the trophy `b:The Inquisition` (the Grand Inquisitor's heart,
+  forged at the Forge with fire resistance, Will, Constitution, HP, Ward or attack), tier 3, `S.siege.purge = {won, day}`.
+  Lost: tier 3; the Purge returns at tier 5. The tier now moves after the town's siege effects in `siegeWon`.
+- **Planning card**: from the warning on, the Town tab lists the waves to come (kinds and kits) and lets you pick the
+  wall the day before. The Town tab also shows the peace and the works.
+- **Titles** (5): The Unburnt (break the Purge), Holding the Road (10 North-road wins), Ten Tiers (tier 5 twice),
+  Pyre-Proof (hold a tier 4+ siege with no minion down at the end), Every Work Built. 215 titles.
+- **Bot**: buys the caltrops and the palisade; the report adds Purges broken.
+- **Tests**: three more in `98-siege2.js` (9 in all).
+- **Measured** (full bot, seeds 7700/9100): sieges held 92/93% (t1 80/82%, t2 96%, t3-t5 98-100%); 8-9 Purges broken of
+  8-9 met across 40 bots (target at least 70%: it is easier than meant, for the same alpha-strike reason as PR A); average
+  tier 4.2 on day 100 (the peace pulls it back to 3). Gates 94% (full) and 95% (market), Tower 87, Rift 29-31. Making the
+  late tiers truly hard needs rules a one-action wave cannot skip; left for a later balance pass.

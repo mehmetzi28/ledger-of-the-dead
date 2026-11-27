@@ -427,6 +427,7 @@ const siegeLvl=()=>Math.max(1,S.player.lvl-SIEGE_LV);
 function siegeGap(){ let a=(Math.imul(S.day+1,2654435761)^Math.imul(T_('sieges')+7,40503)^Math.imul((S.ngp||0)+3,97))>>>0; a^=a>>>15; a=Math.imul(a,2246822519)>>>0; a=(a^(a>>>13))>>>0; const G=dreadGap(); return G[0]+a%(G[1]-G[0]+1); }   /* the town's dread sets the gap (game-dread.js) */   // a hash of the day: Math.random is never touched
 function siegeTick(){   // dawn, load and building: schedule the next siege, and warn the dawn before it
   if(!S||!siegeOpen()) return; const g=sg();
+  if(siegePeace()){ if(g.next&&!g.pending) g.next=0; return; }   /* the Inquisition's peace (game-siege2.js) */
   if(!g.next||g.next<S.day) g.next=S.day+siegeGap();
   if(S.day>=g.next-1-bellAhead()&&S.day<g.next&&!(g.warned>=g.next-1-bellAhead())){   /* the Bell Tower warns earlier (game-town2.js) */ g.warned=S.day; tally('siegeWarned'); notify('The living march on the necropolis tomorrow at dusk. When the day ends they will be at the walls. The Codex has a page on sieges.','bad'); }
 }
@@ -480,10 +481,10 @@ function nextWave(){   // between waves: the usual between-room heal, then the n
 const siegeGoldPay=()=>{ const di=siegeGate(), lv=RK[di].lv+1; return Math.round(SIEGE_GOLD*20*(1+lv*.5)*(1+di*.5)*ngpReward()*siegePayK()*ascSiege()*siegePay2()); };   /* tier and wall (game-siege2.js) */   /* the War Room, the Belfry */   // a clear is about 20 kills' worth of coin at the gate's level
 function siegeWon(r){   // the last wave falls: pay, and the raise screen for its bodies
   const di=r.di, g=siegeGoldPay(), d=Math.round(SIEGE_DUST*(6+Math.floor(S.player.lvl/4))*(1+BOUNTY_GATE*di)*siegeDustK()); r.cleared=true; S.quest.clears++;
-  S.gold+=g; S.dust=(S.dust||0)+d; tally('sieges'); tally('siegeWins'); stierMove(true); sg().pending=false; sg().next=0;   /* settled: a reload from the raise screen does not fight it again */
+  S.gold+=g; S.dust=(S.dust||0)+d; tally('sieges'); tally('siegeWins'); sg().pending=false; sg().next=0;   /* settled: a reload from the raise screen does not fight it again */
   const id=pickNorm(tableFor(di,'reaper',true,false).filter(x=>!ITEM[x.id].uq&&(ROLL_LINES[ITEM[x.id].tier]||[0])[0]>0)), it=addItem(id,rollItem(id,true));   /* a tier that can carry a bonus line */
   if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name);
-  r.siegePay={g,d,item:it?ITEM[id].name:null}; townSiegeWon(r); if(r.rivalSiege) rivalSiegeWon(r);   /* the Embalmery keeps a body */
+  r.siegePay={g,d,item:it?ITEM[id].name:null}; townSiegeWon(r); stierMove(true);   /* after the dread falls: the Purge's peace sets it (game-siege2.js) */ if(r.rivalSiege) rivalSiegeWon(r);   /* the Embalmery keeps a body */
   r.events.push({m:'The living break and run. The town will remember this night. +'+g+' gold, +'+d+' bone dust'+(it?' and '+withArticle(ITEM[id].name)+' from the dead':'')+'.',c:'ok'});
   if(sg().guard&&BUILD[sg().guard]) r.events.push({m:'The '+BUILD[sg().guard].name+' stood under your guard all night.',c:'ok'});
   moment('The necropolis holds','gold'); return Math.round(RK[di].clear*SIEGE_XP);

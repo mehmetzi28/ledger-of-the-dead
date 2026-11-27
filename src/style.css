@@ -1218,3 +1218,8 @@ details.brief>summary .more-l,details.brief>summary .more-h{margin-left:0}detail
 /* R10 PR B: the rewritten gate's seal, a second kit (Kits Plus) */
 .rw-line .rw-tag{color:#c9a3ff}
 .kit.kit2{border-style:dashed}
+/* R14: siege planning, works */
+.siege-plan{border-left:2px solid #7a4a1e;padding:2px 0 4px 10px;margin:6px 0}
+.siege-waves{margin:4px 0 6px 18px;padding:0;font-size:12.5px;line-height:1.5}
+.siege-works .tt-row h4 .ok{font-weight:400}
+.siege-tier,.siege-peace{margin:4px 0}

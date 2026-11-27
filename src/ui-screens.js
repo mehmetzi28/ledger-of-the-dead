@@ -573,8 +573,10 @@ function siegeTownHTML(){   // the Town tab: a warning banner (only once warned:
   if(siegeWarned()){ const now=siegeTonight();
     h+='<div class="siege-warn" role="status"><b>'+(now?'The living march on the necropolis tonight, when the day ends.':'The living march on the necropolis tomorrow at dusk.')+'</b> '
      +'<button class="linkbtn" data-a="cxgo" data-k="sieges">Read about sieges</button></div>'
-     +'<p class="u-sub siege-line">Siege: '+(now?'tonight':'in 1 day')+'</p>'; }
+     +'<p class="u-sub siege-line">Siege: '+(now?'tonight':'in 1 day')+'</p>'+siegePlanHTML(); }
+  if(siegePeace()) h+='<p class="u-sub siege-peace ok">The Inquisition\'s peace: no siege until day '+sg().peace.until+'.</p>';
   if(STIERS_ON&&(T_('sieges')||stierRaw()>1)){ const t=siegeTier(); h+='<p class="u-sub siege-tier" title="'+STIERS[t-1].rule+' Two sieges held in a row raise the tier; a lost one lowers it. Calm lowers the tier a siege is fought at by one, Terror raises it.">Siege tier '+t+': '+STIERS[t-1].name+(t<STIER_MAX?' &middot; held in a row '+(sg().streak|0)+'/'+STIER_UP:'')+'</p>'; }
+  h+=siegeWorksHTML();
   if(g.dmg){ const c=repairCost(), conf=ui.confirm==='repair';
     h+='<div class="tt-row siege-dmg bad"><div><h4>'+BUILD[g.dmg].name+' &middot; damaged</h4><div class="u-sub" title="Burned in the last siege. Its effects, siege perk included, are lost until it is repaired. Repairs cost gold only.">No effect until repaired</div></div>'
      +'<button class="btn small '+(conf?'warn':'primary')+'" data-a="repair"'+(S.gold<c?' disabled':'')+'>'+(conf?'Confirm: repair for '+c+' gold':'Repair &middot; '+gold(c))+'</button></div>'; }
@@ -593,7 +595,7 @@ function siegeHTML(){   // nightfall on a siege day: the intro screen
 }
 function siegeChoiceHTML(){   // the intro screen's choices: the wall you hold, the guarded building and the Reserve on the wall
   const g=sg(), gb=g.dmg?[]:guardable(), pool=wallPool(), w=g.wall||[], chip=(a,k,t,on,dis)=>'<button class="btn small'+(on?' primary':'')+'" data-a="'+a+'" data-k="'+k+'" aria-pressed="'+on+'"'+(dis?' disabled':'')+'>'+t+'</button>', rd=siegeRoad();
-  return '<p class="group-h">Hold the wall</p><p class="u-sub">'+ROADS[rd].desc+'</p><div class="chips siege-roads">'+ROAD_IDS.map(k=>chip('sroad',k,ROADS[k].name+(ROADS[k].pay>1?' &middot; +'+b100(ROADS[k].pay-1)+'%':''),rd===k)).join('')+'</div>'
+  return '<p class="group-h">Hold the wall</p><p class="u-sub'+(rd==='all'?' bad':'')+'">'+ROADS[rd].desc+'</p>'+(rd==='all'?'':'<div class="chips siege-roads">'+ROAD_IDS.map(k=>chip('sroad',k,ROADS[k].name+(ROADS[k].pay>1?' &middot; +'+b100(ROADS[k].pay-1)+'%':''),rd===k)).join('')+'</div>')
    +(gb.length?'<p class="group-h">Guard a building</p><p class="u-sub" title="If the walls fall, the living cannot burn the building you guard; they fire another, or take gold if none is left.">Spared if the walls fall</p><div class="chips">'+gb.map(k=>chip('sguard',k,BUILD[k].name+' &middot; Lv '+blRaw(k),g.guard===k)).join('')+'</div>':'')
    +(pool.length?'<p class="group-h">On the wall &middot; '+w.length+'/'+SIEGE_WALL+'</p><p class="u-sub" title="Up to '+SIEGE_WALL+' minions from the Reserve fight this siege in your front row, then go back to the Reserve.">Reserve minions in your front row, tonight only</p><div class="chips">'+pool.map(m=>chip('swall',m.uid,m.nick+' &middot; Lv '+m.lvl,w.includes(m.uid),!w.includes(m.uid)&&w.length>=SIEGE_WALL)).join('')+'</div>':'');
 }
@@ -642,3 +644,15 @@ function specPickHTML(){   // Elder minions with a specialization to choose (fin
      +roleSpecs(m.role).map(k=>'<button class="btn small" data-a="mspec" data-k="'+m.uid+'|'+k+'" title="'+SPECS[k].desc+'">'+SPECS[k].name+'</button>').join('')+'</div></div>').join('')+'</div></section>';
 }
 
+
+// ===== R14 PR B: the siege planning card (once warned) and the siege works (game-siege2.js) =====
+function siegePlanHTML(){   // the waves to come with their kits, and the wall to hold
+  const t=siegeTier(), W=t<=1?SIEGE_WAVE:STIER_WAVES[t-1], rd=siegeRoad(), nm=k=>{ k=k.replace('*',''); if(k==='boss') return siegeBossName(t); const F=SIEGE2_FOES[k]; return F?F[0]:SIEGE_FOES[k][0]; };
+  const chip=k=>'<button class="btn small'+(rd===k?' primary':'')+'" data-a="sroad" data-k="'+k+'" aria-pressed="'+(rd===k)+'">'+ROADS[k].name+'</button>';
+  return '<div class="siege-plan"><p class="group-h">'+(purgeDue()?'The Purge':'Tier '+t+': '+STIERS[t-1].name)+'</p><ol class="siege-waves">'+W.map(w=>'<li>'+[...new Set(w.map(nm))].map(n=>{ const k=KIT_OF[n]; return k?n+' ('+KITS[k].name+')':n; }).join(', ')+'</li>').join('')+'</ol>'
+   +(rd==='all'?'<p class="u-sub bad">'+ROADS.all.desc+'</p>':'<p class="u-sub">'+ROADS[rd].desc+'</p><div class="chips siege-roads">'+ROAD_IDS.map(chip).join('')+'</div>')+'</div>';
+}
+function siegeWorksHTML(){   // the siege works: built once, used in every siege
+  return '<p class="group-h">Siege works</p><div class="siege-works">'+WORK_IDS.map(k=>{ const W=WORKS[k], own=worksOwn(k);
+    return '<div class="tt-row"><div><h4>'+W.name+(own?' &middot; <span class="ok">built</span>':'')+'</h4><div class="u-sub">'+W.desc+'</div></div>'+(own?'':'<button class="btn small" data-a="swork" data-k="'+k+'"'+(workCan(k)?'':' disabled')+'>Build &middot; '+gold(W.g)+(W.d?' &middot; '+W.d+' dust':'')+'</button>')+'</div>'; }).join('')+'</div>';
+}
