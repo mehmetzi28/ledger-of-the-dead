@@ -11,7 +11,7 @@ test('Codex: lists every role, trait, affix, boss move, status, skill, order, po
   has('roles',Object.values(ROLES).map(r=>r.label)); has('traits',TRAIT_IDS.map(t=>TRAITS[t].name)); has('affixes',AFFIX_IDS.map(a=>AFFIX[a].name));
   has('bosses',Object.values(BOSS_ABIL).map(a=>a.name)); has('status',Object.values(DOTS).map(d=>d.name)); has('skills',SKILLS.map(x=>x.name).concat(Object.values(SKILL_MODS).map(m=>m.a[0])));
   has('orders',Object.values(CMDS).map(c=>c.name)); has('uniques',Object.values(FLAGS).map(f=>f.split(':')[0])); has('sets',SET_NAMES);
-  has('gear',TIERS); has('supplies',Object.values(POTIONS).map(p=>p.name)); has('rooms',Object.values(DOORS).map(d=>d.name).concat(Object.values(EVENTS).filter(e=>!e.chain).map(e=>e.name))); has('chains',CHAIN_IDS.map(id=>EVENTS[id].name));
+  has('gear',TIERS); has('supplies',Object.values(POTIONS).map(p=>p.name)); has('rooms',Object.values(DOORS).map(d=>d.name).concat(Object.values(EVENTS).filter(e=>!e.chain&&!e.rift).map(e=>e.name))); has('rift',RIFT_EV_IDS.map(id=>EVENTS[id].name).concat(RB_IDS.map(p=>RB_POW[p].name))); has('chains',CHAIN_IDS.map(id=>EVENTS[id].name));
   has('curses',Object.values(MODS).map(m=>m.name)); has('town',Object.values(BUILD).map(b=>b.name)); has('bounties',Object.keys(BOUNTIES).map(b=>BOUNTIES[b].t(BOUNTIES[b].n)));
   has('gates',DUNGEONS.map(d=>d.name));
 });

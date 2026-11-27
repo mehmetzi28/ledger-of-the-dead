@@ -449,7 +449,15 @@ and +10-30% to the dive's reward multiplier (riftRew: gold, XP, drops, the clear
 per 5 depths, or for Rift Shards (10, 20, ...). Every fifth depth ends in a guardian (GUARDIANS, in turn: the Folded Knight,
 Mother of Gates, the Echo, Brass Saint, the Tear Itself, the Counting Dead), a boss kit of two moves, a second phase and
 sometimes a hazard; it leaves no body. Rift Shards (`S.rift.shards`): 1 + depth/10 per guardian, 1 per sigil on a cleared
-dive.
+dive. **Riftborn gear** (R9 PR B, `it.rb={p,d,a}`): from depth 10 a room leaves one 5% of the time (x the reward
+multiplier), a guardian always; a legendary Throne-set piece with one rift power that grows with its depth d (RB_POW:
+Descent, First Light, Bulwark of the Deep, Deep Lungs, Riftwalker, Deep Ward), full in the Rift and 30% elsewhere; the
+drop is rolled from a hash (no Math.random). Attunement: +5 depth for 5, 10, 15... shards, up to 100. 40 shards buy a
+secret master's heart. **The weekly dive** (`S.rift.wk`): once a day, rooms seeded by the week, three fixed sigils, one
+room a depth from depth 1 with a guardian every fifth, no Retry, events or doors; a shard per 5 depths; a new weekly best
+from depth 10 leaves a Riftborn piece. **Rift events** (EVENTS with `rift:true`, half the events of a dive): a fold (+2
+depths), one of yours from the Memorial (a free body that keeps its name, or let it go), a fragment of the other half
+(four pages, `S.rift.fr`), a tear-shrine (-10% max HP, +20% rewards). Never in the gates.
 
 **Weekly Trials** (`TRIAL_*`, `game-rival-trials.js`). After the Throne: each week a seeded cleared gate on a fixed tier
 with one or two curses, the same rooms for every attempt, once a day, no doors, raising or loot. Foes fight at the

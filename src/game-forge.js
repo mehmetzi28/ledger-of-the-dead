@@ -102,4 +102,4 @@ function hfScales(a,d){ if(a.id==='p'&&d>0&&hfPow('scales')&&HITTER&&HITTER.hp>0
 const hfFree=()=>{ const r=S&&S.run; if(!r||S.mode!=='battle') return false; return (hfPow('mirror')&&!r.mirU)||(hfPow('verse')&&(r.verseN||0)%3===2); };   // skCost: Mirror, Verse
 function hfSkill(){ const r=S.run; if(!r) return; if(hfPow('mirror')) r.mirU=1; if(hfPow('verse')) r.verseN=(r.verseN||0)+1; }   // useSkill, after the cost is paid
 function hfKill(e){ if(hfPow('hungry')&&S.player.hp>0) healAlly(S.player,Math.round(pMax()*.03)); }   // killLoot: Hungry Page
-function hfFix(it){ if(!it) return; if(it.hf!=null&&!HF_LINES[it.hf]) delete it.hf; if(it.pw!=null&&!(HF_POW[it.pw]&&it.hf)) delete it.pw; }   // normalizeSave
+function hfFix(it){ if(!it) return; if(it.hf!=null&&!HF_LINES[it.hf]) delete it.hf; if(it.pw!=null&&!(HF_POW[it.pw]&&it.hf)) delete it.pw; rbFix(it); }   // normalizeSave
