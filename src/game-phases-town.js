@@ -319,7 +319,7 @@ const cleanText=t=>String(t==null?'':t).replace(/[<>&"]/g,'');   // names from a
 function renameMinion(uid,name){ const m=findMinion(uid), n=cleanNick(name); if(!m||!n||S.mode==='battle') return false; m.nick=n; return true; }
 const ARMY_SORTS={power:'Strongest',role:'By role',level:'By level'};
 const mPower=m=>m.atk*2+m.maxHp/4;
-function sortArmy(k){ if(!ARMY_SORTS[k]||S.mode==='battle') return false; const ord={vanguard:0,striker:1,mender:2,reaper:3};
+function sortArmy(k){ if(!ARMY_SORTS[k]||S.mode==='battle') return false; const ord={vanguard:0,striker:1,mender:2,reaper:3,hexer:4};
   S.army.sort(k==='role'?(a,b)=>ord[a.role]-ord[b.role]||b.lvl-a.lvl:k==='level'?(a,b)=>b.lvl-a.lvl||mPower(b)-mPower(a):(a,b)=>mPower(b)-mPower(a)); return true; }
 
 // ===== SALVAGE AND ENCHANTING =====

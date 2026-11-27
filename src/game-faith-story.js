@@ -60,7 +60,7 @@ const canCommand=role=>S.mode==='battle'&&!!CMDS[role]&&(!(S.run.cmd&&S.run.cmd[
 function command(role){
   if(!canCommand(role)) return false;
   const r=S.run, P=S.player, mine=S.army.filter(m=>m.role===role&&m.hp>0); r.cmd=r.cmd||{}; if(r.cmd[role]){ r.xordU=1; log('Extra Order: the charm crumbles.','ok'); } r.cmd[role]=true; tally('commands');
-  if(role==='vanguard'){ r.taunt=2+(elderCmdr()?1:0); log('Taunt: your vanguards bellow, and every foe turns on them.','ok'); }
+  if(role==='vanguard'){ r.taunt=2+(elderCmdr()?1:0)+(S.army.some(m=>m.spec==='bastion'&&m.hp>0)?1:0);   /* a Bastion (game-army.js) */ log('Taunt: your vanguards bellow, and every foe turns on them.','ok'); }
   else if(role==='striker'){ r.focus=true; log('Focus: your strikers pick their spots.','ok'); }
   else if(role==='mender'){ const w=Math.round(mine.reduce((a,m)=>a+Math.round(m.atk*1.5),0)*(elderCmdr()?ELDER_SHIELD:1)); P.shield=Math.min(Math.round(pMax()*.6),P.shield+w); mark('p',0,0); log('Bone Shield: your menders ward you. You hold '+P.shield+' ward.','ok'); }
   else { r.execute=true; log('Execute: your reapers look for the weak.','ok'); }
@@ -351,4 +351,4 @@ const mausN=()=>S&&S.memorial?Math.min(MAUS_MAX,S.memorial.filter(e=>e.maus).len
 const mausCost=()=>MAUS_COST[mausN()]||0;
 const canMaus=e=>!!e&&!e.maus&&S.mode==='town'&&mausN()<MAUS_MAX&&S.gold>=mausCost();
 function raiseMaus(i){ const e=(S.memorial||[])[i]; if(!canMaus(e)) return false; S.gold-=mausCost(); e.maus=1; tally('maus'); syncArmy(); sfx('raise'); return true; }
-const extraMul=(m,k)=>(1+(m?nameK(m.role)+mfStat(m):0))*(k==='atk'?bondMul(m)*ascReadK(m):(1+headBonus()+fallenK())*townHpK(m)*ascArmyHp())*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K+(rivalBook()?BOOK_K:0):1)*(k==='atk'?choirK()*nightK():1);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
+const extraMul=(m,k)=>(1+(m?nameK(m.role)+mfStat(m)+(k==='atk'?0:specHp(m)):0))*(k==='atk'?bondMul(m)*ascReadK(m):(1+headBonus()+fallenK())*townHpK(m)*ascArmyHp())*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K+(rivalBook()?BOOK_K:0):1)*(k==='atk'?choirK()*nightK():1);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)

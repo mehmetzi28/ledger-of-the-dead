@@ -104,7 +104,7 @@ function resetSkills(){
 // ===== GOLD, TROPHIES AND THE MARKET =====
 // Every kill drops a little gold and often a trophy of that enemy type. Trophies stack in a pouch (no bag space) and sell at the market.
 // Like XP and items, a room's gold and trophies are only banked when the room is won.
-const TROPHY_PART={vanguard:['Hide','Shell','Bone Plate','Scale'],striker:['Fang','Claw','Talon','Tooth'],mender:['Relic','Prayer Bead','Vial','Bone Charm'],reaper:['Fang','Claw']};
+const TROPHY_PART={vanguard:['Hide','Shell','Bone Plate','Scale'],striker:['Fang','Claw','Talon','Tooth'],mender:['Relic','Prayer Bead','Vial','Bone Charm'],reaper:['Fang','Claw'],hexer:['Eye','Tongue','Finger Bone']};
 const TROPHY_VAL=[3,7,14,26,45,75,110];          // sell value of an ordinary trophy, per gate
 const TROPHY={};                             // key -> {name, value, ico, rankI}
 (function(){
@@ -296,7 +296,9 @@ const MARK={
   warden:   {role:'mender',  name:'Warden',   v:.2, desc:x=>'Its heals also ward the healed ally for '+mkPct(x)+' of the amount'},
   purifier: {role:'mender',  name:'Purifier', v:1,  desc:x=>x>1?'Each heal removes '+x+' damage-over-time effects from the healed ally':'Each heal removes one damage-over-time effect from the healed ally'},
   butcher:  {role:'reaper',  name:'Butcher',  v:.15,desc:x=>'+'+mkPct(x)+' damage to foes below '+mkPct(BUTCHER_LOW)+' HP'},
-  harvester:{role:'reaper',  name:'Harvester',v:1,  desc:x=>x>1?'Its first '+x+' kills each room harvest a Soul each':'Its first kill each room harvests a Soul'}
+  harvester:{role:'reaper',  name:'Harvester',v:1,  desc:x=>x>1?'Its first '+x+' kills each room harvest a Soul each':'Its first kill each room harvests a Soul'},
+  augur:    {role:'hexer',   name:'Augur',    v:1,  desc:x=>'The conditions it leaves last '+x+' turn'+(x>1?'s':'')+' longer'},   /* R12 PR B (game-army.js) */
+  malefic:  {role:'hexer',   name:'Malefic',  v:.3, desc:x=>'+'+mkPct(x)+' damage to foes carrying any condition'}
 };
 const MARK_IDS=Object.keys(MARK);
 const roleMarks=r=>MARK_IDS.filter(k=>MARK[k].role===r);

@@ -82,6 +82,7 @@ function mark(u,d,h){ const id=fxKey(u); if(id==null) return; const f=S.run.fx[i
 function hit(b){ return Math.max(1,Math.round(b*rnd(.85,1.15))); }
 function hurtFoe(e,d,ty){ if(abbeyMiss(e)) return; ty=MARGIN||(DTYPE[ty]?ty:'phys');   /* an Unwritten foe; a Marginalia skill (game-abbey.js) */ if(e.curse) d=Math.round(d*e.curse.mul); { const mk=masteryDmg(e.base); if(mk) d=Math.round(d*(1+mk/100)); }   /* bestiary mastery: every hit from you and your army, once */ if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25); if(e.stun>0&&capOn('frost1')) d=Math.round(d*CAP_RIME); { const fk=faithHit(e); if(fk!==1) d=Math.round(d*fk); }   /* Vesh: frozen foes take more (game-pantheon.js) */
   if(hasSt(e,'sundered')) d=Math.round(d*SUNDER_MUL); if(hasSt(e,'chilled')) d=Math.round(d*CHILL_MUL);   // conditions (game-gate-rules.js)
+  if(e.doom>0&&d>0){ d=Math.round(d*(e.doomK||1)); e.doom--; }   /* Doom, a hexer's active (game-army.js) */
   { const k=(1-foeRes(e,ty))*typeDmg(ty)*oilK(e,ty)*archiveK(e)*rallyK()*widenK()*rbDescent(); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
   e.lt=ty;   /* the type of the last hit it took (a weakness kill) */
   d=bossTaken(e,kitTaken(e,d));   /* Heartwood (game-boss-kits.js) */   /* Bulwark stance, a Banner-bearer beside it (game-kits.js) */
@@ -211,6 +212,7 @@ function act(kind){
     mark('p',0,0); log('Bone Ward raised. You hold '+P.shield+' ward.'); fxe('ward',P);
   }else if(kind.startsWith('sk:')){ SKILLHIT=1; const done=useSkill(kind.slice(3),t); SKILLHIT=null; if(!done) return; }
   else if(kind==='ult'){ if(!useUlt(t)) return; }
+  else if(kind.startsWith('ma:')){ const res=useActive(+kind.slice(3)); if(!res) return; if(res==='free'){ if(S.mode==='battle'&&!liveFoes().length) roomWon(); return; } }   /* an Elder active (game-army.js); Execute Order's kill gives the action back */
   else if(kind.startsWith('pot:')){ if(!drink(kind.slice(4))) return; }
   else if(kind==='guard'){ if(!guard()) return; }   // an order that costs the turn (game-faith-story.js)
   else return;
@@ -227,14 +229,14 @@ function act(kind){
     if(r.cloud>r.turn&&Math.random()<BK_CLOUD){ log(m.nick+' swings blind in the Swarm Cloud.'); continue; }
     if(m.role==='mender'){
       const hurt=allies().filter(a=>a.hp>0&&a.hp<(a.id==='p'?pMax():a.maxHp)*.85).sort((a,b)=>a.hp/(a.id==='p'?pMax():a.maxHp)-b.hp/(b.id==='p'?pMax():b.maxHp))[0];
-      if(hurt){ const h=healAlly(hurt,Math.round(m.atk*.9*rnd(.9,1.1))); log(m.nick+' mends '+(hurt.id==='p'?'you':hurt===m?'itself':nameOf(hurt))+' for '+h+'.','ok'); markHeal(m,hurt,h); continue; }
+      if(hurt){ const h=healAlly(hurt,Math.round(m.atk*.9*rnd(.9,1.1)*healK(m))); specHeal(m,hurt); log(m.nick+' mends '+(hurt.id==='p'?'you':hurt===m?'itself':nameOf(hurt))+' for '+h+'.','ok'); markHeal(m,hurt,h); continue; }
     }
     let tg=minionTarget(m); if(!tg) break;
     const breach=m.role==='reaper'&&r.execute&&hasSt(tg,'sundered')&&foeArmor()>0;   // Breach: Execute ignores a Sundered foe's armor
-    let d=hit(m.atk*(breach?pierceMul(1):dmgMul())*(r.frenzy>0?r.frenzyMul:1)*(m.role==='reaper'&&r.execute&&tg.hp<tg.maxHp*.4?2:1)*(hasTrait(m,'wrathful')&&m.hp<m.maxHp/2?1.4:1)*hexK(m)*rowK(m)*(tg.hp<tg.maxHp*BUTCHER_LOW?1+markV(m,'butcher'):1)*breakK(m,tg)*echoDmg(m,tg)*mfDmg(m,tg)); const cc=mCritCh(m), crit=(m.role==='striker'&&r.focus)||(cc>0&&Math.random()<cc); if(crit){ d=Math.round(d*1.8); tally('crits'); }
+    let d=hit(m.atk*(breach?pierceMul(1):dmgMul())*(r.frenzy>0?r.frenzyMul:1)*(m.role==='reaper'&&r.execute&&tg.hp<tg.maxHp*execAt(m)?2:1)*(hasTrait(m,'wrathful')&&m.hp<m.maxHp/2?1.4:1)*hexK(m)*rowK(m)*(tg.hp<tg.maxHp*BUTCHER_LOW?1+markV(m,'butcher'):1)*breakK(m,tg)*echoDmg(m,tg)*mfDmg(m,tg)); const cc=mCritCh(m)+duelK(m,tg), crit=(m.role==='striker'&&r.focus)||(cc>0&&Math.random()<cc); if(crit){ d=Math.round(d*1.8); tally('crits'); }
     const mt=minionType(m); KILL=m.role==='reaper'&&r.execute?'exec':null; hurtFoe(tg,d,mt); KILL=null; runeLeech(m,d); fxe('mhit',tg,{by:fxKey(m)});
     if(crit&&r.focus&&tg.charging&&tg.hp>0) breakCharge(tg,m.nick+'\'s focused strike breaks '+theName(tg.name)+'\'s focus.');
-    let extra=minionOnHit(m,tg)+echoHit(m,tg)+mfHit(m,tg,d,mt)+kitReflect(tg,m,d);
+    let extra=minionOnHit(m,tg)+echoHit(m,tg)+mfHit(m,tg,d,mt)+specHit(m,tg,d,mt)+kitReflect(tg,m,d);
     if(m.role==='reaper'&&m.hp>0){ const o=liveFoes().filter(x=>x!==tg&&reachable(x)); if(o.length){ const o2=pick(o); const d2=Math.round(d*.5); hurtFoe(o2,d2,mt); extra+=' and cleaves '+o2.name+' for '+d2; } }
     if(hasTrait(m,'frenzied')&&tg.hp>0&&m.hp>0&&Math.random()<.2){ let d3=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*rowK(m)*breakK(m,tg)); const c3=blurCrit(m); if(c3) d3=Math.round(d3*1.8); hurtFoe(tg,d3,mt); d+=d3; extra+=', then strikes again for '+d3+(c3?' (crit)':''); if(hasTrait(m,'blur')) extra+=minionOnHit(m,tg); }   // Blur: the extra strike carries its on-hit effects
     if(hasTrait(m,'leech')){ const h=healAlly(m,Math.round(d*(hasTrait(m,'bloodfiend')&&m.hp<m.maxHp/2?.5:.25))); if(h) extra+=' and drinks '+h+' HP'; }
@@ -282,6 +284,7 @@ function act(kind){
   checkDeaths(); if(!liveFoes().length){ roomWon(); return; }
   r.turn++; if(!hasRunMod('drought')){ let g=1+G('regen')+sk('soulwell')+(hasMod('deathless','a')?DEEP_REGEN:0); g=rbLungs(sigRegen(g)); if(omen()==='soulstorm'){ r.mf=(r.mf||0)+g*STORM_REGEN; const x=Math.floor(r.mf); r.mf-=x; g+=x; } P.mana=Math.min(pMana(),P.mana+g); } skillTick();   // Soul Storm: +20%, the fractions carried
   echoTurn(); mfTurn(); bossEndTurn(); hfTurn();   /* Undone shieldbearers (game-kits.js), boss hazards (game-boss-kits.js) */
+  if(!liveFoes().length){ checkDeaths(); if(S.mode==='battle'&&!liveFoes().length){ roomWon(); return; } }   /* a Bomber echo dragged under by a boss hazard can burst the last foes */
   if(hasFlag('halo')) allies().forEach(a=>{ if(a.hp>0) healAlly(a,Math.round((a.id==='p'?pMax():a.maxHp)*.04)); });
   if(r.turn===9&&liveFoes().some(e=>e.tw&&e.boss)) log('Wrath: the warden is enraged and hits harder every turn.','bad');
   planFoes();   // what every foe will do next turn, shown on its card
