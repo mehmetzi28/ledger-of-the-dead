@@ -115,7 +115,7 @@ STORY.push(
 const rgOpen=()=>!!S&&rivalArcOn()&&!!S.rival&&arc().ch===4&&arc().gu>0&&S.day<arc().gu;
 const rgReady=()=>rgOpen()&&S.mode==='town'&&S.watches>0;
 function startRivalGate(){
-  if(!rgReady()) return false; const di=topGate(); S.watches--; S.runs++; S.notices=[]; tally('rgRuns');
+  if(!rgReady()||!mapCan(gateNode(topGate()))) return false; const di=topGate(); mapGo(gateNode(di)); S.watches--; S.runs++; S.notices=[]; tally('rgRuns');
   S.run={di,rg:1,room:0,rooms:4,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:null,heat:0};
   S.mode='battle'; titheSouls(); log('You open the Rival\'s Ledger. Every page is a body they took from you.'); spawnRoom(); return true;
 }
@@ -141,7 +141,7 @@ const rgRaise=c=>S.run&&S.run.rg&&c&&c.recl?ARC_RECL_RAISE:0;   // raiseChance: 
 // ----- The Reckoning (chapter 5): the duel with their whole book
 const reckReady=()=>!!S&&rivalArcOn()&&!!S.rival&&arc().ch===5&&!arc().end&&!arc().pick&&S.day>=arc().rd&&S.mode==='town'&&S.watches>0;
 function startReckoning(){
-  if(!reckReady()) return false; const di=topGate(); S.watches--; S.runs++; S.notices=[]; tally('reckTries');
+  if(!reckReady()||!mapCan(gateNode(topGate()))) return false; const di=topGate(); mapGo(gateNode(di)); S.watches--; S.runs++; S.notices=[]; tally('reckTries');
   S.run={di,rk:1,room:0,rooms:1,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:null,heat:0};
   S.mode='battle'; titheSouls(); unlockStory('rarc5d'); log('Torn pages cover the floor, one for every body '+rv().name+' ever took from you.'); spawnRoom(); return true;
 }

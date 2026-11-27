@@ -1286,3 +1286,13 @@ body.cv-skin .win{border-color:#9a7a66;box-shadow:inset 0 0 0 2px rgba(154,122,1
 /* R18: long lists on a late save: the browser skips laying out cards that are off screen */
 .items>.item{content-visibility:auto;contain-intrinsic-size:auto 150px}
 .army>.unit,.army>.mport,.army>.trow{content-visibility:auto;contain-intrinsic-size:auto 190px}
+/* R19: the Valley map */
+.map-plan{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;font-size:13px;color:var(--mute)}.map-plan .pip,.map-plan .spip{display:inline-block;width:9px;height:9px;margin-left:3px;border:1px solid var(--gold);transform:rotate(45deg)}.map-plan .pip.on{background:var(--gold)}
+.map-plan .spip{border-radius:50%;transform:none;border-color:var(--mute)}.map-plan .spip.on{background:var(--mute)}
+.vmap-wrap{margin:10px 0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#17120d}.vmap{display:block;width:100%;height:auto}
+.vmap .v-road{stroke:#a8946c;stroke-width:.5;stroke-dasharray:1.2 1}.vmap .v-road.faint{opacity:.3}.vmap .v-steps{fill:#c9b28a;font:600 2.2px/1 var(--font-body);text-anchor:middle}
+.vmap .v-fog{fill:#5a4c3a;opacity:.55}.vmap .v-node{cursor:pointer}.vmap .v-node circle{fill:#221b14;stroke:#a8843f;stroke-width:.45}.vmap .v-node path{fill:#d8c49e}
+.vmap .v-node.k-gate circle{stroke:#c9a565}.vmap .v-node.k-tower path{fill:#e5776a}.vmap .v-node.k-grave path{fill:#b8a48c}.vmap .v-node.k-field path{fill:#c98a6a}.vmap .v-node.rest{opacity:.55}
+.vmap .v-node.sel circle{stroke:#f0d48a;stroke-width:.9}.vmap .v-node:hover circle{stroke:#f0d48a}.vmap .v-name{fill:#e8dcc8;font:600 2.3px/1 var(--font-body);text-anchor:middle;paint-order:stroke;stroke:#0a0807;stroke-width:.6}
+.vmap .v-me path{fill:#e8c66a;stroke:#0a0807;stroke-width:.3}
+.v-card{padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:rgba(0,0,0,.2)}.v-card h3{margin:0 0 2px}.v-list{margin:6px 0}.v-dug{margin-top:10px}

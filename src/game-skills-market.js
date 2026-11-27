@@ -393,7 +393,7 @@ const riftBest=()=>(S.rift&&S.rift.best)||0;
 const riftMul=n=>1+RIFT_STEP*(n-1);
 const riftLvl=n=>S.player.lvl+Math.floor(n/3);
 function startRift(n){
-  n=Math.floor(+n); if(S.mode!=='town'||S.watches<=0||!riftOpen()||!(n>=1&&n<=riftBest()+1)) return false;
+  n=Math.floor(+n); if(S.mode!=='town'||S.watches<=0||!riftOpen()||!(n>=1&&n<=riftBest()+1)||!mapCan('g5')) return false; mapGo('g5');   /* the Rift lies under the Throne (game-map.js) */
   const di=Math.floor(Math.random()*GATE_N);   /* the Rift folds the six gates of the valley, never the abbey */
   S.watches--; S.runs++; S.notices=[];
   S.run={di,rift:n,room:0,rooms:RIFT_ROOMS,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:null,heat:0};

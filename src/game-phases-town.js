@@ -502,7 +502,7 @@ function siegeOverflow(){ const n=S.army.filter(m=>!m.thrall&&!m.wall).length-sl
 function siegeEnd(){   // back from the walls (won, fell or fled): thralls crumble, the record is written, then dawn
   const r=S.run, g=sg(), w=S.army.filter(m=>m.wall); S.army=S.army.filter(m=>!m.thrall&&!m.wall); S.mode='town';
   if(r){ const res=r.cleared?'cleared':r.fled?'fled':'fell'; recordRun(S,r,res); recRun(r,res); }
-  S.run=null; g.pending=false; g.next=0; delete g.guard; delete g.wall; delete g.road; wallHome(S,w); syncArmy();
+  S.run=null; mapSiege(); g.pending=false; g.next=0; delete g.guard; delete g.wall; delete g.road; wallHome(S,w); syncArmy();
   const P=S.player; P.hp=pMax(); P.mana=pMana(); P.shield=0; allies().forEach(clearAll); S.army.forEach(m=>m.hp=m.maxHp);
   closeDay(); if(r&&r.siegeLoss) notify(r.siegeLoss,'bad'); else if(r&&r.siegePay) notify('Last night the necropolis held against the living: +'+r.siegePay.g+' gold, +'+r.siegePay.d+' bone dust.','ok');
 }

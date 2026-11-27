@@ -120,7 +120,7 @@ const ACTIONS={
   louse:k=>{ useLoadout(+k); }, loreno:k=>{ ui.lren=+k; ui.lrn=loadoutName(+k); }, lorenx:()=>{ ui.lren=null; }, loren:k=>{ if(renameLoadout(+k,ui.lrn)) ui.lren=null; },
   awaken:k=>{ const it=findItem(+k); ui.msg=awaken(+k)?{mk:1,m:ITEM[it.id].name+' is now Awakened '+AWAKEN_RN[it.aw]+'.',c:'ok'}:null; },
   reforge:k=>{ const it=findItem(+k), c=it&&reforgeCost(it); ui.msg=reforge(+k)?{mk:1,m:'Reforged '+ITEM[it.id].name+' for '+c+' gold.',c:'ok'}:null; },
-  rift:k=>{ startRift(+k); }, gsub:k=>{ ui.gsub=['open','war','rift','trial'].includes(k)?k:'open'; ui.msg=null; }, trial:()=>{ startTrial(); },
+  rift:k=>{ startRift(+k); }, gsub:k=>{ ui.gsub=['open','valley','war','rift','trial'].includes(k)?k:'open'; ui.msg=null; }, vnode:k=>{ if(VALLEY_NODES[k]) ui.vsel=k; }, vsite:k=>{ siteVisit(k); }, vraise:k=>{ const r=siteRaise(+k); if(r) ui.msg={m:r.ok?'Risen: '+r.minion+'.':(r.m||'It did not rise.'),c:r.ok?'ok':'bad'}; }, trial:()=>{ startTrial(); },
   rsig:k=>{ toggleSigil(k); },
   attune:k=>{ const ok=attune(+k); ui.msg=ok?{m:'Attuned: its depth rises by '+RB_ATT_STEP+'.',c:'ok'}:null; },
   wdive:()=>{ startWeek(); },

@@ -193,7 +193,7 @@ const echoTxt=k=>!k?'':({shield:'Every second turn it wards your most hurt minio
 // drops, bestiary and quest progress), no raising, events, doors or records. A secret master or the rival stops the sweep at the
 // boss room and you fight it as usual.
 const SWEEP_LV=12, SWEEP_CLEARS=5, SWEEP_XP=.8;
-const sweepOk=di=>!!S&&S.mode==='town'&&S.watches>0&&!!(S.ti&&S.ti.clr&&S.ti.clr[di])&&T_('clrN'+di)>=SWEEP_CLEARS&&!heatOf(di)&&!gateMod(di)&&S.player.lvl>=gateRec(di)+SWEEP_LV&&!rivalHere(di);
+const sweepOk=di=>!!S&&S.mode==='town'&&S.watches>0&&!!(S.ti&&S.ti.clr&&S.ti.clr[di])&&T_('clrN'+di)>=SWEEP_CLEARS&&!heatOf(di)&&!gateMod(di)&&S.player.lvl>=gateRec(di)+SWEEP_LV&&!rivalHere(di)&&mapCan(gateNode(di));
 function sweep(di){
   if(!sweepOk(di)) return false;
   PREP_SKIP=true; try{ startRun(di); } finally{ PREP_SKIP=false; }   /* a sweep takes no brews (game-brew.js) */ const r=S.run; r.sweep=1; r.hurt=true; r.swSp=[]; tally('sweeps');

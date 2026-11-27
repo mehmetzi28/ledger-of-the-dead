@@ -22,12 +22,12 @@ const INSC_K={gate:.01,army:.01,raise:.5,hero:.01,endless:.01,town:.02,faith:.05
 const FAM_LIST={
   endless:'d_tower1 d_tower50 d_tower110 d_tower150 d_tuq r_5 r_15 r_30 r_six r_sigil3 r_weekly r_attuned x_rift25 x_rift50 x_riftfast b_ten i_climb',
   army:'d_army d_armed1 d_armed3 d_evolve d_elder d_altar a_traits a_elders a_ancient a_eternal ar_charmed ar_hundred ar_witch ar_roles ar_order x_fuse10 x_ftr x_mlv50 s_venom s_poison a_raid1 a_raid25 x_long x_hunt x_clean x_rally',
-  raise:'d_raise1 d_raise50 d_raise200 a_raise500 a_boss e_strag ar_tennames',
+  raise:'d_raise1 d_raise50 d_raise200 a_raise500 a_boss e_strag ar_tennames v_dig',
   hero:'d_lv10 d_lv25 d_lv50 e_lv75 d_death d_death10 p_25 p_100 s_cure k_spear k_blast k_chill k_reap k_master3 k_all f_crit f_crit1000 f_last f_flawless b_haul b_five b_runes b_sgn d_cancel d_cancel10 d_kill100 d_kill1000 d_kill5000 f_boss25 f_elite100',
   town:'d_master d_trophy500 d_gold d_bag g_gold g_items g_reforge g_sold g_roll3 x_relics x_hoard s_works d_quest7',
   faith:'f_hon f_vesh f_ulm f_choir f_dis f_godless f_turncoat f_weather x_omen1 x_omen25 x_omenall x_eclipse e_shrine',
   rival:'r_stakes r_reclaim r_end r_spare r_clean s_unburnt s_road s_tiers s_pyre',
-  story:'d_ngp d_ngp3 as_3 as_6 as_10 as_all as_rw a_keeper a_hand a_both a_echo r_half e_day100 e_runs100 e_rooms1000 x_titles50 x_titles100 pk1 pk3 i_book e_pedlar e_coffer e_trap c_paid',
+  story:'d_ngp d_ngp3 as_3 as_6 as_10 as_all as_rw a_keeper a_hand a_both a_echo r_half e_day100 e_runs100 e_rooms1000 x_titles50 x_titles100 pk1 pk3 i_book e_pedlar e_coffer e_trap c_paid v_walk',
   secrets:'d_uq d_study d_all x_mastered25 x_ledger10 nm_1 nm_5 nm_15 nm_old k_reader k_weak k_defuse k_gcbane'
 };
 const FAM_OF={}; for(const f in FAM_LIST) for(const id of FAM_LIST[f].split(' ')) FAM_OF[id]=f;

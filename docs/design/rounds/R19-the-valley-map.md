@@ -110,3 +110,33 @@ Plan the day as gate runs from the nearest gate; visit a graveyard when the army
 
 - **Travel as a tax**: the gates are close; coming home is free; the list view hides the map for players who prefer it.
 - **Map art**: drawn from shapes and the palette; no outside images.
+
+## As built
+
+### PR A: the map, travel, fog, graveyards and battlefields
+- **The map** (`src/game-map.js`, `src/ui-map.js`): 15 nodes (the town, the seven gates with Vane Abbey, the Hell Tower,
+  4 old graveyards, 2 battlefields) and 26 roads of 1-3 steps, fixed data. It is a **sub-tab of Gates** ("Valley map"),
+  not a new top tab: the Gates list stays the default and the tab bar does not grow. The Rift is not its own node: it
+  lies under the Throne of Ash. Villages (R20) and the drowned chapel come with their rounds.
+- **Drawn as SVG**, not canvas: roads as dotted lines with their steps, places as marks with names, the unknown as
+  smudges, the hero's marker. A press on a place opens its card; the same places are a row of buttons under the map
+  for the keyboard and small screens.
+- **Travel** (`mapCan`, `mapGo`): every start pays it (gate runs, the Tower, the Rift, Trials, the rival's fights,
+  sweeps). Every 3 steps walked in a day spend a watch; leftover steps carry to the next. A walk that would leave no
+  watch for the run is refused. At dawn you go home, the steps are cleared and unraised dug bodies crumble.
+- **Fog** (`mapSeen`): the town, the Rat Warren and the Sunken Crypt are known; an open gate is known, the Tower once
+  open, and a cleared gate shows its neighbours. Scouting comes in PR B.
+- **Graveyards** dig 2-4 old bodies of the nearest gate's kinds (-10% to raise), then rest 5 days. **Battlefields**
+  fill after every siege with 3-6 of the fallen living (+10%). A site visit needs a watch in hand but none left over.
+  Dug bodies (at most 8) rise in town at no mana (`siteRaise`, the usual raise roll), into the army or the Reserve.
+- **Save**: `S.map={pos, st, seen, sites:{id:{rest, fresh}}, steps, dug, bodies}`, cleaned by `mapFix`.
+- **Titles**: Grave Digger (dig 100 bodies) and Wayfarer (walk 300 steps). Cartographer, Every Road, Ford-Crosser and
+  Wolf-Skinner wait for PR B's sites and scouting.
+- **Codex** page "The valley" (travel, fog, sites, read from the constants), a "?" on the view's heading, a system tip.
+  Turkish for every string; place names stay English.
+- **Bot** (`tests/balance-test.js`): runs from wherever it stands; walks to the nearest ready site it can afford when its
+  army (or, for a field, the Reserve) has room, and raises what it dug. `"off":["map"]` gives the old behaviour.
+- **Measured**: market 95% clears, Tower 81 (was 83), Rift 20.8 (was 22.4), 3.8% of watches on roads. full 92% (was
+  94), Tower 85 (was 86.5), 12.9% of watches on roads (target 10-15%). Sites gave 9.5% (market) and 14.1% (full) of all
+  raises.
+- **Tests**: `tests/groups/98-valley-map.js` (12 tests).
