@@ -145,3 +145,31 @@ Dive with the sigils the probe rates best for its build; attune the best Riftbor
   shards; reports "rift sigils". `"off":["sigils"]`.
 - **Measured**: guardians cost ~0.5-1 depth; sigiled dives at best-4 with 3 sigils clear 53-55%. See 04-balance.
 - **Tests**: 98-rift (5); 835 in all; fuzz 12/12 clean.
+
+## As built (PR B, #25)
+
+- **Riftborn gear** (`it.rb={p,d,a?}`): from depth RB_AT=10, a room of a dive leaves one at RB_DROP=5% x the reward
+  multiplier, a guardian always; never in the weekly dive except for a new weekly best. A legendary Throne-set piece with
+  every bonus line it may hold at its best roll and one power (RB_POW): Descent (+0.5% damage per dive depth, up to d/2 %,
+  Rift only), First Light (first skill each room free, from d 20 also no cooldown; outside one room in three), Bulwark of
+  the Deep (minions take 0.5% per d less, up to 25%), Deep Lungs (0.1% max mana a turn per dive depth, up to d/10 %),
+  Riftwalker (+1% Rift rewards per 5 d; outside 30% of it on kill gold), Deep Ward (boss and guardian moves 0.6% per d
+  softer, up to 30%; replaces Fold Sense). Bulwark of the Deep replaces Carry Over (no buffs carry between depths: a depth
+  is one run). Full in the Rift, 30% elsewhere; the deepest worn piece of a power counts. Rolled from `dayHash` with a
+  seeded generator, never Math.random. Attunement: +5 depth for 5, 10, 15... shards, up to 100.
+- **Shards** also buy a secret master's heart (40, in turn) for the Heartforge; the weekly dive's extra attempt was not built.
+- **The weekly dive** (`S.rift.wk={w,b,day,top}`): once a day and no watch; the week seeds the rooms (`trialRng`) and three
+  sigils; one room a depth from depth 1, a guardian on every fifth, no doors, events or Retry. It pays no XP, gold,
+  trophies or gear, and nothing shatters or loses XP in it. A new weekly best pays a shard per 5 depths it adds and, from
+  depth 10, a Riftborn piece of that depth.
+- **Rift events** (EVENTS with `rift:true`; half the events of a dive, RIFT_EV): a fold (the dive counts 2 depths
+  deeper), one of yours (the last Memorial name of a gate kind: a free body that keeps its name, or let it go: the army
+  mends 20%, +20 Choir devotion if sworn to the Choir), a fragment of the other half (four pages, `S.rift.fr`), a
+  tear-shrine (max HP x0.9 for the dive, rewards +20%). rollEvent keeps them out of the gates and the pedlar's odds count
+  only the gate events.
+- **Titles** (189): Six Guardians, Fully Sigiled (depth 20+ with three sigils), Weekly Diver (10 weekly bests), Attuned
+  (a piece at depth 50), Other Half.
+- **Bot**: wears Riftborn pieces for its Rift dives only when its gear score says so (it does not: see 04-balance), attunes
+  what it wears, dives weekly twice a week, takes the Rift events (fold and tear-shrine when healthy).
+  `"off":["riftborn","weekly"]`. Reports a `riftborn:` line.
+- **Tests**: 98-riftborn (6); 841 in all; fuzz 12/12 clean.

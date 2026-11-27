@@ -79,7 +79,7 @@ const strongestMinion=()=>S.army.filter(hittable).sort((a,b)=>b.atk-a.atk)[0]||n
 function backTarget(){ const b=S.army.filter(m=>hittable(m)&&rowOf(m)==='b'); return b.length?pick(b):S.player; }
 function frontTarget(){ const f=S.army.filter(m=>hittable(m)&&rowOf(m)==='f').sort((a,b)=>b.maxHp-a.maxHp); return f[0]||S.player; }
 function bossHit(e,tg,mul,ty,mv){   // one blow from a boss move: ward, Guard and the Soul Tether as for any boss move
-  const d=hit(e.atk*mul*enrage(e)); BLOW={n:e.name,k:'sig',mv}; const got=hurtAlly(tg,d,ty); BLOW=null; fxe('hurt',tg,{crit:1}); if(tg.hp<=0&&tg.id!=='p') log(tg.nick+' is down.','bad'); return got; }
+  const d=hit(e.atk*mul*enrage(e)*rbWard()); BLOW={n:e.name,k:'sig',mv}; const got=hurtAlly(tg,d,ty); BLOW=null; fxe('hurt',tg,{crit:1}); if(tg.hp<=0&&tg.id!=='p') log(tg.nick+' is down.','bad'); return got; }
 // the new moves (fireAbility hands every move it does not know to this)
 function fireKitMove(e,mv){
   const r=S.run, P=S.player, A=BOSS_ABIL[mv], foes=liveFoes();

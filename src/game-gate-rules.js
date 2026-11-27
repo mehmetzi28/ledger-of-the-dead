@@ -281,7 +281,7 @@ const EVENTS={
 const STRAGGLER_BONUS=25;
 const FAITH_EVENT=.25, SHRINE_OTHER=.3;   // SHRINE_OTHER: of those, another god's shrine (conversion)
    // a sworn necromancer meets a shrine true to the oath in a quarter of events
-function rollEvent(){ { const cd=chainDue(); if(cd) return {id:cd}; } const fe=Object.keys(EVENTS).find(k=>EVENTS[k].faith&&EVENTS[k].faith===faithOf()), id=fe&&Math.random()<FAITH_EVENT?(Math.random()<SHRINE_OTHER?'godshrine':fe):pick(Object.keys(EVENTS).filter(k=>!EVENTS[k].faith&&chainOk(k))), ev={id:id!=='pedlar'&&dreadBand().id==='calm'&&Math.random()<1/Object.keys(EVENTS).length?'pedlar':id};   /* Calm: pedlars twice as common (game-dread.js) */ if(ev.id==='godshrine') ev.g=pick(GODS.filter(g=>g!==faithOf())); if(ev.id==='pedlar'){ ev.pot=pick(Object.keys(POTIONS)); ev.price=Math.ceil(POTIONS[ev.pot].price()/2); } return ev; }
+function rollEvent(){ if(S.run&&S.run.rift&&Math.random()<RIFT_EV){ const re=riftEvent(); if(re) return re; }   /* the Rift's own events (game-rift.js) */ { const cd=chainDue(); if(cd) return {id:cd}; } const fe=Object.keys(EVENTS).find(k=>EVENTS[k].faith&&EVENTS[k].faith===faithOf()), id=fe&&Math.random()<FAITH_EVENT?(Math.random()<SHRINE_OTHER?'godshrine':fe):pick(Object.keys(EVENTS).filter(k=>!EVENTS[k].faith&&!EVENTS[k].rift&&chainOk(k))), ev={id:id!=='pedlar'&&dreadBand().id==='calm'&&Math.random()<1/Object.keys(EVENTS).filter(k=>!EVENTS[k].rift).length?'pedlar':id};   /* Calm: pedlars twice as common (game-dread.js) */ if(ev.id==='godshrine') ev.g=pick(GODS.filter(g=>g!==faithOf())); if(ev.id==='pedlar'){ ev.pot=pick(Object.keys(POTIONS)); ev.price=Math.ceil(POTIONS[ev.pot].price()/2); } return ev; }
 function corpseOf(e){ const c={id:'c'+e.id,armed:isArmed(e.base),name:e.name,base:e.base,role:e.role,rankI:e.rankI,lvl:e.lvl,hf:e.hf,af:e.af,tw:e.tw,boss:e.boss,elite:e.elite,tried:false,result:null,minion:null}; if(e.aff&&e.aff.length) c.aff=e.aff.slice(); if(e.dots&&e.dots.blight) c.bl=e.dots.blight.d; if(e.cd&&e.hp<=0) c.cd=e.cd; return c; }   // bl: it died Blighted (Spreading Rot); cd: how it died (CORPSE_CONDS)
 // Corpse conditions: how a foe died marks its body. First match in this order; raise: % added before the clamp; trait: what it rises with
 // in place of the random trait (a boss still rolls its second one, an elite still keeps an affix).
@@ -302,6 +302,7 @@ function resolveEvent(ch){
   const r=S.run; if(S.mode!=='raise'||!r||!r.event||r.event.done) return false;
   const ev=r.event, P=S.player, lvl=RK[r.di].lv+Math.floor(r.room/2); let m='', c='';
   if(EVENTS[ev.id].chain){ const o=chainResolve(ev,ch); if(!o) return false; m=o.m; c=o.c; }
+  else if(EVENTS[ev.id].rift&&ch!=='pass'){ const o=riftEvResolve(ev,ch); if(!o) return false; m=o.m; c=o.c; }   /* the Rift's events (game-rift.js) */
   else if(ch==='pass') m='You leave it be.';
   else if(ev.id==='shrine'&&ch==='bleed'){ if(P.hp<=1) return false; const d=Math.max(0,Math.min(P.hp-1,Math.round(pMax()*.2))); P.hp-=d; r.bless=true; tally('shrine'); m='The shrine drinks '+d+' HP. You and your army hit 15% harder for the rest of this gate.'; c='ok'; }
   else if(ev.id==='pedlar'&&ch==='buy'){ if(S.gold<ev.price||S.belt[ev.pot]>=beltMax()) return false; S.gold-=ev.price; S.belt[ev.pot]++; tally('pedlar'); m='You buy a '+POTIONS[ev.pot].name+' for '+ev.price+' gold.'; c='ok'; sfx('coin'); }

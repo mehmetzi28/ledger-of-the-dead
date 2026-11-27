@@ -23,19 +23,14 @@ const hasSig=k=>riftSigs().includes(k);
 const sigOpenN=()=>Math.min(SIGIL_IDS.length,(riftBest()>=SIGIL_AT?3+Math.floor((riftBest()-SIGIL_AT)/SIGIL_STEP):0)+((S.rift&&S.rift.xs)||0));   // three at depth 5, one more per 5 depths, more with shards
 const sigOpen=k=>SIGIL_IDS.indexOf(k)>=0&&SIGIL_IDS.indexOf(k)<sigOpenN();
 const sigPicked=()=>((S.rift&&S.rift.sig)||[]).filter(k=>SIGILS[k]&&sigOpen(k)).slice(0,SIGIL_MAX);   // the set the next dive takes
-const riftRew=sig=>1+(sig||riftSigs()).reduce((a,k)=>a+(SIGILS[k]?SIGILS[k].rew:0),0);   // gold, XP and drops in the dive
+const riftRew=sig=>1+(sig||riftSigs()).reduce((a,k)=>a+(SIGILS[k]?SIGILS[k].rew:0),0)+rbWalk()+(!sig&&S&&S.run&&S.run.tear?TEAR_REW:0);   // gold, XP and drops in the dive (Riftwalker and a tear-shrine add to it: PR B)
 const riftShards=()=>(S.rift&&S.rift.shards)||0;
 function toggleSigil(k){ if(S.mode!=='town'||!sigOpen(k)) return false; S.rift=S.rift||{best:0}; const L=sigPicked(), i=L.indexOf(k); if(i>=0) L.splice(i,1); else { if(L.length>=SIGIL_MAX) return false; L.push(k); } S.rift.sig=L; return true; }
 const unlockCost=()=>SHARD_UNLOCK*(((S.rift&&S.rift.xs)||0)+1);
 function unlockSigil(){ if(S.mode!=='town'||sigOpenN()>=SIGIL_IDS.length||riftShards()<unlockCost()) return false; const c=unlockCost(); S.rift.shards-=c; S.rift.xs=(S.rift.xs||0)+1; tally('sigUnlocks'); return SIGIL_IDS[sigOpenN()-1]; }
 function gainShards(n,why){ if(!(n>0)) return 0; S.rift=S.rift||{best:0}; S.rift.shards=riftShards()+n; tally('shards',n); if(S.run&&S.run.events) S.run.events.push({m:'+'+n+' Rift Shard'+(n>1?'s':'')+' ('+why+').',c:'ok'}); return n; }
 // ----- the sigils' rules (each hook is read where its system lives)
-function sigDive(r){   // startRift: the dive takes the picked sigils
-  r.sig=sigPicked(); if(!r.sig.length) return; tally('sigDives'); r.sig.forEach(k=>tally('sig_'+k));
-  if(r.sig.includes('wounds')) S.army.forEach(m=>{ if(m.hp>0) m.hp=Math.max(1,Math.round(m.maxHp*SIG_WOUND)); });
-  if(r.sig.includes('typed')){ const n={}; S.army.forEach(m=>{ const t=minionType(m); n[t]=(n[t]||0)+1; }); r.sigT=Object.keys(n).sort((a,b)=>n[b]-n[a])[0]||'phys'; }
-  log('Sigils on this dive: '+r.sig.map(k=>SIGILS[k].name).join(', ')+'. Rewards x'+riftRew(r.sig).toFixed(2)+'.','story');
-}
+function sigDive(r){ sigApply(r,sigPicked()); }   // startRift: the dive takes the picked sigils (sigApply, PR B)
 const sigArmor=a=>hasSig('iron')?1-(1-a)/SIG_ARMOR:a;   // foeArmor
 const sigHeal=()=>hasSig('hungry')?SIG_HEAL:1;   // healAlly
 const sigHands=()=>hasSig('hands')?1:0;   // buildRoom
@@ -131,13 +126,146 @@ const guardFold=u=>!!(S&&S.run&&S.run.fold)&&u&&u.id==null&&!u.wall;   // rowOf:
 function riftShardsPay(r){   // riftCleared
   const n=r.rift, G=guardAt(n); let s=0;
   if(G){ s+=1+Math.floor(n/10); tally('guardians'); tally('gd_'+guardIx(n)); S.rift.gk=S.rift.gk||{}; const band=Math.floor(n/30); if(!(S.rift.gk[guardIx(n)]>=band+1)){ S.rift.gk[guardIx(n)]=band+1; moment(G.name+' falls','gold'); } }
-  if(r.sig&&r.sig.length) s+=SHARD_SIGIL*r.sig.length;
+  if(r.sig&&r.sig.length) s+=SHARD_SIGIL*r.sig.length; if(r.sig&&r.sig.length>=SIGIL_MAX&&n>=20) tally('sig3_20');
   return gainShards(s,G?G.name+(r.sig&&r.sig.length?' and your sigils':''):'your sigils');
 }
 function riftFix(g){   // normalizeSave
   if(!g.rift||typeof g.rift!=='object') return; const R=g.rift, n=(v,d)=>typeof v==='number'&&isFinite(v)?v:d;
-  R.best=Math.max(0,Math.floor(n(R.best,0))); for(const k of Object.keys(R)) if(!['best','shards','xs','sig','gk'].includes(k)) delete R[k];
+  R.best=Math.max(0,Math.floor(n(R.best,0))); for(const k of Object.keys(R)) if(!['best','shards','xs','sig','gk','wk','fr','hb'].includes(k)) delete R[k];
   if('shards' in R) R.shards=Math.max(0,Math.floor(n(R.shards,0))); if('xs' in R) R.xs=Math.max(0,Math.min(SIGIL_IDS.length,Math.floor(n(R.xs,0))));
   if('sig' in R) R.sig=Array.isArray(R.sig)?R.sig.filter((k,i,a)=>SIGILS[k]&&a.indexOf(k)===i).slice(0,SIGIL_MAX):[];
+  if('fr' in R) R.fr=Math.max(0,Math.min(RIFT_FRAGS.length,Math.floor(n(R.fr,0)))); if('hb' in R) R.hb=Math.max(0,Math.floor(n(R.hb,0)));
+  if('wk' in R){ const W=R.wk; if(W&&typeof W==='object'&&n(W.w,0)>=1) R.wk={w:Math.floor(W.w),b:Math.max(0,Math.floor(n(W.b,0))),day:Math.max(0,Math.floor(n(W.day,0))),top:Math.max(0,Math.floor(n(W.top,0)))}; else delete R.wk; }
   if(R.gk&&typeof R.gk==='object'){ const o={}; for(const k in R.gk) if(GUARDIANS[k]&&isFinite(R.gk[k])) o[k]=Math.max(0,Math.floor(R.gk[k])); R.gk=o; } else delete R.gk;
 }
+
+// ===== THE RIFT, R9 PR B: Riftborn gear, attunement, the weekly dive and Rift events =====
+// Riftborn pieces (it.rb={p,d,a?}) drop only in the Rift from depth RB_AT: RB_DROP a room (times the dive's reward multiplier) and
+// always from a guardian. Each is a legendary piece of the Throne's set with one rift power that grows with its depth d (the depth it
+// dropped at, raised by attunement), and every bonus line a legendary may roll at its best value. In the Rift a power works in full; elsewhere at RB_OUT (Descent only counts Rift depths). Only
+// the gear you wear counts, and two pieces of one power do not stack (the deeper one counts). The drop is rolled from a hash, never
+// from Math.random, so the rest of a dive rolls as it would have. Attunement spends shards to raise a piece's depth by RB_ATT_STEP.
+const RB_AT=10, RB_DROP=.05, RB_OUT=.3, RB_DMAX=100, RB_ATT_STEP=5, RB_ATT_COST=5, RB_DESC=.005, RB_FIRST_CD=20, RB_BULW=.005, RB_BULW_MAX=.25,
+  RB_LUNG=.001, RB_WALK=.01, RB_WARD=.006, RB_WARD_MAX=.3, RB_HEART=40;
+const RB_POW={
+  descent:{name:'Descent',            desc:d=>'In the Rift: +0.5% damage per depth of the dive, up to '+Math.round(d/2)+'%.'},
+  first:  {name:'First Light',        desc:d=>'Your first skill in each room costs no mana'+(d>=RB_FIRST_CD?' and starts no cooldown':'')+'. Outside the Rift: one room in three.'},
+  bulwark:{name:'Bulwark of the Deep',desc:d=>'Your minions take '+rbPct(Math.min(RB_BULW_MAX,d*RB_BULW))+'% less damage.'},
+  lungs:  {name:'Deep Lungs',         desc:d=>'In the Rift: 0.1% of your max mana more each turn per depth of the dive, up to '+rbPct(d*RB_LUNG)+'%.'},
+  walker: {name:'Riftwalker',         desc:d=>'Rift rewards +'+Math.floor(d/5)+'% (gold, XP and drops).'},
+  ward:   {name:'Deep Ward',          desc:d=>'Boss and guardian moves hit your side '+rbPct(Math.min(RB_WARD_MAX,d*RB_WARD))+'% softer.'}
+};
+const RB_IDS=Object.keys(RB_POW);
+const rbPct=x=>Math.round(x*1000)/10;
+const inRift=()=>!!(S&&S.run&&S.run.rift);
+const rbK=()=>inRift()?1:RB_OUT;
+function rbD(p){ if(!S||!S.equip) return 0; let d=0; for(const sl of GEAR_SLOTS){ const it=S.equip[sl]; if(it&&it.rb&&it.rb.p===p&&it.rb.d>d) d=it.rb.d; } return d; }   // the deepest worn piece of a power
+const rbDesc=it=>RB_POW[it.rb.p].desc(it.rb.d)+(RB_OUT<1&&it.rb.p!=='descent'&&it.rb.p!=='first'&&it.rb.p!=='lungs'?' Outside the Rift: '+Math.round(RB_OUT*100)+'%.':'');
+// the powers (each hook is read where its system lives)
+function rbDescent(){ const d=rbD('descent'); return d&&inRift()?1+Math.min(S.run.rift*RB_DESC,d/200):1; }   // hurtFoe
+function rbFirst(r){ const d=rbD('first'); if(!d||!r||r.flU) return 0; if(!inRift()&&(r.won||0)%3!==0) return 0; r.flU=1; tally('firstLight'); return d>=RB_FIRST_CD&&inRift()?2:1; }   // useSkill: 1 free mana, 2 also no cooldown
+function rbBulwark(d){ const x=rbD('bulwark'); return x?Math.max(1,Math.round(d*(1-Math.min(RB_BULW_MAX,x*RB_BULW)*rbK()))):d; }   // allyDr, minions only
+function rbLungs(g){ const x=rbD('lungs'); if(!x||!inRift()) return g; const r=S.run; r.lf=(r.lf||0)+pMana()*Math.min(r.rift*RB_LUNG,x*RB_LUNG); const n=Math.floor(r.lf); r.lf-=n; return g+n; }   // the end-of-turn mana
+const rbWalk=()=>{ const d=rbD('walker'); return d?Math.floor(d/5)*RB_WALK:0; };   // riftRew; outside the Rift a share of it on kill gold
+const rbGoldOut=()=>1+rbWalk()*RB_OUT;
+const rbWard=()=>{ const d=rbD('ward'); return d?1-Math.min(RB_WARD_MAX,d*RB_WARD)*rbK():1; };   // bossHit
+// the drop
+const rbPool=()=>Object.values(ITEM).filter(d=>d.set===5&&!d.uq&&!d.tower&&d.tier===4);
+function makeRiftborn(d,h,why){   // a Riftborn piece of depth d, chosen and rolled from the hash h
+  const pool=rbPool(), R0=Math.random; let it=null; Math.random=trialRng(h,7);
+  try{ it=addItem(pool[Math.floor(Math.random()*pool.length)].id); if(it){ it.rb={p:RB_IDS[Math.floor(Math.random()*RB_IDS.length)],d:Math.min(RB_DMAX,Math.max(1,Math.floor(d)))}; let ro=it.ro||[]; while(ro.length<lineMax(it)) ro=ro.concat([rollLine(it,ro.map(x=>x[0]))]); it.ro=ro.map(([k])=>[k,rollMax(it,k)]); } }   /* every bonus line a legendary can hold, at its best roll */ finally { Math.random=R0; }
+  if(it){ tally('riftborn'); if(S.run&&S.run.log) log('A Riftborn piece: '+ITEM[it.id].name+' ('+RB_POW[it.rb.p].name+', depth '+it.rb.d+')'+(why?', '+why:'')+'.','story'); }
+  return it;
+}
+function rbDrop(r,last){   // roomWon, after the room's loot: a guardian always leaves one, any other room from depth RB_AT at RB_DROP (not in the weekly dive)
+  const n=r.rift; if(!(n>=RB_AT)||r.wk) return; const g=!!guardAt(n)&&last, h=dayHash(S.uid,S.runs,r.room,n,211);
+  if(!g&&(h%10000)/10000>=RB_DROP*riftRew()) return;
+  const it=makeRiftborn(n,h,g?'left by '+guardAt(n).name:'');
+  if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; r.events.push({m:'Riftborn: '+ITEM[it.id].name+', '+RB_POW[it.rb.p].name+' at depth '+it.rb.d+'.',c:'ok'}); }
+  else r.lostLoot.push('a Riftborn piece');
+}
+// attunement
+const attuneCost=it=>RB_ATT_COST*(((it&&it.rb&&it.rb.a)||0)+1);
+function attune(u){ const it=findItem(u); if(S.mode!=='town'||!it||!it.rb||it.rb.d>=RB_DMAX) return false; const c=attuneCost(it); if(riftShards()<c) return false;
+  S.rift.shards-=c; it.rb.d=Math.min(RB_DMAX,it.rb.d+RB_ATT_STEP); it.rb.a=(it.rb.a||0)+1; tally('attuned'); if(it.rb.d>=50) tally('rb50'); sfx('level'); return true; }
+function rbFix(it){ if(!it||!('rb' in it)) return; const b=it.rb, ok=b&&typeof b==='object'&&RB_POW[b.p]&&typeof b.d==='number'&&isFinite(b.d)&&b.d>=1&&ITEM[it.id]&&!ITEM[it.id].uq;   // normalizeSave (through hfFix)
+  if(!ok){ delete it.rb; return; } const o={p:b.p,d:Math.min(RB_DMAX,Math.floor(b.d))}; if(typeof b.a==='number'&&b.a>=1) o.a=Math.min(99,Math.floor(b.a)); it.rb=o; }
+// a secret master's heart for shards
+const heartOpts=()=>SECRET.map(x=>'b:'+x.name).filter(k=>TROPHY[k]);
+function buyHeart(){ if(S.mode!=='town'||riftShards()<RB_HEART) return null; const L=heartOpts(); if(!L.length) return null; const k=L[((S.rift.hb||0))%L.length];
+  S.rift.shards-=RB_HEART; S.rift.hb=(S.rift.hb||0)+1; S.trophies[k]=(S.trophies[k]||0)+1; tally('shardHearts'); return k; }
+// ----- the weekly seeded dive
+// Beside the Trial: one try a day, the same rooms for everyone all week (the rooms are rolled from the week's seed), three fixed
+// sigils. Every room is one depth, from depth 1 down, with a guardian on every fifth; the dive ends when you fall or leave. The best
+// depth this week is kept (S.rift.wk = {w, b, day, top}). It pays no XP, gold, trophies or gear: a new weekly best pays a shard for
+// every WEEK_SHARD depths it adds, and from depth RB_AT leaves a Riftborn piece of that depth. (A first build paid XP and a shard
+// per 5 depths every try: the full bot reached level 95 by day 100 instead of 61, and ~600 shards.)
+const WEEK_SHARD=5;
+const weekNo=()=>Math.floor((S.day-1)/7)+1;
+function weekPlan(){ const w=weekNo(), seed=dayHash(w,307), L=SIGIL_IDS.slice(), sig=[];
+  for(let i=0;i<SIGIL_MAX;i++) sig.push(L.splice(dayHash(w,311,i)%L.length,1)[0]); return {w,seed,sig}; }
+const wkSt=()=>{ S.rift=S.rift||{best:0}; const W=S.rift.wk; if(!W||W.w!==weekNo()) S.rift.wk={w:weekNo(),b:0,day:0,top:(W&&W.top)||0}; return S.rift.wk; };
+const weekBest=()=>{ const W=S.rift&&S.rift.wk; return W&&W.w===weekNo()?W.b:0; };
+const weekReady=()=>!!S&&S.mode==='town'&&riftOpen()&&!((S.rift&&S.rift.wk&&S.rift.wk.w===weekNo()&&S.rift.wk.day===S.day));
+const weekDi=(seed,room)=>dayHash(seed,room,313)%GATE_N;
+const roomBoss=(r,room)=>r&&r.wk?!!guardAt(r.rift):room===r.rooms-1;   // buildRoom, spawnRoom: in the weekly dive a room is a boss room on a guardian's depth
+function startWeek(){
+  if(!weekReady()) return false; const p=weekPlan(), W=wkSt();
+  W.day=S.day; S.runs++;   /* no watch: it pays no XP, gold or gear (with a watch the full bot lost ~4 levels and ~6 Tower floors by day 100) */ S.notices=[]; tally('weekDives');
+  S.run={di:weekDi(p.seed,0),rift:1,wk:p.w,tseed:p.seed,room:0,rooms:2,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:null,heat:0,wkD:0};
+  S.mode='battle'; titheSouls(); tally('riftRuns'); sigApply(S.run,p.sig);
+  log('The weekly dive of week '+p.w+' begins. Every room is one depth down.','story');
+  spawnRoom(); return true;
+}
+function weekStep(r){ r.rift++; r.rooms=r.room+2; r.di=weekDi(r.tseed,r.room); }   // descend: one depth further
+function weekRoom(r){   // roomWon: a depth held
+  r.wkD=r.rift; const G=guardAt(r.rift);
+  if(G){ tally('guardians'); tally('gd_'+guardIx(r.rift)); }
+}
+function weekEnd(r){   // returnTown: the dive's depth is recorded
+  if(!r||!r.wk||r.wkDone) return; r.wkDone=1; const W=wkSt(), d=r.wkD||0; if(W.w!==r.wk) return;
+  if(d>W.b){ const s=Math.floor(d/WEEK_SHARD)-Math.floor(W.b/WEEK_SHARD); if(s) gainShards(s,'the weekly dive, depth '+d); W.b=d; tally('weekBests'); if(d>(W.top||0)) W.top=d; moment('Weekly dive: depth '+d,'gold');
+    if(d>=RB_AT){ const it=makeRiftborn(d,dayHash(r.tseed,d,317),'for a new weekly best'); if(!it) notify('Your bag is full: the weekly dive\'s Riftborn piece was lost.','bad'); } }
+}
+// ----- the sigils on a dive (startRift takes the picked set; the weekly dive its fixed three)
+function sigApply(r,sig){
+  r.sig=sig.slice(); if(!r.sig.length) return; tally('sigDives'); r.sig.forEach(k=>tally('sig_'+k));
+  if(r.sig.includes('wounds')) S.army.forEach(m=>{ if(m.hp>0) m.hp=Math.max(1,Math.round(m.maxHp*SIG_WOUND)); });
+  if(r.sig.includes('typed')){ const n={}; S.army.forEach(m=>{ const t=minionType(m); n[t]=(n[t]||0)+1; }); r.sigT=Object.keys(n).sort((a,b)=>n[b]-n[a])[0]||'phys'; }
+  log('Sigils on this dive: '+r.sig.map(k=>SIGILS[k].name).join(', ')+'. Rewards x'+riftRew(r.sig).toFixed(2)+'.','story');
+}
+// ----- Rift events: half the events between a dive's rooms come from the Rift itself (never in the gates: rollEvent keeps them out)
+const RIFT_EV=.5, TEAR_HP=.9, TEAR_REW=.2, FOLD_SKIP=2, MEM_DEV=20;
+const RIFT_FRAGS=[
+  {t:'The other half, I',m:'The Ledger was never one book. It was cut in two at the binding, and the half you hold writes the dead down. The other half was meant to write them out.'},
+  {t:'The other half, II',m:'The first keeper took the writing half up into the valley and left the other in the dark beneath it, where the gates fold together. The Rift is the gap it left.'},
+  {t:'The other half, III',m:'Something has been reading the lower half all this time. Every name you raised, it has read backwards. The guardians are what it made of them.'},
+  {t:'The other half, IV',m:'At the very bottom the two halves still touch. A keeper who reached it could close the book for good, or write in both at once. No keeper has reached it yet.'}
+];
+const fragN=()=>Math.min(RIFT_FRAGS.length,(S.rift&&S.rift.fr)||0);
+Object.assign(EVENTS,{
+  rfold:  {name:'A fold',rift:true,text:'The Rift creases here, and through the crease you can see two depths further down.', opts:[['skip','Step through (this dive counts '+FOLD_SKIP+' depths deeper, and its foes stand there)'],['pass','Stay on this depth']]},
+  rmem:   {name:'One of yours',rift:true,text:'Among the Rift\'s dead stands one you know: a minion of yours from the Memorial, folded down here when it fell.', opts:[['raise','Raise it again (a free body that keeps its name)'],['free','Let it go (+'+MEM_DEV+' Choir devotion if you are sworn to the Choir; your army mends 20%)']]},
+  rfrag:  {name:'A fragment of the other half',rift:true,text:'A torn page lies in the dust, written in your own hand but backwards.', opts:[['read','Read it'],['pass','Leave it']]},
+  rshrine:{name:'A tear-shrine',rift:true,text:'A seam in the air, stitched shut with old bone. Open it a little, and the Rift pays you to bleed.', opts:[['tear','Open it (10% less max HP for this dive, rewards +20%)'],['pass','Leave it shut']]}
+});
+const RIFT_EV_IDS=['rfold','rmem','rfrag','rshrine'];
+const memPick=()=>(S.memorial||[]).filter(x=>x&&mobOf(x.kind)).slice(-1)[0]||null;   // the eldest name the Rift can fold back
+function mobOf(kind){ for(let i=0;i<GATE_N;i++){ const m=DUNGEONS[i].mobs.find(x=>x[0]===kind); if(m) return {di:i,m}; } return null; }
+function riftEvent(){   // rollEvent, in a dive (not the weekly one)
+  const r=S.run, ok=RIFT_EV_IDS.filter(k=>k!=='rmem'||memPick()).filter(k=>k!=='rfrag'||fragN()<RIFT_FRAGS.length).filter(k=>k!=='rshrine'||!r.tear).filter(k=>k!=='rfold'||!r.rfold);
+  return ok.length?{id:pick(ok)}:null;
+}
+function riftEvResolve(ev,ch){   // resolveEvent
+  const r=S.run, P=S.player;
+  if(ev.id==='rfold'&&ch==='skip'){ r.rift+=FOLD_SKIP; r.rfold=1; tally('riftFolds'); return {m:'You step through the fold. This dive is now depth '+r.rift+'.',c:'ok'}; }
+  if(ev.id==='rmem'&&ch==='raise'){ const x=memPick(), o=x&&mobOf(x.kind); if(!o) return null; const lv=Math.max(x.lvl||1,riftLvl(r.rift)-2);
+    r.corpses.push({id:'cm'+(++S.uid),armed:isArmed(x.kind),name:x.kind,base:x.kind,role:o.m[1],rankI:o.di,lvl:lv,hf:o.m[2],af:o.m[3],boss:false,elite:false,tried:false,result:null,minion:null,free:true,mem:x.nick});
+    tally('riftMem'); return {m:x.nick+' waits with the other bodies. Raising it costs no mana, and it remembers its name.',c:'ok'}; }
+  if(ev.id==='rmem'&&ch==='free'){ const x=memPick(); S.army.forEach(m=>{ if(m.hp>0) m.hp=Math.min(m.maxHp,m.hp+Math.round(m.maxHp*.2)); }); if(faithOf()==='choir') deed('choir',MEM_DEV/DEED_K.choir/templeDev());
+    return {m:'You let '+(x?x.nick:'it')+' go. Your army mends'+(faithOf()==='choir'?' and the Choir sings it home':'')+'.',c:'ok'}; }
+  if(ev.id==='rfrag'&&ch==='read'){ const n=fragN(); if(n>=RIFT_FRAGS.length) return null; S.rift.fr=n+1; tally('riftFrags'); const F=RIFT_FRAGS[n]; log(F.t+': '+F.m,'story'); return {m:F.t+'. '+F.m,c:'ok'}; }
+  if(ev.id==='rshrine'&&ch==='tear'){ r.tear=1; P.hp=Math.min(P.hp,pMax()); tally('tears'); return {m:'The seam opens. You feel thinner, and the Rift pays more.',c:'ok'}; }
+  return null;
+}
+const tearK=()=>S&&S.run&&S.run.tear?TEAR_HP:1;   // pMax
