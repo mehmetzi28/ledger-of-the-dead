@@ -743,7 +743,16 @@ Object.assign(MAT,{'The Folded Knight':['metal','#5a5e6a'],'Mother of Gates':['s
  ['The Witchfinder General','Crownless Duelist',['cloth','#2e2620']],['The Saint of Pyres','Brass Saint',['metal','#a86a2e']],['The Grand Inquisitor','Cathedral Templar',['metal','#8a7a4a']]]
   .forEach(([n,from,m])=>{ IC[n]=IC[from]; MAT[n]=m; });   /* R14: the higher tiers of the living */
 const matOf=key=>MAT[key]||(()=>{ const i=SECRET.findIndex(B=>B.name===key); return i>=0?MAT[DUNGEONS[i].boss[0]]:null; })()||MAT._;
-function ico(key,rankI,o){ o=o||{}; const M=matOf(key); return '<span class="ico r'+rankI+(o.boss?' boss':'')+(o.secret?' secret':'')+(o.elite?' elite':'')+'" aria-hidden="true"><svg viewBox="0 0 64 64" class="mt-'+M[0]+'" style="color:'+M[1]+'"><g filter="url(#paint)">'+(IC[key]||IC._)+'</g></svg>'+(key!=='Necromancer'?roleBadge(o.role):'')+'</span>'; }
+// R16 PR B: the hero's robe colour and staff head (game-collection.js); o.robe / o.staff preview a look in the wardrobe
+const STAFF_SKULL=SKULL(53,10,.42,'bn',SOULC);
+const STAFF_HEAD={
+  lantern:P('M49 4H57V15H49Z','dk')+E(53,10,2,'#ffc864')+L('M49 4H57V15H49ZM53 4V15',.6)+P('M50 2H56V4H50Z','gd')+P('M51 15H55V17H51Z','gd'),
+  quill:P('M53 16C49 10 49 4 56 0C57 6 56 11 53 16Z','bn')+L('M53 16C54 10 55 5 56 0',.6)+L('M51 9L54 7M51 12L54 10M52 5L55 3',.45),
+  crown:P('M47 13L48 5L51 9L53 3L55 9L58 5L59 13Z','gd')+E(53,10,1.2,'#e85a5a')+L('M47 13H59',.7)
+};
+function heroArt(o){ const st=o.staff!==undefined?o.staff:(typeof cosOf==='function'?cosOf('staff'):null); const b=IC.Necromancer; return st&&STAFF_HEAD[st]?b.replace(STAFF_SKULL,STAFF_HEAD[st]):b; }
+const heroRobe=o=>{ const rb=o.robe!==undefined?o.robe:(typeof cosOf==='function'?cosOf('robe'):null); return rb&&COS.robe[rb]?COS.robe[rb].c:null; };
+function ico(key,rankI,o){ o=o||{}; const M=matOf(key), hero=key==='Necromancer', col=(hero&&heroRobe(o))||M[1]; return '<span class="ico r'+rankI+(o.boss?' boss':'')+(o.secret?' secret':'')+(o.elite?' elite':'')+'" aria-hidden="true"><svg viewBox="0 0 64 64" class="mt-'+M[0]+'" style="color:'+col+'"><g filter="url(#paint)">'+(hero?heroArt(o):(IC[key]||IC._))+'</g></svg>'+(key!=='Necromancer'?roleBadge(o.role):'')+'</span>'; }
 const app=document.getElementById('app');
 const ui={confirm:null};
 const pct=(v,m)=>Math.max(0,Math.min(100,m?v/m*100:0));

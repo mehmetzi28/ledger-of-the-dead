@@ -535,7 +535,9 @@ Rift, Town, Faith, Rival and sieges, Story, Secrets). Up to three earned titles 
 and 120 titles), one a family, each giving its family's ~1% perk. Six milestones (`S.coll`: Bestiary Ledgered, Uniques
 found, Sets completed, Trophy kinds, Pages, Memorial) pay at three steps; the middle step eases a rule (door sight, Awakening
 -10%, a bag row, a free weekly brew, early title hints, headstones -10%). Hidden titles show a masked hint from 100 titles.
-The Titles tab is now Collection.
+The Titles tab is now Collection. **Cosmetics** (PR B, `S.cos`): 27 looks (robes, staff heads, army banners, night
+backdrops per gate, Ledger covers) owned through families, milestone steps and five titles; only worn looks are saved.
+A finished family sets a seal on the hero card.
 
 **The Rival** (`RIVAL_*`). After 4 distinct clears a rival keeper (one of six names) appears. Every 2-6 days they steal
 the best body of the role your army leans on; about every two weeks (warned a day ahead) they wait in a cleared gate's

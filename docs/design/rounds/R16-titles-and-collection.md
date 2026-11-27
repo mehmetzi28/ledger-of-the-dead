@@ -109,7 +109,7 @@ should be under a point (`"off":["insc"]`): collection is flavor, not power.
   - Trophy kinds held at once 30/60/all: one free brew a week.
   - Pages 10/20/all: hidden title hints from 50 titles. This replaces the doc's "a passage".
   - Memorial 50/100/200: headstones -10%.
-  - The first and last steps name a cosmetic, which PR B adds.
+  - The first and last steps each give a named cosmetic (PR B).
 - **Hidden titles**: from 100 titles (50 with the Pages step), a hidden title's requirement shows with most words cut to their
   first letter (`titleHint`).
 - **UI**: the Titles tab is now **Collection**, with two views:
@@ -129,3 +129,23 @@ should be under a point (`"off":["insc"]`): collection is flavor, not power.
   - The thrall invariants did not allow the Long Name's thralls or the Ossuary's two-a-wave on the Graveyard.
   - A title worn automatically now updates the army's stats.
 - **Tests**: `tests/groups/98-collection.js` (6 tests).
+
+### PR B: cosmetics and seals
+- **Code**: the second half of `src/game-collection.js`; drawing in `ui-icons.js` (`heroArt`, `heroRobe`, `STAFF_HEAD`),
+  `scenes.js` (`scNight`) and `ui-panels.js` (`wardrobeHTML`, `bannerSVG`, `sealsHTML`).
+- **27 looks** (`COS`) in five kinds: 8 robes (the hero's colour), 3 staff heads (lantern, quill, crown in place of the
+  skull), 6 army banners (painted behind your side in battle), 6 night backdrops (one per gate: that gate's battles are
+  fought under a moon, with a deep blue grade and mist) and 4 Ledger covers (the frame of the Ledger tab's pages).
+- **Sources**: each look comes from one of three places.
+  - A finished title family. All ten families give one.
+  - The first or last step of a milestone. All twelve such steps give one, and each milestone's reward line now names it.
+  - A title: the four Nightmare gate titles and the Choir's.
+  The doc's Codex-listed deeds became these titles.
+- **Saving**: owning a look is read from its source, which is kept for good. Only the worn looks are saved (`S.cos`), and
+  New Game+ keeps them. A worn look that is no longer owned is not shown.
+- **Seals**: a finished family puts its seal on the hero card.
+- **UI**: the Collection tab gets a third view, Cosmetics. It is a wardrobe with a preview of each look and Wear or Take off
+  buttons, and it can only be changed in town. The Codex Collection page lists every look and its source.
+- **Measured**: no rule changed. The market bot (seed 7700) and full bot (seed 9100) numbers match PR A exactly: 95% and 94%
+  clears, Tower 83 and 86.5. Fuzz: 12 of 12 seeds clean.
+- **Tests**: `tests/groups/98-cosmetics.js` (4 tests).

@@ -59,7 +59,7 @@ test('Codex: every page renders real text, on a new save and a late one, and the
 test('Codex: every line of every page has Turkish (names stay English)',()=>{
   richState(); S.omen={day:S.day,id:'eclipse'};
   const names=[...new Set(allNames().concat(DUNGEONS.map(D=>D.name),SECRET.map(B=>B.name),Object.values(BOSS_ABIL).map(a=>a.name),Object.values(FLAGS).map(f=>f.split(':')[0]),
-    SET_NAMES,USET.map(U=>U.name),Object.values(ITEM).map(d=>d.name),SIEGE_NAMES))].sort((a,b)=>b.length-a.length);
+    SET_NAMES,USET.map(U=>U.name),Object.values(ITEM).map(d=>d.name),SIEGE_NAMES,...COS_KIND_IDS.map(k=>Object.values(COS[k]).map(c=>c.name))))].sort((a,b)=>b.length-a.length);
   const core=s=>s.replace(/^[\s·.,:;+\-−–]*/,'').replace(/[\s·.,:;!?\-–]*$/,'').replace(/\d+(?:[.,]\d+)?/g,'#');
   const bare=s=>{ let t=s; for(const n of names) t=t.split(n).join(' '); return !/[A-Za-z]{2}/.test(t.replace(/\b(Lv|HP|ATK|XP)\b/g,' ')); };
   for(const [k,label] of CODEX){ ok(trText(label)!==label||TR_DICT.has(label),'tab name '+label);

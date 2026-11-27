@@ -574,13 +574,19 @@ function scAtmos(k){
   for(let i=0;i<3;i++) o+='<ellipse class="sc-fog'+(i%2?' d2':'')+'" cx="'+(300+i*500)+'" cy="'+(70+i*45)+'" rx="'+(420+r()*200).toFixed(0)+'" ry="34" fill="#000" opacity=".35" filter="url(#scB)"/>';
   return o+'<circle class="sc-pulse" cx="800" cy="440" r="320" fill="'+tint+'" opacity=".07" filter="url(#scB)"/><rect width="1600" height="900" fill="url(#atG)"/>';
 }
+function scNight(k){   // a gate by night: a deep blue grade, a moon and more stars, the fires burning brighter against it
+  const r=scRand(k.length*53+11);
+  return '<rect width="1600" height="900" fill="#0a1430" opacity=".42" style="mix-blend-mode:multiply"/>'+scStars(r,70,360)+scGlow(1240,130,150,'#c8d4ff',.18)+'<circle cx="1240" cy="130" r="44" fill="#dfe4f0" opacity=".7"/><circle cx="1226" cy="120" r="9" fill="#b8c0d4" opacity=".5"/>'
+    +scGlow(800,700,420,'#ffb060',.06)+scMist('mN',560,340,'#4a5a8a',.1);
+}
 function sceneKey(){ if(VIEW.nobg) return ''; if(S.mode==='town') return ui.tab==='tower'?'tower':'town'; if(S.mode==='siege'||(S.run&&S.run.siege)) return 'town'; const r=S.run; const b=liveBoss(); if(b&&ARENAS[b.base]) return 'b:'+b.base; if(!r) return ''; if(r.tw) return 'tower'; return r.rift?'rift':'g'+r.di; }
 function scene(){
   const el=document.getElementById('scene'); if(!el) return; const k=sceneKey();
   const boss=k.startsWith('b:'), build=boss?()=>scCalm(scLift(ARENAS[k.slice(2)](scRand(k.length*97+k.charCodeAt(2))),1.22)):()=>scLift(BACKDROPS[k]());
   document.body.classList.toggle('arena',boss);
-  const ck=k&&k+(VIEW.calm?'|calm':'');   // reduced motion builds a still copy, so switching it rebuilds the scene
-  if(el.dataset.k!==ck){ el.dataset.k=ck; el.innerHTML=k&&(boss?ARENAS[k.slice(2)]:BACKDROPS[k])?'<svg viewBox="0 0 '+SC_W+' '+SC_H+'" preserveAspectRatio="xMidYMax slice"><defs><filter id="scB" x="-30%" y="-200%" width="160%" height="500%"><feGaussianBlur stdDeviation="34"/></filter><filter id="scB2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter><radialGradient id="scV" cx="50%" cy="48%" r="75%"><stop offset=".58" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".62"/></radialGradient></defs>'+build()+scCalm(scAtmos(k))+'<rect width="1600" height="900" fill="url(#scV)"/></svg>':''; }
+  const night=!boss&&k&&typeof cosOf==='function'&&cosOf('stage')===k&&S.mode!=='town';   /* R16 PR B: this gate by night (game-collection.js) */
+  const ck=k&&k+(VIEW.calm?'|calm':'')+(night?'|night':'');   // reduced motion builds a still copy, so switching it rebuilds the scene
+  if(el.dataset.k!==ck){ el.dataset.k=ck; el.innerHTML=k&&(boss?ARENAS[k.slice(2)]:BACKDROPS[k])?'<svg viewBox="0 0 '+SC_W+' '+SC_H+'" preserveAspectRatio="xMidYMax slice"><defs><filter id="scB" x="-30%" y="-200%" width="160%" height="500%"><feGaussianBlur stdDeviation="34"/></filter><filter id="scB2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter><radialGradient id="scV" cx="50%" cy="48%" r="75%"><stop offset=".58" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".62"/></radialGradient></defs>'+build()+scCalm(scAtmos(k))+(night?scNight(k):'')+'<rect width="1600" height="900" fill="url(#scV)"/></svg>':''; }
   document.body.classList.toggle('towerscene',k==='tower'); document.body.classList.toggle('scened',!!k);   // a scene brings its own vignette
   el.classList.toggle('on',!!k);
 }

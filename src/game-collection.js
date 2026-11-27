@@ -107,3 +107,67 @@ function collFix(g){   // normalizeSave
   for(const k in c){ if(MS_IDS.includes(k)){ const n=Math.floor(num(c[k],0)); if(n>=1) o[k]=Math.min(3,n); } else if(k==='u'&&Array.isArray(c.u)){ const u=[...new Set(c.u.filter(id=>ITEM[id]&&ITEM[id].uq))]; if(u.length) o.u=u; } else if(k==='bw'&&isFinite(c.bw)&&c.bw>=0) o.bw=Math.floor(c.bw); }
   if(Object.keys(o).length) g.coll=o; else delete g.coll;
 }
+// ===== R16 PR B: COSMETICS =====
+// Twenty-seven looks drawn by the game's own painter: robes (the hero's colour), staff heads, army banners (behind your side in
+// a fight), night backdrops for each gate's battles and Ledger covers (the frame of the Ledger tab's pages). Each comes from a
+// finished title family, a milestone step or a deed; ownership is read from those (all kept for good), so only the worn look is
+// saved: S.cos = {robe, staff, banner, stage, cover}. Purely cosmetic.
+const COS_KINDS={robe:'Robes',staff:'Staff heads',banner:'Army banners',stage:'Night backdrops',cover:'Ledger covers'};
+const COS_KIND_IDS=Object.keys(COS_KINDS);
+const COS={
+  robe:{
+    gravecloth:{name:'Gravecloth',c:'#5a5448',src:['ms','mem',1]},
+    ashen:     {name:'Ashen',c:'#6e6a64',src:['fam','gate']},
+    drowned:   {name:'Drowned',c:'#2f4a4a',src:['fam','raise']},
+    choir:     {name:'Choir-white',c:'#cfc8b4',src:['fam','faith']},
+    iron:      {name:'Iron',c:'#4e555c',src:['ms','uq',1]},
+    sovereign: {name:'Sovereign\'s',c:'#5a2e5e',src:['fam','story']},
+    abbey:     {name:'Abbey brown',c:'#5e4430',src:['ms','tro',1]},
+    rival:     {name:'Rival red',c:'#7a2a24',src:['fam','rival']}
+  },
+  staff:{
+    lantern:{name:'Lantern',src:['fam','hero']},
+    quill:  {name:'Quill',src:['ms','ledger',3]},
+    crown:  {name:'Crown',src:['ms','uq',3]}
+  },
+  banner:{
+    bone:   {name:'Bone',c:'#d8cfb4',t:'#6a6252',src:['ms','ledger',1]},
+    rat:    {name:'Rat',c:'#6a5a44',t:'#c9b98f',src:['ms','tro',3]},
+    ember:  {name:'Ember',c:'#8a3416',t:'#f0a040',src:['fam','endless']},
+    choir:  {name:'Choir',c:'#d6cdb2',t:'#8a7a4a',src:['title','f_choir']},
+    orchard:{name:'Orchard',c:'#4a5a26',t:'#c8c870',src:['fam','town']},
+    ash:    {name:'Ash',c:'#3a3632',t:'#e8dec6',src:['fam','army']}
+  },
+  stage:{
+    g0:{name:'Rat Warren by night',src:['ms','sets',1]},
+    g1:{name:'Sunken Crypt by night',src:['title','nm1']},
+    g2:{name:'Ashen Barrow by night',src:['title','nm2']},
+    g3:{name:'Hollow Cathedral by night',src:['title','nm3']},
+    g4:{name:'Iron Orchard by night',src:['title','nm4']},
+    g5:{name:'Throne of Ash by night',src:['ms','pages',3]}
+  },
+  cover:{
+    leather:{name:'Leather',c:'#6a4a2e',src:['fam','secrets']},
+    iron:   {name:'Iron',c:'#5a6068',src:['ms','sets',3]},
+    vellum: {name:'Vellum',c:'#cbbd98',src:['ms','pages',1]},
+    skin:   {name:'Skin',c:'#9a7a66',src:['ms','mem',3]}
+  }
+};
+const COS_ONE={robe:'robe',staff:'staff head',banner:'banner',stage:'night backdrop',cover:'Ledger cover'};
+const cosLabel=(kind,id)=>'the '+COS[kind][id].name.replace(/ by night$/,'')+' '+COS_ONE[kind];
+for(const k of COS_KIND_IDS) for(const id in COS[k]){ const [w,a,b]=COS[k][id].src; if(w==='ms') MILESTONES[a].rew[b-1]=cosLabel(k,id); }   // the milestones name their looks
+const famDone=f=>!!(S&&S.ti&&S.ti.got)&&TITLES.filter(t=>famOf(t)===f).every(t=>S.ti.got[t.id]);
+function cosOwned(kind,id){ const c=COS[kind]&&COS[kind][id]; if(!c) return false; const [w,a,b]=c.src;
+  return w==='fam'?famDone(a):w==='ms'?msOn(a,b):w==='title'?!!(S&&S.ti&&S.ti.got&&S.ti.got[a]):false; }
+function cosSrc(kind,id){ const [w,a,b]=COS[kind][id].src; return w==='fam'?'Earn every '+FAMS[a].name+' title':w==='ms'?MILESTONES[a].name+': '+msSteps(a)[b-1]+' '+MILESTONES[a].unit:'Earn the title '+TITLE[a].name; }
+const cosOf=kind=>{ const id=S&&S.cos&&S.cos[kind]; return id&&cosOwned(kind,id)?id:null; };
+function cosWear(kind,id){   // wear a look you own (again, or null: the plain look)
+  if(!COS[kind]) return false; if(id!=null&&!cosOwned(kind,id)) return false; S.cos=S.cos&&typeof S.cos==='object'?S.cos:{};
+  if(id==null||S.cos[kind]===id) delete S.cos[kind]; else S.cos[kind]=id; if(!Object.keys(S.cos).length) delete S.cos; return true; }
+const cosCount=()=>COS_KIND_IDS.reduce((n,k)=>n+Object.keys(COS[k]).filter(id=>cosOwned(k,id)).length,0);
+const cosTotal=()=>COS_KIND_IDS.reduce((n,k)=>n+Object.keys(COS[k]).length,0);
+function cosFix(g){   // normalizeSave: only known kinds and looks
+  if(!('cos' in g)) return; const c=g.cos&&typeof g.cos==='object'?g.cos:{}, o={};
+  for(const k in c) if(COS[k]&&typeof c[k]==='string'&&COS[k][c[k]]) o[k]=c[k];
+  if(Object.keys(o).length) g.cos=o; else delete g.cos;
+}

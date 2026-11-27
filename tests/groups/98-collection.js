@@ -50,7 +50,7 @@ test('Collection on screen: titles by family with inscriptions, milestones, the 
   ok(h.includes('insc-l'),'the hero card'); ACTIONS.collsub('ms'); h=renderAll('ms'); ok(/Milestones/.test(h)&&/Bestiary Ledgered/.test(h)); ACTIONS.collsub('tt');
   const cx=cdx('collection'); ok(/Families/.test(cx)&&/Milestones/.test(cx));
   const strip=s=>s.replace(/<[^>]+>/g,'\u0001').split('\u0001').map(x=>x.replace(/&middot;/g,'·').replace(/&#39;/g,"'").replace(/&amp;/g,'&').replace(/&[a-z#0-9]+;/gi,' ').trim()).filter(x=>/[A-Za-z]{2}/.test(x));
-  const names=new Set(TITLES.map(t=>t.name).concat(TIERS));
+  const names=new Set(TITLES.map(t=>t.name).concat(TIERS,...COS_KIND_IDS.map(k=>Object.values(COS[k]).map(c=>c.name))));
   const lines=strip(inscHTML()+milestonesHTML()+codexSection('collection')).concat(FAM_IDS.map(f=>FAMS[f].name),FAM_IDS.map(f=>FAMS[f].perk),MS_IDS.map(k=>MILESTONES[k].name),MS_IDS.map(k=>MILESTONES[k].unit),[].concat(...MS_IDS.map(k=>MILESTONES[k].rew)));
   for(const s of lines) if(!names.has(s)) ok(tr(s)!==s||/^[\d\s·.%:,\/\-]+$/.test(s),'Turkish: '+s);
 });
