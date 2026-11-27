@@ -43,7 +43,7 @@ function townHTML(){
   h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'+gateArmyHTML()+nemStripHTML()
    +((n=>n<FIRST_STEPS.length&&!(S.tips&&S.tips.off)?'<p class="q-note guide-link"><button class="linkbtn" data-a="tab" data-k="help">How to play &middot; first steps '+n+'/'+FIRST_STEPS.length+'</button></p>':'')(stepsDone()))   /* for a new player; gone once every step is done or tips are switched off */
    +(omen()?'<div class="omen-line" title="It touches every gate and the Tower until dawn."><b>Omen today: '+OMENS[omen()].name+'.</b> '+OMENS[omen()].desc+'</div>':'')+(forecast()?'<div class="omen-line dim">Tomorrow: '+(forecast().id?OMENS[forecast().id].name:'no omen')+' (foreseen by '+FAITH[faithOf()].short+').</div>':'')+rivalWarnHTML()+arcGateHTML()
-   +((S.map&&S.map.bodies||[]).length?'<p class="q-note">'+S.map.bodies.length+' bod'+(S.map.bodies.length>1?'ies':'y')+' from the valley wait to be raised before dawn: <button class="linkbtn" data-a="gsub" data-k="valley">Valley map</button></p>':'')
+   +((S.map&&S.map.bodies||[]).length?'<p class="q-note">'+S.map.bodies.length+' bod'+(S.map.bodies.length>1?'ies':'y')+' from the valley wait to be raised before dawn: <button class="linkbtn" data-a="gsub" data-k="valley">Valley map</button></p>':'')+(S.map&&S.map.enc?'<p class="q-note">'+encText(S.map.enc)+' <button class="linkbtn" data-a="gsub" data-k="valley">Valley map</button></p>':'')
    +prepHTML()+'<div class="gates">'+DUNGEONS.map((d,i)=>gateHTML(i)).join('')+'</div>'
    +'<div class="btns"><button class="btn small" data-a="rest">Rest until dawn</button></div></section>';
   return h;

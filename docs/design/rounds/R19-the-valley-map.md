@@ -140,3 +140,35 @@ Plan the day as gate runs from the nearest gate; visit a graveyard when the army
   94), Tower 85 (was 86.5), 12.9% of watches on roads (target 10-15%). Sites gave 9.5% (market) and 14.1% (full) of all
   raises.
 - **Tests**: `tests/groups/98-valley-map.js` (12 tests).
+
+### PR B: the other sites, encounters, scouting and the raven
+- **The map** grows to 27 nodes (`src/game-roads.js`, hooks in `game-map.js`): five shrines (one per god), the
+  crossroads, the hermit, the iron mine, the wolf den, the gallows, the standing stones and the ford, with about 23 new
+  roads. The vellum grew to 100x76 so the names do not overlap.
+- **Choice sites** (`siteOpts`/`siteAct`): a dry run first, so a refused choice spends nothing; then the walk, the choice
+  and the rest (`SITE_REST`, 3-7 days). Shrine: swear, pray, convert, desecrate. Crossroads: one offer a day from
+  `dayHash` (pedlar, bounty, stranger's raven, map-seller). Hermit: 4 trophies for a torn page or a lesson. Gallows: a
+  hexer's body or a song (devotion for the Choir, else dread down). Stones: call tomorrow's omen. Ford: a toll (a step
+  off walks of 2+ today) or a drowned Preserved body.
+- **Site fights** (`svStart`, runs flagged `r.sv`): the mine (two rooms of Iron Orchard kinds, pays ore: each ore takes
+  10% off a heart-forge, at most 5) and the den (three new beasts with pack, skirmish and frenzy kits; 3 pelts make a
+  charm). They leave out rivals, orders, events, doors, nemesis births, ascension rules and theft, and a defeat says
+  where.
+- **A changed rule**: a walk to any site must now leave a watch over (PR A let it take the last). The fuzzer found that a
+  site visit on the last watch, saved and loaded, ended the day on load and crumbled the dug bodies.
+- **Encounters** (`encRoll` on every walked road, 5%, +5% under terror): patrol (fight or bribe), elite (the nearest
+  gate's kinds), body-cart (2 bodies for gold), pilgrim (spare or take). A fight costs no watch; the encounter is gone at
+  dawn.
+- **Scouting**: one step to know a neighbouring node (must leave a watch); the War Room's scouts (level 2) and the raven
+  (Library 3, or 300 gold at the crossroads) each find one at dawn. The raven also shows nemeses; squads out and the
+  siege's road are drawn on the map.
+- **Titles**: Cartographer (know every place), Every Road (walk every road), Ford-Crosser (the ford 10 times),
+  Wolf-Skinner (30 beasts).
+- **Bot**: the full bot meets encounters, scouts weekly, takes a choice site every third day at most a step away, and
+  goes down the mine and into the den every 14 days at full watches. `"off":["roads"]` turns it off; the market bot is
+  unchanged.
+- **Measured**: market unchanged (95%, Tower 81.6, Rift 19.5, 3.7% of watches on roads). full 92% clears, Tower 84.7,
+  Rift 23.8, sieges held 90%, level 53.9 at day 100, 16.8% of watches on roads (a little over the 10-15% target; most of
+  it is the bot's own choice visits), 44.9 site visits a bot, 16.4% of raises from the valley, 13 encounters (3 fought),
+  all 27 places known.
+- **Tests**: `tests/groups/98-roads.js` (13 tests); 959 in all.

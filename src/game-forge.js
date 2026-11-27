@@ -65,14 +65,14 @@ const hfGuard=boss=>(S.trophies[hfKey(boss)]||0)-1<heartsKept(hfKey(boss));   //
 function hfCan(boss,slot,lines){
   const I=hfInfo(boss); if(!I||S.mode!=='town'||!SLOTS[slot]||(S.trophies[hfKey(boss)]||0)<1) return false;
   const ok=hfLinesFor(boss,slot), want=I.n-(I.pw?1:0); if(!Array.isArray(lines)||lines.length!==want||new Set(lines).size!==want||lines.some(k=>!ok.includes(k))) return false;
-  return S.gold>=Math.round(I.gold)&&(S.dust||0)>=I.dust&&S.inv.length<bagMax();
+  return S.gold>=Math.round(I.gold*oreK())&&(S.dust||0)>=I.dust&&S.inv.length<bagMax();   /* ore from the Old Iron Mine (game-roads.js) */
 }
 function heartforge(boss,slot,lines,force){   // returns the item, or null; force: spend a heart a unique still needs
   if(!hfCan(boss,slot,lines)||(hfGuard(boss)&&!force)) return null;
   const I=hfInfo(boss), pool=Object.values(ITEM).filter(d=>!d.uq&&!d.tower&&d.set===I.set&&d.slot===slot); if(!pool.length) return null;
-  S.gold-=Math.round(I.gold); S.dust-=I.dust; const k=hfKey(boss); S.trophies[k]--; if(!S.trophies[k]) delete S.trophies[k]; faithUsed(1);
+  const og=Math.round(I.gold*oreK()); if(oreUse()&&MAP_ON&&S.map){ tally('oreUsed',oreUse()); S.map.ore-=oreUse(); if(!S.map.ore) delete S.map.ore; } S.gold-=og; S.dust-=I.dust; const k=hfKey(boss); S.trophies[k]--; if(!S.trophies[k]) delete S.trophies[k]; faithUsed(1);
   const it=addItem(pick(pool).id,lines.map(l=>[l,hfLineVal(I,l)])); it.hf=boss; if(I.pw) it.pw=I.pw;
-  tally('heartforged'); tally('hfGold',Math.round(I.gold)); sfx('level'); return it;
+  tally('heartforged'); tally('hfGold',og); sfx('level'); return it;
 }
 function hfReroll(it){ const I=hfInfo(it.hf); if(!I||!it.ro) return; it.ro=it.ro.map(([k])=>[k,hfLineVal(I,k,rnd(HF_RE[0],HF_RE[1]))]); }   // reforge: values only
 function hfSwap(u,i,k){   // a second heart of the same boss: swap one line for another of its list

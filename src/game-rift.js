@@ -208,7 +208,7 @@ const wkSt=()=>{ S.rift=S.rift||{best:0}; const W=S.rift.wk; if(!W||W.w!==weekNo
 const weekBest=()=>{ const W=S.rift&&S.rift.wk; return W&&W.w===weekNo()?W.b:0; };
 const weekReady=()=>!!S&&S.mode==='town'&&riftOpen()&&!((S.rift&&S.rift.wk&&S.rift.wk.w===weekNo()&&S.rift.wk.day===S.day));
 const weekDi=(seed,room)=>dayHash(seed,room,313)%GATE_N;
-const roomBoss=(r,room)=>r&&r.wk?!!guardAt(r.rift):room===r.rooms-1;   // buildRoom, spawnRoom: in the weekly dive a room is a boss room on a guardian's depth
+const roomBoss=(r,room)=>r&&r.sv?false:r&&r.wk?!!guardAt(r.rift):room===r.rooms-1;   /* a site's fight has no boss (game-roads.js) */   // buildRoom, spawnRoom: in the weekly dive a room is a boss room on a guardian's depth
 function startWeek(){
   if(!weekReady()) return false; const p=weekPlan(), W=wkSt();
   W.day=S.day; S.runs++;   /* no watch: it pays no XP, gold or gear (with a watch the full bot lost ~4 levels and ~6 Tower floors by day 100) */ S.notices=[]; tally('weekDives');

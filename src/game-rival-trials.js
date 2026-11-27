@@ -98,7 +98,7 @@ function rivalLost(r){   // you fell or fled with the rival standing: a page is 
 }
 const rivalStanding=r=>!!(r&&r.rival&&r.enemies.some(e=>e.rival&&e.hp>0));
 function rivalTheft(r){   // on a gate run, before you act on a room's bodies: the most valuable one of the role your army leans on (else any), never a boss, never from fewer than two
-  if(!rivalOpen()||!r||r.tw||r.rift||r.siege||r.trial||r.rg||r.rk||r.room===0) return null; const g=rv(); if(!g.name||!g.met||!g.steal||S.day<g.steal) return null;
+  if(!rivalOpen()||!r||r.tw||r.rift||r.siege||r.trial||r.rg||r.rk||r.sv||r.room===0) return null; const g=rv(); if(!g.name||!g.met||!g.steal||S.day<g.steal) return null;
   const open=r.corpses.filter(c=>!c.tried); if(open.length<2) return null;
   const w=rivalWant(), c=open.filter(x=>!x.boss).sort((a,b)=>(b.role===w)-(a.role===w)||bodyValue(b)-bodyValue(a))[0]; if(!c) return null;
   c.tried=true; c.result='taken'; c.taken=g.name; g.thefts++; tally('rivalThefts'); g.steal=S.day+theftGap();

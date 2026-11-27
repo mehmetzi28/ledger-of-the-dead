@@ -1306,6 +1306,11 @@ body.cv-skin .win{border-color:#9a7a66;box-shadow:inset 0 0 0 2px rgba(154,122,1
 .vmap .v-node.k-gate circle{stroke:#c9a565}.vmap .v-node.k-tower path{fill:#e5776a}.vmap .v-node.k-grave path{fill:#b8a48c}.vmap .v-node.k-field path{fill:#c98a6a}.vmap .v-node.rest{opacity:.55}
 .vmap .v-node.sel circle{stroke:#f0d48a;stroke-width:.9}.vmap .v-node:hover circle{stroke:#f0d48a}.vmap .v-name{fill:#e8dcc8;font:600 2.3px/1 var(--font-body);text-anchor:middle;paint-order:stroke;stroke:#0a0807;stroke-width:.6}
 .vmap .v-me path{fill:#e8c66a;stroke:#0a0807;stroke-width:.3}
+.vmap .v-fog.scout{cursor:pointer}.vmap .v-fog.scout ellipse{fill:#6a5a44;opacity:.7}.vmap .v-fog.scout.sel ellipse{fill:#8a7454}.vmap .v-q{fill:#e8dcc8;font:700 2.4px/1 var(--font-body);text-anchor:middle;pointer-events:none}
+.vmap .v-node.k-shrine path{fill:#e8c66a}.vmap .v-node.k-den path{fill:#c9a090}.vmap .v-node.k-mine path{fill:#a8a8a0}.vmap .v-node.k-ford path{fill:#9ab8b0}.vmap .v-node.k-stones path{fill:#b8b0a0}.vmap .v-node.k-gallows path{fill:#b89a80}
+.vmap .v-siege{stroke:#d24a2a;stroke-width:.8;stroke-dasharray:1.6 1;opacity:.9}.vmap .v-squad path{fill:#c9a565;stroke:#0a0807;stroke-width:.25}.vmap .v-nem circle{fill:#b3261e;stroke:#0a0807;stroke-width:.3}
+.vmap .v-enc{cursor:pointer}.vmap .v-enc circle{fill:#d8a24a;stroke:#0a0807;stroke-width:.3}.vmap .v-enc text{fill:#0a0807;font:700 2.2px/1 var(--font-body);text-anchor:middle;pointer-events:none}
+.v-opts{flex-wrap:wrap}.v-enc-card{border-color:#d8a24a}
 .v-card{padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:rgba(0,0,0,.2)}.v-card h3{margin:0 0 2px}.v-list{margin:6px 0}.v-dug{margin-top:10px}
 </style>
 
@@ -2377,7 +2382,7 @@ function closeDay0(){
   if(!S.quest.claimed&&questDone()) claimQuest();   // an unfinished quest simply lapses
   const hon=remembered(); S.day++; nemDawn(); S.watches=WATCHES-pactWatch(); if(hon) syncArmy();   /* the Remembered buff ends at dawn; nemDawn: nemeses grow each week (game-nemesis.js) */
   S.quest={kills:0,rooms:0,clears:0,claimed:false};
-  const rr=resolveRaids(); placeWaiting(); mapDawn();   /* home at dawn (game-map.js) */ bondsDawn(); yardDawn(); embDawn(); upkeepDawn(); dreadDawn(); faithDawn(); godDreadDawn(); omenDusk();   /* upkeep and the town's dread (game-dread.js) */   /* the Charnel Yard, the Embalmery (game-town2.js) */
+  const rr=resolveRaids(); placeWaiting(); mapDawn(); roadsDawn();   /* home at dawn, then the scouts and the raven (game-map.js, game-roads.js) */ bondsDawn(); yardDawn(); embDawn(); upkeepDawn(); dreadDawn(); faithDawn(); godDreadDawn(); omenDusk();   /* upkeep and the town's dread (game-dread.js) */   /* the Charnel Yard, the Embalmery (game-town2.js) */
   P.hp=pMax(); P.mana=pMana(); P.shield=0;
   S.army.forEach(m=>m.hp=m.maxHp);
   notify('Day '+S.day+' begins. You have '+S.watches+' watches.'+raidDayLine(rr)+forecastLine());
@@ -2424,7 +2429,7 @@ function buildRoom(room,kind){   // the foes of a gate room, scaled and affixed 
   const extra=(hasRunMod('horde')?1:0)+sigHands()+ascExtra(), R0=Math.random;   /* Crowded Gates (game-asc.js) */   /* Many Hands (game-rift.js) */
   if(r.trial||r.wk) Math.random=trialRng(r.tseed,room); else if(chOn()) Math.random=chRng(CH_SYS.room,S.day,di,room,CH_KIND[kind]|0,r.rift|0);   /* a challenge code's rooms (game-playlog.js) */   // a Trial: the same rooms and foes for every attempt this week (src/game-rival-trials.js)
   try{
-    if(r.rg) rgRoom(list,di,room,lvl); else if(r.rk) reckRoom(list,di,lvl);   /* the rival's own gate and the duel (game-rival-arc.js) */
+    if(r.sv) svRoom(list,r,room); else if(r.rg) rgRoom(list,di,room,lvl); else if(r.rk) reckRoom(list,di,lvl);   /* the rival's own gate and the duel (game-rival-arc.js) */
     else if(boss){ if(rivalHere(di)) rivalRoom(list,di,lvl); else { list.push(r.rift&&guardAt(r.rift)?makeGuardian(di,lvl,r.rift):!r.trial&&secretRoll(di)?makeSecret(di,lvl):makeEnemy(di,lvl,true));   /* a Rift guardian every fifth depth (game-rift.js) */ const adds=(di===0?2:3)+extra; for(let i=0;i<adds;i++) spawnOne(list,di,lvl-1); } }
     else{ const n=(room===0?2:room===1?3:3+Math.round(Math.random()))+extra; for(let i=0;i<n;i++) spawnOne(list,di,lvl); }
     if(kind==='nem') nemRoom(list,di,lvl);   /* the sigil door (game-nemesis.js) */
@@ -2715,15 +2720,15 @@ function roomWon(){
     const f=r.tw; S.tower.best=Math.max(S.tower.best,f); recBest('floor',f); towerSplit(r); for(const k of [10,25,40,50,60,75,90,100]) if(S.tower.best>=k) unlockStory('t'+k,r);
     if(f%10===0){ xp+=120*f; S.quest.clears++; towerBossLoot(f,r); }
     if(f===100) r.cleared=true;   // floor 100 ends the first climb; floor 101 onward is the endless abyss
-  } else if(last){ xp+=r.siege?siegeWon(r):r.rift?riftCleared(r):r.trial?trialCleared(r):r.rg?rgCleared(r):r.rk?reckCleared(r):gateCleared(r); if(!r.siege&&!r.rift&&!r.trial&&!r.rg&&!r.rk) rivalMeet(r); }
+  } else if(last){ xp+=r.siege?siegeWon(r):r.rift?riftCleared(r):r.trial?trialCleared(r):r.rg?rgCleared(r):r.rk?reckCleared(r):r.sv?svCleared(r):gateCleared(r); if(!r.siege&&!r.rift&&!r.trial&&!r.rg&&!r.rk&&!r.sv) rivalMeet(r); }   /* a site's or the road's fight (game-roads.js) */
   if(r.trial){ r.loot=[]; r.gold=0; r.troph={}; r.corpses=[]; }
   if(r.wk){ r.loot=[]; r.gold=0; r.troph={}; r.bdust=0; }   /* nor gear, gold or trophies: shards and a Riftborn piece only */   /* a Trial pays only its first completion each week: no gear, gold, trophies or bodies */
   for(const id of r.loot){ const it=addItem(id); if(it){ r.spoils.push(it.u); r.items=(r.items||0)+1; } else r.lostLoot.push(ITEM[id].name); } r.loot=[];
   if(r.rift){ if(r.wk) weekRoom(r); rbDrop(r,last); }   /* the weekly dive's depth; Riftborn pieces (game-rift.js) */
-  bankLoot(r); r.won=(r.won||0)+1; S.quest.rooms=(S.quest.rooms||0)+1; tally('rooms'); if(r.tw){ tally('floors'); orderEv('floor'); } else if(!r.siege&&!r.rift&&!r.trial&&!r.rg&&!r.rk) orderEv('room',{ok:(r.downs||0)===dn0,di:r.di}); if(P.hp>0&&P.hp<=pMax()*.1) tally('lastBreath');
+  bankLoot(r); r.won=(r.won||0)+1; S.quest.rooms=(S.quest.rooms||0)+1; tally('rooms'); if(r.tw){ tally('floors'); orderEv('floor'); } else if(!r.siege&&!r.rift&&!r.trial&&!r.rg&&!r.rk&&!r.sv) orderEv('room',{ok:(r.downs||0)===dn0,di:r.di}); if(P.hp>0&&P.hp<=pMax()*.1) tally('lastBreath');
   plogWon(); chSeeded(()=>{   /* a challenge code's doors and events (game-playlog.js) */
-  r.event=(!r.tw&&!r.siege&&!r.trial&&!r.rg&&!r.rk&&!r.wk&&!last&&Math.random()<EVENT_CHANCE)?rollEvent():null;   // something waits between rooms
-  r.doors=(!r.tw&&!r.siege&&!r.trial&&!r.rg&&!r.rk&&!r.wk&&!last)?rollDoors(r):null;   // which way next
+  r.event=(!r.tw&&!r.siege&&!r.trial&&!r.rg&&!r.rk&&!r.wk&&!r.sv&&!last&&Math.random()<EVENT_CHANCE)?rollEvent():null;   // something waits between rooms
+  r.doors=(!r.tw&&!r.siege&&!r.trial&&!r.rg&&!r.rk&&!r.wk&&!r.sv&&!last)?rollDoors(r):null;   // which way next
   },CH_SYS.doors,S.day,r.di|0,r.room,r.rift|0);
   r.gained+=xp; r.lastXp=xp;
   r.ups+=addXp(xp); preRooms(r);   // after the level-up: the rooms behind the doors stand at the level you will enter them at
@@ -2738,7 +2743,7 @@ function defeat(){
   S.army.forEach(m=>{ if(m.hp<=0) m.hp=Math.ceil(m.maxHp*.4); });
   if(rivalStanding(r)) rivalLost(r); if(reckStanding(r)) reckLost(r); nemBirth(r);   /* a foe that downed a Greater minion may live on (game-nemesis.js) */
   if(r.blow) r.felled=r.blow; plogDeath(r); lostRecord(r);   /* Why did I lose (game-lost.js) */   /* the play log (game-playlog.js) */
-  if(r.wk) notify('The weekly dive ends at depth '+(r.wkD||0)+'. It costs you no XP.','bad'); else notify('You were dragged out of '+(r.tw?'the Hell Tower on floor '+r.tw:'the '+DUNGEONS[r.di].name)+'. That room\'s spoils are lost, and you lose '+Math.round(DIFF.deathXp*100)+'% of a level in XP.','bad');
+  if(r.wk) notify('The weekly dive ends at depth '+(r.wkD||0)+'. It costs you no XP.','bad'); else notify('You were dragged out of '+(r.tw?'the Hell Tower on floor '+r.tw:r.sv?svWhere(r):'the '+DUNGEONS[r.di].name)+'. That room\'s spoils are lost, and you lose '+Math.round(DIFF.deathXp*100)+'% of a level in XP.','bad');
 }
 // ----- the fall: the blow that felled you, and Instant Retry
 // BLOW: the foe blow being dealt right now (set around each hurtAlly on you); ROOM0: the room as it began. ROOM0 lives outside the save:
@@ -5552,7 +5557,7 @@ function rivalLost(r){   // you fell or fled with the rival standing: a page is 
 }
 const rivalStanding=r=>!!(r&&r.rival&&r.enemies.some(e=>e.rival&&e.hp>0));
 function rivalTheft(r){   // on a gate run, before you act on a room's bodies: the most valuable one of the role your army leans on (else any), never a boss, never from fewer than two
-  if(!rivalOpen()||!r||r.tw||r.rift||r.siege||r.trial||r.rg||r.rk||r.room===0) return null; const g=rv(); if(!g.name||!g.met||!g.steal||S.day<g.steal) return null;
+  if(!rivalOpen()||!r||r.tw||r.rift||r.siege||r.trial||r.rg||r.rk||r.sv||r.room===0) return null; const g=rv(); if(!g.name||!g.met||!g.steal||S.day<g.steal) return null;
   const open=r.corpses.filter(c=>!c.tried); if(open.length<2) return null;
   const w=rivalWant(), c=open.filter(x=>!x.boss).sort((a,b)=>(b.role===w)-(a.role===w)||bodyValue(b)-bodyValue(a))[0]; if(!c) return null;
   c.tried=true; c.result='taken'; c.taken=g.name; g.thefts++; tally('rivalThefts'); g.steal=S.day+theftGap();
@@ -6088,14 +6093,14 @@ const hfGuard=boss=>(S.trophies[hfKey(boss)]||0)-1<heartsKept(hfKey(boss));   //
 function hfCan(boss,slot,lines){
   const I=hfInfo(boss); if(!I||S.mode!=='town'||!SLOTS[slot]||(S.trophies[hfKey(boss)]||0)<1) return false;
   const ok=hfLinesFor(boss,slot), want=I.n-(I.pw?1:0); if(!Array.isArray(lines)||lines.length!==want||new Set(lines).size!==want||lines.some(k=>!ok.includes(k))) return false;
-  return S.gold>=Math.round(I.gold)&&(S.dust||0)>=I.dust&&S.inv.length<bagMax();
+  return S.gold>=Math.round(I.gold*oreK())&&(S.dust||0)>=I.dust&&S.inv.length<bagMax();   /* ore from the Old Iron Mine (game-roads.js) */
 }
 function heartforge(boss,slot,lines,force){   // returns the item, or null; force: spend a heart a unique still needs
   if(!hfCan(boss,slot,lines)||(hfGuard(boss)&&!force)) return null;
   const I=hfInfo(boss), pool=Object.values(ITEM).filter(d=>!d.uq&&!d.tower&&d.set===I.set&&d.slot===slot); if(!pool.length) return null;
-  S.gold-=Math.round(I.gold); S.dust-=I.dust; const k=hfKey(boss); S.trophies[k]--; if(!S.trophies[k]) delete S.trophies[k]; faithUsed(1);
+  const og=Math.round(I.gold*oreK()); if(oreUse()&&MAP_ON&&S.map){ tally('oreUsed',oreUse()); S.map.ore-=oreUse(); if(!S.map.ore) delete S.map.ore; } S.gold-=og; S.dust-=I.dust; const k=hfKey(boss); S.trophies[k]--; if(!S.trophies[k]) delete S.trophies[k]; faithUsed(1);
   const it=addItem(pick(pool).id,lines.map(l=>[l,hfLineVal(I,l)])); it.hf=boss; if(I.pw) it.pw=I.pw;
-  tally('heartforged'); tally('hfGold',Math.round(I.gold)); sfx('level'); return it;
+  tally('heartforged'); tally('hfGold',og); sfx('level'); return it;
 }
 function hfReroll(it){ const I=hfInfo(it.hf); if(!I||!it.ro) return; it.ro=it.ro.map(([k])=>[k,hfLineVal(I,k,rnd(HF_RE[0],HF_RE[1]))]); }   // reforge: values only
 function hfSwap(u,i,k){   // a second heart of the same boss: swap one line for another of its list
@@ -7151,7 +7156,7 @@ const wkSt=()=>{ S.rift=S.rift||{best:0}; const W=S.rift.wk; if(!W||W.w!==weekNo
 const weekBest=()=>{ const W=S.rift&&S.rift.wk; return W&&W.w===weekNo()?W.b:0; };
 const weekReady=()=>!!S&&S.mode==='town'&&riftOpen()&&!((S.rift&&S.rift.wk&&S.rift.wk.w===weekNo()&&S.rift.wk.day===S.day));
 const weekDi=(seed,room)=>dayHash(seed,room,313)%GATE_N;
-const roomBoss=(r,room)=>r&&r.wk?!!guardAt(r.rift):room===r.rooms-1;   // buildRoom, spawnRoom: in the weekly dive a room is a boss room on a guardian's depth
+const roomBoss=(r,room)=>r&&r.sv?false:r&&r.wk?!!guardAt(r.rift):room===r.rooms-1;   /* a site's fight has no boss (game-roads.js) */   // buildRoom, spawnRoom: in the weekly dive a room is a boss room on a guardian's depth
 function startWeek(){
   if(!weekReady()) return false; const p=weekPlan(), W=wkSt();
   W.day=S.day; S.runs++;   /* no watch: it pays no XP, gold or gear (with a watch the full bot lost ~4 levels and ~6 Tower floors by day 100) */ S.notices=[]; tally('weekDives');
@@ -7336,7 +7341,7 @@ function ascKits(list){   // buildRoom: Kits Plus gives ordinary gate foes a sec
 function ascStudy(e){ if(!e||!e.kit2||!ascOn('kitsplus')) return 0; S.asc.kp=(S.asc.kp||0)+1; return S.asc.kp%2===0?1:0; }   // studyFoe: every second kill counts twice
 const ultCost=()=>SOUL_MAX+(ascOn('fewsouls')?1:0);
 const ascUlt=()=>ascOn('fewsouls')?ASC_ULT:1;
-const ascGateRun=r=>!!r&&!r.tw&&!r.rift&&!r.trial&&!r.siege&&!r.rg&&!r.rk;
+const ascGateRun=r=>!!r&&!r.tw&&!r.rift&&!r.trial&&!r.siege&&!r.rg&&!r.rk&&!r.sv;
 // the rules' hooks
 function ascRoom(list){   // buildRoom: Two Faces
   const r=S.run; if(!ascOn('twofaces')||!ascGateRun(r)) return;
@@ -7674,7 +7679,7 @@ const NEM_NAMES=[   // one list a gate: proper nouns, never translated
   ['The Erasure','Blot','Margin-Walker','Ink-Drowned','The Unwritten Clerk','Palimpsest','Smudge']
 ];
 const NEM_VERB=['gnawed down','drowned','burned','silenced','cut down','unmade','erased'];   // "Gutter-Tooth, who gnawed down Ash"
-const nemOn=r=>!!r&&!r.tw&&!r.siege&&!r.trial&&!r.wk&&!r.rift&&!r.rg&&!r.rk&&!!DUNGEONS[r.di];   // ordinary gate runs only
+const nemOn=r=>!!r&&!r.tw&&!r.siege&&!r.trial&&!r.wk&&!r.rift&&!r.rg&&!r.rk&&!r.sv&&!!DUNGEONS[r.di];   // ordinary gate runs only
 const nemById=id=>(S.nem||[]).find(n=>n.id===id)||null;
 const nemAt=di=>(S.nem||[]).filter(n=>n.g===di).sort((a,b)=>nemUp(b)-nemUp(a))[0]||null;   // the strongest one haunting a gate
 const nemUp=n=>(n.k|0)+(n.wk|0);   // levels above its room
@@ -8256,7 +8261,7 @@ function lostRecord(r){   // the fall: keep the room for the History
   const foes=(r.enemies||[]).filter(e=>e.hp>0&&!e.dead).slice(0,8).map(e=>{ const o={n:e.name,hp:Math.round(e.hp),mx:Math.round(e.maxHp)}; if(e.boss) o.b=1; const k=kitOf(e); if(k) o.k=k; o.kn=knowLv(e); return o; });
   const fb=r.felled||null, by=fb&&fb.n?(r.enemies||[]).find(e=>e.name===fb.n):null;
   const rec={d:S.day,g:r.tw?-1:r.di|0,room:r.room|0,lv:S.player.lvl,turns:r.tj.slice(),hp:Object.assign({},r.tjh||{}),foes};
-  if(r.tw) rec.tw=r.tw; if(r.rift) rec.rift=r.rift; if(r.heat) rec.heat=r.heat; if(fb) rec.fb=fb;
+  if(r.tw) rec.tw=r.tw; if(r.rift) rec.rift=r.rift; if(r.sv) rec.sv=r.sv; if(r.heat) rec.heat=r.heat; if(fb) rec.fb=fb;
   if(by){ rec.kn=knowLv(by); const k=kitOf(by); if(k) rec.kit=k; rec.kills=(S.kills&&S.kills[by.base||by.name])|0; }
   S.lost=[rec].concat(Array.isArray(S.lost)?S.lost:[]).slice(0,LOST_N);
   return rec;
@@ -8269,7 +8274,7 @@ function lostFix(g){   // normalizeSave: only well-formed records, at most LOST_
     hp:x.hp&&typeof x.hp==='object'?x.hp:{},foes:Array.isArray(x.foes)?x.foes.filter(f=>f&&typeof f.n==='string').slice(0,8):[]}));
   if(L.length) g.lost=L; else delete g.lost;
 }
-const lostWhere=x=>x.g<0?'Hell Tower, floor '+(x.tw||1):x.rift?'The Rift, depth '+x.rift:(DUNGEONS[x.g]?DUNGEONS[x.g].name:'A gate')+', room '+(x.room+1);
+const lostWhere=x=>x.g<0?'Hell Tower, floor '+(x.tw||1):x.sv?(x.sv==='mine'?'The Old Iron Mine':x.sv==='den'?'The Wolf Den':'On the road'):x.rift?'The Rift, depth '+x.rift:(DUNGEONS[x.g]?DUNGEONS[x.g].name:'A gate')+', room '+(x.room+1);
 function lostShown(x){   // was the blow shown before it landed?
   const b=x.fb; if(!b||!b.k) return null;
   if(b.k==='dot') return 'Wounds tick at the end of each turn and go past your ward; your card showed the wound and its turns left.';
@@ -8299,48 +8304,61 @@ function lostKnew(x){   // what the bestiary knew of the foe that dealt the blow
 // The layout is fixed data, the same for every save: S.map = {pos, st, seen, sites:{id:{rest, fresh}}, steps, dug, bodies}.
 const MAP_STEP=3, MAP_GY_REST=5, MAP_GY_N=[2,4], MAP_BF_N=[3,6], MAP_OLD=10, MAP_FRESH=10, MAP_BODIES=8;
 let MAP_ON=true;   // the balance bot's off-switch ("off":["map"]): every node is where you stand, as before the map
-// x, y on a 100 x 70 vellum. k: town, gate (g: its DUNGEONS index), tower, grave (an old graveyard), field (a battlefield)
+// x, y on a 100 x 76 vellum. k: town, gate (g: its DUNGEONS index), tower, grave (an old graveyard), field (a battlefield)
 const VALLEY_NODES={
   T:  {k:'town', name:'The necropolis',     x:50,y:40},
   g0: {k:'gate', g:0, x:40,y:49}, g1:{k:'gate',g:1,x:61,y:50}, g2:{k:'gate',g:2,x:33,y:33}, g3:{k:'gate',g:3,x:66,y:31},
   g4: {k:'gate', g:4, x:27,y:57}, g5:{k:'gate',g:5,x:53,y:17}, g6:{k:'gate',g:6,x:84,y:60},
   tw: {k:'tower',name:'The Hell Tower',     x:50,y:5},
   gy0:{k:'grave',name:'Potter\'s Field',     x:46,y:61}, gy1:{k:'grave',name:'Lych Hill',x:76,y:41}, gy2:{k:'grave',name:'The Ash Pits',x:19,y:38}, gy3:{k:'grave',name:'Orchard Graves',x:14,y:63},
-  bf0:{k:'field',name:'The Hill Road field', x:58,y:62}, bf1:{k:'field',name:'The North Gate field',x:40,y:22}
+  bf0:{k:'field',name:'The Hill Road field', x:58,y:62}, bf1:{k:'field',name:'The North Gate field',x:30,y:20},
+  // R19 PR B (game-roads.js): the other sites. A shrine's g is its god.
+  cr: {k:'cross',  name:'The Crossroads',    x:44,y:30}, hm:{k:'hermit',name:'The Hermit\'s Hut',x:18,y:13}, st:{k:'stones',name:'The Nine Stones',x:10,y:26},
+  mn: {k:'mine',   name:'The Old Iron Mine', x:34,y:68}, gl:{k:'gallows',name:'Gallows Hill',x:74,y:69}, fd:{k:'ford',name:'The Ford',x:71,y:56},
+  wd: {k:'den',    name:'The Wolf Den',      x:88,y:15},
+  sh0:{k:'shrine',g:'hon',  name:'Morrow\'s Lamp',   x:90,y:27}, sh1:{k:'shrine',g:'vesh',name:'The Cold Well',x:91,y:41}, sh2:{k:'shrine',g:'ulm',name:'Furrow Cross',x:20,y:51},
+  sh3:{k:'shrine',g:'choir',name:'The Hollow Bell',   x:65,y:8},  sh4:{k:'shrine',g:'dis', name:'The Black Altar',x:8,y:43}
 };
 const VALLEY_ROADS=[['T','g0',1],['T','g1',1],['g0','g1',1],['T','g2',2],['g0','g2',1],['T','g3',2],['g1','g3',1],['T','g4',2],['g0','g4',1],
   ['T','g5',2],['g3','g5',1],['g2','g5',2],['T','tw',2],['g5','tw',1],['g1','g6',2],
-  ['g0','gy0',1],['T','gy0',2],['g1','gy1',1],['g3','gy1',1],['g2','gy2',1],['g4','gy3',1],['g4','gy2',2],['g1','bf0',1],['T','bf0',2],['g2','bf1',1],['g5','bf1',1]];
+  ['g0','gy0',1],['T','gy0',2],['g1','gy1',1],['g3','gy1',1],['g2','gy2',1],['g4','gy3',1],['g4','gy2',2],['g1','bf0',1],['T','bf0',2],['g2','bf1',1],['g5','bf1',1],
+  ['T','cr',1],['cr','g2',1],['cr','g3',2],['cr','bf1',1],['hm','bf1',2],['hm','gy2',2],['st','gy2',1],['st','hm',2],['mn','g4',1],['mn','gy0',1],
+  ['fd','g1',1],['fd','g6',1],['fd','bf0',1],['gl','fd',1],['gl','g6',1],['wd','g3',2],['wd','sh0',2],['sh0','g3',2],['sh0','sh1',1],['sh1','gy1',1],['sh1','g6',2],
+  ['sh2','g4',1],['sh2','gy2',1],['sh2','gy3',2],['sh3','tw',1],['sh3','g5',1],['sh4','gy2',1],['sh4','sh2',2],['sh4','st',2]];
 const MAP_IDS=Object.keys(VALLEY_NODES), MAP_START=['T','g0','g1'];
 const VALLEY_ADJ=(()=>{ const a={}; for(const id of MAP_IDS) a[id]=[]; for(const [p,q,n] of VALLEY_ROADS){ a[p].push([q,n]); a[q].push([p,n]); } return a; })();
 const nodeName=id=>{ const n=VALLEY_NODES[id]; return !n?'':n.k==='gate'?(DUNGEONS[n.g]||{}).name||'':n.name; };
 const gateNode=di=>'g'+di;
 const mapSt=()=>{ if(!S.map||typeof S.map!=='object') S.map={pos:'T',st:0,seen:{},sites:{},steps:0,dug:0,bodies:[]}; return S.map; };
 const mapPos=()=>MAP_ON&&S.map&&VALLEY_NODES[S.map.pos]?S.map.pos:'T';
-function mapDist(a,b){   // the fewest steps between two nodes (Dijkstra over a small fixed graph); Infinity off the map
-  if(!VALLEY_NODES[a]||!VALLEY_NODES[b]) return Infinity; if(a===b) return 0;
-  const d={[a]:0}, done=new Set(); for(;;){ let u=null; for(const k in d) if(!done.has(k)&&(u==null||d[k]<d[u])) u=k; if(u==null) return Infinity; if(u===b) return d[u]; done.add(u);
-    for(const [v,n] of VALLEY_ADJ[u]) if(d[v]==null||d[u]+n<d[v]) d[v]=d[u]+n; }
+function mapPath(a,b){   // the fewest-steps road from a to b (Dijkstra over a small fixed graph): {d, path:[a..b]}; d Infinity off the map
+  if(!VALLEY_NODES[a]||!VALLEY_NODES[b]) return {d:Infinity,path:[]}; if(a===b) return {d:0,path:[a]};
+  const d={[a]:0}, from={}, done=new Set(); for(;;){ let u=null; for(const k in d) if(!done.has(k)&&(u==null||d[k]<d[u])) u=k; if(u==null) return {d:Infinity,path:[]};
+    if(u===b){ const p=[b]; while(p[0]!==a) p.unshift(from[p[0]]); return {d:d[u],path:p}; } done.add(u);
+    for(const [v,n] of VALLEY_ADJ[u]) if(d[v]==null||d[u]+n<d[v]){ d[v]=d[u]+n; from[v]=u; } }
 }
+const mapDist=(a,b)=>mapPath(a,b).d;
+const roadIx=(a,b)=>VALLEY_ROADS.findIndex(([p,q])=>(p===a&&q===b)||(p===b&&q===a));
 function mapSeen(id){   // known on the map: the start, an open gate, the Tower once open, anything next to a cleared gate, or scouted
   const n=VALLEY_NODES[id]; if(!n) return false; if(MAP_START.includes(id)||(S.map&&S.map.seen&&S.map.seen[id])) return true;
   if(n.k==='gate'&&!gateLocked(n.g)) return true; if(n.k==='tower'&&towerOpen()) return true;
   const clr=S.ti&&S.ti.clr||{}; return VALLEY_ADJ[id].some(([v])=>VALLEY_NODES[v].k==='gate'&&clr[VALLEY_NODES[v].g]);
 }
-const tripSteps=id=>MAP_ON?mapDist(mapPos(),id):0;
+const tripSteps=id=>{ if(!MAP_ON) return 0; const d=mapDist(mapPos(),id); return d>=2&&S.map&&S.map.ford===S.day?d-1:d; };   /* the ferryman's boat: a step less on every longer walk today (game-roads.js) */
 function mapCan(id,need){   // can you walk there and still have `need` watches (1 for a run, 0 for a site)?
   if(!MAP_ON) return true; if(!VALLEY_NODES[id]||!mapSeen(id)) return false; const w=Math.floor((((S.map&&S.map.st)||0)+tripSteps(id))/MAP_STEP);
   return S.watches>0&&S.watches-w>=(need==null?1:need);
 }
 function mapGo(id,need){   // walk there: the steps add up today and every MAP_STEP of them spends a watch
   if(!MAP_ON) return true; if(!mapCan(id,need)) return false; const M=mapSt(), d=tripSteps(id); if(!d) { M.pos=id; return true; }
-  M.st=(M.st||0)+d; M.steps=(M.steps||0)+d; while(M.st>=MAP_STEP){ M.st-=MAP_STEP; S.watches--; tally('mapW'); } M.pos=id; tally('mapSteps',d); return true;
+  const p=mapPath(mapPos(),id).path; M.rw=Array.isArray(M.rw)?M.rw:[]; for(let i=1;i<p.length;i++){ const j=roadIx(p[i-1],p[i]); if(j>=0&&!M.rw.includes(j)) M.rw.push(j); } M.rw.sort((a,b)=>a-b);   /* Every Road */
+  M.st=(M.st||0)+d; M.steps=(M.steps||0)+d; while(M.st>=MAP_STEP){ M.st-=MAP_STEP; S.watches--; tally('mapW'); } M.pos=id; tally('mapSteps',d); encRoll(d,p); return true;
 }
-function mapDawn(){ if(!S.map) return; const M=S.map, lost=(M.bodies||[]).length; M.pos='T'; M.st=0; M.bodies=[]; if(lost) notify(lost+' dug bod'+(lost>1?'ies':'y')+' crumbled back into the earth at dawn.','info'); }
+function mapDawn(){ if(!S.map) return; const M=S.map, lost=(M.bodies||[]).length; M.pos='T'; M.st=0; M.bodies=[]; delete M.enc; if(lost) notify(lost+' dug bod'+(lost>1?'ies':'y')+' crumbled back into the earth at dawn.','info'); }
 // ----- sites
 const siteState=id=>{ const M=mapSt(); M.sites=M.sites||{}; return M.sites[id]=M.sites[id]||{}; };
 const siteRest=id=>Math.max(0,((S.map&&S.map.sites&&S.map.sites[id]&&S.map.sites[id].rest)||0)-S.day);
-function siteReady(id){ const n=VALLEY_NODES[id]; if(!n) return false; if(n.k==='grave') return siteRest(id)===0; if(n.k==='field') return !!(S.map&&S.map.sites&&S.map.sites[id]&&S.map.sites[id].fresh); return false; }
+function siteReady(id){ const n=VALLEY_NODES[id]; if(!n) return false; if(n.k==='grave') return siteRest(id)===0; if(n.k==='field') return !!(S.map&&S.map.sites&&S.map.sites[id]&&S.map.sites[id].fresh); return SITE_REST[n.k]?siteRest(id)===0:false; }
 function nearGate(id){ let best=0, bd=Infinity; for(let i=0;i<GATE_N;i++){ const d=mapDist(id,gateNode(i)); if(d<bd||(d===bd&&i>best)){ bd=d; best=i; } } return Math.min(best,Math.max(0,topGate())); }
 const siteLvl=g=>Math.max(1,Math.min(S.player.lvl,tierRec(g,0)));
 function siteBodies(id){   // what the site gives: old bodies of the nearest gate, or the fallen of the last siege
@@ -8351,8 +8369,8 @@ function siteBodies(id){   // what the site gives: old bodies of the nearest gat
     for(let i=0;i<N;i++){ const r=roles[i%roles.length], f=SIEGE_FOES[r]; out.push({name:f[0],base:f[0],role:r,rankI:g,lvl:Math.max(1,S.player.lvl-2),hf:f[1],af:f[2],boss:false,elite:false,fresh:1}); } }
   return out;
 }
-function siteVisit(id){   // walk there (a site needs no watch left after it) and take what it gives
-  const n=VALLEY_NODES[id]; if(!n||S.mode!=='town'||!['grave','field'].includes(n.k)||!siteReady(id)||!mapGo(id,0)) return null;
+function siteVisit(id){   // walk there (the walk must leave a watch: a day never ends on the road) and take what it gives
+  const n=VALLEY_NODES[id]; if(!n||S.mode!=='town'||!['grave','field'].includes(n.k)||!siteReady(id)||!mapGo(id,1)) return null;
   const M=mapSt(), b=siteBodies(id), st=siteState(id); if(n.k==='grave') st.rest=S.day+MAP_GY_REST; else delete st.fresh;
   M.bodies=(M.bodies||[]).concat(b.map(c=>({c,s:id}))).slice(-MAP_BODIES); M.dug=(M.dug||0)+b.length; tally(n.k==='grave'?'mapDug':'mapField',b.length); tally('mapSites');
   notify((n.k==='grave'?'You dig at '+n.name+': ':'You walk '+n.name+': ')+b.length+' bod'+(b.length>1?'ies':'y')+' to raise before dawn.','ok');
@@ -8371,14 +8389,193 @@ function mapFix(g){   // normalizeSave
   if(!('map' in g)) return; const q=g.map&&typeof g.map==='object'?g.map:{}, o={pos:VALLEY_NODES[q.pos]?q.pos:'T',st:clamp(Math.floor(+q.st||0),0,MAP_STEP-1),seen:{},sites:{},steps:Math.max(0,Math.floor(+q.steps||0)),dug:Math.max(0,Math.floor(+q.dug||0)),bodies:[]};
   if(q.seen&&typeof q.seen==='object') for(const id in q.seen) if(VALLEY_NODES[id]&&q.seen[id]) o.seen[id]=true;
   if(q.sites&&typeof q.sites==='object') for(const id in q.sites){ const s=q.sites[id]; if(!VALLEY_NODES[id]||!s||typeof s!=='object') continue; const t={}; if(isFinite(s.rest)&&s.rest>0) t.rest=Math.floor(s.rest); if(s.fresh) t.fresh=1; if(Object.keys(t).length) o.sites[id]=t; }
-  if(Array.isArray(q.bodies)) o.bodies=q.bodies.filter(x=>x&&x.c&&typeof x.c.base==='string'&&typeof x.c.name==='string'&&VALLEY_NODES[x.s]).slice(0,MAP_BODIES).map(x=>{ const c={}; for(const k of ['name','base','role','rankI','lvl','hf','af','boss','elite','old','fresh']) if(k==='boss'||k==='elite') c[k]=false; else if(x.c[k]!=null) c[k]=x.c[k]; c.name=cleanText(c.name); c.base=cleanText(c.base); c.lvl=clamp(c.lvl|0,1,999); c.rankI=clamp(c.rankI|0,0,RANKS.length-1); c.hf=isFinite(c.hf)&&c.hf>0?+c.hf:1; c.af=isFinite(c.af)&&c.af>0?+c.af:1; if(!['vanguard','striker','mender','reaper'].includes(c.role)) c.role='striker'; return {c,s:x.s}; });
-  g.map=o;
+  if(Array.isArray(q.bodies)) o.bodies=q.bodies.filter(x=>x&&x.c&&typeof x.c.base==='string'&&typeof x.c.name==='string'&&VALLEY_NODES[x.s]).slice(0,MAP_BODIES).map(x=>{ const c={}; for(const k of ['name','base','role','rankI','lvl','hf','af','boss','elite','old','fresh','cd']) if(k==='boss'||k==='elite') c[k]=false; else if(x.c[k]!=null) c[k]=x.c[k]; c.name=cleanText(c.name); c.base=cleanText(c.base); c.lvl=clamp(c.lvl|0,1,999); c.rankI=clamp(c.rankI|0,0,RANKS.length-1); c.hf=isFinite(c.hf)&&c.hf>0?+c.hf:1; c.af=isFinite(c.af)&&c.af>0?+c.af:1; if(!['vanguard','striker','mender','reaper','hexer'].includes(c.role)) c.role='striker'; if(c.cd!=null&&!CORPSE_CONDS[c.cd]) delete c.cd; return {c,s:x.s}; });
+  roadsFix(q,o); g.map=o;
 }
 [['v_dig','Grave Digger','Dig 100 bodies out of the valley\'s old graveyards.',()=>T_('mapDug')>=100,{hpp:3},3],
  ['v_walk','Wayfarer','Walk 300 steps on the valley\'s roads.',()=>((S.map&&S.map.steps)||0)>=300,{goldp:3},2]
 ].forEach(([id,name,req,ok,b,r])=>{ for(const k in b) b[k]=Math.max(b[k],Math.round(b[k]*RARITY_MUL[r])); TITLE_RARITY[id]=r; const t={id,grp:'Deeds',name,req,ok,b,r}; TITLES.push(t); TITLE[id]=t; });
 TIPS.push({id:'valley',t:'The valley',m:'The Gates tab has a Valley map. A run from where you stand is free; walking to another gate costs steps, and every '+MAP_STEP+' steps spend a watch. Old graveyards and battlefields between the gates hold bodies to dig and raise in town before dawn.',when:()=>S.mode==='town'&&MAP_ON&&S.day>=2});
 TIP_META.valley=['sys','valley'];
+// ===== R19 PR B: THE VALLEY'S OTHER SITES, THE ROADS AND SCOUTING =====
+// The nodes and roads are in game-map.js. A site is a place that is not a gate: one visit is one choice or one fight, then it
+// rests SITE_REST[kind] days (S.map.sites[id].rest, the day it is ready again). Choice sites walk there when you pick (a site
+// needs a watch in hand but none left over); the mine and the wolf den are fights (a run: the walk, then a watch).
+//   shrine (one per god)   pray (your god: devotion), swear (unsworn), convert (another's), desecrate (the Profane)
+//   crossroads             the day's stranger: a pedlar (a potion at half price), a bounty (trophies for gold), the raven, a map-seller
+//   hermit's hut           trophies for a torn page, or a lesson (a kind you are studying is studied at once)
+//   old iron mine          two rooms of the Iron Orchard's kinds at your best gate's level: ore (each makes heart-forging 10% cheaper)
+//   gallows hill           cut down the hanged (a hexer's body), or sing for them (the Choir's devotion, else the town calms)
+//   the nine stones        call tomorrow's omen, any of the gods' omens, once a week
+//   the ford               pay the ferryman (a step less on every longer walk today), or search the shallows (a Preserved body)
+//   the wolf den           beasts (Dire Wolf, Carrion Crows, Grave Bear): pelts; every DEN_PELTS of them make a charm
+// Road encounters: each step walked has ENC_CH (more at Terror) of one, held until dawn (S.map.enc): a patrol of the living (fight
+// or bribe), a wandering elite (fight), a corpse cart (bodies for gold), a pilgrim (spare: the town calms; or take the body).
+// Scouting: a step to look down a road at an unknown place next to a known one. The War Room at level 2 scouts one at dawn; the
+// raven (the crossroads stranger, or the Library at level 3) scouts one too and shows where the nemeses walk.
+const SITE_REST={shrine:7,cross:3,hermit:7,mine:5,gallows:7,stones:7,ford:3,den:5};
+const SITE_KINDS=Object.keys(SITE_REST), SITE_FIGHT=['mine','den'];
+const ENC_CH=.05, ENC_TERROR=.05, ENC_KINDS=['patrol','elite','cart','pilgrim'], CART_N=2, CART_GOLD=6, BRIBE_GOLD=8, PILGRIM_DREAD=2;
+const ORE_K=.1, ORE_MAX=5, ORE_HOLD=10, DEN_PELTS=3, FORD_TOLL=3, HERMIT_TRO=4, BOUNTY_TRO=3, BOUNTY_GOLD=12, RAVEN_GOLD=300, MAPSELL_GOLD=60, GALLOWS_DREAD=1, SCOUT_STEPS=1;
+const BEASTS={wolf:['Dire Wolf','striker',.9,1.2],crow:['Carrion Crows','reaper',.6,1.15],bear:['Grave Bear','vanguard',1.6,.9]};   // [name, role, hp factor, atk factor]
+const BEAST_NAMES=Object.values(BEASTS).map(b=>b[0]);
+Object.assign(KIT_OF,{'Dire Wolf':'pack','Carrion Crows':'skirm','Grave Bear':'frenzy'});
+const isSite=id=>!!VALLEY_NODES[id]&&SITE_KINDS.includes(VALLEY_NODES[id].k);
+const siteKind=id=>(VALLEY_NODES[id]||{}).k;
+const beastKills=()=>BEAST_NAMES.reduce((a,n)=>a+((S.kills&&S.kills[n])|0),0);
+const oreUse=()=>Math.min(ORE_MAX,(S.map&&S.map.ore)|0);
+const oreK=()=>MAP_ON?1-ORE_K*oreUse():1;   // heartforge: each ore held (up to ORE_MAX) takes 10% off the gold, and is spent
+const ravenOn=()=>!!(S.map&&S.map.raven);
+const priceK=()=>Math.max(1,S.player.lvl);
+// ----- choices: what a site offers now ({k, t: the button, why: '' or why not})
+function crossOffer(id){ const h=dayHash(S.day,7919,MAP_IDS.indexOf(id)); const o=['pedlar','bounty','stranger'][h%3]; return o==='stranger'&&ravenOn()?'mapsell':o; }
+const crossPot=id=>Object.keys(POTIONS)[dayHash(S.day,31,MAP_IDS.indexOf(id))%Object.keys(POTIONS).length];
+function bountyKind(){ const t=S.trophies||{}; return Object.keys(t).filter(k=>!k.startsWith('b:')&&t[k]>=BOUNTY_TRO).sort((a,b)=>t[b]-t[a]||(a<b?-1:1))[0]||null; }
+function hermitKind(){ const t=S.trophies||{}; return Object.keys(t).filter(k=>!k.startsWith('b:')&&t[k]>=HERMIT_TRO).sort((a,b)=>t[b]-t[a]||(a<b?-1:1))[0]||null; }
+function lessonKind(){ const K=S.kills||{}; return allNames().concat(SIEGE_NAMES,BEAST_NAMES).filter(n=>(K[n]|0)>0&&(K[n]|0)<KNOW_AT).sort((a,b)=>(K[b]|0)-(K[a]|0)||(a<b?-1:1))[0]||null; }
+function gallowsBody(id){ for(let g=nearGate(id);g>=0;g--){ const m=DUNGEONS[g].mobs.find(x=>x[1]==='hexer'); if(m) return {m,g}; } return null; }
+function stoneOmens(id){ const L=[...new Set(GODS.flatMap(g=>godOmens(g)))].filter(o=>OMENS[o]); const h=dayHash(Math.floor(S.day/7),97,MAP_IDS.indexOf(id)); return [0,1,2].map(i=>L[(h+i*5)%L.length]).filter((o,i,a)=>a.indexOf(o)===i); }
+function siteOpts(id){
+  const n=VALLEY_NODES[id]; if(!isSite(id)) return []; const out=[], add=(k,t,why)=>out.push({k,t,why:why||''}), P=S.player, f=faithOf(), gold=c=>S.gold>=c?'':'Needs '+c+' gold.';
+  if(n.k==='shrine'){ const g=n.g;
+    if(f===g) add('pray','Pray: +'+DEV_SHRINE+' devotion');
+    else if(!f) add('swear','Swear your oath to '+FAITH[g].name,faithOpen()?'':'You may swear an oath from level '+FAITH_LV+'.');
+    else { add('convert','Convert to '+FAITH[g].name+' (keep half your devotion)'); if(f==='dis') add('desecrate','Desecrate it: gold and devotion'); } }
+  if(n.k==='cross'){ const o=crossOffer(id);
+    if(o==='pedlar'){ const k=crossPot(id), c=Math.ceil(POTIONS[k].price()/2); add('pedlar','Buy a '+POTIONS[k].name+' for '+c+' gold',S.belt[k]>=beltMax()?'Your belt is full.':gold(c)); }
+    if(o==='bounty'){ const k=bountyKind(); add('bounty','Hand over '+BOUNTY_TRO+' trophies for '+BOUNTY_GOLD*priceK()+' gold',k?'':'Needs '+BOUNTY_TRO+' trophies of one kind.'); }
+    if(o==='stranger') add('raven','Buy the stranger\'s raven for '+RAVEN_GOLD+' gold',gold(RAVEN_GOLD));
+    if(o==='mapsell') add('mapsell','Buy a map of two unknown places for '+MAPSELL_GOLD+' gold',!scoutable().length?'Nothing on the roads is unknown to you.':gold(MAPSELL_GOLD)); }
+  if(n.k==='hermit'){ const k=hermitKind(), why=k?'':'Needs '+HERMIT_TRO+' trophies of one kind.';
+    add('page','Trade '+HERMIT_TRO+' trophies for a torn page',why||(nextPage()<0?'He has no page you can read yet.':''));
+    const l=lessonKind(); add('lesson','Trade '+HERMIT_TRO+' trophies for a lesson'+(l?' on '+l:''),why||(l?'':'You are studying no kind.')); }
+  if(n.k==='mine') add('fight','Go down the mine (two rooms)',S.mode!=='town'?'Only from town.':'');
+  if(n.k==='den') add('fight','Go into the den',S.mode!=='town'?'Only from town.':'');
+  if(n.k==='gallows'){ const b=gallowsBody(id); add('cut','Cut down the hanged: a hexer\'s body',b?'':'No hexer hangs here yet.'); add('sing',f==='choir'?'Sing for them: +'+DEV_SHRINE+' devotion':'Sing for them: the town calms'); }
+  if(n.k==='stones') for(const o of stoneOmens(id)) add('call:'+o,'Call '+OMENS[o].name+' for tomorrow',S.omenNext&&S.omenNext.day===S.day+1&&S.omenNext.by==='stones'?'Tomorrow is already called.':'');
+  if(n.k==='ford'){ add('toll','Pay the ferryman '+FORD_TOLL*priceK()+' gold: a step less on longer walks today',S.map&&S.map.ford===S.day?'You paid today.':gold(FORD_TOLL*priceK())); add('search','Search the shallows for a drowned body'); }
+  return out;
+}
+const siteNeed=()=>1;   // every site wants a watch left after the walk: a fight spends it, a choice keeps it (a day never ends on the road)
+function siteWhy(id,k){ const o=siteOpts(id).find(x=>x.k===k); if(!o) return 'No such choice.'; if(o.why) return o.why; if(S.mode!=='town') return 'Only from town.'; if(!siteReady(id)) return 'It rests.'; if(!mapCan(id,siteNeed(id))) return 'Too far for the watches left today.'; return ''; }
+function siteAct(id,k){   // walk there and take the choice; returns a line for the screen, or null
+  if(siteWhy(id,k)) return null; const n=VALLEY_NODES[id];
+  if(SITE_FIGHT.includes(n.k)) return svStart(id)?'':null;
+  const c=siteChoice(id,k,true); if(c===null) return null;   // dry run first: nothing is spent on a refused choice
+  if(!mapGo(id,1)) return null; const m=siteChoice(id,k,false); if(m===null) return null;
+  siteState(id).rest=S.day+SITE_REST[n.k]; tally('mapSites'); tally('site_'+n.k); notify(m,'ok'); return m;
+}
+function siteChoice(id,k,dry){   // the choice itself; dry: only say whether it can be done (null: no)
+  const n=VALLEY_NODES[id], P=S.player, f=faithOf();
+  if(k==='pray'){ if(f!==n.g) return null; if(!dry) deed(n.g,DEV_SHRINE/DEED_K[n.g]); return 'You pray at '+n.name+'. '+FAITH[n.g].name+' hears you.'; }
+  if(k==='swear'){ if(f||!faithOpen()) return null; if(!dry&&!swear(n.g)) return null; return 'You swear your oath to '+FAITH[n.g].name+' at '+n.name+'.'; }
+  if(k==='convert'){ if(!f||f===n.g) return null; if(!dry&&!convert(n.g)) return null; return 'You kneel to '+FAITH[n.g].name+' at '+n.name+'. Half your devotion comes with you.'; }
+  if(k==='desecrate'){ if(f!=='dis'||n.g==='dis') return null; const g=Math.round((10+P.lvl*3)*(1+topGate())*ngpReward()); if(!dry){ S.gold+=g; deed('dis',10/DEED_K.dis); tally('desecrated'); } return 'You break '+n.name+' and take '+g+' gold from its offerings.'; }
+  if(k==='pedlar'){ if(crossOffer(id)!=='pedlar') return null; const p=crossPot(id), c=Math.ceil(POTIONS[p].price()/2); if(S.gold<c||S.belt[p]>=beltMax()) return null; if(!dry){ S.gold-=c; S.belt[p]++; } return 'A pedlar at the crossroads sells you a '+POTIONS[p].name+' for '+c+' gold.'; }
+  if(k==='bounty'){ if(crossOffer(id)!=='bounty') return null; const t=bountyKind(), g=BOUNTY_GOLD*priceK(); if(!t) return null; if(!dry){ S.trophies[t]-=BOUNTY_TRO; if(!S.trophies[t]) delete S.trophies[t]; S.gold+=g; tally('bountyCross'); } return 'A bounty-man pays '+g+' gold for '+BOUNTY_TRO+' trophies.'; }
+  if(k==='raven'){ if(crossOffer(id)!=='stranger'||S.gold<RAVEN_GOLD) return null; if(!dry){ S.gold-=RAVEN_GOLD; mapSt().raven=1; tally('raven'); } return 'A stranger in grey sells you a raven. It will scout the roads at dawn and watch the nemeses for you.'; }
+  if(k==='mapsell'){ if(crossOffer(id)!=='mapsell'||S.gold<MAPSELL_GOLD||!scoutable().length) return null; const L=scoutable().slice(0,2); if(!dry){ S.gold-=MAPSELL_GOLD; L.forEach(x=>{ mapSt().seen[x]=true; }); } return 'A map-seller marks '+L.map(nodeName).join(' and ')+' on your map.'; }
+  if(k==='page'){ const t=hermitKind(); if(!t||nextPage()<0) return null; if(!dry){ S.trophies[t]-=HERMIT_TRO; if(!S.trophies[t]) delete S.trophies[t]; const i=S.pages|0; S.pages=i+1; tally('pages'); moment('Torn page '+(i+1)+'/'+LORE_PAGES.length,'gold'); return 'The hermit gives you a torn page of the Ledger ('+(i+1)+'/'+LORE_PAGES.length+'): "'+LORE_PAGES[i].t+'". Read it on the Lore page (Ledger tab).'; } return ''; }
+  if(k==='lesson'){ const t=hermitKind(), l=lessonKind(); if(!t||!l) return null; if(!dry){ S.trophies[t]-=HERMIT_TRO; if(!S.trophies[t]) delete S.trophies[t]; S.kills[l]=KNOW_AT; tally('lessons'); } return 'The hermit tells you all he knows of '+l+'. You have studied its kind.'; }
+  if(k==='cut'){ const b=gallowsBody(id); if(!b) return null; if(!dry){ const m=b.m; mapBody({name:m[0],base:m[0],role:m[1],rankI:b.g,lvl:siteLvl(b.g),hf:m[2]||1,af:m[3]||1,boss:false,elite:false,old:1},id); } return 'You cut down the hanged '+b.m[0]+'. Its body waits to be raised before dawn.'; }
+  if(k==='sing'){ if(!dry){ if(f==='choir') deed('choir',DEV_SHRINE/DEED_K.choir); else dread(-GALLOWS_DREAD); } return f==='choir'?'You sing for the hanged, and the Choir sings with you.':'You sing for the hanged. The living hear of it, and the town breathes easier.'; }
+  if(k.startsWith('call:')){ const o=k.slice(5); if(!stoneOmens(id).includes(o)) return null; if(!dry){ S.omenNext={day:S.day+1,id:o,by:'stones'}; tally('stoneCalls'); } return 'You call '+OMENS[o].name+' at the Nine Stones. Tomorrow belongs to it.'; }
+  if(k==='toll'){ const c=FORD_TOLL*priceK(); if(S.gold<c||(S.map&&S.map.ford===S.day)) return null; if(!dry){ S.gold-=c; mapSt().ford=S.day; tally('mapFord'); } return 'The ferryman will carry you: a step less on every longer walk today.'; }
+  if(k==='search'){ if(!dry){ const g=nearGate(id), m=pick(DUNGEONS[g].mobs.filter(x=>x[1]!=='hexer')); mapBody({name:m[0],base:m[0],role:m[1],rankI:g,lvl:siteLvl(g),hf:m[2]||1,af:m[3]||1,boss:false,elite:false,cd:'preserved'},id); tally('mapFord'); } return 'You pull a drowned body from the shallows, cold and whole (Preserved).'; }
+  return null;
+}
+function mapBody(c,s){ const M=mapSt(); M.bodies=(M.bodies||[]).concat([{c,s}]).slice(-MAP_BODIES); M.dug=(M.dug||0)+1; }
+// ----- fights: the mine, the den, and the road
+function svFoe(name,role,hf,af,rk,lvl,elite){ const s=mobStats(rk,lvl,hf,af,false,!!elite); return {id:'e'+(++S.uid),name:(elite?pick(ELITE)+' ':'')+name,base:name,role,rankI:rk,lvl,hf,af,boss:false,elite:!!elite,maxHp:s.hp,hp:s.hp,atk:s.atk,dead:false}; }
+function svStart(id,enc){   // a site's fight (a watch, after the walk) or a road encounter's (no watch: it found you on the road)
+  if(S.mode!=='town') return false;
+  if(enc){ const E=S.map&&S.map.enc; if(!E||!['patrol','elite'].includes(E.k)) return false; }
+  else { if(!SITE_FIGHT.includes(siteKind(id))||!siteReady(id)||!mapGo(id,1)) return false; S.watches--; siteState(id).rest=S.day+SITE_REST[siteKind(id)]; tally('mapSites'); tally('site_'+siteKind(id)); }
+  const sg=Math.max(0,Math.min(GATE_N-1,topGate())), k=enc?'enc':siteKind(id);
+  S.runs++; S.notices=[];
+  S.run={di:sg,sv:k,svId:enc?S.map.enc.s:id,svE:enc?S.map.enc.k:null,room:0,rooms:k==='mine'?2:1,enemies:[],corpses:[],events:[],log:[],turn:1,target:null,pending:0,fx:{},kills:0,raised:0,cleared:false,gained:0,ups:0,loot:[],spoils:[],lostLoot:[],mod:null,heat:0};
+  if(enc) delete S.map.enc;
+  S.mode='battle'; titheSouls();
+  log(k==='mine'?'You climb down into the Old Iron Mine. Something still digs in the dark.':k==='den'?'You crawl into the Wolf Den. The bones in the doorway are fresh.':S.run.svE==='patrol'?'A patrol of the living bars the road.':'Something from the gates walks the road, far from home.');
+  spawnRoom(); return true;
+}
+function svRoom(list,r,room){   // buildRoom for a site's fight
+  const sg=r.di, lv=RK[sg].lv+room+(r.sv==='den'?1:0);
+  if(r.sv==='mine'){ const M=DUNGEONS[4].mobs.filter(m=>m[1]!=='hexer'), n=room===0?3:4; for(let i=0;i<n;i++){ const m=pick(M); list.push(svFoe(m[0],m[1],m[2],m[3],sg,lv,room===1&&i===0)); } }
+  else if(r.sv==='den'){ const b=BEASTS; list.push(svFoe(b.bear[0],b.bear[1],b.bear[2],b.bear[3],sg,lv+1,true)); list.push(svFoe(b.wolf[0],b.wolf[1],b.wolf[2],b.wolf[3],sg,lv)); list.push(svFoe(b.wolf[0],b.wolf[1],b.wolf[2],b.wolf[3],sg,lv)); list.push(svFoe(b.crow[0],b.crow[1],b.crow[2],b.crow[3],sg,lv)); }
+  else if(r.svE==='patrol'){ const F=SIEGE_FOES; ['vanguard','striker','striker'].forEach(ro=>list.push(svFoe(F[ro][0],ro,F[ro][1],F[ro][2],sg,lv))); }
+  else { const g=nearGate(r.svId||'T'), M=DUNGEONS[g].mobs, m=pick(M); list.push(svFoe(m[0],m[1],m[2],m[3],g,RK[g].lv+2,true)); for(let i=0;i<2;i++){ const a=pick(M); list.push(svFoe(a[0],a[1],a[2],a[3],g,RK[g].lv+1)); } }
+  return list;
+}
+function svCleared(r){   // the last room of a site's fight: what it pays
+  r.cleared=true; const M=mapSt();
+  if(r.sv==='mine'){ const o=1+(Math.random()<.5?1:0); M.ore=Math.min(ORE_HOLD,(M.ore|0)+o); tally('ore',o); r.events.push({m:'You carry '+o+' ore out of the mine ('+M.ore+' held). Each makes heart-forging '+Math.round(ORE_K*100)+'% cheaper.',c:'ok'}); }
+  else if(r.sv==='den'){ M.pelt=(M.pelt|0)+1; tally('denClears'); if(M.pelt>=DEN_PELTS){ M.pelt-=DEN_PELTS; const b=pick(BEAST_NAMES); S.charms=Array.isArray(S.charms)?S.charms:[]; S.charms.push({k:KIT_OF[b],src:b}); tally('charms'); r.events.push({m:'The pelts are cured into a charm: '+charmName({k:KIT_OF[b]})+' (in the Army tab\'s pouch).',c:'ok'}); }
+    else r.events.push({m:'You skin the den\'s beasts: '+M.pelt+'/'+DEN_PELTS+' pelts toward a charm.',c:'ok'}); }
+  else { tally('encWon'); r.events.push({m:'The road is clear again.',c:'ok'}); }
+  return Math.round(RK[r.di].clear*(r.sv==='enc'?.25:.5));
+}
+const svWhere=r=>r.sv==='enc'?'the road':r.sv==='mine'?'the Old Iron Mine':'the Wolf Den';
+// ----- road encounters
+function encRoll(d,path){   // mapGo: each step walked may meet something on the road (held until dawn)
+  const M=mapSt(); if(!MAP_ON||M.enc||!(d>0)) return; const ch=ENC_CH+(typeof dreadBand==='function'&&dreadBand().id==='terror'?ENC_TERROR:0);
+  for(let i=0;i<d;i++) if(Math.random()<ch){ const s=path[Math.min(path.length-1,1+Math.floor(Math.random()*Math.max(1,path.length-1)))]||'T'; M.enc={k:pick(ENC_KINDS),s,d:S.day}; tally('encMet'); notify(encText(M.enc)+' It waits on the Valley map until dawn.','info'); return; }
+}
+function encText(E){ const w=nodeName(E.s);
+  return E.k==='patrol'?'A patrol of the living stopped you near '+w+'.':E.k==='elite'?'Something from the gates walks the road near '+w+'.':E.k==='cart'?'A corpse cart creaks along the road near '+w+'.':'A pilgrim kneels by the road near '+w+'.'; }
+const encGold=k=>(k==='cart'?CART_GOLD*CART_N:BRIBE_GOLD)*priceK();
+function encOpts(){ const E=S.map&&S.map.enc; if(!E) return []; const out=[], add=(k,t,why)=>out.push({k,t,why:why||''}), g=encGold(E.k), gw=S.gold>=g?'':'Needs '+g+' gold.';
+  if(E.k==='patrol'){ add('fight','Fight them'); add('bribe','Bribe them: '+g+' gold',gw); }
+  if(E.k==='elite') add('fight','Fight it');
+  if(E.k==='cart') add('buy','Buy '+CART_N+' bodies: '+g+' gold',gw);
+  if(E.k==='pilgrim'){ add('spare','Let the pilgrim go: the town calms'); add('take','Take the pilgrim\'s body'); }
+  add('leave','Leave it on the road'); return out; }
+function encAct(k){   // returns a line, or null
+  const E=S.map&&S.map.enc; if(!E||S.mode!=='town'||!encOpts().some(o=>o.k===k&&!o.why)) return null;
+  if(k==='fight') return svStart(null,true)?'':null;
+  const g=encGold(E.k); let m=null;
+  if(k==='bribe'){ S.gold-=g; m='You pay the patrol '+g+' gold and walk on.'; }
+  if(k==='buy'){ S.gold-=g; const sg=Math.max(0,Math.min(GATE_N-1,topGate())); for(let i=0;i<CART_N;i++){ const x=pick(DUNGEONS[sg].mobs); mapBody({name:x[0],base:x[0],role:x[1],rankI:sg,lvl:siteLvl(sg),hf:x[2]||1,af:x[3]||1,boss:false,elite:false,fresh:1},E.s); } tally('cartBought'); m='The carter sells you '+CART_N+' bodies for '+g+' gold.'; }
+  if(k==='spare'){ dread(-PILGRIM_DREAD); tally('pilgrims'); m='You let the pilgrim go. Word of it reaches the town.'; }
+  if(k==='take'){ const F=SIEGE_FOES.mender; mapBody({name:F[0],base:F[0],role:'mender',rankI:Math.max(0,topGate()),lvl:Math.max(1,S.player.lvl-2),hf:F[1],af:F[2],boss:false,elite:false,fresh:1},E.s); dread(PILGRIM_DREAD); m='You take the pilgrim. The town hears of that too.'; }
+  if(k==='leave') m='You leave it on the road.';
+  delete S.map.enc; if(m) notify(m,'info'); return m;
+}
+// ----- scouting and the raven
+const scoutable=()=>MAP_IDS.filter(id=>!mapSeen(id)&&VALLEY_ADJ[id].some(([v])=>mapSeen(v)));
+function scoutWhy(id){ if(!MAP_ON) return 'The map is off.'; if(S.mode!=='town') return 'Only from town.'; if(!scoutable().includes(id)) return 'No known road leads there.'; const M=S.map||{};
+  return S.watches-Math.floor((((M.st)||0)+SCOUT_STEPS)/MAP_STEP)>=1?'':'No watch left today.'; }
+function scout(id){   // a step of walking to look down a road: the place is known (you stay where you stand)
+  if(scoutWhy(id)) return false; const M=mapSt(); M.st=(M.st||0)+SCOUT_STEPS; M.steps=(M.steps||0)+SCOUT_STEPS; while(M.st>=MAP_STEP){ M.st-=MAP_STEP; S.watches--; tally('mapW'); }
+  M.seen[id]=true; tally('scouted'); tally('mapSteps',SCOUT_STEPS); return true; }
+function roadsDawn(){   // closeDay: the War Room's scouts and the raven each look down one road
+  if(!S.map||!MAP_ON) return; const M=S.map; M.seen=M.seen||{};
+  if(!M.raven&&bl('library')>=3){ M.raven=1; notify('A raven has nested in the Library. It will scout the roads at dawn and watch the nemeses for you.','ok'); }
+  const look=who=>{ const L=scoutable(); if(!L.length) return; const id=L[dayHash(S.day,MAP_IDS.length,who.length)%L.length]; M.seen[id]=true; tally('scouted'); notify(who+' found '+nodeName(id)+' on the Valley map.','info'); };
+  if(bl('war')>=2) look('The War Room\'s scouts'); if(M.raven) look('Your raven');
+}
+// ----- what the map shows of the other systems: nemeses (with the raven), squads in the field, tonight's siege road
+const mapNems=()=>ravenOn()?(S.nem||[]).filter(n=>DUNGEONS[n.g]).map(n=>({n,at:gateNode(n.g)})):[];
+const mapSquads=()=>(S.raids||[]).map(x=>({x,at:x.t&&x.t.k==='band'?'tw':DUNGEONS[x.di]?gateNode(x.di):null})).filter(o=>o.at&&VALLEY_NODES[o.at]);
+const MAP_SIEGE_FROM={north:[50,-2],river:[102,44],grave:[46,78],all:[0,70]};
+const mapSiegeRoad=()=>typeof siegeWarned==='function'&&siegeWarned()?siegeRoad():null;
+// ----- the save
+function roadsFix(q,o){   // mapFix: the PR B fields
+  if(Array.isArray(q.rw)) o.rw=[...new Set(q.rw.filter(j=>Number.isInteger(j)&&j>=0&&j<VALLEY_ROADS.length))].sort((a,b)=>a-b);
+  if(isFinite(q.ford)&&q.ford>0) o.ford=Math.floor(q.ford);
+  if(isFinite(q.ore)&&q.ore>0) o.ore=Math.min(ORE_HOLD,Math.floor(q.ore));
+  if(isFinite(q.pelt)&&q.pelt>0) o.pelt=Math.min(DEN_PELTS-1,Math.floor(q.pelt));
+  if(q.raven) o.raven=1;
+  const E=q.enc; if(E&&typeof E==='object'&&ENC_KINDS.includes(E.k)&&VALLEY_NODES[E.s]) o.enc={k:E.k,s:E.s,d:isFinite(E.d)?Math.floor(E.d):0};
+}
+// ----- titles: the map's four (two more than PR A's)
+[['v_cart','Cartographer','Know every place on the Valley map.',()=>!!S.map&&MAP_IDS.every(mapSeen),{xpp:3},3],
+ ['v_road','Every Road','Walk every road of the valley.',()=>!!S.map&&Array.isArray(S.map.rw)&&S.map.rw.length>=VALLEY_ROADS.length,{goldp:4},4],
+ ['v_ford','Ford-Crosser','Cross the Ford 10 times: by the ferry or through the shallows.',()=>T_('mapFord')>=10,{hpp:2},2],
+ ['v_wolf','Wolf-Skinner','Kill 30 beasts in the Wolf Den.',()=>beastKills()>=30,{dmgp:3},3]
+].forEach(([id,name,req,ok,b,r])=>{ for(const k in b) b[k]=Math.max(b[k],Math.round(b[k]*RARITY_MUL[r])); TITLE_RARITY[id]=r; const t={id,grp:'Deeds',name,req,ok,b,r}; TITLES.push(t); TITLE[id]=t; });
+TIPS.push({id:'roads',t:'The roads',m:'The valley has more than gates: shrines, a crossroads, a hermit, a mine, a wolf den and more. Places you do not know yet show as smudges: scout one from the Valley map for a step. Something may wait on the road when you walk; it stays until dawn.',when:()=>S.mode==='town'&&MAP_ON&&S.day>=4&&scoutable().length>0});
+TIP_META.roads=['sys','valley'];
 // ===== R16 PR A: TITLES AND COLLECTION 2.0 =====
 // Families: every title belongs to one of ten families (FAM_OF, from its id; a new title falls back on its group). Inscribed
 // titles (S.insc): up to three earned titles written beside the worn one, slots at 40, 80 and 120 titles. Each gives its
@@ -13931,7 +14128,7 @@ TR_RX.unshift([/^Show (\d+) more \((\d+) not shown\)$/,"$1 tane daha göster ($2
  ["Dig: # to # old bodies of the nearest gate's kinds, #% harder to raise. Then the graveyard rests # days","Kaz: en yakın kapının türlerinden # ile # eski ceset, diriltmesi %# daha zor. Sonra mezarlık # gün dinlenir"],
  ["After each siege, won or lost, each holds # to # of the fallen living, #% easier to raise. Once walked, a field is empty until the next siege","Her kuşatmadan sonra, kazanılsın ya da kaybedilsin, her biri düşen dirilerden # ile # tane tutar, diriltmesi %# daha kolay. Bir kez dolaşılınca alan bir sonraki kuşatmaya kadar boş kalır"],
  ["Dug bodies","Kazılan cesetler"],["They wait in the valley view until dawn and rise in town at no mana, into the army or, when it is full, the Reserve. At dawn the rest crumble","Şafağa kadar vadi görünümünde beklerler ve kasabada manasız dirilirler: orduya ya da o doluysa Yedeğe. Şafakta kalanlar ufalanır"],
- ["Visiting","Ziyaret"],["A site needs a watch in hand but none left over: the walk is the visit","Bir yer elde bir nöbet ister ama artanı değil: yürüyüş ziyaretin kendisidir"],
+ ["Visiting","Ziyaret"],["The walk to a site must leave you a watch: the day never ends on the road. A choice keeps that watch; a fight (the mine, the den) spends it","Bir yere yürüyüş sana bir nöbet bırakmalı: gün asla yolda bitmez. Bir seçim o nöbeti korur; bir dövüş (maden, in) onu harcar"],["A site needs a watch in hand but none left over: the walk is the visit","Bir yer elde bir nöbet ister ama artanı değil: yürüyüş ziyaretin kendisidir"],
  ["Dig # bodies out of the valley's old graveyards","Vadinin eski mezarlıklarından # ceset kaz"],["Walk # steps on the valley's roads","Vadinin yollarında # adım yürü"],
  ["The Gates tab has a Valley map. A run from where you stand is free; walking to another gate costs steps, and every # steps spend a watch. Old graveyards and battlefields between the gates hold bodies to dig and raise in town before dawn","Kapılar sekmesinde bir Vadi haritası var. Durduğun yerden akın bedavadır; başka bir kapıya yürümek adım ister ve her # adım bir nöbet harcar. Kapılar arasındaki eski mezarlıklar ve savaş alanları, şafaktan önce kasabada diriltilecek cesetler tutar"],
  ["The walk would leave no watch for the run","Yürüyüş akına nöbet bırakmaz"]
@@ -13946,6 +14143,75 @@ TR_RX.unshift(
  [/^(\d+) dug bod(?:y|ies) crumbled back into the earth at dawn$/,"Kazılan $1 ceset şafakta toprağa geri ufalandı"]
 );
 TR_DICT.set("It did not rise","Dirilmedi"); TR_RX.unshift([/^Risen: (.+)$/,"Dirildi: $1"]);
+
+// ----- R19 PR B: the other sites, the roads, scouting (place names stay English)
+[
+ ["An unknown place","Bilinmeyen bir yer"],["A road leads there from a place you know","Bildiğin bir yerden oraya bir yol gidiyor"],["Scout it","Keşfet"],
+ ["A ruined shrine","Yıkık bir tapınak"],["A crossroads","Bir kavşak"],["A hermit's hut","Bir münzevi kulübesi"],["An old mine","Eski bir maden"],["A gallows","Bir darağacı"],["Standing stones","Dikili taşlar"],["A ford","Bir sığ geçit"],["A wolf den","Bir kurt ini"],
+ ["Roads meet here, and so do strangers. Each day brings someone new","Yollar burada buluşur, yabancılar da. Her gün yeni biri gelir"],
+ ["An old man who knew the valley before the Ledger. He trades what he knows for trophies","Vadiyi Defter'den önce tanıyan yaşlı bir adam. Bildiklerini ganimetlere karşılık verir"],
+ ["Iron foes still dig in the dark, two rooms down. Ore from here makes heart-forging cheaper","Demir düşmanlar karanlıkta hâlâ kazıyor, iki oda aşağıda. Buradan çıkan cevher yürek dövmeyi ucuzlatır"],
+ ["The hanged swing in the wind. Some were hexers","Asılanlar rüzgârda sallanıyor. Bazıları büyücüydü"],["Nine stones in a ring. Here you may call tomorrow's omen, once a week","Halka olmuş dokuz taş. Burada haftada bir yarının alametini çağırabilirsin"],
+ ["A ferryman, and the drowned under the water","Bir kayıkçı ve suyun altında boğulmuşlar"],["Beasts the gates never made: wolves, crows and a bear. Their pelts make charms","Kapıların hiç yaratmadığı hayvanlar: kurtlar, kargalar ve bir ayı. Postlarından tılsım yapılır"],
+ ["Nothing on the roads is unknown to you","Yollarda bilmediğin bir şey kalmadı"],["Something waits on the road","Yolda bir şey bekliyor"],["It waits on the Valley map until dawn","Şafağa kadar Vadi haritasında bekler"],
+ ["On the road","Yolda"],["Fight them","Onlarla dövüş"],["Fight it","Onunla dövüş"],["Leave it on the road","Yolda bırak"],["Take the pilgrim's body","Hacının cesedini al"],["Let the pilgrim go: the town calms","Hacıyı bırak: kasaba sakinleşir"],
+ ["Bribe them: # gold","Onlara rüşvet ver: # altın"],["Buy # bodies: # gold","# ceset satın al: # altın"],
+ ["A bounty-man pays # gold for # trophies","Bir ödül avcısı # ganimet için # altın ödüyor"],["You pay the patrol # gold and walk on","Devriyeye # altın ödeyip yoluna devam ediyorsun"],["The carter sells you # bodies for # gold","Arabacı sana # altına # ceset satıyor"],
+ ["You let the pilgrim go. Word of it reaches the town","Hacıyı bırakıyorsun. Haberi kasabaya ulaşıyor"],["You take the pilgrim. The town hears of that too","Hacıyı alıyorsun. Kasaba bunu da duyuyor"],["You leave it on the road","Onu yolda bırakıyorsun"],
+ ["A patrol of the living bars the road","Dirilerin bir devriyesi yolu kesiyor"],["Something from the gates walks the road, far from home","Kapılardan gelen bir şey yolda yürüyor, yuvasından uzakta"],
+ ["You climb down into the Old Iron Mine. Something still digs in the dark","Old Iron Mine'a iniyorsun. Karanlıkta bir şey hâlâ kazıyor"],["You crawl into the Wolf Den. The bones in the doorway are fresh","Wolf Den'e sürünerek giriyorsun. Kapıdaki kemikler taze"],
+ ["Pray: +# devotion","Dua et: +# bağlılık"],["Desecrate it: gold and devotion","Kirlet: altın ve bağlılık"],["Hand over # trophies for # gold","# ganimeti # altına ver"],["Buy the stranger's raven for # gold","Yabancının kuzgununu # altına satın al"],
+ ["Buy a map of two unknown places for # gold","İki bilinmeyen yerin haritasını # altına satın al"],["Trade # trophies for a torn page","# ganimeti yırtık bir sayfayla takas et"],["Trade # trophies for a lesson","# ganimeti bir dersle takas et"],
+ ["Go down the mine (two rooms)","Madene in (iki oda)"],["Go into the den","İne gir"],["Cut down the hanged: a hexer's body","Asılanı indir: bir büyücünün cesedi"],["Sing for them: +# devotion","Onlar için şarkı söyle: +# bağlılık"],["Sing for them: the town calms","Onlar için şarkı söyle: kasaba sakinleşir"],
+ ["Pay the ferryman # gold: a step less on longer walks today","Kayıkçıya # altın öde: bugün uzun yürüyüşlerde bir adım eksik"],["Search the shallows for a drowned body","Sığlıklarda boğulmuş bir ceset ara"],
+ ["Your belt is full","Kemerin dolu"],["Needs # trophies of one kind","Tek türden # ganimet gerekir"],["He has no page you can read yet","Henüz okuyabileceğin bir sayfası yok"],["You are studying no kind","İncelediğin bir tür yok"],["No hexer hangs here yet","Burada henüz asılı bir büyücü yok"],
+ ["Tomorrow is already called","Yarın zaten çağrıldı"],["You paid today","Bugün ödedin"],["You may swear an oath from level #","Seviye #'den itibaren ant içebilirsin"],["Only from town","Yalnızca kasabadan"],["It rests","Dinleniyor"],["No watch left today","Bugün nöbet kalmadı"],["No known road leads there","Oraya bilinen bir yol gitmiyor"],["The map is off","Harita kapalı"],["No such choice","Böyle bir seçim yok"],
+ ["A raven has nested in the Library. It will scout the roads at dawn and watch the nemeses for you","Kütüphaneye bir kuzgun yuva yaptı. Şafakta yolları keşfedecek ve senin için baş düşmanları izleyecek"],
+ ["A stranger in grey sells you a raven. It will scout the roads at dawn and watch the nemeses for you","Gri giysili bir yabancı sana bir kuzgun satıyor. Şafakta yolları keşfedecek ve senin için baş düşmanları izleyecek"],
+ ["You sing for the hanged, and the Choir sings with you","Asılanlar için şarkı söylüyorsun ve Koro da seninle söylüyor"],["You sing for the hanged. The living hear of it, and the town breathes easier","Asılanlar için şarkı söylüyorsun. Diriler bunu duyuyor ve kasaba rahat bir nefes alıyor"],
+ ["The ferryman will carry you: a step less on every longer walk today","Kayıkçı seni taşıyacak: bugün her uzun yürüyüşte bir adım eksik"],["You pull a drowned body from the shallows, cold and whole (Preserved)","Sığlıklardan soğuk ve bütün, boğulmuş bir ceset çıkarıyorsun (Korunmuş)"],
+ ["You carry # ore out of the mine (# held). Each makes heart-forging #% cheaper","Madenden # cevher çıkarıyorsun (# elde). Her biri yürek dövmeyi %# ucuzlatır"],["You skin the den's beasts: #/# pelts toward a charm","İndeki hayvanları yüzüyorsun: bir tılsıma doğru #/# post"],["The road is clear again","Yol yine açık"],
+ ["Tonight's siege comes by this road","Bu geceki kuşatma bu yoldan geliyor"],["Your squad is in the field here","Bölüğün burada sahada"],
+ ["The roads","Yollar"],["The valley has more than gates: shrines, a crossroads, a hermit, a mine, a wolf den and more. Places you do not know yet show as smudges: scout one from the Valley map for a step. Something may wait on the road when you walk; it stays until dawn","Vadide kapılardan fazlası var: tapınaklar, bir kavşak, bir münzevi, bir maden, bir kurt ini ve daha fazlası. Henüz bilmediğin yerler leke olarak görünür: Vadi haritasından bir adımla birini keşfet. Yürürken yolda bir şey bekleyebilir; şafağa kadar kalır"],
+ ["The other sites","Diğer yerler"],["Ruined shrines (#)","Yıkık tapınaklar (#)"],["Scouting","Keşif"],["Scout","Keşfet"],["The raven","Kuzgun"],["Also on the map","Haritada ayrıca"],
+ ["One for each god. Pray at your own for # devotion; swear your oath at one if you have none; convert at another's; the Profane may desecrate one for gold. Then it rests # days","Her tanrıya bir tane. Kendininkinde # bağlılık için dua et; hiç yoksa birinde ant iç; başkasınınkinde din değiştir; Profane altın için birini kirletebilir. Sonra # gün dinlenir"],
+ ["Each day a different stranger: a pedlar (a potion at half price), a bounty-man (# trophies of one kind for gold), or a stranger with a raven (# gold; once you have it, a map-seller). Rests # days","Her gün başka bir yabancı: bir seyyar satıcı (yarı fiyatına bir iksir), bir ödül avcısı (altına tek türden # ganimet) ya da kuzgunlu bir yabancı (# altın; kuzgun sendeyse bir harita satıcısı). # gün dinlenir"],
+ ["# trophies of one kind for a torn page, or for a lesson: the kind you are closest to studying is studied at once. Rests # days","Tek türden # ganimete yırtık bir sayfa ya da bir ders: incelemeye en yakın olduğun tür hemen incelenmiş olur. # gün dinlenir"],
+ ["A fight of two rooms against the Iron Orchard's kinds at your best gate's level. It pays # or # ore (you hold at most #). Each ore makes heart-forging #% cheaper, up to # a forging, and is spent. Rests # days","En iyi kapının seviyesinde Iron Orchard türlerine karşı iki odalık bir dövüş. # ya da # cevher verir (en çok # tutarsın). Her cevher yürek dövmeyi %# ucuzlatır, bir dövmede en çok #, ve harcanır. # gün dinlenir"],
+ ["Cut down a hanged hexer of the nearest gate (a body to raise before dawn), or sing for the hanged: the Choir's devotion, or for anyone else the town's dread falls by #. Rests # days","En yakın kapının asılı bir büyücüsünü indir (şafaktan önce diriltilecek bir ceset) ya da asılanlar için şarkı söyle: Koro'nun bağlılığı, başkası içinse kasabanın dehşeti # düşer. # gün dinlenir"],
+ ["Call tomorrow's omen from three of the gods' omens, sworn or not. Rests # days","Ant içmiş ol ya da olma, tanrıların alametlerinden üçü arasından yarının alametini çağır. # gün dinlenir"],
+ ["Pay the ferryman (# gold a level): every walk of # steps or more costs a step less for the rest of the day. Or search the shallows for a drowned body, Preserved. Rests # days","Kayıkçıya öde (seviye başına # altın): günün geri kalanında # ya da daha fazla adımlık her yürüyüş bir adım eksik tutar. Ya da sığlıklarda Korunmuş, boğulmuş bir ceset ara. # gün dinlenir"],
+ ["A fight with beasts the gates never made: the Grave Bear, Dire Wolves and Carrion Crows. Every # clears make a charm of one of their kits. Rests # days","Kapıların hiç yaratmadığı hayvanlarla bir dövüş: Grave Bear, Dire Wolf'lar ve Carrion Crows. Her # temizleme onların hünerlerinden birinin tılsımını yapar. # gün dinlenir"],
+ ["Every step walked has a #% chance to meet something (#% when the town is in Terror). It waits on the Valley map until dawn: a patrol of the living (fight, or bribe), a wandering elite of the nearest gate (fight), a corpse cart (# bodies for gold), or a pilgrim (let go: the town's dread falls by #; or take the body: it rises). A fight on the road costs no watch","Yürünen her adımın bir şeyle karşılaşma şansı %# (kasaba Dehşet'teyken %#). Şafağa kadar Vadi haritasında bekler: dirilerin bir devriyesi (dövüş ya da rüşvet ver), en yakın kapının gezgin bir seçkini (dövüş), bir ceset arabası (altına # ceset) ya da bir hacı (bırak: kasabanın dehşeti # düşer; ya da cesedi al: dirilir). Yoldaki dövüş nöbet harcamaz"],
+ ["An unknown place next to a known one can be scouted from the map for # step. You stay where you stand","Bilinen bir yerin yanındaki bilinmeyen bir yer haritadan # adımla keşfedilebilir. Durduğun yerde kalırsın"],
+ ["At level # its scouts find one unknown place each dawn","Seviye #'de gözcüleri her şafak bilinmeyen bir yer bulur"],
+ ["Bought from the stranger at the Crossroads, or nesting in the Library at level #. It finds one unknown place each dawn and shows where the nemeses walk","Kavşaktaki yabancıdan satın alınır ya da seviye #'de Kütüphane'ye yuva yapar. Her şafak bilinmeyen bir yer bulur ve baş düşmanların nerede dolaştığını gösterir"],
+ ["Your squads in the field, and on a siege's eve the road the living will come by","Sahadaki bölüklerin ve bir kuşatmanın arifesinde dirilerin geleceği yol"],
+ ["Know every place on the Valley map","Vadi haritasındaki her yeri bil"],["Walk every road of the valley","Vadinin her yolunu yürü"],["Cross the Ford # times: by the ferry or through the shallows","Sığ geçidi # kez geç: kayıkla ya da sığlıklardan"],["Kill # beasts in the Wolf Den","Wolf Den'de # hayvan öldür"]
+].forEach(([k,v])=>{ TR_DICT.set(k,v); });
+TR_RX.unshift(
+ [/^A ruined shrine to (.+)\. Pray here if it is your god; swear or convert if not$/,"$1 adına yıkık bir tapınak. Tanrınsa burada dua et; değilse ant iç ya da din değiştir"],
+ [/^It rests: ready in (\d+) days?$/,"Dinleniyor: $1 gün sonra hazır"],[/^Ore held: (\d+) \(heart-forging (\d+)% cheaper\)$/,"Eldeki cevher: $1 (yürek dövme %$2 ucuz)"],[/^Pelts: (\d+)\/(\d+)$/,"Postlar: $1/$2"],
+ [/^A patrol of the living stopped you near (.+)$/,"Dirilerin bir devriyesi seni $1 yakınında durdurdu"],[/^Something from the gates walks the road near (.+)$/,"Kapılardan gelen bir şey $1 yakınında yolda yürüyor"],
+ [/^A corpse cart creaks along the road near (.+)$/,"Bir ceset arabası $1 yakınında yolda gıcırdıyor"],[/^A pilgrim kneels by the road near (.+)$/,"Bir hacı $1 yakınında yol kenarında diz çökmüş"],
+ [/^Swear your oath to (.+)$/,"$1 adına ant iç"],[/^Convert to (.+) \(keep half your devotion\)$/,"$1 dinine geç (bağlılığının yarısını koru)"],[/^Buy a (.+) for (\d+) gold$/,"{t1} satın al: $2 altın"],
+ [/^Trade (\d+) trophies for a lesson on (.+)$/,"$1 ganimeti $2 üzerine bir dersle takas et"],[/^Call (.+) for tomorrow$/,"Yarın için $1 çağır"],
+ [/^You pray at (.+)\. (.+) hears you$/,"$1 önünde dua ediyorsun. $2 seni duyuyor"],[/^You swear your oath to (.+) at (.+)$/,"$2 önünde $1 adına ant içiyorsun"],
+ [/^You kneel to (.+) at (.+)\. Half your devotion comes with you$/,"$2 önünde $1 karşısında diz çöküyorsun. Bağlılığının yarısı seninle geliyor"],[/^You break (.+) and take (\d+) gold from its offerings$/,"$1 tapınağını kırıp adaklarından $2 altın alıyorsun"],
+ [/^A pedlar at the crossroads sells you a (.+) for (\d+) gold$/,"Kavşaktaki bir seyyar satıcı sana $2 altına bir {t1} satıyor"],[/^A map-seller marks (.+) on your map$/,"Bir harita satıcısı haritana $1 yerlerini işaretliyor"],
+ [/^The hermit gives you a torn page of the Ledger \((\d+)\/(\d+)\): "(.+)"\. Read it on the Lore page \(Ledger tab\)$/,"Münzevi sana Defter'in yırtık bir sayfasını veriyor ($1/$2): \"{t3}\". Onu İrfan sayfasında (Defter sekmesi) oku"],
+ [/^The hermit tells you all he knows of (.+)\. You have studied its kind$/,"Münzevi sana $1 hakkında bildiği her şeyi anlatıyor. Türünü incelemiş oldun"],
+ [/^You cut down the hanged (.+)\. Its body waits to be raised before dawn$/,"Asılı $1 cesedini indiriyorsun. Cesedi şafaktan önce diriltilmeyi bekliyor"],[/^You call (.+) at the Nine Stones\. Tomorrow belongs to it$/,"Nine Stones'ta $1 çağırıyorsun. Yarın onun"],
+ [/^(.+) found (.+) on the Valley map$/,"{t1} Vadi haritasında $2 yerini buldu"],[/^You find (.+) down the road$/,"Yolun aşağısında $1 yerini buluyorsun"],[/^(.+) walks here$/,"$1 burada dolaşıyor"],
+ [/^The pelts are cured into a charm: (.+) \(in the Army tab's pouch\)$/,"Postlar bir tılsıma dönüştü: $1 (Ordu sekmesinin kesesinde)"]
+);
+TR_DICT.set("The War Room's scouts","Savaş Odası'nın gözcüleri"); TR_DICT.set("Your raven","Kuzgunun");
+TR_DICT.set("The War Room","Savaş Odası");
+TR_RX.unshift([/^You were dragged out of the Hell Tower on floor (\d+)\. (.+)$/,"Cehennem Kulesi'nin $1. katından sürüklenerek çıkarıldın. {t2}"],[/^You were dragged out of the ([^.]+)\. (.+)$/,"$1 yerinden sürüklenerek çıkarıldın. {t2}"],
+ [/^A patrol of the living stopped you near ([^.]+)\. (.+)$/,"Dirilerin bir devriyesi seni $1 yakınında durdurdu. {t2}"],[/^Something from the gates walks the road near ([^.]+)\. (.+)$/,"Kapılardan gelen bir şey $1 yakınında yolda yürüyor. {t2}"],
+ [/^A corpse cart creaks along the road near ([^.]+)\. (.+)$/,"Bir ceset arabası $1 yakınında yolda gıcırdıyor. {t2}"],[/^A pilgrim kneels by the road near ([^.]+)\. (.+)$/,"Bir hacı $1 yakınında yol kenarında diz çökmüş. {t2}"]);
+TR_DICT.set("That room's spoils are lost, and you lose #% of a level in XP","O odanın ganimetleri kayboldu ve bir seviyenin %#'i kadar TP kaybediyorsun");
+TR_RX.unshift([/^You were dragged out of the road\. (.+)$/,"Yoldan sürüklenerek çıkarıldın. {t1}"]);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -14729,6 +14995,7 @@ Object.assign(MAT,{'The Folded Knight':['metal','#5a5e6a'],'Mother of Gates':['s
  ['Pyre Priest','Pyre Witch',['cloth','#7a3a22']],['Hound Master','Barrow Champion',['cloth','#544634']],['War Hound','Hellhound',['fur','#5a4a38']],
  ['The Witchfinder General','Crownless Duelist',['cloth','#2e2620']],['The Saint of Pyres','Brass Saint',['metal','#a86a2e']],['The Grand Inquisitor','Cathedral Templar',['metal','#8a7a4a']]]
   .forEach(([n,from,m])=>{ IC[n]=IC[from]; MAT[n]=m; });   /* R14: the higher tiers of the living */
+[['Dire Wolf','Hellhound',['fur','#4a4440']],['Carrion Crows','Imp',['fur','#26222a']],['Grave Bear','Thorn Troll',['fur','#5a4632']]].forEach(([n,from,m])=>{ IC[n]=IC[from]; MAT[n]=m; });   /* R19 PR B: the Wolf Den's beasts (game-roads.js) */
 const matOf=key=>MAT[key]||(()=>{ const i=SECRET.findIndex(B=>B.name===key); return i>=0?MAT[DUNGEONS[i].boss[0]]:null; })()||MAT._;
 // R16 PR B: the hero's robe colour and staff head (game-collection.js); o.robe / o.staff preview a look in the wardrobe
 const STAFF_SKULL=SKULL(53,10,.42,'bn',SOULC);
@@ -16290,8 +16557,12 @@ function siegeTiersCx(){
 // known places as marks with their names, unknown ones as smudges, the hero's marker where you stand. A press on a place opens
 // its card; the list under the map holds the same places as buttons, for the keyboard and small screens.
 const MAP_GLYPH={town:'M-2.6 1.8V-.6L0-2.6L2.6-.6V1.8Z',gate:'M-2.2 2.4V-.8A2.2 2.2 0 0 1 2.2-.8V2.4Z',tower:'M-1.3 2.6V-1.6L0-3.2L1.3-1.6V2.6Z',
-  grave:'M-.5-2.8H.5V-1.4H1.8V-.4H.5V2.6H-.5V-.4H-1.8V-1.4H-.5Z',field:'M-2.4 2.2L-.6-2.4L.2-.2L1.2-1.8L2.4 2.2Z'};
-const KIND_NAME={town:'Your town',gate:'A gate',tower:'The Tower',grave:'An old graveyard',field:'A battlefield'};
+  grave:'M-.5-2.8H.5V-1.4H1.8V-.4H.5V2.6H-.5V-.4H-1.8V-1.4H-.5Z',field:'M-2.4 2.2L-.6-2.4L.2-.2L1.2-1.8L2.4 2.2Z',
+  shrine:'M-2 2.4H2V1.4H1.2V-1H-1.2V1.4H-2ZM0-1.4C-1-2.2 0-3.2 0-3.2S1-2.2 0-1.4Z',cross:'M-.4 2.6V-2.6H.4V2.6ZM-2.2-2.2H1.6L2.4-1.6L1.6-1H-2.2ZM2.2.2H-1.6L-2.4.8L-1.6 1.4H2.2Z',
+  hermit:'M-2.4 2.4V0L0-2.4L2.4 0V2.4H.6V.8H-.6V2.4Z',mine:'M-2.6 2.4A2.6 2.6 0 0 1 2.6 2.4H1.2A1.2 1.2 0 0 0-1.2 2.4ZM-1.8-2.6L1.8-1.4L1.6-.9L-2-2.1Z',
+  gallows:'M-1.8 2.6V-2.6H1.8V-1.8H-1V2.6ZM1.2-1.8H1.6V-.2H1.2Z',stones:'M-2.6 2.4V-.6L-1.8-1.4L-1 -.6V2.4ZM-.6 2.4V-2L0-2.8L.6-2V2.4ZM1 2.4V-1L1.8-1.8L2.6-1V2.4Z',
+  ford:'M-2.6-.8Q-1.3-1.8 0-.8T2.6-.8V0Q1.3-1 0 0T-2.6 0ZM-2.6 1.2Q-1.3.2 0 1.2T2.6 1.2V2Q1.3 1 0 2T-2.6 2Z',den:'M-2.4 2.4L-1.6-1.6L-.8.6L0-2.6L.8.6L1.6-1.6L2.4 2.4Z'};
+const KIND_NAME={town:'Your town',gate:'A gate',tower:'The Tower',grave:'An old graveyard',field:'A battlefield',shrine:'A ruined shrine',cross:'A crossroads',hermit:'A hermit\'s hut',mine:'An old mine',gallows:'A gallows',stones:'Standing stones',ford:'A ford',den:'A wolf den'};
 const stepTxt=n=>n+' step'+(n===1?'':'s');
 function tripNote(id){   // what the walk costs: "2 steps", "2 steps: spends a watch", or nothing where you stand
   if(!MAP_ON) return ''; const d=tripSteps(id); if(!d) return ''; if(d===Infinity) return 'off the known roads';
@@ -16304,33 +16575,56 @@ function mapPlanHTML(){   // today's watches and steps as pips
 }
 function mapSVG(){
   const pos=mapPos(), sel=ui.vsel&&VALLEY_NODES[ui.vsel]?ui.vsel:pos, N=VALLEY_NODES, seen=id=>mapSeen(id);
-  let h='<svg class="vmap" viewBox="0 0 100 70" role="img" aria-label="Map of the valley"><defs><radialGradient id="vlm" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#3a3024"/><stop offset="1" stop-color="#17120d"/></radialGradient>'
-    +'<filter id="vsm"><feGaussianBlur stdDeviation="1.4"/></filter></defs><rect width="100" height="70" rx="2" fill="url(#vlm)"/>'
-    +'<path class="v-river" d="M100 44C88 46 80 52 70 56S52 66 40 68" fill="none" stroke="#2e3a36" stroke-width="2.4" opacity=".7"/>'
+  let h='<svg class="vmap" viewBox="0 0 100 76" role="img" aria-label="Map of the valley"><defs><radialGradient id="vlm" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#3a3024"/><stop offset="1" stop-color="#17120d"/></radialGradient>'
+    +'<filter id="vsm"><feGaussianBlur stdDeviation="1.4"/></filter></defs><rect width="100" height="76" rx="2" fill="url(#vlm)"/>'
+    +'<path class="v-river" d="M100 44C88 46 80 52 70 56S52 66 30 76" fill="none" stroke="#2e3a36" stroke-width="2.4" opacity=".7"/>'
     +'<path class="v-hills" d="M0 14C10 8 18 12 26 7S44 4 50 2M62 4C70 8 82 5 100 10" fill="none" stroke="#4a3d2c" stroke-width="1.2" opacity=".8"/>';
   for(const [p,q,n] of VALLEY_ROADS){ const a=N[p], b=N[q], both=seen(p)&&seen(q); if(!seen(p)&&!seen(q)) continue;
     h+='<line class="v-road'+(both?'':' faint')+'" x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'"/>'+(both?'<text class="v-steps" x="'+((a.x+b.x)/2)+'" y="'+((a.y+b.y)/2-.8)+'">'+n+'</text>':''); }
   for(const id of MAP_IDS){ const n=N[id];
-    if(!seen(id)){ h+='<ellipse class="v-fog" cx="'+n.x+'" cy="'+n.y+'" rx="4" ry="2.6" filter="url(#vsm)"/>'; continue; }
-    const rest=(n.k==='grave'||n.k==='field')&&!siteReady(id);
+    if(!seen(id)){ const sc=scoutable().includes(id); h+=sc?'<g class="v-fog scout'+(id===sel?' sel':'')+'" data-a="vnode" data-k="'+id+'"><title>An unknown place</title><ellipse cx="'+n.x+'" cy="'+n.y+'" rx="4" ry="2.6" filter="url(#vsm)"/><text class="v-q" x="'+n.x+'" y="'+(n.y+1)+'">?</text></g>':'<ellipse class="v-fog" cx="'+n.x+'" cy="'+n.y+'" rx="4" ry="2.6" filter="url(#vsm)"/>'; continue; }
+    const rest=(n.k==='grave'||n.k==='field'||isSite(id))&&!siteReady(id);
     h+='<g class="v-node k-'+n.k+(id===sel?' sel':'')+(rest?' rest':'')+'" data-a="vnode" data-k="'+id+'" transform="translate('+n.x+' '+n.y+')"><title>'+nodeName(id)+'</title><circle r="3.6"/><path d="'+MAP_GLYPH[n.k]+'"/>'
       +'<text class="v-name" y="6.4">'+nodeName(id)+'</text></g>'; }
+  const sr=mapSiegeRoad(); if(sr&&MAP_SIEGE_FROM[sr]){ const f=MAP_SIEGE_FROM[sr]; h+='<line class="v-siege" x1="'+f[0]+'" y1="'+f[1]+'" x2="'+N.T.x+'" y2="'+N.T.y+'"><title>Tonight\'s siege comes by this road</title></line>'; }
+  for(const o of mapSquads()){ const a=N[o.at]; h+='<g class="v-squad" transform="translate('+(a.x+3.4)+' '+(a.y-3.4)+')"><title>Your squad is in the field here</title><path d="M-.3 1.6V-1.8H1.6L1-1.2L1.6-.6H.3V1.6Z"/></g>'; }
+  for(const o of mapNems()){ const a=N[o.at]; h+='<g class="v-nem" transform="translate('+(a.x-3.6)+' '+(a.y-3.4)+')"><title>'+o.n.name+' walks here</title><circle r="1.3"/></g>'; }
+  const E=S.map&&S.map.enc; if(E&&N[E.s]){ const a=N[E.s]; h+='<g class="v-enc" data-a="vnode" data-k="enc" transform="translate('+a.x+' '+(a.y+3.4)+')"><title>Something waits on the road</title><circle r="1.6"/><text y=".9">!</text></g>'; }
   const p=N[pos]; h+='<g class="v-me" transform="translate('+p.x+' '+(p.y-5.2)+')"><path d="M0 2.2L-1.6-.6A1.9 1.9 0 1 1 1.6-.6Z"/></g>';
   return h+'</svg>';
 }
 function siteText(id){
   const n=VALLEY_NODES[id];
   if(n.k==='grave'){ const r=siteRest(id); return 'Old bones of the '+DUNGEONS[nearGate(id)].name+'\'s kinds: '+MAP_GY_N[0]+' to '+MAP_GY_N[1]+' bodies to raise before dawn, '+MAP_OLD+'% harder to raise. '+(r?'Dug over: ready in '+r+' day'+(r>1?'s':'')+'.':'Ready to dig.'); }
+  if(isSite(id)){ const r=siteRest(id), rest=r?' It rests: ready in '+r+' day'+(r>1?'s':'')+'.':'';
+    const T={shrine:'A ruined shrine to '+(FAITH[n.g]||{}).name+'. Pray here if it is your god; swear or convert if not.',cross:'Roads meet here, and so do strangers. Each day brings someone new.',
+      hermit:'An old man who knew the valley before the Ledger. He trades what he knows for trophies.',mine:'Iron foes still dig in the dark, two rooms down. Ore from here makes heart-forging cheaper.',
+      gallows:'The hanged swing in the wind. Some were hexers.',stones:'Nine stones in a ring. Here you may call tomorrow\'s omen, once a week.',ford:'A ferryman, and the drowned under the water.',
+      den:'Beasts the gates never made: wolves, crows and a bear. Their pelts make charms.'};
+    return T[n.k]+rest; }
   if(n.k==='field') return 'The fallen of the last siege lie here: '+MAP_BF_N[0]+' to '+MAP_BF_N[1]+' fresh bodies, '+MAP_FRESH+'% easier to raise. '+(siteReady(id)?'Fresh dead wait.':'Nothing here until the next siege.');
   return '';
 }
+function siteCardHTML(id){   // a site of PR B: its text and its choices
+  const n=VALLEY_NODES[id], note=tripNote(id), rdy=siteReady(id), far=!mapCan(id,siteNeed(id))&&id!==mapPos();
+  let h='<p>'+siteText(id)+'</p>'; if(n.k==='mine'&&(S.map&&S.map.ore)) h+='<p class="u-sub">Ore held: '+S.map.ore+' (heart-forging '+Math.round(ORE_K*100*oreUse())+'% cheaper)</p>';
+  if(n.k==='den'&&(S.map&&S.map.pelt)) h+='<p class="u-sub">Pelts: '+S.map.pelt+'/'+DEN_PELTS+'</p>';
+  if(!rdy) return h; const O=siteOpts(id); if(!O.length) return h;
+  return h+'<div class="btns v-opts">'+O.map(o=>{ const why=o.why||(far?'Too far for the watches left today':''); return '<button class="btn small'+(o.k==='fight'?' primary':'')+'" data-a="vpick" data-k="'+id+'|'+o.k+'"'+(why?' disabled title="'+why.replace(/\.$/,'')+'"':'')+'>'+o.t+(note?' &middot; '+stepTxt(tripSteps(id)):'')+'</button>'; }).join('')+'</div>';
+}
+function scoutCardHTML(id){ const why=scoutWhy(id);
+  return '<div class="v-card"><h3>An unknown place</h3><p class="u-sub">A road leads there from a place you know.</p><div class="btns"><button class="btn primary" data-a="vscout" data-k="'+id+'"'+(why?' disabled title="'+why.replace(/\.$/,'')+'"':'')+'>Scout it &middot; '+stepTxt(SCOUT_STEPS)+'</button></div></div>'; }
+function encCardHTML(){ const E=S.map&&S.map.enc; if(!E) return '';
+  return '<div class="v-card v-enc-card"><h3>On the road</h3><p>'+encText(E)+'</p><div class="btns">'+encOpts().map(o=>'<button class="btn small'+(o.k==='fight'?' primary':'')+'" data-a="venc" data-k="'+o.k+'"'+(o.why?' disabled title="'+o.why.replace(/\.$/,'')+'"':'')+'>'+o.t+'</button>').join('')+'</div></div>'; }
 function nodeCardHTML(id){
-  const n=VALLEY_NODES[id], here=id===mapPos(), can=mapCan(id,n.k==='grave'||n.k==='field'?0:1), note=tripNote(id), away=!can&&!here?' disabled title="Too far for the watches left today"':'';
+  if(id==='enc') return encCardHTML(); if(!mapSeen(id)) return scoutCardHTML(id);
+  const n=VALLEY_NODES[id], here=id===mapPos(), can=mapCan(id,1), note=tripNote(id), away=!can&&!here?' disabled title="Too far for the watches left today"':'';
   let h='<div class="v-card"><h3>'+nodeName(id)+'</h3><p class="u-sub">'+KIND_NAME[n.k]+(here?' &middot; you stand here':note?' &middot; '+note:'')+'</p>';
   if(n.k==='gate'){ const i=n.g, locked=gateLocked(i);
     h+=(locked?'<p class="q-note">Not open to you yet.</p>':'<div class="btns"><button class="btn primary" data-a="enter" data-k="'+i+'"'+away+'>Enter'+(note?' &middot; '+stepTxt(tripSteps(id)):'')+'</button>'+(i===5&&riftOpen()?'<button class="btn small" data-a="gsub" data-k="rift">The Rift lies under it</button>':'')+'</div>'); }
   if(n.k==='tower') h+='<div class="btns"><button class="btn primary" data-a="tab" data-k="tower">Climb from the Tower tab</button></div>';
   if(n.k==='town') h+='<p class="q-note">Buildings, the market and your army wait here whatever road you stand on. The Ledger pulls you home at dawn.</p>';
+  if(isSite(id)) h+=siteCardHTML(id);
   if(n.k==='grave'||n.k==='field') h+='<p>'+siteText(id)+'</p>'+(siteReady(id)?'<div class="btns"><button class="btn primary" data-a="vsite" data-k="'+id+'"'+away+'>'+(n.k==='grave'?'Dig':'Walk the field')+(note?' &middot; '+stepTxt(tripSteps(id)):'')+'</button></div>':'');
   return h+'</div>';
 }
@@ -16340,9 +16634,9 @@ function dugHTML(){   // the bodies dug today, raised in town before dawn
     return '<div class="tt-row"><div><h4>'+cleanText(c.name)+' &middot; Lv '+c.lvl+'</h4><div class="u-sub">'+(c.old?'Old bones':'Fresh dead')+' from '+nodeName(x.s)+' &middot; '+ch+'% to rise</div></div><button class="btn small primary" data-a="vraise" data-k="'+i+'"'+(armyRoom()||reserveRoom()?'':' disabled title="Your army and Reserve are full"')+'>Raise</button></div>'; }).join('')+'</div>';
 }
 function valleyHTML(){
-  const pos=mapPos(), sel=ui.vsel&&VALLEY_NODES[ui.vsel]&&mapSeen(ui.vsel)?ui.vsel:pos, known=MAP_IDS.filter(mapSeen);
+  const pos=mapPos(), E=S.map&&S.map.enc, sel=ui.vsel==='enc'&&E?'enc':ui.vsel&&VALLEY_NODES[ui.vsel]&&(mapSeen(ui.vsel)||scoutable().includes(ui.vsel))?ui.vsel:pos, known=MAP_IDS.filter(mapSeen);
   return '<section class="win" aria-labelledby="h-valley"><h2 class="win-h" id="h-valley">The valley</h2>'+mapPlanHTML()+(MAP_ON?'':'<p class="q-note">The map is off: every road is free.</p>')
-   +'<div class="vmap-wrap">'+mapSVG()+'</div>'+nodeCardHTML(sel)+dugHTML()
+   +'<div class="vmap-wrap">'+mapSVG()+'</div>'+(E&&sel!=='enc'?encCardHTML():'')+nodeCardHTML(sel)+dugHTML()
    +'<p class="group-h">Known places &middot; '+known.length+'/'+MAP_IDS.length+'</p><div class="chips v-list">'+known.map(id=>'<button class="btn small'+(id===sel?' primary':'')+'" data-a="vnode" data-k="'+id+'" aria-pressed="'+(id===sel)+'">'+nodeName(id)+(tripSteps(id)?' &middot; '+tripSteps(id):'')+'</button>').join('')+'</div>'
    +'<div class="btns"><button class="btn small" data-a="rest">Rest until dawn</button></div></section>';
 }
@@ -16357,7 +16651,20 @@ function cxValleyHTML(){   // the Codex page: travel, fog and the sites, read fr
    +'<p class="group-h">Sites</p>'+cxList([cxRow('Old graveyards ('+gy+')','Dig: '+MAP_GY_N[0]+' to '+MAP_GY_N[1]+' old bodies of the nearest gate\'s kinds, '+MAP_OLD+'% harder to raise. Then the graveyard rests '+MAP_GY_REST+' days.'),
      cxRow('Battlefields ('+bf+')','After each siege, won or lost, each holds '+MAP_BF_N[0]+' to '+MAP_BF_N[1]+' of the fallen living, '+MAP_FRESH+'% easier to raise. Once walked, a field is empty until the next siege.'),
      cxRow('Dug bodies','They wait in the valley view until dawn and rise in town at no mana, into the army or, when it is full, the Reserve. At dawn the rest crumble.'),
-     cxRow('Visiting','A site needs a watch in hand but none left over: the walk is the visit.')]);
+     cxRow('Visiting','The walk to a site must leave you a watch: the day never ends on the road. A choice keeps that watch; a fight (the mine, the den) spends it.')])
+   +'<p class="group-h">The other sites</p>'+cxList([cxRow('Ruined shrines (5)','One for each god. Pray at your own for '+DEV_SHRINE+' devotion; swear your oath at one if you have none; convert at another\'s; the Profane may desecrate one for gold. Then it rests '+SITE_REST.shrine+' days.'),
+     cxRow('The Crossroads','Each day a different stranger: a pedlar (a potion at half price), a bounty-man ('+BOUNTY_TRO+' trophies of one kind for gold), or a stranger with a raven ('+RAVEN_GOLD+' gold; once you have it, a map-seller). Rests '+SITE_REST.cross+' days.'),
+     cxRow('The Hermit\'s Hut',HERMIT_TRO+' trophies of one kind for a torn page, or for a lesson: the kind you are closest to studying is studied at once. Rests '+SITE_REST.hermit+' days.'),
+     cxRow('The Old Iron Mine','A fight of two rooms against the Iron Orchard\'s kinds at your best gate\'s level. It pays 1 or 2 ore (you hold at most '+ORE_HOLD+'). Each ore makes heart-forging '+Math.round(ORE_K*100)+'% cheaper, up to '+ORE_MAX+' a forging, and is spent. Rests '+SITE_REST.mine+' days.'),
+     cxRow('Gallows Hill','Cut down a hanged hexer of the nearest gate (a body to raise before dawn), or sing for the hanged: the Choir\'s devotion, or for anyone else the town\'s dread falls by '+GALLOWS_DREAD+'. Rests '+SITE_REST.gallows+' days.'),
+     cxRow('The Nine Stones','Call tomorrow\'s omen from three of the gods\' omens, sworn or not. Rests '+SITE_REST.stones+' days.'),
+     cxRow('The Ford','Pay the ferryman ('+FORD_TOLL+' gold a level): every walk of 2 steps or more costs a step less for the rest of the day. Or search the shallows for a drowned body, Preserved. Rests '+SITE_REST.ford+' days.'),
+     cxRow('The Wolf Den','A fight with beasts the gates never made: the Grave Bear, Dire Wolves and Carrion Crows. Every '+DEN_PELTS+' clears make a charm of one of their kits. Rests '+SITE_REST.den+' days.')])
+   +'<p class="group-h">On the road</p>'+cxP('Every step walked has a '+Math.round(ENC_CH*100)+'% chance to meet something ('+Math.round((ENC_CH+ENC_TERROR)*100)+'% when the town is in Terror). It waits on the Valley map until dawn: a patrol of the living (fight, or bribe), a wandering elite of the nearest gate (fight), a corpse cart ('+CART_N+' bodies for gold), or a pilgrim (let go: the town\'s dread falls by '+PILGRIM_DREAD+'; or take the body: it rises). A fight on the road costs no watch.')
+   +'<p class="group-h">Scouting</p>'+cxList([cxRow('Scout','An unknown place next to a known one can be scouted from the map for '+SCOUT_STEPS+' step. You stay where you stand.'),
+     cxRow('The War Room','At level 2 its scouts find one unknown place each dawn.'),
+     cxRow('The raven','Bought from the stranger at the Crossroads, or nesting in the Library at level 3. It finds one unknown place each dawn and shows where the nemeses walk.'),
+     cxRow('Also on the map','Your squads in the field, and on a siege\'s eve the road the living will come by.')]);
 }
 // ----- the Rival and Trials: icon, arena, Gates tab lines, the Trial card, Records, bestiary row, Codex pages
 // The rival: a second keeper in a tall pointed cowl and a standing collar, an open ledger in both hands, a sickle-staff
@@ -16549,7 +16856,7 @@ function townHTML(){
   h+='<section class="win" aria-labelledby="h-gates"><h2 class="win-h" id="h-gates">Open gates</h2><h3 class="win-title">Choose where to hunt</h3>'+gateArmyHTML()+nemStripHTML()
    +((n=>n<FIRST_STEPS.length&&!(S.tips&&S.tips.off)?'<p class="q-note guide-link"><button class="linkbtn" data-a="tab" data-k="help">How to play &middot; first steps '+n+'/'+FIRST_STEPS.length+'</button></p>':'')(stepsDone()))   /* for a new player; gone once every step is done or tips are switched off */
    +(omen()?'<div class="omen-line" title="It touches every gate and the Tower until dawn."><b>Omen today: '+OMENS[omen()].name+'.</b> '+OMENS[omen()].desc+'</div>':'')+(forecast()?'<div class="omen-line dim">Tomorrow: '+(forecast().id?OMENS[forecast().id].name:'no omen')+' (foreseen by '+FAITH[faithOf()].short+').</div>':'')+rivalWarnHTML()+arcGateHTML()
-   +((S.map&&S.map.bodies||[]).length?'<p class="q-note">'+S.map.bodies.length+' bod'+(S.map.bodies.length>1?'ies':'y')+' from the valley wait to be raised before dawn: <button class="linkbtn" data-a="gsub" data-k="valley">Valley map</button></p>':'')
+   +((S.map&&S.map.bodies||[]).length?'<p class="q-note">'+S.map.bodies.length+' bod'+(S.map.bodies.length>1?'ies':'y')+' from the valley wait to be raised before dawn: <button class="linkbtn" data-a="gsub" data-k="valley">Valley map</button></p>':'')+(S.map&&S.map.enc?'<p class="q-note">'+encText(S.map.enc)+' <button class="linkbtn" data-a="gsub" data-k="valley">Valley map</button></p>':'')
    +prepHTML()+'<div class="gates">'+DUNGEONS.map((d,i)=>gateHTML(i)).join('')+'</div>'
    +'<div class="btns"><button class="btn small" data-a="rest">Rest until dawn</button></div></section>';
   return h;
@@ -17305,7 +17612,7 @@ const ACTIONS={
   louse:k=>{ useLoadout(+k); }, loreno:k=>{ ui.lren=+k; ui.lrn=loadoutName(+k); }, lorenx:()=>{ ui.lren=null; }, loren:k=>{ if(renameLoadout(+k,ui.lrn)) ui.lren=null; },
   awaken:k=>{ const it=findItem(+k); ui.msg=awaken(+k)?{mk:1,m:ITEM[it.id].name+' is now Awakened '+AWAKEN_RN[it.aw]+'.',c:'ok'}:null; },
   reforge:k=>{ const it=findItem(+k), c=it&&reforgeCost(it); ui.msg=reforge(+k)?{mk:1,m:'Reforged '+ITEM[it.id].name+' for '+c+' gold.',c:'ok'}:null; },
-  rift:k=>{ startRift(+k); }, gsub:k=>{ ui.gsub=['open','valley','war','rift','trial'].includes(k)?k:'open'; ui.msg=null; }, vnode:k=>{ if(VALLEY_NODES[k]) ui.vsel=k; }, vsite:k=>{ siteVisit(k); }, vraise:k=>{ const r=siteRaise(+k); if(r) ui.msg={m:r.ok?'Risen: '+r.minion+'.':(r.m||'It did not rise.'),c:r.ok?'ok':'bad'}; }, trial:()=>{ startTrial(); },
+  rift:k=>{ startRift(+k); }, gsub:k=>{ ui.gsub=['open','valley','war','rift','trial'].includes(k)?k:'open'; ui.msg=null; }, vnode:k=>{ if(VALLEY_NODES[k]||(k==='enc'&&S.map&&S.map.enc)) ui.vsel=k; }, vpick:k=>{ const [id,c]=String(k).split('|'), m=siteAct(id,c); if(m) ui.msg={m,c:'ok'}; }, vscout:k=>{ if(scout(k)) ui.msg={m:'You find '+nodeName(k)+' down the road.',c:'ok'}; }, venc:k=>{ const m=encAct(k); if(m) ui.msg={m,c:'info'}; if(ui.vsel==='enc') ui.vsel=null; }, vsite:k=>{ siteVisit(k); }, vraise:k=>{ const r=siteRaise(+k); if(r) ui.msg={m:r.ok?'Risen: '+r.minion+'.':(r.m||'It did not rise.'),c:r.ok?'ok':'bad'}; }, trial:()=>{ startTrial(); },
   rsig:k=>{ toggleSigil(k); },
   attune:k=>{ const ok=attune(+k); ui.msg=ok?{m:'Attuned: its depth rises by '+RB_ATT_STEP+'.',c:'ok'}:null; },
   wdive:()=>{ startWeek(); },

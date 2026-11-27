@@ -742,6 +742,7 @@ Object.assign(MAT,{'The Folded Knight':['metal','#5a5e6a'],'Mother of Gates':['s
  ['Pyre Priest','Pyre Witch',['cloth','#7a3a22']],['Hound Master','Barrow Champion',['cloth','#544634']],['War Hound','Hellhound',['fur','#5a4a38']],
  ['The Witchfinder General','Crownless Duelist',['cloth','#2e2620']],['The Saint of Pyres','Brass Saint',['metal','#a86a2e']],['The Grand Inquisitor','Cathedral Templar',['metal','#8a7a4a']]]
   .forEach(([n,from,m])=>{ IC[n]=IC[from]; MAT[n]=m; });   /* R14: the higher tiers of the living */
+[['Dire Wolf','Hellhound',['fur','#4a4440']],['Carrion Crows','Imp',['fur','#26222a']],['Grave Bear','Thorn Troll',['fur','#5a4632']]].forEach(([n,from,m])=>{ IC[n]=IC[from]; MAT[n]=m; });   /* R19 PR B: the Wolf Den's beasts (game-roads.js) */
 const matOf=key=>MAT[key]||(()=>{ const i=SECRET.findIndex(B=>B.name===key); return i>=0?MAT[DUNGEONS[i].boss[0]]:null; })()||MAT._;
 // R16 PR B: the hero's robe colour and staff head (game-collection.js); o.robe / o.staff preview a look in the wardrobe
 const STAFF_SKULL=SKULL(53,10,.42,'bn',SOULC);

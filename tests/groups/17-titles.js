@@ -8,7 +8,7 @@ test('Titles: earned once, worn automatically, with one notice',()=>{
 test('Titles: every condition can be checked on a new game without errors',()=>{ checkTitles(); TITLES.forEach(t=>{ const v=t.ok(); ok(v===true||v===false||v===undefined||typeof v==='number','title '+t.id+' returned '+v); }); });
 test('Titles: deed counters add up',()=>{ tally('x'); tally('x',4); eq(S.ti.x,5); });
 test('Titles: 210 titles, each with a small, readable bonus',()=>{
-  eq(TITLES.length,220); eq(new Set(TITLES.map(t=>t.name)).size,220,'unique names');
+  eq(TITLES.length,224); eq(new Set(TITLES.map(t=>t.name)).size,224,'unique names');
   for(const t of TITLES){ const ks=Object.keys(t.b); ok(ks.length>=1&&ks.length<=2,t.id+' bonus count'); ks.forEach(k=>{ ok(TBUFF_L[k]||STATL[k],t.id+' unknown bonus '+k); ok(t.b[k]>0&&t.b[k]<=(TBUFF_L[k]?10:25)*RARITY_MUL[t.r],t.id+' '+k+' is not small'); ok(k!=='slot',t.id+' gives army slots'); }); ok(buffTxt(t.b)&&!BAD_TEXT.test(buffTxt(t.b)),t.id+' text'); }
   ['Gates','Hell Tower','Curses and events','Deeds'].forEach(g=>ok(TITLES.some(t=>t.grp===g),g));
 });
@@ -72,7 +72,7 @@ test('Titles: the big deeds unlock',()=>{
   KIT_IDS.forEach(k=>S.ti['ks_'+k]=1); S.ti.weakK=500; S.ti.defused=25; S.ti.gcBane=50; for(let i=0;i<10;i++){ S.ti['tf_'+i]=1; if(i<6) S.ti['ub_'+i]=1; }   /* the foe-kit and boss-kit deeds */
   S.abbey={keys:{deep:1,secret:0},open:1}; Object.assign(S.ti,{scriptor:1,echoBreak:1,nm6:1}); S.ti.clr[ABBEY]=1; S.endHist=[{k:'closed',day:1,cycle:0},{k:'kept',day:2,cycle:1}];   /* Vane Abbey and both endings */
   Object.assign(S.ti,{expLong:1,exp_hunt:10,expClean:20,rallies:100,wagerWins:5,reclaimed:10,rivalEnded:1,rivalSpared:1,arcClean:1,r5_hon:1,r5_vesh:1,r5_ulm:1,r5_choir:1,r5_dis:1,godless:1,converted:3,godCalls:20,sig3_20:1,weekBests:10,rb50:1}); S.rift.gk={0:1,1:1,2:1,3:1,4:1,5:1}; S.rift.fr=4;   /* the expedition, Rally and rival deeds */
-  Object.assign(S.ti,{purgeWon:1,roadNorth:10,stier5:2,pyreProof:1}); S.iron=true;   /* R15: the Ironman titles */ sg().works=Object.fromEntries(WORK_IDS.map(k=>[k,1]));   /* R14 */ S.ti.mapDug=100; mapSt().steps=300;   /* R19: the valley */
+  Object.assign(S.ti,{purgeWon:1,roadNorth:10,stier5:2,pyreProof:1}); S.iron=true;   /* R15: the Ironman titles */ sg().works=Object.fromEntries(WORK_IDS.map(k=>[k,1]));   /* R14 */ S.ti.mapDug=100; mapSt().steps=300; S.ti.mapFord=10; MAP_IDS.forEach(id=>{ mapSt().seen[id]=true; }); mapSt().rw=VALLEY_ROADS.map((x,i)=>i); S.kills["Dire Wolf"]=30;   /* R19: the valley */
   checkTitles(); const miss=TITLES.filter(t=>!S.ti.got[t.id]).map(t=>t.id); eq(miss.join(),'','titles not earned');
 });
 
@@ -84,7 +84,7 @@ test('Titles: six rarities; rarer ones give bigger bonuses, and Epic and rarer s
 });
 const earnN=n=>{ S.ti=S.ti||{}; S.ti.got={}; TITLES.slice(0,n).forEach(t=>S.ti.got[t.id]=1); S.ti.sel=null; };
 test('Titles collection: +1% gold from kills per 10 titles earned, capped at +10%, and nothing else',()=>{
-  const N=TITLES.length; eq(N,220); const base=xb('goldp');
+  const N=TITLES.length; eq(N,224); const base=xb('goldp');
   for(const [n,b] of [[0,0],[9,0],[10,1],[25,2],[99,9],[100,10],[N,10]]){ earnN(n); eq(titlesGot(),n); eq(titleColB(),b,n+' titles'); eq(xb('goldp'),base+b,'goldp at '+n); }
   earnN(N); S.ti.got.nonsense=1; eq(titlesGot(),N,'unknown ids do not count'); for(const k of ['dmgp','hpp','drp','xpp','crit','mpow']) eq(xb(k),0,'no '+k);
   earnN(0); eq(xb('dmgp'),0);

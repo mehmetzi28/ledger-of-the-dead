@@ -122,7 +122,7 @@ function ascKits(list){   // buildRoom: Kits Plus gives ordinary gate foes a sec
 function ascStudy(e){ if(!e||!e.kit2||!ascOn('kitsplus')) return 0; S.asc.kp=(S.asc.kp||0)+1; return S.asc.kp%2===0?1:0; }   // studyFoe: every second kill counts twice
 const ultCost=()=>SOUL_MAX+(ascOn('fewsouls')?1:0);
 const ascUlt=()=>ascOn('fewsouls')?ASC_ULT:1;
-const ascGateRun=r=>!!r&&!r.tw&&!r.rift&&!r.trial&&!r.siege&&!r.rg&&!r.rk;
+const ascGateRun=r=>!!r&&!r.tw&&!r.rift&&!r.trial&&!r.siege&&!r.rg&&!r.rk&&!r.sv;
 // the rules' hooks
 function ascRoom(list){   // buildRoom: Two Faces
   const r=S.run; if(!ascOn('twofaces')||!ascGateRun(r)) return;
