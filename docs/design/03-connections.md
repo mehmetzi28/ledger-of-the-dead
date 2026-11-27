@@ -214,8 +214,9 @@ link between existing ones)
   of its keeper is only lore. (Hero, faith, story.) R21. **Partly closed by R21 PR A**: a corruption meter moved by
   bosses raised, dark skills, altars, Eternals, raids and Terror, and pulled down by restraint, burial, the Memorial
   and Morrow or the Choir; the phylactery (Death's Door once a day, a floor of 25, shattered at the Temple); and the
-  other edge (sieges and villages at 50, the dawn Hunger at 75, named by the Grand Inquisitor at 100). The forms (PR B)
-  close it.
+  other edge (sieges and villages at 50, the dawn Hunger at 75, named by the Grand Inquisitor at 100). **Closed by R21
+  PR B**: five forms by build (Lich, Blood Lord, Bone Colossus, Choir Saint, Plague Herald) that change the kit and
+  the hero's look, with a second stage at 75, an apotheosis at 100, and the endings' Clean Hand and Ledger's Own lines.
 - **G31. Minions can be shaped but never designed.** Every minion is a foe that rose; spare bodies and trophies have no
   creative use. (Army, crafting, trophies.) R22.
 - **G32. A fallen minion's line ends.** The Memorial remembers names, but nothing of what a minion was carries into the

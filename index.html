@@ -1320,6 +1320,9 @@ body.cv-skin .win{border-color:#9a7a66;box-shadow:inset 0 0 0 2px rgba(154,122,1
 .ink-stain{color:#9a63b8;flex:none;filter:drop-shadow(0 0 2px rgba(154,99,184,.45))}
 .ph-v{color:var(--gold,#c9a14a)}
 .ph-hunger,.ph-bind{margin:6px 0}
+.ph-form,.ph-fcard{border:1px solid rgba(154,99,184,.35);border-radius:6px;padding:6px 8px;margin:6px 0}
+.ph-form p,.ph-fcard p{margin:2px 0}
+.ph-fcard.dim{opacity:.6}
 </style>
 
 <canvas id="embers" aria-hidden="true"></canvas>
@@ -1814,11 +1817,11 @@ const need = l=>Math.round(DIFF.xpBase*Math.pow(l,DIFF.xpExp));
 const mneed = l=>Math.round(36*Math.pow(l,1.6));
 
 // ----- player-derived stats
-const pMax = ()=>Math.round((24+A('constitution')*CON_HP+S.player.lvl*4+G('hp')+cmdHp())*(1+.06*sk('bonearmor'))*(1+xb('hpp')/100)*tearK()*hungerHpK());
+const pMax = ()=>Math.round((24+A('constitution')*CON_HP+S.player.lvl*4+G('hp')+cmdHp())*(1+.06*sk('bonearmor'))*(1+xb('hpp')/100)*tearK()*hungerHpK()*formHpK());
 const pMana = ()=>Math.round((20+A('intelligence')*6+A('will')*3+G('mana'))*(1+xb('manap')/100)*(1+B_ALT_MANA*bl('altar'))*manaK());   /* Black Altar */
 const pAtk = ()=>Math.round(3+A('strength')*2.2+S.player.lvl+G('atk')+cmdAtk());
 const pSiph = ()=>Math.round(6+A('intelligence')*2.8+S.player.lvl+G('siph')+cmdSiph());
-const pWard = ()=>Math.round((10+A('intelligence')*3+S.player.lvl*1.5+G('ward'))*(hasMod('bonearmor','b')?MARROW:1));
+const pWard = ()=>Math.round((10+A('intelligence')*3+S.player.lvl*1.5+G('ward'))*(hasMod('bonearmor','b')?MARROW:1)*formWardK());
 // What each stat point gives beyond those formulas. Strength: crit chance and armor piercing on Strike, and minion attack. Constitution: less damage taken
 // and more healing received. Intelligence: skill damage (Bone Spear, Corpse Explosion, Grave Chill, Reap) and minion attack. Each Strength and Constitution part is capped.
 // 2026-11-19 stat rebalance (market bot, all points in Will plus one other stat): Will+Constitution cleared 93%, Will alone 72%, Will+Intelligence 65%,
@@ -2488,7 +2491,7 @@ function hit(b){ return Math.max(1,Math.round(b*rnd(.85,1.15))); }
 function hurtFoe(e,d,ty){ if(abbeyMiss(e)) return; ty=MARGIN||(DTYPE[ty]?ty:'phys');   /* an Unwritten foe; a Marginalia skill (game-abbey.js) */ if(e.curse) d=Math.round(d*e.curse.mul); { const mk=masteryDmg(e.base); if(mk) d=Math.round(d*(1+mk/100)); }   /* bestiary mastery: every hit from you and your army, once */ if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25); if(e.stun>0&&capOn('frost1')) d=Math.round(d*CAP_RIME); { const fk=faithHit(e); if(fk!==1) d=Math.round(d*fk); }   /* Vesh: frozen foes take more (game-pantheon.js) */
   if(hasSt(e,'sundered')) d=Math.round(d*SUNDER_MUL); if(hasSt(e,'chilled')) d=Math.round(d*CHILL_MUL);   // conditions (game-gate-rules.js)
   if(e.doom>0&&d>0){ d=Math.round(d*(e.doomK||1)); e.doom--; }   /* Doom, a hexer's active (game-army.js) */
-  const rs=foeRes(e,ty); { const k=(1-rs)*typeDmg(ty)*oilK(e,ty)*archiveK(e)*rallyK()*widenK()*rbDescent(); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
+  const rs=foeRes(e,ty); { const k=(1-rs)*typeDmg(ty)*oilK(e,ty)*archiveK(e)*rallyK()*widenK()*rbDescent()*formDmgK(ty); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
   e.lt=ty;   /* the type of the last hit it took (a weakness kill) */
   { const ik=inscDmgK(); if(ik!==1) d=Math.round(d*ik); }   /* the Gates, Tower and Rift, and Rival inscriptions (game-collection.js) */
   d=bossTaken(e,kitTaken(e,d));   /* Heartwood (game-boss-kits.js) */   /* Bulwark stance, a Banner-bearer beside it (game-kits.js) */
@@ -2504,7 +2507,7 @@ function hurtAlly(a,d,ty){
   hfScales(a,d);   /* Scales (game-forge.js) */   // what hits you, for the defeat recap (before the ward soaks it)
   d=allyDr(a,d); { const ik=brewDr(a); if(ik!==1) d=Math.round(d*ik); }   /* Iron Draught (game-brew.js) */ { const rs=allyRes(a,ty); if(rs) d=Math.max(1,Math.round(d*(1-rs))); }   /* damage types: your resistance lines, a minion's typed trait */
   if(a.id==='p'){ const sk=SAP?KIT_SAP:1, s=Math.min(S.player.shield,d*sk); S.player.shield-=s; d-=Math.round(s/sk); if(BLOW&&d>0) d=tetherBlow(d); /* the Soul Tether (game-faith-story.js) */ } else if(a.mw>0){ const sk=SAP?KIT_SAP:1, s=Math.min(a.mw,d*sk); a.mw-=s; d-=Math.round(s/sk); }   // a Warden's ward on a minion
-  d=Math.min(d,a.hp); a.hp-=d; if(d>0){ mark(a,d,0); markType(a,d,ty,0); } if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p'&&!mfSave(a)&&!echoCall(a)&&!stitchUp(a)&&!faithSave(a)){ fxe('death',a); echoBomb(a); chainSpear(); }   /* gear-bearer powers, the Bomber echo (game-army.js, game-kits.js) */
+  d=Math.min(d,a.hp); a.hp-=d; if(d>0){ mark(a,d,0); markType(a,d,ty,0); } if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p'&&!mfSave(a)&&!echoCall(a)&&!stitchUp(a)&&!faithSave(a)&&!formWard(a)){ fxe('death',a); echoBomb(a); chainSpear(); }   /* gear-bearer powers, the Bomber echo (game-army.js, game-kits.js) */
   return d;
 }
 function allyDr(a,d){   // a blow on you or a minion after its damage reduction, before your ward (pure: the bestiary's damage figures use it too)
@@ -2517,10 +2520,11 @@ function allyDr(a,d){   // a blow on you or a minion after its damage reduction,
   if(a.id!=='p') d=mfDr(a,echoDr(a,d));   /* echoes (game-kits.js), Swarmguard on a gear-bearer (game-army.js) */
   if(a.id!=='p') d=rbBulwark(d);   /* Bulwark of the Deep (game-rift.js) */
   if(a.id==='p'&&hasMod('deathless','b')) d=Math.max(1,Math.round(d*(a.hp<pMax()*IRON_LOW?IRON_WILL:IRON_BASE)));   // Iron Will
+  if(a.id==='p') d=formDr(d);   /* Ossuary Mass (game-phyl.js) */
   return d;
 }
 function healAlly(a,h){
-  if(a.id==='p'){ const hp=xb('healp')+conHeal(); if(hp) h=Math.max(0,Math.round(h*(1+hp/100))); }   // faith, Sanguine Rites and Constitution change the healing you receive
+  if(a.id==='p'){ const hp=xb('healp')+conHeal(); if(hp) h=Math.max(0,Math.round(h*(1+hp/100))); h=Math.round(h*formHealK()); }   // faith, Sanguine Rites and Constitution change the healing you receive
   if(a.dots&&a.dots.blight) h=Math.round(h*BLIGHT_HEAL);   // Blight halves it
   if(S.run&&S.run.rift) h=Math.round(h*sigHeal());   /* Hungry Dark (game-rift.js) */
   if(a.id==='p'&&pactOn('bitter')) h=Math.round(h*(1-PACT_BITTER));   // the Bitter Blood pact
@@ -2550,7 +2554,7 @@ function checkDeaths(){
     if(!(e.hp<=0)||e.dead) continue;
     if(e.echo){ echoFades(e); continue; }   /* the Hunger's echoes leave nothing (game-abbey.js) */
     if(e.risen){ e.dead=true; kitDeath(e); bossFoeDies(e); r.corpses.push(corpseOf(e)); log(e.name+' falls again.'); fxe('death',e); continue; }   /* called back by a Gravecaller: its reward was paid the first time */
-    e.dead=true; r.kills++; S.quest.kills++; minionKill(HITTER,e); kitDeath(e); bossFoeDies(e); pestDeath(e);   /* Contagion (game-builds.js) */
+    e.dead=true; r.kills++; S.quest.kills++; minionKill(HITTER,e); kitDeath(e); bossFoeDies(e); pestDeath(e); formDeath(e);   /* Contagion (game-builds.js) */
     if(e.boss||e.elite) gainSoul();
     if(e.boss){ tally('bosses'); r.bossK=e.name; }   /* the History notes the boss that fell */
     if(e.elite) tally('elites');
@@ -2603,13 +2607,13 @@ function act(kind){
     let d=hit(pAtk()*pierceMul(strPen())*(1+.1*sk('edge'))*hexK(P)*inscHero()), crit=Math.random()<critChance(); if(crit){ d=Math.round(d*1.8); tally('crits'); } if(hasFlag('execute')&&t.hp<t.maxHp*.35) d=Math.round(d*1.5);
     const fb=frozenChilled(t); if(fb) d=Math.round(d*FROSTBREAK);
     hurtFoe(t,d); P.mana=Math.min(pMana(),P.mana+3); if(hasMod('edge','b')){ healAlly(P,Math.round(d*.1)); addDot(t,'bleed',d*BLOODLET,2); } if(crit&&hasMod('edge','a')) addSt(t,'sundered',2);   // Bloodletting, Rending
-    log('You strike '+t.name+' for '+d+(crit?' (crit)':'')+'. +3 mana.'); fxe('strike',t,crit?{crit:1}:null); if(fb&&t.hp>0) frostbreak(t);
+    log('You strike '+t.name+' for '+d+(crit?' (crit)':'')+'. +3 mana.'); fxe('strike',t,crit?{crit:1}:null); if(fb&&t.hp>0) frostbreak(t); formStrike(t,d);   /* the forms (game-phyl.js) */
     if(hasFlag('echo')&&t.hp>0&&Math.random()<.25){ const d2=hit(pAtk()*pierceMul(strPen())); hurtFoe(t,d2,'phys'); log('Echo: the blade strikes again for '+d2+'.','ok'); }
     if(hasFlag('hellfire')){ for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.4)); }
     else if(hasFlag('cleave')){ const o=liveFoes().filter(x=>x!==t); if(o.length) hurtFoe(pick(o),Math.round(d*.6)); }
   }else if(kind==='siphon'){
     if(P.mana<siphonCost()) return;
-    P.mana-=siphonCost(); const low=t.hp<t.maxHp*SIPHON_LOW; let d=hit(pSiph()*pierceMul(SIPHON_PIERCE)*hexK(P)*shadowK()*faithSiph()*inscHero());   /* the Hero inscription (game-collection.js) */ if(low) d*=2; deed('choir',1); SIPHONING=true; hurtFoe(t,d,'shad'); SIPHONING=false;   // pierces a quarter of armor; devours the weak
+    P.mana-=siphonCost(); const low=t.hp<t.maxHp*SIPHON_LOW; let d=hit(pSiph()*pierceMul(SIPHON_PIERCE)*hexK(P)*shadowK()*faithSiph()*inscHero()*formSiphK());   /* the Hero inscription (game-collection.js) */ if(low) d*=2; deed('choir',1); SIPHONING=true; hurtFoe(t,d,'shad'); SIPHONING=false; formSiphon(t,d);   // pierces a quarter of armor; devours the weak
     if(hasFlag('chorus')) for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.5),'shad');
     const h=healAlly(P,Math.round(d*(hasFlag('lifedrain')?SIPHON_HEAL_LD:SIPHON_HEAL))); const got=gainSoul();
     log('Soul Siphon '+(low?'devours ':'drains ')+t.name+' for '+d+(h?', you recover '+h:'')+(got?' and harvest a Soul ('+S.run.souls+'/'+SOUL_MAX+')':'')+'.'); fxe('siphon',t);
@@ -2619,6 +2623,7 @@ function act(kind){
     mark('p',0,0); log('Bone Ward raised. You hold '+P.shield+' ward.'); fxe('ward',P);
   }else if(kind.startsWith('sk:')){ SKILLHIT=1; const done=useSkill(kind.slice(3),t); SKILLHIT=null; if(!done) return; }
   else if(kind==='ult'){ if(!useUlt(t)) return; }
+  else if(kind==='apo'){ if(!useApo()) return; }   /* a form's apotheosis (game-phyl.js) */
   else if(kind.startsWith('ma:')){ const res=useActive(+kind.slice(3)); if(!res) return; if(res==='free'){ if(S.mode==='battle'&&!liveFoes().length) roomWon(); return; } }   /* an Elder active (game-army.js); Execute Order's kill gives the action back */
   else if(kind.startsWith('pot:')){ if(!drink(kind.slice(4))) return; }
   else if(kind==='guard'){ if(!guard()) return; }   // an order that costs the turn (game-faith-story.js)
@@ -2646,7 +2651,7 @@ function act(kind){
     let extra=minionOnHit(m,tg)+echoHit(m,tg)+mfHit(m,tg,d,mt)+specHit(m,tg,d,mt)+kitReflect(tg,m,d);
     if(m.role==='reaper'&&m.hp>0){ const o=liveFoes().filter(x=>x!==tg&&reachable(x)); if(o.length){ const o2=pick(o); const d2=Math.round(d*.5); hurtFoe(o2,d2,mt); extra+=' and cleaves '+o2.name+' for '+d2; } }
     if(hasTrait(m,'frenzied')&&tg.hp>0&&m.hp>0&&Math.random()<.2){ let d3=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*rowK(m)*breakK(m,tg)); const c3=blurCrit(m); if(c3) d3=Math.round(d3*1.8); hurtFoe(tg,d3,mt); d+=d3; extra+=', then strikes again for '+d3+(c3?' (crit)':''); if(hasTrait(m,'blur')) extra+=minionOnHit(m,tg); }   // Blur: the extra strike carries its on-hit effects
-    if(hasTrait(m,'leech')){ const h=healAlly(m,Math.round(d*(hasTrait(m,'bloodfiend')&&m.hp<m.maxHp/2?.5:.25))); if(h) extra+=' and drinks '+h+' HP'; }
+    if(hasTrait(m,'leech')){ const h=healAlly(m,Math.round(d*(hasTrait(m,'bloodfiend')&&m.hp<m.maxHp/2?.5*formFiendK():.25))); if(h) extra+=' and drinks '+h+' HP'; }
     log(m.nick+' hits '+tg.name+' for '+d+(crit?' (crit)':'')+extra+'.'); if(breach) combo('breach',tg,'Breach: '+m.nick+' cuts through the cracked armor.');
     markHit(m,tg,d);
     checkDeaths();
@@ -2949,7 +2954,7 @@ function canUse(id){
 function useSkill(id,t){
   if(!canUse(id)) return false;
   const s=SKILL[id], rk=sk(id), r=S.run, P=S.player;
-  const mg=marginReady(), fl=rbFirst(r); P.mana-=fl?0:skCost(s); marginSkill(r,t,mg); hfSkill(); r.naveU=1; r.lastSk=id; sigMirror(r); r.cd=r.cd||{}; r.cd[id]=fl>1?0:s.cd+1-(id==='blast'?faithBlastCd():0);   /* First Light (game-rift.js) */ tally('sk_'+id); corrSkill(id);   // +1: the end-of-turn tick runs this same turn
+  const mg=marginReady(), fl=rbFirst(r); P.mana-=fl?0:skCost(s); marginSkill(r,t,mg); hfSkill(); r.naveU=1; r.lastSk=id; sigMirror(r); r.cd=r.cd||{}; r.cd[id]=fl>1?0:s.cd+1-(id==='blast'?faithBlastCd():0);   /* First Light (game-rift.js) */ tally('sk_'+id); corrSkill(id); if(id==='blast') formBlast();   // +1: the end-of-turn tick runs this same turn
   if(id==='spear'){ const fb=frozenChilled(t), d=hit((pAtk()+pSiph())*(.7+.15*rk)*pierceMul(hasMod('spear','a')?1:.5)*skMul()*(fb?FROSTBREAK:1)); hurtFoe(t,d,'phys'); log('Bone Spear impales '+t.name+' for '+d+'.'); fxe('spear',t); if(fb&&t.hp>0) frostbreak(t);
     if(hasRune('spear','a')&&!(t.hp>0)){ P.mana=Math.min(pMana(),P.mana+Math.round(skCost(s)/2)); log('Marrow: the kill gives back '+Math.round(skCost(s)/2)+' mana.','ok'); } if(hasRune('spear','b')&&t.hp>0) addSt(t,'sundered',2);   /* runes (game-builds.js) */
     if(hasMod('spear','b')){ const o=liveFoes().filter(x=>x!==t); if(o.length){ const o2=pick(o), d2=Math.round(d*.5); hurtFoe(o2,d2,'phys'); log('A splinter tears into '+o2.name+' for '+d2+'.'); } } }
@@ -3210,7 +3215,7 @@ const MARK={
 };
 const MARK_IDS=Object.keys(MARK);
 const roleMarks=r=>MARK_IDS.filter(k=>MARK[k].role===r);
-const markLv=(m,k)=>m&&Array.isArray(m.marks)?m.marks.filter(x=>x===k).length:0;
+const markLv=(m,k)=>formMark(m&&Array.isArray(m.marks)?m.marks.filter(x=>x===k).length:0);   /* the Choir Saint (game-phyl.js) */
 const markV=(m,k)=>markLv(m,k)*MARK[k].v;   // 0 without the mark
 const markDue=m=>m&&!m.thrall?MARK_AT.filter(s=>(m.stage||0)>=s).length:0;
 const markPend=m=>Math.max(0,markDue(m)-((m&&m.marks)||[]).length);
@@ -3508,7 +3513,7 @@ function foeTarget(alive){ const w=alive.map(a=>a.role==='vanguard'?5:2); let ro
 // standing front row they reach only it. Strikers, menders and bosses reach anyone; Taunt, your Strike and skills, cleaves and splash ignore rows.
 // Your vanguards and reapers moved to the back row strike over the line for BACK_MELEE of their damage: safety costs reach.
 const MELEE={vanguard:1,reaper:1}, BACK_MELEE=.5;
-const rowOf0=u=>u.id==='p'?'b':u.id!=null?((u.boss||u.rival||MELEE[u.role])&&!kitBack(u)?'f':'b'):(u.wall?'f':u.row==='f'||u.row==='b'?u.row:MELEE[u.role]?'f':'b');
+const rowOf0=u=>u.id==='p'?(formFront()?'f':'b'):u.id!=null?((u.boss||u.rival||MELEE[u.role])&&!kitBack(u)?'f':'b'):(u.wall?'f':u.row==='f'||u.row==='b'?u.row:MELEE[u.role]?'f':'b');
 const rowOf=u=>{ const w=rowOf0(u); return guardFold(u)?(w==='f'?'b':'f'):w; };   /* the Folded Knight's Fold (game-rift.js) */
 const rowK=m=>MELEE[m.role]&&rowOf(m)==='b'?BACK_MELEE:1;   // a minion's damage factor from its row
 const frontOf=L=>L.filter(u=>u.hp>0&&rowOf(u)==='f');
@@ -3760,7 +3765,7 @@ const ECLIPSE_SHADOW=1.2, ECLIPSE_CRIT=.1, ECLIPSE_MISS=.1, HARVEST_TRO=.25, HAR
 const shadowK=()=>omen()==='eclipse'?ECLIPSE_SHADOW:1;   // Black Eclipse: Soul Siphon, the Siphon skills (Corpse Explosion, Grave Chill, Reap) and blight
 const foeCrit=()=>.25-(omen()==='eclipse'?ECLIPSE_CRIT:0)+sigCrit()+mistCrit();   /* Thin Veil (game-rift.js) */   // an enemy striker's crit chance
 function roomStart(list){   // a fresh room or floor: Soul Storm, the Swift affix and trait, and Ossified
-  cmdSync();   /* Command: measured as the room begins */
+  cmdSync(); formRoom(list);   /* the forms (game-phyl.js) */   /* Command: measured as the room begins */
   if(S.run){ S.run.sgnU=0; S.run.reapRs=0; }   /* the signature and Second Harvest: once a room (game-builds.js) */
   foeRise(list);
   for(const m of S.army){ delete m.sx; if(m.hp>0&&hasTrait(m,'swift')) addSt(m,'hasted',2); }   // sx: Stitched used this room
@@ -4475,10 +4480,10 @@ const CMDS={
   mender:  {name:'Bone Shield',desc:'Each mender wards you for 150% of its attack.'},
   reaper:  {name:'Execute',    desc:'This turn your reapers deal double damage to foes below 40% HP.'}
 };
-const canCommand=role=>S.mode==='battle'&&!silentNow()&&!!CMDS[role]&&(!(S.run.cmd&&S.run.cmd[role])||xOrder(role))&&S.army.some(m=>m.role===role&&m.hp>0);
+const canCommand=role=>S.mode==='battle'&&!silentNow()&&!!CMDS[role]&&(!(S.run.cmd&&S.run.cmd[role])||xOrder(role)||saintOrder(role))&&S.army.some(m=>m.role===role&&m.hp>0);
 function command(role){
   if(!canCommand(role)) return false;
-  const r=S.run, P=S.player, mine=S.army.filter(m=>m.role===role&&m.hp>0); r.cmd=r.cmd||{}; if(r.cmd[role]){ r.xordU=1; log('Extra Order: the charm crumbles.','ok'); } r.cmd[role]=true; tally('commands');
+  const r=S.run, P=S.player, mine=S.army.filter(m=>m.role===role&&m.hp>0); r.cmd=r.cmd||{}; if(r.cmd[role]){ if(saintOrder(role)) r.saintN=(r.saintN|0)+1; else { r.xordU=1; log('Extra Order: the charm crumbles.','ok'); } } r.cmd[role]=true; tally('commands');
   if(role==='vanguard'){ r.taunt=2+(elderCmdr()?1:0)+(S.army.some(m=>m.spec==='bastion'&&m.hp>0)?1:0);   /* a Bastion (game-army.js) */ log('Taunt: your vanguards bellow, and every foe turns on them.','ok'); }
   else if(role==='striker'){ r.focus=true; log('Focus: your strikers pick their spots.','ok'); }
   else if(role==='mender'){ const w=Math.round(mine.reduce((a,m)=>a+Math.round(m.atk*1.5),0)*(elderCmdr()?ELDER_SHIELD:1)); P.shield=Math.min(Math.round(pMax()*.6),P.shield+w); mark('p',0,0); log('Bone Shield: your menders ward you. You hold '+P.shield+' ward.','ok'); }
@@ -4770,7 +4775,7 @@ const mausN=()=>S&&S.memorial?Math.min(MAUS_MAX,S.memorial.filter(e=>e.maus).len
 const mausCost=()=>MAUS_COST[mausN()]||0;
 const canMaus=e=>!!e&&!e.maus&&S.mode==='town'&&mausN()<MAUS_MAX&&S.gold>=mausCost();
 function raiseMaus(i){ const e=(S.memorial||[])[i]; if(!canMaus(e)) return false; S.gold-=mausCost(); e.maus=1; tally('maus'); syncArmy(); sfx('raise'); return true; }
-const extraMul=(m,k)=>(1+(m?nameK(m.role)+mfStat(m)+(k==='atk'?0:specHp(m)):0))*(k==='atk'?bondMul(m)*ascReadK(m):(1+headBonus()+fallenK()+inscArmy())*townHpK(m)*ascArmyHp())*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K+(rivalBook()?BOOK_K:0):1)*(k==='atk'?choirK()*nightK():1);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
+const extraMul=(m,k)=>(1+(m?nameK(m.role)+mfStat(m)+(k==='atk'?0:specHp(m)):0))*(k==='atk'?bondMul(m)*ascReadK(m):(1+headBonus()+fallenK()+inscArmy())*townHpK(m)*ascArmyHp())*(1+MAUS_K*mausN())*(1+chainK())*(m&&m.recl?1+RECL_K+(rivalBook()?BOOK_K:0):1)*(k==='atk'?choirK()*nightK()*formArmyK():1);   /* Reclaimed (game-rival-arc.js) */   /* War Crypt, the Yard on the wall (game-town2.js) */   /* Oswin's Ledger-Chain: both */   // syncMinion: bonds and moods (attack), headstones (HP), mausoleums (both)
 // ===== THE PANTHEON (R8 PR A) =====
 // From level 8 and 3 clears the Pantheon (the Town tab) takes an oath to one of five Old Gods or to none (the Profane path).
 // S.faith = {id, day, dev, dd, dday, vb, cv}: the god, the day sworn, devotion points, points earned on day dday (dd), the
@@ -4824,7 +4829,7 @@ const faithRank=g=>{ const id=faithOf(); if(!id||(g&&g!==id)) return 0; return M
 const devotion=()=>faithRank();   // the old name, used by the endings' inscriptions
 const blessed=id=>faithOf()===id&&faithRank()>=DEV_RANKS;
 function titheSouls(){ if(blessed('dis')&&S.run){ S.run.souls=Math.max(S.run.souls||0,Math.min(soulCap(),TITHE_SOULS)); } }
-const soulCap=()=>Math.max(1,ultCost()+(faithRank('dis')>=3?1:0)-windSoul());   /* Grave Wind (game-valley.js) */   /* Heavy Souls raises the cap with the cost (game-asc.js) */
+const soulCap=()=>Math.max(1,ultCost()+(faithRank('dis')>=3?1:0)-windSoul()+formSouls());   /* Grave Wind (game-valley.js) */   /* Heavy Souls raises the cap with the cost (game-asc.js) */
 const faithBuff=id=>{ const o={}; if(faithOf()!==id) return o; const k=templeBuff(); BOONS[id].slice(0,faithRank()).forEach(b=>{ if(b.s) for(const s in b.s) o[s]=(o[s]||0)+b.s[s]; }); for(const s in o) o[s]=Math.round(o[s]*(o[s]>0?k:1)); return o; };
 const faithB=k=>{ const id=faithOf(); return id?(faithBuff(id)[k]||0):0; };
 const renounceCost=()=>100*S.player.lvl;
@@ -5993,6 +5998,7 @@ function endingVariant(k){   // the epilogue's third paragraph: your oath, the r
   L.push(rv?'Somewhere in the valley the other scribe closes their own book unfinished. You beat them, and they know it.':'The other scribe is still out there, writing. Some day the two of you will meet over the same grave.');
   L.push(mem>=30?'The Memorial is a city of names now.':mem>=10?'The Memorial holds more names than the town does.':'The Memorial is small. You were careful with them.');
   if(eternal) L.push('One of yours stands at your shoulder, old enough to remember the first page.');
+  { const e=phylEnding(k); if(e) L.push(e); }   /* corruption (game-phyl.js) */
   return L.join(' ');
 }
 function chooseEnding(k){   // the last page: answer once per cycle
@@ -7630,7 +7636,7 @@ function chooseMSpec(uid,k){ if(S.mode==='battle') return false; const m=findMin
 const specHp=m=>m&&m.spec==='bastion'?.2:0;   // extraMul (HP)
 const execAt=m=>m&&m.spec==='executioner'?.5:.4;
 const duelK=(m,tg)=>m.spec==='duelist'&&tg&&tg.dh&&tg.dh.includes(m.uid)?.2:0;
-const healK=m=>(m.spec==='saint'?1.25:m.spec==='plague'?.85:1)*vilBlessK();   /* Saint Aldric's blessing (game-villages.js) */
+const healK=m=>(m.spec==='saint'?1.25:m.spec==='plague'?.85:1)*vilBlessK()*formMendK();   /* Saint Aldric's blessing (game-villages.js) */
 function specHeal(m,a){ if(m.spec==='plague'&&a){ clearDots(a); if(a.st) delete a.st; } }   // the mender's heal
 function specHit(m,tg,d,mt){   // after a blow: Cleaver's splash, the Duelist's memory, the hexer's condition
   let x=''; if(m.spec==='duelist'){ tg.dh=tg.dh||[]; if(!tg.dh.includes(m.uid)) tg.dh.push(m.uid); }
@@ -8854,6 +8860,7 @@ function corrAdd(n,why){   // move corruption; crossing a band is announced
   if(b!==b0){ const up=CORR_BANDS.indexOf(b)>CORR_BANDS.indexOf(b0); notify('Corruption '+corrI()+': '+b.name+(why?' ('+why+')':'')+'.',up?'bad':'ok'); if(up) tally('corrBand_'+CORR_BANDS.indexOf(b)); }
   if(P.corr>=CORR_NAMED&&!P.named){ P.named=1; tally('named'); notify('The Grand Inquisitor has written your name on the Church\'s rolls. Its sieges will come for you by name.','bad'); unlockStory('phyl_named'); }
   if(n>0) S.ti=S.ti||{}, S.ti.corrTop=Math.max(S.ti.corrTop||0,P.corr);
+  if(n>0&&P.form) formStage();
   return P.corr-c0;
 }
 // ----- hooks: what raises it
@@ -8927,6 +8934,8 @@ function phylFix(P){   // normalizeSave
   if(P.rday!=null&&!isFinite(P.rday)) delete P.rday;
   P.named=P.named?1:0; if(!P.named) delete P.named;
   if(!(P.hunP>0)) delete P.hunP;
+  if(!(P.form&&typeof P.form==='object'&&FORMS[P.form.k]&&P.phyl)) delete P.form; else P.form={k:P.form.k,st:clamp(Math.floor(+P.form.st||1),1,3)};
+  if(P.sunD!=null&&!isFinite(P.sunD)) delete P.sunD;
   if(!(P.cdk&&typeof P.cdk==='object'&&isFinite(P.cdk.d)&&isFinite(P.cdk.n))) delete P.cdk;
   if(!(P.hun&&typeof P.hun==='object'&&isFinite(P.hun.d)&&(P.hun.k==='dmg'||P.hun.k==='hp'))) delete P.hun;
 }
@@ -8941,6 +8950,133 @@ STORY.push(
   {act:4,id:'phyl_mortal',t:'Mortal again',when:()=>false,m:'The vessel broke with a sound like a book dropped in an empty church. For a while you could not get warm. Then you could, and your hands were your own again, and you found you were afraid of dying, which you had forgotten how to be. The Ledger said nothing at all. It only waited, as it always has.'}
 );
 ['phyl_bound','phyl_named','phyl_mortal'].forEach(id=>{ STORY_BY[id]=STORY.find(x=>x.id===id); });
+// ===== R21 PR B: the forms =====
+// Bound, at corruption 50, the hero may take one form (S.player.form={k, st}), once per cycle; only a shattering or New Game+
+// clears it. Each form needs its build (the highest stat, or the Rot path deepest), replaces part of the kit and has a
+// cost. Its second stage opens at corruption 75 and its apotheosis (a once-a-run ultimate, act('apo')) at 100; both stay
+// open once reached (st: 1, 2, 3).
+const FM_FORM_AT=50, FM_FORM_S2=75, FM_FORM_S3=100,
+  FM_LICH_ELEM=1.15, FM_LICH_HEAL=.7, FM_LICH_WARD=.8, FM_LICH_PW=.2,
+  FM_BLOOD_HEAL=.15, FM_BLOOD_FIEND=2, FM_BLOOD_SUN=.9, FM_BLOOD_KILL=.04,
+  FM_COL_HP=1.4, FM_COL_ROW=.5, FM_COL_SIPH=.75, FM_COL_DR=.85,
+  FM_SAINT_DMG=.8, FM_SAINT_ORDERS=2, FM_SAINT_ARMY=1.1,
+  FM_HERALD_MEND=.85, FM_HERALD_PLAGUE=.08, FM_HERALD_AIR=.03,
+  FM_APO_WINTER=2, FM_APO_FEAST=1.5, FM_APO_FEAST_HEAL=.5, FM_APO_QUAKE=1.5, FM_APO_HYMN=1.5, FM_APO_PANDEMIC=.2;
+const pathDepth=p=>PATHS[p]?PATHS[p].skills.reduce((a,id)=>a+sk(id),0):0;
+const topStat=k=>{ const v=A(k); return ['strength','constitution','intelligence','will'].every(o=>o===k||A(o)<=v); };
+const FORMS={
+  lich:{name:'Lich',need:'Intelligence your highest stat',ok:()=>topStat('intelligence'),
+    gain:'Soul Siphon becomes Soul Rend and hits a second foe; +1 Soul to hold; your frost and shadow damage +15%',cost:'Healing you receive -30%; Bone Ward -20%',
+    s2:['Phylactery Ward','The first blow each room that would destroy a minion leaves it at 1 HP and costs you 20% of your max mana'],
+    apo:['Winter of the Book','Every foe takes 200% of your Siphon as frost and is frozen for a turn']},
+  blood:{name:'Blood Lord',need:'Strength your highest stat',ok:()=>topStat('strength'),
+    gain:'Strike heals you for 15% of its damage; your Bloodfiend minions drink twice as deep',cost:'In sunlight (the first room of each day) you deal 10% less damage',
+    s2:['Red Tithe','Each foe that falls heals you for 4% of your max HP'],
+    apo:['Red Feast','Every foe takes 150% of your Strike, and you heal for half of it']},
+  colossus:{name:'Bone Colossus',need:'Constitution your highest stat',ok:()=>topStat('constitution'),
+    gain:'You stand in the front row with 40% more max HP; Strike hits every foe in its target\'s row (50% to the others)',cost:'Foes reach you first (no shelter in the back row); Soul Siphon -25%',
+    s2:['Ossuary Mass','You take 15% less damage'],
+    apo:['Earthshaker','Every foe takes 150% of your Strike and is stunned for a turn']},
+  saint:{name:'Choir Saint',need:'Will your highest stat',ok:()=>topStat('will'),
+    gain:'Every evolution mark on your minions counts one step higher; each order may be given twice a room (two extra orders in all)',cost:'Your own damage -20%',
+    s2:['Choir of Many','Your minions deal 10% more damage'],
+    apo:['Hymn of All','Your whole army is healed and fallen minions stand again; they deal 50% more damage for 3 turns']},
+  herald:{name:'Plague Herald',need:'The Rot path your deepest',ok:()=>pathDepth('rot')>0&&Object.keys(PATHS).every(p=>p==='rot'||pathDepth(p)<=pathDepth('rot')),
+    gain:'A foe that falls passes its poison and blight to another; Corpse Explosion leaves plague on every foe',cost:'Your menders heal 15% less',
+    s2:['Rotting Air','Every room\'s foes start poisoned (3% of their max HP a turn for 3 turns)'],
+    apo:['Pandemic','Every foe is poisoned and blighted for 20% of its max HP over three turns']}
+};
+const FORM_IDS=Object.keys(FORMS);
+const formOf=()=>PHYL_ON&&S&&S.player&&S.player.form&&FORMS[S.player.form.k]&&S.player.phyl?S.player.form.k:null;
+const formIs=k=>formOf()===k;
+const formSt=()=>formOf()?S.player.form.st|0:0;
+const formCan=k=>PHYL_ON&&phylOn()&&!S.player.form&&corr()>=FM_FORM_AT&&!!FORMS[k]&&FORMS[k].ok()&&S.mode!=='battle';
+function takeForm(k){
+  if(!formCan(k)) return false; const P=S.player; P.form={k,st:1}; formStage(); tally('form_'+k); S.ti=S.ti||{}; syncArmy(); sfx('raise'); moment(FORMS[k].name,'gold');
+  notify('The Ledger rewrites you. You take the form of the '+FORMS[k].name+'.','story'); unlockStory('form_'+k); return true;
+}
+function formStage(){   // corrAdd: the second stage at 75, the apotheosis at 100; once open they stay open
+  const P=S.player, f=P.form; if(!f||!FORMS[f.k]) return; const c=corr(), st=c>=FM_FORM_S3?3:c>=FM_FORM_S2?2:1;
+  if(st>(f.st|0)){ const F=FORMS[f.k]; if(st>=2&&(f.st|0)<2) notify('The '+F.name+'\'s second stage: '+F.s2[0]+'. '+F.s2[1]+'.','ok'); if(st>=3) notify('Apotheosis: '+F.apo[0]+'. '+F.apo[1]+', once a run.','ok'); f.st=st; syncArmy(); }
+}
+// ----- what the forms change (hooks)
+function formDmgK(ty){   // hurtFoe: a blow from you
+  if(!formOf()||HITTER!==S.player) return 1; let k=1;
+  if(formIs('lich')&&(ty==='frost'||ty==='shad')) k*=FM_LICH_ELEM;
+  if(formIs('saint')) k*=FM_SAINT_DMG;
+  if(formIs('blood')&&S.run&&S.run.sun) k*=FM_BLOOD_SUN;
+  return k;
+}
+const formHealK=()=>formIs('lich')?FM_LICH_HEAL:1;   // healAlly, on you
+const formWardK=()=>formIs('lich')?FM_LICH_WARD:1;   // pWard
+const formSouls=()=>formIs('lich')?1:0;   // soulCap
+const formSiphK=()=>formIs('colossus')?FM_COL_SIPH:1;   // Soul Siphon
+const formHpK=()=>formIs('colossus')?FM_COL_HP:1;   // pMax
+const formFront=()=>formIs('colossus');   // rowOf0: the Colossus stands in the front row
+const formFiendK=()=>formIs('blood')?FM_BLOOD_FIEND:1;   // a Bloodfiend's leech
+const formMendK=()=>formIs('herald')?FM_HERALD_MEND:1;   // healK
+const formArmyK=()=>formIs('saint')&&formSt()>=2?FM_SAINT_ARMY:1;   // extraMul (attack)
+const formDr=d=>formIs('colossus')&&formSt()>=2?Math.max(1,Math.round(d*FM_COL_DR)):d;   // allyDr, on you
+const formMark=n=>n&&formIs('saint')?n+1:n;   // markLv
+function formSiphon(t,d){   // after Soul Siphon's blow: Soul Rend
+  if(!formIs('lich')) return; const o=liveFoes().find(x=>x!==t&&reachable(x)); if(!o) return; SIPHONING=true; hurtFoe(o,d,'shad'); SIPHONING=false; log('Soul Rend tears into '+o.name+' too, for '+d+'.','ok');
+}
+function formStrike(t,d){   // after Strike's blow
+  const P=S.player;
+  if(formIs('blood')){ const h=healAlly(P,Math.round(d*FM_BLOOD_HEAL)); if(h) log('The Blood Lord drinks: +'+h+' HP.','ok'); }
+  if(formIs('colossus')){ const row=rowOf(t); let n=0; for(const o of liveFoes()) if(o!==t&&rowOf(o)===row){ hurtFoe(o,Math.round(d*FM_COL_ROW)); n++; } if(n) log('The Colossus\'s blow carries through '+n+' more in that row.','ok'); }
+}
+const saintOrder=role=>formIs('saint')&&!!S.run&&!!S.run.cmd&&!!S.run.cmd[role]&&(S.run.saintN|0)<FM_SAINT_ORDERS;   // canCommand: the order again
+function formDeath(e){   // checkDeaths, on a foe's fall
+  const P=S.player;
+  if(formIs('herald')&&e.dots){ const o=liveFoes().filter(x=>x!==e); if(o.length){ const to=o[0]; let n=0; for(const k of ['poison','blight']) if(e.dots[k]){ addDot(to,k,e.dots[k].d,Math.max(2,e.dots[k].t)); n++; } if(n){ tally('plagueSpread'); log('The plague leaves '+e.name+' for '+to.name+'.','ok'); } } }
+  if(formIs('blood')&&formSt()>=2){ healAlly(P,Math.round(pMax()*FM_BLOOD_KILL)); }
+}
+function formBlast(){ if(!formIs('herald')) return; const d=Math.max(1,Math.round(pSiph()*FM_HERALD_PLAGUE)); for(const o of liveFoes()) addDot(o,'poison',d,3); log('The burst leaves plague on every foe.','ok'); }   // after Corpse Explosion
+function formWard(a){   // hurtAlly: a minion at 0 HP; the Lich's Phylactery Ward holds it once a room
+  const r=S.run, P=S.player; if(!formIs('lich')||formSt()<2||!r||r.pwU||a.id==='p'||a.thrall) return false; const c=Math.round(pMana()*FM_LICH_PW); if(P.mana<c) return false;
+  P.mana-=c; r.pwU=1; a.hp=1; tally('pward'); log('Phylactery Ward: your mana holds '+a.nick+' at the edge. -'+c+' mana.','ok'); return true;
+}
+function formRoom(list){   // roomStart: the sun on the Blood Lord, the Herald's rotting air
+  const r=S.run, P=S.player; if(!r||!formOf()) return;
+  r.sun=0; if(formIs('blood')&&P.sunD!==S.day){ P.sunD=S.day; r.sun=1; log('Sunlight finds you. The Blood Lord is weaker this room.','bad'); }
+  if(formIs('herald')&&formSt()>=2) for(const e of list) if(e.hp>0) addDot(e,'poison',Math.max(1,Math.round(e.maxHp*FM_HERALD_AIR)),3);
+}
+// ----- the apotheosis
+const canApo=()=>S.mode==='battle'&&!!S.run&&formSt()>=3&&!S.run.apoU&&liveFoes().length>0;
+function useApo(){
+  if(!canApo()) return false; const r=S.run, P=S.player, k=formOf(), F=FORMS[k]; r.apoU=1; tally('apo'); moment(F.apo[0],'gold'); let tot=0;
+  if(k==='lich'){ for(const o of liveFoes()){ const d=hit(pSiph()*FM_APO_WINTER); hurtFoe(o,d,'frost'); tot+=d; if(o.hp>0) o.stun=Math.max(o.stun||0,1); } }
+  else if(k==='blood'){ for(const o of liveFoes()){ const d=hit(pAtk()*FM_APO_FEAST); hurtFoe(o,d); tot+=d; } healAlly(P,Math.round(tot*FM_APO_FEAST_HEAL)); }
+  else if(k==='colossus'){ for(const o of liveFoes()){ const d=hit(pAtk()*FM_APO_QUAKE); hurtFoe(o,d); tot+=d; if(o.hp>0) o.stun=Math.max(o.stun||0,1); } }
+  else if(k==='saint'){ for(const m of S.army){ if(m.hp<=0) m.hp=m.maxHp; else healAlly(m,m.maxHp); } r.frenzy=Math.max(r.frenzy||0,3); r.frenzyMul=Math.max(r.frenzyMul||1,FM_APO_HYMN); }
+  else if(k==='herald'){ for(const o of liveFoes()){ const d=Math.max(1,Math.round(o.maxHp*FM_APO_PANDEMIC/3)); addDot(o,'poison',d,3); addDot(o,'blight',d,3); } }
+  log(F.apo[0]+(tot?': '+tot+' damage in all.':'.'),'ok'); fxe('ult',P); return true;
+}
+// ----- titles, passages
+[['fm_lich','The Lich','Take the form of the Lich.',()=>T_('form_lich')>=1,{siph:4},4],
+ ['fm_blood','The Blood Lord','Take the form of the Blood Lord.',()=>T_('form_blood')>=1,{atk:4},4],
+ ['fm_colossus','The Bone Colossus','Take the form of the Bone Colossus.',()=>T_('form_colossus')>=1,{hpp:4},4],
+ ['fm_saint','The Choir Saint','Take the form of the Choir Saint.',()=>T_('form_saint')>=1,{mpow:4},4],
+ ['fm_herald','The Plague Herald','Take the form of the Plague Herald.',()=>T_('form_herald')>=1,{dmgp:3},4],
+ ['fm_apo','Apotheosis','Use a form\'s apotheosis.',()=>T_('apo')>=1,{dmgp:4},5]
+].forEach(([id,name,req,ok,b,r])=>{ for(const k in b) b[k]=Math.max(b[k],Math.round(b[k]*RARITY_MUL[r])); TITLE_RARITY[id]=r; const t={id,grp:'Deeds',name,req,ok,b,r}; TITLES.push(t); TITLE[id]=t; });
+STORY.push(
+  {act:4,id:'form_lich',t:'The cold hand',when:()=>false,m:'The warmth went out of your fingers first, and then out of the rest of you, and you did not miss it. Ink dries faster on your skin now. When you siphon, the soul comes to you the way water comes to a drain, and something in your chest that used to beat only listens.'},
+  {act:4,id:'form_blood',t:'The red thirst',when:()=>false,m:'You found you could hear hearts across a room, and then across a field. The dawn hurts now, a little, the way a bright window hurts after a long night. Your dead keep a step behind you when you have not fed, and close in when you have.'},
+  {act:4,id:'form_colossus',t:'Bone upon bone',when:()=>false,m:'The bones of the dead you raised did not all go back into the ground. Some came to you instead, and settled over your own like plates of a wall. You stand at the front now. You are the wall. The dead behind you have learned to like it there.'},
+  {act:4,id:'form_saint',t:'The choir sings back',when:()=>false,m:'You began to hear them at night: every name in the book, singing one note each. When you speak to your dead now they answer in harmony. The Ledger calls you its cantor in the margins. Your own hands have grown weak on the blade, and you do not mind.'},
+  {act:4,id:'form_herald',t:'The bearer of the sickness',when:()=>false,m:'The flies found you before you understood what you had become. Where you walk the grass yellows and the wells go sweet and wrong. Your menders work slower, coughing. The living run from your shadow now, and the Ledger fills faster than it ever has.'}
+);
+FORM_IDS.forEach(k=>{ STORY_BY['form_'+k]=STORY.find(x=>x.id==='form_'+k); });
+function phylEnding(k){   // endingVariant: Close the book with a clean hand, or as the Ledger's own
+  if(!PHYL_ON||k!=='closed') return ''; const c=corr();
+  if(c<PHYL_AT) return 'The Clean Hand: you close the book with less of it in you than most who ever held it, and the last line you write is steady.';
+  if(c>CORR_HUNGER) return 'The Ledger\'s Own: the name you write on the last page is the one it gave you, not the one you were born with. The book closes around you like a hand.';
+  return '';
+}
+const FORM_TINT={lich:0xa8c4ff,blood:0xff9a8e,colossus:0xeadfc4,saint:0xffe2a0,herald:0xbfe08c};
+const formTint=()=>FORM_TINT[formOf()]||0xffffff;   // fx.js: the hero's sprite
 // ===== R16 PR A: TITLES AND COLLECTION 2.0 =====
 // Families: every title belongs to one of ten families (FAM_OF, from its id; a new title falls back on its group). Inscribed
 // titles (S.insc): up to three earned titles written beside the worn one, slots at 40, 80 and 120 titles. Each gives its
@@ -10262,6 +10398,7 @@ function fxUpd(F,p,cell,tg,r){
   F.u=u; F.x=p.x; F.y=p.y; if(F.cx==null){ F.cx=p.x; F.cy=p.y; } if(F.dead===null) F.dead=dead;
   const html=isP?ico('Necromancer',pRankI(),{}):ico(u.base||u.kind||u.name,u.rankI,{boss:u.boss,secret:u.secret,elite:u.elite,stage:u.stage,role:u.role});
   if(F.html!==html){ F.html=html; F.spr.texture=fxIcoTex(html)||PIXI.Texture.EMPTY; F.s=0; }
+  if(isP) F.spr.tint=formTint();   /* R21: the form's look (game-phyl.js) */
   if(F.s!==s){ F.s=s; fxFit(F); F.shadow.scale.set(s/34,s/120); F.glow.scale.set(s/26,s/76); F.ring.scale.set(s/52,s/150); F.thr.scale.set(s/44,s/130); F.bk.position.set(0,-s*.5); F.c.hitArea=new PIXI.Rectangle(-cell/2,-s-20,cell,s+64); }
   const nm=F.foe?u.name:(isP?'You':nick(u)), st=fxStatus(u), sel=F.foe&&!dead&&r.target===u.id, ch=F.foe&&!dead?chargeInfo(u):null, it=F.foe&&!dead&&!ch?intentInfo(u):null;
   const kd=it&&it.k==='atk'?foeKnow(u).dmg:null, lab=ch?'Charging: '+ch.name:it?it.txt+(kd!=null?' · '+aboutN(kd):''):'', kind=ch?'abil':it?it.k:'', bw=Math.round(Math.max(s*1.2,cell*.94)), bb=Math.round(Math.min(bw*.9,s*1.15));   /* bw: the name's room, bb: the HP bar */
@@ -14751,6 +14888,59 @@ TR_RX.unshift([/^Corruption (\d+): (Clean|Stained|Marked|Hungering|Named) \((.+)
  ["The Temple can shatter the vessel for # gold, and corruption goes to #","Tapınak kabı # altına parçalayabilir ve yozlaşma #'a iner"],["Your soul","Ruhun"]
 ].forEach(([k,v])=>TR_DICT.set(k,v));
 [["Corpse Explosion, Reap, an Execute order (each, at most +# a day)","Ceset Patlatma, Biçme, bir İnfaz emri (her biri, günde en çok +#)"]].forEach(([k,v])=>TR_DICT.set(k,v));
+// R21 PR B: the forms
+[["Forms","Formlar"],["Lich","Lik"],["Blood Lord","Kan Lordu"],["Bone Colossus","Kemik Devi"],["Choir Saint","Koro Azizi"],["Plague Herald","Veba Habercisi"],
+ ["The Lich","Lik"],["The Blood Lord","Kan Lordu"],["The Bone Colossus","Kemik Devi"],["The Choir Saint","Koro Azizi"],["The Plague Herald","Veba Habercisi"],["Apotheosis","Tanrılaşma"],["Use a form's apotheosis","Bir formun tanrılaşmasını kullan"],
+ ["The Ledger will rewrite you, once this cycle. Choose a form your build can carry","Defter seni bu döngüde bir kez yeniden yazacak. Yapının taşıyabileceği bir form seç"],
+ ["Intelligence your highest stat","En yüksek özelliğin Zekâ"],["Strength your highest stat","En yüksek özelliğin Güç"],["Constitution your highest stat","En yüksek özelliğin Dayanıklılık"],["Will your highest stat","En yüksek özelliğin İrade"],["The Rot path your deepest","En derin yolun Çürüme"],
+ ["Soul Siphon becomes Soul Rend and hits a second foe; +# Soul to hold; your frost and shadow damage +#%","Ruh Emme, Ruh Yırtma olur ve ikinci bir düşmana vurur; +# Ruh taşırsın; ayaz ve gölge hasarın +%#"],
+ ["Healing you receive -#%; Bone Ward -#%","Aldığın iyileşme -%#; Kemik Kalkan -%#"],
+ ["Strike heals you for #% of its damage; your Bloodfiend minions drink twice as deep","Vuruş hasarının %#'i kadar seni iyileştirir; Kan İblisi minyonların iki kat derin içer"],
+ ["In sunlight (the first room of each day) you deal #% less damage","Güneş ışığında (her günün ilk odası) %# daha az hasar verirsin"],
+ ["You stand in the front row with #% more max HP; Strike hits every foe in its target's row (#% to the others)","Ön sırada %# daha fazla azami canla durursun; Vuruş hedefinin sırasındaki her düşmana vurur (diğerlerine %#)"],
+ ["Foes reach you first (no shelter in the back row); Soul Siphon -#%","Düşmanlar önce sana ulaşır (arka sırada sığınak yok); Ruh Emme -%#"],
+ ["Every evolution mark on your minions counts one step higher; each order may be given twice a room (two extra orders in all)","Minyonlarının her evrim işareti bir adım yüksek sayılır; her emir odada iki kez verilebilir (toplam iki ek emir)"],
+ ["Your own damage -#%","Kendi hasarın -%#"],
+ ["A foe that falls passes its poison and blight to another; Corpse Explosion leaves plague on every foe","Düşen bir düşman zehrini ve küfünü bir başkasına geçirir; Ceset Patlatma her düşmanda veba bırakır"],
+ ["Your menders heal #% less","Şifacıların %# daha az iyileştirir"],
+ ["Phylactery Ward","Filakteri Kalkanı"],["The first blow each room that would destroy a minion leaves it at # HP and costs you #% of your max mana","Her odada bir minyonu yok edecek ilk darbe onu # canda bırakır ve sana azami mananın %#'ine mal olur"],
+ ["Winter of the Book","Kitabın Kışı"],["Every foe takes #% of your Siphon as frost and is frozen for a turn","Her düşman Emme'nin %#'i kadar ayaz hasarı alır ve bir tur donar"],
+ ["Red Tithe","Kızıl Ondalık"],["Each foe that falls heals you for #% of your max HP","Düşen her düşman seni azami canının %#'i kadar iyileştirir"],
+ ["Red Feast","Kızıl Ziyafet"],["Every foe takes #% of your Strike, and you heal for half of it","Her düşman Vuruş'unun %#'i kadar hasar alır ve sen bunun yarısı kadar iyileşirsin"],
+ ["Ossuary Mass","Kemiklik Kütlesi"],["You take #% less damage","%# daha az hasar alırsın"],
+ ["Earthshaker","Yer Sarsan"],["Every foe takes #% of your Strike and is stunned for a turn","Her düşman Vuruş'unun %#'i kadar hasar alır ve bir tur sersemler"],
+ ["Choir of Many","Çokların Korosu"],["Your minions deal #% more damage","Minyonların %# daha fazla hasar verir"],
+ ["Hymn of All","Herkesin İlahisi"],["Your whole army is healed and fallen minions stand again; they deal #% more damage for # turns","Bütün ordun iyileşir ve düşen minyonlar yeniden ayağa kalkar; # tur boyunca %# daha fazla hasar verirler"],
+ ["Rotting Air","Çürüyen Hava"],["Every room's foes start poisoned (#% of their max HP a turn for # turns)","Her odanın düşmanları zehirli başlar (# tur boyunca turda azami canlarının %#'i)"],
+ ["Pandemic","Salgın"],["Every foe is poisoned and blighted for #% of its max HP over three turns","Her düşman üç tur boyunca azami canının %#'i kadar zehirlenir ve küflenir"],
+ ["Bound, at corruption #, you may take one form for the cycle; only a shattering or New Game+ clears it","Bağlıyken, # yozlaşmada döngü için bir form alabilirsin; onu yalnızca bir parçalama ya da Yeni Oyun+ siler"],
+ ["Each needs its build","Her biri kendi yapısını ister"],["Its second stage opens at corruption # and its apotheosis, a once-a-run power, at #","İkinci aşaması # yozlaşmada, tanrılaşması, koşu başına bir kez kullanılan bir güç, #'de açılır"],["Both stay open once reached","Ulaşıldığında ikisi de açık kalır"],
+ ["The Ledger rewrites you","Defter seni yeniden yazıyor"],["stage # of #","aşama #/#"],["Once a run","Koşu başına bir kez"],
+ ["The burst leaves plague on every foe","Patlama her düşmanda veba bırakıyor"],["Sunlight finds you. The Blood Lord is weaker this room","Güneş ışığı seni buluyor. Kan Lordu bu odada daha zayıf"],
+ ["The cold hand","Soğuk el"],["The red thirst","Kızıl susuzluk"],["Bone upon bone","Kemik üstüne kemik"],["The choir sings back","Koro karşılık veriyor"],["The bearer of the sickness","Hastalığın taşıyıcısı"],
+ ["The warmth went out of your fingers first, and then out of the rest of you, and you did not miss it. Ink dries faster on your skin now. When you siphon, the soul comes to you the way water comes to a drain, and something in your chest that used to beat only listens","Sıcaklık önce parmaklarından, sonra geri kalanından çekildi ve özlemedin. Mürekkep artık derinde daha çabuk kuruyor. Emdiğinde ruh sana suyun bir gidere aktığı gibi geliyor ve göğsünde eskiden atan bir şey artık yalnızca dinliyor"],
+ ["You found you could hear hearts across a room, and then across a field. The dawn hurts now, a little, the way a bright window hurts after a long night. Your dead keep a step behind you when you have not fed, and close in when you have","Bir odanın, sonra bir tarlanın öbür ucundaki kalpleri duyabildiğini fark ettin. Şafak artık biraz acıtıyor, uzun bir geceden sonra parlak bir pencerenin acıttığı gibi. Beslenmediğinde ölülerin bir adım geride durur, beslendiğinde yaklaşır"],
+ ["The bones of the dead you raised did not all go back into the ground. Some came to you instead, and settled over your own like plates of a wall. You stand at the front now. You are the wall. The dead behind you have learned to like it there","Dirilttiğin ölülerin kemiklerinin hepsi toprağa dönmedi. Bazıları onun yerine sana geldi ve bir duvarın levhaları gibi seninkilerin üstüne yerleşti. Artık önde duruyorsun. Duvar sensin. Arkandaki ölüler orayı sevmeyi öğrendi"],
+ ["You began to hear them at night: every name in the book, singing one note each. When you speak to your dead now they answer in harmony. The Ledger calls you its cantor in the margins. Your own hands have grown weak on the blade, and you do not mind","Geceleri onları duymaya başladın: kitaptaki her ad, her biri bir nota söylüyor. Artık ölülerinle konuştuğunda uyum içinde cevap veriyorlar. Defter kenar notlarında sana kantoru diyor. Kendi ellerin kılıçta zayıfladı ve aldırmıyorsun"],
+ ["The flies found you before you understood what you had become. Where you walk the grass yellows and the wells go sweet and wrong. Your menders work slower, coughing. The living run from your shadow now, and the Ledger fills faster than it ever has","Neye dönüştüğünü anlamadan sinekler seni buldu. Yürüdüğün yerde çimen sararıyor, kuyular tatlı ve yanlış oluyor. Şifacıların öksürerek daha yavaş çalışıyor. Yaşayanlar artık gölgenden kaçıyor ve Defter hiç olmadığı kadar hızlı doluyor"],
+ ["The Clean Hand: you close the book with less of it in you than most who ever held it, and the last line you write is steady","Temiz El: kitabı, onu tutmuş çoğu kişiden daha azı içinde olarak kapatıyorsun ve yazdığın son satır sağlam"],
+ ["The Ledger's Own: the name you write on the last page is the one it gave you, not the one you were born with. The book closes around you like a hand","Defter'in Kendisi: son sayfaya yazdığın ad, doğduğun ad değil, onun sana verdiği ad. Kitap bir el gibi etrafına kapanıyor"]
+].forEach(([k,v])=>TR_DICT.set(k,v));
+TR_RX.unshift([/^You take the form of the (Lich|Blood Lord|Bone Colossus|Choir Saint|Plague Herald)$/,"{t1} formunu alıyorsun"],
+ [/^Take the form of the (Lich|Blood Lord|Bone Colossus|Choir Saint|Plague Herald)$/,"{t1} formunu al"],
+ [/^The (Lich|Blood Lord|Bone Colossus|Choir Saint|Plague Herald)'s second stage: (.+)$/,"{t1} ikinci aşaması: {t2}"],
+ [/^Apotheosis: ([^.]+)\. (.+), once a run$/,"Tanrılaşma: {t1}. {t2}, koşu başına bir kez"],
+ [/^Apotheosis, ([^:]+): (.+)$/,"Tanrılaşma, {t1}: {t2}"],
+ [/^At corruption (\d+): (.+)$/,"$1 yozlaşmada: {t2}"],
+ [/^(Lich|Blood Lord|Bone Colossus|Choir Saint|Plague Herald) \(yours\)$/,"{t1} (seninki)"],
+ [/^(Winter of the Book|Red Feast|Earthshaker|Hymn of All|Pandemic): (\d+) damage in all$/,"{t1}: toplam $2 hasar"],
+ [/^The Blood Lord drinks: \+(\d+) HP$/,"Kan Lordu içiyor: +$1 can"],
+ [/^The Colossus's blow carries through (\d+) more in that row$/,"Devin darbesi o sıradaki $1 kişiye daha geçiyor"],
+ [/^Soul Rend tears into (.+?) too, for (\d+)$/,"Ruh Yırtma $1 adlı düşmanı da yırtıyor: $2"],
+ [/^Phylactery Ward: your mana holds (.+?) at the edge\. -(\d+) mana$/,"Filakteri Kalkanı: manan $1 adlı minyonu kıyıda tutuyor. -$2 mana"],
+ [/^The plague leaves (.+?) for (.+)$/,"Veba $1 adlı düşmandan $2 adlı düşmana geçiyor"]);
+[["Sieges bring one more foe each wave; the villages cool a step a day; the Grand Inquisitor knows your name","Kuşatmalar her dalgada bir düşman fazla getirir; köyler her gün bir adım soğur; Büyük Engizitör adını biliyor"]].forEach(([k,v])=>TR_DICT.set(k,v));
+TR_RX.unshift([/^Second stage, ([^:]+): (.+)$/,"İkinci aşama, {t1}: {t2}"]);
 function trCore(t){ const nums=[]; const key=t.replace(/\d+(?:[.,]\d+)?/g,m=>{ nums.push(m); return '#'; }); let v=TR_DICT.get(key), low=false;
   if(v==null&&/^[a-z]/.test(key)){ v=TR_DICT.get(key[0].toUpperCase()+key.slice(1)); low=v!=null; }   // "every kill restores # mana" after "Censer: "
   if(v==null) return null; let i=0; v=v.replace(/#/g,()=>nums[i++]); return low?v[0].toLocaleLowerCase('tr')+v.slice(1):v; }
@@ -16558,6 +16748,7 @@ function phylHTML(){
   if(fx.length){ const t=fx.join('; '); h+='<p class="u-sub ph-fx">'+t[0].toUpperCase()+t.slice(1)+'.</p>'; }
   if(P.hun&&P.hun.d===S.day) h+='<div class="chips"><span class="chip '+(P.hun.k==='dmg'?'mem-buff':'')+'">'+(P.hun.k==='dmg'?'Fed the Ledger: +5% damage until dawn':'Refused the Ledger: -5% max HP until dawn')+'</span></div>';
   if(hungerOpen()){ const v=hungerVictim(); h+='<div class="ph-hunger"><p class="q-note bad">The Ledger hungers. Give it one of your Reserve and your dead strike 5% harder today; refuse and it takes 5% of your max HP until dawn.</p><div class="btns"><button class="btn small danger" data-a="hunger" data-k="feed"'+(v?'':' disabled title="No one in your Reserve"')+'>'+(v?'Give it '+v.nick:'Give it a Reserve minion')+'</button><button class="btn small" data-a="hunger" data-k="refuse">Refuse</button></div></div>'; }
+  h+=formHTML(town);
   if(phylCan()&&town) h+='<div class="ph-bind"><p class="q-note">The Ledger offers to bind your soul into a vessel. Once a day a killing blow will leave you at 1 HP, but your corruption will never fall under '+PHYL_FLOOR+'. Choose the vessel:</p><div class="btns">'+VESSEL_IDS.map(k=>'<button class="btn small primary" data-a="phylbind" data-k="'+k+'" title="'+VESSELS[k].desc+'">'+VESSELS[k].name+'</button>').join('')+'</div></div>';
   return h;
 }
@@ -16567,8 +16758,18 @@ function cxPhylHTML(){
    +'<p class="group-h">What raises it</p>'+cxList([cxRow('A boss raised','+'+CORR_BOSS),cxRow('Corpse Explosion, Reap, an Execute order (each, at most +'+CORR_DARK_DAY+' a day)','+'+CORR_DARK),cxRow('A defiled altar, a broken shrine','+'+CORR_ALTAR),cxRow('An Eternal in your army','+'+CORR_ETERNAL),cxRow('A village raided','+'+CORR_RAID),cxRow('A day at Terror','+'+CORR_TERROR)])
    +'<p class="group-h">What lowers it</p>'+cxList([cxRow('A day without raising','-'+CORR_CLEAN),cxRow('A battlefield buried (per body)','-'+CORR_BURY),cxRow('The Memorial honoured','-'+CORR_MEM),cxRow('Morrow or the Choir at rank '+DEV_RANKS+' (each day)','-'+CORR_GOD)])
    +'<p class="group-h">The phylactery</p>'+cxP('At level '+PHYL_LV+' and corruption '+PHYL_AT+' the Ledger offers to bind your soul into a vessel. Bound, Death\'s Door holds a killing blow at 1 HP once a day, and the vessel stays cracked until dawn. Corruption never falls under '+PHYL_FLOOR+' while you are bound. New Game+ keeps the soul bound. The Temple can shatter the vessel for '+PHYL_SHATTER+' gold, and corruption goes to 0.')+cxList(VESSEL_IDS.map(k=>cxRow(VESSELS[k].name,VESSELS[k].desc,phylOn()&&P.phyl.v===k?'Your soul':'')))
+   +'<p class="group-h">Forms</p>'+cxP('Bound, at corruption '+FM_FORM_AT+', you may take one form for the cycle; only a shattering or New Game+ clears it. Each needs its build. Its second stage opens at corruption '+FM_FORM_S2+' and its apotheosis, a once-a-run power, at '+FM_FORM_S3+'. Both stay open once reached.')+cxList(FORM_IDS.map(k=>{ const F=FORMS[k]; return cxRow(F.name+(formIs(k)?' (yours)':''),F.gain+'. Cost: '+F.cost+'. Second stage, '+F.s2[0]+': '+F.s2[1]+'. Apotheosis, '+F.apo[0]+': '+F.apo[1]+'.',F.need); }))
    +'<p class="group-h">The other edge</p>'+cxList([cxRow('Marked','Sieges bring one more foe each wave; every village loses 1 standing a day.','Corruption '+CORR_SEEN),cxRow('Hungering','Some dawns the Ledger asks for a Reserve minion: +5% damage that day, or refuse and lose 5% max HP that day.','Corruption '+CORR_HUNGER),cxRow('Named','The Grand Inquisitor knows you: siege captains come 15% harder, and the Hunger reads your own echo from the book.','Corruption '+CORR_NAMED)]);
 }
+// ===== R21 PR B: the forms (game-phyl.js) =====
+function formHTML(town){
+  const P=S.player, k=formOf();
+  if(k){ const F=FORMS[k], st=formSt(); return '<div class="ph-form f-'+k+'"><p><b>'+F.name+'</b> &middot; stage '+st+' of 3</p><p class="u-sub">'+F.gain+'.</p><p class="u-sub bad">Cost: '+F.cost+'.</p>'+(st>=2?'<p class="u-sub">'+F.s2[0]+': '+F.s2[1]+'.</p>':'<p class="u-sub dim">At corruption '+FM_FORM_S2+': '+F.s2[0]+'.</p>')+(st>=3?'<p class="u-sub">Apotheosis, '+F.apo[0]+': '+F.apo[1]+'. Once a run.</p>':'<p class="u-sub dim">At corruption '+FM_FORM_S3+': '+F.apo[0]+'.</p>')+'</div>'; }
+  if(!town||!phylOn()||corr()<FM_FORM_AT||P.form) return '';
+  return '<div class="ph-forms"><p class="q-note">The Ledger will rewrite you, once this cycle. Choose a form your build can carry:</p>'+FORM_IDS.map(f=>{ const F=FORMS[f], ok=F.ok();
+    return '<div class="ph-fcard'+(ok?'':' dim')+'"><p><b>'+F.name+'</b> <span class="u-sub">'+F.need+'</span></p><p class="u-sub">'+F.gain+'.</p><p class="u-sub bad">Cost: '+F.cost+'.</p><button class="btn small'+(ok?' primary':'')+'" data-a="form" data-k="'+f+'"'+(ok?'':' disabled title="'+F.need+'"')+'>Take the form of the '+F.name+'</button></div>'; }).join('')+'</div>';
+}
+function apoBtnHTML(){ if(formSt()<3) return ''; const F=FORMS[formOf()]; return '<button class="btn ult'+(canApo()?' primary':'')+'" data-a="act" data-k="apo" title="'+F.apo[1]+'. Once a run."'+(canApo()?'':' disabled')+'>'+F.apo[0]+'</button>'; }
 // ----- the Codex: every rule and list in the game, read straight from the game's own tables so it never goes stale.
 // Enemies you have not met yet stay hidden, as in the bestiary.
 const CODEX=[['basics','Basics'],['raising','Raising'],['faith','Faith'],['omens','Omens'],['roles','Roles'],['traits','Traits'],['minions','Minion stats'],['army','Army'],['reserve','Reserve'],['fusion','Fusion'],['affixes','Elite affixes'],['bosses','Bosses'],['status','Status effects'],['types','Damage types'],['kits','Foe kits'],['nemeses','Nemeses'],['skills','Skills'],['orders','Orders'],
@@ -17547,7 +17748,7 @@ function ultHTML(){   // Souls and the ultimate, from level 20
   const P=S.player; if(P.lvl<ULT_LV) return '';
   const n=S.run.souls||0, U=ULTS[P.ult]; let pips=''; for(let i=0;i<ultCost();i++) pips+='<i class="soul'+(i<n?' on':'')+'"></i>';
   return '<div class="btns ult-row"><span class="souls" aria-label="'+n+' of '+ultCost()+' Souls">Souls '+pips+'</span>'
-   +(U?'<button class="btn ult'+(canUlt()?' primary':'')+'" data-a="act" data-k="ult" title="'+U.desc+'"'+(canUlt()?'':' disabled')+'>'+U.name+'<kbd>R</kbd></button>':'<span class="u-sub">Choose an ultimate on the Skills tab.</span>')+sgnBtnHTML()+maBtnsHTML()+'</div>';
+   +(U?'<button class="btn ult'+(canUlt()?' primary':'')+'" data-a="act" data-k="ult" title="'+U.desc+'"'+(canUlt()?'':' disabled')+'>'+U.name+'<kbd>R</kbd></button>':'<span class="u-sub">Choose an ultimate on the Skills tab.</span>')+sgnBtnHTML()+apoBtnHTML()+maBtnsHTML()+'</div>';
 }
 const ANS_M='<span class="ans-m" aria-hidden="true" title="Answers the charge"></span>', ANS_S='<span class="sr-only">, answers the charge</span>';
 function chargeAns(){ const c=S.run&&S.mode==='battle'&&S.run.enemies.map(chargeInfo).find(Boolean); return c?c.ans:[]; }   // answer keys for the pending charge (none when nothing charges)
@@ -18170,6 +18371,7 @@ const ACTIONS={
   standwatch:()=>{ standWatch(); },
   gcall:k=>{ const o=callGodOmen(k||null); ui.msg=o?{mk:1,m:'Your god calls tomorrow\'s omen: '+OMENS[o].name+'.',c:'ok'}:null; },
   gward:()=>{ const o=wardOmen(); ui.msg=o?{mk:1,m:'You ward off tomorrow\'s '+OMENS[o].name+'.',c:'ok'}:null; },
+  form:k=>{ if(takeForm(k)) ui.msg={mk:1,m:'You take the form of the '+FORMS[k].name+'.',c:'ok'}; },
   phylbind:k=>{ if(phylBind(k)) ui.msg={mk:1,m:'Your soul is bound into '+VESSELS[k].name+'.',c:'ok'}; },
   phylshatter:()=>{ if(ui.confirm!=='shatter'){ ui.confirm='shatter'; return; } ui.confirm=null; ui.msg=phylShatter()?{mk:1,m:'The phylactery is shattered. You are mortal again.',c:'ok'}:null; },
   hunger:k=>{ const m=hungerAnswer(k==='feed'); ui.msg=m?{mk:1,m,c:k==='feed'?'bad':'ok'}:null; },

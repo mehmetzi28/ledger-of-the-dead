@@ -1,9 +1,9 @@
 // ----- player-derived stats
-const pMax = ()=>Math.round((24+A('constitution')*CON_HP+S.player.lvl*4+G('hp')+cmdHp())*(1+.06*sk('bonearmor'))*(1+xb('hpp')/100)*tearK()*hungerHpK());
+const pMax = ()=>Math.round((24+A('constitution')*CON_HP+S.player.lvl*4+G('hp')+cmdHp())*(1+.06*sk('bonearmor'))*(1+xb('hpp')/100)*tearK()*hungerHpK()*formHpK());
 const pMana = ()=>Math.round((20+A('intelligence')*6+A('will')*3+G('mana'))*(1+xb('manap')/100)*(1+B_ALT_MANA*bl('altar'))*manaK());   /* Black Altar */
 const pAtk = ()=>Math.round(3+A('strength')*2.2+S.player.lvl+G('atk')+cmdAtk());
 const pSiph = ()=>Math.round(6+A('intelligence')*2.8+S.player.lvl+G('siph')+cmdSiph());
-const pWard = ()=>Math.round((10+A('intelligence')*3+S.player.lvl*1.5+G('ward'))*(hasMod('bonearmor','b')?MARROW:1));
+const pWard = ()=>Math.round((10+A('intelligence')*3+S.player.lvl*1.5+G('ward'))*(hasMod('bonearmor','b')?MARROW:1)*formWardK());
 // What each stat point gives beyond those formulas. Strength: crit chance and armor piercing on Strike, and minion attack. Constitution: less damage taken
 // and more healing received. Intelligence: skill damage (Bone Spear, Corpse Explosion, Grave Chill, Reap) and minion attack. Each Strength and Constitution part is capped.
 // 2026-11-19 stat rebalance (market bot, all points in Will plus one other stat): Will+Constitution cleared 93%, Will alone 72%, Will+Intelligence 65%,

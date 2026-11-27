@@ -250,6 +250,7 @@ function endingVariant(k){   // the epilogue's third paragraph: your oath, the r
   L.push(rv?'Somewhere in the valley the other scribe closes their own book unfinished. You beat them, and they know it.':'The other scribe is still out there, writing. Some day the two of you will meet over the same grave.');
   L.push(mem>=30?'The Memorial is a city of names now.':mem>=10?'The Memorial holds more names than the town does.':'The Memorial is small. You were careful with them.');
   if(eternal) L.push('One of yours stands at your shoulder, old enough to remember the first page.');
+  { const e=phylEnding(k); if(e) L.push(e); }   /* corruption (game-phyl.js) */
   return L.join(' ');
 }
 function chooseEnding(k){   // the last page: answer once per cycle

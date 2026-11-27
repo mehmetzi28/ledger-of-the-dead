@@ -477,7 +477,21 @@ the soul bound at the floor. The Temple shatters it for 20,000 gold: corruption 
 other edge: at 50 each siege wave brings one more foe and every village loses 1 standing a day; at 75 one dawn in ten
 the Ledger **hungers** (give it a Reserve minion for +5% damage that day, or refuse and lose 5% max HP that day; a run
 started with the question open refuses it); at 100 the Grand Inquisitor **names** you for good (until a shattering):
-siege captains come 15% harder and the Hunger reads your own echo as a fourth. Three passages. The forms come in PR B.
+siege captains come 15% harder and the Hunger reads your own echo as a fourth. Three passages.
+**The forms** (R21 PR B): bound, at corruption 50, the hero may take one **form** for the cycle (only a shattering or
+New Game+ clears it), if the build carries it. **Lich** (Intelligence highest): Soul Siphon becomes Soul Rend and hits
+a second foe, +1 Soul, your frost and shadow +15%; healing received -30%, Bone Ward -20%. **Blood Lord** (Strength):
+Strike heals 15% of its damage, Bloodfiend minions drink double; sunlight, the first room of each day, -10% damage.
+**Bone Colossus** (Constitution): the hero stands in the front row with +40% max HP and Strike hits every foe in the
+target's row (50% to the others); foes reach the hero first, Siphon -25%. **Choir Saint** (Will): every minion's marks
+count a step higher, each order twice a room; the hero's own damage -20%. **Plague Herald** (the Rot path deepest): a
+fallen foe passes its poison and blight on, Corpse Explosion leaves plague; menders heal 15% less. At corruption 75 the
+**second stage** (Phylactery Ward: the first minion blow each room that would destroy it is held at 1 HP for 20% of max
+mana; Red Tithe: each kill heals 4%; Ossuary Mass: 15% less damage taken; Choir of Many: minions +10% damage; Rotting
+Air: every room's foes start poisoned) and at 100 the **apotheosis**, a once-a-run act (Winter of the Book, Red Feast,
+Earthshaker, Hymn of All, Pandemic); both stay open once reached. The hero's sprite takes the form's tint. Six titles
+(one per form, Apotheosis). Close the book under corruption 25 adds *The Clean Hand* to the epilogue, above 75 *The
+Ledger's Own*.
 
 **Vane Abbey, the seventh gate** (`ABBEY`=6, rank SS, src/game-abbey.js, R3 PR A). Its card shows once the Throne of Ash
 falls, as a sealed door with two key slots (`ABBEY_KEYS`): the deep route (Throne cleared, Tower floor `ABBEY_TOWER` 90,

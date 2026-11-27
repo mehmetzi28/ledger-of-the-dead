@@ -128,7 +128,7 @@ function chooseMSpec(uid,k){ if(S.mode==='battle') return false; const m=findMin
 const specHp=m=>m&&m.spec==='bastion'?.2:0;   // extraMul (HP)
 const execAt=m=>m&&m.spec==='executioner'?.5:.4;
 const duelK=(m,tg)=>m.spec==='duelist'&&tg&&tg.dh&&tg.dh.includes(m.uid)?.2:0;
-const healK=m=>(m.spec==='saint'?1.25:m.spec==='plague'?.85:1)*vilBlessK();   /* Saint Aldric's blessing (game-villages.js) */
+const healK=m=>(m.spec==='saint'?1.25:m.spec==='plague'?.85:1)*vilBlessK()*formMendK();   /* Saint Aldric's blessing (game-villages.js) */
 function specHeal(m,a){ if(m.spec==='plague'&&a){ clearDots(a); if(a.st) delete a.st; } }   // the mender's heal
 function specHit(m,tg,d,mt){   // after a blow: Cleaver's splash, the Duelist's memory, the hexer's condition
   let x=''; if(m.spec==='duelist'){ tg.dh=tg.dh||[]; if(!tg.dh.includes(m.uid)) tg.dh.push(m.uid); }

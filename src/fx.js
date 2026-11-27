@@ -380,6 +380,7 @@ function fxUpd(F,p,cell,tg,r){
   F.u=u; F.x=p.x; F.y=p.y; if(F.cx==null){ F.cx=p.x; F.cy=p.y; } if(F.dead===null) F.dead=dead;
   const html=isP?ico('Necromancer',pRankI(),{}):ico(u.base||u.kind||u.name,u.rankI,{boss:u.boss,secret:u.secret,elite:u.elite,stage:u.stage,role:u.role});
   if(F.html!==html){ F.html=html; F.spr.texture=fxIcoTex(html)||PIXI.Texture.EMPTY; F.s=0; }
+  if(isP) F.spr.tint=formTint();   /* R21: the form's look (game-phyl.js) */
   if(F.s!==s){ F.s=s; fxFit(F); F.shadow.scale.set(s/34,s/120); F.glow.scale.set(s/26,s/76); F.ring.scale.set(s/52,s/150); F.thr.scale.set(s/44,s/130); F.bk.position.set(0,-s*.5); F.c.hitArea=new PIXI.Rectangle(-cell/2,-s-20,cell,s+64); }
   const nm=F.foe?u.name:(isP?'You':nick(u)), st=fxStatus(u), sel=F.foe&&!dead&&r.target===u.id, ch=F.foe&&!dead?chargeInfo(u):null, it=F.foe&&!dead&&!ch?intentInfo(u):null;
   const kd=it&&it.k==='atk'?foeKnow(u).dmg:null, lab=ch?'Charging: '+ch.name:it?it.txt+(kd!=null?' · '+aboutN(kd):''):'', kind=ch?'abil':it?it.k:'', bw=Math.round(Math.max(s*1.2,cell*.94)), bb=Math.round(Math.min(bw*.9,s*1.15));   /* bw: the name's room, bb: the HP bar */

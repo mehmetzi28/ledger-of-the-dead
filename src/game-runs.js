@@ -88,7 +88,7 @@ function hit(b){ return Math.max(1,Math.round(b*rnd(.85,1.15))); }
 function hurtFoe(e,d,ty){ if(abbeyMiss(e)) return; ty=MARGIN||(DTYPE[ty]?ty:'phys');   /* an Unwritten foe; a Marginalia skill (game-abbey.js) */ if(e.curse) d=Math.round(d*e.curse.mul); { const mk=masteryDmg(e.base); if(mk) d=Math.round(d*(1+mk/100)); }   /* bestiary mastery: every hit from you and your army, once */ if(e.stun>0&&hasMod('chill','b')) d=Math.round(d*1.25); if(e.stun>0&&capOn('frost1')) d=Math.round(d*CAP_RIME); { const fk=faithHit(e); if(fk!==1) d=Math.round(d*fk); }   /* Vesh: frozen foes take more (game-pantheon.js) */
   if(hasSt(e,'sundered')) d=Math.round(d*SUNDER_MUL); if(hasSt(e,'chilled')) d=Math.round(d*CHILL_MUL);   // conditions (game-gate-rules.js)
   if(e.doom>0&&d>0){ d=Math.round(d*(e.doomK||1)); e.doom--; }   /* Doom, a hexer's active (game-army.js) */
-  const rs=foeRes(e,ty); { const k=(1-rs)*typeDmg(ty)*oilK(e,ty)*archiveK(e)*rallyK()*widenK()*rbDescent(); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
+  const rs=foeRes(e,ty); { const k=(1-rs)*typeDmg(ty)*oilK(e,ty)*archiveK(e)*rallyK()*widenK()*rbDescent()*formDmgK(ty); if(k!==1) d=Math.max(1,Math.round(d*k)); }   /* damage types: the foe's resistance or weakness, your typed bonus lines */
   e.lt=ty;   /* the type of the last hit it took (a weakness kill) */
   { const ik=inscDmgK(); if(ik!==1) d=Math.round(d*ik); }   /* the Gates, Tower and Rift, and Rival inscriptions (game-collection.js) */
   d=bossTaken(e,kitTaken(e,d));   /* Heartwood (game-boss-kits.js) */   /* Bulwark stance, a Banner-bearer beside it (game-kits.js) */
@@ -104,7 +104,7 @@ function hurtAlly(a,d,ty){
   hfScales(a,d);   /* Scales (game-forge.js) */   // what hits you, for the defeat recap (before the ward soaks it)
   d=allyDr(a,d); { const ik=brewDr(a); if(ik!==1) d=Math.round(d*ik); }   /* Iron Draught (game-brew.js) */ { const rs=allyRes(a,ty); if(rs) d=Math.max(1,Math.round(d*(1-rs))); }   /* damage types: your resistance lines, a minion's typed trait */
   if(a.id==='p'){ const sk=SAP?KIT_SAP:1, s=Math.min(S.player.shield,d*sk); S.player.shield-=s; d-=Math.round(s/sk); if(BLOW&&d>0) d=tetherBlow(d); /* the Soul Tether (game-faith-story.js) */ } else if(a.mw>0){ const sk=SAP?KIT_SAP:1, s=Math.min(a.mw,d*sk); a.mw-=s; d-=Math.round(s/sk); }   // a Warden's ward on a minion
-  d=Math.min(d,a.hp); a.hp-=d; if(d>0){ mark(a,d,0); markType(a,d,ty,0); } if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p'&&!mfSave(a)&&!echoCall(a)&&!stitchUp(a)&&!faithSave(a)){ fxe('death',a); echoBomb(a); chainSpear(); }   /* gear-bearer powers, the Bomber echo (game-army.js, game-kits.js) */
+  d=Math.min(d,a.hp); a.hp-=d; if(d>0){ mark(a,d,0); markType(a,d,ty,0); } if(a.id==='p'&&d>0&&S.run) S.run.hurt=true; if(d>0&&a.hp<=0&&a.id!=='p'&&!mfSave(a)&&!echoCall(a)&&!stitchUp(a)&&!faithSave(a)&&!formWard(a)){ fxe('death',a); echoBomb(a); chainSpear(); }   /* gear-bearer powers, the Bomber echo (game-army.js, game-kits.js) */
   return d;
 }
 function allyDr(a,d){   // a blow on you or a minion after its damage reduction, before your ward (pure: the bestiary's damage figures use it too)
@@ -117,10 +117,11 @@ function allyDr(a,d){   // a blow on you or a minion after its damage reduction,
   if(a.id!=='p') d=mfDr(a,echoDr(a,d));   /* echoes (game-kits.js), Swarmguard on a gear-bearer (game-army.js) */
   if(a.id!=='p') d=rbBulwark(d);   /* Bulwark of the Deep (game-rift.js) */
   if(a.id==='p'&&hasMod('deathless','b')) d=Math.max(1,Math.round(d*(a.hp<pMax()*IRON_LOW?IRON_WILL:IRON_BASE)));   // Iron Will
+  if(a.id==='p') d=formDr(d);   /* Ossuary Mass (game-phyl.js) */
   return d;
 }
 function healAlly(a,h){
-  if(a.id==='p'){ const hp=xb('healp')+conHeal(); if(hp) h=Math.max(0,Math.round(h*(1+hp/100))); }   // faith, Sanguine Rites and Constitution change the healing you receive
+  if(a.id==='p'){ const hp=xb('healp')+conHeal(); if(hp) h=Math.max(0,Math.round(h*(1+hp/100))); h=Math.round(h*formHealK()); }   // faith, Sanguine Rites and Constitution change the healing you receive
   if(a.dots&&a.dots.blight) h=Math.round(h*BLIGHT_HEAL);   // Blight halves it
   if(S.run&&S.run.rift) h=Math.round(h*sigHeal());   /* Hungry Dark (game-rift.js) */
   if(a.id==='p'&&pactOn('bitter')) h=Math.round(h*(1-PACT_BITTER));   // the Bitter Blood pact
@@ -150,7 +151,7 @@ function checkDeaths(){
     if(!(e.hp<=0)||e.dead) continue;
     if(e.echo){ echoFades(e); continue; }   /* the Hunger's echoes leave nothing (game-abbey.js) */
     if(e.risen){ e.dead=true; kitDeath(e); bossFoeDies(e); r.corpses.push(corpseOf(e)); log(e.name+' falls again.'); fxe('death',e); continue; }   /* called back by a Gravecaller: its reward was paid the first time */
-    e.dead=true; r.kills++; S.quest.kills++; minionKill(HITTER,e); kitDeath(e); bossFoeDies(e); pestDeath(e);   /* Contagion (game-builds.js) */
+    e.dead=true; r.kills++; S.quest.kills++; minionKill(HITTER,e); kitDeath(e); bossFoeDies(e); pestDeath(e); formDeath(e);   /* Contagion (game-builds.js) */
     if(e.boss||e.elite) gainSoul();
     if(e.boss){ tally('bosses'); r.bossK=e.name; }   /* the History notes the boss that fell */
     if(e.elite) tally('elites');
@@ -203,13 +204,13 @@ function act(kind){
     let d=hit(pAtk()*pierceMul(strPen())*(1+.1*sk('edge'))*hexK(P)*inscHero()), crit=Math.random()<critChance(); if(crit){ d=Math.round(d*1.8); tally('crits'); } if(hasFlag('execute')&&t.hp<t.maxHp*.35) d=Math.round(d*1.5);
     const fb=frozenChilled(t); if(fb) d=Math.round(d*FROSTBREAK);
     hurtFoe(t,d); P.mana=Math.min(pMana(),P.mana+3); if(hasMod('edge','b')){ healAlly(P,Math.round(d*.1)); addDot(t,'bleed',d*BLOODLET,2); } if(crit&&hasMod('edge','a')) addSt(t,'sundered',2);   // Bloodletting, Rending
-    log('You strike '+t.name+' for '+d+(crit?' (crit)':'')+'. +3 mana.'); fxe('strike',t,crit?{crit:1}:null); if(fb&&t.hp>0) frostbreak(t);
+    log('You strike '+t.name+' for '+d+(crit?' (crit)':'')+'. +3 mana.'); fxe('strike',t,crit?{crit:1}:null); if(fb&&t.hp>0) frostbreak(t); formStrike(t,d);   /* the forms (game-phyl.js) */
     if(hasFlag('echo')&&t.hp>0&&Math.random()<.25){ const d2=hit(pAtk()*pierceMul(strPen())); hurtFoe(t,d2,'phys'); log('Echo: the blade strikes again for '+d2+'.','ok'); }
     if(hasFlag('hellfire')){ for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.4)); }
     else if(hasFlag('cleave')){ const o=liveFoes().filter(x=>x!==t); if(o.length) hurtFoe(pick(o),Math.round(d*.6)); }
   }else if(kind==='siphon'){
     if(P.mana<siphonCost()) return;
-    P.mana-=siphonCost(); const low=t.hp<t.maxHp*SIPHON_LOW; let d=hit(pSiph()*pierceMul(SIPHON_PIERCE)*hexK(P)*shadowK()*faithSiph()*inscHero());   /* the Hero inscription (game-collection.js) */ if(low) d*=2; deed('choir',1); SIPHONING=true; hurtFoe(t,d,'shad'); SIPHONING=false;   // pierces a quarter of armor; devours the weak
+    P.mana-=siphonCost(); const low=t.hp<t.maxHp*SIPHON_LOW; let d=hit(pSiph()*pierceMul(SIPHON_PIERCE)*hexK(P)*shadowK()*faithSiph()*inscHero()*formSiphK());   /* the Hero inscription (game-collection.js) */ if(low) d*=2; deed('choir',1); SIPHONING=true; hurtFoe(t,d,'shad'); SIPHONING=false; formSiphon(t,d);   // pierces a quarter of armor; devours the weak
     if(hasFlag('chorus')) for(const o of liveFoes()) if(o!==t) hurtFoe(o,Math.round(d*.5),'shad');
     const h=healAlly(P,Math.round(d*(hasFlag('lifedrain')?SIPHON_HEAL_LD:SIPHON_HEAL))); const got=gainSoul();
     log('Soul Siphon '+(low?'devours ':'drains ')+t.name+' for '+d+(h?', you recover '+h:'')+(got?' and harvest a Soul ('+S.run.souls+'/'+SOUL_MAX+')':'')+'.'); fxe('siphon',t);
@@ -219,6 +220,7 @@ function act(kind){
     mark('p',0,0); log('Bone Ward raised. You hold '+P.shield+' ward.'); fxe('ward',P);
   }else if(kind.startsWith('sk:')){ SKILLHIT=1; const done=useSkill(kind.slice(3),t); SKILLHIT=null; if(!done) return; }
   else if(kind==='ult'){ if(!useUlt(t)) return; }
+  else if(kind==='apo'){ if(!useApo()) return; }   /* a form's apotheosis (game-phyl.js) */
   else if(kind.startsWith('ma:')){ const res=useActive(+kind.slice(3)); if(!res) return; if(res==='free'){ if(S.mode==='battle'&&!liveFoes().length) roomWon(); return; } }   /* an Elder active (game-army.js); Execute Order's kill gives the action back */
   else if(kind.startsWith('pot:')){ if(!drink(kind.slice(4))) return; }
   else if(kind==='guard'){ if(!guard()) return; }   // an order that costs the turn (game-faith-story.js)
@@ -246,7 +248,7 @@ function act(kind){
     let extra=minionOnHit(m,tg)+echoHit(m,tg)+mfHit(m,tg,d,mt)+specHit(m,tg,d,mt)+kitReflect(tg,m,d);
     if(m.role==='reaper'&&m.hp>0){ const o=liveFoes().filter(x=>x!==tg&&reachable(x)); if(o.length){ const o2=pick(o); const d2=Math.round(d*.5); hurtFoe(o2,d2,mt); extra+=' and cleaves '+o2.name+' for '+d2; } }
     if(hasTrait(m,'frenzied')&&tg.hp>0&&m.hp>0&&Math.random()<.2){ let d3=hit(m.atk*dmgMul()*(r.frenzy>0?r.frenzyMul:1)*rowK(m)*breakK(m,tg)); const c3=blurCrit(m); if(c3) d3=Math.round(d3*1.8); hurtFoe(tg,d3,mt); d+=d3; extra+=', then strikes again for '+d3+(c3?' (crit)':''); if(hasTrait(m,'blur')) extra+=minionOnHit(m,tg); }   // Blur: the extra strike carries its on-hit effects
-    if(hasTrait(m,'leech')){ const h=healAlly(m,Math.round(d*(hasTrait(m,'bloodfiend')&&m.hp<m.maxHp/2?.5:.25))); if(h) extra+=' and drinks '+h+' HP'; }
+    if(hasTrait(m,'leech')){ const h=healAlly(m,Math.round(d*(hasTrait(m,'bloodfiend')&&m.hp<m.maxHp/2?.5*formFiendK():.25))); if(h) extra+=' and drinks '+h+' HP'; }
     log(m.nick+' hits '+tg.name+' for '+d+(crit?' (crit)':'')+extra+'.'); if(breach) combo('breach',tg,'Breach: '+m.nick+' cuts through the cracked armor.');
     markHit(m,tg,d);
     checkDeaths();
